@@ -1,0 +1,380 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix omas: <http://omas.org/base#> .
+
+@prefix : <http://omas.org/base#> .
+
+:shacl {
+
+#
+# Nodeshape for :Project class
+#
+    :OmasProjectShape a sh:nodeShape, :OmasProject ;
+        sh:targetClass :OmasProject ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path :projectId ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:NCName ;
+                sh:order 1 ;
+            ] ;
+        sh:property
+            [
+                sh:path :projectName ;
+                sh:minCount 1 ;
+                sh:datatype xsd:string ;
+                sh:languageIn ( "en" "de" "fr" "it" ) ;
+                sh:uniqueLang true ;
+                sh:order 2 ;
+            ] ;
+        sh:property
+            [
+                sh:path :projectDescription ;
+                sh:minCount 1 ;
+                sh:datatype xsd:string ;
+                sh:languageIn ( "en" "de" "fr" "it" ) ;
+                sh:uniqueLang true ;
+                sh:order 3 ;
+            ] ;
+        sh:property
+            [
+                sh:path :projectStart ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:dateTime ;
+                sh:order 4 ;
+            ] ;
+        sh:property
+            [
+                sh:path :projectEnd ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:dateTime ;
+                sh:order 5 ;
+            ] ;
+        sh:property
+            [
+                sh:path :projectHasUser ;
+                sh:class :OmasUser ;
+                sh:order 6 ;
+            ] ;
+        sh:closed true .
+
+    #
+    # Nodeshape for :OmasPerson class
+    #
+    :OmasPersonShape a sh:nodeShape, :OmasPerson ;
+        sh:targetClass :OmasPerson ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path :personFirstName ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:property
+            [
+                sh:path :personLastName ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:property
+            [
+                sh:path :personBirthDate ;
+                sh:maxCount 1 ;
+                sh:class :OmasDate ;
+            ] ;
+        sh:property
+            [
+                sh:path :personBirthLocation ;
+                sh:maxCount 1 ;
+                sh:class :Location ;
+            ] ;
+        sh:property
+            [
+                sh:path :personDeathDate ;
+                sh:maxCount 1 ;
+                sh:class :OmasDate ;
+            ] ;
+        sh:property
+            [
+                sh:path :personDeathLocation ;
+                sh:maxCount 1 ;
+                sh:class :Location ;
+            ] ;
+        sh:closed true .
+
+    #
+    # Nodeshape for :OmasUser class which is a subclass of :OmasPerson
+    #
+    :OmasUserShape a sh:nodeShape, :OmasUser ;
+        rdfs:subClassOf :OmasUserShape ;
+        sh:targetClass :OmasUser ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path :userId ;
+                sh:maxCount 1 ;
+                sh:minCount 1 ;
+                sh:datatype xsd:string ;
+                sh:minLength 6 ;
+            ] ;
+        sh:property
+            [
+                sh:path :userCredentials ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:property
+            [
+                sh:path :userInProject ;
+                sh:class :OmasProject ;
+            ] ;
+        sh:property
+            [
+                sh:path :userIsActive ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:boolean ;
+            ] ;
+        sh:closed true .
+
+    #
+    # Nodeshape for :Location
+    #
+    :LocationShape a sh:nodeShape, :Location ;
+        sh:targetClass :Location ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path :locationsName ;
+                sh:minCount 1 ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:property
+            [
+                sh:path :locationGeonamesId ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:positiveInteger ;
+            ] ;
+        sh:property
+            [
+                sh:path :locationLatitude ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:double ;
+            ] ;
+        sh:property
+            [
+                sh:path :locationLongitude ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:double ;
+            ] ;
+        sh:closed true .
+
+    #
+    # Definitionen for Date
+    #
+    :GREGORIAN a rdfs:Resource ;
+        rdfs:label "Gregorian" .
+
+    :JULIAN a rdfs:Resource ;
+        rdfs:label "Julian" .
+
+    #
+    # Nodeshape for :OmasDate
+    #
+    :OmasDateShape a sh:nodeShape, :OmasDate ;
+        sh:targetClass :OmasDate ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path :dateCalendar ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:in ( :GREGORIAN :JULIAN ) ;
+            ] ;
+        sh:property
+            [
+                sh:path :dateJDCStart ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:double ;
+            ] ;
+        sh:property
+            [
+                sh:path :dateJDCEnd ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:double ;
+            ] ;
+        sh:closed true .
+
+
+    #
+    # Nodeshape for all resources
+    #
+    :OmasThingShape a sh:nodeShape, :OmasThing ;
+        sh:targetClass :OmasDate ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path :createdBy ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:class :OmasUser ;
+            ] ;
+        sh:property
+            [
+                sh:path :creationDate ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:dateTimeStamp ;
+            ] ;
+        sh:property
+            [
+                sh:path :lastModificationDate ;
+                sh:maxCount 1 ;
+                sh:dataType xsd:dateTimeStamp ;
+            ] ;
+        sh:property
+            [
+                sh:path :lastModifiedBy ;
+                sh:maxCount 1 ;
+                sh:class :OmasUser ;
+            ] .
+
+    #
+    # Nodeshape for the list...
+    #
+    :OmasListShape a sh:nodeShape, :OmasList ;
+        sh:targetClass :OmasList ;
+        rdfs:subClassOf skos:ConceptScheme ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:preferredLabel ;
+                sh:minCount 1 ;
+                sh:datatype xsd:string ;
+                sh:languageIn ( "en" "de" "fr" "it" ) ;
+                sh:uniqueLang true ;
+                sh:order 1 ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:definition ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:closed true .
+
+    :OmasListNodeShape a sh:nodeShape, :OmasListNode ;
+        sh:targetClass :OmasListNode ;
+        rdfs:subClassOf skos:ConceptScheme ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:inScheme ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:class :OmasList ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:broaderTransitive ;
+                sh:maxCount 1 ;
+                sh:class :OmasListNode ;
+            ] ;
+        sh:property
+            [
+                sh:path :nextNode ;
+                sh:maxCount 1 ;
+                sh:class :OmasListNode ;
+            ] ;
+        sh:property
+            [
+                sh:path :leftIndex ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:positiveInteger ;
+            ] ;
+        sh:property
+            [
+                sh:path :rightIndex ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:positiveInteger ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:notation ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:preferredLabel ;
+                sh:minCount 1 ;
+                sh:datatype xsd:string ;
+                sh:languageIn ( "en" "de" "fr" "it" ) ;
+                sh:uniqueLang true ;
+                sh:order 1 ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:alternativeLabel ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:definition ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:note ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:property
+            [
+                sh:path skos:changeNote ;
+                sh:datatype xsd:string ;
+            ] ;
+        sh:closed true .
+
+}
+
+
+
