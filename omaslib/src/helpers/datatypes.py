@@ -1,8 +1,8 @@
-from typing import Dict, Any, Union
+from typing import Any, Union
 from pystrict import strict
+
 from .xsd_datatypes import XsdDatatypes, XsdValidator
 from .omaserror import OmasError
-from dataclasses import dataclass
 
 
 @strict
@@ -13,6 +13,10 @@ class QName:
         if not XsdValidator.validate(XsdDatatypes.QName, value):
             raise OmasError("Invalid string for QName")
         self._value = value
+
+    @classmethod
+    def build(cls, prefix: str, fragment: str):
+        cls(f"{prefix}:{fragment}")
 
     def __add__(self, other: Any) -> 'QName':
         return QName(self._value + str(other))
@@ -46,12 +50,12 @@ class QName:
         return parts[1]
 
 @strict
-class AnyURI:
+class AnyIRI:
     _value: str
     _append_allowed: bool
 
-    def __init__(self, value: Union['AnyURI', str]):
-        if isinstance(value, AnyURI):
+    def __init__(self, value: Union['AnyIRI', str]):
+        if isinstance(value, AnyIRI):
             self._value = str(value)
         else:
             if not XsdValidator.validate(XsdDatatypes.anyURI, value):
@@ -59,11 +63,11 @@ class AnyURI:
             self._value = value
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 
-    def __add__(self, other: Any) -> 'AnyURI':
-        return AnyURI(self._value + str(other))
+    def __add__(self, other: Any) -> 'AnyIRI':
+        return AnyIRI(self._value + str(other))
 
-    def __iadd__(self, other) -> 'AnyURI':
-        return AnyURI(self._value + str(other))
+    def __iadd__(self, other) -> 'AnyIRI':
+        return AnyIRI(self._value + str(other))
 
     def __repr__(self) -> str:
         return f"AnyURI({self._value})"
@@ -80,9 +84,19 @@ class AnyURI:
     def __hash__(self) -> int:
         return self._value.__hash__()
 
+    def __len__(self):
+        return len(self._value)
+
     @property
     def append_allowed(self) -> bool:
         return self._append_allowed
+
+class NamespaceIRI(AnyIRI):
+
+    def __init__(self, value: Union['NamespaceIRI', str]):
+        super().__init__(value)
+        if self._value[-1] != '/' and self._value[-1] != '#':
+            raise OmasError("NamespaceIRI must end with '/' or '#'!")
 
 
 @strict
@@ -119,57 +133,6 @@ class NCName:
         return self._value.__hash__()
 
 
-@strict
-class Context:
-    _context: Dict[NCName, AnyURI]
-
-    def __init__(self):
-        self._context = {
-            NCName('rdf'): AnyURI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
-            NCName('rdfs'): AnyURI('http://www.w3.org/2000/01/rdf-schema#'),
-            NCName('owl'): AnyURI('http://www.w3.org/2002/07/owl#'),
-            NCName('xsd'): AnyURI('http://www.w3.org/2001/XMLSchema#'),
-            NCName('xml'): AnyURI('http://www.w3.org/XML/1998/namespace#'),
-            NCName('sh'): AnyURI('http://www.w3.org/ns/shacl#'),
-            NCName('skos'): AnyURI('http://www.w3.org/2004/02/skos/core#'),
-            NCName('omas'): AnyURI('http://omas.org/base#')
-        }
-
-    def __getitem__(self, prefix: Union[NCName, str]) -> AnyURI:
-        if not isinstance(prefix, NCName):
-            prefix = NCName(prefix)
-        return self._context[prefix]
-
-    def __setitem__(self, prefix: Union[NCName, str], iri: Union[AnyURI, str]) -> None:
-        if not isinstance(prefix, NCName):
-            prefix = NCName(prefix)
-        if not isinstance(iri, AnyURI):
-            iri = AnyURI(iri)
-        if not iri.append_allowed:
-            raise OmasError("IRI must end with # or /")
-        self._context[prefix] = iri
-
-    def __delitem__(self, prefix: Union[NCName, str]):
-        if not isinstance(prefix, NCName):
-            prefix = NCName(prefix)
-        self._context.pop(prefix)
-
-    def __iter__(self):
-        return self._context.__iter__()
-
-    def items(self):
-        return self._context.items()
-
-    @property
-    def sparql_context(self) -> str:
-        contextlist = [f"PREFIX {str(x)}: <{str(y)}>" for x,y in self._context.items()]
-        return "\n".join(contextlist)
-
-
-if __name__ == '__main__':
-    gaga = Context()
-    gaga['hyha'] = 'http://omas.org/projects/hyperhamlet#'
-    print(gaga.sparql_context)
 
 
 

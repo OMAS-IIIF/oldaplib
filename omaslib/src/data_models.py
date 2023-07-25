@@ -6,7 +6,8 @@ from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from connection import Connection
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
-from omaslib.src.helpers.datatypes import QName, Context
+from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.context import Context
 from omaslib.src.model import Model
 
 
