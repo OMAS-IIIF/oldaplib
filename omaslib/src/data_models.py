@@ -92,20 +92,23 @@ class DataModel(Model):
         res = con.rdflib_query(query)
         properties = {}
         for r in res:
+            if not isinstance(r[1], URIRef):
+                raise OmasError("INCONSISTENCY!")
+            p = context.iri2qname(r[1])
             if not properties.get(r[0]):
                 properties[r[0]] = {}
             if isinstance(r[2], URIRef):
-                properties[r[0]][r[1].fragment] = r[2].fragment
+                properties[r[0]][p] = r[2].fragment
             elif isinstance(r[2], Literal):
-                properties[r[0]][r[1].fragment] = r[2].toPython()
+                properties[r[0]][p] = r[2].toPython()
             elif isinstance(r[2], BNode):
                 pass
             else:
-                properties[r[0]][r[1].fragment] = r[2]
+                properties[r[0]][p] = r[2]
             if r[1].fragment == 'languageIn':
-                if not properties[r[0]].get(r[1].fragment):
-                    properties[r[0]][r[1].fragment] = []
-                properties[r[0]][r[1].fragment].append(r[4].toPython())
+                if not properties[r[0]].get(p):
+                    properties[r[0]][p] = []
+                properties[r[0]][p].append(r[4].toPython())
         for x, p in properties.items():
             print(p)
 

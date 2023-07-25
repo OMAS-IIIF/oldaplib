@@ -16,7 +16,7 @@ class QName:
 
     @classmethod
     def build(cls, prefix: str, fragment: str):
-        cls(f"{prefix}:{fragment}")
+        return cls(f"{prefix}:{fragment}")
 
     def __add__(self, other: Any) -> 'QName':
         return QName(self._value + str(other))
