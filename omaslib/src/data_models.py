@@ -1,6 +1,6 @@
 from typing import Any, Union, Optional, Dict
 from pystrict import strict
-from rdflib import Graph, ConjunctiveGraph, URIRef, Literal
+from rdflib import Graph, ConjunctiveGraph, URIRef, Literal, BNode
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 
 from connection import Connection
@@ -77,18 +77,37 @@ class DataModel(Model):
                    shape: QName):
         query = context.sparql_context
         query += f"""
-        SELECT ?shape ?prop ?p ?o
+        SELECT ?prop ?p ?o ?pp ?oo
         FROM {shape.prefix}:shacl
         WHERE {{
             BIND({shape} AS ?shape)
             ?shape sh:property ?prop .
             ?prop ?p ?o .
+            OPTIONAL {{
+                ?o rdf:rest*/rdf:first ?oo
+            }}
         }}
         """
-        print(query)
         res = con.rdflib_query(query)
+        properties = {}
         for r in res:
-            print(r)
+            if not properties.get(r[0]):
+                properties[r[0]] = {}
+            if isinstance(r[2], URIRef):
+                properties[r[0]][r[1].fragment] = r[2].fragment
+            elif isinstance(r[2], Literal):
+                properties[r[0]][r[1].fragment] = r[2].toPython()
+            elif isinstance(r[2], BNode):
+                pass
+            else:
+                properties[r[0]][r[1].fragment] = r[2]
+            if r[1].fragment == 'languageIn':
+                if not properties[r[0]].get(r[1].fragment):
+                    properties[r[0]][r[1].fragment] = []
+                properties[r[0]][r[1].fragment].append(r[4].toPython())
+        for x, p in properties.items():
+            print(p)
+
         return cls(con, context, shape)
 
 if __name__ == '__main__':
