@@ -1,9 +1,16 @@
+from enum import unique, Enum
 from typing import Any, Union
 from pystrict import strict
 
 from .xsd_datatypes import XsdDatatypes, XsdValidator
 from .omaserror import OmasError
 
+@unique
+class Languages(Enum):
+    EN = "en"
+    DE = "de"
+    FR = "fr"
+    IT = "it"
 
 @strict
 class QName:

@@ -12,7 +12,7 @@ class XsdDatatypes(Enum):
     float = 'xsd:float'
     double = 'xsd:double'
     duration = 'xsd:duration'
-    dateTime = 'xsd:dateType'
+    dateTime = 'xsd:dateTime'
     time = 'xsd:time'
     date = 'xsd:date'
     gYearMonth = 'xsd:gYearMonth'
