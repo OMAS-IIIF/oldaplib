@@ -15,6 +15,7 @@
 #
     :OmasProjectShape a sh:nodeShape, :OmasProject ;
         sh:targetClass :OmasProject ;
+
         sh:property
             [
                 sh:path rdf:type ;

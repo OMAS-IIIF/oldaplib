@@ -18,7 +18,7 @@ class QName:
 
     def __init__(self, value: str) -> None:
         if not XsdValidator.validate(XsdDatatypes.QName, value):
-            raise OmasError("Invalid string for QName")
+            raise OmasError(f'Invalid string "{value}" for QName')
         self._value = value
 
     @classmethod

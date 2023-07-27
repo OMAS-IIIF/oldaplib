@@ -5,13 +5,33 @@ from pystrict import strict
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, NamespaceIRI, QName
 from omaslib.src.helpers.omaserror import OmasError
 
+DEFAULT_CONTEXT = "OMAS_DEFAULT_CONTEXT"
+
+class ContextSingleton(type):
+    """
+    The idea for this class came from "https://stackoverflow.com/questions/3615565/python-get-constructor-to-return-an-existing-object-instead-of-a-new-one".
+    """
+    def __call__(cls, *, name, **kwargs):
+        if name not in cls._cache:
+            self = cls.__new__(cls, name=name, **kwargs)
+            cls.__init__(self, name=name, **kwargs)
+            cls._cache[name] = self
+        return cls._cache[name]
+
+    def __init__(cls, name, bases, attributes):
+        super().__init__(name, bases, attributes)
+        cls._cache = {}
+
 
 @strict
-class Context:
-    _context: Dict[NCName, AnyIRI]
+class Context(metaclass=ContextSingleton):
+    _name: str
+    _context: Dict[NCName, NamespaceIRI]
     _inverse: Dict[AnyIRI, NCName]
 
-    def __init__(self):
+    def __init__(self,
+                 name: str):
+        self._name = name
         self._context = {
             NCName('rdf'): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
             NCName('rdfs'): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
@@ -69,5 +89,17 @@ class Context:
 
     @property
     def sparql_context(self) -> str:
-        contextlist = [f"PREFIX {str(x)}: <{str(y)}>" for x,y in self._context.items()]
-        return "\n".join(contextlist)
+        contextlist = [f"PREFIX {str(x)}: <{str(y)}>" for x, y in self._context.items()]
+        return "\n".join(contextlist) + "\n"
+
+    @property
+    def turtle_context(self) -> str:
+        contextlist = [f"@PREFIX {str(x)}: <{str(y)}> ." for x, y in self._context.items()]
+        return "\n".join(contextlist) + "\n"
+
+if __name__ == '__main__':
+    c1 = Context(name=DEFAULT_CONTEXT)
+    c1['gaga'] = 'http://gaga.org/gugus#'
+    c2 = Context(name=DEFAULT_CONTEXT)
+    for k, v in c2.items():
+        print(k, v)

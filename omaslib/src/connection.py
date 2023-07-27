@@ -8,12 +8,13 @@ from pystrict import strict
 from typing import List, Set, Dict, Tuple, Optional, Any, Union
 from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
-from rdflib.namespace import RDF, RDFS, OWL, SKOS, DCTERMS
 from requests import get, post
 from pathlib import Path
 from urllib.parse import quote_plus
 
 from helpers.omaserror import OmasError
+from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
+
 
 @unique
 class SparqlResultFormat(Enum):
@@ -27,9 +28,12 @@ class SparqlResultFormat(Enum):
     TRIG = "application/x-trig"
     TEXT = "text/plain"
 
+
+@strict
 class Connection:
     _server: str
     _repo: str
+    _context_name: str
     _store: SPARQLUpdateStore
     _query_url: str
     _update_url: str
@@ -45,20 +49,41 @@ class Connection:
         SparqlResultFormat.TEXT: lambda a: a.text
     }
 
-    def __init__(self, server: str, repo: str):
+    def __init__(self, server: str, repo: str, context_name: str = DEFAULT_CONTEXT):
         self._server = server
         self._repo = repo
+        self._context_name = context_name
         self._query_url = f'{self._server}/repositories/{self._repo}'
         self._update_url = f'{self._server}/repositories/{self._repo}/statements'
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
-        self._store.bind("rdf", RDF)
-        self._store.bind("rdfs", RDFS)
-        self._store.bind("owl", OWL)
-        self._store.bind("skos", SKOS)
-        ns_omas = Namespace("http://omas.org/base#")
-        self._store.bind("omas", ns_omas)
-        print(self._store.nsBindings)
+        context = Context(name=context_name)
+        for prefix, iri in context.items():
+            self._store.bind(str(prefix), Namespace(str(iri)))
 
+
+    @property
+    def server(self) -> str:
+        return self._server
+
+    @server.setter
+    def server(self, value: Any) -> None:
+        raise OmasError('Cannot change the server of a connection!')
+
+    @property
+    def repo(self) -> str:
+        return self._repo
+
+    @repo.setter
+    def repo(self, value: Any) -> None:
+        raise OmasError('Cannot change the repo of a connection!')
+
+    @property
+    def context_name(self) -> str:
+        return self._context_name
+
+    @context_name.setter
+    def context_name(self, value: Any) -> None:
+        raise OmasError('Cannot change the context name of a connection!')
 
     def clear_repo(self):
         headers = {
@@ -150,7 +175,9 @@ class Connection:
 
 
 if __name__ == "__main__":
-    con = Connection('http://localhost:7200', "omas")
+    con = Connection(server='http://localhost:7200',
+                     repo="omas",
+                     context_name="DEFAULT")
     con.clear_repo()
     con.upload_turtle("../ontologies/omas.ttl", "http://omas.org/base#onto")
     con.upload_turtle("../ontologies/omas.shacl.trig")
