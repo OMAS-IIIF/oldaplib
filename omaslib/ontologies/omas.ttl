@@ -277,7 +277,7 @@ omas:Date rdf:type owl:Class ;
 
 
 ###  http://omas.org/base#Project
-omas:Project rdf:type owl:Class ;
+omas:OmasProject rdf:type owl:Class ;
              rdfs:subClassOf [ rdf:type owl:Restriction ;
                                owl:onProperty :projectHasUser ;
                                owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
