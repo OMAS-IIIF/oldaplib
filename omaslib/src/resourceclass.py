@@ -50,7 +50,7 @@ class ResourceClass(Model):
             sparql += f'{blank:{indent + 8}}] ;\n'
             sparql += f'{blank:{indent + 4}}sh:property\n'
 
-            sparql += p.to_sparql_insert(indent + 8)
+            sparql += p.create_shacl(indent + 8)
         sparql += f'{blank:{indent}}sh:closed {"true" if self._closed else "false"} .\n'
         return sparql
 
@@ -72,6 +72,7 @@ class ResourceClass(Model):
         self._subclass_of = None
         target_class = None
         self._closed = True
+        prop_iris: List[QName] = []
         for r in res:
             p = context.iri2qname(r[0])
             if p == 'rdf:type':
@@ -247,7 +248,7 @@ class ResourceClass(Model):
         self.__read_shacl()
         self.__read_owl()
 
-    def create(self, indent: int = 4):
+    def __create_shacl(self, indent: int = 4):
         blank = ' '
 
         context = Context(name=self._con.context_name)
@@ -264,13 +265,20 @@ class ResourceClass(Model):
             sparql += f'{blank:{5*indent}}sh:path rdf:type ;\n'
             sparql += f'{blank:{4*indent}}] ;\n'
             sparql += f'{blank:{3*indent}}sh:property\n'
-            sparql += p.to_sparql_insert(4*indent)
+            sparql += p.create_shacl(4 * indent)
         sparql += f'{blank:{2*indent}}sh:closed {"true" if self._closed else "false"} .\n'
         sparql += f'{blank:{indent}}}}\n'
         sparql += f'}}\n'
         print(sparql)
         return
         #self._con.update_query(sparql)
+
+    def __create_owl(self, indent: int = 4):
+        pass
+
+    def create(self):
+        self.__create_shacl()
+        self.__create_owl()
 
 if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')

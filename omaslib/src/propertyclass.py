@@ -1,4 +1,5 @@
-from typing import Union, Set, Optional, Any
+from enum import Enum
+from typing import Union, Set, Optional, Any, Tuple
 
 from pystrict import strict
 
@@ -10,10 +11,16 @@ from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
 from omaslib.src.model import Model
 
 
+class OwlPropertyType(Enum):
+    OwlDataProperty = 'owl:DatatypeProperty'
+    OwlObjectProperty = 'owl:ObjectProperty'
+
+
 @strict
 class PropertyClass(Model):
     _property_class_iri: Union[QName, None]
     _subproperty_of: Union[QName, None]
+    _property_type: Union[OwlPropertyType, None]
     _exclusive_for_class: Union[QName, None]
     _required: Union[bool, None]
     _multiple: Union[bool, None]
@@ -22,6 +29,7 @@ class PropertyClass(Model):
     _languages: Set[Languages]  # an empty set if no languages are defined or do not make sense!
     _unique_langs: bool
     _order: int
+
 
     def __init__(self,
                  con: Connection,
@@ -48,6 +56,12 @@ class PropertyClass(Model):
         self._languages = languages if languages else set()
         self._unique_langs = True if unique_langs else False
         self._order = order
+        if self._datatype:
+            self._property_type = OwlPropertyType.OwlDataProperty
+        elif self._to_node_iri:
+            self._property_type = OwlPropertyType.OwlObjectProperty
+        else:
+            self._property_type = None
 
     def __str__(self):
         required = '✅' if self._required else '❌'
@@ -95,14 +109,13 @@ class PropertyClass(Model):
         print(self._property_class_iri)
         datatype = None
         to_node_iri = None
-        data_prop = False
         obj_prop = False
         for r in res:
             pstr = str(context.iri2qname(r[0]))
             if pstr == 'owl:DatatypeProperty':
-                data_prop = True
+                self._property_type = OwlPropertyType.OwlDataProperty
             elif pstr == 'owl:ObjectProperty':
-                obj_prop = True
+                self._property_type = OwlPropertyType.OwlObjectProperty
             elif pstr == 'owl:subPropertyOf':
                 self._subproperty_of = r[1]
             elif pstr == 'rdfs:range':
@@ -115,16 +128,15 @@ class PropertyClass(Model):
                 o = context.iri2qname(r[1])
                 self._exclusive_for_class = o
         # Consistency checks
-        if data_prop and obj_prop:
-            OmasError("Property may not be data- and object-property at the same time")
-        if data_prop:
-            if datatype != self._datatype:
-                OmasError(f'Property has inconstent data type definition: OWL: {datatype} vs SHACL: {self._datatype}.')
-        if obj_prop:
+        if self._property_type == OwlPropertyType.OwlDataProperty and not self._datatype:
+            OmasError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
+        if self._property_type == OwlPropertyType.OwlObjectProperty and not to_node_iri:
+            OmasError(f'OwlObjectProperty "{self._property_class_iri}" has no rdfs:range resource class defined!')
+        if self._property_type == OwlPropertyType.OwlObjectProperty:
             if to_node_iri != self._to_node_iri:
                 OmasError(f'Property has inconstent object type definition: OWL: {to_node_iri} vs SHACL: {self._to_node_iri}.')
 
-    def to_sparql_insert(self, indent: int = 0) -> str:
+    def create_shacl(self, indent: int = 0) -> str:
         blank = ' '
         sparql = f'{blank:{indent}}[\n';
         sparql += f'{blank:{indent + 4}}sh:path {str(self._property_class_iri)} ;\n'
@@ -147,6 +159,18 @@ class PropertyClass(Model):
             sparql += f'{blank:{indent + 4}}sh:order {self._order} ;\n'
         sparql += f'{blank:{indent}}] ; \n'
         return sparql
+
+    def create_owl(self, indent: int = 0, indent_inc: int = 4) -> Tuple[str, str]:
+        blank = ' '
+        sparql1 = f'{blank:{indent*indent_inc}}{self._property_class_iri} rdf:type {self._property_type.value} ;\n'
+        if self._subproperty_of:
+            sparql1 += f'{blank:{indent * (indent_inc + 1)}} rdfs:subPropertyOf {self._subproperty_of} ;\n'
+        if self._exclusive_for_class:
+            sparql1 += f'{blank:{indent*(indent_inc+1)}} rdfs:domain {self._exclusive_for_class} ;\n'
+        if self._property_type == OwlPropertyType.OwlDataProperty:
+            sparql1 += f'{blank:{indent*(indent_inc+1)}} rdfs:range {self._datatype.value} .\n'
+        elif self._property_type == OwlPropertyType.OwlObjectProperty:
+            sparql1 += f'{blank:{indent * (indent_inc + 1)}} rdfs:range {self._to_node_iri} .\n'
 
     @property
     def property_iri(self) -> QName:
