@@ -93,7 +93,36 @@ class PropertyClass(Model):
 
     @property_class_iri.setter
     def property_class_iri(self, value: Any):
-        OmasError(f'property_iri_class cannot be set!')
+        OmasError(f'property_class_iri_class cannot be set!')
+
+    @property
+    def required(self):
+        return self._required
+
+    @required.setter
+    def required(self, value: bool):
+        self._required = value
+
+    @property
+    def multiple(self):
+        return self._multiple
+
+    @multiple.setter
+    def multiple(self, value: bool):
+        self._multiple = value
+
+    @property
+    def languages(self) -> Set[Languages]:
+        return self._languages
+
+    def add_language(self, lang: Languages) -> None:
+        self._languages.add(lang)
+
+    def remove_language(self, lang: Languages) -> None:
+        self._languages.discard(lang)
+
+    def valid_language(self, lang: Languages) -> bool:
+        return lang in self._languages
 
     def read_owl(self):
         context = Context(name=self._con.context_name)
@@ -136,75 +165,56 @@ class PropertyClass(Model):
             if to_node_iri != self._to_node_iri:
                 OmasError(f'Property has inconstent object type definition: OWL: {to_node_iri} vs SHACL: {self._to_node_iri}.')
 
-    def create_shacl(self, indent: int = 0) -> str:
-        blank = ' '
-        sparql = f'{blank:{indent}}[\n';
-        sparql += f'{blank:{indent + 4}}sh:path {str(self._property_class_iri)} ;\n'
+    def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql = f'{blank:{indent*indent_inc}}[\n';
+        sparql += f'{blank:{(indent + 1)*indent_inc}}sh:path {str(self._property_class_iri)} ;\n'
         if self._datatype:
-            sparql += f'{blank:{indent + 4}}sh:datatype {self._datatype.value} ;\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:datatype {self._datatype.value} ;\n'
         if self._required:
-            sparql += f'{blank:{indent + 4}}sh:minCount 1 ;\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:minCount 1 ;\n'
         if not self._multiple:
-            sparql += f'{blank:{indent + 4}}sh:maxCount 1 ;\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:maxCount 1 ;\n'
         if self._languages:
-            sparql += f'{blank:{indent + 4}}sh:languageIn ( '
+            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:languageIn ( '
             for lang in self._languages:
                 sparql += f'"{lang.value}" '
             sparql += f') ;\n'
         if self._unique_langs:
-            sparql += f'{blank:{indent + 4}}sh:uniqueLang true ;\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:uniqueLang true ;\n'
         if self._to_node_iri:
-            sparql += f'{blank:{indent + 4}}sh:class {str(self._to_node_iri)} ;\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:class {str(self._to_node_iri)} ;\n'
         if self._order:
-            sparql += f'{blank:{indent + 4}}sh:order {self._order} ;\n'
-        sparql += f'{blank:{indent}}] ; \n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:order {self._order} ;\n'
+        sparql += f'{blank:{indent*indent_inc}}] ; \n'
         return sparql
 
-    def create_owl(self, indent: int = 0, indent_inc: int = 4) -> Tuple[str, str]:
-        blank = ' '
-        sparql1 = f'{blank:{indent*indent_inc}}{self._property_class_iri} rdf:type {self._property_type.value} ;\n'
+    def create_owl_part1(self, indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql = f'{blank:{indent*indent_inc}}{self._property_class_iri} rdf:type {self._property_type.value}'
         if self._subproperty_of:
-            sparql1 += f'{blank:{indent * (indent_inc + 1)}} rdfs:subPropertyOf {self._subproperty_of} ;\n'
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}} rdfs:subPropertyOf {self._subproperty_of}'
         if self._exclusive_for_class:
-            sparql1 += f'{blank:{indent*(indent_inc+1)}} rdfs:domain {self._exclusive_for_class} ;\n'
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}} rdfs:domain {self._exclusive_for_class}'
         if self._property_type == OwlPropertyType.OwlDataProperty:
-            sparql1 += f'{blank:{indent*(indent_inc+1)}} rdfs:range {self._datatype.value} .\n'
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}} rdfs:range {self._datatype.value}'
         elif self._property_type == OwlPropertyType.OwlObjectProperty:
-            sparql1 += f'{blank:{indent * (indent_inc + 1)}} rdfs:range {self._to_node_iri} .\n'
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}} rdfs:range {self._to_node_iri}'
+        sparql += ' .\n'
+        return sparql
 
-    @property
-    def property_iri(self) -> QName:
-        return self._property_class_iri
-
-    @property_iri.setter
-    def property_iri(self, value: Union[QName, str]) -> None:
-        raise OmasError("Property IRI can not be changed!")
-
-    @property
-    def required(self):
-        return self._required
-
-    @required.setter
-    def required(self, value: bool):
-        self._required = value
-
-    @property
-    def multiple(self):
-        return self._multiple
-
-    @multiple.setter
-    def multiple(self, value: bool):
-        self._multiple = value
-
-    @property
-    def languages(self) -> Set[Languages]:
-        return self._languages
-
-    def add_language(self, lang: Languages) -> None:
-        self._languages.add(lang)
-
-    def remove_language(self, lang: Languages) -> None:
-        self._languages.discard(lang)
-
-    def valid_language(self, lang: Languages) -> bool:
-        return lang in self._languages
+    def create_owl_part2(self, indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql = f'{blank:{indent*indent_inc}}[\n'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}rdf:type owl:Restriction ;\n'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}owl:onProperty {self._property_class_iri}'
+        if self._required:
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger'
+        if not self._multiple:
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger'
+        if self._property_type == OwlPropertyType.OwlDataProperty:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDataRange {self._datatype.value}'
+        elif self._property_type == OwlPropertyType.OwlObjectProperty:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._to_node_iri}'
+        sparql += f' ;\n{blank:{indent * indent_inc}}]'
+        return sparql

@@ -248,33 +248,54 @@ class ResourceClass(Model):
         self.__read_shacl()
         self.__read_owl()
 
-    def __create_shacl(self, indent: int = 4):
-        blank = ' '
-
+    def __create_shacl(self, indent: int = 0, indent_inc: int = 4):
+        blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        sparql += f'INSERT DATA {{\n'
-        sparql += f'{blank:{indent}}GRAPH {self._owl_class.prefix}:shacl {{\n'
-        sparql += f'{blank:{2*indent}}{self._owl_class}Shape a sh:nodeShape, {self._owl_class} ;\n'
+        sparql += f'{blank:{indent*indent_inc}}INSERT DATA {{\n'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class}Shape a sh:nodeShape, {self._owl_class} ;\n'
         if self._subclass_of:
-            sparql += f'{blank:{3*indent}}rdfs:subClassOf {self._subclass_of}Shape ; \n'
-        sparql += f'{blank:{3*indent}}sh:targetClass {self._owl_class} ; \n'
+            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of}Shape ; \n'
+        sparql += f'{blank:{(indent + 3)*indent_inc}}sh:targetClass {self._owl_class} ; \n'
         for p in self._properties:
-            sparql += f'{blank:{3*indent}}sh:property\n'
-            sparql += f'{blank:{4*indent}}[\n'
-            sparql += f'{blank:{5*indent}}sh:path rdf:type ;\n'
-            sparql += f'{blank:{4*indent}}] ;\n'
-            sparql += f'{blank:{3*indent}}sh:property\n'
-            sparql += p.create_shacl(4 * indent)
-        sparql += f'{blank:{2*indent}}sh:closed {"true" if self._closed else "false"} .\n'
-        sparql += f'{blank:{indent}}}}\n'
-        sparql += f'}}\n'
+            sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property\n'
+            sparql += f'{blank:{(indent + 4)*indent_inc}}[\n'
+            sparql += f'{blank:{(indent + 5)*indent_inc}}sh:path rdf:type ;\n'
+            sparql += f'{blank:{(indent + 4)*indent_inc}}] ;\n'
+            sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property\n'
+            sparql += p.create_shacl(4)
+        sparql += f'{blank:{(indent + 2)*indent_inc}}sh:closed {"true" if self._closed else "false"} .\n'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
+        sparql += f'{blank:{indent*indent_inc}}}}\n'
         print(sparql)
         return
         #self._con.update_query(sparql)
 
-    def __create_owl(self, indent: int = 4):
-        pass
+    def __create_owl(self, indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += f'{blank:{indent*indent_inc}}INSERT DATA {{\n'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:onto {{\n'
+        for p in self._properties:
+            sparql += p.create_owl_part1(indent + 2) + '\n'
+        sparql += f'{blank:{(indent + 2)*indent_inc}}{p.property_class_iri} rdf:type owl:Class ;\n'
+        if self._subclass_of:
+            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of} ,\n'
+        else:
+            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf\n'
+        for i, p in enumerate(self._properties):
+            sparql += p.create_owl_part2(indent + 4)
+            if i < len(self._properties) - 1:
+                sparql += ' ,\n'
+            else:
+                sparql += ' .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        print(sparql)
+        return
+        #self._con.update_query(sparql)
 
     def create(self):
         self.__create_shacl()
@@ -284,8 +305,6 @@ if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
     omas_project = ResourceClass(con, QName('omas:OmasProject'))
     omas_project.read()
-    print(str(omas_project))
-    exit(-1)
     omas_project.create()
     exit(-1)
     plist = [
