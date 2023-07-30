@@ -222,6 +222,7 @@
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:double ;
+                sh:lessThanOrEquals :dateJDCEnd ;
             ] ;
         sh:property
             [

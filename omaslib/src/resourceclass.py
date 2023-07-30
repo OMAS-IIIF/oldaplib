@@ -269,8 +269,8 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
         print(sparql)
-        return
-        #self._con.update_query(sparql)
+        #return
+        self._con.update_query(sparql)
 
     def __create_owl(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -280,7 +280,7 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:onto {{\n'
         for p in self._properties:
             sparql += p.create_owl_part1(indent + 2) + '\n'
-        sparql += f'{blank:{(indent + 2)*indent_inc}}{p.property_class_iri} rdf:type owl:Class ;\n'
+        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class} rdf:type owl:Class ;\n'
         if self._subclass_of:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of} ,\n'
         else:
@@ -293,9 +293,9 @@ class ResourceClass(Model):
                 sparql += ' .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        print(sparql)
-        return
-        #self._con.update_query(sparql)
+        #print(sparql)
+        #return
+        self._con.update_query(sparql)
 
     def create(self):
         self.__create_shacl()
@@ -305,11 +305,12 @@ if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
     omas_project = ResourceClass(con, QName('omas:OmasProject'))
     omas_project.read()
-    omas_project.create()
-    exit(-1)
+    #omas_project.create()
+    #exit(-1)
     plist = [
         PropertyClass(con=con,
                       property_class_iri=QName('omas:commentstr'),
+                      subproperty_of=QName('rdfs:comment'),
                       datatype=XsdDatatypes.string,
                       languages={Languages.DE, Languages.EN},
                       unique_langs=True,
@@ -331,7 +332,7 @@ if __name__ == '__main__':
     comment_class = ResourceClass(
         con=con,
         owl_cass=QName('omas:OmasComment'),
-        subclass_of=QName('OmasUser'),
+        subclass_of=QName('omas:OmasUser'),
         properties=plist,
         closed=True
     )

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Union, Set, Optional, Any, Tuple
+from typing import Union, Set, Optional, Any, Tuple, Dict
 
 from pystrict import strict
 
@@ -15,6 +15,69 @@ class OwlPropertyType(Enum):
     OwlDataProperty = 'owl:DatatypeProperty'
     OwlObjectProperty = 'owl:ObjectProperty'
 
+class PropertyRestrictionType(Enum):
+    LANGUAGE_IN = 'sh:languageIn'
+    UNIQUE_LANG = 'sh:uniqueLang'
+    MIN_LENGTH = 'sh:minLength'
+    MAX_LENGTH = 'sh:maxLength'
+    PATTERN = 'sh:pattern'
+    MIN_EXCLUSIVE = 'sh:minExclusive'
+    MIN_INCLUSIVE = 'sh:minInclusive'
+    MAX_EXCLUSIVE = 'sh:maxExcluisive'
+    MAX_INCLUSIVE = 'sh:maxInclusive'
+    LESS_THAN = 'sh:lessThan'
+    LESS_THAN_OR_EQUALS = 'sh:lessThanOrEquals'
+
+
+class PropertyRestrictions:
+    _restrictions: Dict[PropertyRestrictionType, Union[int, float, str, Set[Languages], QName]]
+
+    def __init__(self, *,
+                 language_in: Optional[Set[Languages]] = None,
+                 min_length: Optional[int] = None,
+                 max_length: Optional[int] = None,
+                 pattern: Optional[str] = None,
+                 min_exclusive: Optional[Union[int, float]] = None,
+                 min_inclusive: Optional[Union[int, float]] = None,
+                 max_exclusive: Optional[Union[int, float]] = None,
+                 max_inclusive:Optional[Union[int, float]] = None,
+                 less_than: Optional[QName] = None,
+                 less_than_or_equals: Optional[QName] = None):
+        self._restrictions = {}
+        if language_in:
+            self._restrictions[PropertyRestrictionType.LANGUAGE_IN] = language_in
+        if min_length:
+            self._restrictions[PropertyRestrictionType.MIN_LENGTH] = min_length
+        if max_length:
+            self._restrictions[PropertyRestrictionType.MAX_LENGTH] = max_length
+        if pattern:
+            self._restrictions[PropertyRestrictionType.PATTERN] = pattern
+        if min_exclusive:
+            self._restrictions[PropertyRestrictionType.MIN_EXCLUSIVE] = min_exclusive
+        if min_inclusive:
+            self._restrictions[PropertyRestrictionType.MIN_INCLUSIVE] = min_inclusive
+        if max_exclusive:
+            self._restrictions[PropertyRestrictionType.MAX_EXCLUSIVE] = max_exclusive
+        if max_inclusive:
+            self._restrictions[PropertyRestrictionType.MAX_INCLUSIVE] = max_inclusive
+        self._less_than = less_than
+        if less_than:
+            self._restrictions[PropertyRestrictionType.LESS_THAN] = less_than
+        if less_than_or_equals:
+            self._restrictions[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = less_than_or_equals
+
+    def add(self,
+            restriction_type: PropertyRestrictionType,
+            value: Union[int, float, str, Set[Languages], QName]):
+        self._restrictions[restriction_type] = value
+
+    def shacl(self, indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        shacl = ''
+        for p, o in self._restrictions:
+            shacl += f'{blank:{indent*indent_inc}}{p.value} {o} ;\n'
+        return shacl
+
 
 @strict
 class PropertyClass(Model):
@@ -29,7 +92,6 @@ class PropertyClass(Model):
     _languages: Set[Languages]  # an empty set if no languages are defined or do not make sense!
     _unique_langs: bool
     _order: int
-
 
     def __init__(self,
                  con: Connection,
@@ -167,7 +229,7 @@ class PropertyClass(Model):
 
     def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent*indent_inc}}[\n';
+        sparql = f'{blank:{indent*indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}sh:path {str(self._property_class_iri)} ;\n'
         if self._datatype:
             sparql += f'{blank:{(indent + 1)*indent_inc}}sh:datatype {self._datatype.value} ;\n'

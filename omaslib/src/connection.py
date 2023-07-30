@@ -167,7 +167,7 @@ class Connection:
         if res.status_code == 204:
             print("UPDATE SUCCESS")
         else:
-            print("UPDATE FAILURE")
+            print("UPDATE FAILURE:", res.text)
 
 
     def rdflib_query(self, query: str) -> Any:
