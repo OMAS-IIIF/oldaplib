@@ -26,6 +26,8 @@
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:NCName ;
+                sh:name "Project ID" ;
+                sh:description "A unique QName identifying the project" ;
                 sh:order 1 ;
             ] ;
         sh:property
@@ -35,6 +37,8 @@
                 sh:datatype xsd:string ;
                 sh:languageIn ( "en" "de" "fr" "it" ) ;
                 sh:uniqueLang true ;
+                sh:name "Project Name" ;
+                sh:description "A Name for the project for the human reader" ;
                 sh:order 2 ;
             ] ;
         sh:property
@@ -44,6 +48,8 @@
                 sh:datatype xsd:string ;
                 sh:languageIn ( "en" "de" "fr" "it" ) ;
                 sh:uniqueLang true ;
+                sh:name "Project description" ;
+                sh:description "A description of the content, topic, purpose etc. of the project" ;
                 sh:order 3 ;
             ] ;
         sh:property
@@ -51,6 +57,8 @@
                 sh:path :projectStart ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
+                sh:name "Start date" ;
+                sh:description "The date when the project will start/has started" ;
                 sh:datatype xsd:dateTime ;
                 sh:order 4 ;
             ] ;
@@ -59,6 +67,7 @@
                 sh:path :projectEnd ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:dateTime ;
+                sh:name "The date when the project wll end/has ended" ;
                 sh:order 5 ;
             ] ;
         sh:property

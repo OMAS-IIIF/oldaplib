@@ -8,7 +8,7 @@ from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.datatypes import QName, Languages
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.model import Model
-from omaslib.src.propertyclass import PropertyClass
+from omaslib.src.propertyclass import PropertyClass, PropertyRestrictions, PropertyRestrictionType
 
 
 @strict
@@ -139,10 +139,10 @@ class ResourceClass(Model):
             p_min_count = None
             p_langs = None
             p_order = None
-            p_uniquelang = None
             p_to_class = None
             required = False
             multiple = True
+            restrictions = PropertyRestrictions()
             for key, val in p.items():
                 if key == 'sh:path':
                     p_iri = val
@@ -152,30 +152,30 @@ class ResourceClass(Model):
                     p_max_count = val
                 elif key == 'sh:datatype':
                     p_datatype = XsdDatatypes(str(val))
-                elif key == 'sh:languageIn':
-                    p_langs = val
                 elif key == 'sh:order':
                     p_order = val
-                elif key == 'sh:uniqueLang':
-                    p_uniquelang = val
                 elif key == 'sh:class':
                     p_to_class = val
                 elif key == 'sh:order':
                     p_order = val
                 else:
-                    print('---ERROR---: key=', key, ' val=', val)  # TODO: Catch this error in a better way!
-                if not p_min_count and not p_max_count:
-                    required = False
-                    multiple = True
-                elif p_min_count == 1 and not p_max_count:
-                    required = True
-                    multiple = True
-                elif not p_min_count and p_max_count == 1:
-                    required = False
-                    multiple = False
-                elif p_min_count == 1 and p_max_count == 1:
-                    required = True
-                    multiple = False
+                    try:
+                        restrictions.add(PropertyRestrictionType(key), val)
+                    except (ValueError, TypeError) as err:
+                        OmasError(f'Invalid shacl definition: "{key} {val}"')
+
+            if not p_min_count and not p_max_count:
+                required = False
+                multiple = True
+            elif p_min_count == 1 and not p_max_count:
+                required = True
+                multiple = True
+            elif not p_min_count and p_max_count == 1:
+                required = False
+                multiple = False
+            elif p_min_count == 1 and p_max_count == 1:
+                required = True
+                multiple = False
 
             proplist.append(PropertyClass(con=self._con,
                                           property_class_iri=p_iri,
@@ -183,8 +183,7 @@ class ResourceClass(Model):
                                           to_node_iri=p_to_class,
                                           required=required,
                                           multiple=multiple,
-                                          languages=p_langs,
-                                          unique_langs=p_uniquelang))
+                                          restrictions=restrictions))
 
         self._properties = proplist
 
@@ -268,7 +267,7 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 2)*indent_inc}}sh:closed {"true" if self._closed else "false"} .\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
-        print(sparql)
+        #print(sparql)
         #return
         self._con.update_query(sparql)
 
@@ -305,15 +304,18 @@ if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
     omas_project = ResourceClass(con, QName('omas:OmasProject'))
     omas_project.read()
+    print(omas_project)
     #omas_project.create()
-    #exit(-1)
+    exit(-1)
     plist = [
         PropertyClass(con=con,
                       property_class_iri=QName('omas:commentstr'),
                       subproperty_of=QName('rdfs:comment'),
                       datatype=XsdDatatypes.string,
-                      languages={Languages.DE, Languages.EN},
-                      unique_langs=True,
+                      restrictions=PropertyRestrictions(
+                          language_in={Languages.DE, Languages.EN},
+                          unique_lang=True
+                      ),
                       multiple=True,
                       required=True),
         PropertyClass(con=con,
