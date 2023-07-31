@@ -93,7 +93,6 @@ class PropertyRestrictions:
                 raise OmasError(f'Invalid value "{less_than}" for sh:lessThanOrEquals: Not a QName!')
             self._restrictions[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = less_than_or_equals
 
-
     def __str__(self) -> str:
         if len(self._restrictions) == 0:
             return ''
@@ -112,74 +111,51 @@ class PropertyRestrictions:
     def __len__(self) -> int:
         return len(self._restrictions)
 
-    def __getattr__(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
+    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
         return self._restrictions[restriction_type]
 
-
-    def __setattr__(self,
-            restriction_type: PropertyRestrictionType,
-            value: Union[int, float, str, Set[Languages], QName]) -> None:
+    def __setitem__(self,
+                    restriction_type: PropertyRestrictionType,
+                    value: Union[int, float, str, Set[Languages], QName]) -> None:
         if restriction_type == PropertyRestrictionType.LANGUAGE_IN:
             if type(value) != set:
                 raise OmasError(f'Invalid value "{value}" for sh:languageIn restriction!')
-            if self._restrictions.get(PropertyRestrictionType.LANGUAGE_IN) is None:
-                self._restrictions[PropertyRestrictionType.LANGUAGE_IN] = set()
-            self._restrictions[PropertyRestrictionType.LANGUAGE_IN] |= value
         elif restriction_type == PropertyRestrictionType.UNIQUE_LANG:
             if type(value) != bool:
                 raise OmasError(f'Invalid value "{value}" for sh:uniqueLang restriction!')
-            self._restrictions[restriction_type] = value
         elif restriction_type == PropertyRestrictionType.MIN_LENGTH:
             if not XsdValidator.validate(XsdDatatypes.integer, value):
                 raise OmasError(f'Invalid value "{value}" for sh:minLength restriction!')
-            self._restrictions[restriction_type] = value
         elif restriction_type == PropertyRestrictionType.MAX_LENGTH:
             if not XsdValidator.validate(XsdDatatypes.integer, value):
                 raise OmasError(f'Invalid value "{value}" for sh:maxLength restriction!')
-            self._restrictions[restriction_type] = value
         elif restriction_type == PropertyRestrictionType.PATTERN:
             try:
                 re.compile(value)
             except re.error as err:
                 raise OmasError(f'Invalid value "{value}" for sh:pattern restriction. Message: {err.msg}')
-            self._restrictions[restriction_type] = value
         elif restriction_type == PropertyRestrictionType.MIN_EXCLUSIVE:
             if not hasattr(value, '__gt__'):
                 raise OmasError(f'Invalid value "{value}" for sh:minExclusive: No compare function defined!')
-            self._restrictions[restriction_type] = value
         elif restriction_type == PropertyRestrictionType.MIN_INCLUSIVE:
             if not hasattr(value, '__ge__'):
                 raise OmasError(f'Invalid value "{value}" for sh:minInlcusive: No compare function defined!')
-            self._restrictions[restriction_type] = value
         elif restriction_type == PropertyRestrictionType.MAX_EXCLUSIVE:
             if not hasattr(value, '__lt__'):
                 raise OmasError(f'Invalid value "{value}" for sh:maxExclusive: No compare function defined!')
-            self._restrictions[restriction_type] = value
         elif restriction_type == PropertyRestrictionType.MAX_INCLUSIVE:
             if not hasattr(value, '__le__'):
                 raise OmasError(f'Invalid value "{value}" for sh:maxInclusive: No compare function defined!')
-            self._restrictions[restriction_type] = value
         elif restriction_type == PropertyRestrictionType.LESS_THAN:
             if type(value) != QName:
                 raise OmasError(f'Invalid value "{value}" for sh:lessThan: Not a QName!')
-            self._restrictions[restriction_type] = value
         elif restriction_type == PropertyRestrictionType.LESS_THAN_OR_EQUALS:
             if type(value) != QName:
                 raise OmasError(f'Invalid value "{value}" for sh:lessThanOrEquals: Not a QName!')
-            self._restrictions[restriction_type] = value
+        self._restrictions[restriction_type] = value
 
-    def __delattr__(self, restriction_type: PropertyRestrictionType):
+    def __delitem__(self, restriction_type: PropertyRestrictionType):
         del self._restrictions[restriction_type]
-
-    def remove(self,
-               restriction_type: PropertyRestrictionType,
-               langs: Optional[Set[str]] = None) -> None:
-        if self._restrictions.get(restriction_type) is None:
-            return
-        if restriction_type == PropertyRestrictionType.LANGUAGE_IN and langs is not None:
-            self._restrictions[PropertyRestrictionType.LANGUAGE_IN] -= langs
-        else:
-            del self._restrictions[restriction_type]
 
     def shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -293,20 +269,37 @@ class PropertyClass(Model):
     def multiple(self, value: bool):
         self._multiple = value
 
-    def get_restriction(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
+    @property
+    def restrictions(self) -> PropertyRestrictions:
+        return self._restrictions
+
+    @restrictions.setter
+    def restrictions(self, value: PropertyRestrictions):
+        self._restrictions = value
 
     @property
-    def languages(self) -> Set[Languages]:
-        return self._languages
+    def name(self) -> str:
+        return self._name
 
-    def add_language(self, lang: Languages) -> None:
-        self._languages.add(lang)
+    @name.setter
+    def name(self, name: str) -> None:
+        self._name = name
 
-    def remove_language(self, lang: Languages) -> None:
-        self._languages.discard(lang)
+    @property
+    def description(self) -> str:
+        return self._description
 
-    def valid_language(self, lang: Languages) -> bool:
-        return lang in self._languages
+    @description.setter
+    def description(self,description: str) -> None:
+        self._description = description
+
+    def get_restriction(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
+        return self._restrictions[restriction_type]
+
+    def set_restriction(self,
+                        restriction_type: PropertyRestrictionType,
+                        value: Union[int, float, str, Set[Languages], QName]):
+        self._restrictions[restriction_type] = value
 
     def read_owl(self):
         context = Context(name=self._con.context_name)
@@ -363,6 +356,14 @@ class PropertyClass(Model):
             sparql += self._restrictions.shacl(indent + 1, indent_inc)
         if self._to_node_iri:
             sparql += f'{blank:{(indent + 1)*indent_inc}}sh:class {str(self._to_node_iri)} ;\n'
+        if self._name:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:name {str(self._name)} ;\n'
+        if self._description:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:description {str(self._description)} ;\n'
+        if self._name:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:name {self._name} ;\n'
+        if self._description:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:description {self._description} ;\n'
         if self._order:
             sparql += f'{blank:{(indent + 1)*indent_inc}}sh:order {self._order} ;\n'
         sparql += f'{blank:{indent*indent_inc}}] ; \n'

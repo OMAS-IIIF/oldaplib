@@ -137,7 +137,8 @@ class ResourceClass(Model):
             p_datatype = None
             p_max_count = None
             p_min_count = None
-            p_langs = None
+            p_name = None
+            p_description = None
             p_order = None
             p_to_class = None
             required = False
@@ -152,15 +153,17 @@ class ResourceClass(Model):
                     p_max_count = val
                 elif key == 'sh:datatype':
                     p_datatype = XsdDatatypes(str(val))
+                elif key == 'sh:name':
+                    p_name = val
+                elif key == 'sh:description':
+                    p_description = val
                 elif key == 'sh:order':
                     p_order = val
                 elif key == 'sh:class':
                     p_to_class = val
-                elif key == 'sh:order':
-                    p_order = val
                 else:
                     try:
-                        restrictions.add(PropertyRestrictionType(key), val)
+                        restrictions[PropertyRestrictionType(key)] = val
                     except (ValueError, TypeError) as err:
                         OmasError(f'Invalid shacl definition: "{key} {val}"')
 
@@ -183,7 +186,10 @@ class ResourceClass(Model):
                                           to_node_iri=p_to_class,
                                           required=required,
                                           multiple=multiple,
-                                          restrictions=restrictions))
+                                          restrictions=restrictions,
+                                          name=p_name,
+                                          description=p_description,
+                                          order=p_order))
 
         self._properties = proplist
 
@@ -267,9 +273,9 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 2)*indent_inc}}sh:closed {"true" if self._closed else "false"} .\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
-        #print(sparql)
+        print(sparql)
         #return
-        self._con.update_query(sparql)
+        #self._con.update_query(sparql)
 
     def __create_owl(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -294,7 +300,7 @@ class ResourceClass(Model):
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         #print(sparql)
         #return
-        self._con.update_query(sparql)
+        #self._con.update_query(sparql)
 
     def create(self):
         self.__create_shacl()
@@ -305,7 +311,7 @@ if __name__ == '__main__':
     omas_project = ResourceClass(con, QName('omas:OmasProject'))
     omas_project.read()
     print(omas_project)
-    #omas_project.create()
+    omas_project.create()
     exit(-1)
     plist = [
         PropertyClass(con=con,
