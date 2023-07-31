@@ -263,19 +263,19 @@ class ResourceClass(Model):
         if self._subclass_of:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of}Shape ; \n'
         sparql += f'{blank:{(indent + 3)*indent_inc}}sh:targetClass {self._owl_class} ; \n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}sh:property\n'
+        sparql += f'{blank:{(indent + 4) * indent_inc}}[\n'
+        sparql += f'{blank:{(indent + 5) * indent_inc}}sh:path rdf:type ;\n'
+        sparql += f'{blank:{(indent + 4) * indent_inc}}] ;\n'
         for p in self._properties:
-            sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property\n'
-            sparql += f'{blank:{(indent + 4)*indent_inc}}[\n'
-            sparql += f'{blank:{(indent + 5)*indent_inc}}sh:path rdf:type ;\n'
-            sparql += f'{blank:{(indent + 4)*indent_inc}}] ;\n'
             sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property\n'
             sparql += p.create_shacl(4)
         sparql += f'{blank:{(indent + 2)*indent_inc}}sh:closed {"true" if self._closed else "false"} .\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
-        print(sparql)
+        #print(sparql)
         #return
-        #self._con.update_query(sparql)
+        self._con.update_query(sparql)
 
     def __create_owl(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -300,7 +300,7 @@ class ResourceClass(Model):
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         #print(sparql)
         #return
-        #self._con.update_query(sparql)
+        self._con.update_query(sparql)
 
     def create(self):
         self.__create_shacl()
@@ -310,9 +310,9 @@ if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
     omas_project = ResourceClass(con, QName('omas:OmasProject'))
     omas_project.read()
-    print(omas_project)
-    omas_project.create()
-    exit(-1)
+    #print(omas_project)
+    #omas_project.create()
+    #exit(-1)
     plist = [
         PropertyClass(con=con,
                       property_class_iri=QName('omas:commentstr'),
@@ -323,7 +323,9 @@ if __name__ == '__main__':
                           unique_lang=True
                       ),
                       multiple=True,
-                      required=True),
+                      required=True,
+                      name="Comment",
+                      description="A comment to anything"),
         PropertyClass(con=con,
                       property_class_iri=QName('omas:creator'),
                       to_node_iri=QName('omas:User'),

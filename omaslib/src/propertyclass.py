@@ -238,11 +238,11 @@ class PropertyClass(Model):
         if len(self._restrictions) > 0:
             propstr += f'{self._restrictions};'
         if self._name:
-            propstr += f' Name: {self._name}'
+            propstr += f' Name: {self._name};'
         if self._description:
-            propstr += f' Description: {self._description}'
+            propstr += f' Description: {self._description};'
         if self._order:
-            propstr += f' Order: {self._order}'
+            propstr += f' Order: {self._order};'
         return propstr
 
     @property
@@ -357,13 +357,9 @@ class PropertyClass(Model):
         if self._to_node_iri:
             sparql += f'{blank:{(indent + 1)*indent_inc}}sh:class {str(self._to_node_iri)} ;\n'
         if self._name:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:name {str(self._name)} ;\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:name "{str(self._name)}" ;\n'
         if self._description:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:description {str(self._description)} ;\n'
-        if self._name:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:name {self._name} ;\n'
-        if self._description:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:description {self._description} ;\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:description "{str(self._description)}" ;\n'
         if self._order:
             sparql += f'{blank:{(indent + 1)*indent_inc}}sh:order {self._order} ;\n'
         sparql += f'{blank:{indent*indent_inc}}] ; \n'
