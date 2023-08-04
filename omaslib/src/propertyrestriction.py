@@ -148,7 +148,7 @@ class PropertyRestrictions:
             if type(value) != set:
                 raise OmasError(f'Invalid value "{value}" for sh:languageIn restriction!')
             if self._restrictions.get(restriction_type):
-                # here we check if value is issing languages that are in the existing restriction.
+                # here we check if value is missing languages that are in the existing restriction.
                 if len(self._restrictions[restriction_type] & value) < len(self._restrictions[restriction_type]):
                     self._test_in_use = True
         elif restriction_type == PropertyRestrictionType.UNIQUE_LANG:
@@ -238,3 +238,13 @@ class PropertyRestrictions:
                 value = rval
             shacl += f'{blank:{indent*indent_inc}}{name.value} {value} ;\n'
         return shacl
+
+    def update_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        shacl = ''
+        for restriction_type in self._changeset:
+            if restriction_type in self._restrictions:
+                pass  # TODO: added or changed
+            else:
+                pass  # TODO: deleted
+
