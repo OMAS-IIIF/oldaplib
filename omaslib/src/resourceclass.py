@@ -8,7 +8,8 @@ from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.datatypes import QName, Languages
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.model import Model
-from omaslib.src.propertyclass import PropertyClass, PropertyRestrictions, PropertyRestrictionType
+from omaslib.src.propertyclass import PropertyClass
+from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
 
 
 @strict
@@ -77,12 +78,35 @@ class ResourceClass(Model):
         for p in self._properties:
             if p.property_class_iri == property_class_iri:
                 return p
-        raise OmasError(f'Property with iri "{property_class_iri}" does not exist.')
+        raise OmasError(f'Property "{property_class_iri}" does not exist!')
 
     def add_property(self, property: PropertyClass):
         for p in self._properties:
             if p.property_class_iri == property.property_class_iri:
+                raise OmasError(f'Property "{property.property_class_iri}" already exists!')
+        property.set_new()
+        self._properties.append(property)
+        self._changeset.add("property")
 
+    @property
+    def in_use(self) -> bool:
+        context = Context(name=self._con.context_name)
+        query = context.sparql_context
+        query += f"""
+        SELECT (COUNT(?resinstances) as ?nresinstances)
+        WHERE {{
+            ?resinstance rdf:type {self._owl_class} .
+            FILTER(?resinstances != {self._owl_class}Shape)
+        }} LIMIT 2
+        """
+        res = self._con.rdflib_query(query)
+        if len(res) != 1:
+            raise OmasError('Internal Error in "ResourceClass.in_use"')
+        for r in res:
+            if int(r.nresinstances) > 0:
+                return True
+            else:
+                return False
 
     def to_sparql_insert(self, indent: int) -> str:
         blank = ' '
@@ -442,11 +466,16 @@ if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
     omas_project = ResourceClass(con, QName('omas:OmasProject'))
     omas_project.read()
-    omas_project.closed = False
-    omas_project.update()
-    omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
-    omas_project2.read()
-    print(omas_project2)
+    print("OmasProject in use: ", omas_project.in_use)
+    prop = omas_project.get_property(QName('omas:projectStart'))
+    if prop:
+        prop.in_use
+
+    #omas_project.closed = False
+    #omas_project.update()
+    #omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
+    #omas_project2.read()
+    #print(omas_project2)
     exit(0)
     #print(omas_project)
     #omas_project.create()
