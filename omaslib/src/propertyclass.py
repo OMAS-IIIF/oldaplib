@@ -275,3 +275,7 @@ class PropertyClass(Model):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._to_node_iri}'
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
+
+    def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
+
+

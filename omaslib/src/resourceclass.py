@@ -88,6 +88,11 @@ class ResourceClass(Model):
         self._properties.append(property)
         self._changeset.add("property")
 
+    def delete_property(self, property: PropertyClass):
+        for p in self._properties:
+            if p.property_class_iri == property.property_class_iri:
+
+
     @property
     def in_use(self) -> bool:
         context = Context(name=self._con.context_name)

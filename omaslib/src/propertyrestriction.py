@@ -246,5 +246,5 @@ class PropertyRestrictions:
             if restriction_type in self._restrictions:
                 pass  # TODO: added or changed
             else:
-                pass  # TODO: deleted
+                pass
 
