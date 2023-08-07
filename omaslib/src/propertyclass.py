@@ -26,8 +26,6 @@ class PropertyClass(Model):
     _subproperty_of: Union[QName, None]
     _property_type: Union[OwlPropertyType, None]
     _exclusive_for_class: Union[QName, None]
-    _required: Union[bool, None]
-    _multiple: Union[bool, None]
     _to_node_iri: Union[AnyIRI, None]
     _datatype: Union[XsdDatatypes, None]
     _restrictions: Union[PropertyRestrictions, None]
@@ -45,8 +43,6 @@ class PropertyClass(Model):
                  exclusive_for_class: Optional[QName] = None,
                  datatype: Optional[XsdDatatypes] = None,
                  to_node_iri: Optional[AnyIRI] = None,
-                 required: Optional[bool] = None,
-                 multiple: Optional[bool] = None,
                  restrictions: Optional[PropertyRestrictions] = None,
                  name: Optional[str] = None,
                  description: Optional[str] = None,
@@ -59,8 +55,6 @@ class PropertyClass(Model):
         self._exclusive_for_class = exclusive_for_class
         self._datatype = datatype
         self._to_node_iri = to_node_iri
-        self._required = required
-        self._multiple = multiple
         self._restrictions = restrictions
         self._name = name
         self._description = description
@@ -75,8 +69,6 @@ class PropertyClass(Model):
         self._test_in_use = False
 
     def __str__(self):
-        required = '✅' if self._required else '❌'
-        multiple = '✅' if self._multiple else '❌'
         propstr = f'Property: {str(self._property_class_iri)};'
         if self._subproperty_of:
             propstr += f' Subproperty of {self._subproperty_of};'
@@ -86,7 +78,6 @@ class PropertyClass(Model):
             propstr += f' Datatype: => {self._to_node_iri});'
         else:
             propstr += f' Datatype: {self._datatype.value};'
-        propstr += f' Required: {required} Multiple: {multiple};'
         if len(self._restrictions) > 0:
             propstr += f'{self._restrictions};'
         if self._name:
@@ -104,32 +95,6 @@ class PropertyClass(Model):
     @property_class_iri.setter
     def property_class_iri(self, value: Any):
         OmasError(f'property_class_iri_class cannot be set!')
-
-    @property
-    def required(self):
-        return self._required
-
-    @required.setter
-    def required(self, value: bool) -> None:
-        if self._required == value:
-            return
-        if not self._required:
-            self._test_in_use = True
-        self._required = value
-        self._changeset.add('required')
-
-    @property
-    def multiple(self):
-        return self._multiple
-
-    @multiple.setter
-    def multiple(self, value: bool):
-        if self._multiple == value:
-            return
-        if self._multiple:
-            self._test_in_use = True
-        self._multiple = value
-        self._changeset.add('multiple')
 
     @property
     def name(self) -> str:
@@ -229,10 +194,6 @@ class PropertyClass(Model):
         sparql += f'{blank:{(indent + 1)*indent_inc}}sh:path {str(self._property_class_iri)} ;\n'
         if self._datatype:
             sparql += f'{blank:{(indent + 1)*indent_inc}}sh:datatype {self._datatype.value} ;\n'
-        if self._required:
-            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:minCount 1 ;\n'
-        if not self._multiple:
-            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:maxCount 1 ;\n'
         if self._restrictions:
             sparql += self._restrictions.create_shacl(indent + 1, indent_inc)
         if self._to_node_iri:
@@ -265,10 +226,10 @@ class PropertyClass(Model):
         sparql = f'{blank:{indent*indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}rdf:type owl:Restriction ;\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}owl:onProperty {self._property_class_iri}'
-        if self._required:
-            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger'
-        if not self._multiple:
-            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger'
+        if self._restrictions.get(PropertyRestrictionType.MIN_COUNT):
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality "{self._restrictions[PropertyRestrictionType.MIN_COUNT]}"^^xsd:nonNegativeInteger'
+        if self._restrictions.get(PropertyRestrictionType.MAX_COUNT):
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality "{self._restrictions[PropertyRestrictionType.MAX_COUNT]}"^^xsd:nonNegativeInteger'
         if self._property_type == OwlPropertyType.OwlDataProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDataRange {self._datatype.value}'
         elif self._property_type == OwlPropertyType.OwlObjectProperty:
@@ -277,5 +238,6 @@ class PropertyClass(Model):
         return sparql
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
+        pass
 
 

@@ -91,6 +91,7 @@ class ResourceClass(Model):
     def delete_property(self, property: PropertyClass):
         for p in self._properties:
             if p.property_class_iri == property.property_class_iri:
+                pass
 
 
     @property
@@ -209,8 +210,6 @@ class ResourceClass(Model):
         for x, p in properties.items():
             p_iri = None
             p_datatype = None
-            p_max_count = None
-            p_min_count = None
             p_name = None
             p_description = None
             p_order = None
@@ -221,10 +220,6 @@ class ResourceClass(Model):
             for key, val in p.items():
                 if key == 'sh:path':
                     p_iri = val
-                elif key == 'sh:minCount':
-                    p_min_count = val
-                elif key == 'sh:maxCount':
-                    p_max_count = val
                 elif key == 'sh:datatype':
                     p_datatype = XsdDatatypes(str(val))
                 elif key == 'sh:name':
@@ -241,25 +236,11 @@ class ResourceClass(Model):
                     except (ValueError, TypeError) as err:
                         OmasError(f'Invalid shacl definition: "{key} {val}"')
 
-            if not p_min_count and not p_max_count:
-                required = False
-                multiple = True
-            elif p_min_count == 1 and not p_max_count:
-                required = True
-                multiple = True
-            elif not p_min_count and p_max_count == 1:
-                required = False
-                multiple = False
-            elif p_min_count == 1 and p_max_count == 1:
-                required = True
-                multiple = False
 
             proplist.append(PropertyClass(con=self._con,
                                           property_class_iri=p_iri,
                                           datatype=p_datatype,
                                           to_node_iri=p_to_class,
-                                          required=required,
-                                          multiple=multiple,
                                           restrictions=restrictions,
                                           name=p_name,
                                           description=p_description,
@@ -491,6 +472,7 @@ if __name__ == '__main__':
                       subproperty_of=QName('rdfs:comment'),
                       datatype=XsdDatatypes.string,
                       restrictions=PropertyRestrictions(
+                          min_count=1,
                           language_in={Languages.DE, Languages.EN},
                           unique_lang=True
                       ),
