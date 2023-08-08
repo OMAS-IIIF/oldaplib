@@ -8,7 +8,8 @@ from pystrict import strict
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI, Languages
+from omaslib.src.helpers.datatypes import QName, AnyIRI
+from omaslib.src.helpers.langstring import Languages, LangString
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
 from omaslib.src.model import Model
@@ -29,8 +30,8 @@ class PropertyClass(Model):
     _to_node_iri: Union[AnyIRI, None]
     _datatype: Union[XsdDatatypes, None]
     _restrictions: Union[PropertyRestrictions, None]
-    _name: Union[str, None]
-    _description: Union[str, None]
+    _name: Union[LangString, None]
+    _description: Union[LangString, None]
     _order: int
 
     _changeset: Set[str]
@@ -44,8 +45,8 @@ class PropertyClass(Model):
                  datatype: Optional[XsdDatatypes] = None,
                  to_node_iri: Optional[AnyIRI] = None,
                  restrictions: Optional[PropertyRestrictions] = None,
-                 name: Optional[str] = None,
-                 description: Optional[str] = None,
+                 name: Optional[LangString] = None,
+                 description: Optional[LangString] = None,
                  order: Optional[int] = None):
         super().__init__(con)
         if not XsdValidator.validate(XsdDatatypes.QName, property_class_iri):
@@ -56,7 +57,11 @@ class PropertyClass(Model):
         self._datatype = datatype
         self._to_node_iri = to_node_iri
         self._restrictions = restrictions
+        if name is not None and not isinstance(name, LangString):
+            raise OmasError(f'Parameter "name" must be a "LangString", but is "{type(name)}"!')
         self._name = name
+        if description is not None and not isinstance(description, LangString):
+            raise OmasError(f'Parameter "description" must be a "LangString", but is "{type(description)}"!')
         self._description = description
         self._order = order
         if self._datatype:
@@ -97,22 +102,48 @@ class PropertyClass(Model):
         OmasError(f'property_class_iri_class cannot be set!')
 
     @property
-    def name(self) -> str:
+    def name(self) -> LangString:
         return self._name
 
     @name.setter
-    def name(self, name: str) -> None:
-        self._name = name
-        self._changeset.add('name')
+    def name(self, name: LangString) -> None:
+        if name != self._name:
+            self._changeset.add('name')
+            if self._name:
+                self._name.add(name.langstring)
+            else:
+                self._name = name
+
+    def name_add(self, lang: Languages, name: str):
+        if self._name:
+            if self._name.langstring.get(lang) != name:
+                self._name[lang] = name
+                self._changeset.add('name')
+        else:
+            self._name = LangString({lang: name})
+            self._changeset.add('name')
 
     @property
-    def description(self) -> str:
+    def description(self) -> LangString:
         return self._description
 
     @description.setter
-    def description(self, description: str) -> None:
-        self._description = description
-        self._changeset.add('description')
+    def description(self, description: LangString) -> None:
+        if description != self._description:
+            self._changeset.add('description')
+            if self._description:
+                self._description.add(description.langstring)
+            else:
+                self._description = description
+
+    def description_add(self, lang: Languages, description: str):
+        if self._description:
+            if self._description.langstring.get(lang) != description:
+                self._description[lang] = description
+                self._changeset.add('description')
+        else:
+            self._description = LangString({lang: description})
+            self._changeset.add('description')
 
     def get_restriction(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
         return self._restrictions[restriction_type]
@@ -191,17 +222,17 @@ class PropertyClass(Model):
     def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent*indent_inc}}[\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}sh:path {str(self._property_class_iri)} ;\n'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}sh:path {self._property_class_iri} ;\n'
         if self._datatype:
             sparql += f'{blank:{(indent + 1)*indent_inc}}sh:datatype {self._datatype.value} ;\n'
         if self._restrictions:
             sparql += self._restrictions.create_shacl(indent + 1, indent_inc)
         if self._to_node_iri:
-            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:class {str(self._to_node_iri)} ;\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:class {self._to_node_iri} ;\n'
         if self._name:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:name "{str(self._name)}" ;\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:name "{self._name}" ;\n'
         if self._description:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:description "{str(self._description)}" ;\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:description "{self._description}" ;\n'
         if self._order:
             sparql += f'{blank:{(indent + 1)*indent_inc}}sh:order {self._order} ;\n'
         sparql += f'{blank:{indent*indent_inc}}] ; \n'
@@ -226,10 +257,7 @@ class PropertyClass(Model):
         sparql = f'{blank:{indent*indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}rdf:type owl:Restriction ;\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}owl:onProperty {self._property_class_iri}'
-        if self._restrictions.get(PropertyRestrictionType.MIN_COUNT):
-            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality "{self._restrictions[PropertyRestrictionType.MIN_COUNT]}"^^xsd:nonNegativeInteger'
-        if self._restrictions.get(PropertyRestrictionType.MAX_COUNT):
-            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality "{self._restrictions[PropertyRestrictionType.MAX_COUNT]}"^^xsd:nonNegativeInteger'
+        sparql += self._restrictions.create_owl(indent + 1, indent_inc)
         if self._property_type == OwlPropertyType.OwlDataProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDataRange {self._datatype.value}'
         elif self._property_type == OwlPropertyType.OwlObjectProperty:

@@ -5,7 +5,8 @@ from rdflib import URIRef, Literal, BNode
 from connection import Connection
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
-from omaslib.src.helpers.datatypes import QName, Languages
+from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.langstring import Languages, LangString
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass
@@ -17,6 +18,8 @@ class ResourceClass(Model):
     _owl_class: Union[QName, None]
     _subclass_of: Union[QName, None]
     _properties: List[PropertyClass]
+    _label: Union[LangString, None]
+    _comment: Union[LangString, None]
     _closed: bool
 
     _changeset: Set[str]
@@ -26,11 +29,19 @@ class ResourceClass(Model):
                  owl_cass: Optional[QName] = None,
                  subclass_of: Optional[QName] = None,
                  properties: Optional[List[PropertyClass]] = None,
+                 label: Optional[LangString] = None,
+                 comment: Optional[LangString] = None,
                  closed: Optional[bool] = None) -> None:
         super().__init__(con)
         self._owl_class = owl_cass
         self._subclass_of = subclass_of
         self._properties = properties if properties else set()
+        if label and not isinstance(label, LangString):
+            raise OmasError(f'Parameter "label" must be a "LangString", but is "{type(label)}"!')
+        self._label = label
+        if comment and not isinstance(comment, LangString):
+            raise OmasError(f'Parameter "comment" must be a "LangString", but is "{type(label)}"!')
+        self._comment = comment
         self._closed = True if closed is None else closed
         self._changeset = set()
 
@@ -40,6 +51,10 @@ class ResourceClass(Model):
         s = f'Shape: {self._owl_class}Shape\n'
         if self._subclass_of:
             s += f'Subclass of "{self._subclass_of}"\n'
+        if self._label:
+            s += f'Label: "{self._label}"\n'
+        if self._comment:
+            s += f'Description: "{self._comment}"\n'
         s += f'Closed: {self._closed}\n'
         s += 'Properties:\n'
         for p in self._properties:
@@ -63,6 +78,50 @@ class ResourceClass(Model):
         if value != self._subclass_of:
             self._changeset.add("subclass_of")
             self._subclass_of = value
+
+    @property
+    def label(self) -> LangString:
+        return self._label
+
+    @label.setter
+    def label(self, label: LangString) -> None:
+        if label != self._label:
+            self._changeset.add('label')
+            if self._label:
+                self._label.add(label.langstring)
+            else:
+                self._label = label
+
+    def label_add(self, lang: Languages, label: str):
+        if self._label:
+            if self._label.langstring.get(lang) != label:
+                self._label[lang] = label
+                self._changeset.add('label')
+        else:
+            self._label = LangString({lang: label})
+            self._changeset.add('label')
+
+    @property
+    def comment(self) -> LangString:
+        return self._comment
+
+    @comment.setter
+    def comment(self, comment: LangString) -> None:
+        if comment != self._comment:
+            self._changeset.add(comment)
+            if self._comment:
+                self._description.add(comment.langstring)
+            else:
+                self._comment = comment
+
+    def comment_add(self, lang: Languages, comment: str):
+        if self._comment:
+            if self._comment.langstring.get(lang) != comment:
+                self._comment[lang] = comment
+                self._changeset.add('comment')
+        else:
+            self._comment = LangString({lang: comment})
+            self._changeset.add('comment')
 
     @property
     def closed(self) -> bool:
@@ -145,6 +204,8 @@ class ResourceClass(Model):
         """
         res = con.rdflib_query(query1)
         self._subclass_of = None
+        self._label = None
+        self._comment = None
         target_class = None
         self._closed = True
         prop_iris: List[QName] = []
@@ -156,6 +217,18 @@ class ResourceClass(Model):
                     continue
                 else:
                     raise OmasError(f'Inconsistent Shape for "{self._owl_class}": rdf:type="{context.iri2qname(r[1])}"')
+            elif p == 'rdfs:label':
+                ll = Languages(r[1].language) if r[1].language else Languages.XX
+                if self._label is None:
+                    self._label = LangString({ll: r[1].toPython()})
+                else:
+                    self._label[ll] = r[1].toPython()
+            elif p == 'rdfs:comment':
+                ll = Languages(r[1].language) if r[1].language else Languages.XX
+                if self._comment is None:
+                    self._comment = LangString({ll: r[1].toPython()})
+                else:
+                    self._comment[ll] = r[1].toPython()
             elif p == 'rdfs:subClassOf':
                 tmpstr = context.iri2qname(r[1])
                 i = tmpstr.find('Shape')
@@ -197,7 +270,7 @@ class ResourceClass(Model):
             if isinstance(r[2], URIRef):
                 properties[r[0]][p] = context.iri2qname(r[2])
             elif isinstance(r[2], Literal):
-                properties[r[0]][p] = r[2].toPython()
+                properties[r[0]][p] = r[2]
             elif isinstance(r[2], BNode):
                 pass
             else:
@@ -214,8 +287,6 @@ class ResourceClass(Model):
             p_description = None
             p_order = None
             p_to_class = None
-            required = False
-            multiple = True
             restrictions = PropertyRestrictions()
             for key, val in p.items():
                 if key == 'sh:path':
@@ -223,9 +294,13 @@ class ResourceClass(Model):
                 elif key == 'sh:datatype':
                     p_datatype = XsdDatatypes(str(val))
                 elif key == 'sh:name':
-                    p_name = val
+                    ll = val.language if val.language is not None else Languages.XX
+                    if p_name is None:
+                        p_name = LangString({ll: val.toPython()})
+                    else:
+                        p_name.add({ll: val.toPython()})
                 elif key == 'sh:description':
-                    p_description = val
+                    p_description = LangString(val)
                 elif key == 'sh:order':
                     p_order = val
                 elif key == 'sh:class':
@@ -266,9 +341,6 @@ class ResourceClass(Model):
             bnode_id = str(r[0])
             if not propdict.get(bnode_id):
                 propdict[bnode_id] = {}
-                # Default is no restriction on cardinality
-                propdict[bnode_id]['required'] = False
-                propdict[bnode_id]['multiple'] = True
             p = context.iri2qname(str(r[1]))
             pstr = str(p)
             if pstr == 'owl:onProperty':
@@ -276,21 +348,12 @@ class ResourceClass(Model):
             elif pstr == 'owl:onClass':
                 propdict[bnode_id]['to_node_iri'] = context.iri2qname(str(r[2]))
             elif pstr == 'owl:minQualifiedCardinality':
-                if r[2].value == 1:
-                    propdict[bnode_id]['required'] = True
-                elif r[2].value == 0:
-                    propdict[bnode_id]['required'] = False
-                else:
-                    print(f'ERROR ERROR ERROR: owl:minQualifiedCardinality invalid: "{r[2].value}"')
+                propdict[bnode_id]['min_count'] = r[2].value
             elif pstr == 'owl:maxQualifiedCardinality':
-                if r[2].value == 1:
-                    propdict[bnode_id]['multiple'] = False
+                propdict[bnode_id]['max_count'] = r[2].value
             elif pstr == 'owl:qualifiedCardinality':
-                if r[2].value != 1:
-                    print(f'ERROR ERROR ERROR: QualifiedCardinality invalid: "{r[2].value}"')
-                else:
-                    propdict[bnode_id]['required'] = True
-                    propdict[bnode_id]['mutiple'] = False
+                propdict[bnode_id]['min_count'] = r[2].value
+                propdict[bnode_id]['max_count'] = r[2].value
             elif pstr == 'owl:onDataRange':
                 propdict[bnode_id]['datatype'] = context.iri2qname(str(r[2]))
             else:
@@ -316,8 +379,12 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class}Shape a sh:nodeShape, {self._owl_class} ;\n'
         if self._subclass_of:
-            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of}Shape ; \n'
-        sparql += f'{blank:{(indent + 3)*indent_inc}}sh:targetClass {self._owl_class} ; \n'
+            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of}Shape ;\n'
+        sparql += f'{blank:{(indent + 3)*indent_inc}}sh:targetClass {self._owl_class} ;\n'
+        if self._label:
+            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:label {self._label} ;\n'
+        if self._comment:
+            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:comment {self._comment} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}sh:property\n'
         sparql += f'{blank:{(indent + 4) * indent_inc}}[\n'
         sparql += f'{blank:{(indent + 5) * indent_inc}}sh:path rdf:type ;\n'
@@ -328,9 +395,8 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 2)*indent_inc}}sh:closed {"true" if self._closed else "false"} .\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
-        #print(sparql)
-        #return
-        self._con.update_query(sparql)
+        print(sparql)
+        #self._con.update_query(sparql)
 
     def __create_owl(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -353,9 +419,8 @@ class ResourceClass(Model):
                 sparql += ' .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        #print(sparql)
-        #return
-        self._con.update_query(sparql)
+        print(sparql)
+        #self._con.update_query(sparql)
 
     def create(self):
         self.__create_shacl()
@@ -369,18 +434,30 @@ class ResourceClass(Model):
         sparql = context.sparql_context
         sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+        sparql_switch1 = {
+            'subclass_of': f'{blank:{(indent + 2) * indent_inc}}?resclass rdfs:subClassOf ?subclass_of .',
+            'closed': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:closed ?closed .',
+            'sh:name': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:name ?name .',
+            'sh:description': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:description ?description'
+        }
         for c in self._changeset:
-            if c == 'subclass_of':
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?resclass rdfs:subClassOf ?subclass_of .'
-            elif c == 'closed':
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?resclass sh:closed ?closed .'
+            tmp = sparql_switch1.get(c)  # TODO: add handling if tmp is None
+            if tmp:
+                sparql += tmp
             else:
-                pass  # TODO: ERROR handling
+                pass  # TODO: add handling if tmp is None
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
 
         sparql += f'{blank:{indent*indent_inc}}INSERT {{\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+        sparql_switch2 = {
+            'subclass_of': f'{blank:{(indent + 2) * indent_inc}}?resclass rdfs:subClassOf {self._subclass_of} .',
+            'closed': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:closed {"true" if self._closed else "false"} .',
+            'sh:name': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:name {self._name} .',
+            'sh:description': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:description ?description'
+        }
+
         for c in self._changeset:
             if c == 'subclass_of' and self._subclass_of:
                 sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owl_class}Shape rdfs:subClassOf {self._subclass_of} .\n'
@@ -407,7 +484,8 @@ class ResourceClass(Model):
                 pass  # TODO: Implement proper error handling here
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
-        self._con.update_query(sparql)
+        print(sparql)
+        #self._con.update_query(sparql)
 
     def __update_owl(self, indent: int = 0, indent_inc: int = 4):
         if not self._changeset:
@@ -441,7 +519,8 @@ class ResourceClass(Model):
                 sparql += f'{blank:{(indent + 2) * indent_inc}}}}\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
-        self._con.update_query(sparql)
+        print(sparql)
+        #self._con.update_query(sparql)
 
 
     def update(self):
@@ -452,51 +531,52 @@ if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
     omas_project = ResourceClass(con, QName('omas:OmasProject'))
     omas_project.read()
-    print("OmasProject in use: ", omas_project.in_use)
-    prop = omas_project.get_property(QName('omas:projectStart'))
-    if prop:
-        prop.in_use
-
+    print(omas_project)
     #omas_project.closed = False
     #omas_project.update()
     #omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
     #omas_project2.read()
     #print(omas_project2)
-    exit(0)
+    #exit(0)
     #print(omas_project)
     #omas_project.create()
     #exit(-1)
     plist = [
         PropertyClass(con=con,
                       property_class_iri=QName('omas:commentstr'),
-                      subproperty_of=QName('rdfs:comment'),
                       datatype=XsdDatatypes.string,
+                      exclusive_for_class=QName('omas:OmasComment'),
                       restrictions=PropertyRestrictions(
                           min_count=1,
                           language_in={Languages.DE, Languages.EN},
                           unique_lang=True
                       ),
-                      multiple=True,
-                      required=True,
-                      name="Comment",
-                      description="A comment to anything"),
+                      name=LangString({Languages.EN: "Comment"}),
+                      description=LangString({Languages.EN: "A comment to anything"}),
+                      order=1),
         PropertyClass(con=con,
                       property_class_iri=QName('omas:creator'),
                       to_node_iri=QName('omas:User'),
-                      multiple=False,
-                      required=True,
+                      restrictions=PropertyRestrictions(
+                          min_count=1,
+                          max_count=1
+                      ),
                       order=2),
         PropertyClass(con=con,
                       property_class_iri=QName('omas:createdAt'),
                       datatype=XsdDatatypes.dateTime,
-                      multiple=False,
-                      required=True,
-                      order=1)
+                      restrictions=PropertyRestrictions(
+                          min_count=1,
+                          max_count=1
+                      ),
+                      order=3)
     ]
     comment_class = ResourceClass(
         con=con,
         owl_cass=QName('omas:OmasComment'),
         subclass_of=QName('omas:OmasUser'),
+        label=LangString({Languages.EN: 'Omas Comment', Languages.DE: 'Omas Kommentar'}),
+        comment=LangString({Languages.EN: 'A class to comment something...'}),
         properties=plist,
         closed=True
     )

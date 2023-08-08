@@ -4,7 +4,8 @@ from typing import Dict, Union, Set, Optional
 
 from pystrict import strict
 
-from omaslib.src.helpers.datatypes import Languages, QName
+from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.langstring import Languages
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
@@ -297,6 +298,21 @@ class PropertyRestrictions:
                 value = rval
             shacl += f'{blank:{indent*indent_inc}}{name.value} {value} ;\n'
         return shacl
+
+    def create_owl(self, indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql = ''
+        mincnt = self._restrictions.get(PropertyRestrictionType.MIN_COUNT)
+        maxcnt = self._restrictions.get(PropertyRestrictionType.MAX_COUNT)
+        if mincnt is not None and maxcnt is not None and mincnt == maxcnt:
+            sparql += f' ;\n{blank:{indent*indent_inc}}owl:qualifiedCardinality "{mincnt}"^^xsd:nonNegativeInteger'
+        else:
+            if mincnt is not None:
+                sparql += f' ;\n{blank:{indent*indent_inc}}owl:minQualifiedCardinality "{mincnt}"^^xsd:nonNegativeInteger'
+            if maxcnt is not None:
+                sparql += f' ;\n{blank:{indent*indent_inc}}owl:maxQualifiedCardinality "{maxcnt}"^^xsd:nonNegativeInteger'
+        return sparql
+
 
     def delete_shacl(self,
                      owlclass_iri: QName,
