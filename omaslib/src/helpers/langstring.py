@@ -29,9 +29,15 @@ class LangString:
         """
         self._changeset = set()
         if isinstance(langstring, str):
-            self._langstring = {
-                Languages.XX: langstring
-            }
+            index = langstring.find('@')
+            if index >= 0:
+                self._langstring = {
+                    Languages(langstring[(index + 1):]): langstring[:index]
+                }
+            else:
+                self._langstring = {
+                    Languages.XX: langstring
+                }
         elif langstring is None:
             self._langstring = {}
         else:
@@ -103,10 +109,20 @@ class LangString:
     def langstring(self) -> Dict[Languages, str]:
         return self._langstring
 
-    def add(self, langs: Dict[Languages, str]):
-        for lang, value in langs.items():
-            self._langstring[lang] = value
-            self._changeset.add(lang)
+    def add(self, langs: Union[str, Dict[Languages, str]]):
+        if isinstance(langs, str):
+            index = langs.find('@')
+            if index >= 0:
+                lang = Languages(langs[(index + 1):])
+                self._langstring[lang] = langs[:index]
+                self._changeset.add(lang)
+            else:
+                self._langstring[Languages.XX] = langs
+                self._changeset.add(Languages.XX)
+        else:
+            for lang, value in langs.items():
+                self._langstring[lang] = value
+                self._changeset.add(lang)
 
 
 if __name__ == '__main__':

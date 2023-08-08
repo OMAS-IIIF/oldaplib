@@ -74,9 +74,15 @@ class ResourceClass(Model):
         return self._subclass_of
 
     @subclass_of.setter
-    def subclass_of(self, value: QName) -> None:
+    def subclass_of(self, value: Union[QName, None]) -> None:
         if value != self._subclass_of:
-            self._changeset.add("subclass_of")
+            if self._subclass_of is None:
+                self._changeset.add("subclass_of:create")
+            else:
+                if value is None:
+                    self._changeset.add("subclass_of:delete")
+                else:
+                    self._changeset.add("subclass_of:update")
             self._subclass_of = value
 
     @property
@@ -84,13 +90,18 @@ class ResourceClass(Model):
         return self._label
 
     @label.setter
-    def label(self, label: LangString) -> None:
+    def label(self, label: Union[LangString, None]) -> None:
         if label != self._label:
-            self._changeset.add('label')
-            if self._label:
-                self._label.add(label.langstring)
-            else:
+            if self._label is None:
                 self._label = label
+                self._changeset.add('label:create')
+            else:
+                if label is None:
+                    self.label = None
+                    self._changeset.add('label:delete')
+                else:
+                    self._label.add(label.langstring)
+                    self._changeset.add('label:update')
 
     def label_add(self, lang: Languages, label: str):
         if self._label:
@@ -147,11 +158,10 @@ class ResourceClass(Model):
         self._properties.append(property)
         self._changeset.add("property")
 
-    def delete_property(self, property: PropertyClass):
+    def delete_property(self, property_class_iri: QName):
         for p in self._properties:
-            if p.property_class_iri == property.property_class_iri:
+            if p.property_class_iri == property_class_iri:
                 pass
-
 
     @property
     def in_use(self) -> bool:
@@ -189,6 +199,12 @@ class ResourceClass(Model):
         return sparql
 
     def __read_shacl(self) -> None:
+        """
+        Read the shacl definition from the triple store and create the respective ResourceClass
+        and PropertyClass instances which represent the Shape and OWL definitions in Python.
+
+        :return: None
+        """
         context = Context(name=self._con.context_name)
         if not self._owl_class:
             raise OmasError('ResourceClass mus be created with "owl_class" given as parameter!')
@@ -264,17 +280,26 @@ class ResourceClass(Model):
                 continue
             if not isinstance(r[1], URIRef):
                 raise OmasError("INCONSISTENCY!")
-            p = context.iri2qname(r[1])
             if not properties.get(r[0]):
                 properties[r[0]] = {}
+            p = context.iri2qname(r[1])
             if isinstance(r[2], URIRef):
-                properties[r[0]][p] = context.iri2qname(r[2])
+                if properties[r[0]].get(p) is None:
+                    properties[r[0]][p] = []
+                properties[r[0]][p].append(context.iri2qname(r[2]))
             elif isinstance(r[2], Literal):
-                properties[r[0]][p] = r[2]
+                if properties[r[0]].get(p) is None:
+                    properties[r[0]][p] = []
+                if r[2].language is None:
+                    properties[r[0]][p].append(r[2].toPython())
+                else:
+                    properties[r[0]][p].append(r[2].toPython() + '@' + r[2].language)
             elif isinstance(r[2], BNode):
                 pass
             else:
-                properties[r[0]][p] = r[2]
+                if properties[r[0]].get(p) is None:
+                    properties[r[0]][p] = []
+                properties[r[0]][p].append(r[2])
             if r[1].fragment == 'languageIn':
                 if not properties[r[0]].get(p):
                     properties[r[0]][p] = set()
@@ -290,24 +315,24 @@ class ResourceClass(Model):
             restrictions = PropertyRestrictions()
             for key, val in p.items():
                 if key == 'sh:path':
-                    p_iri = val
+                    p_iri = val[0]
                 elif key == 'sh:datatype':
-                    p_datatype = XsdDatatypes(str(val))
+                    p_datatype = XsdDatatypes(str(val[0]))
                 elif key == 'sh:name':
-                    ll = val.language if val.language is not None else Languages.XX
-                    if p_name is None:
-                        p_name = LangString({ll: val.toPython()})
-                    else:
-                        p_name.add({ll: val.toPython()})
+                    p_name = LangString()
+                    for ll in val:
+                        p_name.add(ll)
                 elif key == 'sh:description':
-                    p_description = LangString(val)
+                    p_description = LangString()
+                    for ll in val:
+                        p_description.add(ll)
                 elif key == 'sh:order':
-                    p_order = val
+                    p_order = val[0]
                 elif key == 'sh:class':
-                    p_to_class = val
+                    p_to_class = val[0]
                 else:
                     try:
-                        restrictions[PropertyRestrictionType(key)] = val
+                        restrictions[PropertyRestrictionType(key)] = val[0]
                     except (ValueError, TypeError) as err:
                         OmasError(f'Invalid shacl definition: "{key} {val}"')
 
