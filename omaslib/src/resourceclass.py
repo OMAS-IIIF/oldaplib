@@ -518,39 +518,32 @@ class ResourceClass(Model):
         self._con.update_query(sparql)
 
     def __update_owl(self, indent: int = 0, indent_inc: int = 4):
-        if not self._changeset:
-            return
-        blank = ''
-        context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:onto {{\n'
-        for c in self._changeset:
-            if c == 'subclass_of':
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owl_class} rdfs:subClassOf ?subclass_of .'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-        sparql += f'{blank:{indent*indent_inc}}}}\n'
+        if self._changeset and 'subclass_of' in self._changeset:
+            blank = ''
+            context = Context(name=self._con.context_name)
+            sparql = context.sparql_context
+            sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:onto {{\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owl_class} rdfs:subClassOf ?subclass_of .'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
+            sparql += f'{blank:{indent*indent_inc}}}}\n'
 
-        sparql += f'{blank:{indent*indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
-        for c in self._changeset:
-            if c == 'subclass_of' and self._subclass_of:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owl_class} rdfs:subClassOf {self._subclass_of} .'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-        sparql += f'{blank:{indent*indent_inc}}}}\n'
+            sparql += f'{blank:{indent*indent_inc}}INSERT {{\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owl_class} rdfs:subClassOf {self._subclass_of} .'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
+            sparql += f'{blank:{indent*indent_inc}}}}\n'
 
-        sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
-        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class} rdf:type owl:Class .\n'
-        for c in self._changeset:
-            if c == 'subclass_of':
-                sparql += f'{blank:{(indent + 2) * indent_inc}}OPTIONAL {{\n'
-                sparql += f'{blank:{(indent + 3)*indent_inc}}{self._owl_class} rdfs:subClassOf ?subclass_of .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}}}\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-        sparql += f'{blank:{indent*indent_inc}}}}\n'
-        print(sparql)
-        #self._con.update_query(sparql)
+            sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+            sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class} rdf:type owl:Class .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}OPTIONAL {{\n'
+            sparql += f'{blank:{(indent + 3)*indent_inc}}{self._owl_class} rdfs:subClassOf ?subclass_of .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}}}\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
+            sparql += f'{blank:{indent*indent_inc}}}}\n'
+            print(sparql)
+            #self._con.update_query(sparql)
 
 
     def update(self):
