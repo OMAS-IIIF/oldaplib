@@ -54,12 +54,61 @@ class ResourceClass(Model):
         if self._label:
             s += f'Label: "{self._label}"\n'
         if self._comment:
-            s += f'Description: "{self._comment}"\n'
+            s += f'Comment: "{self._comment}"\n'
         s += f'Closed: {self._closed}\n'
         s += 'Properties:\n'
         for p in self._properties:
             s += f'{blank:{indent}}{str(p)}\n'
         return s
+
+    def __attribute_setter(self, varname: str, value: Union[bool, int, float, str, QName, None]):
+        ivarname = '_' + varname
+        if not hasattr(self, ivarname):
+            raise OmasError(f'No attribute "{ivarname}" existing!')
+        if value != getattr(self, ivarname):
+            if getattr(self, ivarname) is None:
+                self._changeset.add(f'{varname}:create')
+            else:
+                if value is None:
+                    self._changeset.add(f'{varname}:delete')
+                else:
+                    self._changeset.add(f'{varname}:replace')
+            setattr(self, ivarname, value)
+
+    def __langstring_setter(self, varname: str, value: Union[LangString, None]) -> None:
+        ivarname = '_' + varname
+        if not hasattr(self, ivarname):
+            raise OmasError(f'No attribute "{ivarname}" existing!')
+        if value != getattr(self, ivarname):
+            if getattr(self, ivarname) is None:
+                setattr(self, ivarname, value)
+                self._changeset.add(f'{varname}:create')
+            else:
+                if value is None:
+                    setattr(self, ivarname, None)
+                    self._changeset.add(f'{varname}:delete')
+                else:
+                    setattr(self, ivarname, value)
+                    self._changeset.add(f'{varname}:replace')
+
+    def __langstring_adder(self, varname: str, lang: Languages, value: Union[str, None]) -> None:
+        ivarname = '_' + varname
+        if getattr(self, ivarname) is not None:
+            if getattr(self, ivarname).langstring.get(lang) != value:
+                tmp = getattr(self, ivarname)
+                if value is None:
+                    if tmp.get(lang) is not None:
+                        del tmp[lang]
+                        self._changeset.add(f'{varname}:delete_lang')
+                else:
+                    tmp[lang] = value
+                    if tmp.get(lang) is not None:
+                        self._changeset.add(f'{varname}:replace_lang')
+                    else:
+                        self._changeset.add(f'{varname}:create_lang')
+        else:
+            setattr(self, ivarname, LangString({lang: value}))
+            self._changeset.add(f'{varname}:create')
 
     @property
     def owl_class(self) -> QName:
@@ -75,15 +124,7 @@ class ResourceClass(Model):
 
     @subclass_of.setter
     def subclass_of(self, value: Union[QName, None]) -> None:
-        if value != self._subclass_of:
-            if self._subclass_of is None:
-                self._changeset.add("subclass_of:create")
-            else:
-                if value is None:
-                    self._changeset.add("subclass_of:delete")
-                else:
-                    self._changeset.add("subclass_of:update")
-            self._subclass_of = value
+        self.__attribute_setter('subclass_of', value)
 
     @property
     def label(self) -> LangString:
@@ -91,48 +132,21 @@ class ResourceClass(Model):
 
     @label.setter
     def label(self, label: Union[LangString, None]) -> None:
-        if label != self._label:
-            if self._label is None:
-                self._label = label
-                self._changeset.add('label:create')
-            else:
-                if label is None:
-                    self.label = None
-                    self._changeset.add('label:delete')
-                else:
-                    self._label.add(label.langstring)
-                    self._changeset.add('label:update')
+        self.__langstring_setter('label', label)
 
-    def label_add(self, lang: Languages, label: str):
-        if self._label:
-            if self._label.langstring.get(lang) != label:
-                self._label[lang] = label
-                self._changeset.add('label')
-        else:
-            self._label = LangString({lang: label})
-            self._changeset.add('label')
+    def label_add(self, lang: Languages, label: Union[str, None]):
+        self.__langstring_adder('label', lang, label)
 
     @property
     def comment(self) -> LangString:
         return self._comment
 
     @comment.setter
-    def comment(self, comment: LangString) -> None:
-        if comment != self._comment:
-            self._changeset.add(comment)
-            if self._comment:
-                self._description.add(comment.langstring)
-            else:
-                self._comment = comment
+    def comment(self, comment: Union[LangString, None]) -> None:
+        self.__langstring_setter('comment', comment)
 
-    def comment_add(self, lang: Languages, comment: str):
-        if self._comment:
-            if self._comment.langstring.get(lang) != comment:
-                self._comment[lang] = comment
-                self._changeset.add('comment')
-        else:
-            self._comment = LangString({lang: comment})
-            self._changeset.add('comment')
+    def comment_add(self, lang: Languages, comment: Union[str, None]):
+        self.__langstring_adder('comment', lang, comment)
 
     @property
     def closed(self) -> bool:
@@ -140,9 +154,7 @@ class ResourceClass(Model):
 
     @closed.setter
     def closed(self, value: bool):
-        if value != self._closed:
-            self._changeset.add("closed")
-            self._closed = value
+        self.__attribute_setter('closed', value)
 
     def get_property(self, property_class_iri: QName) -> PropertyClass:
         for p in self._properties:
@@ -460,15 +472,16 @@ class ResourceClass(Model):
         sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
         sparql_switch1 = {
-            'subclass_of': f'{blank:{(indent + 2) * indent_inc}}?resclass rdfs:subClassOf ?subclass_of .',
-            'closed': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:closed ?closed .',
-            'sh:name': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:name ?name .',
-            'sh:description': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:description ?description'
+            'subclass_of': '?resclass rdfs:subClassOf ?subclass_of .',
+            'closed': '?resclass sh:closed ?closed .',
+            'label': '?resclass rdfs:label ?label .',
+            'comment': '?resclass rdfs:comment ?comment .'
         }
-        for c in self._changeset:
-            tmp = sparql_switch1.get(c)  # TODO: add handling if tmp is None
+        for cs in self._changeset:
+            name, action = cs.split(':')
+            tmp = sparql_switch1.get(name)  # TODO: add handling if tmp is None
             if tmp:
-                sparql += tmp
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{tmp}\n'
             else:
                 pass  # TODO: add handling if tmp is None
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
@@ -477,40 +490,41 @@ class ResourceClass(Model):
         sparql += f'{blank:{indent*indent_inc}}INSERT {{\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
         sparql_switch2 = {
-            'subclass_of': f'{blank:{(indent + 2) * indent_inc}}?resclass rdfs:subClassOf {self._subclass_of} .',
-            'closed': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:closed {"true" if self._closed else "false"} .',
-            'sh:name': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:name {self._name} .',
-            'sh:description': f'{blank:{(indent + 2) * indent_inc}}?resclass sh:description ?description'
+            'subclass_of': f'?resclass rdfs:subClassOf {self._subclass_of} .',
+            'closed': f'?resclass sh:closed {"true" if self._closed else "false"} .',
+            'label': f'?resclass rdfs:label {self._label} .',
+            'comment': f'?resclass rdfs:comment {self._comment} .'
         }
-
-        for c in self._changeset:
-            if c == 'subclass_of' and self._subclass_of:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owl_class}Shape rdfs:subClassOf {self._subclass_of} .\n'
-            elif c == 'closed':
-                sparql += f'{blank:{(indent + 3) * indent_inc}}{self._owl_class}Shape sh:closed {"true" if self._closed else "false"} .\n'
-        else:
-            pass  # TODO: Implement proper error handling here
+        for cs in self._changeset:
+            name, action = cs.split(':')
+            tmp = sparql_switch2.get(name)
+            if tmp:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{tmp}\n'
+            else:
+                pass  # TODO: add handling if tmp is None
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
 
         sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class}Shape rdf:type sh:nodeShape .\n'
-        for c in self._changeset:
-            if c == 'subclass_of':
-                sparql += f'{blank:{(indent + 2) * indent_inc}}OPTIONAL {{\n'
-                sparql += f'{blank:{(indent + 3)*indent_inc}}{self._owl_class}Shape rdfs:subClassOf ?subclass_of .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}}}\n'
-            elif c == 'closed':
-                sparql += f'{blank:{(indent + 2) * indent_inc}}OPTIONAL {{\n'
-                sparql += f'{blank:{(indent + 3) * indent_inc}}{self._owl_class}Shape sh:closed ?closed .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}}}\n'
+        sparql_switch3 = {
+            'subclass_of': f'OPTIONAL {{ {self._owl_class}Shape rdfs:subClassOf ?subclass_of }}',
+            'closed': f'OPTIONAL {{ {self._owl_class}Shape sh:closed ?closed }}',
+            'label': f'OPTIONAL {{ {self._owl_class}Shape rdfs:label ?label }}',
+            'comment': f'OPTIONAL {{ {self._owl_class}Shape rdfs:comment ?comment }}'
+        }
+        for cs in self._changeset:
+            name, action = cs.split(':')
+            tmp = sparql_switch3.get(name)
+            if tmp:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{tmp}\n'
             else:
                 pass  # TODO: Implement proper error handling here
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
         print(sparql)
-        #self._con.update_query(sparql)
+        self._con.update_query(sparql)
 
     def __update_owl(self, indent: int = 0, indent_inc: int = 4):
         if not self._changeset:
@@ -550,13 +564,22 @@ class ResourceClass(Model):
 
     def update(self):
         self.__update_shacl()
-        self.__update_owl()
+        #self.__update_owl()
 
 if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
     omas_project = ResourceClass(con, QName('omas:OmasProject'))
     omas_project.read()
     print(omas_project)
+    omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
+    omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
+    omas_project.closed = False
+    omas_project.subclass_of = QName('omas:Object')
+    omas_project.update()
+    omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
+    omas_project2.read()
+    print(omas_project2)
+    exit(0)
     #omas_project.closed = False
     #omas_project.update()
     #omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
