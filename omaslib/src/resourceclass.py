@@ -259,10 +259,10 @@ class ResourceClass(Model):
                     self._comment[ll] = r[1].toPython()
             elif p == 'rdfs:subClassOf':
                 tmpstr = context.iri2qname(r[1])
-                i = tmpstr.find('Shape')
+                i = str(tmpstr).find('Shape')
                 if i == -1:
                     raise OmasError('Shape not valid......')  # TODO: Correct error message
-                self._subclass_of = tmpstr[:i]
+                self._subclass_of = str(tmpstr)[:i]
             elif p == 'sh:targetClass':
                 target_class = context.iri2qname(r[1])
             elif p == 'sh:closed':
@@ -466,63 +466,54 @@ class ResourceClass(Model):
     def __update_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
         if not self._changeset:
             return
+        sparql_switch1 = {
+            'subclass_of': '?shape rdfs:subClassOf ?subclass_of .',
+            'closed': '?shape sh:closed ?closed .',
+            'label': '?shape rdfs:label ?label .',
+            'comment': '?shape rdfs:comment ?comment .'
+        }
+        sparql_switch2 = {
+            'subclass_of': f'?shape rdfs:subClassOf {self._subclass_of}Shape .',
+            'closed': f'?shape sh:closed {"true" if self._closed else "false"} .',
+            'label': f'?shape rdfs:label {self._label} .',
+            'comment': f'?shape rdfs:comment {self._comment} .'
+        }
+        sparql_switch3 = {
+            'subclass_of': f'OPTIONAL {{ ?shape rdfs:subClassOf ?subclass_of }}',
+            'closed': f'OPTIONAL {{ ?shape sh:closed ?closed }}',
+            'label': f'OPTIONAL {{ ?shape rdfs:label ?label }}',
+            'comment': f'OPTIONAL {{ ?shape rdfs:comment ?comment }}'
+        }
+
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
-        sparql_switch1 = {
-            'subclass_of': '?resclass rdfs:subClassOf ?subclass_of .',
-            'closed': '?resclass sh:closed ?closed .',
-            'label': '?resclass rdfs:label ?label .',
-            'comment': '?resclass rdfs:comment ?comment .'
-        }
+        n = len(self._changeset)
+        i = 1
         for cs in self._changeset:
             name, action = cs.split(':')
-            tmp = sparql_switch1.get(name)  # TODO: add handling if tmp is None
-            if tmp:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{tmp}\n'
-            else:
-                pass  # TODO: add handling if tmp is None
-        sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-        sparql += f'{blank:{indent*indent_inc}}}}\n'
+            if not name in sparql_switch1:
+                pass  # TODO: Error handling
+            sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch1[name]}\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
+            sparql += f'{blank:{indent*indent_inc}}}}\n'
 
-        sparql += f'{blank:{indent*indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
-        sparql_switch2 = {
-            'subclass_of': f'?resclass rdfs:subClassOf {self._subclass_of} .',
-            'closed': f'?resclass sh:closed {"true" if self._closed else "false"} .',
-            'label': f'?resclass rdfs:label {self._label} .',
-            'comment': f'?resclass rdfs:comment {self._comment} .'
-        }
-        for cs in self._changeset:
-            name, action = cs.split(':')
-            tmp = sparql_switch2.get(name)
-            if tmp:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{tmp}\n'
-            else:
-                pass  # TODO: add handling if tmp is None
-        sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-        sparql += f'{blank:{indent*indent_inc}}}}\n'
+            sparql += f'{blank:{indent*indent_inc}}INSERT {{\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch2[name]}\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
+            sparql += f'{blank:{indent*indent_inc}}}}\n'
 
-        sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
-        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class}Shape rdf:type sh:nodeShape .\n'
-        sparql_switch3 = {
-            'subclass_of': f'OPTIONAL {{ {self._owl_class}Shape rdfs:subClassOf ?subclass_of }}',
-            'closed': f'OPTIONAL {{ {self._owl_class}Shape sh:closed ?closed }}',
-            'label': f'OPTIONAL {{ {self._owl_class}Shape rdfs:label ?label }}',
-            'comment': f'OPTIONAL {{ {self._owl_class}Shape rdfs:comment ?comment }}'
-        }
-        for cs in self._changeset:
-            name, action = cs.split(':')
-            tmp = sparql_switch3.get(name)
-            if tmp:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{tmp}\n'
-            else:
-                pass  # TODO: Implement proper error handling here
-        sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-        sparql += f'{blank:{indent*indent_inc}}}}\n'
+            sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+            sparql += f'{blank:{(indent + 2)*indent_inc}}?shape rdf:type sh:nodeShape .\n'
+            sparql += f'{blank:{(indent + 2)*indent_inc}}?shape sh:targetClass {self._owl_class} .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch3[name]}\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
+            sparql += f'{blank:{indent*indent_inc}}}}{"" if i == n else " ;"}\n'
+            i += 1
         print(sparql)
         self._con.update_query(sparql)
 
