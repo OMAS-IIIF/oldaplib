@@ -220,6 +220,12 @@ class PropertyRestrictions:
     def get(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
         return self._restrictions.get(restriction_type)
 
+    def clear(self):
+        for restriction_type in self._restrictions:
+            self._changeset.add(restriction_type, Action.DELETE)
+        for restriction_type in self._changeset:
+            self._restrictions[restriction_type] = None
+
 
     # get all languages....
     #SELECT ?lang
@@ -278,7 +284,7 @@ class PropertyRestrictions:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?bnode rdf:rest* ?z .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:rest ?tail .\n'
-                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
                 sparql = ''
 
@@ -301,8 +307,10 @@ class PropertyRestrictions:
             sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
             sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} ?rval\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-            sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
+        sparql = " ;\n".join(sparql_list)
+        return sparql
 
     def delete_shacl(self,
                      owlclass_iri: QName,

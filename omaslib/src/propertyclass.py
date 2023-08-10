@@ -2,7 +2,7 @@
 :Author: Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>
 """
 from enum import Enum
-from typing import Union, Set, Optional, Any
+from typing import Union, Set, Optional, Any, List
 
 from pystrict import strict
 
@@ -155,6 +155,10 @@ class PropertyClass(Model):
         self._changeset.add('restrictions')
         self._test_in_use = True
 
+    def clear_restrictions(self):
+        self._restrictions.clear()
+        self._changeset.add('restrictions')
+
     def set_new(self):
         self._changeset.add("new")
 
@@ -176,7 +180,6 @@ class PropertyClass(Model):
                 return True
             else:
                 return False
-
 
     def read_owl(self):
         context = Context(name=self._con.context_name)
@@ -238,6 +241,7 @@ class PropertyClass(Model):
         sparql += f'{blank:{indent*indent_inc}}] ; \n'
         return sparql
 
+
     def create_owl_part1(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent*indent_inc}}{self._property_class_iri} rdf:type {self._property_type.value}'
@@ -264,6 +268,12 @@ class PropertyClass(Model):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._to_node_iri}'
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
+
+    def update_shacl(self,
+                     owl_class: QName,
+                     indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql_list: List[str] = []
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
         pass

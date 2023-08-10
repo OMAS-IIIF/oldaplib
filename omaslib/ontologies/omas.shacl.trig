@@ -8,6 +8,48 @@
 
 @prefix : <http://omas.org/base#> .
 
+## Define the reusable Property Shape
+#:AgePropertyShape a sh:PropertyShape ;
+#    sh:path ex:age ;
+#    sh:datatype xsd:integer ;
+#    sh:minInclusive 0 .
+#
+## Define a Person Node Shape that uses the AgePropertyShape
+#:PersonShape a sh:NodeShape ;
+#    sh:targetClass ex:Person ;
+#    sh:property :AgePropertyShape .
+#
+## Define a Dog Node Shape that also uses the AgePropertyShape
+#:DogShape a sh:NodeShape ;
+#    sh:targetClass ex:Dog ;
+#    sh:property :AgePropertyShape .
+
+
+
+
+## Reusable property shape without cardinality constraints
+#:AgePropertyShape a sh:PropertyShape ;
+#    sh:path ex:age ;
+#    sh:datatype xsd:integer ;
+#    sh:minInclusive 0 .
+#
+## Person node shape with specific cardinality constraints
+#:PersonShape a sh:NodeShape ;
+#    sh:targetClass ex:Person ;
+#    sh:property [
+#        sh:propertyShape :AgePropertyShape ;
+#        sh:maxCount 1 ;
+#    ] .
+#
+## Dog node shape with a different cardinality
+#:DogShape a sh:NodeShape ;
+#    sh:targetClass ex:Dog ;
+#    sh:property [
+#        sh:propertyShape :AgePropertyShape ;
+#        sh:minCount 1 ;
+#        sh:maxCount 1 ;
+#    ] .
+
 :shacl {
 
 #
