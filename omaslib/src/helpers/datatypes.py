@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any, Union
 from pystrict import strict
 
@@ -133,6 +134,7 @@ class NCName:
         return self._value.__hash__()
 
 
-
-
-
+class Action(Enum):
+    CREATE = 'create'
+    REPLACE = 'replace'
+    DELETE =  'delete'

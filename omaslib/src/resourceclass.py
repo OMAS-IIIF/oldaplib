@@ -1,14 +1,14 @@
 from enum import Enum
-from typing import Union, Optional, List, Set, Any, Dict, Tuple
+from typing import Union, Optional, List, Set, Any, Tuple, Dict
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
 
 from connection import Connection
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
-from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.langstring import Languages, LangString
-from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
+from omaslib.src.helpers.context import Context
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass
 from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
@@ -18,24 +18,19 @@ class ResourceClassAttributes(Enum):
     SUBCLASS_OF ='subclass_of'
     LABEL = 'label'
     COMMENT ='comment'
-    CLOSED=  'closed'
-
-class Action(Enum):
-    CREATE = 'create'
-    REPLACE = 'replace'
-    DELETE =  'delete'
+    CLOSED = 'closed'
+    PROPERTY = 'property'
 
 
 @strict
 class ResourceClass(Model):
     _owl_class: Union[QName, None]
     _subclass_of: Union[QName, None]
-    _properties: List[PropertyClass]
+    _properties: Dict[QName, PropertyClass]
     _label: Union[LangString, None]
     _comment: Union[LangString, None]
     _closed: bool
-
-    _changeset: Set[Tuple[ResourceClassAttributes, Action]]
+    _changeset: Set[Tuple[ResourceClassAttributes, Action, Union[QName, None]]]
 
     def __init__(self,
                  con: Connection,
@@ -48,7 +43,7 @@ class ResourceClass(Model):
         super().__init__(con)
         self._owl_class = owl_cass
         self._subclass_of = subclass_of
-        self._properties = properties if properties else set()
+        self._properties = properties if properties else {}
         if label and not isinstance(label, LangString):
             raise OmasError(f'Parameter "label" must be a "LangString", but is "{type(label)}"!')
         self._label = label
@@ -57,6 +52,25 @@ class ResourceClass(Model):
         self._comment = comment
         self._closed = True if closed is None else closed
         self._changeset = set()
+
+    def __getitem__(self, key: QName) -> PropertyClass:
+        return self._properties[key]
+
+    def __setitem__(self, key: QName, property: PropertyClass):
+        if self._properties.get(key) is None:
+            self._changeset.add((ResourceClassAttributes.PROPERTY, Action.CREATE, property.property_class_iri))
+        else:
+            self._changeset.add((ResourceClassAttributes.PROPERTY, Action.REPLACE, property.property_class_iri))
+        self._properties[key] = property
+
+    def __delitem__(self, key: QName):
+        del self._properties[key]
+
+    def get(self, key: QName) -> PropertyClass:
+        self._properties.get(key)
+
+    def items(self):
+        return self._properties.items()
 
     def __str__(self):
         blank = ' '
@@ -70,7 +84,7 @@ class ResourceClass(Model):
             s += f'Comment: "{self._comment}"\n'
         s += f'Closed: {self._closed}\n'
         s += 'Properties:\n'
-        for p in self._properties:
+        for tmp, p in self._properties.items():
             s += f'{blank:{indent}}{str(p)}\n'
         return s
 
@@ -80,12 +94,12 @@ class ResourceClass(Model):
             raise OmasError(f'No attribute "{ivarname}" existing!')
         if value != getattr(self, ivarname):
             if getattr(self, ivarname) is None:
-                self._changeset.add((resclassattr, Action.CREATE))
+                self._changeset.add((resclassattr, Action.CREATE, None))
             else:
                 if value is None:
-                    self._changeset.add((resclassattr, Action.DELETE))
+                    self._changeset.add((resclassattr, Action.DELETE, None))
                 else:
-                    self._changeset.add((resclassattr, Action.REPLACE))
+                    self._changeset.add((resclassattr, Action.REPLACE, None))
             setattr(self, ivarname, value)
 
     def __langstring_setter(self, resclassattr: ResourceClassAttributes, value: Union[LangString, None]) -> None:
@@ -95,14 +109,14 @@ class ResourceClass(Model):
         if value != getattr(self, ivarname):
             if getattr(self, ivarname) is None:
                 setattr(self, ivarname, value)
-                self._changeset.add((resclassattr, Action.CREATE))
+                self._changeset.add((resclassattr, Action.CREATE, None))
             else:
                 if value is None:
                     setattr(self, ivarname, None)
-                    self._changeset.add((resclassattr, Action.DELETE))
+                    self._changeset.add((resclassattr, Action.DELETE, None))
                 else:
                     setattr(self, ivarname, value)
-                    self._changeset.add((resclassattr, Action.REPLACE))
+                    self._changeset.add((resclassattr, Action.REPLACE, None))
 
     def __langstring_adder(self, resclassattr: ResourceClassAttributes, lang: Languages, value: Union[str, None]) -> None:
         ivarname = '_' + resclassattr.value
@@ -112,16 +126,16 @@ class ResourceClass(Model):
                 if value is None:
                     if tmp.get(lang) is not None:
                         del tmp[lang]
-                        self._changeset.add((resclassattr, Action.DELETE))
+                        self._changeset.add((resclassattr, Action.DELETE, None))
                 else:
                     tmp[lang] = value
                     if tmp.get(lang) is not None:
-                        self._changeset.add((resclassattr, Action.REPLACE))
+                        self._changeset.add((resclassattr, Action.REPLACE, None))
                     else:
-                        self._changeset.add((resclassattr, Action.CREATE))
+                        self._changeset.add((resclassattr, Action.CREATE, None))
         else:
             setattr(self, ivarname, LangString({lang: value}))
-            self._changeset.add((resclassattr, Action.CREATE))
+            self._changeset.add((resclassattr, Action.CREATE, None))
 
     @property
     def owl_class(self) -> QName:
@@ -168,25 +182,6 @@ class ResourceClass(Model):
     @closed.setter
     def closed(self, value: Union[bool, None]):
         self.__attribute_setter(ResourceClassAttributes.CLOSED, value)
-
-    def get_property(self, property_class_iri: QName) -> PropertyClass:
-        for p in self._properties:
-            if p.property_class_iri == property_class_iri:
-                return p
-        raise OmasError(f'Property "{property_class_iri}" does not exist!')
-
-    def add_property(self, property: PropertyClass):
-        for p in self._properties:
-            if p.property_class_iri == property.property_class_iri:
-                raise OmasError(f'Property "{property.property_class_iri}" already exists!')
-        property.set_new()
-        self._properties.append(property)
-        self._changeset.add("property")
-
-    def delete_property(self, property_class_iri: QName):
-        for p in self._properties:
-            if p.property_class_iri == property_class_iri:
-                pass
 
     @property
     def in_use(self) -> bool:
@@ -483,19 +478,22 @@ class ResourceClass(Model):
             ResourceClassAttributes.SUBCLASS_OF: '?shape rdfs:subClassOf ?subclass_of .',
             ResourceClassAttributes.CLOSED: '?shape sh:closed ?closed .',
             ResourceClassAttributes.LABEL: '?shape rdfs:label ?label .',
-            ResourceClassAttributes.COMMENT: '?shape rdfs:comment ?comment .'
+            ResourceClassAttributes.COMMENT: '?shape rdfs:comment ?comment .',
+            ResourceClassAttributes.PROPERTY: '?shape sh:property ?propnode'
         }
         sparql_switch2 = {
             ResourceClassAttributes.SUBCLASS_OF: f'?shape rdfs:subClassOf {self._subclass_of}Shape .',
             ResourceClassAttributes.CLOSED: f'?shape sh:closed {"true" if self._closed else "false"} .',
             ResourceClassAttributes.LABEL: f'?shape rdfs:label {self._label} .',
-            ResourceClassAttributes.COMMENT: f'?shape rdfs:comment {self._comment} .'
+            ResourceClassAttributes.COMMENT: f'?shape rdfs:comment {self._comment} .',
+            ResourceClassAttributes.PROPERTY: ''
         }
         sparql_switch3 = {
-            ResourceClassAttributes.SUBCLASS_OF: f'OPTIONAL {{ ?shape rdfs:subClassOf ?subclass_of }}',
-            ResourceClassAttributes.CLOSED: f'OPTIONAL {{ ?shape sh:closed ?closed }}',
-            ResourceClassAttributes.LABEL: f'OPTIONAL {{ ?shape rdfs:label ?label }}',
-            ResourceClassAttributes.COMMENT: f'OPTIONAL {{ ?shape rdfs:comment ?comment }}'
+            ResourceClassAttributes.SUBCLASS_OF: 'OPTIONAL { ?shape rdfs:subClassOf ?subclass_of }',
+            ResourceClassAttributes.CLOSED: 'OPTIONAL { ?shape sh:closed ?closed }',
+            ResourceClassAttributes.LABEL: 'OPTIONAL { ?shape rdfs:label ?label }',
+            ResourceClassAttributes.COMMENT: 'OPTIONAL { ?shape rdfs:comment ?comment }',
+            ResourceClassAttributes.PROPERTY: 'OPTIONAL { ?shape sh:property ?propnode }'
         }
 
         blank = ''
@@ -504,7 +502,23 @@ class ResourceClass(Model):
         n = len(self._changeset)
         i = 1
         do_it = False
-        for name, action in self._changeset:
+        for name, action, prop_iri in self._changeset:
+            if name == ResourceClassAttributes.PROPERTY:
+                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property\n' + self._properties[prop_iri].property_node(indent + 1)
+                if action == Action.DELETE:
+                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch1[name]}\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
+                    sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+                    sparql += f'{blank:{(indent + 2)*indent_inc}}?shape rdf:type sh:nodeShape .\n'
+                    sparql += f'{blank:{(indent + 2)*indent_inc}}?shape sh:targetClass {self._owl_class} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch3[name]}\n'
+                    sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
+                    sparql += f'{blank:{indent*indent_inc}}}}{"" if i == n else " ;"}\n'
+
             sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
             sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch1[name]}\n'

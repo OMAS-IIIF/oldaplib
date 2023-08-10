@@ -219,7 +219,7 @@ class PropertyClass(Model):
             if to_node_iri != self._to_node_iri:
                 OmasError(f'Property has inconstent object type definition: OWL: {to_node_iri} vs SHACL: {self._to_node_iri}.')
 
-    def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
+    def property_node(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent*indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}sh:path {self._property_class_iri} ;\n'
