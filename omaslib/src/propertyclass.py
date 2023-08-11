@@ -11,6 +11,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, AnyIRI
 from omaslib.src.helpers.langstring import Languages, LangString
 from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.propertyclass_singleton import PropertyClassSingleton
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
 from omaslib.src.model import Model
 from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
@@ -22,7 +23,7 @@ class OwlPropertyType(Enum):
 
 
 @strict
-class PropertyClass(Model):
+class PropertyClass(Model, metaclass=PropertyClassSingleton):
     _property_class_iri: Union[QName, None]
     _subproperty_of: Union[QName, None]
     _property_type: Union[OwlPropertyType, None]

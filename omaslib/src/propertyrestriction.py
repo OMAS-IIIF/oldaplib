@@ -1,6 +1,6 @@
 import re
 from enum import Enum
-from typing import Dict, Union, Set, Optional
+from typing import Dict, Union, Set, Optional, Tuple
 
 from pystrict import strict
 
@@ -66,7 +66,7 @@ class PropertyRestrictions:
     """
     _restrictions: Dict[PropertyRestrictionType, Union[int, float, str, Set[Languages], QName]]
     _test_in_use: bool
-    _changeset: Set[(PropertyRestrictionType, Action)]
+    _changeset: Set[Tuple[PropertyRestrictionType, Action]]
     _compare: Dict[PropertyRestrictionType, Compare]
 
 
