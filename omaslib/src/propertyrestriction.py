@@ -11,8 +11,6 @@ from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
 
 class PropertyRestrictionType(Enum):
-    MAX_COUNT = 'sh:maxCount'
-    MIN_COUNT = 'sh:minCount'
     LANGUAGE_IN = 'sh:languageIn'
     UNIQUE_LANG = 'sh:uniqueLang'
     MIN_LENGTH = 'sh:minLength'
@@ -73,8 +71,6 @@ class PropertyRestrictions:
 
 
     def __init__(self, *,
-                 min_count: Optional[int] = None,
-                 max_count: Optional[int] = None,
                  language_in: Optional[Set[Languages]] = None,
                  unique_lang: Optional[bool] = None,
                  min_length: Optional[int] = None,
@@ -87,8 +83,6 @@ class PropertyRestrictions:
                  less_than: Optional[QName] = None,
                  less_than_or_equals: Optional[QName] = None):
         self._compare = {
-            PropertyRestrictionType.MAX_COUNT: Compare.LT,
-            PropertyRestrictionType.MIN_COUNT: Compare.GT,
             PropertyRestrictionType.LANGUAGE_IN: Compare.XX,
             PropertyRestrictionType.UNIQUE_LANG: Compare.XX,
             PropertyRestrictionType.MIN_LENGTH: Compare.GT,
@@ -102,14 +96,6 @@ class PropertyRestrictions:
             PropertyRestrictionType.LESS_THAN_OR_EQUALS: Compare.XX
         }
         self._restrictions = {}
-        if min_count:
-            if not XsdValidator.validate(XsdDatatypes.integer, min_count):
-                raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
-            self._restrictions[PropertyRestrictionType.MIN_COUNT] = min_count
-        if max_count:
-            if not XsdValidator.validate(XsdDatatypes.integer, max_count):
-                raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
-            self._restrictions[PropertyRestrictionType.MAX_COUNT] = max_count
         if language_in:
             if type(language_in) != set:
                 raise OmasError(f'Invalid value "{language_in}" for sh:languageIn restriction!')
@@ -181,8 +167,8 @@ class PropertyRestrictions:
         return self._restrictions[restriction_type]
 
     def __setitem__(self,
-                  restriction_type: PropertyRestrictionType,
-                  value: Union[int, float, str, Set[Languages], QName]):
+                    restriction_type: PropertyRestrictionType,
+                    value: Union[int, float, str, Set[Languages], QName]):
         if self._restrictions.get(restriction_type):
             if self._compare[restriction_type] == Compare.GT:
                 if not hasattr(value, '__gt__'):
@@ -193,7 +179,7 @@ class PropertyRestrictions:
                 if not hasattr(value, '__ge__'):
                     raise OmasError(f'Invalid value "{value}" for sh:maxExclusive: No compare function defined!')
                 if value >= self._restrictions[restriction_type]:
-                 self._test_in_use = True
+                    self._test_in_use = True
             elif self._compare[restriction_type] == Compare.LT:
                 if not hasattr(value, '__lt__'):
                     raise OmasError(f'Invalid value "{value}" for sh:maxExclusive: No compare function defined!')
