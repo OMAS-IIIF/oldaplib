@@ -16,27 +16,27 @@
 #################################################################
 
 ###  http://www.w3.org/2004/02/skos/core#altLabel
-<http://www.w3.org/2004/02/skos/core#altLabel> rdfs:range xsd:string .
+skos:altLabel rdfs:range xsd:string .
 
 
 ###  http://www.w3.org/2004/02/skos/core#changeNote
-<http://www.w3.org/2004/02/skos/core#changeNote> rdfs:range xsd:string .
+skos:changeNote rdfs:range xsd:string .
 
 
 ###  http://www.w3.org/2004/02/skos/core#definition
-<http://www.w3.org/2004/02/skos/core#definition> rdfs:range xsd:string .
+skos:definition rdfs:range xsd:string .
 
 
 ###  http://www.w3.org/2004/02/skos/core#editorialNote
-<http://www.w3.org/2004/02/skos/core#editorialNote> rdfs:range xsd:string .
+skos:editorialNote rdfs:range xsd:string .
 
 
 ###  http://www.w3.org/2004/02/skos/core#note
-<http://www.w3.org/2004/02/skos/core#note> rdfs:range xsd:string .
+skos:note rdfs:range xsd:string .
 
 
 ###  http://www.w3.org/2004/02/skos/core#prefLabel
-<http://www.w3.org/2004/02/skos/core#prefLabel> rdfs:range xsd:string .
+skos:prefLabel rdfs:range xsd:string .
 
 
 #################################################################
@@ -103,32 +103,32 @@
 #################################################################
 
 ###  http://www.w3.org/2004/02/skos/core#altLabel
-<http://www.w3.org/2004/02/skos/core#altLabel> rdf:type owl:DatatypeProperty .
+skos:altLabel rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#changeNote
-<http://www.w3.org/2004/02/skos/core#changeNote> rdf:type owl:DatatypeProperty .
+skos:changeNote rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#definition
-<http://www.w3.org/2004/02/skos/core#definition> rdf:type owl:DatatypeProperty .
+skos:definition rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#editorialNote
-<http://www.w3.org/2004/02/skos/core#editorialNote> rdf:type owl:DatatypeProperty .
+skos:editorialNote rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#note
-<http://www.w3.org/2004/02/skos/core#note> rdf:type owl:DatatypeProperty .
+skos:note rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#prefLabel
-<http://www.w3.org/2004/02/skos/core#prefLabel> rdf:type owl:DatatypeProperty .
+skos:prefLabel rdf:type owl:DatatypeProperty .
 
 
 ###  omas:ontology#creationDate
 :creationDate rdf:type owl:DatatypeProperty ;
-              rdfs:domain :OmasThing ;
+              rdfs:domain :Thing ;
               rdfs:range xsd:dateTimeStamp .
 
 
@@ -152,37 +152,37 @@
 
 ###  omas:ontology#lastModificationDate
 :lastModificationDate rdf:type owl:DatatypeProperty ;
-                      rdfs:domain :OmasThing ;
+                      rdfs:domain :Thing ;
                       rdfs:range xsd:dateTimeStamp .
 
 
 ###  omas:ontology#leftIndex
 :leftIndex rdf:type owl:DatatypeProperty ;
-           rdfs:domain :OmasListNode ;
+           rdfs:domain :ListNode ;
            rdfs:range xsd:positiveInteger .
 
 
 ###  omas:ontology#locationGeonamesId
 :locationGeonamesId rdf:type owl:DatatypeProperty ;
-                    rdfs:domain :OmasLocation ;
+                    rdfs:domain :Location ;
                     rdfs:range xsd:positiveInteger .
 
 
 ###  omas:ontology#locationLatitude
 :locationLatitude rdf:type owl:DatatypeProperty ;
-                  rdfs:domain :OmasLocation ;
+                  rdfs:domain :Location ;
                   rdfs:range xsd:double .
 
 
 ###  omas:ontology#locationLongitude
 :locationLongitude rdf:type owl:DatatypeProperty ;
-                   rdfs:domain :OmasLocation ;
+                   rdfs:domain :Location ;
                    rdfs:range xsd:double .
 
 
 ###  omas:ontology#locationName
 :locationName rdf:type owl:DatatypeProperty ;
-              rdfs:domain :OmasLocation ;
+              rdfs:domain :Location ;
               rdfs:range xsd:string .
 
 
@@ -231,7 +231,7 @@
 
 ###  omas:ontology#rightIndex
 :rightIndex rdf:type owl:DatatypeProperty ;
-            rdfs:domain :OmasListNode ;
+            rdfs:domain :ListNode ;
             rdfs:range xsd:positiveInteger .
 
 
@@ -277,7 +277,7 @@ omas:Date rdf:type owl:Class ;
 
 
 ###  http://omas.org/base#Project
-omas:OmasProject rdf:type owl:Class ;
+omas:Project rdf:type owl:Class ;
              rdfs:subClassOf [ rdf:type owl:Restriction ;
                                owl:onProperty :projectHasUser ;
                                owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
@@ -311,50 +311,50 @@ omas:OmasProject rdf:type owl:Class ;
 
 
 ###  omas:ontology#OmasList
-:OmasList rdf:type owl:Class ;
-          rdfs:subClassOf <http://www.w3.org/2004/02/skos/core#ConceptScheme> ,
+:List rdf:type owl:Class ;
+          rdfs:subClassOf skos:ConceptScheme ,
                           [ rdf:type owl:Restriction ;
-                            owl:onProperty <http://www.w3.org/2004/02/skos/core#prefLabel> ;
+                            owl:onProperty skos:prefLabel ;
                             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                             owl:onDataRange xsd:string
                           ] ,
                           [ rdf:type owl:Restriction ;
-                            owl:onProperty <http://www.w3.org/2004/02/skos/core#definition> ;
+                            owl:onProperty skos:definition ;
                             owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                             owl:onDataRange xsd:string
                           ] .
 
 
 ###  omas:ontology#OmasListNode
-:OmasListNode rdf:type owl:Class ;
-              rdfs:subClassOf <http://www.w3.org/2004/02/skos/core#Concept> ,
+:ListNode rdf:type owl:Class ;
+              rdfs:subClassOf skos:Concept ,
                               [ rdf:type owl:Restriction ;
-                                owl:onProperty <http://www.w3.org/2004/02/skos/core#inScheme> ;
+                                owl:onProperty skos:inScheme ;
                                 owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                owl:onClass :OmasList
+                                owl:onClass :List
                               ] ,
                               [ rdf:type owl:Restriction ;
-                                owl:onProperty <http://www.w3.org/2004/02/skos/core#broaderTransitive> ;
+                                owl:onProperty skos:broaderTransitive ;
                                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                owl:onClass :OmasListNode
+                                owl:onClass :ListNode
                               ] ,
                               [ rdf:type owl:Restriction ;
                                 owl:onProperty :nextNode ;
                                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                owl:onClass :OmasListNode
+                                owl:onClass :ListNode
                               ] ,
                               [ rdf:type owl:Restriction ;
-                                owl:onProperty <http://www.w3.org/2004/02/skos/core#altLabel> ;
+                                owl:onProperty skos:altLabel ;
                                 owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
                                 owl:onDataRange xsd:string
                               ] ,
                               [ rdf:type owl:Restriction ;
-                                owl:onProperty <http://www.w3.org/2004/02/skos/core#changeNote> ;
+                                owl:onProperty skos:changeNote ;
                                 owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
                                 owl:onDataRange xsd:string
                               ] ,
                               [ rdf:type owl:Restriction ;
-                                owl:onProperty <http://www.w3.org/2004/02/skos/core#prefLabel> ;
+                                owl:onProperty skos:prefLabel ;
                                 owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                                 owl:onDataRange xsd:string
                               ] ,
@@ -369,17 +369,17 @@ omas:OmasProject rdf:type owl:Class ;
                                 owl:onDataRange xsd:positiveInteger
                               ] ,
                               [ rdf:type owl:Restriction ;
-                                owl:onProperty <http://www.w3.org/2004/02/skos/core#definition> ;
+                                owl:onProperty skos:definition ;
                                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                                 owl:onDataRange xsd:string
                               ] ,
                               [ rdf:type owl:Restriction ;
-                                owl:onProperty <http://www.w3.org/2004/02/skos/core#notation> ;
+                                owl:onProperty skos:notation ;
                                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                                 owl:onDataRange xsd:string
                               ] ,
                               [ rdf:type owl:Restriction ;
-                                owl:onProperty <http://www.w3.org/2004/02/skos/core#note> ;
+                                owl:onProperty skos:note ;
                                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                                 owl:onDataRange xsd:string
                               ] .

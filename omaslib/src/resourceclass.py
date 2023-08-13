@@ -278,29 +278,44 @@ class ResourceClass(Model):
         if not self._owl_class:
             raise OmasError('ResourceClass must be created with "owl_class" given as parameter!')
         query1 = context.sparql_context
+        # query1 += f"""
+        # SELECT ?p ?o
+        # FROM {self._owl_class.prefix}:shacl
+        # WHERE {{
+        #     BIND({str(self._owl_class)}Shape AS ?shape)
+        #     ?shape ?p ?o
+        #     FILTER(?p != sh:property)
+        # }}
+        # """
         query1 += f"""
-        SELECT ?p ?o
+        SELECT ?p ?o ?propiri ?propshape
         FROM {self._owl_class.prefix}:shacl
         WHERE {{
             BIND({str(self._owl_class)}Shape AS ?shape)
             ?shape ?p ?o
-            FILTER(?p != sh:property)
+        }}
+        OPTIONAL {{
+            {{ ?o sh:path ?propiri . }} UNION {{ ?o sh:propertyShape ?propshape }}
         }}
         """
         res = con.rdflib_query(query1)
         self._subclass_of = None
         self._label = None
         self._comment = None
-        target_class = None
         self._closed = True
+        propiris: List[QName] = []
+        propshapes: List[QName] = []
         for r in res:
             p = context.iri2qname(r[0])
             if p == 'rdf:type':
                 tmp_qname = context.iri2qname(r[1])
-                if tmp_qname == f'{self._owl_class}' or tmp_qname == 'sh:nodeShape':
+                if tmp_qname == QName('sh:nodeShape'):
                     continue
+                if self._owl_class is None:
+                    self._owl_class = tmp_qname
                 else:
-                    raise OmasError(f'Inconsistent Shape for "{self._owl_class}": rdf:type="{context.iri2qname(r[1])}"')
+                    if tmp_qname != self._owl_class:
+                        raise OmasError(f'Inconsistent Shape for "{self._owl_class}": rdf:type="{tmp_qname}"')
             elif p == 'rdfs:label':
                 ll = Languages(r[1].language) if r[1].language else Languages.XX
                 if self._label is None:
@@ -320,13 +335,19 @@ class ResourceClass(Model):
                     raise OmasError('Shape not valid......')  # TODO: Correct error message
                 self._subclass_of = str(tmpstr)[:i]
             elif p == 'sh:targetClass':
-                target_class = context.iri2qname(r[1])
+                tmp_qname = context.iri2qname(r[1])
+                if self._owl_class is None:
+                    self._owl_class = tmp_qname
+                else:
+                    if tmp_qname != self._owl_class:
+                        raise OmasError(f'Inconsistent Shape for "{self._owl_class}": sh:targetClass="{tmp_qname}"')
             elif p == 'sh:closed':
                 self._closed = closed = r[1].value
-        if target_class and self._owl_class and target_class != self._owl_class:
-            raise OmasError(f'Inconsistent shape "{self._owl_class}Shape": sh:targetClass "{target_class}" != rdf:type "{self._owl_class}"')
-        if not self._owl_class and target_class:
-            self._owl_class = target_class
+            elif p == 'sh:property':
+                if r[2] is not None:
+                    propiri = context.iri2qname(r[2])
+                if r[3] is not None:
+                    propshape = context.iri2qname(r[3])
 
         query2 = context.sparql_context
         query2 += f"""
@@ -372,7 +393,6 @@ class ResourceClass(Model):
                 if not properties[r[0]].get(p):
                     properties[r[0]][p] = set()
                 properties[r[0]][p].add(Languages(r[3].toPython()))
-        proplist: List[HasProperty] = []
         for x, p in properties.items():
             p_iri = None
             p_datatype = None

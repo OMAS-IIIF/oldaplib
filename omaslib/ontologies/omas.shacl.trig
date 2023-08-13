@@ -52,12 +52,19 @@
 
 :shacl {
 
+    :propertyCommentShape a sh:PropertyShape ;
+        sh:path :comment ;
+        sh:datatype xsd:string ;
+        sh:languageIn ( "en" "de" "fr" "it" ) ;
+        sh:uniqueLang true .
+
 #
 # Nodeshape for :Project class
 #
-    :OmasProjectShape a sh:nodeShape, :OmasProject ;
-        sh:targetClass :OmasProject ;
+    :ProjectShape a sh:nodeShape, :Project ;
+        sh:targetClass :Project ;
         rdfs:label "Project"@en, "Projekt"@de, "Projet"@fr, "Progetto" ;
+        rdfs:comment "Metadata about a project" ;
 
         sh:property
             [
@@ -119,13 +126,18 @@
                 sh:class :OmasUser ;
                 sh:order 6 ;
             ] ;
+        sh:property
+            [
+                sh:propertyShape :OmasPropertyComment ;
+                sh:minCount 1 ;
+            ] ;
         sh:closed true .
 
     #
     # Nodeshape for :OmasPerson class
     #
-    :OmasPersonShape a sh:nodeShape, :OmasPerson ;
-        sh:targetClass :OmasPerson ;
+    :PersonShape a sh:nodeShape, :Person ;
+        sh:targetClass :Person ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -172,9 +184,9 @@
     #
     # Nodeshape for :OmasUser class which is a subclass of :OmasPerson
     #
-    :OmasUserShape a sh:nodeShape, :OmasUser ;
-        rdfs:subClassOf :OmasUserShape ;
-        sh:targetClass :OmasUser ;
+    :UserShape a sh:nodeShape, :User ;
+        rdfs:subClassOf :UserShape ;
+        sh:targetClass :User ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -255,8 +267,8 @@
     #
     # Nodeshape for :OmasDate
     #
-    :OmasDateShape a sh:nodeShape, :OmasDate ;
-        sh:targetClass :OmasDate ;
+    :DateShape a sh:nodeShape, :Date ;
+        sh:targetClass :Date ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -289,8 +301,8 @@
     #
     # Nodeshape for all resources
     #
-    :OmasThingShape a sh:nodeShape, :OmasThing ;
-        sh:targetClass :OmasDate ;
+    :ThingShape a sh:nodeShape, :Thing ;
+        sh:targetClass :Thing ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -300,7 +312,7 @@
                 sh:path :createdBy ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
-                sh:class :OmasUser ;
+                sh:class :User ;
             ] ;
         sh:property
             [
@@ -319,14 +331,14 @@
             [
                 sh:path :lastModifiedBy ;
                 sh:maxCount 1 ;
-                sh:class :OmasUser ;
+                sh:class :User ;
             ] .
 
     #
     # Nodeshape for the list...
     #
-    :OmasListShape a sh:nodeShape, :OmasList ;
-        sh:targetClass :OmasList ;
+    :ListShape a sh:nodeShape, :List ;
+        sh:targetClass :List ;
         rdfs:subClassOf skos:ConceptScheme ;
         sh:property
             [
@@ -349,8 +361,8 @@
             ] ;
         sh:closed true .
 
-    :OmasListNodeShape a sh:nodeShape, :OmasListNode ;
-        sh:targetClass :OmasListNode ;
+    :ListNodeShape a sh:nodeShape, :ListNode ;
+        sh:targetClass :ListNode ;
         rdfs:subClassOf skos:ConceptScheme ;
         sh:property
             [
