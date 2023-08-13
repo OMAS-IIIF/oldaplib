@@ -345,9 +345,11 @@ class ResourceClass(Model):
                 self._closed = closed = r[1].value
             elif p == 'sh:property':
                 if r[2] is not None:
-                    propiri = context.iri2qname(r[2])
+                    propiris.append(context.iri2qname(r[2]))
                 if r[3] is not None:
-                    propshape = context.iri2qname(r[3])
+                    propshapes.append(context.iri2qname(r[3]))
+
+        # TODO: read all propiris and propshapes. Move and adapt the code below to PropertClass.py !!!
 
         query2 = context.sparql_context
         query2 += f"""
