@@ -175,11 +175,11 @@ class Connection:
 
 
 if __name__ == "__main__":
-    con = Connection(server='http://localhost:7200',
-                     repo="omas",
-                     context_name="DEFAULT")
-    con.clear_repo()
-    con.upload_turtle("../ontologies/omas.ttl", "http://omas.org/base#onto")
-    con.upload_turtle("../ontologies/omas.shacl.trig")
+    con_A = Connection(server='http://localhost:7200',
+                       repo="omas",
+                       context_name="DEFAULT")
+    con_A.clear_repo()
+    con_A.upload_turtle("../ontologies/omas.ttl", "http://omas.org/base#onto")
+    con_A.upload_turtle("../ontologies/omas.shacl.trig")
 
 

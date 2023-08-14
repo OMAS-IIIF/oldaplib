@@ -182,6 +182,23 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             else:
                 return False
 
+    def read_shacl(self, owl_resclass: QName):
+        context = Context(name=self._con.context_name)
+        query = context.sparql_context
+        query += f"""
+        SELECT ?prop ?p ?o ?oo
+        FROM {self._owl_class.prefix}:shacl
+        WHERE {{
+            BIND({owl_resclass}Shape AS ?shape)
+            ?shape sh:property ?prop .
+            ?prop ?p ?o .
+            OPTIONAL {{
+                ?o rdf:rest*/rdf:first ?oo
+            }}
+        }}
+        """
+
+
     def read_owl(self):
         context = Context(name=self._con.context_name)
         query1 = context.sparql_context

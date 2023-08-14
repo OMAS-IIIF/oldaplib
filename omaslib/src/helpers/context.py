@@ -97,6 +97,7 @@ class Context(metaclass=ContextSingleton):
         contextlist = [f"@PREFIX {str(x)}: <{str(y)}> ." for x, y in self._context.items()]
         return "\n".join(contextlist) + "\n"
 
+
 if __name__ == '__main__':
     c1 = Context(name=DEFAULT_CONTEXT)
     c1['gaga'] = 'http://gaga.org/gugus#'

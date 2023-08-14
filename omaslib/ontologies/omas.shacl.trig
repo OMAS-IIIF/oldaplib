@@ -52,16 +52,20 @@
 
 :shacl {
 
-    :propertyCommentShape a sh:PropertyShape ;
+    :commentShape a sh:PropertyShape ;
         sh:path :comment ;
         sh:datatype xsd:string ;
         sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true .
 
+    :testShape a sh:propertyShape ;
+        sh:path :test ;
+        sh:dtatype xsd:integer .
+
 #
 # Nodeshape for :Project class
 #
-    :ProjectShape a sh:nodeShape, :Project ;
+    :ProjectShape a sh:NodeShape, :Project ;
         sh:targetClass :Project ;
         rdfs:label "Project"@en, "Projekt"@de, "Projet"@fr, "Progetto" ;
         rdfs:comment "Metadata about a project" ;
@@ -70,6 +74,7 @@
             [
                 sh:path rdf:type ;
             ] ;
+        sh:property :testShape ;
         sh:property
             [
                 sh:path :projectId ;
@@ -128,15 +133,16 @@
             ] ;
         sh:property
             [
-                sh:propertyShape :OmasPropertyComment ;
+                sh:propertyShape :commentShape ;
                 sh:minCount 1 ;
+                sh:maxCount 1 ;
             ] ;
         sh:closed true .
 
     #
     # Nodeshape for :OmasPerson class
     #
-    :PersonShape a sh:nodeShape, :Person ;
+    :PersonShape a sh:NodeShape, :Person ;
         sh:targetClass :Person ;
         sh:property
             [
@@ -184,7 +190,7 @@
     #
     # Nodeshape for :OmasUser class which is a subclass of :OmasPerson
     #
-    :UserShape a sh:nodeShape, :User ;
+    :UserShape a sh:NodeShape, :User ;
         rdfs:subClassOf :UserShape ;
         sh:targetClass :User ;
         sh:property
@@ -223,7 +229,7 @@
     #
     # Nodeshape for :Location
     #
-    :LocationShape a sh:nodeShape, :Location ;
+    :LocationShape a sh:NodeShape, :Location ;
         sh:targetClass :Location ;
         sh:property
             [
@@ -267,7 +273,7 @@
     #
     # Nodeshape for :OmasDate
     #
-    :DateShape a sh:nodeShape, :Date ;
+    :DateShape a sh:NodeShape, :Date ;
         sh:targetClass :Date ;
         sh:property
             [
@@ -301,7 +307,7 @@
     #
     # Nodeshape for all resources
     #
-    :ThingShape a sh:nodeShape, :Thing ;
+    :ThingShape a sh:NodeShape, :Thing ;
         sh:targetClass :Thing ;
         sh:property
             [
@@ -337,7 +343,7 @@
     #
     # Nodeshape for the list...
     #
-    :ListShape a sh:nodeShape, :List ;
+    :ListShape a sh:NodeShape, :List ;
         sh:targetClass :List ;
         rdfs:subClassOf skos:ConceptScheme ;
         sh:property
@@ -361,7 +367,7 @@
             ] ;
         sh:closed true .
 
-    :ListNodeShape a sh:nodeShape, :ListNode ;
+    :ListNodeShape a sh:NodeShape, :ListNode ;
         sh:targetClass :ListNode ;
         rdfs:subClassOf skos:ConceptScheme ;
         sh:property

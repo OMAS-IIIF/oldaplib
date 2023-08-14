@@ -293,9 +293,9 @@ class ResourceClass(Model):
         WHERE {{
             BIND({str(self._owl_class)}Shape AS ?shape)
             ?shape ?p ?o
-        }}
-        OPTIONAL {{
-            {{ ?o sh:path ?propiri . }} UNION {{ ?o sh:propertyShape ?propshape }}
+            OPTIONAL {{
+                {{ ?o sh:path ?propiri . }} UNION {{ ?o sh:propertyShape ?propshape }}
+            }}
         }}
         """
         res = con.rdflib_query(query1)

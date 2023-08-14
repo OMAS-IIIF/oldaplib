@@ -2,7 +2,7 @@ from typing import List, Set, Dict, Tuple, Optional, Any, Union
 
 
 from omaslib.src.helpers.omaserror import OmasError
-from connection import Connection
+from omaslib.src.connection import Connection
 
 class Model:
     _con: Connection
@@ -10,6 +10,8 @@ class Model:
 
     def __init__(self, connection: Connection):
         if not isinstance(connection, Connection):
+            raise OmasError('"con"-parameter must be an instance of Connection')
+        if type(connection) != Connection:
             raise OmasError('"con"-parameter must be an instance of Connection')
         self._con = connection
         self._changed = set()
