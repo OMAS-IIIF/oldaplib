@@ -5,9 +5,10 @@ import requests
 from enum import Enum, unique
 
 from pystrict import strict
-from typing import List, Set, Dict, Tuple, Optional, Any, Union
+from typing import List, Set, Dict, Tuple, Optional, Any, Union, Mapping
 from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
+from rdflib.term import Identifier
 from requests import get, post
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -169,17 +170,15 @@ class Connection:
         else:
             print("UPDATE FAILURE:", res.text)
 
-
-    def rdflib_query(self, query: str) -> Any:
-        return self._store.query(query)
+    def rdflib_query(self, query: str,
+                     bindings: Optional[Mapping[str, Identifier]] = None) -> Any:
+        return self._store.query(query, initBindings=bindings)
 
 
 if __name__ == "__main__":
-    con_A = Connection(server='http://localhost:7200',
-                       repo="omas",
-                       context_name="DEFAULT")
-    con_A.clear_repo()
-    con_A.upload_turtle("../ontologies/omas.ttl", "http://omas.org/base#onto")
-    con_A.upload_turtle("../ontologies/omas.shacl.trig")
-
-
+    con = Connection(server='http://localhost:7200',
+                     repo="omas",
+                     context_name="DEFAULT")
+    con.clear_repo()
+    con.upload_turtle("../ontologies/omas.ttl", "http://omas.org/base#onto")
+    con.upload_turtle("../ontologies/omas.shacl.trig")

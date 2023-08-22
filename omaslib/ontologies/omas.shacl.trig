@@ -58,9 +58,9 @@
         sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true .
 
-    :testShape a sh:propertyShape ;
+    :testShape a sh:PropertyShape ;
         sh:path :test ;
-        sh:dtatype xsd:integer .
+        sh:datatype xsd:integer .
 
 #
 # Nodeshape for :Project class
