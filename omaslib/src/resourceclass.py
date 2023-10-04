@@ -277,6 +277,23 @@ class ResourceClass(Model):
         context = Context(name=self._con.context_name)
         if not self._owl_class:
             raise OmasError('ResourceClass must be created with "owl_class" given as parameter!')
+
+        query0 = context.sparql_context
+        query0 += f"""
+        SELECT ?propshape ?p ?o ?oo
+        FROM {self._owl_class.prefix}:shacl
+        WHERE {{
+            ?propshape a sh:PropertyShape .
+            ?propshape ?p ?o .
+            OPTIONAL {{
+                ?o rdf:rest*/rdf:first ?oo
+            }}
+        }}
+        """
+        res = con.rdflib_query(query0)
+        for r in res:
+            print('****>>', r)
+
         query1 = context.sparql_context
         # query1 += f"""
         # SELECT ?p ?o
@@ -297,7 +314,7 @@ class ResourceClass(Model):
                 {{ ?o sh:path ?propiri . }} UNION {{ ?o sh:propertyShape ?propshape }}
             }}
         }}
-        """
+         """
         res = con.rdflib_query(query1)
         self._subclass_of = None
         self._label = None
@@ -309,7 +326,7 @@ class ResourceClass(Model):
             p = context.iri2qname(r[0])
             if p == 'rdf:type':
                 tmp_qname = context.iri2qname(r[1])
-                if tmp_qname == QName('sh:nodeShape'):
+                if tmp_qname == QName('sh:NodeShape'):
                     continue
                 if self._owl_class is None:
                     self._owl_class = tmp_qname
@@ -367,6 +384,7 @@ class ResourceClass(Model):
         res = con.rdflib_query(query2)
         properties = {}
         for r in res:
+            print(">>>>>>>>", r)
             if r[2] == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
                 continue
             if not isinstance(r[1], URIRef):
@@ -666,7 +684,7 @@ class ResourceClass(Model):
 
 if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
-    omas_project = ResourceClass(con, QName('omas:OmasProject'))
+    omas_project = ResourceClass(con, QName('omas:Project'))
     omas_project.read()
     print(omas_project)
     exit(0)

@@ -49,7 +49,7 @@ class Connection:
         SparqlResultFormat.TEXT: lambda a: a.text
     }
 
-    def __init__(self, server: str, repo: str, context_name: str = DEFAULT_CONTEXT):
+    def __init__(self, server: str, repo: str, context_name: str = DEFAULT_CONTEXT) -> None:
         self._server = server
         self._repo = repo
         self._context_name = context_name

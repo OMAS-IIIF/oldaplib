@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Union, Set, Optional, Any, List
 
 from pystrict import strict
+from rdflib import URIRef, Literal, BNode
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
@@ -83,7 +84,8 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if self._to_node_iri:
             propstr += f' Datatype: => {self._to_node_iri});'
         else:
-            propstr += f' Datatype: {self._datatype.value};'
+            #propstr += f' Datatype: {self._datatype.value};'
+            propstr += f' Datatype: {self._datatype};'
         if len(self._restrictions) > 0:
             propstr += f'{self._restrictions};'
         if self._name:
@@ -182,22 +184,53 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             else:
                 return False
 
-    def read_shacl(self, owl_resclass: QName):
+    def read_shacl(self):
         context = Context(name=self._con.context_name)
         query = context.sparql_context
         query += f"""
-        SELECT ?prop ?p ?o ?oo
-        FROM {self._owl_class.prefix}:shacl
+        SELECT ?p ?o ?oo
+        FROM {self._property_class_iri.prefix}:shacl
         WHERE {{
-            BIND({owl_resclass}Shape AS ?shape)
-            ?shape sh:property ?prop .
-            ?prop ?p ?o .
+            BIND({self._property_class_iri}Shape AS ?shape)
+            ?shape ?p ?o .
             OPTIONAL {{
                 ?o rdf:rest*/rdf:first ?oo
             }}
         }}
         """
-
+        print(query)
+        res = self._con.rdflib_query(query)
+        properties = {}
+        for r in res:
+            print(r)
+            p = context.iri2qname(r[0])
+            if p == QName('rdf:type'):
+                continue  # ToDo: Check consistency
+            if p == QName('sh:path'):
+                continue  # ToDo: Check consistency
+            if isinstance(r[1], URIRef):
+                if properties.get(p) is None:
+                    properties[p] = []
+                properties[p].append(context.iri2qname(r[1]))
+            elif isinstance(r[1], Literal):
+                if properties.get(p) is None:
+                    properties[p] = []
+                if r[1].language is None:
+                    properties[p].append(r[1].toPython())
+                else:
+                    properties[p].append(r[1].toPython() + '@' + r[1].language)
+            elif isinstance(r[1], BNode):
+                pass
+            else:
+                if properties.get(p) is None:
+                    properties[p] = []
+                properties[p].append(r[1])
+            if r[0].fragment == 'languageIn':
+                if not properties.get(p):
+                    properties[p] = set()
+                properties[p].add(Languages(r[2].toPython()))
+        print(properties)
+        #for x, p in properties.items():
 
     def read_owl(self):
         context = Context(name=self._con.context_name)
@@ -296,4 +329,11 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
         pass
 
+    def read(self) -> None:
+        self.read_shacl()
 
+
+if __name__ == '__main__':
+    con = Connection('http://localhost:7200', 'omas')
+    pclass = PropertyClass(con=con, property_class_iri=QName('omas:comment'))
+    pclass.read()

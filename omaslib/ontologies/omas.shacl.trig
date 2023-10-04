@@ -60,14 +60,14 @@
 
     :testShape a sh:propertyShape ;
         sh:path :test ;
-        sh:dtatype xsd:integer .
+        sh:datatype xsd:integer .
 
 #
 # Nodeshape for :Project class
 #
     :ProjectShape a sh:NodeShape, :Project ;
         sh:targetClass :Project ;
-        rdfs:label "Project"@en, "Projekt"@de, "Projet"@fr, "Progetto" ;
+        rdfs:label "Project"@en, "Projekt"@de, "Projet"@fr, "Progetto"@it ;
         rdfs:comment "Metadata about a project" ;
 
         sh:property
@@ -136,54 +136,7 @@
                 sh:propertyShape :commentShape ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
-            ] ;
-        sh:closed true .
-
-    #
-    # Nodeshape for :OmasPerson class
-    #
-    :PersonShape a sh:NodeShape, :Person ;
-        sh:targetClass :Person ;
-        sh:property
-            [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
-                sh:path :personFirstName ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:string ;
-            ] ;
-        sh:property
-            [
-                sh:path :personLastName ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:string ;
-            ] ;
-        sh:property
-            [
-                sh:path :personBirthDate ;
-                sh:maxCount 1 ;
-                sh:class :OmasDate ;
-            ] ;
-        sh:property
-            [
-                sh:path :personBirthLocation ;
-                sh:maxCount 1 ;
-                sh:class :Location ;
-            ] ;
-        sh:property
-            [
-                sh:path :personDeathDate ;
-                sh:maxCount 1 ;
-                sh:class :OmasDate ;
-            ] ;
-        sh:property
-            [
-                sh:path :personDeathLocation ;
-                sh:maxCount 1 ;
-                sh:class :Location ;
+                sh:order 7 ;
             ] ;
         sh:closed true .
 
@@ -191,7 +144,6 @@
     # Nodeshape for :OmasUser class which is a subclass of :OmasPerson
     #
     :UserShape a sh:NodeShape, :User ;
-        rdfs:subClassOf :UserShape ;
         sh:targetClass :User ;
         sh:property
             [
@@ -223,41 +175,6 @@
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:boolean ;
-            ] ;
-        sh:closed true .
-
-    #
-    # Nodeshape for :Location
-    #
-    :LocationShape a sh:NodeShape, :Location ;
-        sh:targetClass :Location ;
-        sh:property
-            [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
-                sh:path :locationsName ;
-                sh:minCount 1 ;
-                sh:datatype xsd:string ;
-            ] ;
-        sh:property
-            [
-                sh:path :locationGeonamesId ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:positiveInteger ;
-            ] ;
-        sh:property
-            [
-                sh:path :locationLatitude ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:double ;
-            ] ;
-        sh:property
-            [
-                sh:path :locationLongitude ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:double ;
             ] ;
         sh:closed true .
 

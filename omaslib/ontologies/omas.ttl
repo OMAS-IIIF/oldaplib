@@ -61,29 +61,6 @@ skos:prefLabel rdfs:range xsd:string .
           rdfs:range :OmasListNode .
 
 
-###  omas:ontology#personBirthDate
-:personBirthDate rdf:type owl:ObjectProperty ;
-                 rdfs:domain :Person ;
-                 rdfs:range omas:Date .
-
-
-###  omas:ontology#personBirthPlace
-:personBirthPlace rdf:type owl:ObjectProperty ;
-                  rdfs:domain :Person ;
-                  rdfs:range :OmasLocation .
-
-
-###  omas:ontology#personDeathDate
-:personDeathDate rdf:type owl:ObjectProperty ;
-                 rdfs:domain :Person ;
-                 rdfs:range omas:Date .
-
-
-###  omas:ontology#personDeathPlace
-:personDeathPlace rdf:type owl:ObjectProperty ;
-                  rdfs:domain :Person ;
-                  rdfs:range :OmasLocation .
-
 
 ###  omas:ontology#projectHasUser
 :projectHasUser rdf:type owl:ObjectProperty ;
@@ -160,42 +137,6 @@ skos:prefLabel rdf:type owl:DatatypeProperty .
 :leftIndex rdf:type owl:DatatypeProperty ;
            rdfs:domain :ListNode ;
            rdfs:range xsd:positiveInteger .
-
-
-###  omas:ontology#locationGeonamesId
-:locationGeonamesId rdf:type owl:DatatypeProperty ;
-                    rdfs:domain :Location ;
-                    rdfs:range xsd:positiveInteger .
-
-
-###  omas:ontology#locationLatitude
-:locationLatitude rdf:type owl:DatatypeProperty ;
-                  rdfs:domain :Location ;
-                  rdfs:range xsd:double .
-
-
-###  omas:ontology#locationLongitude
-:locationLongitude rdf:type owl:DatatypeProperty ;
-                   rdfs:domain :Location ;
-                   rdfs:range xsd:double .
-
-
-###  omas:ontology#locationName
-:locationName rdf:type owl:DatatypeProperty ;
-              rdfs:domain :Location ;
-              rdfs:range xsd:string .
-
-
-###  omas:ontology#personFirstName
-:personFirstName rdf:type owl:DatatypeProperty ;
-                 rdfs:domain :Person ;
-                 rdfs:range xsd:string .
-
-
-###  omas:ontology#personLastName
-:personLastName rdf:type owl:DatatypeProperty ;
-                rdfs:domain :Person ;
-                rdfs:range xsd:string .
 
 
 ###  omas:ontology#projectDescription
@@ -385,30 +326,6 @@ omas:Project rdf:type owl:Class ;
                               ] .
 
 
-###  omas:ontology#OmasLocation
-:OmasLocation rdf:type owl:Class ;
-              rdfs:subClassOf [ rdf:type owl:Restriction ;
-                                owl:onProperty :locationName ;
-                                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                owl:onDataRange xsd:string
-                              ] ,
-                              [ rdf:type owl:Restriction ;
-                                owl:onProperty :locationGeonamesId ;
-                                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                owl:onDataRange xsd:positiveInteger
-                              ] ,
-                              [ rdf:type owl:Restriction ;
-                                owl:onProperty :locationLatitude ;
-                                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                owl:onDataRange xsd:double
-                              ] ,
-                              [ rdf:type owl:Restriction ;
-                                owl:onProperty :locationLongitude ;
-                                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                owl:onDataRange xsd:double
-                              ] .
-
-
 ###  omas:ontology#OmasThing
 :OmasThing rdf:type owl:Class ;
            rdfs:subClassOf [ rdf:type owl:Restriction ;
@@ -434,44 +351,9 @@ omas:Project rdf:type owl:Class ;
            rdfs:comment "General super class of all things (resources) in tghe OMAS universe"@en .
 
 
-###  omas:ontology#Person
-:Person rdf:type owl:Class ;
-        rdfs:subClassOf [ rdf:type owl:Restriction ;
-                          owl:onProperty :personBirthDate ;
-                          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                          owl:onClass omas:Date
-                        ] ,
-                        [ rdf:type owl:Restriction ;
-                          owl:onProperty :personBirthPlace ;
-                          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                          owl:onClass :OmasLocation
-                        ] ,
-                        [ rdf:type owl:Restriction ;
-                          owl:onProperty :personDeathDate ;
-                          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                          owl:onClass omas:Date
-                        ] ,
-                        [ rdf:type owl:Restriction ;
-                          owl:onProperty :personDeathPlace ;
-                          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                          owl:onClass :OmasLocation
-                        ] ,
-                        [ rdf:type owl:Restriction ;
-                          owl:onProperty :personLastName ;
-                          owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                          owl:onDataRange xsd:string
-                        ] ,
-                        [ rdf:type owl:Restriction ;
-                          owl:onProperty :personFirstName ;
-                          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                          owl:onDataRange xsd:string
-                        ] .
-
-
 ###  omas:ontology#User
 :User rdf:type owl:Class ;
-      rdfs:subClassOf :Person ,
-                      [ rdf:type owl:Restriction ;
+      rdfs:subClassOf [ rdf:type owl:Restriction ;
                         owl:onProperty :userInProject ;
                         owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
                         owl:onClass omas:Project
