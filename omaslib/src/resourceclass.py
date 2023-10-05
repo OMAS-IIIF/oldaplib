@@ -21,56 +21,62 @@ class ResourceClassAttributes(Enum):
     CLOSED = 'closed'
     PROPERTY = 'property'
 
-@strict
-class HasProperty:
-    _property: PropertyClass
-    _min_count: int
-    _max_count: int
-
-    def __init__(self, property: PropertyClass, min_count: Optional[int] = None, max_count: Optional[int] = None):
-        self._property = property
-        if min_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
-            raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
-        self._min_count = min_count
-        if max_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
-            raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
-        self._max_count = max_count
-
-    @property
-    def prop(self) -> PropertyClass:
-        return self._property
-
-    @prop.setter
-    def prop(self, value: Any):
-        raise OmasError('Cannot set property!')
-
-    @property
-    def min_count(self) -> int:
-        return self._min_count
-
-    @min_count.setter
-    def min_count(self, min_count: int):
-        if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
-            raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
-        self._min_count = min_count
-
-    @property
-    def max_count(self) -> int:
-        return self._max_count
-
-    @max_count.setter
-    def max_count(self, max_count: int):
-        if max_count:
-            if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
-                raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
-        self._max_count = max_count
-
+# @strict
+# class HasProperty:
+#     _property: PropertyClass
+#     _min_count: int
+#     _max_count: int
+#     _order: int
+#
+#     def __init__(self,
+#                  property: PropertyClass,
+#                  min_count: Optional[int] = None,
+#                  max_count: Optional[int] = None,
+#                  order: Optional[int] = None):
+#         self._property = property
+#         if min_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
+#             raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
+#         self._min_count = min_count
+#         if max_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
+#             raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
+#         self._max_count = max_count
+#         self._order = order
+#
+#     @property
+#     def prop(self) -> PropertyClass:
+#         return self._property
+#
+#     @prop.setter
+#     def prop(self, value: Any):
+#         raise OmasError('Cannot set property!')
+#
+#     @property
+#     def min_count(self) -> int:
+#         return self._min_count
+#
+#     @min_count.setter
+#     def min_count(self, min_count: int):
+#         if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
+#             raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
+#         self._min_count = min_count
+#
+#     @property
+#     def max_count(self) -> int:
+#         return self._max_count
+#
+#     @max_count.setter
+#     def max_count(self, max_count: int):
+#         if max_count:
+#             if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
+#                 raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
+#         self._max_count = max_count
+#
 
 @strict
 class ResourceClass(Model):
     _owl_class: Union[QName, None]
     _subclass_of: Union[QName, None]
-    _has_properties: Dict[QName, HasProperty]
+    _properties: Dict[QName, PropertyClass]
     _label: Union[LangString, None]
     _comment: Union[LangString, None]
     _closed: bool
@@ -80,14 +86,14 @@ class ResourceClass(Model):
                  con: Connection,
                  owl_cass: Optional[QName] = None,
                  subclass_of: Optional[QName] = None,
-                 properties: Optional[Dict[QName, HasProperty]] = None,
+                 properties: Optional[Dict[QName, PropertyClass]] = None,
                  label: Optional[LangString] = None,
                  comment: Optional[LangString] = None,
                  closed: Optional[bool] = None) -> None:
         super().__init__(con)
         self._owl_class = owl_cass
         self._subclass_of = subclass_of
-        self._has_properties = properties if properties else {}
+        self._properties = properties if properties else {}
         if label and not isinstance(label, LangString):
             raise OmasError(f'Parameter "label" must be a "LangString", but is "{type(label)}"!')
         self._label = label
@@ -97,24 +103,24 @@ class ResourceClass(Model):
         self._closed = True if closed is None else closed
         self._changeset = set()
 
-    def __getitem__(self, key: QName) -> HasProperty:
-        return self._has_properties[key]
+    def __getitem__(self, key: QName) -> PropertyClass:
+        return self._properties[key]
 
-    def __setitem__(self, key: QName, has_property: HasProperty):
-        if self._has_properties.get(key) is None:
-            self._changeset.add((ResourceClassAttributes.PROPERTY, Action.CREATE, has_property.prop.property_class_iri))
+    def __setitem__(self, key: QName, has_property: PropertyClass) -> None:
+        if self._properties.get(key) is None:
+            self._changeset.add((ResourceClassAttributes.PROPERTY, Action.CREATE, has_property.property_class_iri))
         else:
-            self._changeset.add((ResourceClassAttributes.PROPERTY, Action.REPLACE, has_property.prop.property_class_iri))
-        self._has_properties[key] = has_property
+            self._changeset.add((ResourceClassAttributes.PROPERTY, Action.REPLACE, has_property.property_class_iri))
+        self._properties[key] = has_property
 
     def __delitem__(self, key: QName):
-        del self._has_properties[key]
+        del self._properties[key]
 
-    def get(self, key: QName) -> HasProperty:
-        self._has_properties.get(key)
+    def get(self, key: QName) -> PropertyClass:
+        self._properties.get(key)
 
     def items(self):
-        return self._has_properties.items()
+        return self._properties.items()
 
     def __str__(self):
         blank = ' '
@@ -128,12 +134,8 @@ class ResourceClass(Model):
             s += f'Comment: "{self._comment}"\n'
         s += f'Closed: {self._closed}\n'
         s += 'Properties:\n'
-        for tmp, p in self._has_properties.items():
-            s += f'{blank:{indent}}{p.prop}'
-            if p.min_count:
-                s += f' minCount: {p.min_count};'
-            if p.min_count:
-                s += f' maxCount: {p.max_count} ;'
+        for tmp, p in self._properties.items():
+            s += f'{blank:{indent}}{p}'
             s += '\n'
         return s
 
@@ -256,7 +258,7 @@ class ResourceClass(Model):
         blank = ' '
         sparql = f'{blank:{indent}}{self._shape} a sh:nodeShape, {self._owl_class} ;\n'
         sparql += f'{blank:{indent + 4}}sh:targetClass {self._owl_class} ; \n'
-        for p in self._has_properties:
+        for p in self._properties:
             sparql += f'{blank:{indent + 4}}sh:property\n'
             sparql += f'{blank:{indent + 8}}[\n'
             sparql += f'{blank:{indent + 12}}sh:path rdf:type ;\n'
@@ -278,32 +280,7 @@ class ResourceClass(Model):
         if not self._owl_class:
             raise OmasError('ResourceClass must be created with "owl_class" given as parameter!')
 
-        query0 = context.sparql_context
-        query0 += f"""
-        SELECT ?propshape ?p ?o ?oo
-        FROM {self._owl_class.prefix}:shacl
-        WHERE {{
-            ?propshape a sh:PropertyShape .
-            ?propshape ?p ?o .
-            OPTIONAL {{
-                ?o rdf:rest*/rdf:first ?oo
-            }}
-        }}
-        """
-        res = con.rdflib_query(query0)
-        for r in res:
-            print('****>>', r)
-
         query1 = context.sparql_context
-        # query1 += f"""
-        # SELECT ?p ?o
-        # FROM {self._owl_class.prefix}:shacl
-        # WHERE {{
-        #     BIND({str(self._owl_class)}Shape AS ?shape)
-        #     ?shape ?p ?o
-        #     FILTER(?p != sh:property)
-        # }}
-        # """
         query1 += f"""
         SELECT ?p ?o ?propiri ?propshape
         FROM {self._owl_class.prefix}:shacl
@@ -350,7 +327,7 @@ class ResourceClass(Model):
                 i = str(tmpstr).find('Shape')
                 if i == -1:
                     raise OmasError('Shape not valid......')  # TODO: Correct error message
-                self._subclass_of = str(tmpstr)[:i]
+                self._subclass_of = QName(tmpstr)[:i]
             elif p == 'sh:targetClass':
                 tmp_qname = context.iri2qname(r[1])
                 if self._owl_class is None:
@@ -384,7 +361,6 @@ class ResourceClass(Model):
         res = con.rdflib_query(query2)
         properties = {}
         for r in res:
-            print(">>>>>>>>", r)
             if r[2] == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
                 continue
             if not isinstance(r[1], URIRef):
@@ -420,9 +396,17 @@ class ResourceClass(Model):
             p_description = None
             p_order = None
             p_to_class = None
-            min_count = None
-            max_count = None
             restrictions = PropertyRestrictions()
+            exclusive_for_class: Optional[QName] = None
+            # If "x" is a BNode, then the property is defined within a sh:NodeShape definition and thus is exclusive
+            # for this sh:NodeShape. This implies that within the OWL ontology, we are able to define the rdfs:domain
+            # property
+            if isinstance(x, BNode):
+                exclusive_for_class = self._owl_class
+            elif isinstance(x, URIRef):
+                pass
+            else:
+                raise OmasError(f'Inconsistency in SHACL: expected either "BNode" or "URIRef" buf got "{type(x)}"!')
             for key, val in p.items():
                 if key == 'sh:path':
                     p_iri = val[0]
@@ -440,10 +424,6 @@ class ResourceClass(Model):
                     p_order = val[0]
                 elif key == 'sh:class':
                     p_to_class = val[0]
-                elif key == 'sh:minCount':
-                    min_count = val[0]
-                elif key == 'sh:maxCount':
-                    max_count = val[0]
                 else:
                     try:
                         restrictions[PropertyRestrictionType(key)] = val[0]
@@ -452,6 +432,7 @@ class ResourceClass(Model):
 
             prop = PropertyClass(con=self._con,
                                  property_class_iri=p_iri,
+                                 exclusive_for_class=exclusive_for_class,
                                  datatype=p_datatype,
                                  to_node_iri=p_to_class,
                                  restrictions=restrictions,
@@ -459,9 +440,7 @@ class ResourceClass(Model):
                                  description=p_description,
                                  order=p_order)
 
-            self._has_properties[p_iri] = HasProperty(property=prop,
-                                                      min_count=min_count,
-                                                      max_count=max_count)
+            self._properties[p_iri] = prop
 
     def __read_owl(self):
         context = Context(name=self._con.context_name)
@@ -502,10 +481,10 @@ class ResourceClass(Model):
             if pp.get('property_iri') is None:
                 OmasError('Invalid restriction node: No property_iri!')
             property_iri = pp['property_iri']
-            prop = [x for x in self._has_properties if x == property_iri]
+            prop = [x for x in self._properties if x == property_iri]
             if len(prop) != 1:
                 OmasError(f'Property "{property_iri}" from OWL has no SHACL definition!')
-            self._has_properties[prop[0]].prop.read_owl()
+            self._properties[prop[0]].prop.read_owl()
 
     def read(self) -> None:
         self.__read_shacl()
@@ -517,6 +496,14 @@ class ResourceClass(Model):
         sparql = context.sparql_context
         sparql += f'{blank:{indent*indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
+
+        for iri, p in self._properties.items():
+            if p.exclusive_for_class is None:
+                sparql += "\n"
+                sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape ;\n'
+                sparql += p.property_node(4) + " .\n"
+                sparql += "\n"
+
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class}Shape a sh:nodeShape, {self._owl_class} ;\n'
         if self._subclass_of:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of}Shape ;\n'
@@ -529,9 +516,13 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 4) * indent_inc}}[\n'
         sparql += f'{blank:{(indent + 5) * indent_inc}}sh:path rdf:type ;\n'
         sparql += f'{blank:{(indent + 4) * indent_inc}}] ;\n'
-        for p in self._has_properties:
-            sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property\n'
-            sparql += p.create_shacl(4)
+        for iri, p in self._properties.items():
+            if p.exclusive_for_class:
+                sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property [\n'
+                sparql += p.property_node(4) + ' ;\n'
+                sparql += f'{blank:{(indent + 3) * indent_inc}}] ;\n'
+            else:
+                sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property {iri}Shape ;\n'
         sparql += f'{blank:{(indent + 2)*indent_inc}}sh:closed {"true" if self._closed else "false"} .\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
@@ -544,26 +535,28 @@ class ResourceClass(Model):
         sparql = context.sparql_context
         sparql += f'{blank:{indent*indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:onto {{\n'
-        for p in self._has_properties:
+        for iri, p in self._properties.items():
             sparql += p.create_owl_part1(indent + 2) + '\n'
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class} rdf:type owl:Class ;\n'
         if self._subclass_of:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of} ,\n'
         else:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf\n'
-        for i, p in enumerate(self._has_properties):
+        i = 0
+        for iri, p in self._properties.items():
             sparql += p.create_owl_part2(indent + 4)
-            if i < len(self._has_properties) - 1:
+            if i < len(self._properties) - 1:
                 sparql += ' ,\n'
             else:
                 sparql += ' .\n'
+            i += 1
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         print(sparql)
         #self._con.update_query(sparql)
 
     def create(self):
-        self.__create_shacl()
+        #self.__create_shacl()
         self.__create_owl()
 
     def __update_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -599,7 +592,7 @@ class ResourceClass(Model):
         do_it = False
         for name, action, prop_iri in self._changeset:
             if name == ResourceClassAttributes.PROPERTY:
-                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property\n' + self._has_properties[prop_iri].prop.property_node(indent + 1)
+                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].prop.property_node(indent + 1) + ' ; ]'
                 if action == Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
@@ -687,6 +680,7 @@ if __name__ == '__main__':
     omas_project = ResourceClass(con, QName('omas:Project'))
     omas_project.read()
     print(omas_project)
+    omas_project.create()
     exit(0)
     omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
     omas_project.comment_add(Languages.FR, 'Un project pour OMAS')

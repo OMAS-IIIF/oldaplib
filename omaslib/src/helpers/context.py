@@ -86,6 +86,9 @@ class Context(metaclass=ContextSingleton):
                 return QName.build(str(prefix), fragment)
         return None
 
+    def qname2iri(self, qname: QName) -> str:
+        return self._context[qname.prefix] + qname.fragment
+
 
     @property
     def sparql_context(self) -> str:

@@ -34,6 +34,8 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     _restrictions: Union[PropertyRestrictions, None]
     _name: Union[LangString, None]
     _description: Union[LangString, None]
+    #_min_count: int
+    #_max_count: int
     _order: int
 
     _changeset: Set[str]
@@ -49,6 +51,8 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                  restrictions: Optional[PropertyRestrictions] = None,
                  name: Optional[LangString] = None,
                  description: Optional[LangString] = None,
+                 #min_count: Optional[int] = None,
+                 #max_count: Optional[int] = None,
                  order: Optional[int] = None):
         super().__init__(con)
         if not XsdValidator.validate(XsdDatatypes.QName, property_class_iri):
@@ -65,14 +69,22 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if description is not None and not isinstance(description, LangString):
             raise OmasError(f'Parameter "description" must be a "LangString", but is "{type(description)}"!')
         self._description = description
+        #if min_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
+        #    raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
+        #self._min_count = min_count
+        #if max_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
+        #    raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
+        #self._max_count = max_count
         self._order = order
+
+        # setting property type for OWL which distinguished between Data- and Object-^properties
         if self._datatype:
             self._property_type = OwlPropertyType.OwlDataProperty
         elif self._to_node_iri:
             self._property_type = OwlPropertyType.OwlObjectProperty
         else:
             self._property_type = None
-        self._changeset = set()
+        self._changeset = set()  # initialize changset to empty set
         self._test_in_use = False
 
     def __str__(self):
@@ -82,16 +94,19 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if self._exclusive_for_class:
             propstr += f' Exclusive for {self._exclusive_for_class};'
         if self._to_node_iri:
-            propstr += f' Datatype: => {self._to_node_iri});'
+            propstr += f' Datatype: => {self._to_node_iri};'
         else:
-            #propstr += f' Datatype: {self._datatype.value};'
-            propstr += f' Datatype: {self._datatype};'
+            propstr += f' Datatype: {self._datatype.value};'
         if len(self._restrictions) > 0:
             propstr += f'{self._restrictions};'
         if self._name:
             propstr += f' Name: {self._name};'
         if self._description:
             propstr += f' Description: {self._description};'
+        #if self._min_count:
+        #    propstr += f' MinCount: {self._min_count};'
+        #if self._max_count:
+        #    propstr += f' MaxCount: {self._max_count};'
         if self._order:
             propstr += f' Order: {self._order};'
         return propstr
@@ -107,6 +122,10 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     @property
     def name(self) -> LangString:
         return self._name
+
+    @property
+    def exclusive_for_class(self) -> Union[QName, None]:
+        return self._exclusive_for_class
 
     @name.setter
     def name(self, name: LangString) -> None:
@@ -147,6 +166,27 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         else:
             self._description = LangString({lang: description})
             self._changeset.add('description')
+
+    # @property
+    # def min_count(self) -> int:
+    #     return self._min_count
+    #
+    # @min_count.setter
+    # def min_count(self, min_count: int):
+    #     if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
+    #         raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
+    #     self._min_count = min_count
+    #
+    # @property
+    # def max_count(self) -> int:
+    #     return self._max_count
+    #
+    # @max_count.setter
+    # def max_count(self, max_count: int):
+    #     if max_count:
+    #         if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
+    #             raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
+    #     self._max_count = max_count
 
     def get_restriction(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
         return self._restrictions[restriction_type]
@@ -198,16 +238,10 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             }}
         }}
         """
-        print(query)
         res = self._con.rdflib_query(query)
         properties = {}
         for r in res:
-            print(r)
             p = context.iri2qname(r[0])
-            if p == QName('rdf:type'):
-                continue  # ToDo: Check consistency
-            if p == QName('sh:path'):
-                continue  # ToDo: Check consistency
             if isinstance(r[1], URIRef):
                 if properties.get(p) is None:
                     properties[p] = []
@@ -229,8 +263,39 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 if not properties.get(p):
                     properties[p] = set()
                 properties[p].add(Languages(r[2].toPython()))
-        print(properties)
-        #for x, p in properties.items():
+
+        self._restrictions = PropertyRestrictions()
+        for key, val in properties.items():
+            if key == 'rdf:type':
+                if val[0] == 'sh:PropertyShape':
+                    continue
+                else:
+                    raise OmasError(f'Inconsistency, expected "sh:PropertyType", got "{val[0]}".')
+            elif key == 'sh:path':
+                self._property_class_iri = val[0]
+            elif key == 'sh:datatype':
+                self._datatype = XsdDatatypes(str(val[0]))
+            elif key == 'sh:class':
+                    self._to_class = val[0]
+            elif key == QName('sh:name'):
+                self._name = LangString()
+                for ll in val:
+                    self._name.add(ll)
+            elif key == 'sh:description':
+                self._description = LangString()
+                for ll in val:
+                    self._description.add(ll)
+            #elif key == 'sh:minCount':
+            #    min_count = val[0]
+            #elif key == 'sh:maxCount':
+            #    max_count = val[0]
+            #elif key == 'sh:order':
+            #    p_order = val[0]
+            else:
+                try:
+                    self._restrictions[PropertyRestrictionType(key)] = val[0]
+                except (ValueError, TypeError) as err:
+                    OmasError(f'Invalid shacl definition: "{key} {val}"')
 
     def read_owl(self):
         context = Context(name=self._con.context_name)
@@ -275,21 +340,19 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
 
     def property_node(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent*indent_inc}}[\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}sh:path {self._property_class_iri} ;\n'
+        sparql = f'{blank:{(indent + 1)*indent_inc}}sh:path {self._property_class_iri}'
         if self._datatype:
-            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:datatype {self._datatype.value} ;\n'
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}sh:datatype {self._datatype.value}'
         if self._restrictions:
             sparql += self._restrictions.create_shacl(indent + 1, indent_inc)
         if self._to_node_iri:
-            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:class {self._to_node_iri} ;\n'
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}sh:class {self._to_node_iri}'
         if self._name:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:name "{self._name}" ;\n'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:name {self._name}'
         if self._description:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:description "{self._description}" ;\n'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:description {self._description}'
         if self._order:
-            sparql += f'{blank:{(indent + 1)*indent_inc}}sh:order {self._order} ;\n'
-        sparql += f'{blank:{indent*indent_inc}}] ; \n'
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}sh:order {self._order}'
         return sparql
 
 
@@ -312,6 +375,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         sparql = f'{blank:{indent*indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}rdf:type owl:Restriction ;\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}owl:onProperty {self._property_class_iri}'
+        print("------->", self._restrictions)
         sparql += self._restrictions.create_owl(indent + 1, indent_inc)
         if self._property_type == OwlPropertyType.OwlDataProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDataRange {self._datatype.value}'
@@ -331,9 +395,16 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
 
     def read(self) -> None:
         self.read_shacl()
+        self.read_owl()
 
 
 if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
-    pclass = PropertyClass(con=con, property_class_iri=QName('omas:comment'))
-    pclass.read()
+    pclass1 = PropertyClass(con=con, property_class_iri=QName('omas:comment'))
+    pclass1.read()
+    print(pclass1)
+
+    pclass2 = PropertyClass(con=con, property_class_iri=QName('omas:test'))
+    pclass2.read()
+    print(pclass2)
+

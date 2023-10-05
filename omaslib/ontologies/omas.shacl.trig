@@ -8,57 +8,32 @@
 
 @prefix : <http://omas.org/base#> .
 
-## Define the reusable Property Shape
-#:AgePropertyShape a sh:PropertyShape ;
-#    sh:path ex:age ;
-#    sh:datatype xsd:integer ;
-#    sh:minInclusive 0 .
-#
-## Define a Person Node Shape that uses the AgePropertyShape
-#:PersonShape a sh:NodeShape ;
-#    sh:targetClass ex:Person ;
-#    sh:property :AgePropertyShape .
-#
-## Define a Dog Node Shape that also uses the AgePropertyShape
-#:DogShape a sh:NodeShape ;
-#    sh:targetClass ex:Dog ;
-#    sh:property :AgePropertyShape .
-
-
-
-
-## Reusable property shape without cardinality constraints
-#:AgePropertyShape a sh:PropertyShape ;
-#    sh:path ex:age ;
-#    sh:datatype xsd:integer ;
-#    sh:minInclusive 0 .
-#
-## Person node shape with specific cardinality constraints
-#:PersonShape a sh:NodeShape ;
-#    sh:targetClass ex:Person ;
-#    sh:property [
-#        sh:propertyShape :AgePropertyShape ;
-#        sh:maxCount 1 ;
-#    ] .
-#
-## Dog node shape with a different cardinality
-#:DogShape a sh:NodeShape ;
-#    sh:targetClass ex:Dog ;
-#    sh:property [
-#        sh:propertyShape :AgePropertyShape ;
-#        sh:minCount 1 ;
-#        sh:maxCount 1 ;
-#    ] .
 
 :shacl {
 
+#
+# First we have 2 properties which can by used by any sh:NodeShape.
+# Note: sh:maxCount, sh:minCount and sh:order will have to be defined here and will be used by any reference in a
+#       sh:NodeShape!
+#
+# These properties are references as follows:
+#
+#   :testPropShape a sh:PropertyShape ;
+#      sh:path test;
+#      sh:datatype xsd:integer .
+#
+#   :exampeShape a sh:NodeShape ;
+#      sh:property :testPropShape .
+#
     :commentShape a sh:PropertyShape ;
         sh:path :comment ;
         sh:datatype xsd:string ;
+        sh:name "Kommentar"@de, "Comment"@en, "Commentaire"@fr, "Commentario"@it ;
         sh:languageIn ( "en" "de" "fr" "it" ) ;
-        sh:uniqueLang true .
+        sh:uniqueLang true ;
+        sh:maxCount 1 .
 
-    :testShape a sh:propertyShape ;
+    :testShape a sh:PropertyShape ;
         sh:path :test ;
         sh:datatype xsd:integer .
 
@@ -131,13 +106,7 @@
                 sh:class :OmasUser ;
                 sh:order 6 ;
             ] ;
-        sh:property
-            [
-                sh:propertyShape :commentShape ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:order 7 ;
-            ] ;
+        sh:property :commentShape ;
         sh:closed true .
 
     #

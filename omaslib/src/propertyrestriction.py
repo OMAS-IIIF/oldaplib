@@ -11,6 +11,8 @@ from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
 
 class PropertyRestrictionType(Enum):
+    MIN_COUNT = 'sh:minCount'
+    MAX_COUNT = 'sh:maxCount'
     LANGUAGE_IN = 'sh:languageIn'
     UNIQUE_LANG = 'sh:uniqueLang'
     MIN_LENGTH = 'sh:minLength'
@@ -233,7 +235,7 @@ class PropertyRestrictions:
                 value = 'true' if rval else 'false'
             else:
                 value = rval
-            shacl += f'{blank:{indent*indent_inc}}{name.value} {value} ;\n'
+            shacl += f' ;\n{blank:{indent*indent_inc}}{name.value} {value}'
         return shacl
 
     def create_owl(self, indent: int = 0, indent_inc: int = 4):
@@ -242,12 +244,12 @@ class PropertyRestrictions:
         mincnt = self._restrictions.get(PropertyRestrictionType.MIN_COUNT)
         maxcnt = self._restrictions.get(PropertyRestrictionType.MAX_COUNT)
         if mincnt is not None and maxcnt is not None and mincnt == maxcnt:
-            sparql += f' ;\n{blank:{indent*indent_inc}}owl:qualifiedCardinality "{mincnt}"^^xsd:nonNegativeInteger'
+            sparql += f' ;\n{blank:{indent*indent_inc}}owl:cardinality {mincnt}'
         else:
             if mincnt is not None:
-                sparql += f' ;\n{blank:{indent*indent_inc}}owl:minQualifiedCardinality "{mincnt}"^^xsd:nonNegativeInteger'
+                sparql += f' ;\n{blank:{indent*indent_inc}}owl:minCardinality {mincnt}'
             if maxcnt is not None:
-                sparql += f' ;\n{blank:{indent*indent_inc}}owl:maxQualifiedCardinality "{maxcnt}"^^xsd:nonNegativeInteger'
+                sparql += f' ;\n{blank:{indent*indent_inc}}owl:maxCardinality {maxcnt}'
         return sparql
 
     def update_shacl(self,
