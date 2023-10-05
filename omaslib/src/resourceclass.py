@@ -21,56 +21,6 @@ class ResourceClassAttributes(Enum):
     CLOSED = 'closed'
     PROPERTY = 'property'
 
-# @strict
-# class HasProperty:
-#     _property: PropertyClass
-#     _min_count: int
-#     _max_count: int
-#     _order: int
-#
-#     def __init__(self,
-#                  property: PropertyClass,
-#                  min_count: Optional[int] = None,
-#                  max_count: Optional[int] = None,
-#                  order: Optional[int] = None):
-#         self._property = property
-#         if min_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
-#             raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
-#         self._min_count = min_count
-#         if max_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
-#             raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
-#         self._max_count = max_count
-#         self._order = order
-#
-#     @property
-#     def prop(self) -> PropertyClass:
-#         return self._property
-#
-#     @prop.setter
-#     def prop(self, value: Any):
-#         raise OmasError('Cannot set property!')
-#
-#     @property
-#     def min_count(self) -> int:
-#         return self._min_count
-#
-#     @min_count.setter
-#     def min_count(self, min_count: int):
-#         if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
-#             raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
-#         self._min_count = min_count
-#
-#     @property
-#     def max_count(self) -> int:
-#         return self._max_count
-#
-#     @max_count.setter
-#     def max_count(self, max_count: int):
-#         if max_count:
-#             if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
-#                 raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
-#         self._max_count = max_count
-#
 
 @strict
 class ResourceClass(Model):
@@ -134,7 +84,8 @@ class ResourceClass(Model):
             s += f'Comment: "{self._comment}"\n'
         s += f'Closed: {self._closed}\n'
         s += 'Properties:\n'
-        for tmp, p in self._properties.items():
+        sorted_properties = sorted(self._properties.items(), key=lambda prop: prop[1].order if prop[1].order is not None else 9999)
+        for tmp, p in sorted_properties:
             s += f'{blank:{indent}}{p}'
             s += '\n'
         return s
@@ -256,7 +207,7 @@ class ResourceClass(Model):
 
     def to_sparql_insert(self, indent: int) -> str:
         blank = ' '
-        sparql = f'{blank:{indent}}{self._shape} a sh:nodeShape, {self._owl_class} ;\n'
+        sparql = f'{blank:{indent}}{self._shape} a sh:NodeShape, {self._owl_class} ;\n'
         sparql += f'{blank:{indent + 4}}sh:targetClass {self._owl_class} ; \n'
         for p in self._properties:
             sparql += f'{blank:{indent + 4}}sh:property\n'
@@ -327,7 +278,7 @@ class ResourceClass(Model):
                 i = str(tmpstr).find('Shape')
                 if i == -1:
                     raise OmasError('Shape not valid......')  # TODO: Correct error message
-                self._subclass_of = QName(tmpstr)[:i]
+                self._subclass_of = QName(str(tmpstr)[:i])
             elif p == 'sh:targetClass':
                 tmp_qname = context.iri2qname(r[1])
                 if self._owl_class is None:
@@ -504,7 +455,7 @@ class ResourceClass(Model):
                 sparql += p.property_node(4) + " .\n"
                 sparql += "\n"
 
-        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class}Shape a sh:nodeShape, {self._owl_class} ;\n'
+        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class}Shape a sh:NodeShape, {self._owl_class} ;\n'
         if self._subclass_of:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of}Shape ;\n'
         sparql += f'{blank:{(indent + 3)*indent_inc}}sh:targetClass {self._owl_class} ;\n'
@@ -526,8 +477,8 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 2)*indent_inc}}sh:closed {"true" if self._closed else "false"} .\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
-        print(sparql)
-        #self._con.update_query(sparql)
+        #print(sparql)
+        self._con.update_query(sparql)
 
     def __create_owl(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -552,11 +503,11 @@ class ResourceClass(Model):
             i += 1
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        print(sparql)
-        #self._con.update_query(sparql)
+        #print(sparql)
+        self._con.update_query(sparql)
 
     def create(self):
-        #self.__create_shacl()
+        self.__create_shacl()
         self.__create_owl()
 
     def __update_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -601,7 +552,7 @@ class ResourceClass(Model):
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                     sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
                     sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
-                    sparql += f'{blank:{(indent + 2)*indent_inc}}?shape rdf:type sh:nodeShape .\n'
+                    sparql += f'{blank:{(indent + 2)*indent_inc}}?shape rdf:type sh:NodeShape .\n'
                     sparql += f'{blank:{(indent + 2)*indent_inc}}?shape sh:targetClass {self._owl_class} .\n'
                     sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch3[name]}\n'
                     sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
@@ -622,7 +573,7 @@ class ResourceClass(Model):
 
             sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
-            sparql += f'{blank:{(indent + 2)*indent_inc}}?shape rdf:type sh:nodeShape .\n'
+            sparql += f'{blank:{(indent + 2)*indent_inc}}?shape rdf:type sh:NodeShape .\n'
             sparql += f'{blank:{(indent + 2)*indent_inc}}?shape sh:targetClass {self._owl_class} .\n'
             sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch3[name]}\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
@@ -682,15 +633,15 @@ if __name__ == '__main__':
     print(omas_project)
     omas_project.create()
     exit(0)
-    omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
-    omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
-    omas_project.closed = False
-    omas_project.subclass_of = QName('omas:Object')
-    omas_project.update()
-    omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
-    omas_project2.read()
-    print(omas_project2)
-    exit(0)
+    # omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
+    # omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
+    # omas_project.closed = False
+    # omas_project.subclass_of = QName('omas:Object')
+    # omas_project.update()
+    # omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
+    # omas_project2.read()
+    # print(omas_project2)
+    # exit(0)
     #omas_project.closed = False
     #omas_project.update()
     #omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
@@ -700,7 +651,8 @@ if __name__ == '__main__':
     #print(omas_project)
     #omas_project.create()
     #exit(-1)
-    plist = [
+    pdict = {
+        QName('omas:commentstr'):
         PropertyClass(con=con,
                       property_class_iri=QName('omas:commentstr'),
                       datatype=XsdDatatypes.string,
@@ -713,6 +665,7 @@ if __name__ == '__main__':
                       name=LangString({Languages.EN: "Comment"}),
                       description=LangString({Languages.EN: "A comment to anything"}),
                       order=1),
+        QName('omas:creator'):
         PropertyClass(con=con,
                       property_class_iri=QName('omas:creator'),
                       to_node_iri=QName('omas:User'),
@@ -721,6 +674,7 @@ if __name__ == '__main__':
                           max_count=1
                       ),
                       order=2),
+        QName('omas:createdAt'):
         PropertyClass(con=con,
                       property_class_iri=QName('omas:createdAt'),
                       datatype=XsdDatatypes.dateTime,
@@ -729,14 +683,18 @@ if __name__ == '__main__':
                           max_count=1
                       ),
                       order=3)
-    ]
+    }
     comment_class = ResourceClass(
         con=con,
         owl_cass=QName('omas:OmasComment'),
         subclass_of=QName('omas:OmasUser'),
         label=LangString({Languages.EN: 'Omas Comment', Languages.DE: 'Omas Kommentar'}),
         comment=LangString({Languages.EN: 'A class to comment something...'}),
-        properties=plist,
+        properties=pdict,
         closed=True
     )
     comment_class.create()
+    comment_class = None
+    comment_class2 = ResourceClass(con=con, owl_cass=QName('omas:OmasComment'))
+    comment_class2.read()
+    print(comment_class2)

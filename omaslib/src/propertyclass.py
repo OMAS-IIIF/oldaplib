@@ -25,6 +25,11 @@ class OwlPropertyType(Enum):
 
 @strict
 class PropertyClass(Model, metaclass=PropertyClassSingleton):
+    """
+    This class implements the SHACL/OWL property definition that OMAS supports
+
+    The class implements the *__str__* method.
+    """
     _property_class_iri: Union[QName, None]
     _subproperty_of: Union[QName, None]
     _property_type: Union[OwlPropertyType, None]
@@ -34,8 +39,6 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     _restrictions: Union[PropertyRestrictions, None]
     _name: Union[LangString, None]
     _description: Union[LangString, None]
-    #_min_count: int
-    #_max_count: int
     _order: int
 
     _changeset: Set[str]
@@ -51,12 +54,22 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                  restrictions: Optional[PropertyRestrictions] = None,
                  name: Optional[LangString] = None,
                  description: Optional[LangString] = None,
-                 #min_count: Optional[int] = None,
-                 #max_count: Optional[int] = None,
                  order: Optional[int] = None):
+        """
+        Constructor for PropertyClass
+
+        :param con: A valid instance of the Connection class
+        :param property_class_iri: The OWL QName of the property
+        :param subproperty_of: The OWL QName of the super-property
+        :param exclusive_for_class: The OWL Qname of the resource class this property is exclusive for
+        :param datatype: The datatype for this property
+        :param to_node_iri: If the property points to another resource type, the OWL Qname thereof
+        :param restrictions: A Restriction instance
+        :param name: A Language string instance containing the name of the property
+        :param description: A Language string instance containing the description of the property
+        :param order: The order of the property (only for exclusive properties meaningfull)
+        """
         super().__init__(con)
-        if not XsdValidator.validate(XsdDatatypes.QName, property_class_iri):
-            raise OmasError("Invalid format of property IRI")
         self._property_class_iri = property_class_iri
         self._subproperty_of = subproperty_of
         self._exclusive_for_class = exclusive_for_class
@@ -69,12 +82,6 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if description is not None and not isinstance(description, LangString):
             raise OmasError(f'Parameter "description" must be a "LangString", but is "{type(description)}"!')
         self._description = description
-        #if min_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
-        #    raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
-        #self._min_count = min_count
-        #if max_count and not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
-        #    raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
-        #self._max_count = max_count
         self._order = order
 
         # setting property type for OWL which distinguished between Data- and Object-^properties
@@ -103,10 +110,6 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             propstr += f' Name: {self._name};'
         if self._description:
             propstr += f' Description: {self._description};'
-        #if self._min_count:
-        #    propstr += f' MinCount: {self._min_count};'
-        #if self._max_count:
-        #    propstr += f' MaxCount: {self._max_count};'
         if self._order:
             propstr += f' Order: {self._order};'
         return propstr
@@ -122,10 +125,6 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     @property
     def name(self) -> LangString:
         return self._name
-
-    @property
-    def exclusive_for_class(self) -> Union[QName, None]:
-        return self._exclusive_for_class
 
     @name.setter
     def name(self, name: LangString) -> None:
@@ -167,26 +166,13 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             self._description = LangString({lang: description})
             self._changeset.add('description')
 
-    # @property
-    # def min_count(self) -> int:
-    #     return self._min_count
-    #
-    # @min_count.setter
-    # def min_count(self, min_count: int):
-    #     if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, min_count):
-    #         raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
-    #     self._min_count = min_count
-    #
-    # @property
-    # def max_count(self) -> int:
-    #     return self._max_count
-    #
-    # @max_count.setter
-    # def max_count(self, max_count: int):
-    #     if max_count:
-    #         if not XsdValidator.validate(XsdDatatypes.nonNegativeInteger, max_count):
-    #             raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
-    #     self._max_count = max_count
+    @property
+    def exclusive_for_class(self) -> Union[QName, None]:
+        return self._exclusive_for_class
+
+    @property
+    def order(self) -> int:
+        return self._order
 
     def get_restriction(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
         return self._restrictions[restriction_type]
@@ -224,7 +210,11 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             else:
                 return False
 
-    def read_shacl(self):
+    def read_shacl(self) -> None:
+        """
+        Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
+        :return:
+        """
         context = Context(name=self._con.context_name)
         query = context.sparql_context
         query += f"""
@@ -375,7 +365,6 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         sparql = f'{blank:{indent*indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}rdf:type owl:Restriction ;\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}owl:onProperty {self._property_class_iri}'
-        print("------->", self._restrictions)
         sparql += self._restrictions.create_owl(indent + 1, indent_inc)
         if self._property_type == OwlPropertyType.OwlDataProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDataRange {self._datatype.value}'

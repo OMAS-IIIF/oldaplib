@@ -35,7 +35,7 @@ class Compare(Enum):
 @strict
 class PropertyRestrictions:
     """
-    This class implements the SHACL restriction that omaslib supports
+    This class implements the SHACL/OWL restriction that omaslib supports
 
     SAHCl allows to restrict the tha value range of properties. The following restrictions ate
     supported by *omaslib*.
@@ -75,6 +75,8 @@ class PropertyRestrictions:
     def __init__(self, *,
                  language_in: Optional[Set[Languages]] = None,
                  unique_lang: Optional[bool] = None,
+                 min_count: Optional[int] = None,
+                 max_count: Optional[int] = None,
                  min_length: Optional[int] = None,
                  max_length: Optional[int] = None,
                  pattern: Optional[str] = None,
@@ -84,6 +86,23 @@ class PropertyRestrictions:
                  max_inclusive: Optional[Union[int, float]] = None,
                  less_than: Optional[QName] = None,
                  less_than_or_equals: Optional[QName] = None):
+        """
+        Constructor for restrictions
+
+        :param language_in: A set of allowed languages
+        :param unique_lang: True if each language is alloed only once
+        :param min_count: Minimal cardinality for property
+        :param max_count: Maximal cardinality for property
+        :param min_length: Minimal length of value (if applicable to datatype, e.g. xsd:string)
+        :param max_length: Maximal length of value (if applicable to datatype, e.g. xsd:string)
+        :param pattern: A regex pattern the value must fulfill
+        :param min_exclusive: Minimal value allowed (exclusive)
+        :param min_inclusive: Minimal value allowed (inclusive)
+        :param max_exclusive: Maximal value allowed (exclusive)
+        :param max_inclusive: Maximal value allowed (inclusive)
+        :param less_than: Compare to other value (<)
+        :param less_than_or_equals: Compare to other value (<=)
+        """
         self._compare = {
             PropertyRestrictionType.LANGUAGE_IN: Compare.XX,
             PropertyRestrictionType.UNIQUE_LANG: Compare.XX,
@@ -106,6 +125,14 @@ class PropertyRestrictions:
             if type(unique_lang) != bool:
                 raise OmasError(f'Invalid value "{unique_lang}" for sh:uniqueLang restriction!')
             self._restrictions[PropertyRestrictionType.UNIQUE_LANG] = unique_lang
+        if min_count:
+            if not XsdValidator.validate(XsdDatatypes.integer, min_count):
+                raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
+            self._restrictions[PropertyRestrictionType.MIN_COUNT] = min_count
+        if max_count:
+            if not XsdValidator.validate(XsdDatatypes.integer, max_count):
+                raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
+            self._restrictions[PropertyRestrictionType.MAX_COUNT] = max_count
         if min_length:
             if not XsdValidator.validate(XsdDatatypes.integer, min_length):
                 raise OmasError(f'Invalid value "{min_length}" for sh:minLength restriction!')
@@ -205,26 +232,32 @@ class PropertyRestrictions:
             del self._restrictions[restriction_type]
             self._changeset.add((restriction_type, Action.DELETE))
 
-    def get(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
+    def get(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName, None]:
+        """
+        Get the given restriction
+        :param restriction_type: The restriction type
+        :return: Value or None
+        """
         return self._restrictions.get(restriction_type)
 
-    def clear(self):
+    def clear(self) -> None:
+        """
+        Clear all restrictions
+        :return: None
+        """
         for restriction_type in self._restrictions:
             self._changeset.add(restriction_type, Action.DELETE)
         for restriction_type in self._changeset:
             self._restrictions[restriction_type] = None
 
-
-    # get all languages....
-    #SELECT ?lang
-    #WHERE
-    #{
-    #    omas: Gaga omas: test ?bnode.
-    #?bnode
-    #rdf: rest * / rdf:first ?lang
-    #}
-
     def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
+        """
+        Return the SHACL fragment for creating the SHACL restrictions
+
+        :param indent: Indent for formatting
+        :param indent_inc: Indent increment for formatting
+        :return: SHACL fragment string
+        """
         blank = ''
         shacl = ''
         for name, rval in self._restrictions.items():
@@ -238,7 +271,13 @@ class PropertyRestrictions:
             shacl += f' ;\n{blank:{indent*indent_inc}}{name.value} {value}'
         return shacl
 
-    def create_owl(self, indent: int = 0, indent_inc: int = 4):
+    def create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
+        """
+        Return OWL fragment for creating the ontology of the restrictions
+        :param indent: Indent for formatting
+        :param indent_inc: Indent increment for formatting
+        :return: OWL fragment string
+        """
         blank = ''
         sparql = ''
         mincnt = self._restrictions.get(PropertyRestrictionType.MIN_COUNT)
