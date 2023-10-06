@@ -643,11 +643,11 @@ if __name__ == '__main__':
     omas_project.read()
     print(omas_project)
     print(omas_project.create(as_string=True))
-    exit(0)
-    # omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
-    # omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
-    # omas_project.closed = False
-    # omas_project.subclass_of = QName('omas:Object')
+    #exit(0)
+    omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
+    omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
+    omas_project.closed = False
+    omas_project.subclass_of = QName('omas:Object')
     # omas_project.update()
     # omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
     # omas_project2.read()

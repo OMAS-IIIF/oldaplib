@@ -94,6 +94,9 @@ class LangString:
             resstr += f'"{self._langstring[Languages.XX]}"'
         return resstr
 
+    def get(self, lang: Languages):
+        return self._langstring.get(lang)
+
     def __eq__(self, other) -> bool:
         equal = True
         for lang in Languages:
