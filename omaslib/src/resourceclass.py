@@ -441,7 +441,7 @@ class ResourceClass(Model):
         self.__read_shacl()
         self.__read_owl()
 
-    def __create_shacl(self, indent: int = 0, indent_inc: int = 4):
+    def __create_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -477,10 +477,13 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 2)*indent_inc}}sh:closed {"true" if self._closed else "false"} .\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
-        #print(sparql)
-        self._con.update_query(sparql)
+        if as_string:
+            return sparql
+        else:
+            #print(sparql)
+            self._con.update_query(sparql)
 
-    def __create_owl(self, indent: int = 0, indent_inc: int = 4):
+    def __create_owl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False):
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -503,12 +506,20 @@ class ResourceClass(Model):
             i += 1
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        #print(sparql)
-        self._con.update_query(sparql)
+        if as_string:
+            return sparql
+        else:
+            #print(sparql)
+            self._con.update_query(sparql)
 
-    def create(self):
-        self.__create_shacl()
-        self.__create_owl()
+    def create(self, as_string: bool = False) -> Union[str, None]:
+        if as_string:
+            rdfdata = self.__create_shacl(as_string=as_string)
+            rdfdata += self.__create_owl(as_string=as_string)
+            return rdfdata
+        else:
+            self.__create_shacl(as_string)
+            self.__create_owl(as_string)
 
     def __update_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
         if not self._changeset:
@@ -631,7 +642,7 @@ if __name__ == '__main__':
     omas_project = ResourceClass(con, QName('omas:Project'))
     omas_project.read()
     print(omas_project)
-    omas_project.create()
+    print(omas_project.create(as_string=True))
     exit(0)
     # omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
     # omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
