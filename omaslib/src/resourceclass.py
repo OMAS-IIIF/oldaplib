@@ -65,6 +65,7 @@ class ResourceClass(Model):
 
     def __delitem__(self, key: QName):
         del self._properties[key]
+        self._changeset.add((ResourceClassAttributes.PROPERTY, Action.DELETE, key))
 
     def get(self, key: QName) -> PropertyClass:
         self._properties.get(key)
@@ -521,9 +522,12 @@ class ResourceClass(Model):
             self.__create_shacl(as_string)
             self.__create_owl(as_string)
 
-    def __update_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
+    def __update_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         if not self._changeset:
-            return
+            if as_string:
+                return ''
+            else:
+                return
         sparql_switch1 = {
             ResourceClassAttributes.SUBCLASS_OF: '?shape rdfs:subClassOf ?subclass_of .',
             ResourceClassAttributes.CLOSED: '?shape sh:closed ?closed .',
@@ -554,7 +558,8 @@ class ResourceClass(Model):
         do_it = False
         for name, action, prop_iri in self._changeset:
             if name == ResourceClassAttributes.PROPERTY:
-                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].prop.property_node(indent + 1) + ' ; ]'
+                print(self._properties)
+                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node(indent + 1) + ' ; ]'
                 if action == Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'
@@ -591,10 +596,13 @@ class ResourceClass(Model):
             sparql += f'{blank:{indent*indent_inc}}}}{"" if i == n else " ;"}\n'
             i += 1
             do_it = True
-        if do_it:
-            self._con.update_query(sparql)
+        if as_string:
+            return sparql
+        else:
+            if do_it:
+                self._con.update_query(sparql)
 
-    def __update_owl(self, indent: int = 0, indent_inc: int = 4):
+    def __update_owl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         action = None
         if (ResourceClassAttributes.SUBCLASS_OF, Action.DELETE) in self._changeset:
             action = Action.DELETE
@@ -602,7 +610,6 @@ class ResourceClass(Model):
             action = Action.REPLACE
         elif (ResourceClassAttributes.SUBCLASS_OF, Action.CREATE) in self._changeset:
             action = Action.CREATE
-
 
         if action:
             blank = ''
@@ -629,26 +636,40 @@ class ResourceClass(Model):
             sparql += f'{blank:{(indent + 2) * indent_inc}}}}\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
             sparql += f'{blank:{indent*indent_inc}}}}\n'
-            print(sparql)
-            self._con.update_query(sparql)
+            if as_string:
+                return sparql
+            else:
+                self._con.update_query(sparql)
+        else:
+            if as_string:
+                return ''
+            else:
+                return
 
+    def update(self, as_string: bool = False) -> Union[str, None]:
+        if as_string:
+            tmp = self.__update_shacl(as_string=True)
+            #print(tmp)
+            tmp += self.__update_owl(as_string=True)
+            return tmp
+        else:
+            self.__update_shacl()
+            self.__update_owl()
 
-    def update(self):
-        self.__update_shacl()
-        self.__update_owl()
 
 if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
     omas_project = ResourceClass(con, QName('omas:Project'))
     omas_project.read()
-    print(omas_project)
-    print(omas_project.create(as_string=True))
+    #print(omas_project)
+    #print(omas_project.create(as_string=True))
     #exit(0)
-    omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
-    omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
-    omas_project.closed = False
-    omas_project.subclass_of = QName('omas:Object')
-    # omas_project.update()
+    #omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
+    #omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
+    #omas_project.closed = False
+    #omas_project.subclass_of = QName('omas:Object')
+    omas_project[QName('omas:projectEnd')].name = LangString({Languages.DE: "Projektende"})
+    print(omas_project.update(as_string=True))
     # omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
     # omas_project2.read()
     # print(omas_project2)

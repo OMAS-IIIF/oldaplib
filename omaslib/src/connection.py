@@ -13,14 +13,15 @@ from requests import get, post
 from pathlib import Path
 from urllib.parse import quote_plus
 
-from helpers.omaserror import OmasError
+from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 
 
 @unique
 class SparqlResultFormat(Enum):
     XML ="application/sparql-results+xml"
-    JSON = "application/sparql-results+json"
+    JSON = "application/x-sparqlstar-results+json, application/sparql-results+json" # Accept: application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8
     TURTLE = "text/turtle"
     N3 = "text/rdf+n3"
     NQUADS = "text/x-nquads"
@@ -86,6 +87,19 @@ class Connection:
     def context_name(self, value: Any) -> None:
         raise OmasError('Cannot change the context name of a connection!')
 
+    def clear_graph(self, graph_iri: QName):
+        context = Context(name=self._context_name)
+        headers = {
+            "Content-Type": "application/sparql-update",
+            "Accept": "application/json, text/plain, */*",
+        }
+        data = f"CLEAR GRAPH <{context.qname2iri(graph_iri)}>"
+        req = requests.post(self._update_url,
+                            headers=headers,
+                            data=data)
+        if not req.ok:
+            raise OmasError(req.text)
+
     def clear_repo(self):
         headers = {
             "Accept": "application/json, text/plain, */*",
@@ -94,10 +108,10 @@ class Connection:
         req = requests.post(self._update_url,
                             headers=headers,
                             data=data)
-        print(req.text)
-        print(req.headers)
+        if not req.ok:
+            raise OmasError(req.text)
 
-    def upload_turtle(self, filename: str, graphname: Optional[str] = None):
+    def upload_turtle(self, filename: str, graphname: Optional[str] = None) -> None:
         with open(filename, encoding="utf-8") as f:
             content = f.read()
             ext = Path(filename).suffix
@@ -141,19 +155,19 @@ class Connection:
             req = requests.post(url,
                                 headers=headers,
                                 data=jsondata)
-        print(req.text)
-        print(req.headers)
+        if not req.ok:
+            raise OmasError(req.text)
 
 
     def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
         headers = {
-            "Content-Type": "application/sparql-query",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": format.value,
         }
-        encoded_query = urllib.parse.quote_plus(query)
+        #encoded_query = urllib.parse.quote_plus(query)
         url = f"{self._server}/repositories/{self._repo}"  # ?query={encoded_query}&queryLn=sparql"
 
-        res = requests.post(self._query_url, data=query, headers=headers)
+        res = requests.post(self._query_url, data={'query': query}, headers=headers)
         if res.status_code == 200:
             return Connection._switcher[format](res)
         else:
