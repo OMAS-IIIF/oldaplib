@@ -19,6 +19,9 @@ class QName:
     def build(cls, prefix: str, fragment: str):
         return cls(f"{prefix}:{fragment}")
 
+    def __len__(self) -> int:
+        return len(self._value)
+
     def __add__(self, other: Any) -> 'QName':
         return QName(self._value + str(other))
 
@@ -60,7 +63,7 @@ class AnyIRI:
             self._value = str(value)
         else:
             if not XsdValidator.validate(XsdDatatypes.anyURI, value):
-                raise OmasError("Invalid string for anyURI")
+                raise OmasError(f'Invalid string "{value}" for anyIRI')
             self._value = value
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 
@@ -91,6 +94,7 @@ class AnyIRI:
     @property
     def append_allowed(self) -> bool:
         return self._append_allowed
+
 
 class NamespaceIRI(AnyIRI):
 
@@ -137,4 +141,4 @@ class NCName:
 class Action(Enum):
     CREATE = 'create'
     REPLACE = 'replace'
-    DELETE =  'delete'
+    DELETE = 'delete'

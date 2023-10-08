@@ -1,0 +1,5 @@
+POST http://localhost:7200/repositories/omas
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+Accept: application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8
+
+query = PREFIX test: <http://omas.org/test#> SELECT ?s ?p ?o FROM test:shacl WHERE { ?s ?p ?o }

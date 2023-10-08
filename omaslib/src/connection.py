@@ -8,6 +8,7 @@ from pystrict import strict
 from typing import List, Set, Dict, Tuple, Optional, Any, Union, Mapping
 from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
+from rdflib.query import Result
 from rdflib.term import Identifier
 from requests import get, post
 from pathlib import Path
@@ -20,8 +21,11 @@ from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 
 @unique
 class SparqlResultFormat(Enum):
+    """
+    Enumeration of formats that may be returned by the triple store (if the specific store supports these)
+    """
     XML ="application/sparql-results+xml"
-    JSON = "application/x-sparqlstar-results+json, application/sparql-results+json" # Accept: application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8
+    JSON = "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8" # Accept: application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8
     TURTLE = "text/turtle"
     N3 = "text/rdf+n3"
     NQUADS = "text/x-nquads"
@@ -33,6 +37,9 @@ class SparqlResultFormat(Enum):
 
 @strict
 class Connection:
+    """
+    Class that implements the connection to an external triple store.
+    """
     _server: str
     _repo: str
     _context_name: str
@@ -52,6 +59,14 @@ class Connection:
     }
 
     def __init__(self, server: str, repo: str, context_name: str = DEFAULT_CONTEXT) -> None:
+        """
+        Constructor that establishes the connection parameters.
+
+        :param server: URL of the server (including port information if necessary)
+        :param repo: Name of the repository on the server
+        :param context_name: A name of the Context to be used (see ~Context). If no such context exists,
+            a new context of this name is created
+        """
         self._server = server
         self._repo = repo
         self._context_name = context_name
@@ -62,32 +77,43 @@ class Connection:
         for prefix, iri in context.items():
             self._store.bind(str(prefix), Namespace(str(iri)))
 
-
     @property
     def server(self) -> str:
+        """Getter for server string"""
         return self._server
 
     @server.setter
     def server(self, value: Any) -> None:
+        """Catch setting the server and raise a ~helpers.OmasError"""
         raise OmasError('Cannot change the server of a connection!')
 
     @property
     def repo(self) -> str:
+        """Getter for repository name"""
         return self._repo
 
     @repo.setter
     def repo(self, value: Any) -> None:
+        """Catch setting the repository name and raise a ~helpers.OmasError"""
         raise OmasError('Cannot change the repo of a connection!')
 
     @property
     def context_name(self) -> str:
+        """Getter for the context name"""
         return self._context_name
 
     @context_name.setter
     def context_name(self, value: Any) -> None:
+        """Catch setting the context name and raise a ~helpers.OmasError"""
         raise OmasError('Cannot change the context name of a connection!')
 
-    def clear_graph(self, graph_iri: QName):
+    def clear_graph(self, graph_iri: QName) -> None:
+        """
+        This method clears (deletes) the given RDF graph. May raise an ~herlper.OmasError.
+
+        :param graph_iri: RDF graph name as QName. The prefix must be defined in the context!
+        :return: None
+        """
         context = Context(name=self._context_name)
         headers = {
             "Content-Type": "application/sparql-update",
@@ -100,7 +126,12 @@ class Connection:
         if not req.ok:
             raise OmasError(req.text)
 
-    def clear_repo(self):
+    def clear_repo(self) -> None:
+        """
+        This method deletes the complete repository. Use with caution!!!
+
+        :return: None
+        """
         headers = {
             "Accept": "application/json, text/plain, */*",
         }
@@ -112,6 +143,13 @@ class Connection:
             raise OmasError(req.text)
 
     def upload_turtle(self, filename: str, graphname: Optional[str] = None) -> None:
+        """
+        Upload a turtle- or trig-file to the given repository. This method returns immediately after sending the
+        command to upload the given file to the triplestore. The import process may take a while!
+        :param filename: Name of the file to upload
+        :param graphname: Optional name of the RDF-graph where the data should be imported in.
+        :return: None
+        """
         with open(filename, encoding="utf-8") as f:
             content = f.read()
             ext = Path(filename).suffix
@@ -158,22 +196,34 @@ class Connection:
         if not req.ok:
             raise OmasError(req.text)
 
-
     def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
+        """
+        Send a SPARQL-query and return the result. The result may be nested dict (in case of JSON) or a text
+        :param query: SPARQL query as string
+        :param format: The format desired (see ~SparqlResultFormat)
+        :return: Query results or an error message (as text)
+        """
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": format.value,
         }
-        #encoded_query = urllib.parse.quote_plus(query)
-        url = f"{self._server}/repositories/{self._repo}"  # ?query={encoded_query}&queryLn=sparql"
-
-        res = requests.post(self._query_url, data={'query': query}, headers=headers)
+        data = {
+            'query': query,
+        }
+        res = requests.post(url=self._query_url,
+                            headers=headers,
+                            data=data)
         if res.status_code == 200:
             return Connection._switcher[format](res)
         else:
             return res.text
 
-    def update_query(self, query: str) -> Any:
+    def update_query(self, query: str) -> None:
+        """
+        Send an SPARQL UPDATE query to the triple store
+        :param query: SPARQL UPDATE query as string
+        :return:
+        """
         headers = {
             "Accept": "*/*"
         }
@@ -185,7 +235,13 @@ class Connection:
             print("UPDATE FAILURE:", res.text)
 
     def rdflib_query(self, query: str,
-                     bindings: Optional[Mapping[str, Identifier]] = None) -> Any:
+                     bindings: Optional[Mapping[str, Identifier]] = None) -> Result:
+        """
+        Send a SPARQL query to a triple store using the Python rdflib interface
+        :param query: SPARQL query string
+        :param bindings: Bindings to variables
+        :return: a RDFLib Result instance
+        """
         return self._store.query(query, initBindings=bindings)
 
 

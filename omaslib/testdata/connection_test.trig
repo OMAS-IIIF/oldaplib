@@ -13,8 +13,6 @@
     :commentShape a sh:PropertyShape ;
         sh:path :comment ;
         sh:datatype xsd:string ;
-        sh:name "Kommentar"@de, "Comment"@en, "Commentaire"@fr, "Commentario"@it ;
-        sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true ;
         sh:maxCount 1 .
 
