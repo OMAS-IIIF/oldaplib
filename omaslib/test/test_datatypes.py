@@ -16,6 +16,7 @@ class TestQname(unittest.TestCase):
         self.assertEqual(str(qn2), 'prefix:nameShape')
         qn3 = QName.build('prefix', 'name')
         self.assertTrue(qn == qn3)
+        self.assertEqual(hash(qn), hash(qn3))
         self.assertEqual(repr(qn3), 'QName(prefix:name)')
         self.assertTrue(qn != qn2)
         qn += 'Shape'
@@ -38,6 +39,7 @@ class TestAnyIRI(unittest.TestCase):
         self.assertFalse(iri1 == iri3)
         iri2 += 'gaga'
         self.assertTrue(iri2 == iri3)
+        self.assertEqual(hash(iri2), hash(iri3))
         with self.assertRaises(OmasError) as ex:
             noiri = AnyIRI('waseliwas')
         self.assertEqual(ex.exception.message, 'Invalid string "waseliwas" for anyIRI')
@@ -63,6 +65,7 @@ class TestNCName(unittest.TestCase):
         self.assertEqual(str(ncn1a), 'AnId0XY')
         ncn1b = ncn1 + 'XY'
         self.assertTrue(ncn1a == ncn1b)
+        self.assertEqual(hash(ncn1a), hash(ncn1b))
         self.assertFalse(ncn1a != ncn1b)
         with self.assertRaises(OmasError) as ex:
             ncn2 = NCName('0AnId')

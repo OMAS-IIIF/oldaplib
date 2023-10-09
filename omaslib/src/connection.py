@@ -177,6 +177,7 @@ class Connection:
         """
         Upload a turtle- or trig-file to the given repository. This method returns immediately after sending the
         command to upload the given file to the triplestore. The import process may take a while!
+
         :param filename: Name of the file to upload
         :param graphname: Optional name of the RDF-graph where the data should be imported in.
         :return: None
@@ -229,7 +230,8 @@ class Connection:
 
     def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
         """
-        Send a SPARQL-query and return the result. The result may be nested dict (in case of JSON) or a text
+        Send a SPARQL-query and return the result. The result may be nested dict (in case of JSON) or a text.
+
         :param query: SPARQL query as string
         :param format: The format desired (see ~SparqlResultFormat)
         :return: Query results or an error message (as text)
@@ -268,7 +270,8 @@ class Connection:
     def rdflib_query(self, query: str,
                      bindings: Optional[Mapping[str, Identifier]] = None) -> Result:
         """
-        Send a SPARQL query to a triple store using the Python rdflib interface
+        Send a SPARQL query to a triple store using the Python rdflib interface.
+
         :param query: SPARQL query string
         :param bindings: Bindings to variables
         :return: a RDFLib Result instance

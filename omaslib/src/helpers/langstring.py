@@ -1,6 +1,9 @@
 from enum import unique, Enum
 from typing import Dict, List, Optional, Union, Set
 
+from pystrict import strict
+
+from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 
 
@@ -12,17 +15,17 @@ class Languages(Enum):
     IT = "it"
     XX = "xx"
 
-
+@strict
 class LangString:
-    _langstring: Dict[Languages, str]
-    _priorities: List[Languages]
-    _changeset: Set[Languages]
+    _langstring: Dict[Language, str]
+    _priorities: List[Language]
+    _changeset: Set[Language]
 
     def __init__(self,
-                 langstring: Optional[Union[str, Dict[Languages, str]]] = None,
-                 priorities: Optional[List[Languages]] = None):
+                 langstring: Optional[Union[str, List[str], Dict[str, str], Dict[Language, str]]] = None,
+                 priorities: Optional[List[Language]] = None):
         """
-        Implements langage dependent strings
+        Implements language dependent strings
 
         :param langstring: A Dict with the language (as Languages enum) as key and a string as value
         :param priorities: If a desired language is not found, then the next string is used given this priority list
@@ -31,22 +34,42 @@ class LangString:
         if isinstance(langstring, str):
             index = langstring.find('@')
             if index >= 0:
+                tmpls: str = langstring[(index + 1):].upper()
                 self._langstring = {
-                    Languages(langstring[(index + 1):]): langstring[:index]
+                    Language[tmpls]: langstring[:index]
                 }
             else:
                 self._langstring = {
-                    Languages.XX: langstring
+                    Language.XX: langstring
                 }
+        elif isinstance(langstring, List):
+            self._langstring = {}
+            for lstr in langstring:
+                index = lstr.find('@')
+                if index >= 0:
+                    tmpls: str = lstr[(index + 1):].upper()
+                    self._langstring[Language[tmpls]] = lstr[:index]
+                else:
+                    self._langstring[Language.XX] = lstr
         elif langstring is None:
             self._langstring = {}
         else:
-            self._langstring = langstring
+            self._langstring = {}
+            for lang, value in langstring.items():
+                if isinstance(lang, Language):
+                    self._langstring[lang] = value
+                else:
+                    self._langstring[Language[lang.upper()]] = value
         self._priorities = priorities if priorities is not None else [x for x in Languages]
         tmp = [x for x in Languages if x not in self._priorities]
-        self._priorities.append(tmp)
+        self._priorities.extend(tmp)
 
-    def __getitem__(self, lang: Languages) -> str:
+    def __getitem__(self, lang: Union[str, Languages]) -> str:
+        if isinstance(lang, str):
+            try:
+                lang = Languages(lang)
+            except ValueError:
+                return '--no string--'
         s = self._langstring.get(lang)
         if s:
             return s
