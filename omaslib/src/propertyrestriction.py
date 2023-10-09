@@ -37,7 +37,7 @@ class PropertyRestrictions:
     """
     This class implements the SHACL/OWL restriction that omaslib supports
 
-    SAHCl allows to restrict the tha value range of properties. The following restrictions ate
+    SHACl allows to restrict the tha value range of properties. The following restrictions ate
     supported by *omaslib*.
 
     * cardinality

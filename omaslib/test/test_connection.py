@@ -62,42 +62,44 @@ class TestBasicConnection(unittest.TestCase):
         }
         """
         res = self._connection.query(query)
-        expected = {
-            'head': {
-                'vars': ['s', 'p', 'o']
-            },
-            'results': {
-                'bindings': [
-                    {
-                        's': {'type': 'uri', 'value': 'http://omas.org/test#commentShape'},
-                        'p': {'type': 'uri', 'value': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'},
-                        'o': {'type': 'uri', 'value': 'http://www.w3.org/ns/shacl#PropertyShape'}
-                    },
-                    {
-                        's': {'type': 'uri', 'value': 'http://omas.org/test#commentShape'},
-                        'p': {'type': 'uri', 'value': 'http://www.w3.org/ns/shacl#path'},
-                        'o': {'type': 'uri', 'value': 'http://omas.org/test#comment'}
-                    },
-                    {
-                        's': {'type': 'uri', 'value': 'http://omas.org/test#commentShape'},
-                        'p': {'type': 'uri', 'value': 'http://www.w3.org/ns/shacl#uniqueLang'},
-                        'o': {'datatype': 'http://www.w3.org/2001/XMLSchema#boolean', 'type': 'literal', 'value': 'true'}
-                    },
-                    {
-                        's': {'type': 'uri', 'value': 'http://omas.org/test#commentShape'},
-                        'p': {'type': 'uri', 'value': 'http://www.w3.org/ns/shacl#maxCount'},
-                        'o': {'datatype': 'http://www.w3.org/2001/XMLSchema#integer', 'type': 'literal', 'value': '1'}
-                    },
-                    {
-                        's': {'type': 'uri', 'value': 'http://omas.org/test#commentShape'},
-                        'p': {'type': 'uri', 'value': 'http://www.w3.org/ns/shacl#datatype'},
-                        'o': {'type': 'uri', 'value': 'http://www.w3.org/2001/XMLSchema#string'}
-                    }
-                ]
-            }
-        }
+        expected = {'head': {'vars': ['s', 'p', 'o']},
+ 'results': {'bindings': [{'o': {'type': 'uri',
+                                 'value': 'http://www.w3.org/ns/shacl#PropertyShape'},
+                           'p': {'type': 'uri',
+                                 'value': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'},
+                           's': {'type': 'uri',
+                                 'value': 'http://omas.org/test#commentShape'}},
+                          {'o': {'type': 'uri',
+                                 'value': 'http://omas.org/test#comment'},
+                           'p': {'type': 'uri',
+                                 'value': 'http://www.w3.org/ns/shacl#path'},
+                           's': {'type': 'uri',
+                                 'value': 'http://omas.org/test#commentShape'}},
+                          {'o': {'datatype': 'http://www.w3.org/2001/XMLSchema#integer',
+                                 'type': 'literal',
+                                 'value': '1'},
+                           'p': {'type': 'uri',
+                                 'value': 'http://www.w3.org/ns/shacl#maxCount'},
+                           's': {'type': 'uri',
+                                 'value': 'http://omas.org/test#commentShape'}},
+                          {'o': {'type': 'uri',
+                                 'value': 'http://www.w3.org/2001/XMLSchema#string'},
+                           'p': {'type': 'uri',
+                                 'value': 'http://www.w3.org/ns/shacl#datatype'},
+                           's': {'type': 'uri',
+                                 'value': 'http://omas.org/test#commentShape'}},
+                          {'o': {'datatype': 'http://www.w3.org/2001/XMLSchema#boolean',
+                                 'type': 'literal',
+                                 'value': 'true'},
+                           'p': {'type': 'uri',
+                                 'value': 'http://www.w3.org/ns/shacl#uniqueLang'},
+                           's': {'type': 'uri',
+                                 'value': 'http://omas.org/test#commentShape'}}]}}
+
+        #pprint(res)
         self.maxDiff = None
         self.assertDictEqual(res, expected)
+        #self.assertEqual(res, expected)
 
     def test_rdflib_query(self):
         query = self._context.sparql_context
@@ -115,6 +117,48 @@ class TestBasicConnection(unittest.TestCase):
             self.assertEqual(r[0], URIRef('http://omas.org/test#commentShape'))
             self.assertEqual(r[1], URIRef('http://www.w3.org/ns/shacl#path'))
             self.assertEqual(r[2], URIRef('http://omas.org/test#comment'))
+
+    def test_update_query(self):
+        query1 = self._context.sparql_context
+        query1 += """
+        INSERT DATA {
+            GRAPH test:shacl {
+                test:gaga a test:Gaga .
+                test:gaga rdfs:label "GAGA"
+            }
+        }
+        """
+        success = self._connection.update_query(query1)
+        self.assertEqual(success['status'], 'OK')
+        qq1 = self._context.sparql_context
+        qq1 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?p}"
+        res = self._connection.rdflib_query(qq1)
+        self.assertEqual(len(res), 1)
+        for r in res:
+            self.assertEqual(r[0], "GAGA")
+
+
+        query2 = self._context.sparql_context
+        query2 += """
+        DELETE {
+            ?s rdfs:label ?o
+        }
+        INSERT {
+            ?s rdfs:label "GUGUS"
+        }
+        WHERE {
+            ?s a test:Gaga
+        }
+        """
+        success = self._connection.update_query(query1)
+        self.assertEqual(success['status'], 'OK')
+        qq2 = self._context.sparql_context
+        qq2 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?p}"
+        res = self._connection.rdflib_query(qq2)
+        self.assertEqual(len(res), 1)
+        for r in res:
+            self.assertEqual(r[0], "GUGUS")
+
 
 if __name__ == '__main__':
     unittest.main()

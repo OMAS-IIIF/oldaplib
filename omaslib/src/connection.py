@@ -38,7 +38,38 @@ class SparqlResultFormat(Enum):
 @strict
 class Connection:
     """
-    Class that implements the connection to an external triple store.
+    Class that implements the connection to an external triple store for omaslib.
+
+    The connection to a SPARQL endpoint requires the following information:
+
+    * _server_: URL of the server (inlcuding port number)
+    * _repo_: Name of the repository to connect to
+    * _context_name_: Name of the context (see ~helper.Context)
+
+    The class implements the following methods:
+
+    * Getter-methods:
+        - _server_: returns the server string
+        - _repo_: returns the repository name
+        - _context_name_: returns the context name
+    * Setter methods:
+        - Any setting of the _server_, _repo_ or _context_name_ - variables raises an OmasError-exception
+    * Further methods
+        - _Constructor(server,repo,contextname)_: requires _server_ and _repo_string, _context_name defaults to "DEFAULT"
+        - _clear_graph_(graph_name: QName)_: Deletes the given graph (must be given as QName)
+        - _clear_repo()_ Deletes all data in the repository given by the Connection instance
+        - _upload_turtle(filename: str, graphname:str)_: Loads the data in the given file (must be turtle or trig
+          format) into the given repo and graph. If graphname is not given, the data will either be loaded into the
+          default graph of the repository or into the graph given in the trig file.
+          _Note_: The method returns before the triple store has digested all the data! It may not immediately
+          available after this method returns!
+        - _query(query: str, format: SparqlResultFormat)_: Sends a SPARQL query to the triple store and returns the
+          result in the given format. If no format is given, JSON will be used as default format.
+        - _update_query(query: str)_: Send a SPARQL update query to the SPARQL endpoint. The method return either
+          {'status': 'OK'} or {'status': 'ERROR', 'message': 'error-text'}
+        - _rdflib_query(query: str, bindings: Optional[Mapping[str, Identifier]])_: Send a SPAQRL query using rdflib
+          to the SPARQL endpoint. The variable _bindings_ allows to set query parameters to given values.
+
     """
     _server: str
     _repo: str
@@ -218,7 +249,7 @@ class Connection:
         else:
             return res.text
 
-    def update_query(self, query: str) -> None:
+    def update_query(self, query: str) -> Dict[str,str]:
         """
         Send an SPARQL UPDATE query to the triple store
         :param query: SPARQL UPDATE query as string
@@ -230,9 +261,9 @@ class Connection:
         url = f"{self._server}/repositories/{self._repo}/statements"
         res = requests.post(url, data={"update": query}, headers=headers)
         if res.status_code == 204:
-            print("UPDATE SUCCESS")
+            return {'status': 'OK'}
         else:
-            print("UPDATE FAILURE:", res.text)
+            return {'status': 'ERROR', 'message': res.text}
 
     def rdflib_query(self, query: str,
                      bindings: Optional[Mapping[str, Identifier]] = None) -> Result:
