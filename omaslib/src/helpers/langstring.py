@@ -7,14 +7,6 @@ from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 
 
-@unique
-class Languages(Enum):
-    EN = "en"
-    DE = "de"
-    FR = "fr"
-    IT = "it"
-    XX = "xx"
-
 @strict
 class LangString:
     _langstring: Dict[Language, str]
@@ -27,28 +19,37 @@ class LangString:
         """
         Implements language dependent strings
 
-        :param langstring: A Dict with the language (as Languages enum) as key and a string as value
+        :param langstring: A definition of one or several langiage dependent strings. The parameter can either be
+          - a string in the form "string@ll", eg "Lastname@en". A string without language qualifier has the language
+            Language.XX associated
+          - a list of strings: ["Lastname@en", "Nachname@de"]
+          - a dict with language short names as key: {'en': "Lastname", 'de': "Nachname"}
+          - a dict with Language enum values as keys: {Language.EN: "Lastname, Language.DE: "Nachname"}
         :param priorities: If a desired language is not found, then the next string is used given this priority list
+          which as the form [Langguage.LL, ...], eg [Language.EN, Language.DE, Language.XX]. The default value
+          is [Language.XX, Language.EN, Language.DE, Language.FR]
         """
         self._changeset = set()
         if isinstance(langstring, str):
             index = langstring.find('@')
             if index >= 0:
                 tmpls: str = langstring[(index + 1):].upper()
-                self._langstring = {
-                    Language[tmpls]: langstring[:index]
-                }
+                try:
+                    self._langstring = {Language[tmpls]: langstring[:index]}
+                except KeyError as er:
+                    raise OmasError(f'Language in string "{langstring}" is invalid')
             else:
-                self._langstring = {
-                    Language.XX: langstring
-                }
+                self._langstring = {Language.XX: langstring}
         elif isinstance(langstring, List):
             self._langstring = {}
             for lstr in langstring:
                 index = lstr.find('@')
                 if index >= 0:
                     tmpls: str = lstr[(index + 1):].upper()
-                    self._langstring[Language[tmpls]] = lstr[:index]
+                    try:
+                        self._langstring[Language[tmpls]] = lstr[:index]
+                    except KeyError as er:
+                        raise OmasError(f'Language in string "{lstr}" is invalid')
                 else:
                     self._langstring[Language.XX] = lstr
         elif langstring is None:
@@ -59,17 +60,21 @@ class LangString:
                 if isinstance(lang, Language):
                     self._langstring[lang] = value
                 else:
-                    self._langstring[Language[lang.upper()]] = value
-        self._priorities = priorities if priorities is not None else [x for x in Languages]
-        tmp = [x for x in Languages if x not in self._priorities]
-        self._priorities.extend(tmp)
+                    try:
+                        self._langstring[Language[lang.upper()]] = value
+                    except KeyError as er:
+                        raise OmasError(f'Language "{lang}" is invalid')
+        if priorities is not None:
+            self._priorities = priorities
+        else:
+            self._priorities = [Language.XX, Language.EN, Language.DE, Language.FR]
 
-    def __getitem__(self, lang: Union[str, Languages]) -> str:
+    def __getitem__(self, lang: Union[str, Language]) -> str:
         if isinstance(lang, str):
             try:
-                lang = Languages(lang)
-            except ValueError:
-                return '--no string--'
+                lang = Language[lang.upper()]
+            except KeyError:
+                raise OmasError(f'Language "{lang}" is invalid')
         s = self._langstring.get(lang)
         if s:
             return s
@@ -79,21 +84,22 @@ class LangString:
                     return self._langstring.get(ll)
             return '--no string--'
 
-    def __setitem__(self, lang: Union[Languages, str], value: str) -> None:
-        if isinstance(lang, Languages):
+    def __setitem__(self, lang: Union[Language, str], value: str) -> None:
+        if isinstance(lang, Language):
             self._langstring[lang] = value
             self._changeset.add(lang)
         elif isinstance(lang, str):
             try:
-                self._langstring[Languages(lang)] = value
-                self._changeset.add(Languages(lang))
+                lobj = Language[lang.upper()]
+                self._langstring[lobj] = value
+                self._changeset.add(lobj)
             except (KeyError, ValueError) as err:
-                raise OmasError(f'Unsupported language or no string of given lang: {lang}!')
+                raise OmasError(f'Language "{lang}" is invalid')
         else:
-            raise OmasError(f'Unsupported language value: {lang}!')
+            raise OmasError(f'Language "{lang}" is invalid')
 
-    def __delitem__(self, lang: Union[Languages, str]) -> None:
-        if isinstance(lang, Languages):
+    def __delitem__(self, lang: Union[Language, str]) -> None:
+        if isinstance(lang, Language):
             try:
                 del self._langstring[lang]
                 self._changeset.add(lang)
@@ -101,65 +107,99 @@ class LangString:
                 raise OmasError(f'No language string of language: "{lang}"!')
         elif isinstance(lang, str):
             try:
-                del self._langstring[Languages(lang)]
-                self._changeset.add(Languages(lang))
+                lobj = Language[lang.upper()]
+                del self._langstring[lobj]
+                self._changeset.add(lobj)
             except (KeyError, ValueError) as err:
-                raise OmasError(f'Unsupported language or no string of given lang: {lang}!')
+                raise OmasError(f'No language string of language: "{lang}"!')
         else:
             raise OmasError(f'Unsupported language value {lang}!')
 
     def __str__(self) -> str:
-        langlist = [f'"{val}"@{lang.value}' for lang, val in self._langstring.items() if lang != Languages.XX]
+        langlist = [f'"{val}"@{lang.name.lower()}' for lang, val in self._langstring.items()]
         resstr = ", ".join(langlist)
-        if self._langstring.get(Languages.XX):
-            if resstr:
-                resstr += ', '
-            resstr += f'"{self._langstring[Languages.XX]}"'
         return resstr
 
-    def get(self, lang: Languages):
+    def get(self, lang: Union[str, Language]):
+        if isinstance(lang, str):
+            lang = Language[lang.upper()]
         return self._langstring.get(lang)
 
     def __eq__(self, other) -> bool:
-        equal = True
-        for lang in Languages:
-            equal = self._langstring.get(lang) == other._langstring.get(lang)
-            if not equal:
-                break
-        return equal
+        if len(self._langstring) != len(other._langstring):
+            return False
+        for lang in self._langstring:
+            if other.langstring.get(lang) is None:
+                return False
+            if self._langstring.get(lang) != other.langstring.get(lang):
+                return False
+        return True
 
     def items(self):
         return self._langstring.items()
 
     @property
-    def langstring(self) -> Dict[Languages, str]:
+    def langstring(self) -> Dict[Language, str]:
         return self._langstring
 
-    def add(self, langs: Union[str, Dict[Languages, str]]):
+    def add(self, langs: Union[str, List[str], Dict[str, str], Dict[Language, str]]):
         if isinstance(langs, str):
             index = langs.find('@')
             if index >= 0:
-                lang = Languages(langs[(index + 1):])
-                self._langstring[lang] = langs[:index]
-                self._changeset.add(lang)
+                lstr = langs[(index + 1):].upper()
+                lobj = None
+                try:
+                    lobj = Language[lstr]
+                except KeyError:
+                    raise OmasError(f'Language "{lstr}" is invalid')
+                self._langstring[lobj] = langs[:index]
+                self._changeset.add(lobj)
             else:
-                self._langstring[Languages.XX] = langs
-                self._changeset.add(Languages.XX)
-        else:
+                self._langstring[Language.XX] = langs
+                self._changeset.add(Language.XX)
+        elif isinstance(langs, list):
+            for lang in langs:
+                index = lang.find('@')
+                if index >= 0:
+                    lstr = lang[(index + 1):].upper()
+                    lobj = None
+                    try:
+                        lobj = Language[lstr]
+                    except KeyError:
+                        raise OmasError(f'Language "{lstr}" is invalid')
+                    self._langstring[lobj] = langs[:index]
+                    self._changeset.add(lobj)
+                else:
+                    self._langstring[Language.XX] = lang
+                    self._changeset.add(Language.XX)
+        elif isinstance(langs, Dict):
             for lang, value in langs.items():
-                self._langstring[lang] = value
-                self._changeset.add(lang)
+                lobj = None
+                if isinstance(lang, Language):
+                    lobj = lang
+                else:
+                    try:
+                        lobj = Language[lang.upper()]
+                    except KeyError:
+                        raise OmasError(f'Language "{lang}" is invalid')
+                self._langstring[lobj] = value
+                self._changeset.add(lobj)
+        else:
+            raise OmasError(f'Invalid data type for langs')
 
+    @property
+    def changeset(self) -> Set[Language]:
+        return self._changeset
 
 if __name__ == '__main__':
     ls1 = LangString("gaga")
     print(str(ls1))
     ls2 = LangString({
-        Languages.DE: "Deutsch....",
-        Languages.EN: "German...."
+        Language.DE: "Deutsch....",
+        Language.EN: "German...."
     })
     print(str(ls2))
-    print(ls2[Languages.EN])
-    print(ls1[Languages.DE])
-    ls1.add({Languages.DE: "gaga auf deutsch", Languages.EN: "gaga in english"})
+    print(ls2[Language.EN])
+    print(ls1[Language.DE])
+    ls1.add({Language.DE: "gaga auf deutsch", Language.EN: "gaga in english"})
     print(str(ls1))
