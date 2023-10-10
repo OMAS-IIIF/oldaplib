@@ -25,12 +25,25 @@ class ContextSingleton(type):
 
 @strict
 class Context(metaclass=ContextSingleton):
+    """
+    This class is used to hold the "context" of an RDF query/update. The context contains the
+    association of the prefixes with the full IRI's of the namespaces.
+
+    The context instances are singletons of the given name. That is, Constructors refering the
+    same context name will return a shared context for this name.
+    """
     _name: str
     _context: Dict[NCName, NamespaceIRI]
-    _inverse: Dict[AnyIRI, NCName]
+    _inverse: Dict[NamespaceIRI, NCName]
 
     def __init__(self,
                  name: str):
+        """
+        Constructs a context with the given name.
+        Note: If a context with the same name already exists, a reference to the already existing is returned:
+
+        :param name: Name of the context
+        """
         self._name = name
         self._context = {
             NCName('rdf'): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
@@ -56,7 +69,10 @@ class Context(metaclass=ContextSingleton):
     def __getitem__(self, prefix: Union[NCName, str]) -> NamespaceIRI:
         if not isinstance(prefix, NCName):
             prefix = NCName(prefix)
-        return self._context[prefix]
+        try:
+            return self._context[prefix]
+        except KeyError as err:
+            raise OmasError(f'Unknown prefix "{prefix}"')
 
     def __setitem__(self, prefix: Union[NCName, str], iri: Union[NamespaceIRI, str]) -> None:
         if not isinstance(prefix, NCName):
@@ -67,11 +83,15 @@ class Context(metaclass=ContextSingleton):
         self._inverse[iri] = prefix
 
     def __delitem__(self, prefix: Union[NCName, str]):
+        iri: NamespaceIRI
         if not isinstance(prefix, NCName):
             prefix = NCName(prefix)
-        iri = self._context[prefix]
+        try:
+            iri = self._context[prefix]
+        except KeyError:
+            raise OmasError(f'Unknown prefix "{prefix}"')
         self._context.pop(prefix)
-        self._context.pop(iri)
+        self._inverse.pop(iri)
 
     def __iter__(self):
         return self._context.__iter__()
@@ -79,7 +99,9 @@ class Context(metaclass=ContextSingleton):
     def items(self):
         return self._context.items()
 
-    def iri2qname(self, iri: AnyIRI) -> Union[QName, None]:
+    def iri2qname(self, iri: Union[str, AnyIRI]) -> Union[QName, None]:
+        if not isinstance(iri, AnyIRI):
+            iri = AnyIRI(iri)
         for prefix, trunk in self._context.items():
             if str(iri).startswith(str(trunk)):
                 fragment = str(iri)[len(trunk):]

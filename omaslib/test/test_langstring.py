@@ -79,6 +79,7 @@ class TestLangstring(unittest.TestCase):
     def test_langstring_delete(self):
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
         del ls1['de']
+        self.assertEqual(ls1.changeset, {Language.DE})
         self.assertEqual(ls1['en'], 'english')
         self.assertEqual(ls1['xx'], 'unbekannt')
         self.assertEqual(ls1['de'], 'unbekannt')
@@ -90,23 +91,27 @@ class TestLangstring(unittest.TestCase):
 
         ls3 = LangString(["english@en", "deutsch@de", "unbekannt"])
         with self.assertRaises(OmasError) as ex:
-            del ls2['rr']
+            del ls3['rr']
         self.assertEqual(ex.exception.message, 'No language string of language: "rr"!')
 
     def test_langstring_str(self):
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
-        self.assertEqual(str(ls1),  '"english"@en, "deutsch"@de, "unbekannt"@xx')
+        self.assertEqual(str(ls1),  '"english"@en, "deutsch"@de, "unbekannt"')
 
-    def test_langstring_eq(self):
+    def test_langstring_eq_ne(self):
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
         ls2 = LangString(["english@en", "deutsch@de", "unbekannt"])
         self.assertTrue(ls1 == ls2)
+        self.assertFalse(ls1 != ls2)
         ls3 = LangString(["english@en", "français", "unbekannt"])
         self.assertFalse(ls1 == ls3)
+        self.assertTrue(ls1 != ls3)
         ls4 = LangString(["english@en", "unbekannt"])
         self.assertFalse(ls1 == ls4)
+        self.assertTrue(ls1 != ls4)
         ls5 = LangString(["english@en", "deutsch@de", "français@fr", "unbekannt"])
         self.assertFalse(ls1 == ls5)
+        self.assertTrue(ls1 != ls5)
 
     def test_langstring_items(self):
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
@@ -133,10 +138,22 @@ class TestLangstring(unittest.TestCase):
         ls1 = LangString(["english@en", "deutsch@de"])
         ls1.add("français@fr")
         self.assertEqual(str(ls1), '"english"@en, "deutsch"@de, "français"@fr')
+        self.assertEqual(ls1.changeset, {Language.FR})
 
         ls2 = LangString(["english@en", "deutsch@de"])
-        ls1.add(["français@fr", "undefined"])
-        self.assertEqual(str(ls1), '"english"@en, "deutsch"@de, "français"@fr, "undefined@xx')
+        ls2.add(["français@fr", "undefined"])
+        self.assertEqual(str(ls2), '"english"@en, "deutsch"@de, "français"@fr, "undefined"')
+        self.assertEqual(ls2.changeset, {Language.FR, Language.XX})
+
+        ls3 = LangString(["english@en", "deutsch@de"])
+        ls3.add({Language.FR: "français", Language.XX: "undefined"})
+        self.assertEqual(str(ls3), '"english"@en, "deutsch"@de, "français"@fr, "undefined"')
+        self.assertEqual(ls3.changeset, {Language.FR, Language.XX})
+
+        ls4 = LangString(["english@en", "deutsch@de", "französisch@fr"])
+        ls4.add({Language.FR: "français", Language.XX: "undefined"})
+        self.assertEqual(str(ls4), '"english"@en, "deutsch"@de, "français"@fr, "undefined"')
+        self.assertEqual(ls4.changeset, {Language.FR, Language.XX})
 
 
 
