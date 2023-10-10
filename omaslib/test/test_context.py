@@ -1,7 +1,7 @@
 import unittest
 
-from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, AnyIRI
+from omaslib.src.helpers.context import Context, ContextSingleton
+from omaslib.src.helpers.datatypes import NamespaceIRI, AnyIRI, QName
 from omaslib.src.helpers.omaserror import OmasError
 
 
@@ -38,6 +38,11 @@ class TestContext(unittest.TestCase):
             del context['gugus']
         self.assertEqual(ex.exception.message, 'Unknown prefix "gugus"')
 
+    def test_context_in_use(self):
+        self.assertFalse(Context.in_use("in_use"))
+        context = Context(name="in_use")
+        self.assertTrue(Context.in_use("in_use"))
+
     def test_context_iri2qname(self):
         context = Context(name="iri2qname")
         qn = context.iri2qname(AnyIRI('http://www.w3.org/2000/01/rdf-schema#label'))
@@ -50,4 +55,7 @@ class TestContext(unittest.TestCase):
             qn = context.iri2qname('waseliwas/soll')
         self.assertEqual(ex.exception.message, 'Invalid string "waseliwas/soll" for anyIRI')
 
+    def test_context_qname2iri(self):
+        context = Context(name='qname2iri')
+        self.assertEqual(context.qname2iri(QName('skos:gaga')), 'http://www.w3.org/2004/02/skos/core#gaga')
 

@@ -122,6 +122,13 @@ class Context(metaclass=ContextSingleton):
         contextlist = [f"@PREFIX {str(x)}: <{str(y)}> ." for x, y in self._context.items()]
         return "\n".join(contextlist) + "\n"
 
+    @classmethod
+    def in_use(cls, name) -> bool:
+        if cls._cache.get(name) is None:
+            return False
+        else:
+            return True
+
 
 if __name__ == '__main__':
     c1 = Context(name=DEFAULT_CONTEXT)
