@@ -31,6 +31,17 @@ class Context(metaclass=ContextSingleton):
 
     The context instances are singletons of the given name. That is, Constructors refering the
     same context name will return a shared context for this name.
+
+    The following methods are defined, In case of an error they raise an OmasError():
+    * _[] aka getitem_: Access a full IRI using the prefix, e.g. ```context['rdfs']```
+    * _[]_ aka setitem_: Set or modify a prefix/IRI pair, e.g. ```context['test'] = 'http://www.test.org/gaga#'```
+    * _del_: Delete an item, e.g. ```del context['skos']```
+    * _iri2qname()_: Convert a full IRI to a QNAME ('<prefix>:<name>'), e.g.
+      ```context.iri2qname('http://www.w3.org/2000/01/rdf-schema#label')``` -> 'rdfs:label'
+    * _qname2iri()_: Convert a qname to a full IRI, e.g.
+      ```context.qname2iri('rdfs:label')``` -> 'http://www.w3.org/2000/01/rdf-schema#label'
+    * sparql_context: Property that returns the context as sparql compatible string
+    * turtle_context: Property that return the context as turtle compatible string
     """
     _name: str
     _context: Dict[NCName, NamespaceIRI]
@@ -39,7 +50,15 @@ class Context(metaclass=ContextSingleton):
     def __init__(self,
                  name: str):
         """
-        Constructs a context with the given name.
+        Constructs a context with the given name. The following namespaces are defined by default:
+        - rdf
+        - rdfs
+        - owl
+        - xsd
+        - xml
+        - sh (SHACL)
+        - skos
+        - omas (http://omas.org/base#)
         Note: If a context with the same name already exists, a reference to the already existing is returned:
 
         :param name: Name of the context
@@ -67,6 +86,12 @@ class Context(metaclass=ContextSingleton):
         }
 
     def __getitem__(self, prefix: Union[NCName, str]) -> NamespaceIRI:
+        """
+        Access a context by prefix. The key may be a QName or a valid string
+
+        :param prefix: A valid prefix (QName or string)
+        :return: Associated NamespaceIRI
+        """
         if not isinstance(prefix, NCName):
             prefix = NCName(prefix)
         try:
@@ -75,6 +100,14 @@ class Context(metaclass=ContextSingleton):
             raise OmasError(f'Unknown prefix "{prefix}"')
 
     def __setitem__(self, prefix: Union[NCName, str], iri: Union[NamespaceIRI, str]) -> None:
+        """
+        Set a context. The prefix may be a QName or a valid string, the iri must be a NamespaceIRI (with a
+        terminating "#" or "/").
+
+        :param prefix: A valid prefix (QName or string)
+        :param iri: A valid iri (NamespaceIRI or string)
+        :return: None
+        """
         if not isinstance(prefix, NCName):
             prefix = NCName(prefix)
         if not isinstance(iri, NamespaceIRI):
@@ -82,7 +115,13 @@ class Context(metaclass=ContextSingleton):
         self._context[prefix] = iri
         self._inverse[iri] = prefix
 
-    def __delitem__(self, prefix: Union[NCName, str]):
+    def __delitem__(self, prefix: Union[NCName, str]) -> None:
+        """
+        Delete an item. The prefix must be a QName or a valid string
+
+        :param prefix: A valid prefix (QName or string)
+        :return: None
+        """
         iri: NamespaceIRI
         if not isinstance(prefix, NCName):
             prefix = NCName(prefix)
@@ -94,12 +133,24 @@ class Context(metaclass=ContextSingleton):
         self._inverse.pop(iri)
 
     def __iter__(self):
+        """
+        Returns an iterator
+        """
         return self._context.__iter__()
 
     def items(self):
+        """
+        Returns an items() object
+        """
         return self._context.items()
 
     def iri2qname(self, iri: Union[str, AnyIRI]) -> Union[QName, None]:
+        """
+        Returns a QName
+
+        :param iri: A valid iri (NamespaceIRI or string)
+        :return: QName or None
+        """
         if not isinstance(iri, AnyIRI):
             iri = AnyIRI(iri)
         for prefix, trunk in self._context.items():
@@ -108,22 +159,46 @@ class Context(metaclass=ContextSingleton):
                 return QName.build(str(prefix), fragment)
         return None
 
-    def qname2iri(self, qname: QName) -> str:
+    def qname2iri(self, qname: Union[QName, str]) -> str:
+        """
+        Convert a QName into a IRI string.
+
+        :param qname: Valid QName (Qname or str)
+        :return: Full IRI as str
+        """
+        if not isinstance(qname, QName):
+            qname = QName(qname)
         return self._context[qname.prefix] + qname.fragment
 
 
     @property
     def sparql_context(self) -> str:
+        """
+        Get the context ready for a SPARQL query
+
+        :return: Context in SPARQL syntax as string
+        """
         contextlist = [f"PREFIX {str(x)}: <{str(y)}>" for x, y in self._context.items()]
         return "\n".join(contextlist) + "\n"
 
     @property
     def turtle_context(self) -> str:
+        """
+        Get the context in turtle synatx
+
+        :return: Context as turtle string
+        """
         contextlist = [f"@PREFIX {str(x)}: <{str(y)}> ." for x, y in self._context.items()]
         return "\n".join(contextlist) + "\n"
 
     @classmethod
     def in_use(cls, name) -> bool:
+        """
+        Method to test if context name is already in use
+
+        :param name: Name of the context
+        :return: True or False
+        """
         if cls._cache.get(name) is None:
             return False
         else:

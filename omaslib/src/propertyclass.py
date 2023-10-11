@@ -10,7 +10,8 @@ from rdflib import URIRef, Literal, BNode
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, AnyIRI
-from omaslib.src.helpers.langstring import Languages, LangString
+from omaslib.src.helpers.langstring import LangString
+from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.propertyclass_singleton import PropertyClassSingleton
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
@@ -135,7 +136,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             else:
                 self._name = name
 
-    def name_add(self, lang: Languages, name: str):
+    def name_add(self, lang: Language, name: str):
         if self._name:
             if self._name.langstring.get(lang) != name:
                 self._name[lang] = name
@@ -157,7 +158,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             else:
                 self._description = description
 
-    def description_add(self, lang: Languages, description: str):
+    def description_add(self, lang: Language, description: str):
         if self._description:
             if self._description.langstring.get(lang) != description:
                 self._description[lang] = description
@@ -174,12 +175,12 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     def order(self) -> int:
         return self._order
 
-    def get_restriction(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
+    def get_restriction(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Language], QName]:
         return self._restrictions[restriction_type]
 
     def add_restriction(self,
                         restriction_type: PropertyRestrictionType,
-                        value: Union[int, float, str, Set[Languages], QName]):
+                        value: Union[int, float, str, Set[Language], QName]):
         self._restrictions[restriction_type] = value
         self._changeset.add('restrictions')
         self._test_in_use = True
@@ -252,7 +253,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             if r[0].fragment == 'languageIn':
                 if not properties.get(p):
                     properties[p] = set()
-                properties[p].add(Languages(r[2].toPython()))
+                properties[p].add(Language(r[2].toPython()))
 
         self._restrictions = PropertyRestrictions()
         for key, val in properties.items():

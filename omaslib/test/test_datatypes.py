@@ -23,7 +23,14 @@ class TestQname(unittest.TestCase):
         self.assertEqual(str(qn), 'prefix:nameShape')
         with self.assertRaises(OmasError) as ex:
             qn4 = QName('2gaga')
-        self.assertEqual(ex.exception.message, 'Invalid string "2gaga" for QName')
+        self.assertEqual(str(ex.exception), 'Invalid string "2gaga" for QName')
+        qn5 = QName('xml:double')
+        self.assertEqual(str(qn5), 'xml:double')
+        with self.assertRaises(OmasError) as ex:
+            qn6 = QName('xml:2gaga')
+        self.assertEqual(str(ex.exception), 'Invalid string "xml:2gaga" for QName')
+
+
 
 class TestAnyIRI(unittest.TestCase):
 
@@ -42,7 +49,7 @@ class TestAnyIRI(unittest.TestCase):
         self.assertEqual(hash(iri2), hash(iri3))
         with self.assertRaises(OmasError) as ex:
             noiri = AnyIRI('waseliwas')
-        self.assertEqual(ex.exception.message, 'Invalid string "waseliwas" for anyIRI')
+        self.assertEqual(str(ex.exception), 'Invalid string "waseliwas" for anyIRI')
 
     def test_namespace(self):
         ns1 = NamespaceIRI('http://www.org/test/')
@@ -51,7 +58,7 @@ class TestAnyIRI(unittest.TestCase):
         self.assertEqual(str(ns2), 'http://www.org/test#')
         with self.assertRaises(OmasError) as ex:
             nons = NamespaceIRI('http://www.org/test')
-        self.assertEqual(ex.exception.message, "NamespaceIRI must end with '/' or '#'!")
+        self.assertEqual(str(ex.exception), "NamespaceIRI must end with '/' or '#'!")
 
 class TestNCName(unittest.TestCase):
 
@@ -69,15 +76,15 @@ class TestNCName(unittest.TestCase):
         self.assertFalse(ncn1a != ncn1b)
         with self.assertRaises(OmasError) as ex:
             ncn2 = NCName('0AnId')
-        self.assertEqual(ex.exception.message, "Invalid string for NCName")
+        self.assertEqual(str(ex.exception), "Invalid string for NCName")
         with self.assertRaises(OmasError) as ex:
             ncn3 = NCName('An$Id')
-        self.assertEqual(ex.exception.message, "Invalid string for NCName")
+        self.assertEqual(str(ex.exception), "Invalid string for NCName")
         with self.assertRaises(OmasError) as ex:
             ncn4 = NCName('An:Id')
-        self.assertEqual(ex.exception.message, "Invalid string for NCName")
+        self.assertEqual(str(ex.exception), "Invalid string for NCName")
         with self.assertRaises(OmasError) as ex:
             ncn5 = NCName('An@Id')
-        self.assertEqual(ex.exception.message, "Invalid string for NCName")
+        self.assertEqual(str(ex.exception), "Invalid string for NCName")
 
 

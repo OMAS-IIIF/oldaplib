@@ -41,15 +41,15 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(con.context_name, 'DEFAULT')
         with self.assertRaises(OmasError) as ex:
             con.server = 'http://exaample.org'
-        self.assertEqual(ex.exception.message, 'Cannot change the server of a connection!')
+        self.assertEqual(str(ex.exception), 'Cannot change the server of a connection!')
 
         with self.assertRaises(OmasError) as ex:
             con.repo = 'gaga'
-        self.assertEqual(ex.exception.message, 'Cannot change the repo of a connection!')
+        self.assertEqual(str(ex.exception), 'Cannot change the repo of a connection!')
 
         with self.assertRaises(OmasError) as ex:
             con.context_name = 'GAGA'
-        self.assertEqual(ex.exception.message, 'Cannot change the context name of a connection!')
+        self.assertEqual(str(ex.exception), 'Cannot change the context name of a connection!')
 
 
     def test_query(self):

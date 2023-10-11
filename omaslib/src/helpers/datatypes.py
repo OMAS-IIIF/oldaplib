@@ -11,9 +11,17 @@ class QName:
     _value: str
 
     def __init__(self, value: str) -> None:
-        if not XsdValidator.validate(XsdDatatypes.QName, value):
+        tmp = value.split(':')
+        if len(tmp) != 2:
             raise OmasError(f'Invalid string "{value}" for QName')
-        self._value = value
+        if tmp[0] == 'xml':
+            if not XsdValidator.validate(XsdDatatypes.NCName, tmp[1]):
+                raise OmasError(f'Invalid string "{value}" for QName')
+            self._value = value
+        else:
+            if not XsdValidator.validate(XsdDatatypes.QName, value):
+                raise OmasError(f'Invalid string "{value}" for QName')
+            self._value = value
 
     @classmethod
     def build(cls, prefix: str, fragment: str):

@@ -30,7 +30,7 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls4['yi'], 'no language')
         with self.assertRaises(OmasError) as ex:
             impossible = ls4['rr']
-        self.assertEqual(ex.exception.message, 'Language "rr" is invalid')
+        self.assertEqual(str(ex.exception), 'Language "rr" is invalid')
 
         ls5 = LangString(['english@en', 'deutsch@de', 'français@fr', 'no language'])
         self.assertEqual(ls5['fr'], 'français')
@@ -41,7 +41,7 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls5['yi'], 'no language')
         with self.assertRaises(OmasError) as ex:
             impossible = ls5['rr']
-        self.assertEqual(ex.exception.message, 'Language "rr" is invalid')
+        self.assertEqual(str(ex.exception), 'Language "rr" is invalid')
 
         ls6 = LangString({
             Language.EN: 'english',
@@ -57,7 +57,7 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls6['yi'], 'no language')
         with self.assertRaises(OmasError) as ex:
             impossible = ls6['rr']
-        self.assertEqual(ex.exception.message, 'Language "rr" is invalid')
+        self.assertEqual(str(ex.exception), 'Language "rr" is invalid')
 
         ls7 = LangString("xyz@ur")
         self.assertEqual(ls7[Language.YI], '--no string--')
@@ -74,7 +74,7 @@ class TestLangstring(unittest.TestCase):
         ls3 = LangString("english@en", "deutsch@de")
         with self.assertRaises(OmasError) as ex:
             ls3['rr'] = 'no way'
-        self.assertEqual(ex.exception.message, 'Language "rr" is invalid')
+        self.assertEqual(str(ex.exception), 'Language "rr" is invalid')
 
     def test_langstring_delete(self):
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
@@ -87,12 +87,12 @@ class TestLangstring(unittest.TestCase):
         ls2 = LangString(["english@en", "deutsch@de", "unbekannt"])
         with self.assertRaises(OmasError) as ex:
             del ls2['it']
-        self.assertEqual(ex.exception.message, 'No language string of language: "it"!')
+        self.assertEqual(str(ex.exception), 'No language string of language: "it"!')
 
         ls3 = LangString(["english@en", "deutsch@de", "unbekannt"])
         with self.assertRaises(OmasError) as ex:
             del ls3['rr']
-        self.assertEqual(ex.exception.message, 'No language string of language: "rr"!')
+        self.assertEqual(str(ex.exception), 'No language string of language: "rr"!')
 
     def test_langstring_str(self):
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])

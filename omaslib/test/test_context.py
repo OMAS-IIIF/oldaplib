@@ -16,7 +16,7 @@ class TestContext(unittest.TestCase):
         self.assertEqual(context1['rdf'], NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'))
         with self.assertRaises(OmasError) as ex:
             gaga = context1['gaga']
-        self.assertEqual(ex.exception.message, 'Unknown prefix "gaga"')
+        self.assertEqual(str(ex.exception), 'Unknown prefix "gaga"')
 
     def test_context_add(self):
         context = Context(name="TEST")
@@ -26,17 +26,17 @@ class TestContext(unittest.TestCase):
         self.assertEqual(context['test2'], NamespaceIRI("http://rdf.test.org/test2#"))
         with self.assertRaises(OmasError) as ex:
             context['test3'] = "http://rdf.test.org/test"
-        self.assertEqual(ex.exception.message, "NamespaceIRI must end with '/' or '#'!")
+        self.assertEqual(str(ex.exception), "NamespaceIRI must end with '/' or '#'!")
 
     def test_context_del(self):
         context = Context(name="del")
         del context['rdfs']
         with self.assertRaises(OmasError) as ex:
             gaga = context['rdfs']
-        self.assertEqual(ex.exception.message, 'Unknown prefix "rdfs"')
+        self.assertEqual(str(ex.exception), 'Unknown prefix "rdfs"')
         with self.assertRaises(OmasError) as ex:
             del context['gugus']
-        self.assertEqual(ex.exception.message, 'Unknown prefix "gugus"')
+        self.assertEqual(str(ex.exception), 'Unknown prefix "gugus"')
 
     def test_context_in_use(self):
         self.assertFalse(Context.in_use("in_use"))
@@ -53,9 +53,47 @@ class TestContext(unittest.TestCase):
         self.assertIsNone(qn)
         with self.assertRaises(OmasError) as ex:
             qn = context.iri2qname('waseliwas/soll')
-        self.assertEqual(ex.exception.message, 'Invalid string "waseliwas/soll" for anyIRI')
+        self.assertEqual(str(ex.exception), 'Invalid string "waseliwas/soll" for anyIRI')
 
     def test_context_qname2iri(self):
         context = Context(name='qname2iri')
         self.assertEqual(context.qname2iri(QName('skos:gaga')), 'http://www.w3.org/2004/02/skos/core#gaga')
+        with self.assertRaises(OmasError) as ex:
+            qn = context.iri2qname('gaga')
+        self.assertEqual(str(ex.exception), 'Invalid string "gaga" for anyIRI')
+        with self.assertRaises(OmasError) as ex:
+            qn = context.iri2qname('abc:def')
+        self.assertEqual(str(ex.exception), 'Invalid string "abc:def" for anyIRI')
+        t = QName('xml:integer')
+        self.assertEqual(context.qname2iri(t), 'http://www.w3.org/XML/1998/namespace#integer')
+
+    def test_context_sparql(self):
+        context = Context(name='sparql')
+        context['test'] = "http://www.test.org/gaga#"
+        expected ="""PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX xml: <http://www.w3.org/XML/1998/namespace#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX omas: <http://omas.org/base#>
+PREFIX test: <http://www.test.org/gaga#>
+"""
+        self.assertEqual(context.sparql_context, expected)
+
+    def test_context_turtle(self):
+        context = Context(name='turtle')
+        context['test'] = "http://www.test.org/gaga#"
+        expected = """@PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@PREFIX owl: <http://www.w3.org/2002/07/owl#> .
+@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
+@PREFIX xml: <http://www.w3.org/XML/1998/namespace#> .
+@PREFIX sh: <http://www.w3.org/ns/shacl#> .
+@PREFIX skos: <http://www.w3.org/2004/02/skos/core#> .
+@PREFIX omas: <http://omas.org/base#> .
+@PREFIX test: <http://www.test.org/gaga#> .
+"""
+        self.assertEqual(context.turtle_context, expected)
 

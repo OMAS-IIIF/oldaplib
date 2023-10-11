@@ -5,7 +5,7 @@ from typing import Dict, Union, Set, Optional, Tuple
 from pystrict import strict
 
 from omaslib.src.helpers.datatypes import QName, Action
-from omaslib.src.helpers.langstring import Languages
+from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
@@ -66,14 +66,13 @@ class PropertyRestrictions:
     * shacl(...): Create a trig-formatted fragment to define the restrictions
 
     """
-    _restrictions: Dict[PropertyRestrictionType, Union[int, float, str, Set[Languages], QName]]
+    _restrictions: Dict[PropertyRestrictionType, Union[int, float, str, Set[Language], QName]]
     _test_in_use: bool
     _changeset: Set[Tuple[PropertyRestrictionType, Action]]
     _compare: Dict[PropertyRestrictionType, Compare]
 
-
     def __init__(self, *,
-                 language_in: Optional[Set[Languages]] = None,
+                 language_in: Optional[Set[Language]] = None,
                  unique_lang: Optional[bool] = None,
                  min_count: Optional[int] = None,
                  max_count: Optional[int] = None,
@@ -148,20 +147,20 @@ class PropertyRestrictions:
                 raise OmasError(f'Invalid value "{pattern}" for sh:pattern restriction. Message: {err.msg}')
             self._restrictions[PropertyRestrictionType.PATTERN] = pattern
         if min_exclusive:
-            if not hasattr(min_exclusive, '__gt__'):
-                raise OmasError(f'Invalid value "{min_exclusive}" for sh:minExclusive: No compare function defined!')
+            # if not hasattr(min_exclusive, '__gt__'):
+            #     raise OmasError(f'Invalid value "{min_exclusive}" for sh:minExclusive: No compare function defined!')
             self._restrictions[PropertyRestrictionType.MIN_EXCLUSIVE] = min_exclusive
         if min_inclusive:
-            if not hasattr(min_inclusive, '__ge__'):
-                raise OmasError(f'Invalid value "{min_inclusive}" for sh:minInlcusive: No compare function defined!')
+            # if not hasattr(min_inclusive, '__ge__'):
+            #     raise OmasError(f'Invalid value "{min_inclusive}" for sh:minInlcusive: No compare function defined!')
             self._restrictions[PropertyRestrictionType.MIN_INCLUSIVE] = min_inclusive
         if max_exclusive:
-            if not hasattr(max_exclusive, '__lt__'):
-                raise OmasError(f'Invalid value "{max_exclusive}" for sh:maxExclusive: No compare function defined!')
+            # if not hasattr(max_exclusive, '__lt__'):
+            #     raise OmasError(f'Invalid value "{max_exclusive}" for sh:maxExclusive: No compare function defined!')
             self._restrictions[PropertyRestrictionType.MAX_EXCLUSIVE] = max_exclusive
         if max_inclusive:
-            if not hasattr(max_inclusive, '__le__'):
-                raise OmasError(f'Invalid value "{max_inclusive}" for sh:maxInclusive: No compare function defined!')
+            # if not hasattr(max_inclusive, '__le__'):
+            #     raise OmasError(f'Invalid value "{max_inclusive}" for sh:maxInclusive: No compare function defined!')
             self._restrictions[PropertyRestrictionType.MAX_INCLUSIVE] = max_inclusive
         if less_than:
             if type(less_than) != QName:
@@ -180,10 +179,10 @@ class PropertyRestrictions:
         rstr = ' Restrictions: ['
         for name, value in self._restrictions.items():
             if name == PropertyRestrictionType.LANGUAGE_IN:
-                rstr += f'{name.value} ( '
+                rstr += f'{name.value} {{'
                 for lang in value:
-                    rstr += f' "{lang.value}"'
-                rstr += ' )'
+                    rstr += f' "{lang.name.lower()}"'
+                rstr += ' }'
             else:
                 rstr += f' {name.value}: {value}'
         rstr += ' ]'
@@ -192,12 +191,12 @@ class PropertyRestrictions:
     def __len__(self) -> int:
         return len(self._restrictions)
 
-    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName]:
+    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Language], QName]:
         return self._restrictions[restriction_type]
 
     def __setitem__(self,
                     restriction_type: PropertyRestrictionType,
-                    value: Union[int, float, str, Set[Languages], QName]):
+                    value: Union[int, float, str, Set[Language], QName]):
         if self._restrictions.get(restriction_type):
             if self._compare[restriction_type] == Compare.GT:
                 if not hasattr(value, '__gt__'):
@@ -232,7 +231,7 @@ class PropertyRestrictions:
             del self._restrictions[restriction_type]
             self._changeset.add((restriction_type, Action.DELETE))
 
-    def get(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Languages], QName, None]:
+    def get(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Language], QName, None]:
         """
         Get the given restriction
         :param restriction_type: The restriction type
