@@ -39,3 +39,37 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r2[PropertyRestrictionType.LESS_THAN], QName('test:greater'))
         self.assertEqual(r2[PropertyRestrictionType.LESS_THAN_OR_EQUALS], QName('test:gaga'))
         s = str(r2)
+        shacl = r2.create_shacl()
+        tmplist = shacl.split(" ;")
+        tmplist = [x.strip() for x in tmplist]
+        expected = {
+            PropertyRestrictionType.UNIQUE_LANG.value: {'value': 'true', 'done': False},
+            PropertyRestrictionType.MIN_COUNT.value: {'value': '1', 'done': False},
+            PropertyRestrictionType.MAX_COUNT.value: {'value': '4', 'done': False},
+            PropertyRestrictionType.MIN_LENGTH.value: {'value': '8', 'done': False},
+            PropertyRestrictionType.MAX_LENGTH.value: {'value': '64', 'done': False},
+            PropertyRestrictionType.PATTERN.value: {'value': '.*', 'done': False},
+            PropertyRestrictionType.MIN_EXCLUSIVE.value: {'value': '6.5', 'done': False},
+            PropertyRestrictionType.MIN_INCLUSIVE.value: {'value': '8', 'done': False},
+            PropertyRestrictionType.MAX_EXCLUSIVE.value: {'value': '6.5', 'done': False},
+            PropertyRestrictionType.MAX_INCLUSIVE.value: {'value': '8', 'done': False},
+            PropertyRestrictionType.LESS_THAN.value: {'value': 'test:greater', 'done': False},
+            PropertyRestrictionType.LESS_THAN_OR_EQUALS.value: {'value': 'test:gaga', 'done': False},
+        }
+        for ele in tmplist:
+            if not ele:
+                continue
+            if ele.startswith('sh:languageIn'):
+                langs = ele[14:]
+                langs = langs.strip("()")
+                langslist = langs.split(" ")
+                langsset = set(langslist)
+                self.assertEqual(langsset, {'"fr"', '"en"', '"de"', '"it"'})
+            else:
+                name, value = ele.split(" ")
+                if expected[name]['value'] == value:
+                    expected[name]['done'] = True
+        for x, y in expected.items():
+            self.assertTrue(y['done'])
+
+

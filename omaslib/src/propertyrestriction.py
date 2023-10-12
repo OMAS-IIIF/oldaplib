@@ -20,7 +20,7 @@ class PropertyRestrictionType(Enum):
     PATTERN = 'sh:pattern'
     MIN_EXCLUSIVE = 'sh:minExclusive'
     MIN_INCLUSIVE = 'sh:minInclusive'
-    MAX_EXCLUSIVE = 'sh:maxExcluisive'
+    MAX_EXCLUSIVE = 'sh:maxExclusive'
     MAX_INCLUSIVE = 'sh:maxInclusive'
     LESS_THAN = 'sh:lessThan'
     LESS_THAN_OR_EQUALS = 'sh:lessThanOrEquals'
@@ -261,7 +261,7 @@ class PropertyRestrictions:
         shacl = ''
         for name, rval in self._restrictions.items():
             if name == PropertyRestrictionType.LANGUAGE_IN:
-                tmp = [f'"{x.value}"' for x in rval]
+                tmp = [f'"{x.name.lower()}"' for x in rval]
                 value = '(' + ' '.join(tmp) + ')'
             elif name == PropertyRestrictionType.UNIQUE_LANG:
                 value = 'true' if rval else 'false'
