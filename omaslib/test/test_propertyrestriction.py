@@ -165,3 +165,4 @@ class TestPropertyRestriction(unittest.TestCase):
         owl = r2.create_owl()
         check(owl, {'owl:cardinality': '1'})
 
+

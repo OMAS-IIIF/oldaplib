@@ -1,15 +1,15 @@
 """
 :Author: Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>
 """
-from enum import Enum
-from typing import Union, Set, Optional, Any, List
+from enum import Enum, unique
+from typing import Union, Set, Optional, Any, List, Tuple
 
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI
+from omaslib.src.helpers.datatypes import QName, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
@@ -19,6 +19,7 @@ from omaslib.src.model import Model
 from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
 
 
+@unique
 class OwlPropertyType(Enum):
     OwlDataProperty = 'owl:DatatypeProperty'
     OwlObjectProperty = 'owl:ObjectProperty'
@@ -37,22 +38,22 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     _exclusive_for_class: Union[QName, None]
     _to_node_iri: Union[AnyIRI, None]
     _datatype: Union[XsdDatatypes, None]
-    _restrictions: Union[PropertyRestrictions, None]
+    _restrictions: PropertyRestrictions
     _name: Union[LangString, None]
     _description: Union[LangString, None]
     _order: int
 
-    _changeset: Set[str]
+    _changeset: Set[Tuple[str, Action]]
     _test_in_use: bool
 
-    def __init__(self,
+    def __init__(self, *,
                  con: Connection,
                  property_class_iri: Optional[QName] = None,
                  subproperty_of: Optional[QName] = None,
-                 exclusive_for_class: Optional[QName] = None,
                  datatype: Optional[XsdDatatypes] = None,
+                 exclusive_for_class: Optional[QName] = None,
                  to_node_iri: Optional[AnyIRI] = None,
-                 restrictions: Optional[PropertyRestrictions] = None,
+                 restrictions: Optional[PropertyRestrictions] = PropertyRestrictions(),
                  name: Optional[LangString] = None,
                  description: Optional[LangString] = None,
                  order: Optional[int] = None):
@@ -124,26 +125,56 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         OmasError(f'property_class_iri_class cannot be set!')
 
     @property
+    def subproperty_of(self) -> QName:
+        return self._subproperty_of
+
+    @subproperty_of.setter
+    def subproperty_of(self, value: Any):
+        OmasError(f'subproperty_of cannot be set!')
+
+    @property
+    def datatype(self) -> XsdDatatypes:
+        return self._datatype
+
+    @datatype.setter
+    def datatype(self, value: XsdDatatypes) -> None:
+        self._datatype = value
+
+    @property
+    def exclusive_for_class(self) -> QName:
+        return self._exclusive_for_class
+
+    @exclusive_for_class.setter
+    def exclusive_for_class(self, value: QName):
+        if self._exclusive_for_class != value:
+            self._exclusive_for_class = value
+
+    @property
     def name(self) -> LangString:
         return self._name
 
     @name.setter
     def name(self, name: LangString) -> None:
         if name != self._name:
-            self._changeset.add('name')
             if self._name:
                 self._name.add(name.langstring)
+                self._changeset.add(('name', Action.REPLACE))
             else:
                 self._name = name
+                self._changeset.add('name', Action.CREATE)
 
     def name_add(self, lang: Language, name: str):
         if self._name:
             if self._name.langstring.get(lang) != name:
-                self._name[lang] = name
-                self._changeset.add('name')
+                if self._name.get(lang):
+                    self._name[lang] = name
+                    self._changeset.add(('name', Action.REPLACE))
+                else:
+                    self._name[lang] = name
+                    self._changeset.add(('name', Action.CREATE))  # TODO: Check: may by Action.EXTEND
         else:
             self._name = LangString({lang: name})
-            self._changeset.add('name')
+            self._changeset.add(('name', Action.CREATE))
 
     @property
     def description(self) -> LangString:
@@ -152,20 +183,24 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     @description.setter
     def description(self, description: LangString) -> None:
         if description != self._description:
-            self._changeset.add('description')
             if self._description:
                 self._description.add(description.langstring)
+                self._changeset.add(('description', Action.REPLACE))
             else:
                 self._description = description
+                self._changeset.add(('description', Action.CREATE))
 
     def description_add(self, lang: Language, description: str):
         if self._description:
             if self._description.langstring.get(lang) != description:
                 self._description[lang] = description
-                self._changeset.add('description')
+                self._changeset.add(('description', Action.REPLACE))
+            else:
+                self._description[lang] = description
+                self._changeset.add(('description', Action.CREATE))  # TODO: Check: may by Action.EXTEND
         else:
             self._description = LangString({lang: description})
-            self._changeset.add('description')
+            self._changeset.add(('description', Action.CREATE))
 
     @property
     def exclusive_for_class(self) -> Union[QName, None]:
@@ -175,22 +210,20 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     def order(self) -> int:
         return self._order
 
-    def get_restriction(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Language], QName]:
-        return self._restrictions[restriction_type]
+    @order.setter
+    def order(self, value: int):
+        if self._order:
+            if self._order != value:
+                self._order = value
+                self._changeset.add(('order', Action.REPLACE))
+            pass
+        else:
+            self._order = value
+            self._changeset.add(('order', Action.CREATE))
 
-    def add_restriction(self,
-                        restriction_type: PropertyRestrictionType,
-                        value: Union[int, float, str, Set[Language], QName]):
-        self._restrictions[restriction_type] = value
-        self._changeset.add('restrictions')
-        self._test_in_use = True
-
-    def clear_restrictions(self):
-        self._restrictions.clear()
-        self._changeset.add('restrictions')
-
-    def set_new(self):
-        self._changeset.add("new")
+    @property
+    def restrictions(self) -> PropertyRestrictions:
+        return self._restrictions
 
     @property
     def in_use(self):
@@ -276,12 +309,6 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 self._description = LangString()
                 for ll in val:
                     self._description.add(ll)
-            #elif key == 'sh:minCount':
-            #    min_count = val[0]
-            #elif key == 'sh:maxCount':
-            #    max_count = val[0]
-            #elif key == 'sh:order':
-            #    p_order = val[0]
             else:
                 try:
                     self._restrictions[PropertyRestrictionType(key)] = val[0]

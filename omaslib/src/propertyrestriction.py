@@ -204,8 +204,8 @@ class PropertyRestrictions:
         """
         for restriction_type in self._restrictions:
             self._changeset.add((restriction_type, Action.DELETE))
-        for restriction_type in self._changeset:
-            self._restrictions[restriction_type] = None
+            self._test_in_use.add(restriction_type)
+        self._restrictions = {}
 
     def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
         """

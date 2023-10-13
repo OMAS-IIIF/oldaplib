@@ -148,5 +148,6 @@ class NCName:
 
 class Action(Enum):
     CREATE = 'create'
+    EXTEND = 'extend'
     REPLACE = 'replace'
     DELETE = 'delete'

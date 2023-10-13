@@ -12,9 +12,12 @@
 
     :commentShape a sh:PropertyShape ;
         sh:path :comment ;
+        sh:name "comment"@en, "Kommentar"@de ;
+        sh:description "This is a test property"@de ;
         sh:datatype xsd:string ;
         sh:uniqueLang true ;
-        sh:maxCount 1 .
+        sh:maxCount 1 ;
+        sh:order 2 .
 
 }
 
