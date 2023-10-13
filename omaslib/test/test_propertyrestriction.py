@@ -1,30 +1,33 @@
 import unittest
+from pprint import pprint
 from typing import Dict
+from copy import deepcopy
 
 from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.language import Language
 from omaslib.src.propertyrestriction import PropertyRestrictions, PropertyRestrictionType
 
-
 class TestPropertyRestriction(unittest.TestCase):
+
+    test_restrictions = {
+            PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
+            PropertyRestrictionType.UNIQUE_LANG: True,
+            PropertyRestrictionType.MIN_COUNT: 1,
+            PropertyRestrictionType.MAX_COUNT: 4,
+            PropertyRestrictionType.MIN_LENGTH: 8,
+            PropertyRestrictionType.MAX_LENGTH: 64,
+            PropertyRestrictionType.MIN_EXCLUSIVE: 6.5,
+            PropertyRestrictionType.MIN_INCLUSIVE: 8,
+            PropertyRestrictionType.MAX_EXCLUSIVE: 6.5,
+            PropertyRestrictionType.MAX_INCLUSIVE: 8,
+            PropertyRestrictionType.PATTERN: '.*',
+            PropertyRestrictionType.LESS_THAN: QName('test:greater'),
+            PropertyRestrictionType.LESS_THAN_OR_EQUALS: QName('test:gaga')
+        }
 
     def test_restriction_constructor(self):
         r1 = PropertyRestrictions()
-        r2 = PropertyRestrictions(
-            language_in={Language.EN, Language.DE, Language.FR, Language.IT},
-            unique_lang=True,
-            min_count=1,
-            max_count=4,
-            min_length=8,
-            max_length=64,
-            min_exclusive=6.5,
-            min_inclusive=8,
-            max_exclusive=6.5,
-            max_inclusive=8,
-            pattern='.*',
-            less_than=QName('test:greater'),
-            less_than_or_equals=QName('test:gaga')
-        )
+        r2 = PropertyRestrictions(restrictions=TestPropertyRestriction.test_restrictions)
         self.assertEqual(len(r2), 13)
         self.assertEqual(r2[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertTrue(r2[PropertyRestrictionType.UNIQUE_LANG])
@@ -42,21 +45,10 @@ class TestPropertyRestriction(unittest.TestCase):
         s = str(r2)
 
     def test_restriction_setitem(self):
-        r1 = PropertyRestrictions(
-            language_in={Language.EN, Language.DE, Language.FR, Language.IT},
-            unique_lang=True,
-            min_count=1,
-            max_count=4,
-            min_length=8,
-            max_length=64,
-            min_exclusive=6.5,
-            min_inclusive=8,
-            max_exclusive=20,
-            max_inclusive=21,
-            pattern='.*',
-            less_than=QName('test:greater'),
-            less_than_or_equals=QName('test:gaga')
-        )
+        test2_restriction = deepcopy(TestPropertyRestriction.test_restrictions)
+        test2_restriction[PropertyRestrictionType.MAX_EXCLUSIVE] = 20
+        test2_restriction[PropertyRestrictionType.MAX_INCLUSIVE] = 21
+        r1 = PropertyRestrictions(restrictions=test2_restriction)
         r1[PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE}
         r1[PropertyRestrictionType.UNIQUE_LANG] = False
         r1[PropertyRestrictionType.MIN_COUNT] = 2
@@ -68,8 +60,8 @@ class TestPropertyRestriction(unittest.TestCase):
         r1[PropertyRestrictionType.MAX_INCLUSIVE] = 16
         r1[PropertyRestrictionType.MAX_EXCLUSIVE] = 18
         r1[PropertyRestrictionType.PATTERN] = '[a..zA..Z]'
-        r1[PropertyRestrictionType.LESS_THAN] = 'gaga:gaga'
-        r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = 'gugus:gugus'
+        r1[PropertyRestrictionType.LESS_THAN] = QName('gaga:gaga')
+        r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = QName('gugus:gugus')
         exp1a = {
             (PropertyRestrictionType.LANGUAGE_IN, Action.REPLACE),
             (PropertyRestrictionType.UNIQUE_LANG, Action.REPLACE),
@@ -103,22 +95,21 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r1.changeset, exp1a)
         self.assertEqual(r1.test_in_use, exp1b)
 
+    def test_restriction_delete(self):
+        test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
+        r1 = PropertyRestrictions(restrictions=test2_restrictions)
+        del r1[PropertyRestrictionType.MAX_LENGTH]
+        self.assertIsNone(r1.get(PropertyRestrictionType.MAX_LENGTH))
+        self.assertEqual(r1.changeset, {(PropertyRestrictionType.MAX_LENGTH, Action.DELETE)})
+
+    def test_restriction_clear(self):
+        test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
+        r1 = PropertyRestrictions(restrictions=test2_restrictions)
+        r1.clear()
+        self.assertEqual(len(r1), 0)
+
     def test_restriction_shacl(self):
-        r1 = PropertyRestrictions(
-            language_in={Language.EN, Language.DE, Language.FR, Language.IT},
-            unique_lang=True,
-            min_count=1,
-            max_count=4,
-            min_length=8,
-            max_length=64,
-            min_exclusive=6.5,
-            min_inclusive=8,
-            max_exclusive=6.5,
-            max_inclusive=8,
-            pattern='.*',
-            less_than=QName('test:greater'),
-            less_than_or_equals=QName('test:gaga')
-        )
+        r1 = PropertyRestrictions(restrictions=TestPropertyRestriction.test_restrictions)
         shacl = r1.create_shacl()
         tmplist = shacl.split(" ;")
         tmplist = [x.strip() for x in tmplist]
@@ -133,8 +124,8 @@ class TestPropertyRestriction(unittest.TestCase):
             PropertyRestrictionType.MIN_INCLUSIVE.value: {'value': '8', 'done': False},
             PropertyRestrictionType.MAX_EXCLUSIVE.value: {'value': '6.5', 'done': False},
             PropertyRestrictionType.MAX_INCLUSIVE.value: {'value': '8', 'done': False},
-            PropertyRestrictionType.LESS_THAN.value: {'value': 'test:greater', 'done': False},
-            PropertyRestrictionType.LESS_THAN_OR_EQUALS.value: {'value': 'test:gaga', 'done': False},
+            PropertyRestrictionType.LESS_THAN.value: {'value': QName('test:greater'), 'done': False},
+            PropertyRestrictionType.LESS_THAN_OR_EQUALS.value: {'value': QName('test:gaga'), 'done': False},
         }
         for ele in tmplist:
             if not ele:
@@ -163,39 +154,14 @@ class TestPropertyRestriction(unittest.TestCase):
                 qname, value = ele.split(' ')
                 self.assertEqual(value, expect[qname])
 
-        r1 = PropertyRestrictions(
-            language_in={Language.EN, Language.DE, Language.FR, Language.IT},
-            unique_lang=True,
-            min_count=1,
-            max_count=4,
-            min_length=8,
-            max_length=64,
-            min_exclusive=6.5,
-            min_inclusive=8,
-            max_exclusive=6.5,
-            max_inclusive=8,
-            pattern='.*',
-            less_than=QName('test:greater'),
-            less_than_or_equals=QName('test:gaga')
-        )
+        r1 = PropertyRestrictions(restrictions=TestPropertyRestriction.test_restrictions)
         owl = r1.create_owl()
         check(owl, {'owl:minCardinality': '1', 'owl:maxCardinality': '4'})
 
-        r2 = PropertyRestrictions(
-            language_in={Language.EN, Language.DE, Language.FR, Language.IT},
-            unique_lang=True,
-            min_count=1,
-            max_count=1,
-            min_length=8,
-            max_length=64,
-            min_exclusive=6.5,
-            min_inclusive=8,
-            max_exclusive=6.5,
-            max_inclusive=8,
-            pattern='.*',
-            less_than=QName('test:greater'),
-            less_than_or_equals=QName('test:gaga')
-        )
+        test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
+        test2_restrictions[PropertyRestrictionType.MIN_COUNT] = 1
+        test2_restrictions[PropertyRestrictionType.MAX_COUNT] = 1
+        r2 = PropertyRestrictions(restrictions=test2_restrictions)
         owl = r2.create_owl()
         check(owl, {'owl:cardinality': '1'})
 

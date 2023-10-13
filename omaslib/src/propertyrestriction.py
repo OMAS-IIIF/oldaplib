@@ -27,11 +27,11 @@ class PropertyRestrictionType(Enum):
 
 @unique
 class Compare(Enum):
-    LT = '<'
-    LE = '<='
-    GT = '>'
-    GE = '>='
-    XX = 'x'
+    LT = '__lt__'
+    LE = '__le__'
+    GT = '__gt__'
+    GE = '__ge__'
+    XX = '__x__'
 
 @strict
 class PropertyRestrictions:
@@ -67,43 +67,26 @@ class PropertyRestrictions:
     * shacl(...): Create a trig-formatted fragment to define the restrictions
 
     """
-    _restrictions: Dict[PropertyRestrictionType, Union[int, float, str, Set[Language], QName]]
+    _restrictions: Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]]
     _test_in_use: Set[PropertyRestrictionType]
     _changeset: Set[Tuple[PropertyRestrictionType, Action]]
-    _compare: Dict[PropertyRestrictionType, Compare]
 
-    def __init__(self, *,
-                 language_in: Optional[Set[Language]] = None,
-                 unique_lang: Optional[bool] = None,
-                 min_count: Optional[int] = None,
-                 max_count: Optional[int] = None,
-                 min_length: Optional[int] = None,
-                 max_length: Optional[int] = None,
-                 pattern: Optional[str] = None,
-                 min_exclusive: Optional[Union[int, float]] = None,
-                 min_inclusive: Optional[Union[int, float]] = None,
-                 max_exclusive: Optional[Union[int, float]] = None,
-                 max_inclusive: Optional[Union[int, float]] = None,
-                 less_than: Optional[QName] = None,
-                 less_than_or_equals: Optional[QName] = None):
-        """
-        Constructor for restrictions
-
-        :param language_in: A set of allowed languages
-        :param unique_lang: True if each language is alloed only once
-        :param min_count: Minimal cardinality for property
-        :param max_count: Maximal cardinality for property
-        :param min_length: Minimal length of value (if applicable to datatype, e.g. xsd:string)
-        :param max_length: Maximal length of value (if applicable to datatype, e.g. xsd:string)
-        :param pattern: A regex pattern the value must fulfill
-        :param min_exclusive: Minimal value allowed (exclusive)
-        :param min_inclusive: Minimal value allowed (inclusive)
-        :param max_exclusive: Maximal value allowed (exclusive)
-        :param max_inclusive: Maximal value allowed (inclusive)
-        :param less_than: Compare to other value (<)
-        :param less_than_or_equals: Compare to other value (<=)
-        """
-        self._compare = {
+    datatypes = {
+        PropertyRestrictionType.MIN_COUNT: {int},
+        PropertyRestrictionType.MAX_COUNT: {int},
+        PropertyRestrictionType.LANGUAGE_IN: {set},
+        PropertyRestrictionType.UNIQUE_LANG: {bool},
+        PropertyRestrictionType.MIN_LENGTH: {int},
+        PropertyRestrictionType.MAX_LENGTH: {int},
+        PropertyRestrictionType.PATTERN: {str},
+        PropertyRestrictionType.MIN_EXCLUSIVE: {int, float},
+        PropertyRestrictionType.MIN_INCLUSIVE: {int, float},
+        PropertyRestrictionType.MAX_EXCLUSIVE: {int, float},
+        PropertyRestrictionType.MAX_INCLUSIVE: {int, float},
+        PropertyRestrictionType.LESS_THAN: {QName},
+        PropertyRestrictionType.LESS_THAN_OR_EQUALS: {QName},
+    }
+    compare = {
             PropertyRestrictionType.LANGUAGE_IN: Compare.XX,
             PropertyRestrictionType.UNIQUE_LANG: Compare.XX,
             PropertyRestrictionType.MIN_COUNT: Compare.GT,
@@ -118,61 +101,24 @@ class PropertyRestrictions:
             PropertyRestrictionType.LESS_THAN: Compare.XX,
             PropertyRestrictionType.LESS_THAN_OR_EQUALS: Compare.XX
         }
-        self._restrictions = {}
-        if language_in:
-            if type(language_in) != set:
-                raise OmasError(f'Invalid value "{language_in}" for sh:languageIn restriction!')
-            self._restrictions[PropertyRestrictionType.LANGUAGE_IN] = language_in
-        if unique_lang:
-            if type(unique_lang) != bool:
-                raise OmasError(f'Invalid value "{unique_lang}" for sh:uniqueLang restriction!')
-            self._restrictions[PropertyRestrictionType.UNIQUE_LANG] = unique_lang
-        if min_count:
-            if not XsdValidator.validate(XsdDatatypes.integer, min_count):
-                raise OmasError(f'Invalid value "{min_count}" for sh:minCount restriction!')
-            self._restrictions[PropertyRestrictionType.MIN_COUNT] = min_count
-        if max_count:
-            if not XsdValidator.validate(XsdDatatypes.integer, max_count):
-                raise OmasError(f'Invalid value "{max_count}" for sh:maxCount restriction!')
-            self._restrictions[PropertyRestrictionType.MAX_COUNT] = max_count
-        if min_length:
-            if not XsdValidator.validate(XsdDatatypes.integer, min_length):
-                raise OmasError(f'Invalid value "{min_length}" for sh:minLength restriction!')
-            self._restrictions[PropertyRestrictionType.MIN_LENGTH] = min_length
-        if max_length:
-            if not XsdValidator.validate(XsdDatatypes.integer, max_length):
-                raise OmasError(f'Invalid value "{max_length}" for sh:maxLength restriction!')
-            self._restrictions[PropertyRestrictionType.MAX_LENGTH] = max_length
-        if pattern:
-            try:
-                re.compile(pattern)
-            except re.error as err:
-                raise OmasError(f'Invalid value "{pattern}" for sh:pattern restriction. Message: {err.msg}')
-            self._restrictions[PropertyRestrictionType.PATTERN] = pattern
-        if min_exclusive:
-            # if not hasattr(min_exclusive, '__gt__'):
-            #     raise OmasError(f'Invalid value "{min_exclusive}" for sh:minExclusive: No compare function defined!')
-            self._restrictions[PropertyRestrictionType.MIN_EXCLUSIVE] = min_exclusive
-        if min_inclusive:
-            # if not hasattr(min_inclusive, '__ge__'):
-            #     raise OmasError(f'Invalid value "{min_inclusive}" for sh:minInlcusive: No compare function defined!')
-            self._restrictions[PropertyRestrictionType.MIN_INCLUSIVE] = min_inclusive
-        if max_exclusive:
-            # if not hasattr(max_exclusive, '__lt__'):
-            #     raise OmasError(f'Invalid value "{max_exclusive}" for sh:maxExclusive: No compare function defined!')
-            self._restrictions[PropertyRestrictionType.MAX_EXCLUSIVE] = max_exclusive
-        if max_inclusive:
-            # if not hasattr(max_inclusive, '__le__'):
-            #     raise OmasError(f'Invalid value "{max_inclusive}" for sh:maxInclusive: No compare function defined!')
-            self._restrictions[PropertyRestrictionType.MAX_INCLUSIVE] = max_inclusive
-        if less_than:
-            if type(less_than) != QName:
-                raise OmasError(f'Invalid value "{less_than}" for sh:lessThan: Not a QName!')
-            self._restrictions[PropertyRestrictionType.LESS_THAN] = less_than
-        if less_than_or_equals:
-            if type(less_than_or_equals) != QName:
-                raise OmasError(f'Invalid value "{less_than}" for sh:lessThanOrEquals: Not a QName!')
-            self._restrictions[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = less_than_or_equals
+
+    def __init__(self, *,
+                 restrictions: Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]] = {}):
+        """
+        Constructor for restrictions
+        :param restrictions: A Dict of restriction. See ~PropertyRestrictionType for SHACL-restriction supported
+        """
+        for restriction, value in restrictions.items():
+            if type(restriction) != PropertyRestrictionType:
+                raise OmasError(
+                    f'Unsupported restriction "{restriction}"'
+                )
+            if type(value) not in PropertyRestrictions.datatypes[restriction]:
+                raise OmasError(
+                    f'Datatype of restriction "{restriction.value}": "{type(value)}" ({value}) is not valid'
+                )
+
+        self._restrictions = restrictions
         self._test_in_use = set()
         self._changeset = set()
 
@@ -194,35 +140,32 @@ class PropertyRestrictions:
     def __len__(self) -> int:
         return len(self._restrictions)
 
-    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Language], QName]:
+    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[bool, int, float, str, Set[Language], QName]:
         return self._restrictions[restriction_type]
 
     def __setitem__(self,
                     restriction_type: PropertyRestrictionType,
-                    value: Union[int, float, str, Set[Language], QName]):
-        valid = {int, float, str, Set, QName}
-        if type(value) not in valid:
-            raise OmasError(f"Invalid type for restriction value")
+                    value: Union[bool, int, float, str, Set[Language], QName]):
+        if type(restriction_type) != PropertyRestrictionType:
+            raise OmasError(
+                f'Unsupported restriction "{restriction_type}"'
+            )
+        if type(value) not in PropertyRestrictions.datatypes[restriction_type]:
+            raise OmasError(
+                f'Datatype of restriction "{restriction_type.value}": "{type(value)}" ({value}) is not valid'
+            )
         if self._restrictions.get(restriction_type):
-            if self._compare[restriction_type] == Compare.GT:
-                if not hasattr(value, '__gt__'):
-                    raise OmasError(f'Invalid value "{value}" for {restriction_type.value}: No compare function defined!')
-                if value > self._restrictions[restriction_type]:
+            if PropertyRestrictions.compare[restriction_type] == Compare.GT:
+                if value > self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
                     self._test_in_use.add(restriction_type)
-            elif self._compare[restriction_type] == Compare.GE:
-                if not hasattr(value, '__ge__'):
-                    raise OmasError(f'Invalid value "{value}" for sh:maxExclusive: No compare function defined!')
-                if value >= self._restrictions[restriction_type]:
+            elif PropertyRestrictions.compare[restriction_type] == Compare.GE:
+                if value >= self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
                     self._test_in_use.add(restriction_type)
-            elif self._compare[restriction_type] == Compare.LT:
-                if not hasattr(value, '__lt__'):
-                    raise OmasError(f'Invalid value "{value}" for sh:maxExclusive: No compare function defined!')
-                if value < self._restrictions[restriction_type]:
+            elif PropertyRestrictions.compare[restriction_type] == Compare.LT:
+                if value < self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
                     self._test_in_use.add(restriction_type)
-            elif self._compare[restriction_type] == Compare.LE:
-                if not hasattr(value, '__le__'):
-                    raise OmasError(f'Invalid value "{value}" for sh:maxExclusive: No compare function defined!')
-                if value <= self._restrictions[restriction_type]:
+            elif PropertyRestrictions.compare[restriction_type] == Compare.LE:
+                if value <= self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
                     self._test_in_use.add(restriction_type)
             else:
                 self._test_in_use.add(restriction_type)
@@ -232,7 +175,7 @@ class PropertyRestrictions:
             self._changeset.add((restriction_type, Action.CREATE))
         self._restrictions[restriction_type] = value
 
-    def __delitem__(self, restriction_type: PropertyRestrictionType):  # TODO: Sparql.....
+    def __delitem__(self, restriction_type: PropertyRestrictionType):  # TODO: Sparql output for this case
         if self._restrictions.get(restriction_type) is not None:
             del self._restrictions[restriction_type]
             self._test_in_use.add(restriction_type)
@@ -260,7 +203,7 @@ class PropertyRestrictions:
         :return: None
         """
         for restriction_type in self._restrictions:
-            self._changeset.add(restriction_type, Action.DELETE)
+            self._changeset.add((restriction_type, Action.DELETE))
         for restriction_type in self._changeset:
             self._restrictions[restriction_type] = None
 
