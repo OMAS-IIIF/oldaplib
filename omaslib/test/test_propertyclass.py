@@ -6,7 +6,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
-from omaslib.src.propertyclass import PropertyClass
+from omaslib.src.propertyclass import PropertyClass, OwlPropertyType
 from omaslib.src.propertyrestriction import PropertyRestrictionType
 
 
@@ -44,16 +44,30 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p.exclusive_for_class)
 
     def test_propertyclass_read_shacl(self):
-        p = PropertyClass(con=self._connection,
+        p1 = PropertyClass(con=self._connection,
                           property_class_iri=QName('test:comment'))
-        p.read_shacl()
-        self.assertEqual(p.property_class_iri, QName('test:comment'))
-        self.assertEqual(p.datatype, XsdDatatypes.string)
-        self.assertTrue(p.restrictions[PropertyRestrictionType.UNIQUE_LANG])
-        self.assertEqual(p.restrictions[PropertyRestrictionType.MAX_COUNT], 1)
-        self.assertEqual(p.name, LangString(["comment@en", "Kommentar@de"]))
-        self.assertEqual(p.description, LangString("This is a test property@de"))
-        self.assertIsNone(p.exclusive_for_class)
-        self.assertIsNone(p.subproperty_of)
-        self.assertEqual(p.order, 2)
+        p1.read_shacl()
+        self.assertEqual(p1.property_class_iri, QName('test:comment'))
+        self.assertEqual(p1.datatype, XsdDatatypes.string)
+        self.assertTrue(p1.restrictions[PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(p1.restrictions[PropertyRestrictionType.MAX_COUNT], 1)
+        self.assertEqual(p1.name, LangString(["comment@en", "Kommentar@de"]))
+        self.assertEqual(p1.description, LangString("This is a test property@de"))
+        self.assertIsNone(p1.exclusive_for_class)
+        self.assertIsNone(p1.subproperty_of)
+        self.assertEqual(p1.order, 2)
+        p1.read_owl()
+        self.assertEqual(p1.property_type, OwlPropertyType.OwlDataProperty)
+
+        p2 = PropertyClass(con=self._connection,
+                           property_class_iri=QName('test:test'))
+        p2.read_shacl()
+        self.assertEqual(p2.property_class_iri, QName('test:test'))
+        self.assertEqual(p2.restrictions[PropertyRestrictionType.MIN_COUNT], 1)
+        self.assertEqual(p2.name, LangString("Test"))
+        self.assertEqual(p2.description, LangString("Property shape for testing purposes"))
+        self.assertIsNone(p2.exclusive_for_class)
+        self.assertEqual(p2.to_node_iri, QName('test:comment'))
+        self.assertEqual(p2.order, 3)
+
 

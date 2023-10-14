@@ -69,6 +69,8 @@ class TestBasicConnection(unittest.TestCase):
             'results': {
                 'bindings': [{'o': {'type': 'uri', 'value': 'http://omas.org/test#comment'},
                               's': {'type': 'uri', 'value': 'http://omas.org/test#commentShape'}
+                              },{'o': {'type': 'uri', 'value': 'http://omas.org/test#test'},
+                              's': {'type': 'uri', 'value': 'http://omas.org/test#testShape'}
                               }]
             }
         }
@@ -86,11 +88,13 @@ class TestBasicConnection(unittest.TestCase):
         """
         p = URIRef('http://www.w3.org/ns/shacl#path')
         res = self._connection.rdflib_query(query, {'p': p})
-        self.assertEqual(len(res), 1)
+        self.assertEqual(len(res), 2)
+        s0 = {URIRef('http://omas.org/test#commentShape'), URIRef('http://omas.org/test#testShape')}
+        s2 = {URIRef('http://omas.org/test#comment'), URIRef('http://omas.org/test#test')}
         for r in res:
-            self.assertEqual(r[0], URIRef('http://omas.org/test#commentShape'))
+            self.assertIn(r[0], s0)
             self.assertEqual(r[1], URIRef('http://www.w3.org/ns/shacl#path'))
-            self.assertEqual(r[2], URIRef('http://omas.org/test#comment'))
+            self.assertIn(r[2], s2)
 
     def test_update_query(self):
         query1 = self._context.sparql_context

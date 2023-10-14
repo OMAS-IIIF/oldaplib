@@ -141,6 +141,14 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         self._datatype = value
 
     @property
+    def property_type(self) -> Union[OwlPropertyType, None]:
+        return self._property_type
+
+    @property_type.setter
+    def property_type(self, value: OwlPropertyType):
+        self._property_type = value
+
+    @property
     def exclusive_for_class(self) -> QName:
         return self._exclusive_for_class
 
@@ -205,6 +213,10 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     @property
     def exclusive_for_class(self) -> Union[QName, None]:
         return self._exclusive_for_class
+
+    @property
+    def to_node_iri(self) ->Union[AnyIRI, None]:
+        return self._to_node_iri
 
     @property
     def order(self) -> int:
@@ -300,7 +312,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             elif key == 'sh:datatype':
                 self._datatype = XsdDatatypes(str(val[0]))
             elif key == 'sh:class':
-                    self._to_class = val[0]
+                    self._to_node_iri = val[0]
             elif key == QName('sh:name'):
                 self._name = LangString()
                 for ll in val:
@@ -309,6 +321,8 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 self._description = LangString()
                 for ll in val:
                     self._description.add(ll)
+            elif key == "sh:order":
+                self._order = val[0]
             else:
                 try:
                     self._restrictions[PropertyRestrictionType(key)] = val[0]
@@ -326,27 +340,27 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         }}
         """
         res = self._con.rdflib_query(query1)
-        print(self._property_class_iri)
         datatype = None
         to_node_iri = None
         obj_prop = False
         for r in res:
-            pstr = str(context.iri2qname(r[0]))
-            if pstr == 'owl:DatatypeProperty':
-                self._property_type = OwlPropertyType.OwlDataProperty
-            elif pstr == 'owl:ObjectProperty':
-                self._property_type = OwlPropertyType.OwlObjectProperty
-            elif pstr == 'owl:subPropertyOf':
-                self._subproperty_of = r[1]
-            elif pstr == 'rdfs:range':
-                o = context.iri2qname(r[1])
-                if o.prefix == 'xsd':
-                    datatype = o
+            print('==>', r)
+            prop = context.iri2qname(r[0])
+            obj = context.iri2qname(r[1])
+            if str(prop) == 'rdf:type':
+                if str(obj) == 'owl:DatatypeProperty':
+                    self._property_type = OwlPropertyType.OwlDataProperty
+                elif str(obj) == 'owl:ObjectProperty':
+                    self._property_type = OwlPropertyType.OwlObjectProperty
+            elif prop == 'owl:subPropertyOf':
+                self._subproperty_of = obj
+            elif prop == 'rdfs:range':
+                if obj.prefix == 'xsd':
+                    datatype = obj
                 else:
-                    to_node_iri = o
-            elif pstr == 'rdfs:domain':
-                o = context.iri2qname(r[1])
-                self._exclusive_for_class = o
+                    to_node_iri = obj
+            elif prop == 'rdfs:domain':
+                self._exclusive_for_class = obj
         # Consistency checks
         if self._property_type == OwlPropertyType.OwlDataProperty and not self._datatype:
             OmasError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')

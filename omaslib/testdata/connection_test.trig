@@ -19,5 +19,25 @@
         sh:maxCount 1 ;
         sh:order 2 .
 
+    :testShape a sh:PropertyShape ;
+        sh:path :test ;
+        sh:name "Test" ;
+        sh:description "Property shape for testing purposes" ;
+        sh:class :comment ;
+        sh:minCount 1 ;
+        sh:order 3 .
+
+}
+
+:onto {
+    :ontology rdf:type owl:Ontology ;
+        owl:versionIRI <http://omas.org/test/ontology/version/1.0.0> .
+
+    :comment rdf:type owl:DatatypeProperty ;
+        rdfs:range xsd:string .
+
+    :test rdf:type owl:ObjectProperty ;
+        rdfs:range :comment .
+
 }
 
