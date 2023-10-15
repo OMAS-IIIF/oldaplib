@@ -256,7 +256,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             else:
                 return False
 
-    def read_shacl(self) -> None:
+    def __read_shacl(self) -> None:
         """
         Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
         :return:
@@ -329,7 +329,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 except (ValueError, TypeError) as err:
                     OmasError(f'Invalid shacl definition: "{key} {val}"')
 
-    def read_owl(self):
+    def __read_owl(self):
         context = Context(name=self._con.context_name)
         query1 = context.sparql_context
         query1 += f"""
@@ -344,7 +344,6 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         to_node_iri = None
         obj_prop = False
         for r in res:
-            print('==>', r)
             prop = context.iri2qname(r[0])
             obj = context.iri2qname(r[1])
             if str(prop) == 'rdf:type':
@@ -369,6 +368,10 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if self._property_type == OwlPropertyType.OwlObjectProperty:
             if to_node_iri != self._to_node_iri:
                 OmasError(f'Property has inconstent object type definition: OWL: {to_node_iri} vs SHACL: {self._to_node_iri}.')
+
+    def read(self):
+        self.__read_shacl()
+        self.__read_owl()
 
     def property_node(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -425,8 +428,8 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         pass
 
     def read(self) -> None:
-        self.read_shacl()
-        self.read_owl()
+        self.__read_shacl()
+        self.__read_owl()
 
 
 if __name__ == '__main__':

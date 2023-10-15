@@ -27,6 +27,7 @@ class TestPropertyClass(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls._connection.clear_graph(QName('test:shacl'))
+        cls._connection.clear_graph(QName('test:onto'))
 
     def test_propertyclass_constructor(self):
         p = PropertyClass(con=self._connection,
@@ -46,7 +47,7 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_read_shacl(self):
         p1 = PropertyClass(con=self._connection,
                           property_class_iri=QName('test:comment'))
-        p1.read_shacl()
+        p1.read()
         self.assertEqual(p1.property_class_iri, QName('test:comment'))
         self.assertEqual(p1.datatype, XsdDatatypes.string)
         self.assertTrue(p1.restrictions[PropertyRestrictionType.UNIQUE_LANG])
@@ -56,12 +57,11 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p1.exclusive_for_class)
         self.assertIsNone(p1.subproperty_of)
         self.assertEqual(p1.order, 2)
-        p1.read_owl()
         self.assertEqual(p1.property_type, OwlPropertyType.OwlDataProperty)
 
         p2 = PropertyClass(con=self._connection,
                            property_class_iri=QName('test:test'))
-        p2.read_shacl()
+        p2.read()
         self.assertEqual(p2.property_class_iri, QName('test:test'))
         self.assertEqual(p2.restrictions[PropertyRestrictionType.MIN_COUNT], 1)
         self.assertEqual(p2.name, LangString("Test"))
@@ -69,5 +69,11 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p2.exclusive_for_class)
         self.assertEqual(p2.to_node_iri, QName('test:comment'))
         self.assertEqual(p2.order, 3)
+        self.assertEqual(p2.property_type, OwlPropertyType.OwlObjectProperty)
 
-
+    def test_propertyclass_write(self):
+        p1 = PropertyClass(
+            property_class_iri=QName('test:hasAnnotation'),
+            datatype=XsdDatatypes.string,
+            to_node_iri=QName('test:comment')
+        )
