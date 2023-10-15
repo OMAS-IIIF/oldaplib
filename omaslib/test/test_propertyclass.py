@@ -5,9 +5,10 @@ from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName
 from omaslib.src.helpers.langstring import LangString
+from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClass, OwlPropertyType
-from omaslib.src.propertyrestriction import PropertyRestrictionType
+from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
 
 
 class TestPropertyClass(unittest.TestCase):
@@ -73,7 +74,26 @@ class TestPropertyClass(unittest.TestCase):
 
     def test_propertyclass_write(self):
         p1 = PropertyClass(
+            con=self._connection,
             property_class_iri=QName('test:hasAnnotation'),
-            datatype=XsdDatatypes.string,
-            to_node_iri=QName('test:comment')
+            to_node_iri=QName('test:comment'),
+            name=LangString("Annotations@en"),
+            description=LangString("An annotation@en"),
+            restrictions=PropertyRestrictions(
+                restrictions={PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
+                              PropertyRestrictionType.UNIQUE_LANG: True}
+            )
         )
+        p1.create_shacl()
+        p1.delete_singleton()
+        del p1
+        p2 = PropertyClass(
+            con=self._connection,
+            property_class_iri=QName('test:hasAnnotation')
+        )
+        p2.read()
+        self.assertEqual(p2.property_class_iri, QName('test:hasAnnotation'))
+        self.assertEqual(p2.to_node_iri, QName('test:comment'))
+        self.assertEqual(p2.name, LangString("Annotations@en"))
+        self.assertEqual(p2.description, LangString("An annotation@en"))
+        print(p2)

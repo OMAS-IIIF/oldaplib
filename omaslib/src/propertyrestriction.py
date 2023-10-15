@@ -103,22 +103,24 @@ class PropertyRestrictions:
         }
 
     def __init__(self, *,
-                 restrictions: Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]] = {}):
+                 restrictions: Optional[Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]]] = None):
         """
         Constructor for restrictions
         :param restrictions: A Dict of restriction. See ~PropertyRestrictionType for SHACL-restriction supported
         """
-        for restriction, value in restrictions.items():
-            if type(restriction) != PropertyRestrictionType:
-                raise OmasError(
-                    f'Unsupported restriction "{restriction}"'
-                )
-            if type(value) not in PropertyRestrictions.datatypes[restriction]:
-                raise OmasError(
-                    f'Datatype of restriction "{restriction.value}": "{type(value)}" ({value}) is not valid'
-                )
-
-        self._restrictions = restrictions
+        if restrictions is None:
+            self._restrictions = {}
+        else:
+            for restriction, value in restrictions.items():
+                if type(restriction) != PropertyRestrictionType:
+                    raise OmasError(
+                        f'Unsupported restriction "{restriction}"'
+                    )
+                if type(value) not in PropertyRestrictions.datatypes[restriction]:
+                    raise OmasError(
+                        f'Datatype of restriction "{restriction.value}": "{type(value)}" ({value}) is not valid'
+                    )
+            self._restrictions = restrictions
         self._test_in_use = set()
         self._changeset = set()
 

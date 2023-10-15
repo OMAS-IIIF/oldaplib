@@ -36,7 +36,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     _subproperty_of: Union[QName, None]
     _property_type: Union[OwlPropertyType, None]
     _exclusive_for_class: Union[QName, None]
-    _to_node_iri: Union[AnyIRI, None]
+    _to_node_iri: Union[QName, None]
     _datatype: Union[XsdDatatypes, None]
     _restrictions: PropertyRestrictions
     _name: Union[LangString, None]
@@ -52,7 +52,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                  subproperty_of: Optional[QName] = None,
                  datatype: Optional[XsdDatatypes] = None,
                  exclusive_for_class: Optional[QName] = None,
-                 to_node_iri: Optional[AnyIRI] = None,
+                 to_node_iri: Optional[QName] = None,
                  restrictions: Optional[PropertyRestrictions] = PropertyRestrictions(),
                  name: Optional[LangString] = None,
                  description: Optional[LangString] = None,
@@ -215,7 +215,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         return self._exclusive_for_class
 
     @property
-    def to_node_iri(self) ->Union[AnyIRI, None]:
+    def to_node_iri(self) ->Union[QName, None]:
         return self._to_node_iri
 
     @property
@@ -255,6 +255,9 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 return True
             else:
                 return False
+
+    def delete_singleton(self) -> None:
+        del self._cache[str(self._property_class_iri)]
 
     def __read_shacl(self) -> None:
         """
@@ -298,7 +301,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             if r[0].fragment == 'languageIn':
                 if not properties.get(p):
                     properties[p] = set()
-                properties[p].add(Language(r[2].toPython()))
+                properties[p].add(Language[r[2].toPython().upper()])
 
         self._restrictions = PropertyRestrictions()
         for key, val in properties.items():
@@ -312,7 +315,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             elif key == 'sh:datatype':
                 self._datatype = XsdDatatypes(str(val[0]))
             elif key == 'sh:class':
-                    self._to_node_iri = val[0]
+                self._to_node_iri = val[0]
             elif key == QName('sh:name'):
                 self._name = LangString()
                 for ll in val:
@@ -404,6 +407,25 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             sparql += f' ;\n{blank:{(indent + 1)*indent_inc}} rdfs:range {self._to_node_iri}'
         sparql += ' .\n'
         return sparql
+
+    def create_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += f'{blank:{indent*indent_inc}}INSERT DATA {{\n'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+
+        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
+        sparql += self.property_node(indent + 3, indent_inc)
+
+        sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
+        sparql += f'{blank:{indent*indent_inc}}}}\n'
+        if as_string:
+            return sparql
+        else:
+            #print(sparql)
+            self._con.update_query(sparql)
+
 
     def create_owl_part2(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
