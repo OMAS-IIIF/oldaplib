@@ -3,7 +3,7 @@ from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName
+from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
@@ -82,7 +82,8 @@ class TestPropertyClass(unittest.TestCase):
             restrictions=PropertyRestrictions(
                 restrictions={PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
                               PropertyRestrictionType.UNIQUE_LANG: True}
-            )
+            ),
+            order=11
         )
         p1.create_shacl()
         p1.delete_singleton()
@@ -96,4 +97,12 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.to_node_iri, QName('test:comment'))
         self.assertEqual(p2.name, LangString("Annotations@en"))
         self.assertEqual(p2.description, LangString("An annotation@en"))
-        print(p2)
+        self.assertEqual(p2.restrictions[PropertyRestrictionType.LANGUAGE_IN],
+                         {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertEqual(p2.order, 11)
+
+        p2.name_add(Language.DE, "Annotationen")
+        self.assertEqual(p2.changeset, {('name', Action.CREATE)})
+
+if __name__ == '__main__':
+    unittest.main()

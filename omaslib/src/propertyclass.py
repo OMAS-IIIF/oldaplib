@@ -2,7 +2,7 @@
 :Author: Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>
 """
 from enum import Enum, unique
-from typing import Union, Set, Optional, Any, List, Tuple
+from typing import Union, Set, Optional, Any, List, Tuple, Dict
 
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
@@ -24,6 +24,21 @@ class OwlPropertyType(Enum):
     OwlDataProperty = 'owl:DatatypeProperty'
     OwlObjectProperty = 'owl:ObjectProperty'
 
+@unique
+class PropertyClassProp(Enum):
+    SUBPROPERTY_OF = 'rdfs:subPropertyOf'
+    PROPERTY_TYPE = 'rdf:type'
+    EXCLUSIVE_FOR = 'omas:exclusive'
+    TO_NODE_IRI = 'sh:class'
+    DATATYPE = 'sh:datatype'
+    RESTRICTIONS = 'omas:restrictions'
+    NAME = 'sh:name'
+    DESCRIPTION = 'sh:description'
+    ORDER = 'sh:order'
+
+
+PropertyClassPropsContainer = Dict[PropertyClassProp, str]
+
 
 @strict
 class PropertyClass(Model, metaclass=PropertyClassSingleton):
@@ -33,6 +48,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     The class implements the *__str__* method.
     """
     _property_class_iri: Union[QName, None]
+    _props: PropertyClassPropsContainer
     _subproperty_of: Union[QName, None]
     _property_type: Union[OwlPropertyType, None]
     _exclusive_for_class: Union[QName, None]
@@ -46,9 +62,16 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     _changeset: Set[Tuple[str, Action]]
     _test_in_use: bool
 
+    datatypes = {
+        PropertyClassProp.SUBPROPERTY_OF: {QName},
+        PropertyClassProp.PROPERTY_TYPE: {OwlPropertyType},
+        PropertyClassProp.EXCLUSIVE_FOR: {QName}
+    }
+
     def __init__(self, *,
                  con: Connection,
                  property_class_iri: Optional[QName] = None,
+                 props: Optional[PropertyClassPropsContainer] = None,
                  subproperty_of: Optional[QName] = None,
                  datatype: Optional[XsdDatatypes] = None,
                  exclusive_for_class: Optional[QName] = None,
@@ -73,6 +96,13 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         """
         super().__init__(con)
         self._property_class_iri = property_class_iri
+        if props is None:
+            self._props = {}
+        else:
+            for prop, value in props.items:
+                pass
+
+
         self._subproperty_of = subproperty_of
         self._exclusive_for_class = exclusive_for_class
         self._datatype = datatype
@@ -166,23 +196,23 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if name != self._name:
             if self._name:
                 self._name.add(name.langstring)
-                self._changeset.add(('name', Action.REPLACE))
+                self._changeset.add(('sh:name', Action.REPLACE))
             else:
                 self._name = name
-                self._changeset.add('name', Action.CREATE)
+                self._changeset.add('sh:name', Action.CREATE)
 
     def name_add(self, lang: Language, name: str):
         if self._name:
             if self._name.langstring.get(lang) != name:
                 if self._name.get(lang):
                     self._name[lang] = name
-                    self._changeset.add(('name', Action.REPLACE))
+                    self._changeset.add(('sh:name', Action.REPLACE))
                 else:
                     self._name[lang] = name
-                    self._changeset.add(('name', Action.CREATE))  # TODO: Check: may by Action.EXTEND
+                    self._changeset.add(('sh:name', Action.CREATE))  # TODO: Check: may by Action.EXTEND
         else:
             self._name = LangString({lang: name})
-            self._changeset.add(('name', Action.CREATE))
+            self._changeset.add(('sh:name', Action.CREATE))
 
     @property
     def description(self) -> LangString:
@@ -193,22 +223,22 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if description != self._description:
             if self._description:
                 self._description.add(description.langstring)
-                self._changeset.add(('description', Action.REPLACE))
+                self._changeset.add(('sh:description', Action.REPLACE))
             else:
                 self._description = description
-                self._changeset.add(('description', Action.CREATE))
+                self._changeset.add(('sh:description', Action.CREATE))
 
     def description_add(self, lang: Language, description: str):
         if self._description:
             if self._description.langstring.get(lang) != description:
                 self._description[lang] = description
-                self._changeset.add(('description', Action.REPLACE))
+                self._changeset.add(('sh:description', Action.REPLACE))
             else:
                 self._description[lang] = description
-                self._changeset.add(('description', Action.CREATE))  # TODO: Check: may by Action.EXTEND
+                self._changeset.add(('sh:description', Action.CREATE))  # TODO: Check: may by Action.EXTEND
         else:
             self._description = LangString({lang: description})
-            self._changeset.add(('description', Action.CREATE))
+            self._changeset.add(('sh:description', Action.CREATE))
 
     @property
     def exclusive_for_class(self) -> Union[QName, None]:
@@ -227,15 +257,19 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if self._order:
             if self._order != value:
                 self._order = value
-                self._changeset.add(('order', Action.REPLACE))
+                self._changeset.add(('sh:order', Action.REPLACE))
             pass
         else:
             self._order = value
-            self._changeset.add(('order', Action.CREATE))
+            self._changeset.add(('sh:order', Action.CREATE))
 
     @property
     def restrictions(self) -> PropertyRestrictions:
         return self._restrictions
+
+    @property
+    def changeset(self) -> set[tuple[str, Action]]:
+        return self._changeset
 
     @property
     def in_use(self):
@@ -328,7 +362,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 self._order = val[0]
             else:
                 try:
-                    self._restrictions[PropertyRestrictionType(key)] = val[0]
+                    self._restrictions[PropertyRestrictionType(key)] = val if key == "sh:languageIn" else val[0]
                 except (ValueError, TypeError) as err:
                     OmasError(f'Invalid shacl definition: "{key} {val}"')
 
@@ -441,10 +475,25 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         return sparql
 
     def update_shacl(self,
-                     owl_class: QName,
                      indent: int = 0, indent_inc: int = 4):
         blank = ''
-        sparql_list: List[str] = []
+        sparql_insert = ''
+        sparql_delete = ''
+        sparql_where = ''
+        for change in self._changeset:
+            if change[1] == Action.DELETE:
+                pass
+            elif change[1] == Action.CREATE:
+                sparql_insert += f'{blank:{indent*indent_inc}}INSERT {{\n'
+                sparql_insert += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._property_class_iri}:shacl {{\n'
+                sparql_insert += f'{blank:{(indent + 2)*indent_inc}}{change[0]} '
+                sparql_insert += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql_insert += f'{blank:{indent * indent_inc}}}}\n'
+                pass
+            elif change[2] == Action.REPLACE:
+                pass
+            elif change[2] == Action.EXTEND:  # TODO: May be unused....
+                pass
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
         pass

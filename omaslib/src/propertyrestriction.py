@@ -9,6 +9,7 @@ from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
+
 @unique
 class PropertyRestrictionType(Enum):
     MIN_COUNT = 'sh:minCount'
@@ -32,6 +33,10 @@ class Compare(Enum):
     GT = '__gt__'
     GE = '__ge__'
     XX = '__x__'
+
+
+RestrictionContainer = Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]]
+
 
 @strict
 class PropertyRestrictions:
@@ -67,7 +72,7 @@ class PropertyRestrictions:
     * shacl(...): Create a trig-formatted fragment to define the restrictions
 
     """
-    _restrictions: Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]]
+    _restrictions: RestrictionContainer
     _test_in_use: Set[PropertyRestrictionType]
     _changeset: Set[Tuple[PropertyRestrictionType, Action]]
 
@@ -102,8 +107,9 @@ class PropertyRestrictions:
             PropertyRestrictionType.LESS_THAN_OR_EQUALS: Compare.XX
         }
 
+
     def __init__(self, *,
-                 restrictions: Optional[Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]]] = None):
+                 restrictions: Optional[RestrictionContainer] = None):
         """
         Constructor for restrictions
         :param restrictions: A Dict of restriction. See ~PropertyRestrictionType for SHACL-restriction supported
