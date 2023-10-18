@@ -7,7 +7,7 @@ from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
-from omaslib.src.propertyclass import PropertyClass, OwlPropertyType
+from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassPropsContainer, PropertyClassProp
 from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
 
 
@@ -31,13 +31,19 @@ class TestPropertyClass(unittest.TestCase):
         cls._connection.clear_graph(QName('test:onto'))
 
     def test_propertyclass_constructor(self):
+        props: PropertyClassPropsContainer = {
+            PropertyClassProp.SUBPROPERTY_OF: QName('test:testprop'),
+            PropertyClassProp.DATATYPE: XsdDatatypes.string,
+            PropertyClassProp.NAME: LangString(["Test property@en", "Testprädikat@de"]),
+            PropertyClassProp.DESCRIPTION: LangString("A property for testing...@en"),
+            PropertyClassProp.RESTRICTIONS: {
+              PropertyRestrictionType.MAX_COUNT: 1
+            },
+            PropertyClassProp.ORDER: 5
+        }
         p = PropertyClass(con=self._connection,
                           property_class_iri=QName('test:testprop'),
-                          subproperty_of=QName('test:comment'),
-                          datatype=XsdDatatypes.string,
-                          name=LangString(["Test property@en", "Testprädikat@de"]),
-                          description=LangString("A property for testing...@en"),
-                          order=5)
+                          props=props)
         self.assertEqual(p.property_class_iri, QName('test:testprop'))
         self.assertEqual(p.subproperty_of, QName('test:comment'))
         self.assertEqual(p.datatype, XsdDatatypes.string)

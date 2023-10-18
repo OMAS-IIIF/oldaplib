@@ -37,6 +37,7 @@ class PropertyClassProp(Enum):
     ORDER = 'sh:order'
 
 
+PropTypes = Union[QName, OwlPropertyType, XsdDatatypes, PropertyRestrictions, LangString, int]
 PropertyClassPropsContainer = Dict[PropertyClassProp, str]
 
 
@@ -49,102 +50,83 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     """
     _property_class_iri: Union[QName, None]
     _props: PropertyClassPropsContainer
-    _subproperty_of: Union[QName, None]
-    _property_type: Union[OwlPropertyType, None]
-    _exclusive_for_class: Union[QName, None]
-    _to_node_iri: Union[QName, None]
-    _datatype: Union[XsdDatatypes, None]
-    _restrictions: PropertyRestrictions
-    _name: Union[LangString, None]
-    _description: Union[LangString, None]
-    _order: int
 
-    _changeset: Set[Tuple[str, Action]]
+    _changeset: Set[Tuple[PropertyClassProp, Action]]
     _test_in_use: bool
 
     datatypes = {
         PropertyClassProp.SUBPROPERTY_OF: {QName},
         PropertyClassProp.PROPERTY_TYPE: {OwlPropertyType},
-        PropertyClassProp.EXCLUSIVE_FOR: {QName}
+        PropertyClassProp.EXCLUSIVE_FOR: {QName},
+        PropertyClassProp.TO_NODE_IRI: {QName},
+        PropertyClassProp.DATATYPE: {XsdDatatypes},
+        PropertyClassProp.RESTRICTIONS: {PropertyRestrictions},
+        PropertyClassProp.NAME: {LangString},
+        PropertyClassProp.DESCRIPTION: {LangString},
+        PropertyClassProp.ORDER: {int}
     }
 
     def __init__(self, *,
                  con: Connection,
                  property_class_iri: Optional[QName] = None,
-                 props: Optional[PropertyClassPropsContainer] = None,
-                 subproperty_of: Optional[QName] = None,
-                 datatype: Optional[XsdDatatypes] = None,
-                 exclusive_for_class: Optional[QName] = None,
-                 to_node_iri: Optional[QName] = None,
-                 restrictions: Optional[PropertyRestrictions] = PropertyRestrictions(),
-                 name: Optional[LangString] = None,
-                 description: Optional[LangString] = None,
-                 order: Optional[int] = None):
+                 props: Optional[PropertyClassPropsContainer] = None):
         """
         Constructor for PropertyClass
 
         :param con: A valid instance of the Connection class
         :param property_class_iri: The OWL QName of the property
-        :param subproperty_of: The OWL QName of the super-property
-        :param exclusive_for_class: The OWL Qname of the resource class this property is exclusive for
-        :param datatype: The datatype for this property
-        :param to_node_iri: If the property points to another resource type, the OWL Qname thereof
-        :param restrictions: A Restriction instance
-        :param name: A Language string instance containing the name of the property
-        :param description: A Language string instance containing the description of the property
-        :param order: The order of the property (only for exclusive properties meaningfull)
+        :param props: Props of this instance
         """
         super().__init__(con)
         self._property_class_iri = property_class_iri
         if props is None:
             self._props = {}
         else:
-            for prop, value in props.items:
-                pass
+            for prop, value in props.items():
+                if type(prop) != PropertyClassProp:
+                    raise OmasError(
+                        f'Unsupported Property prop "{prop}"'
+                    )
+                if type(value) not in PropertyClass.datatypes[prop]:
+                    raise OmasError(
+                        f'Datatype of prop "{prop.value}": "{type(value)}" ({value}) is not valid'
+                    )
+            self._props = props
 
-
-        self._subproperty_of = subproperty_of
-        self._exclusive_for_class = exclusive_for_class
-        self._datatype = datatype
-        self._to_node_iri = to_node_iri
-        self._restrictions = restrictions
-        if name is not None and not isinstance(name, LangString):
-            raise OmasError(f'Parameter "name" must be a "LangString", but is "{type(name)}"!')
-        self._name = name
-        if description is not None and not isinstance(description, LangString):
-            raise OmasError(f'Parameter "description" must be a "LangString", but is "{type(description)}"!')
-        self._description = description
-        self._order = order
 
         # setting property type for OWL which distinguished between Data- and Object-^properties
-        if self._datatype:
-            self._property_type = OwlPropertyType.OwlDataProperty
-        elif self._to_node_iri:
+        if self._props.get(PropertyClassProp.TO_NODE_IRI) is not None:
             self._property_type = OwlPropertyType.OwlObjectProperty
+            dt = self._props.get(PropertyClassProp.DATATYPE)
+            if dt and (dt != XsdDatatypes.anyURI or dt != XsdDatatypes.QName):
+                raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
         else:
-            self._property_type = None
+            self._props[PropertyClassProp.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
         self._changeset = set()  # initialize changset to empty set
         self._test_in_use = False
 
     def __str__(self):
         propstr = f'Property: {str(self._property_class_iri)};'
-        if self._subproperty_of:
-            propstr += f' Subproperty of {self._subproperty_of};'
-        if self._exclusive_for_class:
-            propstr += f' Exclusive for {self._exclusive_for_class};'
-        if self._to_node_iri:
-            propstr += f' Datatype: => {self._to_node_iri};'
-        else:
-            propstr += f' Datatype: {self._datatype.value};'
-        if len(self._restrictions) > 0:
-            propstr += f'{self._restrictions};'
-        if self._name:
-            propstr += f' Name: {self._name};'
-        if self._description:
-            propstr += f' Description: {self._description};'
-        if self._order:
-            propstr += f' Order: {self._order};'
+        for prop, value in self._props.items():
+            propstr += f' {prop.value}: {value};'
         return propstr
+
+    def __getitem__(self, prop: PropertyClassProp) -> PropTypes:
+        return self._props[prop]
+
+
+    def get(self, prop: PropertyClassProp) ->Union[PropTypes, None]:
+        return self.get(prop)
+
+    def __setitem__(self, prop: PropertyClassProp, value: PropTypes):
+        if type(prop) != PropertyClassProp:
+            raise OmasError(f'Unsupported prop {prop}')
+        if type(value) != PropertyClass.datatypes[prop]:
+            raise OmasError(f'Datatype of {prop.value} is not {PropertyClass.datatypes[prop]}')
+        if self._props.get(prop) is None:
+            self._changeset.add((prop, Action.REPLACE))
+        self._props[prop] = value
+
 
     @property
     def property_class_iri(self) -> QName:
