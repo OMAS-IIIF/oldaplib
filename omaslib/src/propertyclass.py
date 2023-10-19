@@ -38,7 +38,7 @@ class PropertyClassProp(Enum):
 
 
 PropTypes = Union[QName, OwlPropertyType, XsdDatatypes, PropertyRestrictions, LangString, int]
-PropertyClassPropsContainer = Dict[PropertyClassProp, str]
+PropertyClassPropsContainer = Dict[PropertyClassProp, PropTypes]
 
 
 @strict
@@ -54,16 +54,16 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     _changeset: Set[Tuple[PropertyClassProp, Action]]
     _test_in_use: bool
 
-    datatypes = {
-        PropertyClassProp.SUBPROPERTY_OF: {QName},
-        PropertyClassProp.PROPERTY_TYPE: {OwlPropertyType},
-        PropertyClassProp.EXCLUSIVE_FOR: {QName},
-        PropertyClassProp.TO_NODE_IRI: {QName},
-        PropertyClassProp.DATATYPE: {XsdDatatypes},
-        PropertyClassProp.RESTRICTIONS: {PropertyRestrictions},
-        PropertyClassProp.NAME: {LangString},
-        PropertyClassProp.DESCRIPTION: {LangString},
-        PropertyClassProp.ORDER: {int}
+    __datatypes: Dict[PropertyClassProp, PropTypes] = {
+        PropertyClassProp.SUBPROPERTY_OF: QName,
+        PropertyClassProp.PROPERTY_TYPE: OwlPropertyType,
+        PropertyClassProp.EXCLUSIVE_FOR: QName,
+        PropertyClassProp.TO_NODE_IRI: QName,
+        PropertyClassProp.DATATYPE: XsdDatatypes,
+        PropertyClassProp.RESTRICTIONS: PropertyRestrictions,
+        PropertyClassProp.NAME: LangString,
+        PropertyClassProp.DESCRIPTION: LangString,
+        PropertyClassProp.ORDER: int
     }
 
     def __init__(self, *,
@@ -87,12 +87,11 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                     raise OmasError(
                         f'Unsupported Property prop "{prop}"'
                     )
-                if type(value) not in PropertyClass.datatypes[prop]:
+                if type(value) not in PropertyClass.__datatypes[prop]:
                     raise OmasError(
                         f'Datatype of prop "{prop.value}": "{type(value)}" ({value}) is not valid'
                     )
             self._props = props
-
 
         # setting property type for OWL which distinguished between Data- and Object-^properties
         if self._props.get(PropertyClassProp.TO_NODE_IRI) is not None:
@@ -102,7 +101,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
         else:
             self._props[PropertyClassProp.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
-        self._changeset = set()  # initialize changset to empty set
+        self._changeset = set()  # initialize changeset to empty set
         self._test_in_use = False
 
     def __str__(self):
@@ -118,15 +117,23 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     def get(self, prop: PropertyClassProp) ->Union[PropTypes, None]:
         return self.get(prop)
 
-    def __setitem__(self, prop: PropertyClassProp, value: PropTypes):
+    def __setitem__(self, prop: PropertyClassProp, value: PropTypes) -> None:
         if type(prop) != PropertyClassProp:
             raise OmasError(f'Unsupported prop {prop}')
-        if type(value) != PropertyClass.datatypes[prop]:
-            raise OmasError(f'Datatype of {prop.value} is not {PropertyClass.datatypes[prop]}')
+        if type(value) != PropertyClass.__datatypes[prop]:
+            raise OmasError(f'Datatype of {prop.value} is not {PropertyClass.__datatypes[prop]}')
         if self._props.get(prop) is None:
-            self._changeset.add((prop, Action.REPLACE))
-        self._props[prop] = value
+            self._props[prop] = value
+            self._changeset.add((prop, Action.CREATE))
+        else:
+            if self._props.get(prop) != value:
+                self._props[prop] = value
+                self._changeset.add((prop, Action.REPLACE))
 
+    def __delitem__(self, prop: PropertyClassProp):
+        if self._props.get(prop) is not None:
+            del self._props[prop]
+            self._changeset.add((prop, Action.DELETE))
 
     @property
     def property_class_iri(self) -> QName:
@@ -136,118 +143,6 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     def property_class_iri(self, value: Any):
         OmasError(f'property_class_iri_class cannot be set!')
 
-    @property
-    def subproperty_of(self) -> QName:
-        return self._subproperty_of
-
-    @subproperty_of.setter
-    def subproperty_of(self, value: Any):
-        OmasError(f'subproperty_of cannot be set!')
-
-    @property
-    def datatype(self) -> XsdDatatypes:
-        return self._datatype
-
-    @datatype.setter
-    def datatype(self, value: XsdDatatypes) -> None:
-        self._datatype = value
-
-    @property
-    def property_type(self) -> Union[OwlPropertyType, None]:
-        return self._property_type
-
-    @property_type.setter
-    def property_type(self, value: OwlPropertyType):
-        self._property_type = value
-
-    @property
-    def exclusive_for_class(self) -> QName:
-        return self._exclusive_for_class
-
-    @exclusive_for_class.setter
-    def exclusive_for_class(self, value: QName):
-        if self._exclusive_for_class != value:
-            self._exclusive_for_class = value
-
-    @property
-    def name(self) -> LangString:
-        return self._name
-
-    @name.setter
-    def name(self, name: LangString) -> None:
-        if name != self._name:
-            if self._name:
-                self._name.add(name.langstring)
-                self._changeset.add(('sh:name', Action.REPLACE))
-            else:
-                self._name = name
-                self._changeset.add('sh:name', Action.CREATE)
-
-    def name_add(self, lang: Language, name: str):
-        if self._name:
-            if self._name.langstring.get(lang) != name:
-                if self._name.get(lang):
-                    self._name[lang] = name
-                    self._changeset.add(('sh:name', Action.REPLACE))
-                else:
-                    self._name[lang] = name
-                    self._changeset.add(('sh:name', Action.CREATE))  # TODO: Check: may by Action.EXTEND
-        else:
-            self._name = LangString({lang: name})
-            self._changeset.add(('sh:name', Action.CREATE))
-
-    @property
-    def description(self) -> LangString:
-        return self._description
-
-    @description.setter
-    def description(self, description: LangString) -> None:
-        if description != self._description:
-            if self._description:
-                self._description.add(description.langstring)
-                self._changeset.add(('sh:description', Action.REPLACE))
-            else:
-                self._description = description
-                self._changeset.add(('sh:description', Action.CREATE))
-
-    def description_add(self, lang: Language, description: str):
-        if self._description:
-            if self._description.langstring.get(lang) != description:
-                self._description[lang] = description
-                self._changeset.add(('sh:description', Action.REPLACE))
-            else:
-                self._description[lang] = description
-                self._changeset.add(('sh:description', Action.CREATE))  # TODO: Check: may by Action.EXTEND
-        else:
-            self._description = LangString({lang: description})
-            self._changeset.add(('sh:description', Action.CREATE))
-
-    @property
-    def exclusive_for_class(self) -> Union[QName, None]:
-        return self._exclusive_for_class
-
-    @property
-    def to_node_iri(self) ->Union[QName, None]:
-        return self._to_node_iri
-
-    @property
-    def order(self) -> int:
-        return self._order
-
-    @order.setter
-    def order(self, value: int):
-        if self._order:
-            if self._order != value:
-                self._order = value
-                self._changeset.add(('sh:order', Action.REPLACE))
-            pass
-        else:
-            self._order = value
-            self._changeset.add(('sh:order', Action.CREATE))
-
-    @property
-    def restrictions(self) -> PropertyRestrictions:
-        return self._restrictions
 
     @property
     def changeset(self) -> set[tuple[str, Action]]:
