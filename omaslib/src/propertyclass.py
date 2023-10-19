@@ -110,7 +110,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         return self._props[prop]
 
     def get(self, prop: PropertyClassProp) -> Union[PropTypes, None]:
-        return self.get(prop)
+        return self._props.get(prop)
 
     def __setitem__(self, prop: PropertyClassProp, value: PropTypes) -> None:
         if type(prop) is not PropertyClassProp:
@@ -235,14 +235,14 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                     self._props[prop] = val[0]
             else:
                 try:
-                    self._restrictions[PropertyRestrictionType(key)] = val if key == "sh:languageIn" else val[0]
+                    self._props[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType(key)] = val if key == "sh:languageIn" else val[0]
                 except (ValueError, TypeError) as err:
                     OmasError(f'Invalid shacl definition: "{key} {val}"')
         #
         # setting property type for OWL which distinguished between Data- and Object-^properties
         #
         if self._props.get(PropertyClassProp.TO_NODE_IRI) is not None:
-            self._property_type = OwlPropertyType.OwlObjectProperty
+            self._props[PropertyClassProp.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
             dt = self._props.get(PropertyClassProp.DATATYPE)
             if dt and (dt != XsdDatatypes.anyURI or dt != XsdDatatypes.QName):
                 raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
@@ -268,11 +268,11 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             obj = context.iri2qname(r[1])
             if str(prop) == 'rdf:type':
                 if str(obj) == 'owl:DatatypeProperty':
-                    self._property_type = OwlPropertyType.OwlDataProperty
+                    self._props[PropertyClassProp.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
                 elif str(obj) == 'owl:ObjectProperty':
-                    self._property_type = OwlPropertyType.OwlObjectProperty
+                    self._props[PropertyClassProp.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
             elif prop == 'owl:subPropertyOf':
-                self._subproperty_of = obj
+                self._props[PropertyClassProp.SUBPROPERTY_OF] = obj
             elif prop == 'rdfs:range':
                 if obj.prefix == 'xsd':
                     datatype = obj
