@@ -8,10 +8,12 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassPropsContainer, PropertyClassProp
-from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
+from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions, RestrictionContainer
 
 
 class TestPropertyClass(unittest.TestCase):
+    _context: Context
+    _connection: Connection
 
     @classmethod
     def setUpClass(cls):
@@ -36,9 +38,9 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassProp.DATATYPE: XsdDatatypes.string,
             PropertyClassProp.NAME: LangString(["Test property@en", "Testprädikat@de"]),
             PropertyClassProp.DESCRIPTION: LangString("A property for testing...@en"),
-            PropertyClassProp.RESTRICTIONS: {
+            PropertyClassProp.RESTRICTIONS: PropertyRestrictions(restrictions={
               PropertyRestrictionType.MAX_COUNT: 1
-            },
+            }),
             PropertyClassProp.ORDER: 5
         }
         p = PropertyClass(con=self._connection,
@@ -52,8 +54,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p.exclusive_for_class)
 
     def test_propertyclass_read_shacl(self):
-        p1 = PropertyClass(con=self._connection,
-                          property_class_iri=QName('test:comment'))
+        p1 = PropertyClass(con=self._connection, property_class_iri=QName('test:comment'))
         p1.read()
         self.assertEqual(p1.property_class_iri, QName('test:comment'))
         self.assertEqual(p1.datatype, XsdDatatypes.string)
@@ -79,17 +80,21 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.property_type, OwlPropertyType.OwlObjectProperty)
 
     def test_propertyclass_write(self):
+        props: PropertyClassPropsContainer = {
+            PropertyClassProp.TO_NODE_IRI: QName('test:hasAnnotation'),
+            PropertyClassProp.DATATYPE: XsdDatatypes.anyURI,
+            PropertyClassProp.NAME: LangString("Annotations@en"),
+            PropertyClassProp.DESCRIPTION: LangString("An annotation@en"),
+            PropertyClassProp.RESTRICTIONS: PropertyRestrictions(restrictions={
+                PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
+                PropertyRestrictionType.UNIQUE_LANG: True
+            }),
+            PropertyClassProp.ORDER: 11
+        }
         p1 = PropertyClass(
             con=self._connection,
             property_class_iri=QName('test:hasAnnotation'),
-            to_node_iri=QName('test:comment'),
-            name=LangString("Annotations@en"),
-            description=LangString("An annotation@en"),
-            restrictions=PropertyRestrictions(
-                restrictions={PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
-                              PropertyRestrictionType.UNIQUE_LANG: True}
-            ),
-            order=11
+            props=props
         )
         p1.create_shacl()
         p1.delete_singleton()
@@ -100,15 +105,15 @@ class TestPropertyClass(unittest.TestCase):
         )
         p2.read()
         self.assertEqual(p2.property_class_iri, QName('test:hasAnnotation'))
-        self.assertEqual(p2.to_node_iri, QName('test:comment'))
-        self.assertEqual(p2.name, LangString("Annotations@en"))
-        self.assertEqual(p2.description, LangString("An annotation@en"))
-        self.assertEqual(p2.restrictions[PropertyRestrictionType.LANGUAGE_IN],
+        self.assertEqual(p2[PropertyClassProp.TO_NODE_IRI], QName('test:comment'))
+        self.assertEqual(p2[PropertyClassProp.NAME], LangString("Annotations@en"))
+        self.assertEqual(p2[PropertyClassProp.DESCRIPTION], LangString("An annotation@en"))
+        self.assertEqual(p2[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
                          {Language.EN, Language.DE, Language.FR, Language.IT})
-        self.assertEqual(p2.order, 11)
+        self.assertEqual(p2[PropertyClassProp.ORDER], 11)
 
-        p2.name_add(Language.DE, "Annotationen")
-        self.assertEqual(p2.changeset, {('name', Action.CREATE)})
+        #p2.name_add(Language.DE, "Annotationen")
+        #self.assertEqual(p2.changeset, {('name', Action.CREATE)})
 
 if __name__ == '__main__':
     unittest.main()

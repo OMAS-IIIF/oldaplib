@@ -10,7 +10,10 @@ from .omaserror import OmasError
 class QName:
     _value: str
 
-    def __init__(self, value: str) -> None:
+    def __init__(self, value: Union['QName', str]) -> None:
+        if type(value) is QName:
+            self._value = str(value)
+            return
         tmp = value.split(':')
         if len(tmp) != 2:
             raise OmasError(f'Invalid string "{value}" for QName')

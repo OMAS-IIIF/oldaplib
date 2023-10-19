@@ -31,11 +31,10 @@ class LangString:
         """
         self._changeset = set()
         if isinstance(langstring, str):
-            index = langstring.find('@')
-            if index >= 0:
-                tmpls: str = langstring[(index + 1):].upper()
+            if langstring[-3] == "@":
+                tmpls: str = langstring[-2:].upper()
                 try:
-                    self._langstring = {Language[tmpls]: langstring[:index]}
+                    self._langstring = {Language[tmpls]: langstring[:-3]}
                 except KeyError as er:
                     raise OmasError(f'Language in string "{langstring}" is invalid')
             else:
