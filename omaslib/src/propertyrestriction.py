@@ -1,9 +1,10 @@
 import re
 from enum import Enum, unique
-from typing import Dict, Union, Set, Optional, Tuple
+from typing import Dict, Union, Set, Optional, Tuple, Callable, Any
 
 from pystrict import strict
 
+from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
@@ -39,7 +40,7 @@ RestrictionContainer = Dict[PropertyRestrictionType, Union[bool, int, float, str
 
 
 @strict
-class PropertyRestrictions:
+class PropertyRestrictions(Notify):
     """
     This class implements the SHACL/OWL restriction that omaslib supports
 
@@ -109,11 +110,14 @@ class PropertyRestrictions:
 
 
     def __init__(self, *,
-                 restrictions: Optional[RestrictionContainer] = None):
+                 restrictions: Optional[RestrictionContainer] = None,
+                 notifier: Optional[Callable[[Any], None]] = None,
+                 notify_data: Optional[Any] = None):
         """
         Constructor for restrictions
         :param restrictions: A Dict of restriction. See ~PropertyRestrictionType for SHACL-restriction supported
         """
+        super().__init__(notifier, notify_data)
         if restrictions is None:
             self._restrictions = {}
         else:
@@ -178,9 +182,11 @@ class PropertyRestrictions:
             else:
                 self._test_in_use.add(restriction_type)
             self._changeset.add((restriction_type, Action.REPLACE))
+            self.notify()
         else:
             self._test_in_use.add(restriction_type)
             self._changeset.add((restriction_type, Action.CREATE))
+            self.notify()
         self._restrictions[restriction_type] = value
 
     def __delitem__(self, restriction_type: PropertyRestrictionType):  # TODO: Sparql output for this case
@@ -188,6 +194,7 @@ class PropertyRestrictions:
             del self._restrictions[restriction_type]
             self._test_in_use.add(restriction_type)
             self._changeset.add((restriction_type, Action.DELETE))
+            self.notify()
 
     @property
     def changeset(self) -> Set[Tuple[PropertyRestrictionType, Action]]:
@@ -213,6 +220,7 @@ class PropertyRestrictions:
         for restriction_type in self._restrictions:
             self._changeset.add((restriction_type, Action.DELETE))
             self._test_in_use.add(restriction_type)
+            self.notify()
         self._restrictions = {}
 
     def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:

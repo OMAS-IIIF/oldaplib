@@ -14,6 +14,7 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.propertyclass_singleton import PropertyClassSingleton
+from omaslib.src.helpers.propertyclassprops import PropertyClassProp
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.model import Model
 from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
@@ -23,19 +24,6 @@ from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRes
 class OwlPropertyType(Enum):
     OwlDataProperty = 'owl:DatatypeProperty'
     OwlObjectProperty = 'owl:ObjectProperty'
-
-
-@unique
-class PropertyClassProp(Enum):
-    SUBPROPERTY_OF = 'rdfs:subPropertyOf'
-    PROPERTY_TYPE = 'rdf:type'
-    EXCLUSIVE_FOR = 'omas:exclusive'
-    TO_NODE_IRI = 'sh:class'
-    DATATYPE = 'sh:datatype'
-    RESTRICTIONS = 'omas:restrictions'
-    NAME = 'sh:name'
-    DESCRIPTION = 'sh:description'
-    ORDER = 'sh:order'
 
 
 PropTypes = Union[QName, AnyIRI, OwlPropertyType, XsdDatatypes, PropertyRestrictions, LangString, int, float]
@@ -87,11 +75,13 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                     raise OmasError(f'Unsupported Property prop "{prop}"')
                 if type(value) not in PropertyClass.__datatypes[prop]:
                     raise OmasError(f'Datatype of prop "{prop.value}": "{type(value)}", should be {PropertyClass.__datatypes[prop]} ({value}) is not valid')
+                if getattr(value, 'set_notifier', None) is not None:
+                    value.set_notifier(self.notifier, prop)
             self._props = props
 
         # setting property type for OWL which distinguished between Data- and Object-^properties
         if self._props.get(PropertyClassProp.TO_NODE_IRI) is not None:
-            self._property_type = OwlPropertyType.OwlObjectProperty
+            self._props[PropertyClassProp.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
             dt = self._props.get(PropertyClassProp.DATATYPE)
             if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
                 raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
@@ -118,6 +108,8 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if type(value) not in PropertyClass.__datatypes[prop]:
             raise OmasError(f'Datatype of {prop.value} is not in {PropertyClass.__datatypes[prop]}')
         if self._props.get(prop) is None:
+            if getattr(value, 'set_notifier', None) is not None:
+                value.set_notifier(self.notifier, prop)
             self._props[prop] = value
             self._changeset.add((prop, Action.CREATE))
         else:
@@ -141,6 +133,10 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     @property
     def changeset(self) -> set[tuple[PropertyClassProp, Action]]:
         return self._changeset
+
+    def notifier(self, what: PropertyClassProp) -> None:
+        self._changeset.add((what, Action.MODIFY))
+
 
     @property
     def in_use(self):
@@ -212,7 +208,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         #
         # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
         #
-        propkeys = {x.value for x in PropertyClassProp}
+        propkeys = {QName(x.value) for x in PropertyClassProp}
         for key, val in properties.items():
             if key == 'rdf:type':
                 if val[0] == 'sh:PropertyShape':
@@ -231,7 +227,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                     self._props[prop] = LangString()
                     for ll in val:
                         self._props[prop].add(ll)
-                elif {int, float} in self.__datatypes[prop]:
+                elif {int, float} == self.__datatypes[prop]:
                     self._props[prop] = val[0]
             else:
                 try:
@@ -244,10 +240,13 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if self._props.get(PropertyClassProp.TO_NODE_IRI) is not None:
             self._props[PropertyClassProp.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
             dt = self._props.get(PropertyClassProp.DATATYPE)
-            if dt and (dt != XsdDatatypes.anyURI or dt != XsdDatatypes.QName):
+            if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
                 raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
         else:
             self._props[PropertyClassProp.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+        for prop, value in self._props.items():
+            if getattr(value, 'set_notifier', None) is not None:
+                value.set_notifier(self.notifier, prop)
 
     def __read_owl(self):
         context = Context(name=self._con.context_name)
@@ -304,14 +303,32 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         blank = ''
         sparql = f'{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri}'
         for prop, value in self._props.items():
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
-        if self._props.get(PropertyClassProp.RESTRICTIONS):
-            sparql += self._props[PropertyClassProp.RESTRICTIONS].create_shacl(indent + 1, indent_inc)
+            if prop == PropertyClassProp.PROPERTY_TYPE:
+                continue
+            if prop != PropertyClassProp.RESTRICTIONS:
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
+            else:
+                sparql += self._props[PropertyClassProp.RESTRICTIONS].create_shacl(indent + 1, indent_inc)
+        sparql += f' .\n'
         return sparql
 
-    def create_owl_part1(self, indent: int = 0, indent_inc: int = 4) -> str:
+    def __create_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri} rdf:type {self._property_type.value}'
+        # context = Context(name=self._con.context_name)
+        # sparql = context.sparql_context
+        # sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+        sparql = ''
+        sparql += f'{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
+        sparql += self.property_node(indent, indent_inc)
+
+        #sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        #sparql += f'{blank:{indent * indent_inc}}}}\n'
+        return sparql
+
+    def __create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri} rdf:type {self._props[PropertyClassProp.PROPERTY_TYPE].value}'
         if self._props.get(PropertyClassProp.SUBPROPERTY_OF):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:subPropertyOf {self._props[PropertyClassProp.SUBPROPERTY_OF]}'
         if self._props.get(PropertyClassProp.EXCLUSIVE_FOR):
@@ -322,24 +339,6 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:range {self._props[PropertyClassProp.TO_NODE_IRI]}'
         sparql += ' .\n'
         return sparql
-
-    def create_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
-        blank = ''
-        context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
-        sparql += self.property_node(indent + 3, indent_inc)
-
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-        if as_string:
-            return sparql
-        else:
-            # print(sparql)
-            self._con.update_query(sparql)
 
     def create_owl_part2(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -353,6 +352,26 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._props[PropertyClassProp.TO_NODE_IRI]}'
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
+
+    def create(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False):
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+        sparql += self.__create_shacl(indent=2)
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
+        sparql += self.__create_owl(indent=2)
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        if as_string:
+            return sparql
+        else:
+            self._con.update_query(sparql)
 
     def update_shacl(self,
                      indent: int = 0, indent_inc: int = 4):
@@ -372,7 +391,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 pass
             elif change[2] == Action.REPLACE:
                 pass
-            elif change[2] == Action.EXTEND:  # TODO: May be unused....
+            elif change[2] == Action.MODIFY:  # TODO: May be unused....
                 pass
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:

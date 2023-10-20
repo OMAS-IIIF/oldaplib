@@ -262,10 +262,8 @@ class Connection:
         }
         url = f"{self._server}/repositories/{self._repo}/statements"
         res = requests.post(url, data={"update": query}, headers=headers)
-        if res.status_code == 204:
-            return {'status': 'OK'}
-        else:
-            return {'status': 'ERROR', 'message': res.text}
+        if not res.ok:
+            raise OmasError(f'Update query failed. Reason: "{res.text}"')
 
     def rdflib_query(self, query: str,
                      bindings: Optional[Mapping[str, Identifier]] = None) -> Result:

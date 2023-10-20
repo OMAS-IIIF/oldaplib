@@ -1,21 +1,25 @@
 from enum import unique, Enum
-from typing import Dict, List, Optional, Union, Set
+from typing import Dict, List, Optional, Union, Set, Callable, Any
 
 from pystrict import strict
 
+from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 
 
 @strict
-class LangString:
+class LangString(Notify):
     _langstring: Dict[Language, str]
     _priorities: List[Language]
     _changeset: Set[Language]
+    _notifier: Union[Callable[[type], None], None]
 
     def __init__(self,
                  langstring: Optional[Union[str, List[str], Dict[str, str], Dict[Language, str]]] = None,
-                 priorities: Optional[List[Language]] = None):
+                 priorities: Optional[List[Language]] = None,
+                 notifier: Optional[Callable[[type], None]] = None,
+                 notify_data: Optional[Any] = None):
         """
         Implements language dependent strings
 
@@ -29,7 +33,9 @@ class LangString:
           which as the form [Langguage.LL, ...], eg [Language.EN, Language.DE, Language.XX]. The default value
           is [Language.XX, Language.EN, Language.DE, Language.FR]
         """
+        super().__init__(notifier, notify_data)
         self._changeset = set()
+        self._notifier = notifier
         if isinstance(langstring, str):
             if langstring[-3] == "@":
                 tmpls: str = langstring[-2:].upper()
@@ -87,11 +93,13 @@ class LangString:
         if isinstance(lang, Language):
             self._langstring[lang] = value
             self._changeset.add(lang)
+            self.notify()
         elif isinstance(lang, str):
             try:
                 lobj = Language[lang.upper()]
                 self._langstring[lobj] = value
                 self._changeset.add(lobj)
+                self.notify()
             except (KeyError, ValueError) as err:
                 raise OmasError(f'Language "{lang}" is invalid')
         else:
@@ -102,6 +110,7 @@ class LangString:
             try:
                 del self._langstring[lang]
                 self._changeset.add(lang)
+                self.notify()
             except KeyError as err:
                 raise OmasError(f'No language string of language: "{lang}"!')
         elif isinstance(lang, str):
@@ -109,6 +118,7 @@ class LangString:
                 lobj = Language[lang.upper()]
                 del self._langstring[lobj]
                 self._changeset.add(lobj)
+                self.notify()
             except (KeyError, ValueError) as err:
                 raise OmasError(f'No language string of language: "{lang}"!')
         else:
@@ -167,9 +177,11 @@ class LangString:
                     raise OmasError(f'Language "{lstr}" is invalid')
                 self._langstring[lobj] = langs[:index]
                 self._changeset.add(lobj)
+                self.notify()
             else:
                 self._langstring[Language.XX] = langs
                 self._changeset.add(Language.XX)
+                self.notify()
         elif isinstance(langs, List):
             for lang in langs:
                 index = lang.find('@')
@@ -182,9 +194,11 @@ class LangString:
                         raise OmasError(f'Language "{lstr}" is invalid')
                     self._langstring[lobj] = lang[:index]
                     self._changeset.add(lobj)
+                    self.notify()
                 else:
                     self._langstring[Language.XX] = lang
                     self._changeset.add(Language.XX)
+                    self.notify()
         elif isinstance(langs, Dict):
             for lang, value in langs.items():
                 lobj = None
@@ -197,6 +211,7 @@ class LangString:
                         raise OmasError(f'Language "{lang}" is invalid')
                 self._langstring[lobj] = value
                 self._changeset.add(lobj)
+                self.notify()
         else:
             raise OmasError(f'Invalid data type for langs')
 

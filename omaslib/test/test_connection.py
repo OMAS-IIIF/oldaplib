@@ -106,8 +106,7 @@ class TestBasicConnection(unittest.TestCase):
             }
         }
         """
-        success = self._connection.update_query(query1)
-        self.assertEqual(success['status'], 'OK')
+        self._connection.update_query(query1)
         qq1 = self._context.sparql_context
         qq1 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?p}"
         res = self._connection.rdflib_query(qq1)
@@ -126,8 +125,7 @@ class TestBasicConnection(unittest.TestCase):
             ?s a test:Gaga
         }
         """
-        success = self._connection.update_query(query1)
-        self.assertEqual(success['status'], 'OK')
+        self._connection.update_query(query1)
         qq2 = self._context.sparql_context
         qq2 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?p}"
         res = self._connection.rdflib_query(qq2)
