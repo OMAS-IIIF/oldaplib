@@ -31,8 +31,9 @@ class TestPropertyClass(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls._connection.clear_graph(QName('test:shacl'))
-        cls._connection.clear_graph(QName('test:onto'))
+        #cls._connection.clear_graph(QName('test:shacl'))
+        #cls._connection.clear_graph(QName('test:onto'))
+        pass
 
     def test_propertyclass_constructor(self):
         props: PropertyClassPropsContainer = {

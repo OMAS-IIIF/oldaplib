@@ -373,9 +373,10 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         else:
             self._con.update_query(sparql)
 
-    def update_shacl(self,
-                     indent: int = 0, indent_inc: int = 4):
+    def update_shacl(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
         sparql_insert = ''
         sparql_delete = ''
         sparql_where = ''
@@ -383,13 +384,12 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             if change[1] == Action.DELETE:
                 pass
             elif change[1] == Action.CREATE:
-                sparql_insert += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql_insert += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri}:shacl {{\n'
-                sparql_insert += f'{blank:{(indent + 2) * indent_inc}}{change[0]} '
-                sparql_insert += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                sparql_insert += f'{blank:{indent * indent_inc}}}}\n'
+                sparql_insert += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri} {change[0].value} {self._props[change[0]]} ;\n'
                 pass
             elif change[2] == Action.REPLACE:
+                sparql_insert += f'{blank:{(indent + 2) * indent_inc}}?propshape {change[0].value} {self._props[change[0]]} ;\n'
+                sparql_delete += f'{blank:{(indent + 2) * indent_inc}}?propshape {change[0].value} ?val'
+                sparql_where += f'{blank:{(indent + 2) * indent_inc}}?propshape {change[0].value} ?val'
                 pass
             elif change[2] == Action.MODIFY:  # TODO: May be unused....
                 pass
