@@ -386,20 +386,36 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             elif change[1] == Action.CREATE:
                 sparql_insert += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri} {change[0].value} {self._props[change[0]]} ;\n'
                 pass
-            elif change[2] == Action.REPLACE:
-                sparql_insert += f'{blank:{(indent + 2) * indent_inc}}?propshape {change[0].value} {self._props[change[0]]} ;\n'
-                sparql_delete += f'{blank:{(indent + 2) * indent_inc}}?propshape {change[0].value} ?val'
-                sparql_where += f'{blank:{(indent + 2) * indent_inc}}?propshape {change[0].value} ?val'
+            elif change[1] == Action.REPLACE:
+                sparql_insert += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri}Shape {change[0].value} {self._props[change[0]]} ;\n'
+                sparql_delete += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri}Shape {change[0].value} ?val ;\n'
+                sparql_where += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri}Shape {change[0].value} ?val ;\n'
                 pass
-            elif change[2] == Action.MODIFY:  # TODO: May be unused....
+            elif change[1] == Action.MODIFY:  # TODO: May be unused....
                 pass
+        if sparql_delete:
+            sparql += f'{blank:{(indent + 0) * indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+            sparql += sparql_delete
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{(indent + 0) * indent_inc}}}}\n'
+        if sparql_insert:
+            pass
+
+        sparql += f'{blank:{(indent + 0) * indent_inc}} WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}} {self._property_class_iri}Shape {change[0].value} ?val\n'
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{(indent + 0) * indent_inc}}}}'
+
+    def update(self) -> None:
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
         pass
-
-    def read(self) -> None:
-        self.__read_shacl()
-        self.__read_owl()
 
 
 if __name__ == '__main__':

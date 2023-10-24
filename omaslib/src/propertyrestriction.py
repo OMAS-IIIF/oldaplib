@@ -1,4 +1,4 @@
-import re
+from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Dict, Union, Set, Optional, Tuple, Callable, Any
 
@@ -8,7 +8,6 @@ from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
 
 @unique
@@ -38,13 +37,19 @@ class Compare(Enum):
 
 RestrictionContainer = Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]]
 
+@dataclass
+class PropertyRestrictionChange:
+    old_value: Union[bool, int, float, str, Set[Language], QName, None]
+    action: Action
+    test_in_use: bool
+
 
 @strict
 class PropertyRestrictions(Notify):
     """
     This class implements the SHACL/OWL restriction that omaslib supports
 
-    SHACl allows to restrict the tha value range of properties. The following restrictions ate
+    SHACL allows to restrict the tha value range of properties. The following restrictions ate
     supported by *omaslib*.
 
     * cardinality
@@ -75,7 +80,8 @@ class PropertyRestrictions(Notify):
     """
     _restrictions: RestrictionContainer
     _test_in_use: Set[PropertyRestrictionType]
-    _changeset: Set[Tuple[PropertyRestrictionType, Action]]
+    _changeset: Dict[PropertyRestrictionType, PropertyRestrictionChange]
+    _notifier: Union[Callable[[type], None], None]
 
     datatypes = {
         PropertyRestrictionType.MIN_COUNT: {int},
@@ -108,7 +114,6 @@ class PropertyRestrictions(Notify):
             PropertyRestrictionType.LESS_THAN_OR_EQUALS: Compare.XX
         }
 
-
     def __init__(self, *,
                  restrictions: Optional[RestrictionContainer] = None,
                  notifier: Optional[Callable[[Any], None]] = None,
@@ -118,6 +123,7 @@ class PropertyRestrictions(Notify):
         :param restrictions: A Dict of restriction. See ~PropertyRestrictionType for SHACL-restriction supported
         """
         super().__init__(notifier, notify_data)
+        self._changeset = {}
         if restrictions is None:
             self._restrictions = {}
         else:
@@ -132,7 +138,6 @@ class PropertyRestrictions(Notify):
                     )
             self._restrictions = restrictions
         self._test_in_use = set()
-        self._changeset = set()
 
     def __str__(self) -> str:
         if len(self._restrictions) == 0:
@@ -166,43 +171,43 @@ class PropertyRestrictions(Notify):
             raise OmasError(
                 f'Datatype of restriction "{restriction_type.value}": "{type(value)}" ({value}) is not valid'
             )
+        if value == self._restrictions.get(restriction_type):
+            return
+        test_in_use: bool = True
         if self._restrictions.get(restriction_type):
             if PropertyRestrictions.compare[restriction_type] == Compare.GT:
-                if value > self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
-                    self._test_in_use.add(restriction_type)
-            elif PropertyRestrictions.compare[restriction_type] == Compare.GE:
-                if value >= self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
-                    self._test_in_use.add(restriction_type)
-            elif PropertyRestrictions.compare[restriction_type] == Compare.LT:
-                if value < self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
-                    self._test_in_use.add(restriction_type)
-            elif PropertyRestrictions.compare[restriction_type] == Compare.LE:
                 if value <= self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
-                    self._test_in_use.add(restriction_type)
-            else:
-                self._test_in_use.add(restriction_type)
-            self._changeset.add((restriction_type, Action.REPLACE))
+                    test_in_use = False
+            elif PropertyRestrictions.compare[restriction_type] == Compare.GE:
+                if value < self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
+                    test_in_use = False
+            elif PropertyRestrictions.compare[restriction_type] == Compare.LT:
+                if value >= self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
+                    test_in_use = False
+            elif PropertyRestrictions.compare[restriction_type] == Compare.LE:
+                if value > self._restrictions[restriction_type]:  # it's more restricting; not allowed if in use
+                    test_in_use = False
+            elif restriction_type == PropertyRestrictionType.UNIQUE_LANG and value is False:
+                test_in_use = False
+            elif restriction_type == PropertyRestrictionType.LANGUAGE_IN:
+                pass  # TODO: we have to find out how to proceed here with the "test_in_use" case....
             self.notify()
-        else:
-            self._test_in_use.add(restriction_type)
-            self._changeset.add((restriction_type, Action.CREATE))
-            self.notify()
+        if self._changeset.get(restriction_type) is None:
+            self._changeset[restriction_type] = PropertyRestrictionChange(self._restrictions.get(restriction_type),
+                                                                          Action.REPLACE if self._restrictions.get(restriction_type) else Action.CREATE,
+                                                                          test_in_use)
+        self.notify()
         self._restrictions[restriction_type] = value
 
     def __delitem__(self, restriction_type: PropertyRestrictionType):  # TODO: Sparql output for this case
         if self._restrictions.get(restriction_type) is not None:
+            self._changeset[restriction_type] = PropertyRestrictionChange(self._restrictions.get(restriction_type), Action.DELETE, False)
             del self._restrictions[restriction_type]
-            self._test_in_use.add(restriction_type)
-            self._changeset.add((restriction_type, Action.DELETE))
             self.notify()
 
     @property
-    def changeset(self) -> Set[Tuple[PropertyRestrictionType, Action]]:
+    def changeset(self) -> Dict[PropertyRestrictionType, PropertyRestrictionChange]:
         return self._changeset
-
-    @property
-    def test_in_use(self) -> Set[PropertyRestrictionType]:
-        return self._test_in_use
 
     def get(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Language], QName, None]:
         """
@@ -218,8 +223,8 @@ class PropertyRestrictions(Notify):
         :return: None
         """
         for restriction_type in self._restrictions:
-            self._changeset.add((restriction_type, Action.DELETE))
-            self._test_in_use.add(restriction_type)
+            # since we remove restrictions, no test_in_use necessary!
+            self._changeset[restriction_type] = PropertyRestrictionChange(self._restrictions.get(restriction_type), Action.DELETE, False)
             self.notify()
         self._restrictions = {}
 

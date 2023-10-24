@@ -1,6 +1,7 @@
 import unittest
 
-from omaslib.src.helpers.langstring import LangString
+from omaslib.src.helpers.datatypes import Action
+from omaslib.src.helpers.langstring import LangString, LangStringChange
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 
@@ -79,7 +80,7 @@ class TestLangstring(unittest.TestCase):
     def test_langstring_delete(self):
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
         del ls1['de']
-        self.assertEqual(ls1.changeset, {Language.DE})
+        self.assertEqual(ls1.changeset, {Language.DE: LangStringChange("deutsch", Action.DELETE)})
         self.assertEqual(ls1['en'], 'english')
         self.assertEqual(ls1['xx'], 'unbekannt')
         self.assertEqual(ls1['de'], 'unbekannt')
@@ -138,22 +139,33 @@ class TestLangstring(unittest.TestCase):
         ls1 = LangString(["english@en", "deutsch@de"])
         ls1.add("français@fr")
         self.assertEqual(str(ls1), '"english"@en, "deutsch"@de, "français"@fr')
-        self.assertEqual(ls1.changeset, {Language.FR})
+        self.assertEqual(ls1.changeset, {Language.FR: LangStringChange(None, Action.CREATE)})
 
         ls2 = LangString(["english@en", "deutsch@de"])
         ls2.add(["français@fr", "undefined"])
         self.assertEqual(str(ls2), '"english"@en, "deutsch"@de, "français"@fr, "undefined"')
-        self.assertEqual(ls2.changeset, {Language.FR, Language.XX})
+        self.assertEqual(ls2.changeset, {Language.FR: LangStringChange(None, Action.CREATE),
+                                         Language.XX: LangStringChange(None, Action.CREATE)})
 
         ls3 = LangString(["english@en", "deutsch@de"])
         ls3.add({Language.FR: "français", Language.XX: "undefined"})
         self.assertEqual(str(ls3), '"english"@en, "deutsch"@de, "français"@fr, "undefined"')
-        self.assertEqual(ls3.changeset, {Language.FR, Language.XX})
+        self.assertEqual(ls2.changeset, {Language.FR: LangStringChange(None, Action.CREATE),
+                                         Language.XX: LangStringChange(None, Action.CREATE)})
 
         ls4 = LangString(["english@en", "deutsch@de", "französisch@fr"])
         ls4.add({Language.FR: "français", Language.XX: "undefined"})
         self.assertEqual(str(ls4), '"english"@en, "deutsch"@de, "français"@fr, "undefined"')
-        self.assertEqual(ls4.changeset, {Language.FR, Language.XX})
+        self.assertEqual(ls4.changeset, {Language.FR: LangStringChange("französisch", Action.REPLACE),
+                                         Language.XX: LangStringChange(None, Action.CREATE)})
+
+    def test_langstring_undo(self):
+        ls1 = LangString(["english@en", "deutsch@de"])
+        ls1.add({Language.FR: "français", Language.XX: "undefined"})
+        self.assertEqual(str(ls1), '"english"@en, "deutsch"@de, "français"@fr, "undefined"')
+        ls1.undo()
+        self.assertEqual(str(ls1), '"english"@en, "deutsch"@de')
+
 
 
 

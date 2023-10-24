@@ -5,7 +5,8 @@ from copy import deepcopy
 
 from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.language import Language
-from omaslib.src.propertyrestriction import PropertyRestrictions, PropertyRestrictionType
+from omaslib.src.propertyrestriction import PropertyRestrictions, PropertyRestrictionType, PropertyRestrictionChange
+
 
 class TestPropertyRestriction(unittest.TestCase):
 
@@ -48,6 +49,7 @@ class TestPropertyRestriction(unittest.TestCase):
         test2_restriction = deepcopy(TestPropertyRestriction.test_restrictions)
         test2_restriction[PropertyRestrictionType.MAX_EXCLUSIVE] = 20
         test2_restriction[PropertyRestrictionType.MAX_INCLUSIVE] = 21
+        test3_restriction = deepcopy(test2_restriction)
         r1 = PropertyRestrictions(restrictions=test2_restriction)
         r1[PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE}
         r1[PropertyRestrictionType.UNIQUE_LANG] = False
@@ -62,45 +64,48 @@ class TestPropertyRestriction(unittest.TestCase):
         r1[PropertyRestrictionType.PATTERN] = '[a..zA..Z]'
         r1[PropertyRestrictionType.LESS_THAN] = QName('gaga:gaga')
         r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = QName('gugus:gugus')
-        exp1a = {
-            (PropertyRestrictionType.LANGUAGE_IN, Action.REPLACE),
-            (PropertyRestrictionType.UNIQUE_LANG, Action.REPLACE),
-            (PropertyRestrictionType.MIN_COUNT, Action.REPLACE),
-            (PropertyRestrictionType.MAX_COUNT, Action.REPLACE),
-            (PropertyRestrictionType.MIN_LENGTH, Action.REPLACE),
-            (PropertyRestrictionType.MAX_LENGTH, Action.REPLACE),
-            (PropertyRestrictionType.MIN_INCLUSIVE, Action.REPLACE),
-            (PropertyRestrictionType.MIN_EXCLUSIVE, Action.REPLACE),
-            (PropertyRestrictionType.MAX_INCLUSIVE, Action.REPLACE),
-            (PropertyRestrictionType.MAX_EXCLUSIVE, Action.REPLACE),
-            (PropertyRestrictionType.PATTERN, Action.REPLACE),
-            (PropertyRestrictionType.LESS_THAN, Action.REPLACE),
-            (PropertyRestrictionType.LESS_THAN_OR_EQUALS, Action.REPLACE),
+        expected: Dict[PropertyRestrictionType, PropertyRestrictionChange] = {
+            PropertyRestrictionType.LANGUAGE_IN:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.LANGUAGE_IN], Action.REPLACE, True),
+            PropertyRestrictionType.UNIQUE_LANG:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.UNIQUE_LANG], Action.REPLACE, False),
+            PropertyRestrictionType.MIN_COUNT:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.MIN_COUNT], Action.REPLACE, True),
+            PropertyRestrictionType.MAX_COUNT:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.MAX_COUNT], Action.REPLACE, True),
+            PropertyRestrictionType.MIN_LENGTH:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.MIN_LENGTH], Action.REPLACE, True),
+            PropertyRestrictionType.MAX_LENGTH:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.MAX_LENGTH], Action.REPLACE, True),
+            PropertyRestrictionType.MIN_INCLUSIVE:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.MIN_INCLUSIVE], Action.REPLACE, True),
+            PropertyRestrictionType.MIN_EXCLUSIVE:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.MIN_EXCLUSIVE], Action.REPLACE, True),
+            PropertyRestrictionType.MAX_INCLUSIVE:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.MAX_INCLUSIVE], Action.REPLACE, True),
+            PropertyRestrictionType.MAX_EXCLUSIVE:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.MAX_EXCLUSIVE], Action.REPLACE, True),
+            PropertyRestrictionType.PATTERN:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.PATTERN], Action.REPLACE, True),
+            PropertyRestrictionType.LESS_THAN:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.LESS_THAN], Action.REPLACE, True),
+            PropertyRestrictionType.LESS_THAN_OR_EQUALS:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.LESS_THAN_OR_EQUALS], Action.REPLACE, True)
         }
-        exp1b = {
-            PropertyRestrictionType.LANGUAGE_IN,
-            PropertyRestrictionType.UNIQUE_LANG,
-            PropertyRestrictionType.MIN_COUNT,
-            PropertyRestrictionType.MAX_COUNT,
-            PropertyRestrictionType.MIN_LENGTH,
-            PropertyRestrictionType.MAX_LENGTH,
-            PropertyRestrictionType.MIN_INCLUSIVE,
-            PropertyRestrictionType.MIN_EXCLUSIVE,
-            PropertyRestrictionType.MAX_INCLUSIVE,
-            PropertyRestrictionType.MAX_EXCLUSIVE,
-            PropertyRestrictionType.PATTERN,
-            PropertyRestrictionType.LESS_THAN,
-            PropertyRestrictionType.LESS_THAN_OR_EQUALS
-        }
-        self.assertEqual(r1.changeset, exp1a)
-        self.assertEqual(r1.test_in_use, exp1b)
+        self.maxDiff = None
+        self.assertEqual(r1.changeset, expected)
 
     def test_restriction_delete(self):
         test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
         r1 = PropertyRestrictions(restrictions=test2_restrictions)
         del r1[PropertyRestrictionType.MAX_LENGTH]
         self.assertIsNone(r1.get(PropertyRestrictionType.MAX_LENGTH))
-        self.assertEqual(r1.changeset, {(PropertyRestrictionType.MAX_LENGTH, Action.DELETE)})
+        expected: Dict[PropertyRestrictionType, PropertyRestrictionChange] = {
+            PropertyRestrictionType.MAX_LENGTH:
+                PropertyRestrictionChange(TestPropertyRestriction.test_restrictions[PropertyRestrictionType.MAX_LENGTH], Action.DELETE, False)
+        }
+        self.maxDiff = None
+        self.assertEqual(r1.changeset, expected)
 
     def test_restriction_clear(self):
         test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
