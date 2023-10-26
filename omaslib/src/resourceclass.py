@@ -453,7 +453,7 @@ class ResourceClass(Model):
             if p.exclusive_for_class is None:
                 sparql += "\n"
                 sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape ;\n'
-                sparql += p.property_node(4) + " .\n"
+                sparql += p.property_node_shacl(4) + " .\n"
                 sparql += "\n"
 
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class}Shape a sh:NodeShape, {self._owl_class} ;\n'
@@ -471,7 +471,7 @@ class ResourceClass(Model):
         for iri, p in self._properties.items():
             if p.exclusive_for_class:
                 sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property [\n'
-                sparql += p.property_node(4) + ' ;\n'
+                sparql += p.property_node_shacl(4) + ' ;\n'
                 sparql += f'{blank:{(indent + 3) * indent_inc}}] ;\n'
             else:
                 sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property {iri}Shape ;\n'
@@ -559,7 +559,7 @@ class ResourceClass(Model):
         for name, action, prop_iri in self._changeset:
             if name == ResourceClassAttributes.PROPERTY:
                 print(self._properties)
-                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node(indent + 1) + ' ; ]'
+                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node_shacl(indent + 1) + ' ; ]'
                 if action == Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class.prefix}:shacl {{\n'

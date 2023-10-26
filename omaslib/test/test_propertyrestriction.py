@@ -96,16 +96,38 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r1.changeset, expected)
 
     def test_restriction_delete(self):
+        shacl = """DELETE {
+    GRAPH test:shacl {
+        ?prop sh:maxLength ?rval .
+    }
+}
+WHERE {
+    GRAPH test:shacl {
+        BIND(test:gaga as ?prop)
+        ?prop sh:maxLength ?rval
+    }
+}
+"""
         test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
         r1 = PropertyRestrictions(restrictions=test2_restrictions)
         del r1[PropertyRestrictionType.MAX_LENGTH]
+        r1[PropertyRestrictionType.LESS_THAN] = QName('test:mustbemore')
+        r1[PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE, Language.FR, Language.IT, Language.ES}
         self.assertIsNone(r1.get(PropertyRestrictionType.MAX_LENGTH))
         expected: Dict[PropertyRestrictionType, PropertyRestrictionChange] = {
             PropertyRestrictionType.MAX_LENGTH:
-                PropertyRestrictionChange(TestPropertyRestriction.test_restrictions[PropertyRestrictionType.MAX_LENGTH], Action.DELETE, False)
+                PropertyRestrictionChange(TestPropertyRestriction.test_restrictions[PropertyRestrictionType.MAX_LENGTH], Action.DELETE, False),
+            PropertyRestrictionType.LESS_THAN:
+                PropertyRestrictionChange(TestPropertyRestriction.test_restrictions[PropertyRestrictionType.LESS_THAN], Action.REPLACE, True),
+            PropertyRestrictionType.LANGUAGE_IN:
+                PropertyRestrictionChange(TestPropertyRestriction.test_restrictions[PropertyRestrictionType.LANGUAGE_IN], Action.REPLACE, False),
         }
         self.maxDiff = None
         self.assertEqual(r1.changeset, expected)
+        print("*********************")
+        print(r1.update_shacl(prop_iri=QName('test:gaga')))
+        print("*********************")
+        #self.assertEqual(r1.update_shacl(prop_iri=QName('test:gaga')), shacl)
 
     def test_restriction_clear(self):
         test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)

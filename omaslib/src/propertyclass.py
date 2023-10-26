@@ -299,7 +299,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         self.__read_shacl()
         self.__read_owl()
 
-    def property_node(self, indent: int = 0, indent_inc: int = 4) -> str:
+    def property_node_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri}'
         for prop, value in self._props.items():
@@ -320,7 +320,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         # sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
-        sparql += self.property_node(indent, indent_inc)
+        sparql += self.property_node_shacl(indent, indent_inc)
 
         #sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         #sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -377,6 +377,9 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
+        for change in self._changeset:
+
+
         sparql_insert = ''
         sparql_delete = ''
         sparql_where = ''

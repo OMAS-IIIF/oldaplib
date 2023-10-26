@@ -190,7 +190,8 @@ class PropertyRestrictions(Notify):
             elif restriction_type == PropertyRestrictionType.UNIQUE_LANG and value is False:
                 test_in_use = False
             elif restriction_type == PropertyRestrictionType.LANGUAGE_IN:
-                pass  # TODO: we have to find out how to proceed here with the "test_in_use" case....
+                if not self._restrictions[restriction_type] > value:  # it's more restricting; not allowed if in use
+                    test_in_use = False
             self.notify()
         if self._changeset.get(restriction_type) is None:
             self._changeset[restriction_type] = PropertyRestrictionChange(self._restrictions.get(restriction_type),
@@ -269,23 +270,33 @@ class PropertyRestrictions(Notify):
                 sparql += f' ;\n{blank:{indent*indent_inc}}owl:maxCardinality {maxcnt}'
         return sparql
 
-    def update_shacl(self,
-                     owlclass_iri: QName,
+    def update_shacl(self, *,
+                     owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
                      indent: int = 0, indent_inc: int = 4) -> str:
         # TODO: Include into unittest!
         blank = ''
         sparql_list = []
-        for restriction_type, action in self._changeset:
+        for restriction_type, change in self._changeset.items():
             sparql = ''
             if restriction_type == PropertyRestrictionType.LANGUAGE_IN:
+                #
+                # The SHACL property sh:languageIn is implemented as a RDF List with blank nodes having
+                # a rdf:first and rdf:rest property. This makes the manipulation a bit complicated. If
+                # sh:languageIn is modified we delete the complete list and replace it by the new list.
+                #
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?z rdf:first ?head ;\n'
+                sparql += f'{blank:{(indent + 3) * indent_inc}}rdf:rest ?tail .\n'
+                sparql += f'{blank:{(indent + 1)* indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
+                if owlclass_iri:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
+                else:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?bnode .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?bnode rdf:rest* ?z .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
@@ -295,31 +306,38 @@ class PropertyRestrictions(Notify):
                 sparql = ''
 
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {owlclass_iri.prefix}:shacl {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
             sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
-            if action != Action.DELETE:
+            if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {owlclass_iri.prefix}:shacl {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} {self._restrictions[restriction_type]} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+                if type(self._restrictions[restriction_type]) == set:
+                    newval = "(" + " ".join([f'"{x.name.lower()}"' for x in self._restrictions[restriction_type]]) + ")"
+                else:
+                    newval = self._restrictions[restriction_type]
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} {newval} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {owlclass_iri.prefix}:shacl {{\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+            if owlclass_iri:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
+            else:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri} as ?prop)\n'
             sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} ?rval\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
-        sparql = " ;\n".join(sparql_list)
+        sparql = ";\n".join(sparql_list)
         return sparql
 
-    def delete_shacl(self,
-                     owlclass_iri: QName,
+    def delete_shacl(self, *,
+                     owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
                      restriction_type: PropertyRestrictionType,
                      indent: int = 0, indent_inc: int = 4) -> str:
@@ -332,8 +350,11 @@ class PropertyRestrictions(Notify):
             sparql += f'{blank:{(indent + 2)*indent_inc}}rdf:rest ?tail .\n'
             sparql += f'{blank:{indent*indent_inc}}}}\n'
             sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}?prop sh:path {prop_iri} .\n'
+            if owlclass_iri:
+                sparql += f'{blank:{(indent + 1)*indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                sparql += f'{blank:{(indent + 1)*indent_inc}}?prop sh:path {prop_iri} .\n'
+            else:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}?prop {restriction_type.value} ?bnode .\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}?bnode rdf:rest* ?z .\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}?z rdf:first ?head ;\n'
@@ -344,8 +365,11 @@ class PropertyRestrictions(Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}?prop sh:path {prop_iri} .\n'
+        if owlclass_iri:
+            sparql += f'{blank:{(indent + 1)*indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}?prop sh:path {prop_iri} .\n'
+        else:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}?prop {restriction_type.value} ?rval\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
         return sparql
