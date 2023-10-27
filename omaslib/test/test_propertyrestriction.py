@@ -1,11 +1,65 @@
+from dataclasses import dataclass
 import unittest
 from pprint import pprint
-from typing import Dict
+from typing import Dict, Tuple, Union
 from copy import deepcopy
+from rdflib import Graph, Namespace, ConjunctiveGraph
+from rdflib.namespace import NamespaceManager
 
+from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.language import Language
 from omaslib.src.propertyrestriction import PropertyRestrictions, PropertyRestrictionType, PropertyRestrictionChange
+
+@dataclass
+class ExpectationValue:
+    value: [bool, int, float, str, QName, set]
+    done: bool
+
+
+TurtleExpectation = Dict[PropertyRestrictionType, ExpectationValue]
+
+
+def check_turtle_expectation(turtle: str, expectation: TurtleExpectation, cl: unittest.TestCase) -> None:
+    tmplist = turtle.split(" ;")
+    tmplist = [x.strip() for x in tmplist]
+    for ele in tmplist:
+        if not ele:
+            continue
+        name, value = ele.split(" ", maxsplit=1)
+        try:
+            ptype = PropertyRestrictionType(name)
+        except ValueError:
+            continue
+        if ptype == PropertyRestrictionType.LANGUAGE_IN:
+            langs = value.strip("( )")
+            langslist = langs.split(" ")
+            langslist = [Language[x.strip('"').upper()] for x in langslist]
+            langsset = set(langslist)
+            if langsset >= expectation[ptype].value and langsset <= expectation[ptype].value:
+                expectation[ptype].done = True
+        else:
+            value = value.strip(" .")
+            tvalue: Union[bool, int, float, str, QName, None] = None
+            if bool in PropertyRestrictions.datatypes[ptype] and tvalue is None:
+                tvalue = True if value == 'true' else False
+            if int in PropertyRestrictions.datatypes[ptype] and tvalue is None:
+                try:
+                    tvalue = int(value)
+                except ValueError:
+                    tvalue = None
+            if float in PropertyRestrictions.datatypes[ptype] and tvalue is None:
+                tvalue = float(value)
+            if str in PropertyRestrictions.datatypes[ptype] and tvalue is None:
+                tvalue = value.strip('"')
+            if QName in PropertyRestrictions.datatypes[ptype] and tvalue is None:
+                tvalue = QName(value)
+            if tvalue is None:
+                tvalue = value
+            if expectation[ptype].value == tvalue:
+                expectation[ptype].done = True
+    for x, y in expectation.items():
+        cl.assertTrue(y.done, f'Restriction: {x.value}, expected value: {y.value}')
 
 
 class TestPropertyRestriction(unittest.TestCase):
@@ -95,21 +149,25 @@ class TestPropertyRestriction(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(r1.changeset, expected)
 
-    def test_restriction_delete(self):
-        shacl = """DELETE {
-    GRAPH test:shacl {
-        ?prop sh:maxLength ?rval .
-    }
-}
-WHERE {
-    GRAPH test:shacl {
-        BIND(test:gaga as ?prop)
-        ?prop sh:maxLength ?rval
-    }
-}
-"""
+    def test_restriction_update(self):
+        context = Context(name='hihi')
+        context['test'] = "http://www.test.org/test#"
+
         test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
         r1 = PropertyRestrictions(restrictions=test2_restrictions)
+
+        #
+        # put a dummy property shape into a rdflib triple store
+        #
+        data = context.sparql_context
+        data += f'test:shacl {{\n  test:testShape a sh:PropertyShape ;\n    sh:path test:test{r1.create_shacl(indent=2, indent_inc=2)} .\n}}\n'
+        g1 = ConjunctiveGraph()
+        context.namespace_manager(g1)
+        g1.parse(data=data, format='trig')
+
+        #
+        # now modify PropertyRestrictioninstance and test the modifications in the instance
+        #
         del r1[PropertyRestrictionType.MAX_LENGTH]
         r1[PropertyRestrictionType.LESS_THAN] = QName('test:mustbemore')
         r1[PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE, Language.FR, Language.IT, Language.ES}
@@ -124,10 +182,34 @@ WHERE {
         }
         self.maxDiff = None
         self.assertEqual(r1.changeset, expected)
-        print("*********************")
-        print(r1.update_shacl(prop_iri=QName('test:gaga')))
-        print("*********************")
-        #self.assertEqual(r1.update_shacl(prop_iri=QName('test:gaga')), shacl)
+
+        #
+        # now apply the update to the rdflib triple store
+        #
+        querystr = context.sparql_context
+        querystr += r1.update_shacl(prop_iri=QName('test:test'))
+        g1.update(querystr)
+        print("\n********************")
+        print(g1.serialize(format="n3"))
+        print("********************")
+        expected: TurtleExpectation = {
+            PropertyRestrictionType.UNIQUE_LANG: ExpectationValue(True, False),
+            PropertyRestrictionType.LANGUAGE_IN: ExpectationValue({
+                Language.FR, Language.EN, Language.DE, Language.IT, Language.ES}, False),
+            PropertyRestrictionType.MIN_COUNT: ExpectationValue(1, False),
+            PropertyRestrictionType.MAX_COUNT: ExpectationValue(4, False),
+            PropertyRestrictionType.MIN_LENGTH: ExpectationValue(8, False),
+            PropertyRestrictionType.PATTERN: ExpectationValue(".*", False),
+            PropertyRestrictionType.MIN_EXCLUSIVE: ExpectationValue(6.5, False),
+            PropertyRestrictionType.MIN_INCLUSIVE: ExpectationValue(8, False),
+            PropertyRestrictionType.MAX_EXCLUSIVE: ExpectationValue(6.5, False),
+            PropertyRestrictionType.MAX_INCLUSIVE: ExpectationValue(8, False),
+            PropertyRestrictionType.LESS_THAN: ExpectationValue(QName('test:mustbemore'), False),
+            PropertyRestrictionType.LESS_THAN_OR_EQUALS: ExpectationValue(QName('test:gaga'), False),
+        }
+        check_turtle_expectation(g1.serialize(format="n3"), expected, self)
+
+        #self.assertEqual(r1.update_shacl(prop_iri=QName('test:test')), shacl)
 
     def test_restriction_clear(self):
         test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
@@ -138,37 +220,23 @@ WHERE {
     def test_restriction_shacl(self):
         r1 = PropertyRestrictions(restrictions=TestPropertyRestriction.test_restrictions)
         shacl = r1.create_shacl()
-        tmplist = shacl.split(" ;")
-        tmplist = [x.strip() for x in tmplist]
-        expected = {
-            PropertyRestrictionType.UNIQUE_LANG.value: {'value': 'true', 'done': False},
-            PropertyRestrictionType.MIN_COUNT.value: {'value': '1', 'done': False},
-            PropertyRestrictionType.MAX_COUNT.value: {'value': '4', 'done': False},
-            PropertyRestrictionType.MIN_LENGTH.value: {'value': '8', 'done': False},
-            PropertyRestrictionType.MAX_LENGTH.value: {'value': '64', 'done': False},
-            PropertyRestrictionType.PATTERN.value: {'value': '.*', 'done': False},
-            PropertyRestrictionType.MIN_EXCLUSIVE.value: {'value': '6.5', 'done': False},
-            PropertyRestrictionType.MIN_INCLUSIVE.value: {'value': '8', 'done': False},
-            PropertyRestrictionType.MAX_EXCLUSIVE.value: {'value': '6.5', 'done': False},
-            PropertyRestrictionType.MAX_INCLUSIVE.value: {'value': '8', 'done': False},
-            PropertyRestrictionType.LESS_THAN.value: {'value': QName('test:greater'), 'done': False},
-            PropertyRestrictionType.LESS_THAN_OR_EQUALS.value: {'value': QName('test:gaga'), 'done': False},
+        expected: TurtleExpectation = {
+            PropertyRestrictionType.UNIQUE_LANG: ExpectationValue(True, False),
+            PropertyRestrictionType.LANGUAGE_IN: ExpectationValue({
+                Language.FR, Language.EN, Language.DE, Language.IT}, False),
+            PropertyRestrictionType.MIN_COUNT: ExpectationValue(1, False),
+            PropertyRestrictionType.MAX_COUNT: ExpectationValue(4, False),
+            PropertyRestrictionType.MIN_LENGTH: ExpectationValue(8, False),
+            PropertyRestrictionType.MAX_LENGTH: ExpectationValue(64, False),
+            PropertyRestrictionType.PATTERN: ExpectationValue(".*", False),
+            PropertyRestrictionType.MIN_EXCLUSIVE: ExpectationValue(6.5, False),
+            PropertyRestrictionType.MIN_INCLUSIVE: ExpectationValue(8, False),
+            PropertyRestrictionType.MAX_EXCLUSIVE: ExpectationValue(6.5, False),
+            PropertyRestrictionType.MAX_INCLUSIVE: ExpectationValue(8, False),
+            PropertyRestrictionType.LESS_THAN: ExpectationValue(QName('test:greater'), False),
+            PropertyRestrictionType.LESS_THAN_OR_EQUALS: ExpectationValue(QName('test:gaga'), False),
         }
-        for ele in tmplist:
-            if not ele:
-                continue
-            if ele.startswith('sh:languageIn'):
-                langs = ele[14:]
-                langs = langs.strip("()")
-                langslist = langs.split(" ")
-                langsset = set(langslist)
-                self.assertEqual(langsset, {'"fr"', '"en"', '"de"', '"it"'})
-            else:
-                name, value = ele.split(" ")
-                if expected[name]['value'] == value:
-                    expected[name]['done'] = True
-        for x, y in expected.items():
-            self.assertTrue(y['done'])
+        check_turtle_expectation(shacl, expected, self)
 
     def test_restriction_owl(self):
 

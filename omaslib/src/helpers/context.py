@@ -1,6 +1,8 @@
 from typing import Dict, Union
 
 from pystrict import strict
+from rdflib import Graph
+from rdflib.namespace import NamespaceManager, Namespace
 
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, NamespaceIRI, QName
 from omaslib.src.helpers.omaserror import OmasError
@@ -190,6 +192,14 @@ class Context(metaclass=ContextSingleton):
         """
         contextlist = [f"@PREFIX {str(x)}: <{str(y)}> ." for x, y in self._context.items()]
         return "\n".join(contextlist) + "\n"
+
+    def namespace_manager(self, g: Graph) -> NamespaceManager:
+        namespace_manager = NamespaceManager(g)
+        g.namespace_manager = namespace_manager
+        for name, iri in self._context.items():
+            ns = Namespace(str(iri))
+            g.namespace_manager.bind(str(name), ns, override=False)
+        return g.namespace_manager
 
     @classmethod
     def in_use(cls, name) -> bool:

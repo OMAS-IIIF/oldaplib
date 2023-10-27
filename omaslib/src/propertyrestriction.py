@@ -37,6 +37,7 @@ class Compare(Enum):
 
 RestrictionContainer = Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]]
 
+
 @dataclass
 class PropertyRestrictionChange:
     old_value: Union[bool, int, float, str, Set[Language], QName, None]
@@ -240,11 +241,17 @@ class PropertyRestrictions(Notify):
         blank = ''
         shacl = ''
         for name, rval in self._restrictions.items():
-            if name == PropertyRestrictionType.LANGUAGE_IN:
+            if type(rval) is set:
                 tmp = [f'"{x.name.lower()}"' for x in rval]
                 value = '(' + ' '.join(tmp) + ')'
-            elif name == PropertyRestrictionType.UNIQUE_LANG:
+            elif type(rval) is bool:
                 value = 'true' if rval else 'false'
+            elif type(rval) in {int, float}:
+                value = rval
+            elif type(rval) is str:
+                value = f'"{rval}"'
+            elif type(rval) is QName:
+                value = str(rval)
             else:
                 value = rval
             shacl += f' ;\n{blank:{indent*indent_inc}}{name.value} {value}'
@@ -278,7 +285,7 @@ class PropertyRestrictions(Notify):
         blank = ''
         sparql_list = []
         for restriction_type, change in self._changeset.items():
-            sparql = ''
+            sparql = f'#\n# Process "{restriction_type.value}" with Action "{change.action.value}"\n#\n'
             if restriction_type == PropertyRestrictionType.LANGUAGE_IN:
                 #
                 # The SHACL property sh:languageIn is implemented as a RDF List with blank nodes having
@@ -296,7 +303,7 @@ class PropertyRestrictions(Notify):
                     sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
                 else:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?bnode .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?bnode rdf:rest* ?z .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
@@ -328,7 +335,7 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
                 sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
             else:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri} as ?prop)\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
             sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} ?rval\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}}}'

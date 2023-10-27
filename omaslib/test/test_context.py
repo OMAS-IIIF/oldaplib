@@ -1,5 +1,9 @@
 import unittest
 
+import rdflib
+from rdflib import Graph
+from rdflib.namespace import NamespaceManager
+
 from omaslib.src.helpers.context import Context, ContextSingleton
 from omaslib.src.helpers.datatypes import NamespaceIRI, AnyIRI, QName
 from omaslib.src.helpers.omaserror import OmasError
@@ -96,4 +100,12 @@ PREFIX test: <http://www.test.org/gaga#>
 @PREFIX test: <http://www.test.org/gaga#> .
 """
         self.assertEqual(context.turtle_context, expected)
+
+    def test_context_namespace(self):
+        context = Context(name="namespace")
+        context['test'] = "http://www.test.org/gaga#"
+        g = Graph()
+        nsm: NamespaceManager = context.namespace_manager(g)
+        self.assertEqual(nsm.expand_curie("rdf:type"), rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'))
+        self.assertEqual(nsm.expand_curie("test:gaga"), rdflib.term.URIRef('http://www.test.org/gaga#gaga'))
 
