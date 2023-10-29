@@ -6,9 +6,11 @@ from typing import Dict, List, Optional, Union, Set, Callable, Any
 from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
-from omaslib.src.helpers.datatypes import Action
+from omaslib.src.helpers.datatypes import Action, QName
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.propertyclassprops import PropertyClassProp
+
 
 @dataclass
 class LangStringChange:
@@ -34,8 +36,8 @@ class LangString(Notify):
     def __init__(self,
                  langstring: Optional[Union[str, List[str], Dict[str, str], Dict[Language, str]]] = None,
                  priorities: Optional[List[Language]] = None,
-                 notifier: Optional[Callable[[type], None]] = None,
-                 notify_data: Optional[Any] = None):
+                 notifier: Optional[Callable[[PropertyClassProp], None]] = None,
+                 notify_data: Optional[PropertyClassProp] = None):
         """
         Implements language dependent strings
 
@@ -260,6 +262,47 @@ class LangString(Notify):
     @property
     def changeset(self) -> Dict[Language, LangStringChange]:
         return self._changeset
+
+    def update_shacl(self, *,
+                     owlclass_iri: Optional[QName] = None,
+                     prop_iri: QName,
+                     prop: QName,
+                     indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql_list = []
+        pprint(self._changeset)
+        for lang, change in self._changeset.items():
+            sparql = f'# Process "{lang.value}" with Action "{change.action.value}"\n'
+
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+
+            if change.action != Action.DELETE:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {str(self._langstring[lang])} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+                if owlclass_iri:
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
+                else:
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {str(change.old_value)}\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+        sparql = ";\n".join(sparql_list)
+        return sparql
+
 
 
 if __name__ == '__main__':

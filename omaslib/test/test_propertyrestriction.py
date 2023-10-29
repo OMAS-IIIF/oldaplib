@@ -9,7 +9,7 @@ from rdflib.namespace import NamespaceManager
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.language import Language
-from omaslib.src.propertyrestriction import PropertyRestrictions, PropertyRestrictionType, PropertyRestrictionChange
+from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType, PropertyRestrictionChange
 
 @dataclass
 class ExpectationValue:
@@ -162,7 +162,6 @@ class TestPropertyRestriction(unittest.TestCase):
         data = context.sparql_context
         data += f'test:shacl {{\n  test:testShape a sh:PropertyShape ;\n    sh:path test:test{r1.create_shacl(indent=2, indent_inc=2)} .\n}}\n'
         g1 = ConjunctiveGraph()
-        context.namespace_manager(g1)
         g1.parse(data=data, format='trig')
 
         #
@@ -189,9 +188,6 @@ class TestPropertyRestriction(unittest.TestCase):
         querystr = context.sparql_context
         querystr += r1.update_shacl(prop_iri=QName('test:test'))
         g1.update(querystr)
-        print("\n********************")
-        print(g1.serialize(format="n3"))
-        print("********************")
         expected: TurtleExpectation = {
             PropertyRestrictionType.UNIQUE_LANG: ExpectationValue(True, False),
             PropertyRestrictionType.LANGUAGE_IN: ExpectationValue({
@@ -208,8 +204,6 @@ class TestPropertyRestriction(unittest.TestCase):
             PropertyRestrictionType.LESS_THAN_OR_EQUALS: ExpectationValue(QName('test:gaga'), False),
         }
         check_turtle_expectation(g1.serialize(format="n3"), expected, self)
-
-        #self.assertEqual(r1.update_shacl(prop_iri=QName('test:test')), shacl)
 
     def test_restriction_clear(self):
         test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)

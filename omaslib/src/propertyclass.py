@@ -1,7 +1,9 @@
 """
 :Author: Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>
 """
+from dataclasses import dataclass
 from enum import Enum, unique
+from pprint import pprint
 from typing import Union, Set, Optional, Any, Tuple, Dict
 
 from pystrict import strict
@@ -17,7 +19,7 @@ from omaslib.src.helpers.propertyclass_singleton import PropertyClassSingleton
 from omaslib.src.helpers.propertyclassprops import PropertyClassProp
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.model import Model
-from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
+from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
 
 
 @unique
@@ -26,9 +28,15 @@ class OwlPropertyType(Enum):
     OwlObjectProperty = 'owl:ObjectProperty'
 
 
-PropTypes = Union[QName, AnyIRI, OwlPropertyType, XsdDatatypes, PropertyRestrictions, LangString, int, float]
+PropTypes = Union[QName, AnyIRI, OwlPropertyType, XsdDatatypes, PropertyRestrictions, LangString, int, float, None]
 PropertyClassPropsContainer = Dict[PropertyClassProp, PropTypes]
 
+
+@dataclass
+class PropertyClassPropChange:
+    old_value: PropTypes
+    action: Action
+    test_in_use: bool
 
 @strict
 class PropertyClass(Model, metaclass=PropertyClassSingleton):
@@ -39,7 +47,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     _property_class_iri: Union[QName, None]
     _props: PropertyClassPropsContainer
 
-    _changeset: Set[Tuple[PropertyClassProp, Action]]
+    _changeset: Dict[PropertyClassProp, PropertyClassPropChange]
     _test_in_use: bool
 
     __datatypes: Dict[PropertyClassProp, PropTypes] = {
@@ -75,6 +83,10 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                     raise OmasError(f'Unsupported Property prop "{prop}"')
                 if type(value) not in PropertyClass.__datatypes[prop]:
                     raise OmasError(f'Datatype of prop "{prop.value}": "{type(value)}", should be {PropertyClass.__datatypes[prop]} ({value}) is not valid')
+                #
+                # if the "value"-class is a subclass of Notify, it has the method "set_notifier".
+                # we need to set it!
+                #
                 if getattr(value, 'set_notifier', None) is not None:
                     value.set_notifier(self.notifier, prop)
             self._props = props
@@ -87,7 +99,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
         else:
             self._props[PropertyClassProp.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
-        self._changeset = set()  # initialize changeset to empty set
+        self._changeset = {}  # initialize changeset to empty set
         self._test_in_use = False
 
     def __str__(self):
@@ -110,17 +122,19 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if self._props.get(prop) is None:
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, prop)
+            if self._changeset.get(prop) is None:
+                self._changeset[prop] = PropertyClassPropChange(self._props[prop], Action.CREATE, True)
             self._props[prop] = value
-            self._changeset.add((prop, Action.CREATE))
         else:
             if self._props.get(prop) != value:
+                if self._changeset.get(prop) is None:
+                    self._changeset[prop] = PropertyClassPropChange(self._props[prop], Action.REPLACE, True)
                 self._props[prop] = value
-                self._changeset.add((prop, Action.REPLACE))
 
-    def __delitem__(self, prop: PropertyClassProp):
+    def __delitem__(self, prop: PropertyClassProp) -> None:
         if self._props.get(prop) is not None:
+            self._changeset[prop] = PropertyClassPropChange(self._props[prop], Action.DELETE, True)
             del self._props[prop]
-            self._changeset.add((prop, Action.DELETE))
 
     @property
     def property_class_iri(self) -> QName:
@@ -131,12 +145,11 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         OmasError(f'property_class_iri_class cannot be set!')
 
     @property
-    def changeset(self) -> set[tuple[PropertyClassProp, Action]]:
+    def changeset(self) -> Dict[PropertyClassProp, PropertyClassPropChange]:
         return self._changeset
 
-    def notifier(self, what: PropertyClassProp) -> None:
-        self._changeset.add((what, Action.MODIFY))
-
+    def notifier(self, prop: PropertyClassProp) -> None:
+        self._changeset[prop] = PropertyClassPropChange(None, Action.MODIFY, True)
 
     @property
     def in_use(self):
@@ -373,44 +386,57 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         else:
             self._con.update_query(sparql)
 
-    def update_shacl(self, indent: int = 0, indent_inc: int = 4):
+    def update_shacl(self, *,
+                     owlclass_iri: Optional[QName] = None,
+                     indent: int = 0, indent_inc: int = 4):
         blank = ''
-        context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        for change in self._changeset:
+        sparql_list = []
+        pprint(self._changeset)
+        for prop, change in self._changeset.items():
+            sparql = f'#\n# Process "{prop.value}" with Action "{change.action.value}"\n#\n'
+            if change.action == Action.MODIFY:
+                if PropertyClass.__datatypes[prop] == {LangString}:
+                    sparql += self._props[prop].update_shacl(owlclass_iri=owlclass_iri,
+                                                             prop_iri=self._property_class_iri,
+                                                             prop=prop,
+                                                             indent=indent, indent_inc=indent_inc)
+                elif PropertyClass.__datatypes[prop] == {PropertyRestrictions}:
+                    sparql += self._props[prop].update_shacl(owlclass_iri=owlclass_iri,
+                                                             prop_iri=self._property_class_iri,
+                                                             indent=indent, indent_inc=indent_inc)
+                else:
+                    raise OmasError(f'SHACL property {prop.value} should not have update action "Update".')
+                sparql_list.append(sparql)
+                continue
 
-
-        sparql_insert = ''
-        sparql_delete = ''
-        sparql_where = ''
-        for change in self._changeset:
-            if change[1] == Action.DELETE:
-                pass
-            elif change[1] == Action.CREATE:
-                sparql_insert += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri} {change[0].value} {self._props[change[0]]} ;\n'
-                pass
-            elif change[1] == Action.REPLACE:
-                sparql_insert += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri}Shape {change[0].value} {self._props[change[0]]} ;\n'
-                sparql_delete += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri}Shape {change[0].value} ?val ;\n'
-                sparql_where += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri}Shape {change[0].value} ?val ;\n'
-                pass
-            elif change[1] == Action.MODIFY:  # TODO: May be unused....
-                pass
-        if sparql_delete:
-            sparql += f'{blank:{(indent + 0) * indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-            sparql += sparql_delete
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-            sparql += f'{blank:{(indent + 0) * indent_inc}}}}\n'
-        if sparql_insert:
-            pass
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
 
-        sparql += f'{blank:{(indent + 0) * indent_inc}} WHERE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}} {self._property_class_iri}Shape {change[0].value} ?val\n'
+            if change.action != Action.DELETE:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {self._props[prop]} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-        sparql += f'{blank:{(indent + 0) * indent_inc}}}}'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+            if owlclass_iri:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {self._property_class_iri} .\n'
+            else:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+
+        sparql = ";\n".join(sparql_list)
+        return sparql
+
 
     def update(self) -> None:
         blank = ''

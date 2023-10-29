@@ -11,7 +11,7 @@ from omaslib.src.helpers.langstring import Languages, LangString
 from omaslib.src.helpers.context import Context
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass
-from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions
+from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
 
 
 class ResourceClassAttributes(Enum):

@@ -193,14 +193,6 @@ class Context(metaclass=ContextSingleton):
         contextlist = [f"@PREFIX {str(x)}: <{str(y)}> ." for x, y in self._context.items()]
         return "\n".join(contextlist) + "\n"
 
-    def namespace_manager(self, g: Graph) -> NamespaceManager:
-        namespace_manager = NamespaceManager(g)
-        g.namespace_manager = namespace_manager
-        for name, iri in self._context.items():
-            ns = Namespace(str(iri))
-            g.namespace_manager.bind(str(name), ns, override=False)
-        return g.namespace_manager
-
     @classmethod
     def in_use(cls, name) -> bool:
         """

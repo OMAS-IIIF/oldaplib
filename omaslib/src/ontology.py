@@ -11,7 +11,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import DEFAULT_CONTEXT, Context
 from omaslib.src.helpers.datatypes import QName
 from omaslib.src.propertyclass import PropertyClass
-from omaslib.src.propertyrestriction import PropertyRestrictions, PropertyRestrictionType
+from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType
 
 
 @strict

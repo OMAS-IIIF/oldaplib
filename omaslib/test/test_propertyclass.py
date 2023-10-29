@@ -8,9 +8,9 @@ from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
-from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassPropsContainer
+from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassPropsContainer, PropertyClassPropChange
 from omaslib.src.helpers.propertyclassprops import PropertyClassProp
-from omaslib.src.propertyrestriction import PropertyRestrictionType, PropertyRestrictions, RestrictionContainer
+from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions, RestrictionContainer
 
 
 class TestPropertyClass(unittest.TestCase):
@@ -33,7 +33,6 @@ class TestPropertyClass(unittest.TestCase):
     def tearDownClass(cls):
         cls._connection.clear_graph(QName('test:shacl'))
         cls._connection.clear_graph(QName('test:onto'))
-        pass
 
     def test_propertyclass_constructor(self):
         props: PropertyClassPropsContainer = {
@@ -41,9 +40,8 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassProp.DATATYPE: XsdDatatypes.string,
             PropertyClassProp.NAME: LangString(["Test property@en", "Testprädikat@de"]),
             PropertyClassProp.DESCRIPTION: LangString("A property for testing...@en"),
-            PropertyClassProp.RESTRICTIONS: PropertyRestrictions(restrictions={
-              PropertyRestrictionType.MAX_COUNT: 1
-            }),
+            PropertyClassProp.RESTRICTIONS: PropertyRestrictions(
+                restrictions={PropertyRestrictionType.MAX_COUNT: 1}),
             PropertyClassProp.ORDER: 5
         }
         p = PropertyClass(con=self._connection,
@@ -96,7 +94,7 @@ class TestPropertyClass(unittest.TestCase):
         }
         p1 = PropertyClass(
             con=self._connection,
-            property_class_iri=QName('test:hasAnnotation'),
+            property_class_iri=QName('test:testWrite'),
             props=props
         )
         p1.create()
@@ -104,10 +102,10 @@ class TestPropertyClass(unittest.TestCase):
         del p1
         p2 = PropertyClass(
             con=self._connection,
-            property_class_iri=QName('test:hasAnnotation')
+            property_class_iri=QName('test:testWrite')
         )
         p2.read()
-        self.assertEqual(p2.property_class_iri, QName('test:hasAnnotation'))
+        self.assertEqual(p2.property_class_iri, QName('test:testWrite'))
         self.assertEqual(p2[PropertyClassProp.TO_NODE_IRI], QName('test:comment'))
         self.assertEqual(p2[PropertyClassProp.NAME], LangString("Annotations@en"))
         self.assertEqual(p2[PropertyClassProp.DESCRIPTION], LangString("An annotation@en"))
@@ -119,10 +117,13 @@ class TestPropertyClass(unittest.TestCase):
         p2[PropertyClassProp.NAME][Language.DE] = 'Annotationen'
         p2[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = False
         self.assertEqual(p2.changeset, {
-            (PropertyClassProp.ORDER, Action.REPLACE),
-            (PropertyClassProp.NAME, Action.MODIFY),
-            (PropertyClassProp.RESTRICTIONS, Action.MODIFY)
+            PropertyClassProp.ORDER: PropertyClassPropChange(11, Action.REPLACE, True),
+            PropertyClassProp.NAME: PropertyClassPropChange(None, Action.MODIFY, True),
+            PropertyClassProp.RESTRICTIONS: PropertyClassPropChange(None, Action.MODIFY, True)
         })
+        print('\n****************************')
+        print(p2.update_shacl())
+        print('****************************')
 
 if __name__ == '__main__':
     unittest.main()
