@@ -365,9 +365,7 @@ class ResourceClass(Model):
                 elif key == 'sh:datatype':
                     p_datatype = XsdDatatypes(str(val[0]))
                 elif key == 'sh:name':
-                    p_name = LangString()
-                    for ll in val:
-                        p_name.add(ll)
+                    p_name = LangString(val)
                 elif key == 'sh:description':
                     p_description = LangString()
                     for ll in val:

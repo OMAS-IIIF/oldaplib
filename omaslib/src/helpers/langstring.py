@@ -284,21 +284,24 @@ class LangString(Notify):
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {str(self._langstring[lang])} .\n'
+                langstr = f'"{self._langstring[lang]}"'
+                if lang != Language.XX:
+                    langstr += "@" + lang.name.lower()
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {langstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
-            if change.action != Action.CREATE:
-                sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
-                if owlclass_iri:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
-                else:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {str(change.old_value)}\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+            if owlclass_iri:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
+            else:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
+            oval = change.old_value if change.old_value else "?val"
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {oval}\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)
         return sparql

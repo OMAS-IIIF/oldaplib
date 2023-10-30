@@ -237,9 +237,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                 elif {XsdDatatypes} == self.__datatypes[prop]:
                     self._props[prop] = XsdDatatypes(str(val[0]))
                 elif {LangString} == self.__datatypes[prop]:
-                    self._props[prop] = LangString()
-                    for ll in val:
-                        self._props[prop].add(ll)
+                    self._props[prop] = LangString(val)
                 elif {int, float} == self.__datatypes[prop]:
                     self._props[prop] = val[0]
             else:
@@ -442,6 +440,8 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
+        sparql += self.update_shacl()
+        self._con.update_query(sparql)
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
         pass
