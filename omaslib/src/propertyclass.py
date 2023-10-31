@@ -148,6 +148,12 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     def changeset(self) -> Dict[PropertyClassProp, PropertyClassPropChange]:
         return self._changeset
 
+    def __changeset_clear(self) -> None:
+        for prop, change in self._changeset.items():
+            if change.action == Action.MODIFY:
+                self._props[prop].changeset_clear()
+        self._changeset = {}
+
     def notifier(self, prop: PropertyClassProp) -> None:
         self._changeset[prop] = PropertyClassPropChange(None, Action.MODIFY, True)
 
@@ -325,16 +331,9 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
 
     def __create_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         blank = ''
-        # context = Context(name=self._con.context_name)
-        # sparql = context.sparql_context
-        # sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
-        # sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
         sparql += self.property_node_shacl(indent, indent_inc)
-
-        #sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-        #sparql += f'{blank:{indent * indent_inc}}}}\n'
         return sparql
 
     def __create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
@@ -384,12 +383,11 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         else:
             self._con.update_query(sparql)
 
-    def update_shacl(self, *,
-                     owlclass_iri: Optional[QName] = None,
-                     indent: int = 0, indent_inc: int = 4):
+    def __update_shacl(self, *,
+                       owlclass_iri: Optional[QName] = None,
+                       indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
-        pprint(self._changeset)
         for prop, change in self._changeset.items():
             sparql = f'#\n# Process "{prop.value}" with Action "{change.action.value}"\n#\n'
             if change.action == Action.MODIFY:
@@ -435,13 +433,17 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         sparql = ";\n".join(sparql_list)
         return sparql
 
+    def __update_owl(self) -> str:
+        blank = ''
+        return blank
 
     def update(self) -> None:
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        sparql += self.update_shacl()
+        sparql += self.__update_shacl()
         self._con.update_query(sparql)
+        self.__changeset_clear()
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
         pass

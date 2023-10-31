@@ -92,9 +92,18 @@ class LangString(Notify):
             self._priorities = [Language.XX, Language.EN, Language.DE, Language.FR]
 
     def __len__(self):
+        """
+        Returns the number of languages defined
+        :return: Number of languages defined
+        """
         return len(self._langstring)
 
     def __getitem__(self, lang: Union[str, Language]) -> str:
+        """
+        Get the string of the given language.
+        :param lang: The desired language, either as string shortname or as Language enum
+        :return: The string – may return '--no string--' as placeholder of language is not available
+        """
         if isinstance(lang, str):
             try:
                 lang = Language[lang.upper()]
@@ -110,6 +119,12 @@ class LangString(Notify):
             return '--no string--'
 
     def __setitem__(self, lang: Union[Language, str], value: str) -> None:
+        """
+        Set a new or change an existing language steing
+        :param lang: Language as shortname or Language enum
+        :param value: The string valie
+        :return: None
+        """
         if isinstance(lang, Language):
             if self._changeset.get(lang) is None:  # only the first change is recorded
                 self._changeset[lang] = LangStringChange(self._langstring.get(lang),
@@ -130,6 +145,11 @@ class LangString(Notify):
             raise OmasError(f'Language "{lang}" is invalid')
 
     def __delitem__(self, lang: Union[Language, str]) -> None:
+        """
+        Delete a given language from a language string
+        :param lang: The language (as short name of as Language enum) to be deleted
+        :return: None
+        """
         if isinstance(lang, Language):
             try:
                 if self._changeset.get(lang) is None:
@@ -151,6 +171,10 @@ class LangString(Notify):
             raise OmasError(f'Unsupported language value {lang}!')
 
     def __str__(self) -> str:
+        """
+        Return the language string as it would be used in a SPARQL insert statement
+        :return: language string
+        """
         langlist = [f'"{val}"@{lang.name.lower()}' for lang, val in self._langstring.items() if lang != Language.XX]
         resstr = ", ".join(langlist)
         if self._langstring.get(Language.XX):
@@ -191,7 +215,12 @@ class LangString(Notify):
     def langstring(self) -> Dict[Language, str]:
         return self._langstring
 
-    def add(self, langs: Union[str, List[str], Dict[str, str], Dict[Language, str]]):
+    def add(self, langs: Union[str, List[str], Dict[str, str], Dict[Language, str]]) -> None:
+        """
+        Add one or several new languages to a lang string
+        :param langs: The language/string pairs as single value, list or dict
+        :return: None
+        """
         if isinstance(langs, str):
             if langs[-3] == "@":
                 lstr = langs[-2:].upper()
@@ -251,7 +280,11 @@ class LangString(Notify):
         else:
             raise OmasError(f'Invalid data type for langs')
 
-    def undo(self):
+    def undo(self) -> None:
+        """
+        Undo all changes made since last update/creation/read
+        :return: None
+        """
         for lang, change in self._changeset.items():
             if change.action == Action.CREATE:
                 del self._langstring[lang]
@@ -261,16 +294,36 @@ class LangString(Notify):
 
     @property
     def changeset(self) -> Dict[Language, LangStringChange]:
+        """
+        Return the changeset dict
+        :return: Dict with changeset
+        """
         return self._changeset
+
+    def changeset_clear(self) -> None:
+        """
+        Clear changeset to an empty dicz
+        :return: None
+        """
+        self._changeset = {}
 
     def update_shacl(self, *,
                      owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
                      prop: QName,
-                     indent: int = 0, indent_inc: int = 4):
+                     indent: int = 0, indent_inc: int = 4) -> str:
+        """
+        Return the SPARQL fragment to update a Language string (a property that has a cardinality
+        greater than one and is of string value with associated languages.
+        :param owlclass_iri: If the langstring is used within a property within a resource class
+        :param prop_iri: The IRI (name) of the PropertyClass
+        :param prop: The prop of the PropertyClass
+        :param indent: Indent for formatting
+        :param indent_inc: Indent increment
+        :return: String with the SPARQL fragment
+        """
         blank = ''
         sparql_list = []
-        pprint(self._changeset)
         for lang, change in self._changeset.items():
             sparql = f'# Process "{lang.value}" with Action "{change.action.value}"\n'
 
@@ -305,7 +358,6 @@ class LangString(Notify):
             sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)
         return sparql
-
 
 
 if __name__ == '__main__':

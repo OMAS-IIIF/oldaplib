@@ -114,18 +114,50 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertEqual(p2[PropertyClassProp.ORDER], 11)
 
-        p2[PropertyClassProp.ORDER] = 12
-        p2[PropertyClassProp.NAME][Language.DE] = 'Annotationen'
-        p2[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = False
-        self.assertEqual(p2.changeset, {
+    def test_propertyclass_update(self):
+        props: PropertyClassPropsContainer = {
+            PropertyClassProp.TO_NODE_IRI: QName('test:comment'),
+            PropertyClassProp.DATATYPE: XsdDatatypes.anyURI,
+            PropertyClassProp.NAME: LangString("Annotations@en"),
+            PropertyClassProp.DESCRIPTION: LangString("An annotation@en"),
+            PropertyClassProp.RESTRICTIONS: PropertyRestrictions(restrictions={
+                PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
+                PropertyRestrictionType.UNIQUE_LANG: True
+            }),
+            PropertyClassProp.ORDER: 11
+        }
+        p1 = PropertyClass(
+            con=self._connection,
+            property_class_iri=QName('test:testUpdate'),
+            props=props
+        )
+        p1.create()
+        p1[PropertyClassProp.ORDER] = 12
+        p1[PropertyClassProp.NAME][Language.DE] = 'Annotationen'
+        p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = False
+        self.assertEqual(p1.changeset, {
             PropertyClassProp.ORDER: PropertyClassPropChange(11, Action.REPLACE, True),
             PropertyClassProp.NAME: PropertyClassPropChange(None, Action.MODIFY, True),
             PropertyClassProp.RESTRICTIONS: PropertyClassPropChange(None, Action.MODIFY, True)
         })
-        print('\n****************************')
-        print(p2.update_shacl())
-        print('****************************')
-        p2.update()
+        p1.update()
+        self.assertEqual(p1.changeset, {})
+
+        p1.delete_singleton()
+        del p1
+        p2 = PropertyClass(
+            con=self._connection,
+            property_class_iri=QName('test:testUpdate')
+        )
+        p2.read()
+        self.assertEqual(p2.property_class_iri, QName('test:testUpdate'))
+        self.assertEqual(p2[PropertyClassProp.TO_NODE_IRI], QName('test:comment'))
+        self.assertEqual(p2[PropertyClassProp.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        self.assertEqual(p2[PropertyClassProp.DESCRIPTION], LangString("An annotation@en"))
+        self.assertEqual(p2[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertEqual(p2[PropertyClassProp.ORDER], 12)
+        self.assertFalse(p2[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
 
 if __name__ == '__main__':
     unittest.main()

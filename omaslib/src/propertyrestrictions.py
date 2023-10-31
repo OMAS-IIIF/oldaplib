@@ -212,6 +212,9 @@ class PropertyRestrictions(Notify):
     def changeset(self) -> Dict[PropertyRestrictionType, PropertyRestrictionChange]:
         return self._changeset
 
+    def changeset_clear(self) -> None:
+        self._changeset = {}
+
     def get(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Language], QName, None]:
         """
         Get the given restriction
