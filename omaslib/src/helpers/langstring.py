@@ -288,7 +288,7 @@ class LangString(Notify):
         for lang, change in self._changeset.items():
             if change.action == Action.CREATE:
                 del self._langstring[lang]
-            elif change.action == Action.REPLACE:
+            else:
                 self._langstring[lang] = change.old_value
         self._changeset = {}
 

@@ -77,6 +77,20 @@ class TestLangstring(unittest.TestCase):
             ls3['rr'] = 'no way'
         self.assertEqual(str(ex.exception), 'Language "rr" is invalid')
 
+    def test_langstring_undo(self):
+        ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
+        ls1['fr'] = 'français'
+        del ls1[Language.DE]
+        self.assertIsNone(ls1.get(Language.DE))
+        self.assertEqual(ls1[Language.FR], 'français')
+        self.assertEqual(ls1[Language.EN], 'english')
+        self.assertEqual(ls1[Language.XX], 'unbekannt')
+        ls1.undo()
+        self.assertIsNone(ls1.get(Language.FR))
+        self.assertEqual(ls1[Language.EN], 'english')
+        self.assertEqual(ls1[Language.DE], 'deutsch')
+        self.assertEqual(ls1[Language.XX], 'unbekannt')
+
     def test_langstring_delete(self):
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
         del ls1['de']

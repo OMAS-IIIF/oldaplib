@@ -150,7 +150,7 @@ class NCName:
 
 
 class Action(Enum):
-    CREATE = 'create'
-    MODIFY = 'modify'
-    REPLACE = 'replace'
-    DELETE = 'delete'
+    CREATE = 'create'  # a new value has been added
+    MODIFY = 'modify'  # a complex value (LangString, PropertyRestriction) has been modified
+    REPLACE = 'replace'  # an existing value has been replaced by a new value
+    DELETE = 'delete'  # an existing value has been deleted

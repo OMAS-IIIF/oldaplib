@@ -149,6 +149,65 @@ class TestPropertyRestriction(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(r1.changeset, expected)
 
+    def test_restriction_undo(self):
+        undo_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
+        r1 = PropertyRestrictions(restrictions=undo_restrictions)
+        r1[PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE}
+        r1[PropertyRestrictionType.UNIQUE_LANG] = False
+        r1[PropertyRestrictionType.MIN_COUNT] = 3
+        r1[PropertyRestrictionType.MAX_COUNT] = 10
+        r1[PropertyRestrictionType.MIN_LENGTH] = 3
+        r1[PropertyRestrictionType.MAX_LENGTH] = 100
+        r1[PropertyRestrictionType.PATTERN] = '[a-zA-Z0-9]*'
+        r1[PropertyRestrictionType.MIN_EXCLUSIVE] = 20
+        r1[PropertyRestrictionType.MIN_INCLUSIVE] = 20
+        r1[PropertyRestrictionType.MAX_EXCLUSIVE] = 25
+        r1[PropertyRestrictionType.MAX_INCLUSIVE] = 25
+        r1[PropertyRestrictionType.LESS_THAN] = QName('test:waseliwas')
+        r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = QName('test:soso')
+        self.assertEqual(r1[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE})
+        self.assertFalse(r1[PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(r1[PropertyRestrictionType.MIN_COUNT], 3)
+        self.assertEqual(r1[PropertyRestrictionType.MAX_COUNT], 10)
+        self.assertEqual(r1[PropertyRestrictionType.MIN_LENGTH], 3)
+        self.assertEqual(r1[PropertyRestrictionType.MAX_LENGTH], 100)
+        self.assertEqual(r1[PropertyRestrictionType.PATTERN], '[a-zA-Z0-9]*')
+        self.assertEqual(r1[PropertyRestrictionType.MIN_EXCLUSIVE], 20)
+        self.assertEqual(r1[PropertyRestrictionType.MIN_INCLUSIVE], 20)
+        self.assertEqual(r1[PropertyRestrictionType.MAX_EXCLUSIVE], 25)
+        self.assertEqual(r1[PropertyRestrictionType.MAX_INCLUSIVE], 25)
+        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN], QName('test:waseliwas'))
+        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS], QName('test:soso'))
+
+        r1.undo(PropertyRestrictionType.LANGUAGE_IN)
+        r1.undo(PropertyRestrictionType.UNIQUE_LANG)
+        r1.undo(PropertyRestrictionType.MIN_COUNT)
+        r1.undo(PropertyRestrictionType.MAX_COUNT)
+        r1.undo(PropertyRestrictionType.MIN_LENGTH)
+        r1.undo(PropertyRestrictionType.MAX_LENGTH)
+        r1.undo(PropertyRestrictionType.PATTERN)
+        r1.undo(PropertyRestrictionType.MIN_EXCLUSIVE)
+        r1.undo(PropertyRestrictionType.MIN_INCLUSIVE)
+        r1.undo(PropertyRestrictionType.MAX_EXCLUSIVE)
+        r1.undo(PropertyRestrictionType.MAX_INCLUSIVE)
+        r1.undo(PropertyRestrictionType.LESS_THAN)
+        r1.undo(PropertyRestrictionType.LESS_THAN_OR_EQUALS)
+
+        self.assertEqual(len(r1), 13)
+        self.assertEqual(r1[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertTrue(r1[PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(r1[PropertyRestrictionType.MIN_COUNT], 1)
+        self.assertEqual(r1[PropertyRestrictionType.MAX_COUNT], 4)
+        self.assertEqual(r1[PropertyRestrictionType.MIN_LENGTH], 8)
+        self.assertEqual(r1[PropertyRestrictionType.MAX_LENGTH], 64)
+        self.assertEqual(r1[PropertyRestrictionType.PATTERN], '.*')
+        self.assertEqual(r1[PropertyRestrictionType.MIN_EXCLUSIVE], 6.5)
+        self.assertEqual(r1[PropertyRestrictionType.MIN_INCLUSIVE], 8)
+        self.assertEqual(r1[PropertyRestrictionType.MAX_EXCLUSIVE], 6.5)
+        self.assertEqual(r1[PropertyRestrictionType.MAX_INCLUSIVE], 8)
+        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN], QName('test:greater'))
+        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS], QName('test:gaga'))
+
     def test_restriction_update(self):
         context = Context(name='hihi')
         context['test'] = "http://www.test.org/test#"

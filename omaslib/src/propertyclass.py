@@ -123,7 +123,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, prop)
             if self._changeset.get(prop) is None:
-                self._changeset[prop] = PropertyClassPropChange(self._props[prop], Action.CREATE, True)
+                self._changeset[prop] = PropertyClassPropChange(None, Action.CREATE, True)
             self._props[prop] = value
         else:
             if self._props.get(prop) != value:
@@ -147,6 +147,36 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     @property
     def changeset(self) -> Dict[PropertyClassProp, PropertyClassPropChange]:
         return self._changeset
+
+    def undo(self, prop: Optional[Union[PropertyClassProp, PropertyRestrictionType]] = None) -> None:
+        if prop is None:
+            for p, change in self._changeset.items():
+                if change.action == Action.MODIFY:
+                    self._props[p].undo()
+                    if len(self._props[p]) == 0:
+                        del self._props[p]
+                else:
+                    if change.action == Action.CREATE:
+                        del self._props[p]
+                    else:
+                        self._props[p] = change.old_value
+            self._changeset = {}
+        else:
+            if self._changeset.get(prop) is not None:  # this prop really changed...
+                if type(prop) is PropertyClassProp:
+                    if self._changeset[prop].action == Action.MODIFY:
+                        self._props[prop].undo()
+                        if len(self._props[prop]) == 0:
+                            del self._props[prop]
+                    if self._changeset[prop].action == Action.CREATE:
+                        del self._props[prop]
+                    else:
+                        self._props[prop] = self._changeset[prop].old_value
+                elif type(prop) is PropertyRestrictionType:
+                    self._props[prop].undo(prop)
+                    if len(self._props[prop]) == 0:
+                        del self._props[prop]
+                self._changeset = {}
 
     def __changeset_clear(self) -> None:
         for prop, change in self._changeset.items():

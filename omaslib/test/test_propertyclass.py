@@ -114,6 +114,38 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertEqual(p2[PropertyClassProp.ORDER], 11)
 
+    def test_propertyclass_undo(self):
+        props: PropertyClassPropsContainer = {
+            PropertyClassProp.TO_NODE_IRI: QName('test:comment'),
+            PropertyClassProp.DATATYPE: XsdDatatypes.anyURI,
+            PropertyClassProp.NAME: LangString(["Annotations@en", "Annotationen@de"]),
+            PropertyClassProp.RESTRICTIONS: PropertyRestrictions(restrictions={
+                PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE},
+                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.PATTERN: '*.'
+            }),
+            PropertyClassProp.ORDER: 11
+        }
+        p1 = PropertyClass(
+            con=self._connection,
+            property_class_iri=QName('test:testUndo'),
+            props=props
+        )
+        self.assertEqual(p1[PropertyClassProp.TO_NODE_IRI], QName('test:comment'))
+        self.assertEqual(p1[PropertyClassProp.DATATYPE], XsdDatatypes.anyURI)
+        self.assertEqual(p1[PropertyClassProp.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        self.assertEqual(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         {Language.EN, Language.DE})
+        self.assertTrue(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.PATTERN], '*.')
+        self.assertEqual(p1[PropertyClassProp.ORDER], 11)
+
+        p1[PropertyClassProp.TO_NODE_IRI] = QName('test:waseliwas')
+        p1[PropertyClassProp.NAME][Language.FR] = "Annotations en Français"
+        del p1[PropertyClassProp.NAME][Language.EN]
+        p1[PropertyClassProp.DESCRIPTION] = LangString("A description@en")
+        p1[PropertyClassProp.ORDER] = 22
+
     def test_propertyclass_update(self):
         props: PropertyClassPropsContainer = {
             PropertyClassProp.TO_NODE_IRI: QName('test:comment'),

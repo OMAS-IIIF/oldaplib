@@ -208,6 +208,27 @@ class PropertyRestrictions(Notify):
             del self._restrictions[restriction_type]
             self.notify()
 
+    def undo(self, restriction_type: Optional[PropertyRestrictionType] = None) -> None:
+        """
+        Undo the change of a given restriction or of all restrictions that changed
+        :param restriction_type: The restriction to undo. If None, all changes will be undone
+        :return: None
+        """
+        if restriction_type is None:
+            for rt in self._changeset:
+                if self._changeset[rt].action == Action.CREATE:
+                    del self._restrictions[rt]
+                else:
+                    self._restrictions[rt] = self._changeset[rt].old_value
+            self._changeset = {}
+        else:
+            if self._changeset.get(restriction_type) is not None:
+                if self._changeset[restriction_type].action == Action.CREATE:
+                    del self._restrictions[restriction_type]
+                else:
+                    self._restrictions[restriction_type] = self._changeset[restriction_type].old_value
+                del self._changeset[restriction_type]
+
     @property
     def changeset(self) -> Dict[PropertyRestrictionType, PropertyRestrictionChange]:
         return self._changeset
