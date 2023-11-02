@@ -285,11 +285,14 @@ class LangString(Notify):
         Undo all changes made since last update/creation/read
         :return: None
         """
+        print("\nLangString undo....")
+        pprint(self._changeset)
         for lang, change in self._changeset.items():
             if change.action == Action.CREATE:
                 del self._langstring[lang]
             else:
                 self._langstring[lang] = change.old_value
+        pprint(self._langstring)
         self._changeset = {}
 
     @property

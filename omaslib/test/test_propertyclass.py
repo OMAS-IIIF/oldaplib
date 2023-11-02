@@ -144,7 +144,42 @@ class TestPropertyClass(unittest.TestCase):
         p1[PropertyClassProp.NAME][Language.FR] = "Annotations en Français"
         del p1[PropertyClassProp.NAME][Language.EN]
         p1[PropertyClassProp.DESCRIPTION] = LangString("A description@en")
+        p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE, Language.FR}
         p1[PropertyClassProp.ORDER] = 22
+
+        self.assertEqual(p1[PropertyClassProp.TO_NODE_IRI], QName('test:waseliwas'))
+        self.assertEqual(p1[PropertyClassProp.DATATYPE], XsdDatatypes.anyURI)
+        self.assertEqual(p1[PropertyClassProp.NAME], LangString(["Annotationen@de", "Annotations en Français@fr"]))
+        self.assertEqual(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         {Language.EN, Language.DE, Language.FR})
+        self.assertTrue(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.PATTERN], '*.')
+        self.assertEqual(p1[PropertyClassProp.ORDER], 22)
+
+        p1.undo()
+        self.assertEqual(p1[PropertyClassProp.TO_NODE_IRI], QName('test:comment'))
+        self.assertEqual(p1[PropertyClassProp.DATATYPE], XsdDatatypes.anyURI)
+        self.assertEqual(p1[PropertyClassProp.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        self.assertEqual(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         {Language.EN, Language.DE})
+        self.assertTrue(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.PATTERN], '*.')
+        self.assertEqual(p1[PropertyClassProp.ORDER], 11)
+
+        p1[PropertyClassProp.TO_NODE_IRI] = QName('test:waseliwas')
+        p1[PropertyClassProp.NAME][Language.FR] = "Annotations en Français"
+        del p1[PropertyClassProp.NAME][Language.EN]
+        p1[PropertyClassProp.DESCRIPTION] = LangString("A description@en")
+        p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE, Language.FR}
+        p1[PropertyClassProp.ORDER] = 22
+
+        p1.undo(PropertyClassProp.TO_NODE_IRI)
+        self.assertEqual(p1[PropertyClassProp.TO_NODE_IRI], QName('test:comment'))
+        p1.undo(PropertyClassProp.NAME)
+        print("******>", str(p1[PropertyClassProp.NAME]))
+        self.assertEqual(p1[PropertyClassProp.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        p1.undo(PropertyClassProp.DESCRIPTION)
+        self.assertIsNone(p1.get(PropertyClassProp.DESCRIPTION))
 
     def test_propertyclass_update(self):
         props: PropertyClassPropsContainer = {
