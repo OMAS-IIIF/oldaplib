@@ -176,10 +176,14 @@ class TestPropertyClass(unittest.TestCase):
         p1.undo(PropertyClassProp.TO_NODE_IRI)
         self.assertEqual(p1[PropertyClassProp.TO_NODE_IRI], QName('test:comment'))
         p1.undo(PropertyClassProp.NAME)
-        print("******>", str(p1[PropertyClassProp.NAME]))
         self.assertEqual(p1[PropertyClassProp.NAME], LangString(["Annotations@en", "Annotationen@de"]))
         p1.undo(PropertyClassProp.DESCRIPTION)
         self.assertIsNone(p1.get(PropertyClassProp.DESCRIPTION))
+        p1.undo(PropertyRestrictionType.LANGUAGE_IN)
+        self.assertEqual(p1[PropertyClassProp.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         {Language.EN, Language.DE})
+        p1.undo(PropertyClassProp.ORDER)
+        self.assertEqual(p1[PropertyClassProp.ORDER], 11)
 
     def test_propertyclass_update(self):
         props: PropertyClassPropsContainer = {
