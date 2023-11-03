@@ -4,12 +4,13 @@
 from dataclasses import dataclass
 from enum import Enum, unique
 from pprint import pprint
-from typing import Union, Set, Optional, Any, Tuple, Dict
+from typing import Union, Set, Optional, Any, Tuple, Dict, Callable
 
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
 
 from omaslib.src.connection import Connection
+from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
@@ -39,7 +40,7 @@ class PropertyClassAttributeChange:
     test_in_use: bool
 
 @strict
-class PropertyClass(Model, metaclass=PropertyClassSingleton):
+class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     """
     This class implements the SHACL/OWL property definition that OMAS supports
 
@@ -49,6 +50,7 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
 
     _changeset: Dict[PropertyClassAttribute, PropertyClassAttributeChange]
     _test_in_use: bool
+    _notifier: Union[Callable[[type], None], None]
 
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
         PropertyClassAttribute.SUBPROPERTY_OF: {QName},
@@ -65,7 +67,9 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
     def __init__(self, *,
                  con: Connection,
                  property_class_iri: Optional[QName] = None,
-                 attrs: Optional[PropertyClassAttributesContainer] = None):
+                 attrs: Optional[PropertyClassAttributesContainer] = None,
+                 notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
+                 notify_data: Optional[PropertyClassAttribute] = None):
         """
         Constructor for PropertyClass
 
@@ -73,7 +77,8 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         :param property_class_iri: The OWL QName of the property
         :param attrs: Props of this instance
         """
-        super().__init__(con)
+        Model.__init__(self, con)
+        Notify.__init__(self, notifier, notify_data)
         self._property_class_iri = property_class_iri
         if attrs is None:
             self._attributes = {}
@@ -92,17 +97,21 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             self._attributes = attrs
 
         # setting property type for OWL which distinguished between Data- and Object-^properties
-        if self._attributes.get(PropertyClassAttribute.TO_NODE_IRI) is not None:
-            self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
-            dt = self._attributes.get(PropertyClassAttribute.DATATYPE)
-            if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
-                raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
-        else:
-            self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+        if self._attributes:
+            if self._attributes.get(PropertyClassAttribute.TO_NODE_IRI) is not None:
+                self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
+                dt = self._attributes.get(PropertyClassAttribute.DATATYPE)
+                if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
+                    raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
+            else:
+                self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
         self._changeset = {}  # initialize changeset to empty set
         self._test_in_use = False
 
-    def __str__(self):
+    def __len__(self) -> int:
+        return len(self._attributes)
+
+    def __str__(self) -> str:
         propstr = f'Property: {str(self._property_class_iri)};'
         for attr, value in self._attributes.items():
             propstr += f' {attr.value}: {value};'
@@ -125,16 +134,19 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
             if self._changeset.get(attr) is None:
                 self._changeset[attr] = PropertyClassAttributeChange(None, Action.CREATE, True)
             self._attributes[attr] = value
+            self.notify()
         else:
             if self._attributes.get(attr) != value:
                 if self._changeset.get(attr) is None:
                     self._changeset[attr] = PropertyClassAttributeChange(self._attributes[attr], Action.REPLACE, True)
                 self._attributes[attr] = value
+                self.notify()
 
     def __delitem__(self, attr: PropertyClassAttribute) -> None:
         if self._attributes.get(attr) is not None:
             self._changeset[attr] = PropertyClassAttributeChange(self._attributes[attr], Action.DELETE, True)
             del self._attributes[attr]
+            self.notify()
 
     @property
     def property_class_iri(self) -> QName:

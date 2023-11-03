@@ -4,7 +4,7 @@ from typing import Union, Optional, List, Set, Any, Tuple, Dict
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
 
-from connection import Connection
+from omaslib.src.connection import Connection
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
 from omaslib.src.helpers.datatypes import QName, Action
@@ -37,17 +37,17 @@ class ResourceClassAttributeChange:
 class ResourceClass(Model):
     _owl_class: Union[QName, None]
     _attributes: ResourceClassAttributesContainer
+    _properties: Dict[QName, PropertyClass]
     _changeset: Dict[Union[ResourceClassAttributes, QName], ResourceClassAttributeChange]
 
-    def __init__(self,
+    def __init__(self, *,
                  con: Connection,
                  owl_cass: Optional[QName] = None,
                  attrs: Optional[ResourceClassAttributesContainer] = None,
-                 properties: Optional[Dict[QName, PropertyClass]] = None):
+                 properties: Optional[List[PropertyClass]] = None):
         super().__init__(con)
-        if attrs is None:
-            self._attributes = {}
-        else:
+        self._attributes = {}
+        if attrs is not None:
             for attr, value in attrs.items():
                 if (attr == ResourceClassAttributes.LABEL or attr == ResourceClassAttributes.COMMENT) and type(value) != LangString:
                     raise OmasError(f'Attribute "{attr.value}" must be a "LangString", but is "{type(value)}"!')
@@ -55,15 +55,23 @@ class ResourceClass(Model):
                     raise OmasError(f'Attribute "{attr.value}" must be a "QName", but is "{type(value)}"!')
                 if attr == ResourceClassAttributes.CLOSED and type(value) != bool:
                     raise OmasError(f'Attribute "{attr.value}" must be a "bool", but is "{type(value)}"!')
+                if getattr(value, 'set_notifier', None) is not None:
+                    value.set_notifier(self.notifier, attr)
                 self._attributes[attr] = value
-        self._properties = properties if properties else {}
+        self._properties = {}
+        if properties is not None:
+            for prop in properties:
+                prop.set_notifier(self.notifier, prop.property_class_iri)
+                if len(prop) <= 0:
+                    prop.read()
+                self._properties[prop.property_class_iri] = prop
         self._changeset = {}
 
     def __getitem__(self, key: Union[ResourceClassAttributes, QName]) -> Union[AttributeTypes, PropertyClass]:
         if type(key) is ResourceClassAttributes:
             return self._attributes[key]
         elif type(key) is QName:
-            return self._attributes[key]
+            return self._properties[key]
         else:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
 
@@ -76,6 +84,8 @@ class ResourceClass(Model):
             return None
 
     def __setitem__(self, key: Union[ResourceClassAttributes, QName], value: Union[AttributeTypes, PropertyClass]) -> None:
+        if getattr(value, 'set_notifier', None) is not None:
+            value.set_notifier(self.notifier, key)
         if type(key) is ResourceClassAttributes:
             if self._attributes.get(key) is None:  # Attribute not yet set
                 if self._changeset.get(key) is None:  # Only first change is recorded
@@ -126,6 +136,9 @@ class ResourceClass(Model):
         for qname, prop in sorted_properties:
             s += f'{blank:{indent*2}}{qname} = {prop}\n'
         return s
+
+    def notifier(self, what: Union[ResourceClassAttributes, QName]):
+        self._changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
 
     @property
     def in_use(self) -> bool:

@@ -1,5 +1,6 @@
 import unittest
 from time import sleep
+from typing import Dict, List
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
@@ -9,6 +10,7 @@ from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType
+from omaslib.src.resourceclass import ResourceClassAttributesContainer, ResourceClassAttributes, ResourceClass
 
 
 class TestResourceClass(unittest.TestCase):
@@ -34,19 +36,26 @@ class TestResourceClass(unittest.TestCase):
         pass
 
     def test_constructor(self):
-        props: PropertyClassAttributesContainer = {
-            PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),
-            PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
-            PropertyClassAttribute.NAME: LangString(["Test property@en", "Testprädikat@de"]),
-            PropertyClassAttribute.DESCRIPTION: LangString("A property for testing...@en"),
-            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
-                restrictions={PropertyRestrictionType.MAX_COUNT: 1}),
-            PropertyClassAttribute.ORDER: 5
+        attrs: ResourceClassAttributesContainer = {
+            ResourceClassAttributes.LABEL: LangString(["Test resource@en", "Resource de test@fr"]),
+            ResourceClassAttributes.COMMENT: LangString("For testing purposes@en"),
+            ResourceClassAttributes.CLOSED: True
         }
-        comment_p = PropertyClass(con=self._connection,
-                                  property_class_iri=QName('test:testprop'),
-                                  attrs=props)
+        properties: List[PropertyClass] = [
+            PropertyClass(con=self._connection,
+                          property_class_iri=QName("test:comment")),
+            PropertyClass(con=self._connection,
+                          property_class_iri=QName("test:test")),
+        ]
 
-        pdict = {
-
-        }
+        r1 = ResourceClass(con=self._connection,
+                           owl_cass="TestResource",
+                           attrs=attrs,
+                           properties=properties)
+        self.assertEqual(r1[ResourceClassAttributes.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
+        self.assertEqual(r1[ResourceClassAttributes.COMMENT], LangString("For testing purposes@en"))
+        self.assertTrue(r1[ResourceClassAttributes.CLOSED])
+        self.assertEqual(r1[QName("test:comment")].property_class_iri, QName("test:comment"))
+        self.assertEqual(r1[QName("test:comment")][PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
+        self.assertEqual(r1[QName("test:comment")][PropertyClassAttribute.NAME], LangString(["comment@en", "Kommentar@de"]))
+        self.assertEqual(r1[QName("test:comment")][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 1)
