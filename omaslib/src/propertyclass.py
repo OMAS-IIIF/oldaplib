@@ -172,12 +172,15 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
                         del self._props[prop]
                     else:
                         self._props[prop] = self._changeset[prop].old_value
+                    del self._changeset[prop]
             elif type(prop) is PropertyRestrictionType:
                 self._props[PropertyClassProp.RESTRICTIONS].undo(prop)
                 if len(self._props[PropertyClassProp.RESTRICTIONS]) == 0:
                     del self._props[PropertyClassProp.RESTRICTIONS]
-            if self._changeset.get(PropertyClassProp.RESTRICTIONS):
-                del self._changeset[PropertyClassProp.RESTRICTIONS]
+                if len(self._props[PropertyClassProp.RESTRICTIONS].changeset) == 0:
+                    del self._changeset[PropertyClassProp.RESTRICTIONS]
+            #if self._changeset.get(PropertyClassProp.RESTRICTIONS):
+            #    del self._changeset[PropertyClassProp.RESTRICTIONS]
 
     def __changeset_clear(self) -> None:
         for prop, change in self._changeset.items():

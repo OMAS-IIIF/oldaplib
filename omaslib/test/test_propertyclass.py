@@ -184,6 +184,7 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE})
         p1.undo(PropertyClassProp.ORDER)
         self.assertEqual(p1[PropertyClassProp.ORDER], 11)
+        self.assertEqual(p1.changeset, {})
 
     def test_propertyclass_update(self):
         props: PropertyClassPropsContainer = {
