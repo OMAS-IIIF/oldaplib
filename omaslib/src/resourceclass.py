@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Union, Optional, List, Set, Any, Tuple, Dict
 from pystrict import strict
@@ -20,173 +21,111 @@ class ResourceClassAttributes(Enum):
     COMMENT = 'rdfs:comment'
     CLOSED = 'sh:closed'
 
-AttributeTypes = Union[QName, LangString, None]
+
+AttributeTypes = Union[QName, LangString, bool, None]
+ResourceClassAttributesContainer = Dict[ResourceClassAttributes, AttributeTypes]
+
+
+@dataclass
+class ResourceClassAttributeChange:
+    old_value: Union[AttributeTypes, PropertyClass]
+    action: Action
+    test_in_use: bool
+
 
 @strict
 class ResourceClass(Model):
-    _attributes: Dict[ResourceClassAttributes, AttributeTypes]
-
     _owl_class: Union[QName, None]
-    _subclass_of: Union[QName, None]
-    _properties: Dict[QName, PropertyClass]
-    _label: Union[LangString, None]
-    _comment: Union[LangString, None]
-    _closed: bool
-    _changeset: Set[Tuple[ResourceClassAttributes, Action, Union[QName, None]]]
+    _attributes: ResourceClassAttributesContainer
+    _changeset: Dict[Union[ResourceClassAttributes, QName], ResourceClassAttributeChange]
 
     def __init__(self,
                  con: Connection,
                  owl_cass: Optional[QName] = None,
-                 subclass_of: Optional[QName] = None,
-                 properties: Optional[Dict[QName, PropertyClass]] = None,
-                 label: Optional[LangString] = None,
-                 comment: Optional[LangString] = None,
-                 closed: Optional[bool] = None) -> None:
+                 attrs: Optional[ResourceClassAttributesContainer] = None,
+                 properties: Optional[Dict[QName, PropertyClass]] = None):
         super().__init__(con)
-        self._owl_class = owl_cass
-        self._subclass_of = subclass_of
-        self._properties = properties if properties else {}
-        if label and not isinstance(label, LangString):
-            raise OmasError(f'Parameter "label" must be a "LangString", but is "{type(label)}"!')
-        self._label = label
-        if comment and not isinstance(comment, LangString):
-            raise OmasError(f'Parameter "comment" must be a "LangString", but is "{type(label)}"!')
-        self._comment = comment
-        self._closed = True if closed is None else closed
-        self._changeset = set()
-
-    def __getitem__(self, key: QName) -> PropertyClass:
-        return self._properties[key]
-
-    def __setitem__(self, key: QName, has_property: PropertyClass) -> None:
-        if self._properties.get(key) is None:
-            self._changeset.add((ResourceClassAttributes.PROPERTY, Action.CREATE, has_property.property_class_iri))
+        if attrs is None:
+            self._attributes = {}
         else:
-            self._changeset.add((ResourceClassAttributes.PROPERTY, Action.REPLACE, has_property.property_class_iri))
-        self._properties[key] = has_property
+            for attr, value in attrs.items():
+                if (attr == ResourceClassAttributes.LABEL or attr == ResourceClassAttributes.COMMENT) and type(value) != LangString:
+                    raise OmasError(f'Attribute "{attr.value}" must be a "LangString", but is "{type(value)}"!')
+                if attr == ResourceClassAttributes.SUBCLASS_OF and type(value) != QName:
+                    raise OmasError(f'Attribute "{attr.value}" must be a "QName", but is "{type(value)}"!')
+                if attr == ResourceClassAttributes.CLOSED and type(value) != bool:
+                    raise OmasError(f'Attribute "{attr.value}" must be a "bool", but is "{type(value)}"!')
+                self._attributes[attr] = value
+        self._properties = properties if properties else {}
+        self._changeset = {}
 
-    def __delitem__(self, key: QName):
-        del self._properties[key]
-        self._changeset.add((ResourceClassAttributes.PROPERTY, Action.DELETE, key))
+    def __getitem__(self, key: Union[ResourceClassAttributes, QName]) -> Union[AttributeTypes, PropertyClass]:
+        if type(key) is ResourceClassAttributes:
+            return self._attributes[key]
+        elif type(key) is QName:
+            return self._attributes[key]
+        else:
+            raise ValueError(f'Invalid key type {type(key)} of key {key}')
 
-    def get(self, key: QName) -> PropertyClass:
-        self._properties.get(key)
+    def get(self, key: Union[ResourceClassAttributes, QName]) -> Union[AttributeTypes, PropertyClass, None]:
+        if type(key) is ResourceClassAttributes:
+            return self._attributes.get(key)
+        elif type(key) is QName:
+            return self._attributes.get(key)
+        else:
+            return None
 
-    def items(self):
+    def __setitem__(self, key: Union[ResourceClassAttributes, QName], value: Union[AttributeTypes, PropertyClass]) -> None:
+        if type(key) is ResourceClassAttributes:
+            if self._attributes.get(key) is None:  # Attribute not yet set
+                if self._changeset.get(key) is None:  # Only first change is recorded
+                    self._changeset[key] = ResourceClassAttributeChange(None, Action.CREATE, False)  # TODO: Check if "check_in_use" must be set
+            else:
+                if self._changeset.get(key) is None:  # Only first change is recorded
+                    self._changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
+            self._attributes[key] = value
+        elif type(key) is QName:
+            if self._properties.get(key) is None:  # Property not yet set
+                if self._changeset.get(key) is None:
+                    self._changeset[key] = ResourceClassAttributeChange(self._properties[key], Action.CREATE, False)
+            else:
+                if self._changeset.get(key) is None:
+                    self._changeset[key] = ResourceClassAttributeChange(self._properties[key], Action.REPLACE, False)
+            self._properties = value
+        else:
+            raise ValueError(f'Invalid key type {type(key)} of key {key}')
+
+    def __delitem__(self, key: Union[ResourceClassAttributes, QName]) -> None:
+        if type(key) is ResourceClassAttributes:
+            if self._changeset.get(key) is None:
+                self._changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
+            del self._attributes[key]
+        elif type(key) is QName:
+            if self._changeset.get(key) is None:
+                self._changeset[key] = ResourceClassAttributeChange(self._properties[key], Action.DELETE, False)
+            del self._properties[key]
+        else:
+            raise ValueError(f'Invalid key type {type(key)} of key {key}')
+
+
+    def properties_items(self):
         return self._properties.items()
+
+    def attributes_items(self):
+        return self._attributes.items()
 
     def __str__(self):
         blank = ' '
-        indent = 4
+        indent = 2
         s = f'Shape: {self._owl_class}Shape\n'
-        if self._subclass_of:
-            s += f'Subclass of "{self._subclass_of}"\n'
-        if self._label:
-            s += f'Label: "{self._label}"\n'
-        if self._comment:
-            s += f'Comment: "{self._comment}"\n'
-        s += f'Closed: {self._closed}\n'
-        s += 'Properties:\n'
+        s += f'{blank:{indent*1}}Attributes:\n'
+        for attr, value in self._attributes.items():
+            s += f'{blank:{indent*2}}{attr.value} = {value}\n'
+        s += f'{blank:{indent*1}}Properties:\n'
         sorted_properties = sorted(self._properties.items(), key=lambda prop: prop[1].order if prop[1].order is not None else 9999)
-        for tmp, p in sorted_properties:
-            s += f'{blank:{indent}}{p}'
-            s += '\n'
+        for qname, prop in sorted_properties:
+            s += f'{blank:{indent*2}}{qname} = {prop}\n'
         return s
-
-    def __attribute_setter(self, resclassattr: ResourceClassAttributes, value: Union[bool, int, float, str, QName, None]):
-        ivarname = '_' + resclassattr.value
-        if not hasattr(self, ivarname):
-            raise OmasError(f'No attribute "{ivarname}" existing!')
-        if value != getattr(self, ivarname):
-            if getattr(self, ivarname) is None:
-                self._changeset.add((resclassattr, Action.CREATE, None))
-            else:
-                if value is None:
-                    self._changeset.add((resclassattr, Action.DELETE, None))
-                else:
-                    self._changeset.add((resclassattr, Action.REPLACE, None))
-            setattr(self, ivarname, value)
-
-    def __langstring_setter(self, resclassattr: ResourceClassAttributes, value: Union[LangString, None]) -> None:
-        ivarname = '_' + resclassattr.value
-        if not hasattr(self, ivarname):
-            raise OmasError(f'No attribute "{resclassattr.value}" existing!')
-        if value != getattr(self, ivarname):
-            if getattr(self, ivarname) is None:
-                setattr(self, ivarname, value)
-                self._changeset.add((resclassattr, Action.CREATE, None))
-            else:
-                if value is None:
-                    setattr(self, ivarname, None)
-                    self._changeset.add((resclassattr, Action.DELETE, None))
-                else:
-                    setattr(self, ivarname, value)
-                    self._changeset.add((resclassattr, Action.REPLACE, None))
-
-    def __langstring_adder(self, resclassattr: ResourceClassAttributes, lang: Languages, value: Union[str, None]) -> None:
-        ivarname = '_' + resclassattr.value
-        if getattr(self, ivarname) is not None:
-            if getattr(self, ivarname).langstring.get(lang) != value:
-                tmp = getattr(self, ivarname)
-                if value is None:
-                    if tmp.get(lang) is not None:
-                        del tmp[lang]
-                        self._changeset.add((resclassattr, Action.DELETE, None))
-                else:
-                    tmp[lang] = value
-                    if tmp.get(lang) is not None:
-                        self._changeset.add((resclassattr, Action.REPLACE, None))
-                    else:
-                        self._changeset.add((resclassattr, Action.CREATE, None))
-        else:
-            setattr(self, ivarname, LangString({lang: value}))
-            self._changeset.add((resclassattr, Action.CREATE, None))
-
-    @property
-    def owl_class(self) -> QName:
-        return self._owl_class
-
-    @owl_class.setter
-    def owl_class(self, value: Any) -> None:
-        OmasError(f'owl_class cannot be modified/set!')
-
-    @property
-    def subclass_of(self) -> Union[QName, None]:
-        return self._subclass_of
-
-    @subclass_of.setter
-    def subclass_of(self, value: Union[QName, None]) -> None:
-        self.__attribute_setter(ResourceClassAttributes.SUBCLASS_OF, value)
-
-    @property
-    def label(self) -> LangString:
-        return self._label
-
-    @label.setter
-    def label(self, label: Union[LangString, None]) -> None:
-        self.__langstring_setter(ResourceClassAttributes.LABEL, label)
-
-    def label_add(self, lang: Languages, label: Union[str, None]):
-        self.__langstring_adder(ResourceClassAttributes.LABEL, lang, label)
-
-    @property
-    def comment(self) -> LangString:
-        return self._comment
-
-    @comment.setter
-    def comment(self, comment: Union[LangString, None]) -> None:
-        self.__langstring_setter(ResourceClassAttributes.COMMENT, comment)
-
-    def comment_add(self, lang: Languages, comment: Union[str, None]):
-        self.__langstring_adder(ResourceClassAttributes.COMMENT, lang, comment)
-
-    @property
-    def closed(self) -> bool:
-        return self._closed
-
-    @closed.setter
-    def closed(self, value: Union[bool, None]):
-        self.__attribute_setter(ResourceClassAttributes.CLOSED, value)
 
     @property
     def in_use(self) -> bool:
@@ -265,13 +204,13 @@ class ResourceClass(Model):
                     if tmp_qname != self._owl_class:
                         raise OmasError(f'Inconsistent Shape for "{self._owl_class}": rdf:type="{tmp_qname}"')
             elif p == 'rdfs:label':
-                ll = Languages(r[1].language) if r[1].language else Languages.XX
+                ll = Language(r[1].language) if r[1].language else Language.XX
                 if self._label is None:
                     self._label = LangString({ll: r[1].toPython()})
                 else:
                     self._label[ll] = r[1].toPython()
             elif p == 'rdfs:comment':
-                ll = Languages(r[1].language) if r[1].language else Languages.XX
+                ll = Language(r[1].language) if r[1].language else Language.XX
                 if self._comment is None:
                     self._comment = LangString({ll: r[1].toPython()})
                 else:
@@ -342,7 +281,7 @@ class ResourceClass(Model):
             if r[1].fragment == 'languageIn':
                 if not properties[r[0]].get(p):
                     properties[r[0]][p] = set()
-                properties[r[0]][p].add(Languages(r[3].toPython()))
+                properties[r[0]][p].add(Language(r[3].toPython()))
         for x, p in properties.items():
             p_iri = None
             p_datatype = None
@@ -691,11 +630,11 @@ if __name__ == '__main__':
                       exclusive_for_class=QName('omas:OmasComment'),
                       restrictions=PropertyRestrictions(
                           min_count=1,
-                          language_in={Languages.DE, Languages.EN},
+                          language_in={Language.DE, Language.EN},
                           unique_lang=True
                       ),
-                      name=LangString({Languages.EN: "Comment"}),
-                      description=LangString({Languages.EN: "A comment to anything"}),
+                      name=LangString({Language.EN: "Comment"}),
+                      description=LangString({Language.EN: "A comment to anything"}),
                       order=1),
         QName('omas:creator'):
         PropertyClass(con=con,
@@ -720,8 +659,8 @@ if __name__ == '__main__':
         con=con,
         owl_cass=QName('omas:OmasComment'),
         subclass_of=QName('omas:OmasUser'),
-        label=LangString({Languages.EN: 'Omas Comment', Languages.DE: 'Omas Kommentar'}),
-        comment=LangString({Languages.EN: 'A class to comment something...'}),
+        label=LangString({Language.EN: 'Omas Comment', Language.DE: 'Omas Kommentar'}),
+        comment=LangString({Language.EN: 'A class to comment something...'}),
         properties=pdict,
         closed=True
     )

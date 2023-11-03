@@ -78,17 +78,17 @@ class PropertyClass(Model, metaclass=PropertyClassSingleton):
         if attrs is None:
             self._attributes = {}
         else:
-            for prop, value in attrs.items():
-                if type(prop) is not PropertyClassAttribute:
-                    raise OmasError(f'Unsupported Property prop "{prop}"')
-                if type(value) not in PropertyClass.__datatypes[prop]:
-                    raise OmasError(f'Datatype of prop "{prop.value}": "{type(value)}", should be {PropertyClass.__datatypes[prop]} ({value}) is not valid')
+            for attr, value in attrs.items():
+                if type(attr) is not PropertyClassAttribute:
+                    raise OmasError(f'Unsupported Property prop "{attr}"')
+                if type(value) not in PropertyClass.__datatypes[attr]:
+                    raise OmasError(f'Datatype of prop "{attr.value}": "{type(value)}", should be {PropertyClass.__datatypes[attr]} ({value}) is not valid')
                 #
                 # if the "value"-class is a subclass of Notify, it has the method "set_notifier".
                 # we need to set it!
                 #
                 if getattr(value, 'set_notifier', None) is not None:
-                    value.set_notifier(self.notifier, prop)
+                    value.set_notifier(self.notifier, attr)
             self._attributes = attrs
 
         # setting property type for OWL which distinguished between Data- and Object-^properties
