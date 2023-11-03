@@ -2,7 +2,7 @@ from enum import unique, Enum
 
 
 @unique
-class PropertyClassProp(Enum):
+class PropertyClassAttribute(Enum):
     SUBPROPERTY_OF = 'rdfs:subPropertyOf'
     PROPERTY_TYPE = 'rdf:type'
     EXCLUSIVE_FOR = 'omas:exclusive'

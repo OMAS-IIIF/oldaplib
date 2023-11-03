@@ -2,7 +2,7 @@ from typing import Callable, Optional
 
 from pystrict import strict
 
-from omaslib.src.helpers.propertyclassprops import PropertyClassProp
+from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
 
 
 @strict
@@ -13,14 +13,14 @@ class Notify:
     as of type LangString or PropertyRestriction to notify PropertyClass that something has changed,
     e.g. the change of value
     """
-    _notifier: Callable[[PropertyClassProp], None]
-    _data: PropertyClassProp
+    _notifier: Callable[[PropertyClassAttribute], None]
+    _data: PropertyClassAttribute
 
-    def __init__(self, notifier: Optional[Callable[[PropertyClassProp], None]], data: Optional[PropertyClassProp] = None):
+    def __init__(self, notifier: Optional[Callable[[PropertyClassAttribute], None]], data: Optional[PropertyClassAttribute] = None):
         self._notifier = notifier
         self._data = data
 
-    def set_notifier(self, notifier: Callable[[PropertyClassProp], None], data: Optional[PropertyClassProp] = None):
+    def set_notifier(self, notifier: Callable[[PropertyClassAttribute], None], data: Optional[PropertyClassAttribute] = None):
         self._notifier = notifier
         self._data = data
 

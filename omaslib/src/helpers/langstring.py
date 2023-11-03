@@ -9,7 +9,7 @@ from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.datatypes import Action, QName
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.helpers.propertyclassprops import PropertyClassProp
+from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
 
 
 @dataclass
@@ -36,8 +36,8 @@ class LangString(Notify):
     def __init__(self,
                  langstring: Optional[Union[str, List[str], Dict[str, str], Dict[Language, str]]] = None,
                  priorities: Optional[List[Language]] = None,
-                 notifier: Optional[Callable[[PropertyClassProp], None]] = None,
-                 notify_data: Optional[PropertyClassProp] = None):
+                 notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
+                 notify_data: Optional[PropertyClassAttribute] = None):
         """
         Implements language dependent strings
 

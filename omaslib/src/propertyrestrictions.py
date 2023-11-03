@@ -8,7 +8,7 @@ from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.helpers.propertyclassprops import PropertyClassProp
+from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
 
 
 @unique
@@ -118,8 +118,8 @@ class PropertyRestrictions(Notify):
 
     def __init__(self, *,
                  restrictions: Optional[RestrictionContainer] = None,
-                 notifier: Optional[Callable[[PropertyClassProp], None]] = None,
-                 notify_data: Optional[PropertyClassProp] = None):
+                 notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
+                 notify_data: Optional[PropertyClassAttribute] = None):
         """
         Constructor for restrictions
         :param restrictions: A Dict of restriction. See ~PropertyRestrictionType for SHACL-restriction supported

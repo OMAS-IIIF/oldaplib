@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, unique
 from typing import Union, Optional, List, Set, Any, Tuple, Dict
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
@@ -7,23 +7,25 @@ from connection import Connection
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
 from omaslib.src.helpers.datatypes import QName, Action
-from omaslib.src.helpers.langstring import Languages, LangString
+from omaslib.src.helpers.langstring import Language, LangString
 from omaslib.src.helpers.context import Context
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass
 from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
 
-
+@unique
 class ResourceClassAttributes(Enum):
-    SUBCLASS_OF = 'subclass_of'
-    LABEL = 'label'
-    COMMENT = 'comment'
-    CLOSED = 'closed'
-    PROPERTY = 'property'
+    SUBCLASS_OF = 'rdfs:subClassOf'
+    LABEL = 'rdfs:label'
+    COMMENT = 'rdfs:comment'
+    CLOSED = 'sh:closed'
 
+AttributeTypes = Union[QName, LangString, None]
 
 @strict
 class ResourceClass(Model):
+    _attributes: Dict[ResourceClassAttributes, AttributeTypes]
+
     _owl_class: Union[QName, None]
     _subclass_of: Union[QName, None]
     _properties: Dict[QName, PropertyClass]
