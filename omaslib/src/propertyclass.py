@@ -2,6 +2,7 @@
 :Author: Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>
 """
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum, unique
 from pprint import pprint
 from typing import Union, Set, Optional, Any, Tuple, Dict, Callable
@@ -47,10 +48,13 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     """
     _property_class_iri: Union[QName, None]
     _attributes: PropertyClassAttributesContainer
-
     _changeset: Dict[PropertyClassAttribute, PropertyClassAttributeChange]
     _test_in_use: bool
     _notifier: Union[Callable[[type], None], None]
+    __creator: Union[AnyIRI, None]
+    __created: Union[datetime, None]
+    __contributor: Union[AnyIRI, None]
+    __modified: Union[datetime, None]
 
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
         PropertyClassAttribute.SUBPROPERTY_OF: {QName},
@@ -107,6 +111,10 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
         self._changeset = {}  # initialize changeset to empty set
         self._test_in_use = False
+        self.__creator = None
+        self.__created = None
+        self.__contributor = None
+        self.__modified = None
 
     def __len__(self) -> int:
         return len(self._attributes)
@@ -155,6 +163,10 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     @property_class_iri.setter
     def property_class_iri(self, value: Any):
         OmasError(f'property_class_iri_class cannot be set!')
+
+    @property
+    def creator(self):
+        return self.
 
     @property
     def changeset(self) -> Dict[PropertyClassAttribute, PropertyClassAttributeChange]:

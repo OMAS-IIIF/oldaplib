@@ -3,6 +3,8 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dc:<http://purl.org/dc/elements/1.1/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix test: <http://omas.org/test#> .
 @prefix : <http://omas.org/test#> .
@@ -17,7 +19,12 @@
         sh:datatype xsd:string ;
         sh:uniqueLang true ;
         sh:maxCount 1 ;
-        sh:order 2 .
+        sh:order 2 ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime .
 
     :testShape a sh:PropertyShape ;
         sh:path :test ;
@@ -25,7 +32,12 @@
         sh:description "Property shape for testing purposes" ;
         sh:class :comment ;
         sh:minCount 1 ;
-        sh:order 3 .
+        sh:order 3 ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime .
 
 }
 

@@ -73,6 +73,8 @@ class Connection:
     """
     _server: str
     _repo: str
+    _userid: str
+    _credentials: str
     _context_name: str
     _store: SPARQLUpdateStore
     _query_url: str
