@@ -51,10 +51,13 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     _changeset: Dict[PropertyClassAttribute, PropertyClassAttributeChange]
     _test_in_use: bool
     _notifier: Union[Callable[[type], None], None]
-    __creator: Union[AnyIRI, None]
-    __created: Union[datetime, None]
-    __contributor: Union[AnyIRI, None]
-    __modified: Union[datetime, None]
+    #
+    # The following attributes of this class cannot be set explicitely by the used
+    # They are automatically managed by the OMAS system
+    __creator: Optional[AnyIRI]
+    __created: Optional[datetime]
+    __contributor: Optional[AnyIRI]
+    __modified: Optional[datetime]
 
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
         PropertyClassAttribute.SUBPROPERTY_OF: {QName},
@@ -160,13 +163,21 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     def property_class_iri(self) -> QName:
         return self._property_class_iri
 
-    @property_class_iri.setter
-    def property_class_iri(self, value: Any):
-        OmasError(f'property_class_iri_class cannot be set!')
+    @property
+    def creator(self) -> Optional[AnyIRI]:
+        return self.__creator
 
     @property
-    def creator(self):
-        return self.
+    def created(self) -> Optional[datetime]:
+        return self.__created
+
+    @property
+    def contributor(self) -> Optional[AnyIRI]:
+        return self.__contributor
+
+    @property
+    def modified(self):
+        return self.__modified
 
     @property
     def changeset(self) -> Dict[PropertyClassAttribute, PropertyClassAttributeChange]:
@@ -256,28 +267,28 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         res = self._con.rdflib_query(query)
         attributes = {}
         for r in res:
-            p = context.iri2qname(r[0])
-            if isinstance(r[1], URIRef):
+            p = context.iri2qname(r['p'])
+            if isinstance(r['o'], URIRef):
                 if attributes.get(p) is None:
                     attributes[p] = []
-                attributes[p].append(context.iri2qname(r[1]))
-            elif isinstance(r[1], Literal):
+                attributes[p].append(context.iri2qname(r['o']))
+            elif isinstance(r['o'], Literal):
                 if attributes.get(p) is None:
                     attributes[p] = []
-                if r[1].language is None:
-                    attributes[p].append(r[1].toPython())
+                if r['o'].language is None:
+                    attributes[p].append(r['o'].toPython())
                 else:
-                    attributes[p].append(r[1].toPython() + '@' + r[1].language)
-            elif isinstance(r[1], BNode):
+                    attributes[p].append(r['o'].toPython() + '@' + r['o'].language)
+            elif isinstance(r['o'], BNode):
                 pass
             else:
                 if attributes.get(p) is None:
                     attributes[p] = []
-                attributes[p].append(r[1])
-            if r[0].fragment == 'languageIn':
+                attributes[p].append(r['p'])
+            if r['p'].fragment == 'languageIn':
                 if not attributes.get(p):
                     attributes[p] = set()
-                attributes[p].add(Language[r[2].toPython().upper()])
+                attributes[p].add(Language[r['oo'].toPython().upper()])
 
         self._attributes[PropertyClassAttribute.RESTRICTIONS] = PropertyRestrictions()
         #
@@ -292,6 +303,14 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                     raise OmasError(f'Inconsistency, expected "sh:PropertyType", got "{val[0]}".')
             elif key == 'sh:path':
                 self._property_class_iri = val[0]
+            elif key == 'dcterms:creator':
+                self.__creator = val[0]
+            elif key == 'dcterms:created':
+                self.__created = val[0]
+            elif key == 'dcterms:contributor':
+                self.__contributor = val[0]
+            elif key == 'dcterms:modified':
+                self.__modified = val[0]
             elif key in propkeys:
                 attr = PropertyClassAttribute(key)
                 if {QName, AnyIRI} == self.__datatypes[attr]:
@@ -388,20 +407,22 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         blank = ''
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {datetime.now().isoformat()}'
         sparql += self.property_node_shacl(indent, indent_inc)
         return sparql
 
     def __create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
+        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri}rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
         if self._attributes.get(PropertyClassAttribute.SUBPROPERTY_OF):
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF]}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF]}'
         if self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR):
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:domain {self._attributes[PropertyClassAttribute.EXCLUSIVE_FOR]}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._attributes[PropertyClassAttribute.EXCLUSIVE_FOR]}'
         if self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlDataProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
         elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
         sparql += ' .\n'
         return sparql
 

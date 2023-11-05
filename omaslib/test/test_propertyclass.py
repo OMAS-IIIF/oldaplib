@@ -24,6 +24,8 @@ class TestPropertyClass(unittest.TestCase):
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="omas",
+                                     userid="rosenth",
+                                     credentials="RioGrande",
                                      context_name="DEFAULT")
 
         cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")

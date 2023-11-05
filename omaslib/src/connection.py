@@ -1,6 +1,8 @@
 import json
 import datetime
 import urllib
+
+import bcrypt
 import requests
 from enum import Enum, unique
 
@@ -14,7 +16,7 @@ from requests import get, post
 from pathlib import Path
 from urllib.parse import quote_plus
 
-from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.datatypes import QName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 
@@ -74,7 +76,7 @@ class Connection:
     _server: str
     _repo: str
     _userid: str
-    _credentials: str
+    _user_iri: QName
     _context_name: str
     _store: SPARQLUpdateStore
     _query_url: str
@@ -91,7 +93,11 @@ class Connection:
         SparqlResultFormat.TEXT: lambda a: a.text
     }
 
-    def __init__(self, server: str, repo: str, context_name: str = DEFAULT_CONTEXT) -> None:
+    def __init__(self, server: str,
+                 repo: str,
+                 userid: str,
+                 credentials: str,
+                 context_name: str = DEFAULT_CONTEXT) -> None:
         """
         Constructor that establishes the connection parameters.
 
@@ -102,6 +108,7 @@ class Connection:
         """
         self._server = server
         self._repo = repo
+        self._userid = userid
         self._context_name = context_name
         self._query_url = f'{self._server}/repositories/{self._repo}'
         self._update_url = f'{self._server}/repositories/{self._repo}/statements'
@@ -109,36 +116,55 @@ class Connection:
         context = Context(name=context_name)
         for prefix, iri in context.items():
             self._store.bind(str(prefix), Namespace(str(iri)))
+        sparql = context.sparql_context
+        sparql += f"""
+        SELECT ?s ?p ?o
+        FROM omas:admin
+        WHERE {{
+            ?s a omas:User ;
+                omas:userId "{self._userid}" ;
+                ?p ?o .
+        }}
+        """
+        success = False
+        res = self._store.query(sparql)
+        #
+        # TODO: Add more user information / permissions
+        for r in res:
+            if str(r['p']) == context.qname2iri('omas:userCredentials'):
+                hashed = str(r['o']).encode('utf-8')
+                if bcrypt.checkpw(credentials.encode('utf-8'), hashed):
+                    success = True
+                    self._user_iri = QName(r['s'])
+        if not success:
+            raise OmasError("Wrong credentials")
 
     @property
     def server(self) -> str:
         """Getter for server string"""
         return self._server
 
-    @server.setter
-    def server(self, value: Any) -> None:
-        """Catch setting the server and raise a ~helpers.OmasError"""
-        raise OmasError('Cannot change the server of a connection!')
-
     @property
     def repo(self) -> str:
         """Getter for repository name"""
         return self._repo
 
-    @repo.setter
-    def repo(self, value: Any) -> None:
-        """Catch setting the repository name and raise a ~helpers.OmasError"""
-        raise OmasError('Cannot change the repo of a connection!')
+    @property
+    def userid(self) -> str:
+        return self._userid
+
+    @property
+    def user_iri(self) -> QName:
+        self._user_iri
+
+    @property
+    def login(self) -> bool:
+        return self._user_iri is not None
 
     @property
     def context_name(self) -> str:
         """Getter for the context name"""
         return self._context_name
-
-    @context_name.setter
-    def context_name(self, value: Any) -> None:
-        """Catch setting the context name and raise a ~helpers.OmasError"""
-        raise OmasError('Cannot change the context name of a connection!')
 
     def clear_graph(self, graph_iri: QName) -> None:
         """
@@ -147,6 +173,8 @@ class Connection:
         :param graph_iri: RDF graph name as QName. The prefix must be defined in the context!
         :return: None
         """
+        if not self._user_iri:
+            raise OmasError("No login")
         context = Context(name=self._context_name)
         headers = {
             "Content-Type": "application/sparql-update",
@@ -165,6 +193,8 @@ class Connection:
 
         :return: None
         """
+        if not self._user_iri:
+            raise OmasError("No login")
         headers = {
             "Accept": "application/json, text/plain, */*",
         }
@@ -184,6 +214,8 @@ class Connection:
         :param graphname: Optional name of the RDF-graph where the data should be imported in.
         :return: None
         """
+        if not self._user_iri:
+            raise OmasError("No login")
         with open(filename, encoding="utf-8") as f:
             content = f.read()
             ext = Path(filename).suffix
@@ -238,6 +270,8 @@ class Connection:
         :param format: The format desired (see ~SparqlResultFormat)
         :return: Query results or an error message (as text)
         """
+        if not self._user_iri:
+            raise OmasError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": format.value,
@@ -259,6 +293,8 @@ class Connection:
         :param query: SPARQL UPDATE query as string
         :return:
         """
+        if not self._user_iri:
+            raise OmasError("No login")
         headers = {
             "Accept": "*/*"
         }
@@ -276,13 +312,19 @@ class Connection:
         :param bindings: Bindings to variables
         :return: a RDFLib Result instance
         """
+        if not self._user_iri:
+            raise OmasError("No login")
         return self._store.query(query, initBindings=bindings)
 
 
 if __name__ == "__main__":
     con = Connection(server='http://localhost:7200',
+                     userid="rosenth",
+                     credentials="RioGrande",
                      repo="omas",
                      context_name="DEFAULT")
     con.clear_repo()
     con.upload_turtle("../ontologies/omas.ttl", "http://omas.org/base#onto")
     con.upload_turtle("../ontologies/omas.shacl.trig")
+    con.upload_turtle("../ontologies/admin.trig")
+

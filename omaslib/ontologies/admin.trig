@@ -1,3 +1,4 @@
+@prefix imas: <https://sparql.crssnky.xyz/imasrdf/URIs/imas-schema.ttl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -8,11 +9,12 @@
 
 :admin {
 
-    <https://orcid.org/0000-0003-1681-4036> a omas:User ;
+    <https://orcid.org/ORCID-0000-0003-1681-4036> a omas:User ;
         omas:personLastName "Rosenthaler" ;
         omas:personFirstName "Lukas" ;
         omas:userId "rosenth" ;
-        omas:userCredentials "GAGA" .
+        omas:userCredentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
+        omas:userIsActive true .
 
 }
 

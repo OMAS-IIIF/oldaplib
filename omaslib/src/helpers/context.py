@@ -74,6 +74,7 @@ class Context(metaclass=ContextSingleton):
             NCName('xml'): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
             NCName('sh'): NamespaceIRI('http://www.w3.org/ns/shacl#'),
             NCName('skos'): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
+            NCName('orcid'): NamespaceIRI('https://orcid.org/'),
             NCName('omas'): NamespaceIRI('http://omas.org/base#')
         }
         self._inverse = {
@@ -84,6 +85,7 @@ class Context(metaclass=ContextSingleton):
             NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): NCName('xml'),
             NamespaceIRI('http://www.w3.org/ns/shacl#'): NCName('sh'),
             NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): NCName('skos'),
+            NamespaceIRI('https://orcid.org/'): NCName('orcid'),
             NamespaceIRI('http://omas.org/base#'): NCName('omas'),
         }
 

@@ -22,6 +22,8 @@ class TestBasicConnection(unittest.TestCase):
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="omas",
+                                     userid="rosenth",
+                                     credentials="RioGrande",
                                      context_name="DEFAULT")
 
         cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
@@ -34,22 +36,21 @@ class TestBasicConnection(unittest.TestCase):
     def test_basic_connection(self):
         con = Connection(server='http://localhost:7200',
                          repo="omas",
+                         userid="rosenth",
+                         credentials="RioGrande",
                          context_name="DEFAULT")
         self.assertIsInstance(con, Connection)
         self.assertEqual(con.server, 'http://localhost:7200')
         self.assertEqual(con.repo, 'omas')
         self.assertEqual(con.context_name, 'DEFAULT')
-        with self.assertRaises(OmasError) as ex:
-            con.server = 'http://exaample.org'
-        self.assertEqual(str(ex.exception), 'Cannot change the server of a connection!')
 
         with self.assertRaises(OmasError) as ex:
-            con.repo = 'gaga'
-        self.assertEqual(str(ex.exception), 'Cannot change the repo of a connection!')
-
-        with self.assertRaises(OmasError) as ex:
-            con.context_name = 'GAGA'
-        self.assertEqual(str(ex.exception), 'Cannot change the context name of a connection!')
+            con = Connection(server='http://localhost:7200',
+                             repo="omas",
+                             userid="rosenth",
+                             credentials="XXX",
+                             context_name="DEFAULT")
+        self.assertEqual(str(ex.exception), "Wrong credentials")
 
 
     def test_query(self):
