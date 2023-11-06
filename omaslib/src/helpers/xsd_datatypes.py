@@ -1,4 +1,6 @@
 import re
+from urllib.parse import urlparse
+
 import xmlschema
 from enum import Enum, unique
 from pystrict import strict
@@ -48,12 +50,14 @@ class XsdDatatypes(Enum):
 
 @strict
 class IriValidator:
-    __iri_regexp = re.compile("^(http)s?://([\\w\\.\\-~]+)?(:\\d{,6})?(/[\\w\\-~]+)*([#/][\\w\\-~]*)?")
 
     @classmethod
     def validate(cls, val: str) -> bool:
-        m = cls.__iri_regexp.match(val)
-        return m.span()[1] == len(val) if m else False
+        try:
+            result = urlparse(val)
+            return all([result.scheme, result.netloc])
+        except Exception:
+            return False
 
 @strict
 class XsdValidator:

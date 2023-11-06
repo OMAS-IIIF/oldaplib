@@ -135,7 +135,7 @@ class Connection:
                 hashed = str(r['o']).encode('utf-8')
                 if bcrypt.checkpw(credentials.encode('utf-8'), hashed):
                     success = True
-                    self._user_iri = QName(r['s'])
+                    self._user_iri = context.iri2qname(r['s'])
         if not success:
             raise OmasError("Wrong credentials")
 
@@ -155,7 +155,7 @@ class Connection:
 
     @property
     def user_iri(self) -> QName:
-        self._user_iri
+        return self._user_iri
 
     @property
     def login(self) -> bool:
