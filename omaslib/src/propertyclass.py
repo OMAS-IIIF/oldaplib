@@ -59,7 +59,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     __created: Optional[datetime]
     __contributor: Optional[QName]
     __modified: Optional[datetime]
-    __version: Optional[SemanticVersion]
+    __version: SemanticVersion
 
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
         PropertyClassAttribute.SUBPROPERTY_OF: {QName},
@@ -120,7 +120,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         self.__created = None
         self.__contributor = None
         self.__modified = None
-        self.__version = None
+        self.__version = SemanticVersion()
 
     def __len__(self) -> int:
         return len(self._attributes)
@@ -413,14 +413,16 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         return sparql
 
     def __create_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+        self.__created = datetime.now()
+        self.__modified = self.__created
         blank = ''
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:hasVersion {str(self.__version)}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:hasVersion "{str(self.__version)}"'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:creator {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:created "{datetime.now().isoformat()}"^^xsd:datetime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:created "{self.__modified.isoformat()}"^^xsd:datetime'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:contributor {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:modified "{datetime.now().isoformat()}"^^xsd:datetime ;\n'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:modified "{self.__modified.isoformat()}"^^xsd:datetime ;\n'
         sparql += self.property_node_shacl(indent, indent_inc)
         return sparql
 
@@ -483,10 +485,12 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                     sparql += self._attributes[prop].update_shacl(owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
                                                                   prop=prop,
+                                                                  modified=self.__modified,
                                                                   indent=indent, indent_inc=indent_inc)
                 elif PropertyClass.__datatypes[prop] == {PropertyRestrictions}:
                     sparql += self._attributes[prop].update_shacl(owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
+                                                                  modified=self.__modified,
                                                                   indent=indent, indent_inc=indent_inc)
                 else:
                     raise OmasError(f'SHACL property {prop.value} should not have update action "Update".')
@@ -513,7 +517,9 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {self._property_class_iri} .\n'
             else:
                 sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:datetime)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)

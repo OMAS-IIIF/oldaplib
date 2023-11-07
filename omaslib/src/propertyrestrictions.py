@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum, unique
 from typing import Dict, Union, Set, Optional, Tuple, Callable, Any
 
@@ -305,6 +306,7 @@ class PropertyRestrictions(Notify):
     def update_shacl(self, *,
                      owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
+                     modified: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
@@ -360,7 +362,9 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
             else:
                 sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} ?rval\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:datetime)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)

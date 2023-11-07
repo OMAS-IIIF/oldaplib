@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import unique, Enum
 from pprint import pprint
 from typing import Dict, List, Optional, Union, Set, Callable, Any
@@ -311,10 +312,12 @@ class LangString(Notify):
                      owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
                      prop: QName,
+                     modified: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         """
         Return the SPARQL fragment to update a Language string (a property that has a cardinality
         greater than one and is of string value with associated languages.
+        :param modified: las modification date as datetime instance
         :param owlclass_iri: If the langstring is used within a property within a resource class
         :param prop_iri: The IRI (name) of the PropertyClass
         :param prop: The prop of the PropertyClass
@@ -350,9 +353,11 @@ class LangString(Notify):
                 sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
                 sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
             else:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
             oval = change.old_value if change.old_value else "?val"
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {oval}\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {oval} .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:datetime)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)

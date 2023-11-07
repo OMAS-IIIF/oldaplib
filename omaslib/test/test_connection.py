@@ -32,6 +32,7 @@ class TestBasicConnection(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls._connection.clear_graph(QName('test:shacl'))
+        cls._connection.clear_graph(QName('test:onto'))
 
     def test_basic_connection(self):
         con = Connection(server='http://localhost:7200',
@@ -133,6 +134,47 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(len(res), 1)
         for r in res:
             self.assertEqual(r[0], "GUGUS")
+
+    def test_transaction(self):
+        self._connection.transaction_start()
+        query1 = self._context.sparql_context
+        query1 += """
+        INSERT DATA {
+            GRAPH test:shacl {
+                test:waseliwas a test:Waseliwas .
+                test:waseliwas rdfs:label "WASELIWAS"
+            }
+        }
+        """
+        self._connection.transaction_update(query1)
+        query2 = self._context.sparql_context
+        query2 += """
+        DELETE {
+            GRAPH test:shacl {
+                ?s rdfs:label ?o
+            }
+        }
+        INSERT {
+            GRAPH test:shacl {
+                ?s rdfs:label "WASELIWAS ISCH DAS DENN AU?"
+            }
+        }
+        WHERE {
+            ?s a test:Waseliwas
+        }
+        """
+        self._connection.transaction_update(query2)
+        self._connection.transaction_commit()
+
+        self._connection.update_query(query1)
+        qq2 = self._context.sparql_context
+        qq2 += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?p}"
+        res = self._connection.rdflib_query(qq2)
+        self.assertEqual(len(res), 2)
+        for r in res:
+            self.assertEqual(r[0], "WASELIWAS ISCH DAS DENN AU?")
+
+
 
 
 if __name__ == '__main__':

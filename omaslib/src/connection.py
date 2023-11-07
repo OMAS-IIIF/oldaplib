@@ -14,7 +14,7 @@ from rdflib.query import Result
 from rdflib.term import Identifier
 from requests import get, post
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlencode
 
 from omaslib.src.helpers.datatypes import QName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasError
@@ -81,6 +81,7 @@ class Connection:
     _store: SPARQLUpdateStore
     _query_url: str
     _update_url: str
+    _transaction_url: Optional[str]
     _switcher = {
         SparqlResultFormat.XML: lambda a: a.text,
         SparqlResultFormat.JSON: lambda a: a.json(),
@@ -113,6 +114,7 @@ class Connection:
         self._query_url = f'{self._server}/repositories/{self._repo}'
         self._update_url = f'{self._server}/repositories/{self._repo}/statements'
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
+        self._transaction_url = None
         context = Context(name=context_name)
         for prefix, iri in context.items():
             self._store.bind(str(prefix), Namespace(str(iri)))
@@ -302,6 +304,61 @@ class Connection:
         res = requests.post(url, data={"update": query}, headers=headers)
         if not res.ok:
             raise OmasError(f'Update query failed. Reason: "{res.text}"')
+
+    def transaction_start(self):
+        if not self._user_iri:
+            raise OmasError("No login")
+        headers = {
+            "Accept": "*/*"
+        }
+        url = f"{self._server}/repositories/{self._repo}/transactions"
+        res = requests.post(url, headers=headers)
+        if res.headers.get('location') is None:
+            raise OmasError('GraphDB start of transaction failed')
+        self._transaction_url = res.headers['location']
+
+    def transaction_update(self, query: str):
+        if not self._user_iri:
+            raise OmasError("No login")
+        headers = {
+            #"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept": "*/*"
+        }
+        if self._transaction_url is None:
+            raise OmasError("No GraphDB transaction started")
+        res = requests.post(f'{self._transaction_url}', data={'action': 'UPDATE', 'update': query}, headers=headers)
+        #ppp = urlencode({'action': 'UPDATE', 'update': query})
+        #res = requests.put(f'{self._transaction_url}?{ppp}', headers=headers)
+        if not res.ok:
+            raise OmasError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
+
+    def transaction_commit(self):
+        if not self._user_iri:
+            raise OmasError("No login")
+        headers = {
+            "Accept": "*/*"
+        }
+        if self._transaction_url is None:
+            raise OmasError("No GraphDB transaction started")
+        res = requests.put(f'{self._transaction_url}?action=COMMIT', headers=headers)
+        if not res.ok:
+            raise OmasError(f'GraphDB transaction commit failed. Reason: "{res.text}"')
+        self._transaction_url = None
+
+    def abort(self):
+        if not self._user_iri:
+            raise OmasError("No login")
+        headers = {
+            "Accept": "*/*"
+        }
+        if self._transaction_url is None:
+            raise OmasError("No GraphDB transaction started")
+        res = requests.delete(self._transaction_url, headers=headers)
+        if not res.ok:
+            raise OmasError(f'GraphDB transaction abort failed. Reason: "{res.text}"')
+        self._transaction_url = None
+
+
 
     def rdflib_query(self, query: str,
                      bindings: Optional[Mapping[str, Identifier]] = None) -> Result:
