@@ -166,15 +166,12 @@ class TestBasicConnection(unittest.TestCase):
         self._connection.transaction_update(query2)
         self._connection.transaction_commit()
 
-        self._connection.update_query(query1)
         qq2 = self._context.sparql_context
         qq2 += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?p}"
         res = self._connection.rdflib_query(qq2)
         self.assertEqual(len(res), 2)
         for r in res:
             self.assertEqual(r[0], "WASELIWAS ISCH DAS DENN AU?")
-
-
 
 
 if __name__ == '__main__':

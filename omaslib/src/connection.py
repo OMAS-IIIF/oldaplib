@@ -317,18 +317,29 @@ class Connection:
             raise OmasError('GraphDB start of transaction failed')
         self._transaction_url = res.headers['location']
 
+    def transaction_query(self, query: str, result_format: SparqlResultFormat = SparqlResultFormat.JSON):
+        if not self._user_iri:
+            raise OmasError("No login")
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept": result_format.value
+        }
+        if self._transaction_url is None:
+            raise OmasError("No GraphDB transaction started")
+        res = requests.post(self._transaction_url, data={'action': 'QUERY', 'query': query}, headers=headers)
+        if not res.ok:
+            raise OmasError(f'GraphDB Transaction query failed. Reason: "{res.text}"')
+
     def transaction_update(self, query: str):
         if not self._user_iri:
             raise OmasError("No login")
         headers = {
-            #"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": "*/*"
         }
         if self._transaction_url is None:
             raise OmasError("No GraphDB transaction started")
-        res = requests.post(f'{self._transaction_url}', data={'action': 'UPDATE', 'update': query}, headers=headers)
-        #ppp = urlencode({'action': 'UPDATE', 'update': query})
-        #res = requests.put(f'{self._transaction_url}?{ppp}', headers=headers)
+        res = requests.post(self._transaction_url, data={'action': 'UPDATE', 'update': query}, headers=headers)
         if not res.ok:
             raise OmasError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
 
