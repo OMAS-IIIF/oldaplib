@@ -1,10 +1,12 @@
+import json
 import unittest
 from pprint import pprint
 from time import sleep
 
+from IPython.core.display import JSON
 from rdflib import URIRef
 
-from omaslib.src.connection import Connection
+from omaslib.src.connection import Connection, SparqlResultFormat
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, NamespaceIRI
 from omaslib.src.helpers.omaserror import OmasError
@@ -52,7 +54,6 @@ class TestBasicConnection(unittest.TestCase):
                              credentials="XXX",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
-
 
     def test_query(self):
         query = self._context.sparql_context
@@ -160,7 +161,8 @@ class TestBasicConnection(unittest.TestCase):
             }
         }
         WHERE {
-            ?s a test:Waseliwas
+            ?s a test:Waseliwas .
+            ?s rdfs:Label ?o .
         }
         """
         self._connection.transaction_update(query2)
@@ -169,7 +171,41 @@ class TestBasicConnection(unittest.TestCase):
         qq2 = self._context.sparql_context
         qq2 += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?p}"
         res = self._connection.rdflib_query(qq2)
-        self.assertEqual(len(res), 2)
+        self.assertEqual(len(res), 1)
+        for r in res:
+            self.assertEqual(r[0], "WASELIWAS ISCH DAS DENN AU?")
+
+        self._connection.transaction_start()
+        query3 = self._context.sparql_context
+        query3 += """
+        DELETE {
+            GRAPH test:shacl {
+                ?s rdfs:label ?o
+            }
+        }
+        INSERT {
+            GRAPH test:shacl {
+                ?s rdfs:label "SHOULD NOT BE CHANGED"
+            }
+        }
+        WHERE {
+            ?s a test:Waseliwas .
+            ?s rdfs:Label ?o .
+        }
+        """
+        self._connection.transaction_update(query3)
+
+        qq2a = self._context.sparql_context
+        qq2a += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?o}"
+        res = self._connection.transaction_query(qq2a, SparqlResultFormat.JSON)
+        pprint(res)
+        self.assertEqual(res['results']['bindings'][0]['o']['value'], "WASELIWAS")
+
+        self._connection.transaction_abort()
+        qq3 = self._context.sparql_context
+        qq3 += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?o}"
+        res = self._connection.rdflib_query(qq2)
+        self.assertEqual(len(res), 1)
         for r in res:
             self.assertEqual(r[0], "WASELIWAS ISCH DAS DENN AU?")
 

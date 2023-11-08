@@ -20,6 +20,26 @@ from omaslib.src.helpers.datatypes import QName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 
+#
+# For bootstrapping the whole tripel store, the following SPARQL has to be executed within the GraphDB
+# SPARQL-console:
+#
+# PREFIX omas: <http://omas.org/base#>
+#
+# INSERT DATA {
+# 	GRAPH omas:admin {
+# 		<https://orcid.org/ORCID-0000-0003-1681-4036> a omas:User ;
+#         	omas:personLastName "Rosenthaler" ;
+#         	omas:personFirstName "Lukas" ;
+#         	omas:userId "rosenth" ;
+#         	omas:userCredentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
+#         	omas:userIsActive true .
+# 	}
+# }
+#
+# Then, executing the __main__ of the file "connection.py" will initialize the triple store with all the data
+# needed to run the tests
+#
 
 @unique
 class SparqlResultFormat(Enum):
@@ -329,6 +349,7 @@ class Connection:
         res = requests.post(self._transaction_url, data={'action': 'QUERY', 'query': query}, headers=headers)
         if not res.ok:
             raise OmasError(f'GraphDB Transaction query failed. Reason: "{res.text}"')
+        return res.json()
 
     def transaction_update(self, query: str):
         if not self._user_iri:
@@ -356,7 +377,7 @@ class Connection:
             raise OmasError(f'GraphDB transaction commit failed. Reason: "{res.text}"')
         self._transaction_url = None
 
-    def abort(self):
+    def transaction_abort(self):
         if not self._user_iri:
             raise OmasError("No login")
         headers = {
