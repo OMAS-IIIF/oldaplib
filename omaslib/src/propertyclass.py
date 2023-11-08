@@ -576,12 +576,18 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         return sparql
 
     def __update_owl(self, *, timestamp: datetime) -> str:
+        owl_propclass_attributes = {PropertyClassAttribute.SUBPROPERTY_OF, PropertyClassAttribute.DATATYPE, PropertyClassAttribute.TO_NODE_IRI}
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
             if prop == PropertyClassAttribute.SUBPROPERTY_OF:
                 pass
-            elif prop == PropertyClassAttribute.
+            elif prop == PropertyClassAttribute.DATATYPE:
+                pass
+            elif prop == PropertyClassAttribute.TO_NODE_IRI:
+                pass
+            elif prop == PropertyClassAttribute.RESTRICTIONS:
+                pass
         return blank
 
     def update(self) -> None:

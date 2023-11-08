@@ -4,12 +4,17 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix omas: <http://omas.org/base#> .
 @prefix : <http://omas.org/base#> .
 
-<omas:ontology> rdf:type owl:Ontology ;
-    owl:versionIRI <http://omas.org/ontology/version/1.0.0> ;
-    owl:imports <http://www.w3.org/2004/02/skos/core> .
+omas:ontology rdf:type owl:Ontology ;
+              owl:versionIRI <http://omas.org/ontology/version/1.0.0> ;
+              dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+              dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+              dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+              dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+              owl:imports <http://www.w3.org/2004/02/skos/core> .
 
 #################################################################
 #    Annotation properties
