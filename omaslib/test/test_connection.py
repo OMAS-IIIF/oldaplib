@@ -111,30 +111,35 @@ class TestBasicConnection(unittest.TestCase):
         """
         self._connection.update_query(query1)
         qq1 = self._context.sparql_context
-        qq1 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?p}"
+        qq1 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?o}"
         res = self._connection.rdflib_query(qq1)
         self.assertEqual(len(res), 1)
         for r in res:
-            self.assertEqual(r[0], "GAGA")
+            self.assertEqual(str(r[0]), "GAGA")
         query2 = self._context.sparql_context
         query2 += """
         DELETE {
-            ?s rdfs:label ?o
+            GRAPH test:shacl {
+                ?s rdfs:label ?o
+            }
         }
         INSERT {
-            ?s rdfs:label "GUGUS"
+            GRAPH test:shacl {
+                ?s rdfs:label "GUGUS"
+            }
         }
         WHERE {
-            ?s a test:Gaga
+            ?s a test:Gaga .
+            ?s rdfs:label ?o .
         }
         """
-        self._connection.update_query(query1)
+        self._connection.update_query(query2)
         qq2 = self._context.sparql_context
-        qq2 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?p}"
+        qq2 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?o}"
         res = self._connection.rdflib_query(qq2)
         self.assertEqual(len(res), 1)
         for r in res:
-            self.assertEqual(r[0], "GUGUS")
+            self.assertEqual(str(r[0]), "GUGUS")
 
     def test_transaction(self):
         self._connection.transaction_start()
@@ -162,18 +167,18 @@ class TestBasicConnection(unittest.TestCase):
         }
         WHERE {
             ?s a test:Waseliwas .
-            ?s rdfs:Label ?o .
+            ?s rdfs:label ?o .
         }
         """
         self._connection.transaction_update(query2)
         self._connection.transaction_commit()
 
         qq2 = self._context.sparql_context
-        qq2 += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?p}"
+        qq2 += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?o}"
         res = self._connection.rdflib_query(qq2)
         self.assertEqual(len(res), 1)
         for r in res:
-            self.assertEqual(r[0], "WASELIWAS ISCH DAS DENN AU?")
+            self.assertEqual(str(r[0]), "WASELIWAS ISCH DAS DENN AU?")
 
         self._connection.transaction_start()
         query3 = self._context.sparql_context
@@ -198,8 +203,7 @@ class TestBasicConnection(unittest.TestCase):
         qq2a = self._context.sparql_context
         qq2a += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?o}"
         res = self._connection.transaction_query(qq2a, SparqlResultFormat.JSON)
-        pprint(res)
-        self.assertEqual(res['results']['bindings'][0]['o']['value'], "WASELIWAS")
+        self.assertEqual(res['results']['bindings'][0]['o']['value'], "WASELIWAS ISCH DAS DENN AU?")
 
         self._connection.transaction_abort()
         qq3 = self._context.sparql_context
@@ -207,7 +211,7 @@ class TestBasicConnection(unittest.TestCase):
         res = self._connection.rdflib_query(qq2)
         self.assertEqual(len(res), 1)
         for r in res:
-            self.assertEqual(r[0], "WASELIWAS ISCH DAS DENN AU?")
+            self.assertEqual(str(r[0]), "WASELIWAS ISCH DAS DENN AU?")
 
 
 if __name__ == '__main__':

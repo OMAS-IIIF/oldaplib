@@ -55,11 +55,13 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     #
     # The following attributes of this class cannot be set explicitely by the used
     # They are automatically managed by the OMAS system
+    #
     __creator: Optional[QName]
     __created: Optional[datetime]
     __contributor: Optional[QName]
     __modified: Optional[datetime]
     __version: SemanticVersion
+    __from_ts: bool
 
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
         PropertyClassAttribute.SUBPROPERTY_OF: {QName},
@@ -72,6 +74,8 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         PropertyClassAttribute.DESCRIPTION: {LangString},
         PropertyClassAttribute.ORDER: {int, float}
     }
+
+    __
 
     def __init__(self, *,
                  con: Connection,
@@ -121,6 +125,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         self.__contributor = None
         self.__modified = None
         self.__version = SemanticVersion()
+        self.__from_ts = False
 
     def __len__(self) -> int:
         return len(self._attributes)
@@ -142,6 +147,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             raise OmasError(f'Unsupported prop {attr}')
         if type(value) not in PropertyClass.__datatypes[attr]:
             raise OmasError(f'Datatype of {attr.value} is not in {PropertyClass.__datatypes[attr]}')
+
         if self._attributes.get(attr) is None:
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
@@ -348,6 +354,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         for attr, value in self._attributes.items():
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
+        self.__from_ts = True
 
     def __read_owl(self):
         context = Context(name=self._con.context_name)
@@ -412,21 +419,19 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql += f' .\n'
         return sparql
 
-    def __create_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
-        self.__created = datetime.now()
-        self.__modified = self.__created
+    def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         blank = ''
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:hasVersion "{str(self.__version)}"'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:creator {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:created "{self.__modified.isoformat()}"^^xsd:datetime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:created "{timestamp.isoformat()}"^^xsd:datetime'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:contributor {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:modified "{self.__modified.isoformat()}"^^xsd:datetime ;\n'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:modified "{timestamp.isoformat()}"^^xsd:datetime ;\n'
         sparql += self.property_node_shacl(indent, indent_inc)
         return sparql
 
-    def __create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
+    def __create_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
         if self._attributes.get(PropertyClassAttribute.SUBPROPERTY_OF):
@@ -454,17 +459,20 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         return sparql
 
     def create(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False):
+        if self.__from_ts:
+            raise OmasError(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
+        timestamp = datetime.now()
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-        sparql += self.__create_shacl(indent=2)
+        sparql += self.__create_shacl(timestamp=timestamp, indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-        sparql += self.__create_owl(indent=2)
+        sparql += self.__create_owl(timestamp=timestamp, indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -472,9 +480,13 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             return sparql
         else:
             self._con.update_query(sparql)
+        self.__created = timestamp
+        self.__modified = timestamp
+
 
     def __update_shacl(self, *,
                        owlclass_iri: Optional[QName] = None,
+                       timestamp: datetime,
                        indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
@@ -524,22 +536,68 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
 
+        #
+        # Updating the timestamp and contributor ID
+        #
+        new_modified = datetime.now()
+        sparql = f'#\n# Update the administrative metadata\n#\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:contributor ?contributor .\n'
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+
+        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified "{timestamp.isoformat()}"^^xsd:datetime .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:contributor "{self._con.user_iri}" .\n'
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+        if owlclass_iri:
+            sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {self._property_class_iri} .\n'
+        else:
+            sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:contributor ?contributor .\n'
+
+        sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:datetime)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}'
+        sparql_list.append(sparql)
+
         sparql = ";\n".join(sparql_list)
         return sparql
 
-    def __update_owl(self) -> str:
+    def __update_owl(self, *, timestamp: datetime) -> str:
         blank = ''
+        sparql_list = []
+        for prop, change in self._changeset.items():
+            if prop == PropertyClassAttribute.SUBPROPERTY_OF:
+                pass
+            elif prop == PropertyClassAttribute.
         return blank
 
     def update(self) -> None:
+        timestamp = datetime.now()
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        sparql += self.__update_shacl()
+        sparql += self.__update_shacl(timestamp=timestamp)
+        #sparql += self.__update_owl(timestamp=timestamp)
         self._con.update_query(sparql)
         self.__changeset_clear()
+        self.__modified = timestamp
+        self.__contributor = self._con.user_iri
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
+        self.__from_ts = False
         pass
 
 
