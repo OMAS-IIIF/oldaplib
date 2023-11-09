@@ -209,6 +209,9 @@ class TestPropertyClass(unittest.TestCase):
             attrs=props
         )
         p1.create()
+        q = self._connection
+        f"SELECT * FROM test:onto"
+
         p1[PropertyClassAttribute.ORDER] = 12
         p1[PropertyClassAttribute.NAME][Language.DE] = 'Annotationen'
         p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = False
