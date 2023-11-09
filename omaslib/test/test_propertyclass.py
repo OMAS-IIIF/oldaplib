@@ -34,8 +34,8 @@ class TestPropertyClass(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        #cls._connection.clear_graph(QName('test:shacl'))
-        #cls._connection.clear_graph(QName('test:onto'))
+        cls._connection.clear_graph(QName('test:shacl'))
+        cls._connection.clear_graph(QName('test:onto'))
         pass
 
     def test_propertyclass_constructor(self):
@@ -199,7 +199,9 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
                 PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
-                PropertyRestrictionType.UNIQUE_LANG: True
+                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.MAX_COUNT: 1,
+                PropertyRestrictionType.MIN_COUNT: 0
             }),
             PropertyClassAttribute.ORDER: 11
         }
@@ -209,16 +211,18 @@ class TestPropertyClass(unittest.TestCase):
             attrs=props
         )
         p1.create()
-        q = self._connection
-        f"SELECT * FROM test:onto"
 
         p1[PropertyClassAttribute.ORDER] = 12
         p1[PropertyClassAttribute.NAME][Language.DE] = 'Annotationen'
         p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = False
+        p1[PropertyClassAttribute.DATATYPE] = XsdDatatypes.string
+        self.maxDiff = None
         self.assertEqual(p1.changeset, {
             PropertyClassAttribute.ORDER: PropertyClassAttributeChange(11, Action.REPLACE, True),
             PropertyClassAttribute.NAME: PropertyClassAttributeChange(None, Action.MODIFY, True),
-            PropertyClassAttribute.RESTRICTIONS: PropertyClassAttributeChange(None, Action.MODIFY, True)
+            PropertyClassAttribute.RESTRICTIONS: PropertyClassAttributeChange(None, Action.MODIFY, True),
+            PropertyClassAttribute.DATATYPE: PropertyClassAttributeChange(XsdDatatypes.anyURI, Action.REPLACE, True),
+            PropertyClassAttribute.TO_NODE_IRI: PropertyClassAttributeChange(QName('test:comment'), Action.DELETE, True)
         })
         p1.update()
         self.assertEqual(p1.changeset, {})

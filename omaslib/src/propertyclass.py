@@ -154,7 +154,23 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             self._attributes[attr] = value
             self.notify()
         else:
-            if self._attributes.get(attr) != value:
+            if self._attributes.get(attr) != value:  # we do nothing if nothing changes
+                if attr == PropertyClassAttribute.TO_NODE_IRI \
+                        and self._attributes.get(PropertyClassAttribute.DATATYPE) \
+                        and self._attributes[PropertyClassAttribute.DATATYPE] != XsdDatatypes.anyURI \
+                        and self._attributes[PropertyClassAttribute.DATATYPE] != XsdDatatypes.QName:
+                    # We have to delete the DATATYPE
+                    self._changeset[PropertyClassAttribute.DATATYPE] = PropertyClassAttributeChange(self._attributes[PropertyClassAttribute.DATATYPE], Action.DELETE, True)
+                    del self._attributes[PropertyClassAttribute.DATATYPE]
+                    self.notify()
+                elif attr == PropertyClassAttribute.DATATYPE \
+                        and self._attributes.get(PropertyClassAttribute.TO_NODE_IRI) \
+                        and value != XsdDatatypes.anyURI \
+                        and value != XsdDatatypes.QName:
+                    self._changeset[PropertyClassAttribute.TO_NODE_IRI] = PropertyClassAttributeChange(self._attributes[PropertyClassAttribute.TO_NODE_IRI],
+                                                                                                    Action.DELETE, True)
+                    del self._attributes[PropertyClassAttribute.TO_NODE_IRI]
+                    self.notify()
                 if self._changeset.get(attr) is None:
                     self._changeset[attr] = PropertyClassAttributeChange(self._attributes[attr], Action.REPLACE, True)
                 self._attributes[attr] = value
@@ -625,10 +641,13 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += self.__update_shacl(timestamp=timestamp)
-        print("\n---------OWL----------")
-        print(self.__update_owl(timestamp=timestamp))
-        print('========================')
+        #print("\n---------OWL----------")
+        #print(self.__update_owl(timestamp=timestamp))
+        #print('========================')
         #sparql += self.__update_owl(timestamp=timestamp)
+        print("******************************************")
+        print(sparql)
+        print("******************************************")
         self._con.update_query(sparql)
         self.__changeset_clear()
         self.__modified = timestamp
