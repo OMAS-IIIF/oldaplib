@@ -29,6 +29,8 @@ class TestPropertyClass(unittest.TestCase):
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 
+        cls._connection.clear_graph(QName('test:shacl'))
+        cls._connection.clear_graph(QName('test:onto'))
         cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
         sleep(1)  # upload may take a while...
 
@@ -211,17 +213,15 @@ class TestPropertyClass(unittest.TestCase):
             attrs=props
         )
         p1.create()
-
         p1[PropertyClassAttribute.ORDER] = 12
         p1[PropertyClassAttribute.NAME][Language.DE] = 'Annotationen'
         p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = False
         p1[PropertyClassAttribute.DATATYPE] = XsdDatatypes.string
-        self.maxDiff = None
         self.assertEqual(p1.changeset, {
             PropertyClassAttribute.ORDER: PropertyClassAttributeChange(11, Action.REPLACE, True),
             PropertyClassAttribute.NAME: PropertyClassAttributeChange(None, Action.MODIFY, True),
             PropertyClassAttribute.RESTRICTIONS: PropertyClassAttributeChange(None, Action.MODIFY, True),
-            PropertyClassAttribute.DATATYPE: PropertyClassAttributeChange(XsdDatatypes.anyURI, Action.REPLACE, True),
+            PropertyClassAttribute.DATATYPE: PropertyClassAttributeChange(XsdDatatypes.anyURI, Action.CREATE, True),
             PropertyClassAttribute.TO_NODE_IRI: PropertyClassAttributeChange(QName('test:comment'), Action.DELETE, True)
         })
         p1.update()
@@ -235,7 +235,8 @@ class TestPropertyClass(unittest.TestCase):
         )
         p2.read()
         self.assertEqual(p2.property_class_iri, QName('test:testUpdate'))
-        self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))
+        self.assertEqual(p2[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
+        self.assertIsNone(p2.get(PropertyClassAttribute.TO_NODE_IRI))
         self.assertEqual(p2[PropertyClassAttribute.NAME], LangString(["Annotations@en", "Annotationen@de"]))
         self.assertEqual(p2[PropertyClassAttribute.DESCRIPTION], LangString("An annotation@en"))
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
