@@ -48,6 +48,10 @@ class XsdDatatypes(Enum):
     unsignedByte = 'xsd:unsignedByte'
     positiveInteger = 'xsd:positiveInteger'
 
+    def __str__(self):
+        return self.value
+
+
 @strict
 class IriValidator:
 

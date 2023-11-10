@@ -412,9 +412,9 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         if self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
             if not to_node_iri:
                 raise OmasError(f'OwlObjectProperty "{self._property_class_iri}" has no rdfs:range resource class defined!')
-            if to_node_iri != self._attributes[PropertyClassAttribute.TO_NODE_IRI]:
+            if to_node_iri != self._attributes.get(PropertyClassAttribute.TO_NODE_IRI):
                 raise OmasError(
-                    f'Property has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes[PropertyClassAttribute.TO_NODE_IRI]}".')
+                    f'Property has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
 
     def read(self):
         self.__read_shacl()
@@ -596,6 +596,9 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         owl_propclass_attributes = {PropertyClassAttribute.SUBPROPERTY_OF,  # should be in OWL ontology
                                     PropertyClassAttribute.DATATYPE,  # used for rdfs:range in OWL ontology
                                     PropertyClassAttribute.TO_NODE_IRI}  # used for rdfs:range in OWL ontology
+        owl_prop = {PropertyClassAttribute.SUBPROPERTY_OF: PropertyClassAttribute.SUBPROPERTY_OF.value,
+                    PropertyClassAttribute.DATATYPE: "rdfs:range",
+                    PropertyClassAttribute.TO_NODE_IRI: "rdfs:range"}
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
@@ -608,14 +611,14 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 sparql = f'#\n# Process "{prop.value}" with Action "{change.action.value}"\n#\n'
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {owl_prop[prop]} ?rval .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
                 if change.action != Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {self._attributes[prop]} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {owl_prop[prop]} {self._attributes[prop]} .\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -626,9 +629,9 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                     sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:onProperty {self._property_class_iri} .\n'
                 else:
                     sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self._property_class_iri} as ?prop)\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri.prefix}:ontology dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:datetime)\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {owl_prop[prop]} ?rval .\n'
+                #sparql += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri.prefix}:ontology dcterms:modified ?modified .\n'
+                #sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:datetime)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
@@ -641,13 +644,11 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += self.__update_shacl(timestamp=timestamp)
-        #print("\n---------OWL----------")
-        #print(self.__update_owl(timestamp=timestamp))
-        #print('========================')
-        #sparql += self.__update_owl(timestamp=timestamp)
-        print("******************************************")
-        print(sparql)
-        print("******************************************")
+        sparql += ";\n"
+        sparql += self.__update_owl(timestamp=timestamp)
+        print("BEGIN OWL ******************************************")
+        print(self.__update_owl(timestamp=timestamp))
+        print("END OWL ******************************************")
         self._con.update_query(sparql)
         self.__changeset_clear()
         self.__modified = timestamp
