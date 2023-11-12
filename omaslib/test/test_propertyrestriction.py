@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import unittest
+from datetime import datetime
 from pprint import pprint
 from typing import Dict, Tuple, Union
 from copy import deepcopy
@@ -218,8 +219,18 @@ class TestPropertyRestriction(unittest.TestCase):
         #
         # put a dummy property shape into a rdflib triple store
         #
+        modified = datetime.now()
         data = context.sparql_context
-        data += f'test:shacl {{\n  test:testShape a sh:PropertyShape ;\n    sh:path test:test{r1.create_shacl(indent=2, indent_inc=2)} .\n}}\n'
+        data += f'''test:shacl {{
+          test:testShape a sh:PropertyShape ;
+            sh:path test:test{r1.create_shacl(indent=2, indent_inc=2)} ;
+            dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
+
+        }}
+        '''
         g1 = ConjunctiveGraph()
         g1.parse(data=data, format='trig')
 
@@ -245,7 +256,7 @@ class TestPropertyRestriction(unittest.TestCase):
         # now apply the update to the rdflib triple store
         #
         querystr = context.sparql_context
-        querystr += r1.update_shacl(prop_iri=QName('test:test'))
+        querystr += r1.update_shacl(prop_iri=QName('test:test'), modified=modified)
         g1.update(querystr)
         expected: TurtleExpectation = {
             PropertyRestrictionType.UNIQUE_LANG: ExpectationValue(True, False),

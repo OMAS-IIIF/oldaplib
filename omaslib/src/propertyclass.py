@@ -458,9 +458,9 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql += f'{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:hasVersion "{str(self.__version)}"'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:creator {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:created "{timestamp.isoformat()}"^^xsd:datetime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:contributor {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:modified "{timestamp.isoformat()}"^^xsd:datetime ;\n'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
         sparql += self.property_node_shacl(indent, indent_inc)
         return sparql
 
@@ -476,9 +476,9 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:creator {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:created "{timestamp.isoformat()}"^^xsd:datetime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:contributor {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:modified "{timestamp.isoformat()}"^^xsd:datetime ;\n'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
         sparql += ' .\n'
         return sparql
 
@@ -573,7 +573,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
                                       graph=QName(f'{self._property_class_iri.prefix}:shacl'),
-                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:datetime', f'"{timestamp.isoformat()}"^^xsd:datetime'),
+                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -646,7 +646,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                                      owlclass_iri=owlclass_iri,
                                      pclass_iri=self._property_class_iri,
                                      graph=QName(f'{self._property_class_iri.prefix}:shacl'),
-                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:datetime', f'"{timestamp.isoformat()}"^^xsd:datetime'),
+                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
 

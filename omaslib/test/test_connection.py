@@ -3,7 +3,6 @@ import unittest
 from pprint import pprint
 from time import sleep
 
-from IPython.core.display import JSON
 from rdflib import URIRef
 
 from omaslib.src.connection import Connection, SparqlResultFormat

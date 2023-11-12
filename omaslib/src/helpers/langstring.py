@@ -357,7 +357,7 @@ class LangString(Notify):
             oval = change.old_value if change.old_value else "?val"
             sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {oval} .\n'
             sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:datetime)\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
