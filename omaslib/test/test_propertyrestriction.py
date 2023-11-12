@@ -209,7 +209,7 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r1[PropertyRestrictionType.LESS_THAN], QName('test:greater'))
         self.assertEqual(r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS], QName('test:gaga'))
 
-    def test_restriction_update(self):
+    def test_restriction_update_shacl(self):
         context = Context(name='hihi')
         context['test'] = "http://www.test.org/test#"
 
@@ -229,7 +229,7 @@ class TestPropertyRestriction(unittest.TestCase):
             dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
             dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
 
-        }}
+        }} 
         '''
         g1 = ConjunctiveGraph()
         g1.parse(data=data, format='trig')
@@ -274,6 +274,46 @@ class TestPropertyRestriction(unittest.TestCase):
             PropertyRestrictionType.LESS_THAN_OR_EQUALS: ExpectationValue(QName('test:gaga'), False),
         }
         check_turtle_expectation(g1.serialize(format="n3"), expected, self)
+
+    def test_restriction_update_onto(self):
+        context = Context(name='hihi')
+        context['test'] = "http://www.test.org/test#"
+
+        test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
+        r1 = PropertyRestrictions(restrictions=test2_restrictions)
+
+        #
+        # put a dummy property shape into a rdflib triple store
+        #
+        modified = datetime.now()
+        data = context.sparql_context
+        data += f'''test:onto {{
+          test:test a owl:DatatypeProperty ;
+            dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
+            owl:minCardinality 1 ;
+            owl:maxCardinality 4 ;
+        }} 
+        '''
+        g1 = ConjunctiveGraph()
+        g1.parse(data=data, format='trig')
+        #
+        # now modify PropertyRestrictioninstance and test the modifications in the instance
+        #
+        r1[PropertyRestrictionType.MAX_COUNT] = 1
+        expected: Dict[PropertyRestrictionType, PropertyRestrictionChange] = {
+            PropertyRestrictionType.MAX_COUNT:
+                PropertyRestrictionChange(TestPropertyRestriction.test_restrictions[PropertyRestrictionType.MAX_COUNT], Action.REPLACE, True),
+        }
+        self.assertEqual(r1.changeset, expected)
+
+        querystr = context.sparql_context
+        querystr += r1.update_owl(prop_iri=QName('test:test'), modified=modified)
+        print(querystr)
+        g1.update(querystr)
+        print(g1.serialize(format="n3"))
 
     def test_restriction_clear(self):
         test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
