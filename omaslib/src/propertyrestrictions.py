@@ -37,12 +37,13 @@ class Compare(Enum):
     XX = '__x__'
 
 
-RestrictionContainer = Dict[PropertyRestrictionType, Union[bool, int, float, str, Set[Language], QName]]
+RestrictionTypes = Union[bool, int, float, str, Set[Language], QName, None]
+RestrictionContainer = Dict[PropertyRestrictionType, RestrictionTypes]
 
 
 @dataclass
 class PropertyRestrictionChange:
-    old_value: Union[bool, int, float, str, Set[Language], QName, None]
+    old_value: RestrictionTypes
     action: Action
     test_in_use: bool
 

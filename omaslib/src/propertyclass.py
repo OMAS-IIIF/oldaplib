@@ -20,7 +20,7 @@ from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.propertyclass_singleton import PropertyClassSingleton
 from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.tools import lprint
+from omaslib.src.helpers.tools import lprint, RdfModifyItem, RdfModifyProp
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.model import Model
 from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
@@ -520,7 +520,6 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         self.__created = timestamp
         self.__modified = timestamp
 
-
     def __update_shacl(self, *,
                        owlclass_iri: Optional[QName] = None,
                        timestamp: datetime,
@@ -546,65 +545,36 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 sparql_list.append(sparql)
                 continue
 
-            sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-            sparql += f'{blank:{indent * indent_inc}}}}\n'
-
-            if change.action != Action.DELETE:
-                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} {self._attributes[prop]} .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}}}\n'
-
-            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-            if owlclass_iri:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {self._property_class_iri} .\n'
-            else:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:datetime)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-            sparql += f'{blank:{indent * indent_inc}}}}'
+            ele = RdfModifyItem(prop.value,
+                                str(change.old_value) if change.action != Action.CREATE else None,
+                                str(self._attributes[prop]) if change.action != Action.DELETE else None)
+            sparql += RdfModifyProp.shacl(action=change.action,
+                                          owlclass_iri=owlclass_iri,
+                                          pclass_iri=self._property_class_iri,
+                                          graph=QName(f'{self._property_class_iri.prefix}:shacl'),
+                                          ele=ele,
+                                          last_modified=self.__modified)
             sparql_list.append(sparql)
 
         #
         # Updating the timestamp and contributor ID
         #
-        sparql = f'#\n# Update the administrative metadata\n#\n'
-        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:contributor ?contributor .\n'
+        sparql = f'#\n# Update/add dcterms:contributor\n#\n'
+        sparql += RdfModifyProp.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
+                                      owlclass_iri=owlclass_iri,
+                                      pclass_iri=self._property_class_iri,
+                                      graph=QName(f'{self._property_class_iri.prefix}:shacl'),
+                                      ele=RdfModifyItem('dcterms:contributor', self.__contributor, self._con.user_iri),
+                                      last_modified=self.__modified)
+        sparql_list.append(sparql)
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-
-        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified "{timestamp.isoformat()}"^^xsd:datetime .\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:contributor "{self._con.user_iri}" .\n'
-
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-
-        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
-        if owlclass_iri:
-            sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {self._property_class_iri} .\n'
-        else:
-            sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:contributor ?contributor .\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:datetime)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}}}'
+        sparql = f'#\n# Update/add dcterms:modified\n#\n'
+        sparql += RdfModifyProp.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
+                                      owlclass_iri=owlclass_iri,
+                                      pclass_iri=self._property_class_iri,
+                                      graph=QName(f'{self._property_class_iri.prefix}:shacl'),
+                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:datetime', f'"{timestamp.isoformat()}"^^xsd:datetime'),
+                                      last_modified=self.__modified)
         sparql_list.append(sparql)
 
         sparql = ";\n".join(sparql_list)
@@ -630,70 +600,55 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                                                   indent=indent, indent_inc=indent_inc)
             if prop in owl_propclass_attributes:
                 sparql = f'#\n# OWL:\n# Process "{owl_prop[prop]}" with Action "{change.action.value}"\n#\n'
-                if change.action != Action.CREATE:
-                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {owl_prop[prop]} ?rval .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-
-                if change.action != Action.DELETE:
-                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {owl_prop[prop]} {self._attributes[prop]} .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-
-                sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-                if owlclass_iri:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?prop .\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:onProperty {self._property_class_iri} .\n'
-                else:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self._property_class_iri} as ?prop)\n'
-                if change.action != Action.CREATE:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {owl_prop[prop]} ?rval .\n'
-                #sparql += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri.prefix}:ontology dcterms:modified ?modified .\n'
-                #sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:datetime)\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}}}'
+                ele = RdfModifyItem(property=owl_prop[prop],
+                                    old_value=str(change.old_value) if change.action != Action.CREATE else None,
+                                    new_value=str(self._attributes[prop]) if change.action != Action.DELETE else None)
+                sparql += RdfModifyProp.onto(action=change.action,
+                                             owlclass_iri=owlclass_iri,
+                                             pclass_iri=self._property_class_iri,
+                                             graph=QName(f'{self._property_class_iri.prefix}:onto'),
+                                             ele=ele,
+                                             last_modified=self.__modified,
+                                             indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
 
             if prop == PropertyClassAttribute.DATATYPE or prop == PropertyClassAttribute.TO_NODE_IRI:
-                sparql = f'#\n# OWL:\n# Correct OWL property type with Action "{change.action.value}\n#\n'
-                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop rdf:type ?proptype .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                ele: RdfModifyItem
                 if self._attributes.get(PropertyClassAttribute.TO_NODE_IRI):
-                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop rdf:type owl:ObjectProperty .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    ele = RdfModifyItem('rdf:type', QName('owl:DatatypeProperty'), QName('owl:ObjectProperty'))
                 else:
-                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop rdf:type owl:DatatypeProperty .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-                if owlclass_iri:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?prop .\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:onProperty {self._property_class_iri} .\n'
-                else:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self._property_class_iri} as ?prop)\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop rdf:type ?proptype .\n'
-                #sparql += f'{blank:{(indent + 2) * indent_inc}}{self._property_class_iri.prefix}:ontology dcterms:modified ?modified .\n'
-                #sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:datetime)\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}}}'
+                    ele = RdfModifyItem('rdf:type', QName('owl:ObjectProperty'), QName('owl:DatatypeProperty'))
+                sparql = f'#\n# OWL:\n# Correct OWL property type with Action "{change.action.value}\n#\n'
+                sparql += RdfModifyProp.onto(action=Action.REPLACE,
+                                             owlclass_iri=owlclass_iri,
+                                             pclass_iri=self._property_class_iri,
+                                             graph=QName(f'{self._property_class_iri.prefix}:onto'),
+                                             ele=ele,
+                                             last_modified=self.__modified,
+                                             indent=indent, indent_inc=indent_inc)
+
                 sparql_list.append(sparql)
 
         #
-        # TODO: Update contributor, modified here! Creator and created remain and will not be changed!
+        # Updating the timestamp and contributor ID
+        #
+        sparql = f'#\n# Update/add dcterms:contributor\n#\n'
+        sparql += RdfModifyProp.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
+                                     owlclass_iri=owlclass_iri,
+                                     pclass_iri=self._property_class_iri,
+                                     graph=QName(f'{self._property_class_iri.prefix}:shacl'),
+                                     ele=RdfModifyItem('dcterms:contributor', self.__contributor, self._con.user_iri),
+                                     last_modified=self.__modified)
+        sparql_list.append(sparql)
+
+        sparql = f'#\n# Update/add dcterms:modified\n#\n'
+        sparql += RdfModifyProp.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
+                                     owlclass_iri=owlclass_iri,
+                                     pclass_iri=self._property_class_iri,
+                                     graph=QName(f'{self._property_class_iri.prefix}:shacl'),
+                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:datetime', f'"{timestamp.isoformat()}"^^xsd:datetime'),
+                                     last_modified=self.__modified)
+        sparql_list.append(sparql)
 
         sparql = ";\n".join(sparql_list)
         return sparql
