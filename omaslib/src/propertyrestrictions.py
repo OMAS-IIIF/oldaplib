@@ -389,6 +389,7 @@ class PropertyRestrictions(Notify):
         """
         blank = ''
         minmax_done = False
+        sparql = ''
         for restriction_type, change in self._changeset.items():
             if minmax_done:
                 continue
@@ -396,18 +397,18 @@ class PropertyRestrictions(Notify):
                 old_min_count: Union[int, None]
                 old_max_count: Union[int, None]
                 if self._changeset.get(PropertyRestrictionType.MIN_COUNT) is None:
-                    old_min_count = None
+                    old_min_count = None if self._restrictions.get(PropertyRestrictionType.MIN_COUNT) is None else self._restrictions[PropertyRestrictionType.MIN_COUNT]
                 else:
                     old_min_count = self._changeset[PropertyRestrictionType.MIN_COUNT].old_value
                 if self._changeset.get(PropertyRestrictionType.MAX_COUNT) is None:
-                    old_max_count = None
+                    old_max_count = None if self._restrictions.get(PropertyRestrictionType.MAX_COUNT) is None else self._restrictions[PropertyRestrictionType.MAX_COUNT]
                 else:
                     old_max_count = self._changeset[PropertyRestrictionType.MAX_COUNT].old_value
-                sparql = f'#\n# Process "{restriction_type.value}" with Action "{change.action.value}"\n#\n'
+                sparql += f'#\n# Process "sh:maxCount"/"sh:minCount"...\n#\n'
                 if old_max_count is not None and old_max_count == old_min_count:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:cardinality ?cardinality .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:cardinality {old_max_count} .\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 else:
@@ -419,44 +420,30 @@ class PropertyRestrictions(Notify):
                         sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:maxCardinality {old_max_count} .\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
-                if self._changeset.get(PropertyRestrictionType.MAX_COUNT) is not None \
-                        and self._changeset.get(PropertyRestrictionType.MAX_COUNT) is not None:
-                    # Both changed
-                    new_max_count: Union[int, None] = None
-                    new_min_count: Union[int, None] = None
-                    if self._changeset[PropertyRestrictionType.MAX_COUNT].action != Action.DELETE:
-                        new_max_count = self._restrictions[PropertyRestrictionType.MAX_COUNT]
-                    if self._changeset[PropertyRestrictionType.MIN_COUNT].action != Action.DELETE:
-                        new_min_count = self._restrictions[PropertyRestrictionType.MIN_COUNT]
-                    if new_max_count is not None and new_max_count == new_max_count:
-                        pass
-                        # insert owl:cardinality
-
+                # we have now removed all cardinality information
+                new_max_count: Union[int, None]
+                new_min_count: Union[int, None]
+                if self._restrictions.get(PropertyRestrictionType.MIN_COUNT) is None:
+                    new_min_count = None
                 else:
-                    if self._changeset.get(PropertyRestrictionType.MAX_COUNT) is not None \
-                            and self._changeset[PropertyRestrictionType.MAX_COUNT].action != Action.DELETE:
-                        # MAX_COUNT changed (CREATE/INSERT)
-                        pass
-                    if self._changeset.get(PropertyRestrictionType.MIN_COUNT) is not None \
-                            and self._changeset[PropertyRestrictionType.MIN_COUNT] != Action.DELETE:
-                        # MIN_COUNT changed (CREATE/INSERT)
-                        pass
-
-
-
-
-                if change.action == Action.DELETE:
-                    if old_max_count == old_min_count:
-                        pass
-                if change.action != Action.DELETE:
+                    new_min_count = self._restrictions[PropertyRestrictionType.MIN_COUNT]
+                if self._restrictions.get(PropertyRestrictionType.MAX_COUNT) is None:
+                    new_max_count = None
+                else:
+                    new_max_count = self._restrictions[PropertyRestrictionType.MAX_COUNT]
+                if new_max_count is not None and new_max_count == new_min_count:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:onto {{\n'
-                    if self._restrictions.get(PropertyRestrictionType.MIN_COUNT):
-                        newval = self._restrictions[PropertyRestrictionType.MIN_COUNT]
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:minCardinality {newval} .\n'
-                    if self._restrictions.get(PropertyRestrictionType.MAX_COUNT):
-                        newval = self._restrictions[PropertyRestrictionType.MAX_COUNT]
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:maxCardinality {newval} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:cardinality {new_max_count} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                else:
+                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:onto {{\n'
+                    if new_max_count is not None:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:maxCardinality {new_max_count} .\n'
+                    if new_min_count is not None and new_min_count > 0:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:minCardinality {new_min_count} .\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
@@ -466,20 +453,12 @@ class PropertyRestrictions(Notify):
                     sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:onProperty {prop_iri} .\n'
                 else:
                     sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri} as ?prop)\n'
-                if old_min_count == old_max_count:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:cardinality ?cardinality .\n'
-                else:
-                    if old_min_count:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:minCardinality ?min_cardinality .\n'
-                    if old_min_count:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:maxCardinality ?max_cardinality .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{prop_iri.prefix}:ontology dcterms:modified ?modified .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
                 sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
             minmax_done = True
-            return sparql
-        return ''
+        return sparql
 
     def delete_shacl(self, *,
                      owlclass_iri: Optional[QName] = None,

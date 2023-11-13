@@ -661,13 +661,11 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql += self.__update_shacl(timestamp=timestamp)
         sparql += ";\n"
         sparql += self.__update_owl(timestamp=timestamp)
-        #print("BEGIN OWL ******************************************")
-        #print(self.__update_owl(timestamp=timestamp))
-        #print("END OWL ******************************************")
-        #print("BEGIN SPARQL ******************************************")
-        #lprint(sparql)
-        #print("END SPARQL ******************************************")
         self._con.update_query(sparql)
+
+        for prop, change in self._changeset.items():
+            if change.action == Action.MODIFY:
+                self._attributes[prop].changeset_clear()
         self.__changeset_clear()
         self.__modified = timestamp
         self.__contributor = self._con.user_iri

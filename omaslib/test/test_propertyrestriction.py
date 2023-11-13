@@ -286,8 +286,8 @@ class TestPropertyRestriction(unittest.TestCase):
         # put a dummy property shape into a rdflib triple store
         #
         modified = datetime.now()
-        data = context.sparql_context
-        data += f'''test:onto {{
+        data1 = context.sparql_context
+        data1 += f'''test:onto {{
           test:test a owl:DatatypeProperty ;
             dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
             dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
@@ -298,7 +298,7 @@ class TestPropertyRestriction(unittest.TestCase):
         }} 
         '''
         g1 = ConjunctiveGraph()
-        g1.parse(data=data, format='trig')
+        g1.parse(data=data1, format='trig')
         #
         # now modify PropertyRestrictioninstance and test the modifications in the instance
         #
@@ -311,9 +311,40 @@ class TestPropertyRestriction(unittest.TestCase):
 
         querystr = context.sparql_context
         querystr += r1.update_owl(prop_iri=QName('test:test'), modified=modified)
-        print(querystr)
         g1.update(querystr)
-        print(g1.serialize(format="n3"))
+        expected = context.sparql_context
+        expected += f'''test:onto {{
+          test:test a owl:DatatypeProperty ;
+            dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
+            owl:cardinality 1 ;
+        }} 
+        '''
+        g2 = ConjunctiveGraph()
+        g2.parse(data=expected, format='trig')
+        self.assertEqual(set(g1), set(g2))
+        r1.changeset_clear()
+
+        r1[PropertyRestrictionType.MIN_COUNT] = 0
+        querystr = context.sparql_context
+        querystr += r1.update_owl(prop_iri=QName('test:test'), modified=modified)
+        g1.update(querystr)
+        expected = context.sparql_context
+        expected += f'''test:onto {{
+          test:test a owl:DatatypeProperty ;
+            dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
+            owl:maxCardinality 1 ;
+        }} 
+        '''
+        g2 = ConjunctiveGraph()
+        g2.parse(data=expected, format='trig')
+        self.assertEqual(set(g1), set(g2))
+        r1.changeset_clear()
 
     def test_restriction_clear(self):
         test2_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
