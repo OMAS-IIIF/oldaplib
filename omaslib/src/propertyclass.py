@@ -2,11 +2,13 @@
 :Author: Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>
 """
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, date, time
+from decimal import Decimal
 from enum import Enum, unique
 from pprint import pprint
-from typing import Union, Set, Optional, Any, Tuple, Dict, Callable
+from typing import Union, Set, Optional, Any, Tuple, Dict, Callable, List
 
+from isodate import Duration
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
 
@@ -34,6 +36,7 @@ class OwlPropertyType(Enum):
 
 PropTypes = Union[QName, AnyIRI, OwlPropertyType, XsdDatatypes, PropertyRestrictions, LangString, int, float, None]
 PropertyClassAttributesContainer = Dict[PropertyClassAttribute, PropTypes]
+Attributes = Dict[QName, List[Any]]
 
 
 @dataclass
@@ -41,6 +44,7 @@ class PropertyClassAttributeChange:
     old_value: PropTypes
     action: Action
     test_in_use: bool
+
 
 @strict
 class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
@@ -276,50 +280,52 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     def delete_singleton(self) -> None:
         del self._cache[str(self._property_class_iri)]
 
-    def __read_shacl(self) -> None:
-        """
-        Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
-        :return:
-        """
+    def __query_shacl(self) -> Attributes:
         context = Context(name=self._con.context_name)
         query = context.sparql_context
         query += f"""
-        SELECT ?p ?o ?oo
+        SELECT ?attriri ?value ?oo
         FROM {self._property_class_iri.prefix}:shacl
         WHERE {{
             BIND({self._property_class_iri}Shape AS ?shape)
-            ?shape ?p ?o .
+            ?shape ?attriri ?value .
             OPTIONAL {{
-                ?o rdf:rest*/rdf:first ?oo
+                ?value rdf:rest*/rdf:first ?oo
             }}
         }}
         """
         res = self._con.rdflib_query(query)
-        attributes = {}
+        attributes: Attributes = {}
         for r in res:
-            p = context.iri2qname(r['p'])
-            if isinstance(r['o'], URIRef):
-                if attributes.get(p) is None:
-                    attributes[p] = []
-                attributes[p].append(context.iri2qname(r['o']))
-            elif isinstance(r['o'], Literal):
-                if attributes.get(p) is None:
-                    attributes[p] = []
-                if r['o'].language is None:
-                    attributes[p].append(r['o'].toPython())
+            attriri = context.iri2qname(r['attriri'])
+            if isinstance(r['value'], URIRef):
+                if attributes.get(attriri) is None:
+                    attributes[attriri] = []
+                attributes[attriri].append(context.iri2qname(r['value']))
+            elif isinstance(r['value'], Literal):
+                if attributes.get(attriri) is None:
+                    attributes[attriri] = []
+                if r['value'].language is None:
+                    attributes[attriri].append(r['value'].toPython())
                 else:
-                    attributes[p].append(r['o'].toPython() + '@' + r['o'].language)
-            elif isinstance(r['o'], BNode):
+                    attributes[attriri].append(r['value'].toPython() + '@' + r['value'].language)
+            elif isinstance(r['value'], BNode):
                 pass
             else:
-                if attributes.get(p) is None:
-                    attributes[p] = []
-                attributes[p].append(r['o'])
-            if r['p'].fragment == 'languageIn':
-                if not attributes.get(p):
-                    attributes[p] = set()
-                attributes[p].add(Language[r['oo'].toPython().upper()])
+                if attributes.get(attriri) is None:
+                    attributes[attriri] = []
+                attributes[attriri].append(r['value'])
+            if r['attriri'].fragment == 'languageIn':
+                if not attributes.get(attriri):
+                    attributes[attriri] = set()
+                attributes[attriri].add(Language[r['oo'].toPython().upper()])
+        return attributes
 
+    def parse_shacl(self, attributes) -> None:
+        """
+        Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
+        :return:
+        """
         self._attributes[PropertyClassAttribute.RESTRICTIONS] = PropertyRestrictions()
         #
         # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
@@ -436,7 +442,8 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                     f'Property has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
 
     def read(self):
-        self.__read_shacl()
+        attributes = self.__query_shacl()
+        self.parse_shacl(attributes)
         self.__read_owl()
 
     def property_node_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:

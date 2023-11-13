@@ -160,16 +160,16 @@ class ResourceClass(Model):
             else:
                 return False
 
-    def to_sparql_insert(self, indent: int) -> str:
+    def to_sparql_insert(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ' '
         sparql = f'{blank:{indent}}{self._shape} a sh:NodeShape, {self._owl_class} ;\n'
         sparql += f'{blank:{indent + 4}}sh:targetClass {self._owl_class} ; \n'
         for p in self._properties:
-            sparql += f'{blank:{indent + 4}}sh:property\n'
-            sparql += f'{blank:{indent + 8}}[\n'
-            sparql += f'{blank:{indent + 12}}sh:path rdf:type ;\n'
-            sparql += f'{blank:{indent + 8}}] ;\n'
-            sparql += f'{blank:{indent + 4}}sh:property\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:property\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}[\n'
+            sparql += f'{blank:{(indent + 3) * indent_inc}}sh:path rdf:type ;\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}] ;\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:property\n'
 
             sparql += p.create_shacl(indent + 8)
         sparql += f'{blank:{indent}}sh:closed {"true" if self._closed else "false"} .\n'
