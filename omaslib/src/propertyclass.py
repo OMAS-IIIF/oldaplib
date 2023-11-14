@@ -280,21 +280,22 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     def delete_singleton(self) -> None:
         del self._cache[str(self._property_class_iri)]
 
-    def __query_shacl(self) -> Attributes:
-        context = Context(name=self._con.context_name)
+    @staticmethod
+    def __query_shacl(con: Connection, property_class_iri: QName) -> Attributes:
+        context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
         SELECT ?attriri ?value ?oo
-        FROM {self._property_class_iri.prefix}:shacl
+        FROM {property_class_iri.prefix}:shacl
         WHERE {{
-            BIND({self._property_class_iri}Shape AS ?shape)
+            BIND({property_class_iri}Shape AS ?shape)
             ?shape ?attriri ?value .
             OPTIONAL {{
                 ?value rdf:rest*/rdf:first ?oo
             }}
         }}
         """
-        res = self._con.rdflib_query(query)
+        res = con.rdflib_query(query)
         attributes: Attributes = {}
         for r in res:
             attriri = context.iri2qname(r['attriri'])
@@ -441,10 +442,13 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 raise OmasError(
                     f'Property has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
 
-    def read(self):
-        attributes = self.__query_shacl()
-        self.parse_shacl(attributes)
-        self.__read_owl()
+    @classmethod
+    def read(cls, con: Connection, property_class_iri: QName) -> 'PropertyClass':
+        property = cls(con=con, property_class_iri=property_class_iri)
+        attributes = PropertyClass.__query_shacl(con, property_class_iri)
+        property.parse_shacl(attributes=attributes)
+        property.__read_owl()
+        return property
 
     def property_node_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''

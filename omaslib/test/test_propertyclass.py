@@ -61,8 +61,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p.get(PropertyClassAttribute.EXCLUSIVE_FOR))
 
     def test_propertyclass_read_shacl(self):
-        p1 = PropertyClass(con=self._connection, property_class_iri=QName('test:comment'))
-        p1.read()
+        #p1 = PropertyClass(con=self._connection, property_class_iri=QName('test:comment'))
+        p1 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:comment'))
         self.assertEqual(p1.property_class_iri, QName('test:comment'))
         self.assertEqual(p1.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
         self.assertTrue(p1.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.UNIQUE_LANG])
@@ -76,9 +76,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
         self.assertEqual(p1.created, datetime.fromisoformat("2023-11-04T12:00:00Z"))
 
-        p2 = PropertyClass(con=self._connection,
-                           property_class_iri=QName('test:test'))
-        p2.read()
+        #p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:test'))
+        p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:test'))
         self.assertEqual(p2.property_class_iri, QName('test:test'))
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
         self.assertEqual(p2[PropertyClassAttribute.NAME], LangString("Test"))
@@ -108,11 +107,8 @@ class TestPropertyClass(unittest.TestCase):
         p1.create()
         p1.delete_singleton()
         del p1
-        p2 = PropertyClass(
-            con=self._connection,
-            property_class_iri=QName('test:testWrite')
-        )
-        p2.read()
+        #p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:testWrite'))
+        p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:testWrite'))
         self.assertEqual(p2.property_class_iri, QName('test:testWrite'))
         self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))
         self.assertEqual(p2[PropertyClassAttribute.NAME], LangString("Annotations@en"))
@@ -229,11 +225,8 @@ class TestPropertyClass(unittest.TestCase):
 
         p1.delete_singleton()
         del p1
-        p2 = PropertyClass(
-            con=self._connection,
-            property_class_iri=QName('test:testUpdate')
-        )
-        p2.read()
+        #p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:testUpdate'))
+        p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:testUpdate'))
         self.assertEqual(p2.property_class_iri, QName('test:testUpdate'))
         self.assertEqual(p2[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
         self.assertIsNone(p2.get(PropertyClassAttribute.TO_NODE_IRI))
