@@ -11,6 +11,7 @@ from typing import Union, Set, Optional, Any, Tuple, Dict, Callable, List
 from isodate import Duration
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
+from rdflib.query import ResultRow
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.Notify import Notify
@@ -281,6 +282,31 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         del self._cache[str(self._property_class_iri)]
 
     @staticmethod
+    def process_triple(context: Context, r: ResultRow, attributes: Attributes) -> None:
+        attriri = context.iri2qname(r['attriri'])
+        if isinstance(r['value'], URIRef):
+            if attributes.get(attriri) is None:
+                attributes[attriri] = []
+            attributes[attriri].append(context.iri2qname(r['value']))
+        elif isinstance(r['value'], Literal):
+            if attributes.get(attriri) is None:
+                attributes[attriri] = []
+            if r['value'].language is None:
+                attributes[attriri].append(r['value'].toPython())
+            else:
+                attributes[attriri].append(r['value'].toPython() + '@' + r['value'].language)
+        elif isinstance(r['value'], BNode):
+            pass
+        else:
+            if attributes.get(attriri) is None:
+                attributes[attriri] = []
+            attributes[attriri].append(r['value'])
+        if r['attriri'].fragment == 'languageIn':
+            if not attributes.get(attriri):
+                attributes[attriri] = set()
+            attributes[attriri].add(Language[r['oo'].toPython().upper()])
+
+    @staticmethod
     def __query_shacl(con: Connection, property_class_iri: QName) -> Attributes:
         context = Context(name=con.context_name)
         query = context.sparql_context
@@ -298,31 +324,10 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         res = con.rdflib_query(query)
         attributes: Attributes = {}
         for r in res:
-            attriri = context.iri2qname(r['attriri'])
-            if isinstance(r['value'], URIRef):
-                if attributes.get(attriri) is None:
-                    attributes[attriri] = []
-                attributes[attriri].append(context.iri2qname(r['value']))
-            elif isinstance(r['value'], Literal):
-                if attributes.get(attriri) is None:
-                    attributes[attriri] = []
-                if r['value'].language is None:
-                    attributes[attriri].append(r['value'].toPython())
-                else:
-                    attributes[attriri].append(r['value'].toPython() + '@' + r['value'].language)
-            elif isinstance(r['value'], BNode):
-                pass
-            else:
-                if attributes.get(attriri) is None:
-                    attributes[attriri] = []
-                attributes[attriri].append(r['value'])
-            if r['attriri'].fragment == 'languageIn':
-                if not attributes.get(attriri):
-                    attributes[attriri] = set()
-                attributes[attriri].add(Language[r['oo'].toPython().upper()])
+            PropertyClass.process_triple(context, r, attributes)
         return attributes
 
-    def parse_shacl(self, attributes) -> None:
+    def parse_shacl(self, attributes: Attributes) -> None:
         """
         Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
         :return:
@@ -423,8 +428,6 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             elif attr == 'dcterms:modified':
                 dt = datetime.fromisoformat(obj)
                 if self.__modified != dt:
-                    print('---->', type(self.__modified))
-                    print('====>', type(dt))
                     raise OmasError(f'Inconsistency between SHACL and OWL: created {self.__modified} vs {dt}.')
         #
         # Consistency checks

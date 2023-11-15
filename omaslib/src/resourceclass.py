@@ -11,7 +11,7 @@ from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.langstring import Language, LangString
 from omaslib.src.helpers.context import Context
 from omaslib.src.model import Model
-from omaslib.src.propertyclass import PropertyClass
+from omaslib.src.propertyclass import PropertyClass, Attributes
 from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
 
 @unique
@@ -24,6 +24,7 @@ class ResourceClassAttributes(Enum):
 
 AttributeTypes = Union[QName, LangString, bool, None]
 ResourceClassAttributesContainer = Dict[ResourceClassAttributes, AttributeTypes]
+Properties = Dict[QName, Attributes]
 
 
 @dataclass
@@ -253,48 +254,31 @@ class ResourceClass(Model):
 
         query2 = context.sparql_context
         query2 += f"""
-        SELECT ?prop ?p ?o ?oo
+        SELECT ?prop ?attriri ?value ?oo
         FROM {self._owl_class.prefix}:shacl
         WHERE {{
             BIND({str(self._owl_class)}Shape AS ?shape)
             ?shape sh:property ?prop .
-            ?prop ?p ?o .
+            ?prop ?attriri ?value .
             OPTIONAL {{
-                ?o rdf:rest*/rdf:first ?oo
+                ?value rdf:rest*/rdf:first ?oo
             }}
         }}
         """
         res = con.rdflib_query(query2)
-        properties = {}
+        properties: Properties = Properties({})
         for r in res:
-            if r[2] == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
+            if r['value'] == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
                 continue
-            if not isinstance(r[1], URIRef):
+            if not isinstance(r['attriri'], URIRef):
                 raise OmasError("INCONSISTENCY!")
-            if not properties.get(r[0]):
-                properties[r[0]] = {}
-            p = context.iri2qname(r[1])
-            if isinstance(r[2], URIRef):
-                if properties[r[0]].get(p) is None:
-                    properties[r[0]][p] = []
-                properties[r[0]][p].append(context.iri2qname(r[2]))
-            elif isinstance(r[2], Literal):
-                if properties[r[0]].get(p) is None:
-                    properties[r[0]][p] = []
-                if r[2].language is None:
-                    properties[r[0]][p].append(r[2].toPython())
-                else:
-                    properties[r[0]][p].append(r[2].toPython() + '@' + r[2].language)
-            elif isinstance(r[2], BNode):
-                pass
-            else:
-                if properties[r[0]].get(p) is None:
-                    properties[r[0]][p] = []
-                properties[r[0]][p].append(r[2])
-            if r[1].fragment == 'languageIn':
-                if not properties[r[0]].get(p):
-                    properties[r[0]][p] = set()
-                properties[r[0]][p].add(Language(r[3].toPython()))
+            property = r['prop']  # this is usually a BNode
+            if not properties.get(property):
+                properties[property] = Attributes({})  # of type Attributes
+            attributes: Attributes = properties[property]
+            PropertyClass.process_triple(context, r, attributes)
+        prop = PropertyClass(con=con)
+        prop.parse_shacle
         for x, p in properties.items():
             p_iri = None
             p_datatype = None
