@@ -67,7 +67,7 @@ class PropertyClass(Model, Notify):
     __contributor: Optional[QName]
     __modified: Optional[datetime]
     __version: SemanticVersion
-    __from_ts: bool
+    __from_triplestore: bool
 
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
         PropertyClassAttribute.SUBPROPERTY_OF: {QName},
@@ -129,7 +129,7 @@ class PropertyClass(Model, Notify):
         self.__contributor = None
         self.__modified = None
         self.__version = SemanticVersion()
-        self.__from_ts = False
+        self.__from_triplestore = False
 
     def __len__(self) -> int:
         return len(self._attributes)
@@ -383,9 +383,9 @@ class PropertyClass(Model, Notify):
         for attr, value in self._attributes.items():
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
-        self.__from_ts = True
+        self.__from_triplestore = True
 
-    def __read_owl(self):
+    def read_owl(self):
         context = Context(name=self._con.context_name)
         query1 = context.sparql_context
         query1 += f"""
@@ -414,21 +414,21 @@ class PropertyClass(Model, Notify):
                 else:
                     to_node_iri = obj
             elif attr == 'rdfs:domain':
-                self._exclusive_for_class = obj
+                self._attributes[PropertyClassAttribute.EXCLUSIVE_FOR] = obj
             elif attr == 'dcterms:creator':
                 if self.__creator != obj:
-                    raise OmasError(f'Inconsistency between SHACL and OWL: creator {self.__creator} vs {obj}.')
+                    raise OmasError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}".')
             elif attr == 'dcterms:created':
                 dt = datetime.fromisoformat(obj)
                 if self.__created != dt:
-                    raise OmasError(f'Inconsistency between SHACL and OWL: created {self.__created} vs {dt}.')
+                    raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__created}" vs "{dt}".')
             elif attr == 'dcterms:contributor':
                 if self.__creator != obj:
-                    raise OmasError(f'Inconsistency between SHACL and OWL: contributor {self.__contributor} vs {obj}.')
+                    raise OmasError(f'Inconsistency between SHACL and OWL: contributor "{self.__contributor}" vs "{obj}".')
             elif attr == 'dcterms:modified':
                 dt = datetime.fromisoformat(obj)
                 if self.__modified != dt:
-                    raise OmasError(f'Inconsistency between SHACL and OWL: created {self.__modified} vs {dt}.')
+                    raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__modified}" vs "{dt}".')
         #
         # Consistency checks
         #
@@ -450,7 +450,7 @@ class PropertyClass(Model, Notify):
         property = cls(con=con, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, property_class_iri)
         property.parse_shacl(attributes=attributes)
-        property.__read_owl()
+        property.read_owl()
         return property
 
     def property_node_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
@@ -510,7 +510,7 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def create(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False):
-        if self.__from_ts:
+        if self.__from_triplestore:
             raise OmasError(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
         timestamp = datetime.now()
         blank = ''
@@ -685,7 +685,7 @@ class PropertyClass(Model, Notify):
         self.__contributor = self._con.user_iri
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
-        self.__from_ts = False
+        self.__from_triplestore = False
         pass
 
 

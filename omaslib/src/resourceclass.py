@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, unique
+from pprint import pprint
 from typing import Union, Optional, List, Set, Any, Tuple, Dict
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
@@ -343,7 +344,6 @@ class ResourceClass(Model):
             prop: Union[PropertyClass, QName]
             if isinstance(propnode, URIRef):
                 qname = context.iri2qname(propnode)
-                #propinfos[qname] = qname
                 propinfos[qname] = propnode
             elif isinstance(propnode, BNode):
                 if propinfos.get(propnode) is None:
@@ -356,14 +356,15 @@ class ResourceClass(Model):
             # now we collected all the information from the triple store. Let's process the informationj into
             # a list of full PropertyClasses or QName's to external definitions
             #
-            proplist: List[Union[QName, PropertyClass]] = []
-            for prop_iri, attributes in propinfos.items():
-                if isinstance(attributes, (QName, URIRef)):
-                    proplist.append(prop_iri)
-                else:
-                    prop = PropertyClass(con=con)
-                    prop.parse_shacl(attributes=attributes)
-                    proplist.append(prop)
+        proplist: List[Union[QName, PropertyClass]] = []
+        for prop_iri, attributes in propinfos.items():
+            if isinstance(attributes, (QName, URIRef)):
+                proplist.append(prop_iri)
+            else:
+                prop = PropertyClass(con=con)
+                prop.parse_shacl(attributes=attributes)
+                prop.read_owl()
+                proplist.append(prop)
         return proplist
 
     def __read_shacl(self) -> None:

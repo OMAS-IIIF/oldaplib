@@ -123,6 +123,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.get(PropertyClassAttribute.DESCRIPTION), LangString("Property shape for testing purposes"))
         self.assertEqual(prop1[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MIN_COUNT), 1)
         self.assertEqual(prop1.get(PropertyClassAttribute.ORDER), 3)
+        self.assertIsNone(prop1.get(PropertyClassAttribute.EXCLUSIVE_FOR))
 
         prop2 = r1[QName('test:hasText')]
         self.assertEqual(prop2.property_class_iri, QName("test:hasText"))
@@ -138,4 +139,5 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.get(PropertyClassAttribute.ORDER), 1)
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MIN_COUNT), 1)
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
+        self.assertEqual(prop2.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:testMyRes'))
 
