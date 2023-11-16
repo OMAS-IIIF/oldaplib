@@ -350,11 +350,11 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             elif key == 'dcterms:creator':
                 self.__creator = val[0]
             elif key == 'dcterms:created':
-                self.__created = datetime.fromisoformat(str(val[0]))
+                self.__created = val[0]
             elif key == 'dcterms:contributor':
                 self.__contributor = val[0]
             elif key == 'dcterms:modified':
-                self.__modified = datetime.fromisoformat(str(val[0]))
+                self.__modified = val[0]
             elif key in propkeys:
                 attr = PropertyClassAttribute(key)
                 if {QName, AnyIRI} == self.__datatypes[attr]:
@@ -369,9 +369,9 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 try:
                     self._attributes[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType(key)] = val if key == "sh:languageIn" else val[0]
                 except (ValueError, TypeError) as err:
-                    OmasError(f'Invalid shacl definition: "{key} {val}"')
+                    raise OmasError(f'Invalid shacl definition of PropertyClass attribute: "{key} {val}"')
         #
-        # setting property type for OWL which distinguished between Data- and Object-^properties
+        # setting property type for OWL which distinguished between Data- and Object-properties
         #
         if self._attributes.get(PropertyClassAttribute.TO_NODE_IRI) is not None:
             self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
