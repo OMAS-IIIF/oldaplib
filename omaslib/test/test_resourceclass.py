@@ -58,13 +58,17 @@ class TestResourceClass(unittest.TestCase):
                     PropertyRestrictionType.UNIQUE_LANG: True,
                     PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT}
                 }),
+            PropertyClassAttribute.EXCLUSIVE_FOR: QName('test:TestResource'),
             PropertyClassAttribute.ORDER: 5
         }
         p = PropertyClass(con=self._connection, property_class_iri=QName('test:testprop'), attrs=props)
         self.assertEqual(p.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
-        self.assertEqual(p.get(PropertyClassAttribute.SUBPROPERTY_OF), QName("test:comment"))
 
-        properties: List[Union[PropertyClass, QName]] = [QName("test:comment"), QName("test:test"), p]
+        properties: List[Union[PropertyClass, QName]] = [
+            QName("test:comment"),
+            QName("test:test"),
+            p
+        ]
 
         r1 = ResourceClass(con=self._connection,
                            owl_class_iri="TestResource",
@@ -81,6 +85,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1[PropertyClassAttribute.DESCRIPTION], LangString("This is a test property@de"))
         self.assertEqual(prop1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 1)
         self.assertEqual(prop1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG], True)
+        self.assertIsNone(prop1.get(PropertyClassAttribute.EXCLUSIVE_FOR))
 
         prop2 = r1[QName("test:test")]
         self.assertEqual(prop2.property_class_iri, QName("test:test"))
@@ -88,6 +93,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.get(PropertyClassAttribute.DESCRIPTION), LangString("Property shape for testing purposes"))
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MIN_COUNT), 1)
         self.assertEqual(prop2.get(PropertyClassAttribute.ORDER), 3)
+        self.assertIsNone(prop2.get(PropertyClassAttribute.EXCLUSIVE_FOR))
 
         prop3 = r1[QName("test:testprop")]
         self.assertEqual(prop3.property_class_iri, QName("test:testprop"))
@@ -95,6 +101,8 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop3.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
         self.assertEqual(prop3.get(PropertyClassAttribute.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(prop3.get(PropertyClassAttribute.ORDER), 5)
+        self.assertEqual(prop3.get(PropertyClassAttribute.SUBPROPERTY_OF), QName("test:comment"))
+        self.assertEqual(prop3.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:TestResource'))
         self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
         self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG], True)
         self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
