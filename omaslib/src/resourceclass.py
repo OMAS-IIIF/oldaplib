@@ -421,7 +421,7 @@ class ResourceClass(Model):
         resclass.__read_owl()
         return resclass
 
-    def __create_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+    def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -431,30 +431,50 @@ class ResourceClass(Model):
         for iri, p in self._properties.items():
             if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
                 sparql += "\n"
-                sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape ;\n'
-                sparql += p.property_node_shacl(4) + " .\n"
+                sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape'
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.user_iri}'
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.user_iri}'
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+                sparql += ' ;\n'
+                sparql += p.property_node_shacl(3) + "\n"
                 sparql += "\n"
 
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri}Shape a sh:NodeShape, {self._owl_class_iri} ;\n'
-        if self._subclass_of:
-            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of}Shape ;\n'
-        sparql += f'{blank:{(indent + 3)*indent_inc}}sh:targetClass {self._owl_class_iri} ;\n'
-        if self._label:
-            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:label {self._label} ;\n'
-        if self._comment:
-            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:comment {self._comment} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}sh:targetClass {self._owl_class_iri} ;\n'
+        if self.__version is not None:
+            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{self.__version}" ;\n'
+        if self.__created is not None:
+            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{self.__created}"^^xsd:dateTime ;\n'
+        if self.__creator is not None:
+            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator} ;\n'
+        if self.__modified is not None:
+            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{self.__modified}"^^xsd:dateTime ;\n'
+        if self.__contributor is not None:
+            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor} ;\n'
+        for attr, value in self._attributes.items():
+            if attr == ResourceClassAttributes.SUBCLASS_OF:
+                sparql += f'{blank:{(indent + 3) * indent_inc}}{attr.value} {value}Shape ;\n'
+            elif attr == ResourceClassAttributes.CLOSED:
+                sparql += f'{blank:{(indent + 3) * indent_inc}}sh:closed {"true" if value else "false"} .\n'
+            else:
+                sparql += f'{blank:{(indent + 3) * indent_inc}}{attr.value} {value} ;\n'
+
         sparql += f'{blank:{(indent + 3) * indent_inc}}sh:property\n'
         sparql += f'{blank:{(indent + 4) * indent_inc}}[\n'
         sparql += f'{blank:{(indent + 5) * indent_inc}}sh:path rdf:type ;\n'
         sparql += f'{blank:{(indent + 4) * indent_inc}}] ;\n'
+
         for iri, p in self._properties.items():
             if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
-                sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property [\n'
-                sparql += p.property_node_shacl(4) + ' ;\n'
-                sparql += f'{blank:{(indent + 3) * indent_inc}}] ;\n'
+                sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property\n'
+                sparql += f'{blank:{(indent + 4)*indent_inc}}[\n'
+                sparql += p.property_node_shacl(5)
+                sparql += f'{blank:{(indent + 4) * indent_inc}}] ;\n'
+                #sparql += f'{blank:{(indent + 3) * indent_inc}}\n'
             else:
                 sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property {iri}Shape ;\n'
-        sparql += f'{blank:{(indent + 2)*indent_inc}}sh:closed {"true" if self._closed else "false"} .\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
         if as_string:
@@ -493,8 +513,9 @@ class ResourceClass(Model):
             self._con.update_query(sparql)
 
     def create(self, as_string: bool = False) -> Union[str, None]:
+        timestamp = datetime.now()
         if as_string:
-            rdfdata = self.__create_shacl(as_string=as_string)
+            rdfdata = self.__create_shacl(timestamp=timestamp, as_string=as_string)
             rdfdata += self.__create_owl(as_string=as_string)
             return rdfdata
         else:
@@ -538,7 +559,7 @@ class ResourceClass(Model):
         for name, action, prop_iri in self._changeset:
             if name == ResourceClassAttributes.PROPERTY:
                 print(self._properties)
-                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node_shacl(indent + 1) + ' ; ]'
+                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node_shacl(indent) + ' ; ]'
                 if action == Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
