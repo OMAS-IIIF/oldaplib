@@ -53,8 +53,8 @@
             [
                 sh:path :hasText ;
                 sh:datatype xsd:string ;
-                sh:maxCount: 1 ;
-                sh:minCount: 1 ;
+                sh:maxCount 1 ;
+                sh:minCount 1 ;
                 sh:name "A text", "Ein Text"@de ;
                 sh:description "A longer text..." ;
                 sh:order 1 ;
@@ -101,7 +101,7 @@
             ],
             [
                 rdf:type owl:Restriction ;
-                owl:onProperty :test ;
+                owl:onProperty :hasText ;
                 owl:cardinality 1 ;
             ] .
 

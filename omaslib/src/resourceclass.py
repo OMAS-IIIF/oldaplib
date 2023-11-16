@@ -8,7 +8,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
-from omaslib.src.helpers.datatypes import QName, Action
+from omaslib.src.helpers.datatypes import QName, Action, AnyIRI
 from omaslib.src.helpers.langstring import Language, LangString
 from omaslib.src.helpers.context import Context
 from omaslib.src.model import Model
@@ -44,12 +44,20 @@ class ResourceClass(Model):
     _properties: Dict[QName, PropertyClass]
     _changeset: Dict[Union[ResourceClassAttributes, QName], ResourceClassAttributeChange]
 
+    __datatypes: Dict[ResourceClassAttributes, Union[QName, LangString, bool]] = {
+        ResourceClassAttributes.SUBCLASS_OF: QName,
+        ResourceClassAttributes.LABEL: LangString,
+        ResourceClassAttributes.COMMENT: LangString,
+        ResourceClassAttributes.CLOSED: bool
+    }
+
     def __init__(self, *,
                  con: Connection,
                  owl_class_iri: Optional[QName] = None,
                  attrs: Optional[ResourceClassAttributesContainer] = None,
                  properties: Optional[List[Union[PropertyClass, QName]]] = None):
         super().__init__(con)
+        self._owl_class_iri = owl_class_iri
         self._attributes = {}
         if attrs is not None:
             for attr, value in attrs.items():
@@ -67,7 +75,8 @@ class ResourceClass(Model):
             for prop in properties:
                 newprop: PropertyClass
                 if isinstance(prop, QName):
-                    newprop = PropertyClass.read(self._con, prop)
+                    fixed_prop = QName(str(prop).removesuffix("Shape"))
+                    newprop = PropertyClass.read(self._con, fixed_prop)
                 else:
                     newprop = prop
                 self._properties[newprop.property_class_iri] = newprop
@@ -124,6 +133,9 @@ class ResourceClass(Model):
         else:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
 
+    @property
+    def owl_class_iri(self) -> QName:
+        return self._owl_class_iri
 
     def properties_items(self):
         return self._properties.items()
@@ -187,7 +199,7 @@ class ResourceClass(Model):
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
-        SELECT ?attriri ?value ?propiri ?propshape
+        SELECT ?attriri ?value
         FROM {owl_class_iri.prefix}:shacl
         WHERE {{
             BIND({owl_class_iri}Shape AS ?shape)
@@ -229,6 +241,8 @@ class ResourceClass(Model):
 
     def parse_shacl(self, attributes: Attributes) -> None:
         for key, val in attributes.items():
+            if key == 'sh:targetClass':
+                continue
             if key == 'dcterms:hasVersion':
                 self.__version = SemanticVersion.fromString(val[0])
             elif key == 'dcterms:creator':
@@ -239,15 +253,29 @@ class ResourceClass(Model):
                 self.__contributor = val[0]
             elif key == 'dcterms:modified':
                 self.__modified = val[0]
-            elif key in ResourceClassAttributes:
-                attr = ResourceClassAttributes(key)
-                self._attributes[attr] = val[0]
             else:
-                raise OmasError(f'Invalid shacl definition of ResourceClass attribute: "{key} {val}"')
-
+                attr = ResourceClassAttributes(key)
+                if QName == self.__datatypes[attr]:
+                    self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
+                elif XsdDatatypes == self.__datatypes[attr]:
+                    self._attributes[attr] = XsdDatatypes(str(val[0]))
+                elif LangString == self.__datatypes[attr]:
+                    self._attributes[attr] = LangString(val)
+                elif bool == self.__datatypes[attr]:
+                    self._attributes[attr] = bool(val[0])
 
     @staticmethod
     def __query_resource_props(con: Connection, owl_class_iri: QName) -> List[Union[PropertyClass, QName]]:
+        """
+        This method queries and returns a list of properties defined in a sh:NodeShape. The properties may be
+        given "inline" as BNode or may be a reference to an external sh:PropertyShape. These external shapes will be
+        read when the ResourceClass is constructed (see __init__() of ResourceClass).
+
+        :param con: Connection instance
+        :param owl_class_iri: The QName of the OWL class defining the resource. The "Shape" ending will be added
+        :return: List of PropertyClasses/QNames
+        """
+
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
@@ -265,30 +293,43 @@ class ResourceClass(Model):
         }}
         """
         res = con.rdflib_query(query)
-        properties: Dict[QName, PropertyClass] = {}
+        propinfos: Dict[QName, Attributes] = {}
+        #
+        # first we run over all triples to gather the information about the properties of the possible
+        # BNode based sh:property-Shapes.
+        # NOTE: some of the nodes may actually be QNames referencing shapes defines as "standalone" sh:PropertyShape's.
+        #
         for r in res:
             if r['value'] == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
                 continue
             if not isinstance(r['attriri'], URIRef):
-                raise OmasError("INCONSISTENCY!")
-            propnode = r['prop']  # this is usually a BNode
+                raise OmasError("There is some inconsistency in this shape!")
+            propnode = r['prop']  # usually a BNode, but may be a reference to a standalone sh:PropertyShape definition
             prop: Union[PropertyClass, QName]
             if isinstance(propnode, URIRef):
-                prop = context.iri2qname(propnode)
+                qname = context.iri2qname(propnode)
+                #propinfos[qname] = qname
+                propinfos[qname] = propnode
             elif isinstance(propnode, BNode):
-                if properties.get(propnode) is None:
-                    properties[propnode]: Attributes = {}
-                attributes: Attributes = properties[propnode]
+                if propinfos.get(propnode) is None:
+                    propinfos[propnode]: Attributes = {}
+                attributes: Attributes = propinfos[propnode]
                 PropertyClass.process_triple(context, r, attributes)
-                if not properties.get(property):
-                    properties[property] = Attributes({})  # of type Attributes
-                attributes: Attributes = properties[property]
-                prop = PropertyClass(con=con)
-                prop.parse_shacl(attributes=attributes)
             else:
                 raise OmasError(f'Unexpected type for propnode in SHACL. Type = "{type(propnode)}".')
-            properties.append(prop)
-        return properties
+            #
+            # now we collected all the information from the triple store. Let's process the informationj into
+            # a list of full PropertyClasses or QName's to external definitions
+            #
+            proplist: List[Union[QName, PropertyClass]] = []
+            for prop_iri, attributes in propinfos.items():
+                if isinstance(attributes, (QName, URIRef)):
+                    proplist.append(prop_iri)
+                else:
+                    prop = PropertyClass(con=con)
+                    prop.parse_shacl(attributes=attributes)
+                    proplist.append(prop)
+        return proplist
 
     def __read_shacl(self) -> None:
         """

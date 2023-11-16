@@ -105,7 +105,7 @@ class TestPropertyClass(unittest.TestCase):
             attrs=props
         )
         p1.create()
-        p1.delete_singleton()
+        #p1.delete_singleton()
         del p1
         #p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:testWrite'))
         p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:testWrite'))
@@ -223,7 +223,7 @@ class TestPropertyClass(unittest.TestCase):
         p1.update()
         self.assertEqual(p1.changeset, {})
 
-        p1.delete_singleton()
+        #p1.delete_singleton()
         del p1
         #p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:testUpdate'))
         p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:testUpdate'))

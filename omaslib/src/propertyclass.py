@@ -48,7 +48,7 @@ class PropertyClassAttributeChange:
 
 
 @strict
-class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
+class PropertyClass(Model, Notify):
     """
     This class implements the SHACL/OWL property definition that OMAS supports
 
@@ -278,8 +278,8 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             else:
                 return False
 
-    def delete_singleton(self) -> None:
-        del self._cache[str(self._property_class_iri)]
+    # def delete_singleton(self) -> None:
+    #     del self._cache[str(self._property_class_iri)]
 
     @staticmethod
     def process_triple(context: Context, r: ResultRow, attributes: Attributes) -> None:
