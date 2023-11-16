@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum, unique
 from typing import Union, Optional, List, Set, Any, Tuple, Dict
 from pystrict import strict
@@ -43,6 +44,11 @@ class ResourceClass(Model):
     _attributes: ResourceClassAttributesContainer
     _properties: Dict[QName, PropertyClass]
     _changeset: Dict[Union[ResourceClassAttributes, QName], ResourceClassAttributeChange]
+    __creator: Optional[QName]
+    __created: Optional[datetime]
+    __contributor: Optional[QName]
+    __modified: Optional[datetime]
+    __version: SemanticVersion
 
     __datatypes: Dict[ResourceClassAttributes, Union[QName, LangString, bool]] = {
         ResourceClassAttributes.SUBCLASS_OF: QName,
@@ -58,6 +64,11 @@ class ResourceClass(Model):
                  properties: Optional[List[Union[PropertyClass, QName]]] = None):
         super().__init__(con)
         self._owl_class_iri = owl_class_iri
+        self.__creator = None
+        self.__created = None
+        self.__contributor = None
+        self.__modified = None
+        self.__version = SemanticVersion()
         self._attributes = {}
         if attrs is not None:
             for attr, value in attrs.items():
@@ -136,6 +147,30 @@ class ResourceClass(Model):
     @property
     def owl_class_iri(self) -> QName:
         return self._owl_class_iri
+
+    @property
+    def property_class_iri(self) -> QName:
+        return self._property_class_iri
+
+    @property
+    def version(self) -> SemanticVersion:
+        return self.__version
+
+    @property
+    def creator(self) -> Optional[AnyIRI]:
+        return self.__creator
+
+    @property
+    def created(self) -> Optional[datetime]:
+        return self.__created
+
+    @property
+    def contributor(self) -> Optional[AnyIRI]:
+        return self.__contributor
+
+    @property
+    def modified(self) -> Optional[datetime]:
+        return self.__modified
 
     def properties_items(self):
         return self._properties.items()

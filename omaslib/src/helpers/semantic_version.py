@@ -11,16 +11,59 @@ class SemanticVersion:
         self.__minor = minor
         self.__patch = patch
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__major}.{self.__minor}.{self.__patch}"
+
+    def __repr__(self) -> str:
+        return f"SemanticVersion({self.__major}, {self.__minor}, {self.__patch})"
+
+    def __eq__(self, other: 'SemanticVersion') -> bool:
+        return self.__major == other.__major and self.__minor == other.__minor and self.__patch == other.__patch
+
+    def __ne__(self, other: 'SemanticVersion') -> bool:
+        return self.__major != other.__major or self.__minor != other.__minor or self.__patch != other.__patch
+
+    def __gt__(self, other: 'SemanticVersion') -> bool:
+        if self.__major > other.__major:
+            return True
+        if self.__major == other.__major and self.__minor > other.__minor:
+            return True
+        if self.__major == other.__major and self.__minor == other.__minor and self.__patch > other.__patch:
+            return True
+        return False
+
+    def __ge__(self, other: 'SemanticVersion') -> bool:
+        if self.__major >= other.__major:
+            return True
+        if self.__major == other.__major and self.__minor >= other.__minor:
+            return True
+        if self.__major == other.__major and self.__minor == other.__minor and self.__patch >= other.__patch:
+            return True
+        return False
+
+    def __lt__(self, other: 'SemanticVersion') -> bool:
+        if self.__major < other.__major:
+            return True
+        if self.__major == other.__major and self.__minor < other.__minor:
+            return True
+        if self.__major == other.__major and self.__minor == other.__minor and self.__patch < other.__patch:
+            return True
+        return False
+
+    def __le__(self, other: 'SemanticVersion') -> bool:
+        if self.__major <= other.__major:
+            return True
+        if self.__major == other.__major and self.__minor <= other.__minor:
+            return True
+        if self.__major == other.__major and self.__minor == other.__minor and self.__patch <= other.__patch:
+            return True
+        return False
 
     @classmethod
     def fromString(cls, versionstring: str) -> 'SemanticVersion':
         try:
             major, minor, patch = versionstring.split(".")
-            cls.__major = int(major)
-            cls.__minor = int(minor)
-            cls.__patch = int(patch)
+            return cls(int(major), int(minor),int(patch) )
         except ValueError as err:
             raise OmasError(f'Invalid version string: "{versionstring}": {err}')
 

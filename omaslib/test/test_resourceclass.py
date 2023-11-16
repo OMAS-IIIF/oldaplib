@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 from time import sleep
 from typing import Dict, List, Union
 
@@ -8,6 +9,7 @@ from omaslib.src.helpers.datatypes import NamespaceIRI, QName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
+from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass, OwlPropertyType
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType
@@ -100,12 +102,22 @@ class TestResourceClass(unittest.TestCase):
     def test_reading(self):
         r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName('test:testMyRes'))
         self.assertEqual(r1.owl_class_iri, QName('test:testMyRes'))
+        self.assertEqual(r1.version, SemanticVersion(1, 0, 0))
+        self.assertEqual(r1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(r1.created, datetime.fromisoformat('2023-11-04T12:00:00Z'))
+        self.assertEqual(r1.contributor, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(r1.modified, datetime.fromisoformat('2023-11-04T12:00:00Z'))
         self.assertEqual(r1.get(ResourceClassAttributes.LABEL), LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr"]))
         self.assertEqual(r1.get(ResourceClassAttributes.COMMENT), LangString("Resource for testing..."))
         self.assertEqual(r1.get(ResourceClassAttributes.CLOSED), True)
 
         prop1 = r1[QName('test:test')]
         self.assertEqual(prop1.property_class_iri, QName("test:test"))
+        self.assertEqual(prop1.version, SemanticVersion(1, 0, 0))
+        self.assertEqual(prop1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop1.created, datetime.fromisoformat('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop1.contributor, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop1.modified, datetime.fromisoformat('2023-11-04T12:00:00Z'))
         self.assertEqual(prop1.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlObjectProperty)
         self.assertEqual(prop1.get(PropertyClassAttribute.TO_NODE_IRI), QName('test:comment'))
         self.assertEqual(prop1.get(PropertyClassAttribute.DESCRIPTION), LangString("Property shape for testing purposes"))
@@ -114,6 +126,11 @@ class TestResourceClass(unittest.TestCase):
 
         prop2 = r1[QName('test:hasText')]
         self.assertEqual(prop2.property_class_iri, QName("test:hasText"))
+        self.assertEqual(prop2.version, SemanticVersion(1, 0, 0))
+        self.assertEqual(prop2.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop2.created, datetime.fromisoformat('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop2.contributor, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop2.modified, datetime.fromisoformat('2023-11-04T12:00:00Z'))
         self.assertEqual(prop2.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
         self.assertEqual(prop2.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
         self.assertEqual(prop2.get(PropertyClassAttribute.NAME), LangString(["A text", "Ein Text@de"]))
