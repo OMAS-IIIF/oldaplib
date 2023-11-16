@@ -8,6 +8,7 @@ from rdflib import URIRef, Literal, BNode
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
 from omaslib.src.helpers.datatypes import QName, Action, AnyIRI
@@ -367,111 +368,6 @@ class ResourceClass(Model):
                 proplist.append(prop)
         return proplist
 
-    def __read_shacl(self) -> None:
-        """
-        Read the shacl definition from the triple store and create the respective ResourceClass
-        and PropertyClass instances which represent the Shape and OWL definitions in Python.
-
-        :return: None
-        """
-        context = Context(name=self._con.context_name)
-        if not self._owl_class_iri:
-            raise OmasError('ResourceClass must be created with "owl_class" given as parameter!')
-
-        query1 = context.sparql_context
-        query1 += f"""
-        SELECT ?p ?o ?propiri ?propshape
-        FROM {self._owl_class_iri.prefix}:shacl
-        WHERE {{
-            BIND({str(self._owl_class_iri)}Shape AS ?shape)
-            ?shape ?p ?o
-            OPTIONAL {{
-                {{ ?o sh:path ?propiri . }} UNION {{ ?o sh:propertyShape ?propshape }}
-            }}
-        }}
-         """
-        res = con.rdflib_query(query1)
-        self._subclass_of = None
-        self._label = None
-        self._comment = None
-        self._closed = True
-        propiris: List[QName] = []
-        propshapes: List[QName] = []
-        for r in res:
-            p = context.iri2qname(r[0])
-            if p == 'rdf:type':
-                tmp_qname = context.iri2qname(r[1])
-                if tmp_qname == QName('sh:NodeShape'):
-                    continue
-                if self._owl_class_iri is None:
-                    self._owl_class_iri = tmp_qname
-                else:
-                    if tmp_qname != self._owl_class_iri:
-                        raise OmasError(f'Inconsistent Shape for "{self._owl_class_iri}": rdf:type="{tmp_qname}"')
-            elif p == 'rdfs:label':
-                ll = Language(r[1].language) if r[1].language else Language.XX
-                if self._label is None:
-                    self._label = LangString({ll: r[1].toPython()})
-                else:
-                    self._label[ll] = r[1].toPython()
-            elif p == 'rdfs:comment':
-                ll = Language(r[1].language) if r[1].language else Language.XX
-                if self._comment is None:
-                    self._comment = LangString({ll: r[1].toPython()})
-                else:
-                    self._comment[ll] = r[1].toPython()
-            elif p == 'rdfs:subClassOf':
-                tmpstr = context.iri2qname(r[1])
-                i = str(tmpstr).find('Shape')
-                if i == -1:
-                    raise OmasError('Shape not valid......')  # TODO: Correct error message
-                self._subclass_of = QName(str(tmpstr)[:i])
-            elif p == 'sh:targetClass':
-                tmp_qname = context.iri2qname(r[1])
-                if self._owl_class_iri is None:
-                    self._owl_class_iri = tmp_qname
-                else:
-                    if tmp_qname != self._owl_class_iri:
-                        raise OmasError(f'Inconsistent Shape for "{self._owl_class_iri}": sh:targetClass="{tmp_qname}"')
-            elif p == 'sh:closed':
-                self._closed = closed = r[1].value
-            elif p == 'sh:property':
-                if r[2] is not None:
-                    propiris.append(context.iri2qname(r[2]))
-                if r[3] is not None:
-                    propshapes.append(context.iri2qname(r[3]))
-
-        # TODO: read all propiris and propshapes. Move and adapt the code below to PropertClass.py !!!
-
-        query2 = context.sparql_context
-        query2 += f"""
-        SELECT ?prop ?attriri ?value ?oo
-        FROM {self._owl_class_iri.prefix}:shacl
-        WHERE {{
-            BIND({str(self._owl_class_iri)}Shape AS ?shape)
-            ?shape sh:property ?prop .
-            ?prop ?attriri ?value .
-            OPTIONAL {{
-                ?value rdf:rest*/rdf:first ?oo
-            }}
-        }}
-        """
-        res = con.rdflib_query(query2)
-        properties: Properties = Properties({})
-        for r in res:
-            if r['value'] == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
-                continue
-            if not isinstance(r['attriri'], URIRef):
-                raise OmasError("INCONSISTENCY!")
-            property = r['prop']  # this is usually a BNode
-            if not properties.get(property):
-                properties[property] = Attributes({})  # of type Attributes
-            attributes: Attributes = properties[property]
-            PropertyClass.process_triple(context, r, attributes)
-            prop = PropertyClass(con=con)
-            prop.parse_shacl(attributes=attributes)
-            self._properties[prop.property_class_iri] = prop
-
     def __read_owl(self):
         context = Context(name=self._con.context_name)
         query1 = context.sparql_context
@@ -533,7 +429,7 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
 
         for iri, p in self._properties.items():
-            if p.exclusive_for_class is None:
+            if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
                 sparql += "\n"
                 sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape ;\n'
                 sparql += p.property_node_shacl(4) + " .\n"
@@ -552,7 +448,7 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 5) * indent_inc}}sh:path rdf:type ;\n'
         sparql += f'{blank:{(indent + 4) * indent_inc}}] ;\n'
         for iri, p in self._properties.items():
-            if p.exclusive_for_class:
+            if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
                 sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property [\n'
                 sparql += p.property_node_shacl(4) + ' ;\n'
                 sparql += f'{blank:{(indent + 3) * indent_inc}}] ;\n'

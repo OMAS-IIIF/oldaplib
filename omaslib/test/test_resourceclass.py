@@ -149,3 +149,8 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
         self.assertEqual(prop2.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:testMyRes'))
 
+    def test_creating(self):
+        r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName('test:testMyRes'))
+        data = r1.create(as_string=True)
+        print(data)
+
