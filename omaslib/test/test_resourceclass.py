@@ -150,7 +150,51 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:testMyRes'))
 
     def test_creating(self):
-        r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName('test:testMyRes'))
-        data = r1.create(as_string=True)
-        print(data)
+        props1: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
+            PropertyClassAttribute.NAME: LangString(["Test property@en", "Testprädikat@de"]),
+            PropertyClassAttribute.DESCRIPTION: LangString("A property for testing...@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.MAX_COUNT: 1,
+                    PropertyRestrictionType.MIN_COUNT: 1,
+                    PropertyRestrictionType.UNIQUE_LANG: True,
+                    PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT}
+                }),
+            PropertyClassAttribute.ORDER: 1
+        }
+        p1 = PropertyClass(con=self._connection, property_class_iri=QName('test:testone'), attrs=props1)
+
+        props2: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: QName('test:testMyRes'),
+            PropertyClassAttribute.NAME: LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
+            PropertyClassAttribute.DESCRIPTION: LangString("An exclusive property for testing...@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.MIN_COUNT: 1,
+                    PropertyRestrictionType.UNIQUE_LANG: True,
+                    PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT}
+                }),
+            PropertyClassAttribute.EXCLUSIVE_FOR: QName('test:TestResource'),
+            PropertyClassAttribute.ORDER: 2
+        }
+        p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:testtwo'), attrs=props2)
+
+        properties: List[Union[PropertyClass, QName]] = [
+            QName("test:comment"),
+            QName("test:test"),
+            p1, p2
+        ]
+        attrs: ResourceClassAttributesContainer = {
+            ResourceClassAttributes.LABEL: LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+            ResourceClassAttributes.COMMENT: LangString("For testing purposes@en"),
+            ResourceClassAttributes.CLOSED: True
+        }
+        r1 = ResourceClass(con=self._connection,
+                           owl_class_iri=QName("test:TestResource"),
+                           attrs=attrs,
+                           properties=properties)
+
+        r1.create()
 

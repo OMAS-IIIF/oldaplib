@@ -459,7 +459,8 @@ class PropertyClass(Model, Notify):
 
     def property_node_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}sh:path {self._property_class_iri}'
+        sparql = f'{blank:{indent * indent_inc}}# property_node_shacl()'
+        sparql += f'\n{blank:{indent * indent_inc}}sh:path {self._property_class_iri}'
         for prop, value in self._attributes.items():
             if prop == PropertyClassAttribute.PROPERTY_TYPE:
                 continue
@@ -467,13 +468,13 @@ class PropertyClass(Model, Notify):
                 sparql += f' ;\n{blank:{indent * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
             else:
                 sparql += self._attributes[PropertyClassAttribute.RESTRICTIONS].create_shacl(indent, indent_inc)
-        sparql += f' .\n'
+        #sparql += f' .\n'
         return sparql
 
     def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = ''
-        sparql += f'{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape'
+        sparql = f'\n# __create_shacl()'
+        sparql += f'\n{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user_iri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
@@ -481,6 +482,7 @@ class PropertyClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += ' ;\n'
         sparql += self.property_node_shacl(indent, indent_inc)
+        sparql += ' ;\n'
         return sparql
 
     def create_owl_part1(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:

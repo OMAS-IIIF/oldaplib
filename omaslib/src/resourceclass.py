@@ -51,6 +51,7 @@ class ResourceClass(Model):
     __contributor: Optional[QName]
     __modified: Optional[datetime]
     __version: SemanticVersion
+    __from_triplestore: bool
 
     __datatypes: Dict[ResourceClassAttributes, Union[QName, LangString, bool]] = {
         ResourceClassAttributes.SUBCLASS_OF: QName,
@@ -95,6 +96,7 @@ class ResourceClass(Model):
                 self._properties[newprop.property_class_iri] = newprop
                 newprop.set_notifier(self.notifier, newprop.property_class_iri)
         self._changeset = {}
+        self.__from_triplestore = False
 
     def __getitem__(self, key: Union[ResourceClassAttributes, QName]) -> Union[AttributeTypes, PropertyClass]:
         if type(key) is ResourceClassAttributes:
@@ -300,6 +302,7 @@ class ResourceClass(Model):
                     self._attributes[attr] = LangString(val)
                 elif bool == self.__datatypes[attr]:
                     self._attributes[attr] = bool(val[0])
+        self.__from_triplestore = True
 
     @staticmethod
     def __query_resource_props(con: Connection, owl_class_iri: QName) -> List[Union[PropertyClass, QName]]:
@@ -433,49 +436,50 @@ class ResourceClass(Model):
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.user_iri}'
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
                 sparql += ' ;\n'
-                sparql += p.property_node_shacl(3) + "\n"
+                sparql += p.property_node_shacl(3) + " .\n"
                 sparql += "\n"
 
-        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri}Shape a sh:NodeShape, {self._owl_class_iri} ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}sh:targetClass {self._owl_class_iri} ;\n'
+        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri}Shape a sh:NodeShape, {self._owl_class_iri}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self._owl_class_iri}'
         if self.__version is not None:
-            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{self.__version}" ;\n'
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{self.__version}"'
         if self.__created is not None:
-            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{self.__created}"^^xsd:dateTime ;\n'
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{self.__created}"^^xsd:dateTime'
         if self.__creator is not None:
-            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator} ;\n'
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator}'
         if self.__modified is not None:
-            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{self.__modified}"^^xsd:dateTime ;\n'
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{self.__modified}"^^xsd:dateTime'
         if self.__contributor is not None:
-            sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor} ;\n'
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor}'
         for attr, value in self._attributes.items():
             if attr == ResourceClassAttributes.SUBCLASS_OF:
-                sparql += f'{blank:{(indent + 3) * indent_inc}}{attr.value} {value}Shape ;\n'
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value} {value}Shape'
             elif attr == ResourceClassAttributes.CLOSED:
-                sparql += f'{blank:{(indent + 3) * indent_inc}}sh:closed {"true" if value else "false"} .\n'
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:closed {"true" if value else "false"}'
             else:
-                sparql += f'{blank:{(indent + 3) * indent_inc}}{attr.value} {value} ;\n'
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value} {value}'
 
-        sparql += f'{blank:{(indent + 3) * indent_inc}}sh:property\n'
-        sparql += f'{blank:{(indent + 4) * indent_inc}}[\n'
-        sparql += f'{blank:{(indent + 5) * indent_inc}}sh:path rdf:type ;\n'
-        sparql += f'{blank:{(indent + 4) * indent_inc}}] ;\n'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property'
+        sparql += f'\n{blank:{(indent + 4) * indent_inc}}['
+        sparql += f'\n{blank:{(indent + 5) * indent_inc}}sh:path rdf:type'
+        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}]'
 
         for iri, p in self._properties.items():
             if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
-                sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property\n'
-                sparql += f'{blank:{(indent + 4)*indent_inc}}[\n'
+                sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}sh:property'
+                sparql += f'\n{blank:{(indent + 4)*indent_inc}}[\n'
                 sparql += p.property_node_shacl(5)
-                sparql += f'{blank:{(indent + 4) * indent_inc}}] ;\n'
+                sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}]'
             else:
-                sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property {iri}Shape ;\n'
+                sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}sh:property {iri}Shape'
         return sparql
 
     def __create_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4):
         blank = ''
         sparql = ''
         for iri, p in self._properties.items():
-            sparql += p.create_owl_part1(timestamp, indent + 2) + '\n'
+            if not p.from_triplestore:
+                sparql += p.create_owl_part1(timestamp, indent + 2) + '\n'
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri} rdf:type owl:Class ;\n'
         if self._attributes.get(ResourceClassAttributes.SUBCLASS_OF) is not None:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._attributes[ResourceClassAttributes.SUBCLASS_OF]} ,\n'
@@ -492,6 +496,8 @@ class ResourceClass(Model):
         return sparql
 
     def create(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+        if self.__from_triplestore:
+            raise OmasError(f'Cannot create property that was read from triplestore before (property: {self._owl_class_iri}')
         timestamp = datetime.now()
         blank = ''
         context = Context(name=self._con.context_name)
@@ -500,7 +506,7 @@ class ResourceClass(Model):
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
         sparql += self.__create_shacl(timestamp=timestamp)
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:onto {{\n'
         sparql += self.__create_owl(timestamp=timestamp)
