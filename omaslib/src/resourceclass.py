@@ -421,16 +421,11 @@ class ResourceClass(Model):
         resclass.__read_owl()
         return resclass
 
-    def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+    def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        sparql += f'{blank:{indent*indent_inc}}INSERT DATA {{\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
-
+        sparql = ''
         for iri, p in self._properties.items():
-            if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
-                sparql += "\n"
+            if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is None and not p.from_triplestore:
                 sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape'
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.user_iri}'
@@ -472,28 +467,18 @@ class ResourceClass(Model):
                 sparql += f'{blank:{(indent + 4)*indent_inc}}[\n'
                 sparql += p.property_node_shacl(5)
                 sparql += f'{blank:{(indent + 4) * indent_inc}}] ;\n'
-                #sparql += f'{blank:{(indent + 3) * indent_inc}}\n'
             else:
                 sparql += f'{blank:{(indent + 3)*indent_inc}}sh:property {iri}Shape ;\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-        sparql += f'{blank:{indent*indent_inc}}}}\n'
-        if as_string:
-            return sparql
-        else:
-            #print(sparql)
-            self._con.update_query(sparql)
+        return sparql
 
-    def __create_owl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False):
+    def __create_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4):
         blank = ''
-        context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        sparql += f'{blank:{indent*indent_inc}}INSERT DATA {{\n'
-        sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:onto {{\n'
+        sparql = ''
         for iri, p in self._properties.items():
-            sparql += p.create_owl_part1(indent + 2) + '\n'
+            sparql += p.create_owl_part1(timestamp, indent + 2) + '\n'
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri} rdf:type owl:Class ;\n'
-        if self._subclass_of:
-            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._subclass_of} ,\n'
+        if self._attributes.get(ResourceClassAttributes.SUBCLASS_OF) is not None:
+            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._attributes[ResourceClassAttributes.SUBCLASS_OF]} ,\n'
         else:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf\n'
         i = 0
@@ -504,23 +489,30 @@ class ResourceClass(Model):
             else:
                 sparql += ' .\n'
             i += 1
+        return sparql
+
+    def create(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+        timestamp = datetime.now()
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
+        sparql += self.__create_shacl(timestamp=timestamp)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:onto {{\n'
+        sparql += self.__create_owl(timestamp=timestamp)
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         if as_string:
             return sparql
         else:
-            #print(sparql)
             self._con.update_query(sparql)
-
-    def create(self, as_string: bool = False) -> Union[str, None]:
-        timestamp = datetime.now()
-        if as_string:
-            rdfdata = self.__create_shacl(timestamp=timestamp, as_string=as_string)
-            rdfdata += self.__create_owl(as_string=as_string)
-            return rdfdata
-        else:
-            self.__create_shacl(as_string)
-            self.__create_owl(as_string)
+        self.__created = timestamp
+        self.__modified = timestamp
 
     def __update_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         if not self._changeset:

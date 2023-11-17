@@ -218,6 +218,10 @@ class PropertyClass(Model, Notify):
     def changeset(self) -> Dict[PropertyClassAttribute, PropertyClassAttributeChange]:
         return self._changeset
 
+    @property
+    def from_triplestore(self) -> bool:
+        return self.__from_triplestore
+
     def undo(self, attr: Optional[Union[PropertyClassAttribute, PropertyRestrictionType]] = None) -> None:
         if attr is None:
             for p, change in self._changeset.items():
@@ -466,7 +470,7 @@ class PropertyClass(Model, Notify):
         sparql += f' .\n'
         return sparql
 
-    def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+    def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape'
@@ -479,34 +483,39 @@ class PropertyClass(Model, Notify):
         sparql += self.property_node_shacl(indent, indent_inc)
         return sparql
 
-    def __create_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
+    def create_owl_part1(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
         if self._attributes.get(PropertyClassAttribute.SUBPROPERTY_OF):
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF]}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF]}'
         if self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR):
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:domain {self._attributes[PropertyClassAttribute.EXCLUSIVE_FOR]}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._attributes[PropertyClassAttribute.EXCLUSIVE_FOR]}'
         if self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlDataProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
         elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:creator {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:contributor {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += ' .\n'
         return sparql
 
     def create_owl_part2(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}[\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}} rdf:type owl:Restriction ;\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}} owl:onProperty {self._property_class_iri}'
-        sparql += self._restrictions.create_owl(indent + 1, indent_inc)
-        if self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} owl:onDataRange {self._attributes[PropertyClassAttribute.DATATYPE].value}'
-        elif self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} owl:onClass {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri}'
+        sparql += self._attributes[PropertyClassAttribute.RESTRICTIONS].create_owl(indent + 1, indent_inc)
+        #
+        # TODO: Add the possibility to use owl:onClass or owl:onDataRage instead of rdfs:range
+        # (NOTE: owl:onClass and owl:onDataRange can be used only in a restriction and are "local" to the use
+        # of the property within the given resource. However, rdfs:range is "global" for all use of this property!
+        #
+        # if self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} owl:onDataRange {self._attributes[PropertyClassAttribute.DATATYPE].value}'
+        # elif self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} owl:onClass {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
 
@@ -524,7 +533,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
-        sparql += self.__create_owl(timestamp=timestamp, indent=2)
+        sparql += self.create_owl_part1(timestamp=timestamp, indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
