@@ -421,7 +421,7 @@ class PropertyClass(Model, Notify):
                 self._attributes[PropertyClassAttribute.EXCLUSIVE_FOR] = obj
             elif attr == 'dcterms:creator':
                 if self.__creator != obj:
-                    raise OmasError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}".')
+                    raise OmasError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}" for property "{self._property_class_iri}".')
             elif attr == 'dcterms:created':
                 dt = datetime.fromisoformat(obj)
                 if self.__created != dt:
@@ -457,10 +457,15 @@ class PropertyClass(Model, Notify):
         property.read_owl()
         return property
 
-    def property_node_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
+    def property_node_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}# property_node_shacl()'
         sparql += f'\n{blank:{indent * indent_inc}}sh:path {self._property_class_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         for prop, value in self._attributes.items():
             if prop == PropertyClassAttribute.PROPERTY_TYPE:
                 continue
@@ -475,13 +480,8 @@ class PropertyClass(Model, Notify):
         blank = ''
         sparql = f'\n# __create_shacl()'
         sparql += f'\n{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += ' ;\n'
-        sparql += self.property_node_shacl(indent, indent_inc)
+        sparql += self.property_node_shacl(timestamp, indent, indent_inc)
         sparql += ' ;\n'
         return sparql
 

@@ -153,8 +153,8 @@ class ResourceClass(Model):
         return self._owl_class_iri
 
     @property
-    def property_class_iri(self) -> QName:
-        return self._property_class_iri
+    def owl_class_iri(self) -> QName:
+        return self._owl_class_iri
 
     @property
     def version(self) -> SemanticVersion:
@@ -430,13 +430,8 @@ class ResourceClass(Model):
         for iri, p in self._properties.items():
             if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is None and not p.from_triplestore:
                 sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape'
-                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
-                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.user_iri}'
-                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.user_iri}'
-                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
                 sparql += ' ;\n'
-                sparql += p.property_node_shacl(3) + " .\n"
+                sparql += p.property_node_shacl(timestamp, 3) + " .\n"
                 sparql += "\n"
 
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri}Shape a sh:NodeShape, {self._owl_class_iri}'
@@ -468,7 +463,7 @@ class ResourceClass(Model):
             if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
                 sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}sh:property'
                 sparql += f'\n{blank:{(indent + 4)*indent_inc}}[\n'
-                sparql += p.property_node_shacl(5)
+                sparql += p.property_node_shacl(timestamp, 5)
                 sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}]'
             else:
                 sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}sh:property {iri}Shape'
@@ -520,7 +515,7 @@ class ResourceClass(Model):
         self.__created = timestamp
         self.__modified = timestamp
 
-    def __update_shacl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+    def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         if not self._changeset:
             if as_string:
                 return ''
@@ -557,7 +552,7 @@ class ResourceClass(Model):
         for name, action, prop_iri in self._changeset:
             if name == ResourceClassAttributes.PROPERTY:
                 print(self._properties)
-                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node_shacl(indent) + ' ; ]'
+                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node_shacl(timestamp, indent) + ' ; ]'
                 if action == Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'

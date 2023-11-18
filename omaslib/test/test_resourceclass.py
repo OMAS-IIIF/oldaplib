@@ -31,13 +31,15 @@ class TestResourceClass(unittest.TestCase):
                                      repo="omas",
                                      context_name="DEFAULT")
 
+        cls._connection.clear_graph(QName('test:shacl'))
+        cls._connection.clear_graph(QName('test:onto'))
         cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
         sleep(1)  # upload may take a while...
 
     @classmethod
     def tearDownClass(cls):
-        cls._connection.clear_graph(QName('test:shacl'))
-        cls._connection.clear_graph(QName('test:onto'))
+        #cls._connection.clear_graph(QName('test:shacl'))
+        #cls._connection.clear_graph(QName('test:onto'))
         pass
 
     def test_constructor(self):
@@ -197,4 +199,47 @@ class TestResourceClass(unittest.TestCase):
                            properties=properties)
 
         r1.create()
+        del r1
+
+        r2 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:TestResource"))
+        self.assertEqual(r2.owl_class_iri, QName("test:TestResource"))
+        self.assertEqual(r2[ResourceClassAttributes.LABEL], LangString(["CreateResTest@en", "CréationResTeste@fr"]))
+        self.assertEqual(r2[ResourceClassAttributes.COMMENT], LangString("For testing purposes@en"))
+        self.assertTrue(r2[ResourceClassAttributes.COMMENT])
+
+        prop1 = r2[QName("test:comment")]
+        self.assertEqual(prop1.property_class_iri, QName('test:comment'))
+        self.assertEqual(prop1.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
+        self.assertTrue(prop1.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(prop1.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.MAX_COUNT], 1)
+        self.assertEqual(prop1.get(PropertyClassAttribute.NAME), LangString(["comment@en", "Kommentar@de"]))
+        self.assertEqual(prop1.get(PropertyClassAttribute.DESCRIPTION), LangString("This is a test property@de"))
+        self.assertIsNone(prop1.get(PropertyClassAttribute.EXCLUSIVE_FOR))
+        self.assertIsNone(prop1.get(PropertyClassAttribute.SUBPROPERTY_OF))
+        self.assertEqual(prop1[PropertyClassAttribute.ORDER], 2)
+        self.assertEqual(prop1.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop1.created, datetime.fromisoformat("2023-11-04T12:00:00Z"))
+
+        prop2 = r2[QName("test:test")]
+        self.assertEqual(prop2.property_class_iri, QName('test:test'))
+        self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
+        self.assertEqual(prop2[PropertyClassAttribute.NAME], LangString("Test"))
+        self.assertEqual(prop2[PropertyClassAttribute.DESCRIPTION], LangString("Property shape for testing purposes"))
+        self.assertIsNone(prop2.get(PropertyClassAttribute.EXCLUSIVE_FOR))
+        self.assertEqual(prop2[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))
+        self.assertEqual(prop2[PropertyClassAttribute.ORDER], 3)
+        self.assertEqual(prop2[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
+
+        prop3 = r2[QName("test:testone")]
+        self.assertEqual(prop3.property_class_iri, QName("test:testone"))
+        self.assertEqual(prop3.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
+        self.assertEqual(prop3.get(PropertyClassAttribute.NAME), LangString(["Test property@en", "Testprädikat@de"]))
+        self.assertEqual(prop3.get(PropertyClassAttribute.DESCRIPTION), LangString("A property for testing...@en"))
+        self.assertEqual(prop3.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.MAX_COUNT], 1)
+        self.assertEqual(prop3.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.MIN_COUNT], 1)
+        self.assertEqual(prop3.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertTrue(prop3.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.UNIQUE_LANG])
+
+
 

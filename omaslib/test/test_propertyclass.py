@@ -76,7 +76,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
         self.assertEqual(p1.created, datetime.fromisoformat("2023-11-04T12:00:00Z"))
 
-        #p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:test'))
         p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:test'))
         self.assertEqual(p2.property_class_iri, QName('test:test'))
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
@@ -107,7 +106,6 @@ class TestPropertyClass(unittest.TestCase):
         p1.create()
         #p1.delete_singleton()
         del p1
-        #p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:testWrite'))
         p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:testWrite'))
         self.assertEqual(p2.property_class_iri, QName('test:testWrite'))
         self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))

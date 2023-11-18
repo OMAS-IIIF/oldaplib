@@ -27,13 +27,16 @@ class TestBasicConnection(unittest.TestCase):
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 
+        cls._connection.clear_graph(QName('test:shacl'))
+        cls._connection.clear_graph(QName('test:onto'))
         cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
         sleep(1)  # upload may take a while...
 
     @classmethod
     def tearDownClass(cls):
-        cls._connection.clear_graph(QName('test:shacl'))
-        cls._connection.clear_graph(QName('test:onto'))
+        #cls._connection.clear_graph(QName('test:shacl'))
+        #cls._connection.clear_graph(QName('test:onto'))
+        pass
 
     def test_basic_connection(self):
         con = Connection(server='http://localhost:7200',
@@ -54,25 +57,27 @@ class TestBasicConnection(unittest.TestCase):
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
-    @unittest.skip('Has to be adapted to test data...')
+    #@unittest.skip('Has to be adapted to test data...')
     def test_query(self):
         query = self._context.sparql_context
         query += """
-        SELECT ?s ?p ?o
+        SELECT ?s ?o
         FROM test:shacl
         WHERE {
-            ?s sh:path ?o
+            ?s a sh:PropertyShape .
+            ?s sh:path ?o .
         }
         """
         res = self._connection.query(query)
         expected = {
             'head': {
-                'vars': ['s', 'p', 'o']
+                'vars': ['s', 'o']
             },
             'results': {
                 'bindings': [{'o': {'type': 'uri', 'value': 'http://omas.org/test#comment'},
                               's': {'type': 'uri', 'value': 'http://omas.org/test#commentShape'}
-                              },{'o': {'type': 'uri', 'value': 'http://omas.org/test#test'},
+                              },
+                             {'o': {'type': 'uri', 'value': 'http://omas.org/test#test'},
                               's': {'type': 'uri', 'value': 'http://omas.org/test#testShape'}
                               }]
             }
@@ -86,27 +91,23 @@ class TestBasicConnection(unittest.TestCase):
         SELECT ?s ?p ?o
         FROM test:shacl
         WHERE {
-            ?s ?p ?o
+    		?s rdf:type ?p .
+            ?s sh:path ?o .
         }
         """
-        p = URIRef('http://www.w3.org/ns/shacl#path')
+        p = URIRef(str(self._context.qname2iri('sh:PropertyShape')))
         res = self._connection.rdflib_query(query, {'p': p})
-        self.assertEqual(len(res), 4)
+        self.assertEqual(len(res), 2)
         s0 = {
             URIRef('http://omas.org/test#commentShape'),
             URIRef('http://omas.org/test#testShape'),
-            URIRef('http://omas.org/test#testMyResShape')
         }
         s2 = {
             URIRef('http://omas.org/test#comment'),
             URIRef('http://omas.org/test#test'),
-            URIRef(URIRef('http://omas.org/test#testMyRes'))
         }
         for r in res:
-            if isinstance(r[0], BNode):
-                continue
             self.assertIn(r[0], s0)
-            self.assertEqual(r[1], URIRef('http://www.w3.org/ns/shacl#path'))
             self.assertIn(r[2], s2)
 
     def test_update_query(self):
