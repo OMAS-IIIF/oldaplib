@@ -8,6 +8,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
+from omaslib.src.helpers.omaserror import OmasErrorNotFound
 from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
@@ -240,6 +241,40 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop3.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.MIN_COUNT], 1)
         self.assertEqual(prop3.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertTrue(prop3.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(prop3.get(PropertyClassAttribute.ORDER), 1)
+        self.assertIsNone(prop3.get(PropertyClassAttribute.EXCLUSIVE_FOR))
+
+        prop4 = r2[QName("test:testtwo")]
+        self.assertEqual(prop4.property_class_iri, QName("test:testtwo"))
+        self.assertEqual(prop4.get(PropertyClassAttribute.TO_NODE_IRI), QName('test:testMyRes'))
+        self.assertEqual(prop4.get(PropertyClassAttribute.NAME), LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]))
+        self.assertEqual(prop4.get(PropertyClassAttribute.DESCRIPTION), LangString("An exclusive property for testing...@en"))
+        self.assertEqual(prop4.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.MIN_COUNT], 1)
+        self.assertEqual(prop4.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertTrue(prop4.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(prop4.get(PropertyClassAttribute.ORDER), 2)
+        self.assertEqual(prop4.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:TestResource'))
+
+        del prop3
+
+        prop5 = PropertyClass.read(con=self._connection, property_class_iri=QName("test:testone"))
+        self.assertEqual(prop5.property_class_iri, QName("test:testone"))
+        self.assertEqual(prop5.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
+        self.assertEqual(prop5.get(PropertyClassAttribute.NAME), LangString(["Test property@en", "Testprädikat@de"]))
+        self.assertEqual(prop5.get(PropertyClassAttribute.DESCRIPTION), LangString("A property for testing...@en"))
+        self.assertEqual(prop5.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.MAX_COUNT], 1)
+        self.assertEqual(prop5.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.MIN_COUNT], 1)
+        self.assertEqual(prop5.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertTrue(prop5.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(prop5.get(PropertyClassAttribute.ORDER), 1)
+        self.assertIsNone(prop5.get(PropertyClassAttribute.EXCLUSIVE_FOR))
+
+        del prop4
+        with self.assertRaises(OmasErrorNotFound) as ex:
+            prop6 = PropertyClass.read(con=self._connection, property_class_iri=QName("test:testtwo"))
+        self.assertEqual(str(ex.exception), 'Property "test:testtwo" not found.')
+
+
 
 
 

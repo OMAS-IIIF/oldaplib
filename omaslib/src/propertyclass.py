@@ -19,7 +19,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
-from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound
 from omaslib.src.helpers.propertyclass_singleton import PropertyClassSingleton
 from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
@@ -326,6 +326,8 @@ class PropertyClass(Model, Notify):
         }}
         """
         res = con.rdflib_query(query)
+        if len(res) == 0:
+            raise OmasErrorNotFound(f'Property "{property_class_iri}" not found.')
         attributes: Attributes = {}
         for r in res:
             PropertyClass.process_triple(context, r, attributes)
@@ -461,11 +463,11 @@ class PropertyClass(Model, Notify):
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}# property_node_shacl()'
         sparql += f'\n{blank:{indent * indent_inc}}sh:path {self._property_class_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.user_iri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
+        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:creator {self._con.user_iri}'
+        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:contributor {self._con.user_iri}'
+        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         for prop, value in self._attributes.items():
             if prop == PropertyClassAttribute.PROPERTY_TYPE:
                 continue

@@ -7,3 +7,7 @@ class OmasError(Exception):
     No special needs besides a special class for errors in OMAS
     """
     pass
+
+@strict
+class OmasErrorNotFound(OmasError):
+    pass
