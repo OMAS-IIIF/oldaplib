@@ -1,35 +1,27 @@
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, unique
-from pprint import pprint
-from typing import Union, Optional, List, Set, Any, Tuple, Dict
+from typing import Union, Optional, List, Dict
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
+from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.xsd_datatypes import XsdDatatypes, XsdValidator
+from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.datatypes import QName, Action, AnyIRI
 from omaslib.src.helpers.langstring import Language, LangString
 from omaslib.src.helpers.context import Context
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass, Attributes
-from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
-
-@unique
-class ResourceClassAttributes(Enum):
-    SUBCLASS_OF = 'rdfs:subClassOf'
-    LABEL = 'rdfs:label'
-    COMMENT = 'rdfs:comment'
-    CLOSED = 'sh:closed'
+from omaslib.src.propertyrestrictions import PropertyRestrictions
 
 #
 # Datatype definitions
 #
 AttributeTypes = Union[QName, LangString, bool, None]
-ResourceClassAttributesContainer = Dict[ResourceClassAttributes, AttributeTypes]
+ResourceClassAttributesContainer = Dict[ResourceClassAttribute, AttributeTypes]
 Properties = Dict[BNode, Attributes]
 
 
@@ -45,7 +37,7 @@ class ResourceClass(Model):
     _owl_class_iri: Union[QName, None]
     _attributes: ResourceClassAttributesContainer
     _properties: Dict[QName, PropertyClass]
-    _changeset: Dict[Union[ResourceClassAttributes, QName], ResourceClassAttributeChange]
+    _changeset: Dict[Union[ResourceClassAttribute, QName], ResourceClassAttributeChange]
     __creator: Optional[QName]
     __created: Optional[datetime]
     __contributor: Optional[QName]
@@ -53,11 +45,11 @@ class ResourceClass(Model):
     __version: SemanticVersion
     __from_triplestore: bool
 
-    __datatypes: Dict[ResourceClassAttributes, Union[QName, LangString, bool]] = {
-        ResourceClassAttributes.SUBCLASS_OF: QName,
-        ResourceClassAttributes.LABEL: LangString,
-        ResourceClassAttributes.COMMENT: LangString,
-        ResourceClassAttributes.CLOSED: bool
+    __datatypes: Dict[ResourceClassAttribute, Union[QName, LangString, bool]] = {
+        ResourceClassAttribute.SUBCLASS_OF: QName,
+        ResourceClassAttribute.LABEL: LangString,
+        ResourceClassAttribute.COMMENT: LangString,
+        ResourceClassAttribute.CLOSED: bool
     }
 
     def __init__(self, *,
@@ -75,11 +67,11 @@ class ResourceClass(Model):
         self._attributes = {}
         if attrs is not None:
             for attr, value in attrs.items():
-                if (attr == ResourceClassAttributes.LABEL or attr == ResourceClassAttributes.COMMENT) and type(value) != LangString:
+                if (attr == ResourceClassAttribute.LABEL or attr == ResourceClassAttribute.COMMENT) and type(value) != LangString:
                     raise OmasError(f'Attribute "{attr.value}" must be a "LangString", but is "{type(value)}"!')
-                if attr == ResourceClassAttributes.SUBCLASS_OF and type(value) != QName:
+                if attr == ResourceClassAttribute.SUBCLASS_OF and type(value) != QName:
                     raise OmasError(f'Attribute "{attr.value}" must be a "QName", but is "{type(value)}"!')
-                if attr == ResourceClassAttributes.CLOSED and type(value) != bool:
+                if attr == ResourceClassAttribute.CLOSED and type(value) != bool:
                     raise OmasError(f'Attribute "{attr.value}" must be a "bool", but is "{type(value)}"!')
                 if getattr(value, 'set_notifier', None) is not None:
                     value.set_notifier(self.notifier, attr)
@@ -98,26 +90,26 @@ class ResourceClass(Model):
         self._changeset = {}
         self.__from_triplestore = False
 
-    def __getitem__(self, key: Union[ResourceClassAttributes, QName]) -> Union[AttributeTypes, PropertyClass]:
-        if type(key) is ResourceClassAttributes:
+    def __getitem__(self, key: Union[ResourceClassAttribute, QName]) -> Union[AttributeTypes, PropertyClass]:
+        if type(key) is ResourceClassAttribute:
             return self._attributes[key]
         elif type(key) is QName:
             return self._properties[key]
         else:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
 
-    def get(self, key: Union[ResourceClassAttributes, QName]) -> Union[AttributeTypes, PropertyClass, None]:
-        if type(key) is ResourceClassAttributes:
+    def get(self, key: Union[ResourceClassAttribute, QName]) -> Union[AttributeTypes, PropertyClass, None]:
+        if type(key) is ResourceClassAttribute:
             return self._attributes.get(key)
         elif type(key) is QName:
             return self._attributes.get(key)
         else:
             return None
 
-    def __setitem__(self, key: Union[ResourceClassAttributes, QName], value: Union[AttributeTypes, PropertyClass]) -> None:
+    def __setitem__(self, key: Union[ResourceClassAttribute, QName], value: Union[AttributeTypes, PropertyClass]) -> None:
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, key)
-        if type(key) is ResourceClassAttributes:
+        if type(key) is ResourceClassAttribute:
             if self._attributes.get(key) is None:  # Attribute not yet set
                 if self._changeset.get(key) is None:  # Only first change is recorded
                     self._changeset[key] = ResourceClassAttributeChange(None, Action.CREATE, False)  # TODO: Check if "check_in_use" must be set
@@ -136,8 +128,8 @@ class ResourceClass(Model):
         else:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
 
-    def __delitem__(self, key: Union[ResourceClassAttributes, QName]) -> None:
-        if type(key) is ResourceClassAttributes:
+    def __delitem__(self, key: Union[ResourceClassAttribute, QName]) -> None:
+        if type(key) is ResourceClassAttribute:
             if self._changeset.get(key) is None:
                 self._changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
             del self._attributes[key]
@@ -195,7 +187,8 @@ class ResourceClass(Model):
             s += f'{blank:{indent*2}}{qname} = {prop}\n'
         return s
 
-    def notifier(self, what: Union[ResourceClassAttributes, QName]):
+    def notifier(self, what: Union[ResourceClassAttribute, QName]):
+        print('ResourceClass.notifier: ', what)
         self._changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
 
     @property
@@ -293,7 +286,7 @@ class ResourceClass(Model):
             elif key == 'dcterms:modified':
                 self.__modified = val[0]
             else:
-                attr = ResourceClassAttributes(key)
+                attr = ResourceClassAttribute(key)
                 if QName == self.__datatypes[attr]:
                     self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
                 elif XsdDatatypes == self.__datatypes[attr]:
@@ -302,6 +295,9 @@ class ResourceClass(Model):
                     self._attributes[attr] = LangString(val)
                 elif bool == self.__datatypes[attr]:
                     self._attributes[attr] = bool(val[0])
+                if getattr(self._attributes[attr], 'set_notifier', None) is not None:
+                    self._attributes[attr].set_notifier(self.notifier, attr)
+
         self.__from_triplestore = True
 
     @staticmethod
@@ -447,9 +443,9 @@ class ResourceClass(Model):
         if self.__contributor is not None:
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor}'
         for attr, value in self._attributes.items():
-            if attr == ResourceClassAttributes.SUBCLASS_OF:
+            if attr == ResourceClassAttribute.SUBCLASS_OF:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value} {value}Shape'
-            elif attr == ResourceClassAttributes.CLOSED:
+            elif attr == ResourceClassAttribute.CLOSED:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:closed {"true" if value else "false"}'
             else:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value} {value}'
@@ -476,8 +472,8 @@ class ResourceClass(Model):
             if not p.from_triplestore:
                 sparql += p.create_owl_part1(timestamp, indent + 2) + '\n'
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri} rdf:type owl:Class ;\n'
-        if self._attributes.get(ResourceClassAttributes.SUBCLASS_OF) is not None:
-            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._attributes[ResourceClassAttributes.SUBCLASS_OF]} ,\n'
+        if self._attributes.get(ResourceClassAttribute.SUBCLASS_OF) is not None:
+            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._attributes[ResourceClassAttribute.SUBCLASS_OF]} ,\n'
         else:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf\n'
         i = 0
@@ -515,32 +511,64 @@ class ResourceClass(Model):
         self.__created = timestamp
         self.__modified = timestamp
 
-    def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+    def __update_shacl(self, modified: datetime, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         if not self._changeset:
             if as_string:
                 return ''
             else:
                 return
+
+        blank = ''
+        sparql_list = []
+
+        #context = Context(name=self._con.context_name)
+        #sparql = context.sparql_context
+        for item, change in self._changeset.items():
+            sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
+            if isinstance(item, ResourceClassAttribute):
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} ?rval .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                if change.action != Action.DELETE:
+                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} {self._attributes[item]} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self.owl_class_iri}Shape as ?prop)\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} ?rval .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}'
+                sparql_list.append(sparql)
+            elif isinstance(item, QName):
+                pass
+                #self._properties[item].__update()
+        sparql = ";\n".join(sparql_list)
+        return sparql
+
         sparql_switch1 = {
-            ResourceClassAttributes.SUBCLASS_OF: '?shape rdfs:subClassOf ?subclass_of .',
-            ResourceClassAttributes.CLOSED: '?shape sh:closed ?closed .',
-            ResourceClassAttributes.LABEL: '?shape rdfs:label ?label .',
-            ResourceClassAttributes.COMMENT: '?shape rdfs:comment ?comment .',
-            ResourceClassAttributes.PROPERTY: '?shape sh:property ?propnode'
+            ResourceClassAttribute.SUBCLASS_OF: '?shape rdfs:subClassOf ?subclass_of .',
+            ResourceClassAttribute.CLOSED: '?shape sh:closed ?closed .',
+            ResourceClassAttribute.LABEL: '?shape rdfs:label ?label .',
+            ResourceClassAttribute.COMMENT: '?shape rdfs:comment ?comment .',
         }
         sparql_switch2 = {
-            ResourceClassAttributes.SUBCLASS_OF: f'?shape rdfs:subClassOf {self._subclass_of}Shape .',
-            ResourceClassAttributes.CLOSED: f'?shape sh:closed {"true" if self._closed else "false"} .',
-            ResourceClassAttributes.LABEL: f'?shape rdfs:label {self._label} .',
-            ResourceClassAttributes.COMMENT: f'?shape rdfs:comment {self._comment} .',
-            ResourceClassAttributes.PROPERTY: ''
+            ResourceClassAttribute.SUBCLASS_OF: f'?shape rdfs:subClassOf {self._subclass_of}Shape .',
+            ResourceClassAttribute.CLOSED: f'?shape sh:closed {"true" if self._closed else "false"} .',
+            ResourceClassAttribute.LABEL: f'?shape rdfs:label {self._label} .',
+            ResourceClassAttribute.COMMENT: f'?shape rdfs:comment {self._comment} .',
         }
         sparql_switch3 = {
-            ResourceClassAttributes.SUBCLASS_OF: 'OPTIONAL { ?shape rdfs:subClassOf ?subclass_of }',
-            ResourceClassAttributes.CLOSED: 'OPTIONAL { ?shape sh:closed ?closed }',
-            ResourceClassAttributes.LABEL: 'OPTIONAL { ?shape rdfs:label ?label }',
-            ResourceClassAttributes.COMMENT: 'OPTIONAL { ?shape rdfs:comment ?comment }',
-            ResourceClassAttributes.PROPERTY: 'OPTIONAL { ?shape sh:property ?propnode }'
+            ResourceClassAttribute.SUBCLASS_OF: 'OPTIONAL { ?shape rdfs:subClassOf ?subclass_of }',
+            ResourceClassAttribute.CLOSED: 'OPTIONAL { ?shape sh:closed ?closed }',
+            ResourceClassAttribute.LABEL: 'OPTIONAL { ?shape rdfs:label ?label }',
+            ResourceClassAttribute.COMMENT: 'OPTIONAL { ?shape rdfs:comment ?comment }',
         }
 
         blank = ''
@@ -550,9 +578,9 @@ class ResourceClass(Model):
         i = 1
         do_it = False
         for name, action, prop_iri in self._changeset:
-            if name == ResourceClassAttributes.PROPERTY:
+            if name == ResourceClassAttribute.PROPERTY:
                 print(self._properties)
-                sparql_switch2[ResourceClassAttributes.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node_shacl(timestamp, indent) + ' ; ]'
+                sparql_switch2[ResourceClassAttribute.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node_shacl(timestamp, indent) + ' ; ]'
                 if action == Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
@@ -597,11 +625,11 @@ class ResourceClass(Model):
 
     def __update_owl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         action = None
-        if (ResourceClassAttributes.SUBCLASS_OF, Action.DELETE) in self._changeset:
+        if (ResourceClassAttribute.SUBCLASS_OF, Action.DELETE) in self._changeset:
             action = Action.DELETE
-        elif (ResourceClassAttributes.SUBCLASS_OF, Action.REPLACE) in self._changeset:
+        elif (ResourceClassAttribute.SUBCLASS_OF, Action.REPLACE) in self._changeset:
             action = Action.REPLACE
-        elif (ResourceClassAttributes.SUBCLASS_OF, Action.CREATE) in self._changeset:
+        elif (ResourceClassAttribute.SUBCLASS_OF, Action.CREATE) in self._changeset:
             action = Action.CREATE
 
         if action:
@@ -640,13 +668,14 @@ class ResourceClass(Model):
                 return
 
     def update(self, as_string: bool = False) -> Union[str, None]:
+        modified = datetime.now()
         if as_string:
-            tmp = self.__update_shacl(as_string=True)
-            #print(tmp)
+            tmp = self.__update_shacl(modified=modified, as_string=True)
+            print(tmp)
             tmp += self.__update_owl(as_string=True)
             return tmp
         else:
-            self.__update_shacl()
+            self.__update_shacl(timestamp=timestamp)
             self.__update_owl()
 
 

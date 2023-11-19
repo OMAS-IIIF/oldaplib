@@ -10,7 +10,7 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassAttributesContainer, PropertyClassAttributeChange
-from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
+from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions, RestrictionContainer
 
 

@@ -9,7 +9,7 @@ from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.datatypes import QName, Action
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
+from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 
 
 @unique

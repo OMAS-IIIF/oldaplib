@@ -9,12 +9,13 @@ from omaslib.src.helpers.datatypes import NamespaceIRI, QName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorNotFound
-from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
+from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass, OwlPropertyType
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType
-from omaslib.src.resourceclass import ResourceClassAttributesContainer, ResourceClassAttributes, ResourceClass
+from omaslib.src.resourceclass import ResourceClassAttributesContainer, ResourceClass
+from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
 
 
 class TestResourceClass(unittest.TestCase):
@@ -45,9 +46,9 @@ class TestResourceClass(unittest.TestCase):
 
     def test_constructor(self):
         attrs: ResourceClassAttributesContainer = {
-            ResourceClassAttributes.LABEL: LangString(["Test resource@en", "Resource de test@fr"]),
-            ResourceClassAttributes.COMMENT: LangString("For testing purposes@en"),
-            ResourceClassAttributes.CLOSED: True
+            ResourceClassAttribute.LABEL: LangString(["Test resource@en", "Resource de test@fr"]),
+            ResourceClassAttribute.COMMENT: LangString("For testing purposes@en"),
+            ResourceClassAttribute.CLOSED: True
         }
 
         props: PropertyClassAttributesContainer = {
@@ -77,9 +78,9 @@ class TestResourceClass(unittest.TestCase):
                            owl_class_iri="TestResource",
                            attrs=attrs,
                            properties=properties)
-        self.assertEqual(r1[ResourceClassAttributes.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
-        self.assertEqual(r1[ResourceClassAttributes.COMMENT], LangString("For testing purposes@en"))
-        self.assertTrue(r1[ResourceClassAttributes.CLOSED])
+        self.assertEqual(r1[ResourceClassAttribute.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
+        self.assertEqual(r1[ResourceClassAttribute.COMMENT], LangString("For testing purposes@en"))
+        self.assertTrue(r1[ResourceClassAttribute.CLOSED])
 
         prop1 = r1[QName("test:comment")]
         self.assertEqual(prop1.property_class_iri, QName("test:comment"))
@@ -118,9 +119,9 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r1.created, datetime.fromisoformat('2023-11-04T12:00:00Z'))
         self.assertEqual(r1.contributor, QName('orcid:ORCID-0000-0003-1681-4036'))
         self.assertEqual(r1.modified, datetime.fromisoformat('2023-11-04T12:00:00Z'))
-        self.assertEqual(r1.get(ResourceClassAttributes.LABEL), LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr"]))
-        self.assertEqual(r1.get(ResourceClassAttributes.COMMENT), LangString("Resource for testing..."))
-        self.assertEqual(r1.get(ResourceClassAttributes.CLOSED), True)
+        self.assertEqual(r1.get(ResourceClassAttribute.LABEL), LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr"]))
+        self.assertEqual(r1.get(ResourceClassAttribute.COMMENT), LangString("Resource for testing..."))
+        self.assertEqual(r1.get(ResourceClassAttribute.CLOSED), True)
 
         prop1 = r1[QName('test:test')]
         self.assertEqual(prop1.property_class_iri, QName("test:test"))
@@ -190,9 +191,9 @@ class TestResourceClass(unittest.TestCase):
             p1, p2
         ]
         attrs: ResourceClassAttributesContainer = {
-            ResourceClassAttributes.LABEL: LangString(["CreateResTest@en", "CréationResTeste@fr"]),
-            ResourceClassAttributes.COMMENT: LangString("For testing purposes@en"),
-            ResourceClassAttributes.CLOSED: True
+            ResourceClassAttribute.LABEL: LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+            ResourceClassAttribute.COMMENT: LangString("For testing purposes@en"),
+            ResourceClassAttribute.CLOSED: True
         }
         r1 = ResourceClass(con=self._connection,
                            owl_class_iri=QName("test:TestResource"),
@@ -204,9 +205,9 @@ class TestResourceClass(unittest.TestCase):
 
         r2 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:TestResource"))
         self.assertEqual(r2.owl_class_iri, QName("test:TestResource"))
-        self.assertEqual(r2[ResourceClassAttributes.LABEL], LangString(["CreateResTest@en", "CréationResTeste@fr"]))
-        self.assertEqual(r2[ResourceClassAttributes.COMMENT], LangString("For testing purposes@en"))
-        self.assertTrue(r2[ResourceClassAttributes.COMMENT])
+        self.assertEqual(r2[ResourceClassAttribute.LABEL], LangString(["CreateResTest@en", "CréationResTeste@fr"]))
+        self.assertEqual(r2[ResourceClassAttribute.COMMENT], LangString("For testing purposes@en"))
+        self.assertTrue(r2[ResourceClassAttribute.COMMENT])
 
         prop1 = r2[QName("test:comment")]
         self.assertEqual(prop1.property_class_iri, QName('test:comment'))
@@ -273,6 +274,13 @@ class TestResourceClass(unittest.TestCase):
         with self.assertRaises(OmasErrorNotFound) as ex:
             prop6 = PropertyClass.read(con=self._connection, property_class_iri=QName("test:testtwo"))
         self.assertEqual(str(ex.exception), 'Property "test:testtwo" not found.')
+
+    def test_updating(self):
+        r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyRes"))
+        r1[ResourceClassAttribute.LABEL][Language.IT] = "La mia risorsa"
+        #r1[ResourceClassAttribute.LABEL].add("La mia risorsa@it")
+        modified = datetime.now()
+        print(r1.update(as_string=True))
 
 
 

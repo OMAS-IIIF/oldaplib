@@ -1,8 +1,10 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from pystrict import strict
 
-from omaslib.src.helpers.propertyclassprops import PropertyClassAttribute
+from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
 
 
 @strict
@@ -16,15 +18,20 @@ class Notify:
     _notifier: Callable[[PropertyClassAttribute], None]
     _data: PropertyClassAttribute
 
-    def __init__(self, notifier: Optional[Callable[[PropertyClassAttribute], None]], data: Optional[PropertyClassAttribute] = None):
+    def __init__(self,
+                 notifier: Optional[Callable[[Union[PropertyClassAttribute, ResourceClassAttribute, QName]], None]],
+                 data: Union[PropertyClassAttribute, ResourceClassAttribute, QName, None] = None):
         self._notifier = notifier
         self._data = data
 
-    def set_notifier(self, notifier: Callable[[PropertyClassAttribute], None], data: Optional[PropertyClassAttribute] = None):
+    def set_notifier(self,
+                     notifier: Callable[[Union[PropertyClassAttribute, ResourceClassAttribute, QName]], None],
+                     data: Union[PropertyClassAttribute, ResourceClassAttribute, QName, None] = None) -> None:
         self._notifier = notifier
         self._data = data
 
-    def notify(self):
+    def notify(self) -> None:
+        print('%%%%%% in notify()', self._notifier)
         if self._notifier is not None:
             self._notifier(self._data)
 
