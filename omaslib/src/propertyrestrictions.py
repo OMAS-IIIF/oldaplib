@@ -404,6 +404,7 @@ class PropertyRestrictions(Notify):
                     old_max_count = None if self._restrictions.get(PropertyRestrictionType.MAX_COUNT) is None else self._restrictions[PropertyRestrictionType.MAX_COUNT]
                 else:
                     old_max_count = self._changeset[PropertyRestrictionType.MAX_COUNT].old_value
+                print("\n***************** OWL CARDINALITY")
                 sparql += f'#\n# Process "sh:maxCount"/"sh:minCount"...\n#\n'
                 if old_max_count is not None and old_max_count == old_min_count:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'

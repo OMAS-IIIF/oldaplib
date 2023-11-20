@@ -515,11 +515,12 @@ class ResourceClass(Model):
         for item, change in self._changeset.items():
             if isinstance(item, ResourceClassAttribute):
                 sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
-                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} ?rval .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                if change.action != Action.CREATE:
+                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} {change.old_value} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
                 if change.action != Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
@@ -529,7 +530,8 @@ class ResourceClass(Model):
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
                 sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self.owl_class_iri}Shape as ?prop)\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} ?rval .\n'
+                if change.action != Action.CREATE:
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} {change.old_value} .\n'
                 sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
                 sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
@@ -543,125 +545,49 @@ class ResourceClass(Model):
         sparql = ";\n".join(sparql_list)
         return sparql
 
-        sparql_switch1 = {
-            ResourceClassAttribute.SUBCLASS_OF: '?shape rdfs:subClassOf ?subclass_of .',
-            ResourceClassAttribute.CLOSED: '?shape sh:closed ?closed .',
-            ResourceClassAttribute.LABEL: '?shape rdfs:label ?label .',
-            ResourceClassAttribute.COMMENT: '?shape rdfs:comment ?comment .',
-        }
-        sparql_switch2 = {
-            ResourceClassAttribute.SUBCLASS_OF: f'?shape rdfs:subClassOf {self._subclass_of}Shape .',
-            ResourceClassAttribute.CLOSED: f'?shape sh:closed {"true" if self._closed else "false"} .',
-            ResourceClassAttribute.LABEL: f'?shape rdfs:label {self._label} .',
-            ResourceClassAttribute.COMMENT: f'?shape rdfs:comment {self._comment} .',
-        }
-        sparql_switch3 = {
-            ResourceClassAttribute.SUBCLASS_OF: 'OPTIONAL { ?shape rdfs:subClassOf ?subclass_of }',
-            ResourceClassAttribute.CLOSED: 'OPTIONAL { ?shape sh:closed ?closed }',
-            ResourceClassAttribute.LABEL: 'OPTIONAL { ?shape rdfs:label ?label }',
-            ResourceClassAttribute.COMMENT: 'OPTIONAL { ?shape rdfs:comment ?comment }',
-        }
-
+    def __update_owl(self, modified: datetime,  indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         blank = ''
-        context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        n = len(self._changeset)
-        i = 1
-        do_it = False
-        for name, action, prop_iri in self._changeset:
-            if name == ResourceClassAttribute.PROPERTY:
-                sparql_switch2[ResourceClassAttribute.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node_shacl(timestamp, indent) + ' ; ]'
-                if action == Action.DELETE:
-                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch1[name]}\n'
+        sparql_list = []
+        for item, change in self._changeset.items():
+            if isinstance(item, ResourceClassAttribute):
+                if item == ResourceClassAttribute.SUBCLASS_OF:
+                    sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
+                    if change.action != Action.CREATE:
+                        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:onto {{\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop rdf:subClassOf {change.old_value} .\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                        sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    if change.action != Action.DELETE:
+                        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:onto {{\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop rdf:subClassOf {self._attributes[item]} .\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                        sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:onto {{\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self.owl_class_iri}Shape as ?prop)\n'
+                    if change.action != Action.CREATE:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}?res rdf:subClassOf {change.old_value} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}?res dcterms:modified ?modified .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-                    sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
-                    sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
-                    sparql += f'{blank:{(indent + 2)*indent_inc}}?shape rdf:type sh:NodeShape .\n'
-                    sparql += f'{blank:{(indent + 2)*indent_inc}}?shape sh:targetClass {self._owl_class_iri} .\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch3[name]}\n'
-                    sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-                    sparql += f'{blank:{indent*indent_inc}}}}{"" if i == n else " ;"}\n'
-
-            sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch1[name]}\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-            sparql += f'{blank:{indent*indent_inc}}}}\n'
-
-            if action != Action.DELETE:
-                sparql += f'{blank:{indent*indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch2[name]}\n'
-                sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-                sparql += f'{blank:{indent*indent_inc}}}}\n'
-
-            sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
-            sparql += f'{blank:{(indent + 2)*indent_inc}}?shape rdf:type sh:NodeShape .\n'
-            sparql += f'{blank:{(indent + 2)*indent_inc}}?shape sh:targetClass {self._owl_class_iri} .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}{sparql_switch3[name]}\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-            sparql += f'{blank:{indent*indent_inc}}}}{"" if i == n else " ;"}\n'
-            i += 1
-            do_it = True
-        if as_string:
-            return sparql
-        else:
-            if do_it:
-                self._con.update_query(sparql)
-
-    def __update_owl(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
-        action = None
-        if (ResourceClassAttribute.SUBCLASS_OF, Action.DELETE) in self._changeset:
-            action = Action.DELETE
-        elif (ResourceClassAttribute.SUBCLASS_OF, Action.REPLACE) in self._changeset:
-            action = Action.REPLACE
-        elif (ResourceClassAttribute.SUBCLASS_OF, Action.CREATE) in self._changeset:
-            action = Action.CREATE
-
-        if action:
-            blank = ''
-            context = Context(name=self._con.context_name)
-            sparql = context.sparql_context
-            sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:onto {{\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owl_class_iri} rdfs:subClassOf ?subclass_of .\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-            sparql += f'{blank:{indent*indent_inc}}}}\n'
-
-            if action != Action.DELETE:
-                sparql += f'{blank:{indent*indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owl_class_iri} rdfs:subClassOf {self._subclass_of} .'
-                sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-                sparql += f'{blank:{indent*indent_inc}}}}\n'
-
-            sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
-            sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri} rdf:type owl:Class .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}OPTIONAL {{\n'
-            sparql += f'{blank:{(indent + 3)*indent_inc}}{self._owl_class_iri} rdfs:subClassOf ?subclass_of .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}}}\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}}}\n'
-            sparql += f'{blank:{indent*indent_inc}}}}\n'
-            if as_string:
-                return sparql
+                    sparql += f'{blank:{indent * indent_inc}}}}'
+                    sparql_list.append(sparql)
             else:
-                self._con.update_query(sparql)
-        else:
-            if as_string:
-                return ''
-            else:
-                return
+                sparql = self._properties[item].update_owl(owlclass_iri=self.owl_class_iri,
+                                                           timestamp=modified,
+                                                           indent=indent, indent_inc=indent_inc)
+                sparql_list.append(sparql)
+        sparql = ";\n".join(sparql_list)
+        return sparql
+
 
     def update(self, as_string: bool = False) -> Union[str, None]:
         modified = datetime.now()
         if as_string:
             tmp = self.__update_shacl(modified=modified, as_string=True)
-            tmp += self.__update_owl(as_string=True)
+            tmp += self.__update_owl(modified=modified, as_string=True)
             return tmp
         else:
             self.__update_shacl(modified=modified)
