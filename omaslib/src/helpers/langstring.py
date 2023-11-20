@@ -131,9 +131,7 @@ class LangString(Notify):
                 self._changeset[lang] = LangStringChange(self._langstring.get(lang),
                                                          Action.REPLACE if self._langstring.get(lang) else Action.CREATE)
             self._langstring[lang] = value
-            print('\n**********>>>>>>>>>>>')
             self.notify()
-            print("**************<<<<<<<<<")
         elif isinstance(lang, str):
             try:
                 lobj = Language[lang.upper()]

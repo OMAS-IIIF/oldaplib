@@ -547,8 +547,10 @@ class ResourceClass(Model):
                 sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
             elif isinstance(item, QName):
-                pass
-                #self._properties[item].__update()
+                sparql = self._properties[item].update_shacl(owlclass_iri=self.owl_class_iri,
+                                                             timestamp=modified,
+                                                             indent=indent, indent_inc=indent_inc)
+                sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)
         return sparql
 
@@ -579,7 +581,6 @@ class ResourceClass(Model):
         do_it = False
         for name, action, prop_iri in self._changeset:
             if name == ResourceClassAttribute.PROPERTY:
-                print(self._properties)
                 sparql_switch2[ResourceClassAttribute.PROPERTY] = '?shape sh:property [\n' + self._properties[prop_iri].property_node_shacl(timestamp, indent) + ' ; ]'
                 if action == Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
@@ -671,11 +672,10 @@ class ResourceClass(Model):
         modified = datetime.now()
         if as_string:
             tmp = self.__update_shacl(modified=modified, as_string=True)
-            print(tmp)
             tmp += self.__update_owl(as_string=True)
             return tmp
         else:
-            self.__update_shacl(timestamp=timestamp)
+            self.__update_shacl(modified=modified)
             self.__update_owl()
 
 

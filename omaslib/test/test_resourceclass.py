@@ -278,8 +278,7 @@ class TestResourceClass(unittest.TestCase):
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyRes"))
         r1[ResourceClassAttribute.LABEL][Language.IT] = "La mia risorsa"
-        #r1[ResourceClassAttribute.LABEL].add("La mia risorsa@it")
-        modified = datetime.now()
+        r1[ResourceClassAttribute.CLOSED] = False
         print(r1.update(as_string=True))
 
 

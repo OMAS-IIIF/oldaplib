@@ -548,10 +548,10 @@ class PropertyClass(Model, Notify):
         self.__created = timestamp
         self.__modified = timestamp
 
-    def __update_shacl(self, *,
-                       owlclass_iri: Optional[QName] = None,
-                       timestamp: datetime,
-                       indent: int = 0, indent_inc: int = 4) -> str:
+    def update_shacl(self, *,
+                     owlclass_iri: Optional[QName] = None,
+                     timestamp: datetime,
+                     indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
@@ -686,7 +686,7 @@ class PropertyClass(Model, Notify):
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        sparql += self.__update_shacl(timestamp=timestamp)
+        sparql += self.update_shacl(timestamp=timestamp)
         sparql += ";\n"
         sparql += self.__update_owl(timestamp=timestamp)
         self._con.update_query(sparql)

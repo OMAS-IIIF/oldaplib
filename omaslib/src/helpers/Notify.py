@@ -31,7 +31,6 @@ class Notify:
         self._data = data
 
     def notify(self) -> None:
-        print('%%%%%% in notify()', self._notifier)
         if self._notifier is not None:
             self._notifier(self._data)
 
