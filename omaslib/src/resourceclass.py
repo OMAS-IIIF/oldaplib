@@ -36,7 +36,7 @@ class ResourceClassAttributeChange:
 class ResourceClass(Model):
     _owl_class_iri: Union[QName, None]
     _attributes: ResourceClassAttributesContainer
-    _properties: Dict[QName, PropertyClass]
+    _properties: Dict[QName, Union[PropertyClass, QName]]
     _changeset: Dict[Union[ResourceClassAttribute, QName], ResourceClassAttributeChange]
     __creator: Optional[QName]
     __created: Optional[datetime]
@@ -90,7 +90,7 @@ class ResourceClass(Model):
         self._changeset = {}
         self.__from_triplestore = False
 
-    def __getitem__(self, key: Union[ResourceClassAttribute, QName]) -> Union[AttributeTypes, PropertyClass]:
+    def __getitem__(self, key: Union[ResourceClassAttribute, QName]) -> Union[AttributeTypes, PropertyClass, QName]:
         if type(key) is ResourceClassAttribute:
             return self._attributes[key]
         elif type(key) is QName:
@@ -98,7 +98,7 @@ class ResourceClass(Model):
         else:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
 
-    def get(self, key: Union[ResourceClassAttribute, QName]) -> Union[AttributeTypes, PropertyClass, None]:
+    def get(self, key: Union[ResourceClassAttribute, QName]) -> Union[AttributeTypes, PropertyClass, QName, None]:
         if type(key) is ResourceClassAttribute:
             return self._attributes.get(key)
         elif type(key) is QName:
@@ -106,7 +106,7 @@ class ResourceClass(Model):
         else:
             return None
 
-    def __setitem__(self, key: Union[ResourceClassAttribute, QName], value: Union[AttributeTypes, PropertyClass]) -> None:
+    def __setitem__(self, key: Union[ResourceClassAttribute, QName], value: Union[AttributeTypes, PropertyClass, QName]) -> None:
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, key)
         if type(key) is ResourceClassAttribute:
@@ -188,7 +188,7 @@ class ResourceClass(Model):
         return s
 
     def notifier(self, what: Union[ResourceClassAttribute, QName]):
-        print('ResourceClass.notifier: ', what)
+        print('\n+++++> ResourceClass.notifier: ', what)
         self._changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
 
     @property
@@ -210,21 +210,6 @@ class ResourceClass(Model):
                 return True
             else:
                 return False
-
-    def to_sparql_insert(self, indent: int = 0, indent_inc: int = 4) -> str:
-        blank = ' '
-        sparql = f'{blank:{indent}}{self._shape} a sh:NodeShape, {self._owl_class_iri} ;\n'
-        sparql += f'{blank:{indent + 4}}sh:targetClass {self._owl_class_iri} ; \n'
-        for p in self._properties:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:property\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}[\n'
-            sparql += f'{blank:{(indent + 3) * indent_inc}}sh:path rdf:type ;\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}] ;\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:property\n'
-
-            sparql += p.create_shacl(indent + 8)
-        sparql += f'{blank:{indent}}sh:closed {"true" if self._closed else "false"} .\n'
-        return sparql
 
     @staticmethod
     def __query_shacl(con: Connection, owl_class_iri: QName) -> Attributes:
@@ -365,6 +350,7 @@ class ResourceClass(Model):
                 prop.parse_shacl(attributes=attributes)
                 prop.read_owl()
                 proplist.append(prop)
+        #prop.set_notifier(self.notifier, prop_iri)
         return proplist
 
     def __read_owl(self):
@@ -414,8 +400,11 @@ class ResourceClass(Model):
     @classmethod
     def read(cls, con: Connection, owl_class_iri: QName) -> 'ResourceClass':
         attributes = ResourceClass.__query_shacl(con, owl_class_iri=owl_class_iri)
-        properties = ResourceClass.__query_resource_props(con=con, owl_class_iri=owl_class_iri)
+        properties: List[Union[PropertyClass, QName]] = ResourceClass.__query_resource_props(con=con, owl_class_iri=owl_class_iri)
         resclass = cls(con=con, owl_class_iri=owl_class_iri, properties=properties)
+        for prop in properties:
+            if isinstance(prop, PropertyClass):
+                prop.set_notifier(resclass.notifier, prop.property_class_iri)
         resclass.parse_shacl(attributes=attributes)
         resclass.__read_owl()
         return resclass
@@ -524,8 +513,8 @@ class ResourceClass(Model):
         #context = Context(name=self._con.context_name)
         #sparql = context.sparql_context
         for item, change in self._changeset.items():
-            sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
             if isinstance(item, ResourceClassAttribute):
+                sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
                 sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} ?rval .\n'

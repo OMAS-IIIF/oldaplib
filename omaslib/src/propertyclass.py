@@ -262,6 +262,7 @@ class PropertyClass(Model, Notify):
 
     def notifier(self, attr: PropertyClassAttribute) -> None:
         self._changeset[attr] = PropertyClassAttributeChange(None, Action.MODIFY, True)
+        self.notify()
 
     @property
     def in_use(self):

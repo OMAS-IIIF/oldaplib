@@ -279,6 +279,7 @@ class TestResourceClass(unittest.TestCase):
         r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyRes"))
         r1[ResourceClassAttribute.LABEL][Language.IT] = "La mia risorsa"
         r1[ResourceClassAttribute.CLOSED] = False
+        r1[QName('test:hasText')][PropertyClassAttribute.NAME][Language.FR] = "Un Texte Français"
         print(r1.update(as_string=True))
 
 
