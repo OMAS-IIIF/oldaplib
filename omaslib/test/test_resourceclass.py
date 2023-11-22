@@ -277,6 +277,8 @@ class TestResourceClass(unittest.TestCase):
 
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyRes"))
+        self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 1)
+        self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
         #r1[ResourceClassAttribute.LABEL][Language.IT] = "La mia risorsa"
         #r1[ResourceClassAttribute.CLOSED] = False
         #r1[ResourceClassAttribute.SUBCLASS_OF] = QName('test:TopGaga')

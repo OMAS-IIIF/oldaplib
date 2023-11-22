@@ -377,6 +377,8 @@ class PropertyClass(Model, Notify):
                     self._attributes[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType(key)] = val if key == "sh:languageIn" else val[0]
                 except (ValueError, TypeError) as err:
                     raise OmasError(f'Invalid shacl definition of PropertyClass attribute: "{key} {val}"')
+        if self._attributes.get(PropertyClassAttribute.RESTRICTIONS):
+            self._attributes[PropertyClassAttribute.RESTRICTIONS].changeset_clear()
         #
         # setting property type for OWL which distinguished between Data- and Object-properties
         #

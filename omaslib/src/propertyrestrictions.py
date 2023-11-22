@@ -397,14 +397,13 @@ class PropertyRestrictions(Notify):
                 old_min_count: Union[int, None]
                 old_max_count: Union[int, None]
                 if self._changeset.get(PropertyRestrictionType.MIN_COUNT) is None:
-                    old_min_count = None if self._restrictions.get(PropertyRestrictionType.MIN_COUNT) is None else self._restrictions[PropertyRestrictionType.MIN_COUNT]
+                    old_min_count = int(self._restrictions.get(PropertyRestrictionType.MIN_COUNT))
                 else:
                     old_min_count = self._changeset[PropertyRestrictionType.MIN_COUNT].old_value
                 if self._changeset.get(PropertyRestrictionType.MAX_COUNT) is None:
-                    old_max_count = None if self._restrictions.get(PropertyRestrictionType.MAX_COUNT) is None else self._restrictions[PropertyRestrictionType.MAX_COUNT]
+                    old_max_count = self._restrictions.get(PropertyRestrictionType.MAX_COUNT)
                 else:
                     old_max_count = self._changeset[PropertyRestrictionType.MAX_COUNT].old_value
-                print("\n***************** OWL CARDINALITY")
                 sparql += f'#\n# Process "sh:maxCount"/"sh:minCount"...\n#\n'
                 if old_max_count is not None and old_max_count == old_min_count:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
@@ -450,7 +449,7 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:onto {{\n'
                 if owlclass_iri:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?owlclass rdfs:subClassOf ?prop .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?prop .\n'
                     sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:onProperty {prop_iri} .\n'
                 else:
                     sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri} as ?prop)\n'
