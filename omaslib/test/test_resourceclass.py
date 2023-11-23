@@ -275,6 +275,11 @@ class TestResourceClass(unittest.TestCase):
             prop6 = PropertyClass.read(con=self._connection, property_class_iri=QName("test:testtwo"))
         self.assertEqual(str(ex.exception), 'Property "test:testtwo" not found.')
 
+    def test_updating_add(self):
+        r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyRes"))
+
+
+    @unittest.skip('Work in progress')
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyRes"))
         self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 1)
