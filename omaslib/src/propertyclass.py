@@ -48,7 +48,7 @@ class PropertyClassAttributeChange:
 
 
 @strict
-class PropertyClass(Model, Notify):
+class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     """
     This class implements the SHACL/OWL property definition that OMAS supports
 
@@ -283,8 +283,8 @@ class PropertyClass(Model, Notify):
             else:
                 return False
 
-    # def delete_singleton(self) -> None:
-    #     del self._cache[str(self._property_class_iri)]
+    def delete_singleton(self) -> None:
+        del self._cache[str(self._property_class_iri)]
 
     @staticmethod
     def process_triple(context: Context, r: ResultRow, attributes: Attributes) -> None:
@@ -456,6 +456,8 @@ class PropertyClass(Model, Notify):
 
     @classmethod
     def read(cls, con: Connection, property_class_iri: QName) -> 'PropertyClass':
+        if cls._cache.get(property_class_iri) is not None:
+            return cls._cache[property_class_iri]
         property = cls(con=con, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, property_class_iri)
         property.parse_shacl(attributes=attributes)
@@ -582,7 +584,6 @@ class PropertyClass(Model, Notify):
             sparql += RdfModifyProp.shacl(action=change.action,
                                           owlclass_iri=owlclass_iri,
                                           pclass_iri=self._property_class_iri,
-                                          graph=QName(f'{self._property_class_iri.prefix}:shacl'),
                                           ele=ele,
                                           last_modified=self.__modified)
             sparql_list.append(sparql)
@@ -594,8 +595,7 @@ class PropertyClass(Model, Notify):
         sparql += RdfModifyProp.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      graph=QName(f'{self._property_class_iri.prefix}:shacl'),
-                                      ele=RdfModifyItem('dcterms:contributor', self.__contributor, self._con.user_iri),
+                                      ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -603,7 +603,6 @@ class PropertyClass(Model, Notify):
         sparql += RdfModifyProp.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      graph=QName(f'{self._property_class_iri.prefix}:shacl'),
                                       ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
@@ -638,7 +637,6 @@ class PropertyClass(Model, Notify):
                 sparql += RdfModifyProp.onto(action=change.action,
                                              owlclass_iri=owlclass_iri,
                                              pclass_iri=self._property_class_iri,
-                                             graph=QName(f'{self._property_class_iri.prefix}:onto'),
                                              ele=ele,
                                              last_modified=self.__modified,
                                              indent=indent, indent_inc=indent_inc)
@@ -647,14 +645,13 @@ class PropertyClass(Model, Notify):
             if prop == PropertyClassAttribute.DATATYPE or prop == PropertyClassAttribute.TO_NODE_IRI:
                 ele: RdfModifyItem
                 if self._attributes.get(PropertyClassAttribute.TO_NODE_IRI):
-                    ele = RdfModifyItem('rdf:type', QName('owl:DatatypeProperty'), QName('owl:ObjectProperty'))
+                    ele = RdfModifyItem('rdf:type', 'owl:DatatypeProperty', 'owl:ObjectProperty')
                 else:
-                    ele = RdfModifyItem('rdf:type', QName('owl:ObjectProperty'), QName('owl:DatatypeProperty'))
+                    ele = RdfModifyItem('rdf:type', 'owl:ObjectProperty', 'owl:DatatypeProperty')
                 sparql = f'#\n# OWL:\n# Correct OWL property type with Action "{change.action.value}\n#\n'
                 sparql += RdfModifyProp.onto(action=Action.REPLACE,
                                              owlclass_iri=owlclass_iri,
                                              pclass_iri=self._property_class_iri,
-                                             graph=QName(f'{self._property_class_iri.prefix}:onto'),
                                              ele=ele,
                                              last_modified=self.__modified,
                                              indent=indent, indent_inc=indent_inc)
@@ -668,8 +665,7 @@ class PropertyClass(Model, Notify):
         sparql += RdfModifyProp.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
                                      owlclass_iri=owlclass_iri,
                                      pclass_iri=self._property_class_iri,
-                                     graph=QName(f'{self._property_class_iri.prefix}:onto'),
-                                     ele=RdfModifyItem('dcterms:contributor', self.__contributor, self._con.user_iri),
+                                     ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -677,7 +673,6 @@ class PropertyClass(Model, Notify):
         sparql += RdfModifyProp.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
                                      owlclass_iri=owlclass_iri,
                                      pclass_iri=self._property_class_iri,
-                                     graph=QName(f'{self._property_class_iri.prefix}:onto'),
                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
@@ -685,15 +680,18 @@ class PropertyClass(Model, Notify):
         sparql = ";\n".join(sparql_list)
         return sparql
 
-    def update(self) -> None:
+    def update(self, as_string: bool = False) -> None:
         timestamp = datetime.now()
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += self.update_shacl(timestamp=timestamp)
-        sparql += ";\n"
+        #sparql += ";\n"
         sparql += self.update_owl(timestamp=timestamp)
-        self._con.update_query(sparql)
+        if as_string:
+            return sparql
+        else:
+            self._con.update_query(sparql)
 
         for prop, change in self._changeset.items():
             if change.action == Action.MODIFY:

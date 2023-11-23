@@ -17,6 +17,72 @@ class RdfModifyItem:
     new_value: Union[str, None]
 
 
+class RdfModifyRes:
+
+    @classmethod
+    def __rdf_modify_property(cls, *,
+                              shacl: bool,
+                              action: Action,
+                              owlclass_iri: QName,
+                              graph: QName,
+                              ele: RdfModifyItem,
+                              last_modified: datetime,
+                              indent: int = 0, indent_inc: int = 4) -> str:
+        sparql = ''
+        blank = ' '
+        if action != Action.CREATE:
+            sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+
+        if action != Action.DELETE:
+            sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.new_value} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+        if shacl:
+            sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({owlclass_iri}Shape as ?resource)\n'
+        else:
+            sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({owlclass_iri} as ?resource)\n'
+        if action != Action.CREATE:
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
+        if ele.property != 'dcterms:modified':
+            sparql += f'{blank:{(indent + 2) * indent_inc}}?resource dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{last_modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}'
+        return sparql
+
+    @classmethod
+    def shacl(cls, *,
+              action: Action,
+              owlclass_iri: QName,
+              ele: RdfModifyItem,
+              last_modified: datetime,
+              indent: int = 0, indent_inc: int = 4):
+        graph = QName(owlclass_iri.prefix + ':shacl')
+        return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
+                                         graph=graph, ele=ele, last_modified=last_modified,
+                                         indent=indent, indent_inc=indent_inc)
+
+    @classmethod
+    def onto(cls, *,
+              action: Action,
+              owlclass_iri: QName,
+              ele: RdfModifyItem,
+              last_modified: datetime,
+              indent: int = 0, indent_inc: int = 4):
+        graph = QName(owlclass_iri.prefix + ':onto')
+        return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
+                                         graph=graph, ele=ele, last_modified=last_modified,
+                                         indent=indent, indent_inc=indent_inc)
+
 class RdfModifyProp:
 
     @classmethod
@@ -72,10 +138,10 @@ class RdfModifyProp:
               action: Action,
               owlclass_iri: Optional[QName] = None,
               pclass_iri: QName,
-              graph: QName,
               ele: RdfModifyItem,
               last_modified: datetime,
               indent: int = 0, indent_inc: int = 4) -> str:
+        graph = QName(pclass_iri.prefix + ':shacl')
         return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
                                          pclass_iri=pclass_iri, graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
@@ -85,10 +151,10 @@ class RdfModifyProp:
              action: Action,
              owlclass_iri: Optional[QName] = None,
              pclass_iri: QName,
-             graph: QName,
              ele: RdfModifyItem,
              last_modified: datetime,
              indent: int = 0, indent_inc: int = 4) -> str:
+        graph = QName(pclass_iri.prefix + ':onto')
         return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
                                          pclass_iri=pclass_iri, graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)

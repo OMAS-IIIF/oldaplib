@@ -11,6 +11,7 @@ from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorNotFound
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
+from omaslib.src.helpers.tools import lprint
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass, OwlPropertyType
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType
@@ -67,6 +68,7 @@ class TestResourceClass(unittest.TestCase):
         }
         p = PropertyClass(con=self._connection, property_class_iri=QName('test:testprop'), attrs=props)
         self.assertEqual(p.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
+        self.assertEqual(p.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:TestResource'))
 
         properties: List[Union[PropertyClass, QName]] = [
             QName("test:comment"),
@@ -256,6 +258,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop4.get(PropertyClassAttribute.ORDER), 2)
         self.assertEqual(prop4.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:TestResource'))
 
+        prop3.delete_singleton()
         del prop3
 
         prop5 = PropertyClass.read(con=self._connection, property_class_iri=QName("test:testone"))
@@ -270,13 +273,29 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop5.get(PropertyClassAttribute.ORDER), 1)
         self.assertIsNone(prop5.get(PropertyClassAttribute.EXCLUSIVE_FOR))
 
+        prop4.delete_singleton()
         del prop4
         with self.assertRaises(OmasErrorNotFound) as ex:
             prop6 = PropertyClass.read(con=self._connection, property_class_iri=QName("test:testtwo"))
         self.assertEqual(str(ex.exception), 'Property "test:testtwo" not found.')
 
-    def test_updating_add(self):
-        r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyRes"))
+    def test_updating_add_attrs(self):
+        r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyResMinimal"))
+        r1[ResourceClassAttribute.LABEL] = LangString(["Minimal Resource@en", "Kleinste Resource@de"])
+        r1[ResourceClassAttribute.COMMENT] = LangString("Eine Beschreibung einer minimalen Ressource")
+        r1[ResourceClassAttribute.SUBCLASS_OF] = QName('test:testMyRes')
+        r1[ResourceClassAttribute.CLOSED] = True
+
+        #r1[QName('test:TestShape')] = None
+
+        r1.update()
+
+        del r1
+        r2 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyResMinimal"))
+        self.assertEqual(r2.get(ResourceClassAttribute.LABEL), LangString(["Minimal Resource@en", "Kleinste Resource@de"]))
+        self.assertEqual(r2.get(ResourceClassAttribute.COMMENT), LangString("Eine Beschreibung einer minimalen Ressource"))
+        self.assertEqual(r2.get(ResourceClassAttribute.SUBCLASS_OF), QName('test:testMyRes'))
+        self.assertTrue(r2.get(ResourceClassAttribute.CLOSED))
 
 
     @unittest.skip('Work in progress')

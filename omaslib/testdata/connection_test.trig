@@ -71,34 +71,26 @@
             ] ;
         sh:closed true .
 
-    :testMyResAddShape a sh:NodeShape, :testMyAddRes ;
-        sh:targetClass :testMyAddRes ;
+    :testMyResMinimalShape a sh:NodeShape, :testMyResMinimal ;
+        sh:targetClass :testMyResMinimal ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:label "TEST ADD"@en ;
-        rdfs:comment "Resource for testing..." ;
         sh:property
             [
                 sh:path rdf:type ;
             ] ;
-        sh:property :testShape ;
         sh:property
             [
-                sh:path :hasText ;
+                sh:path :hasMinimal ;
                 dcterms:hasVersion "1.0.0" ;
                 dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
-                sh:maxCount 1 ;
-                sh:minCount 1 ;
-                sh:name "A text", "Ein Text"@de ;
-                sh:description "A longer text..." ;
-                sh:order 1 ;
             ] ;
         sh:closed true .
 
@@ -138,6 +130,15 @@
         rdfs:range xsd:string ;
         rdfs:domain :testMyRes .
 
+    :hasMinimal a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:range xsd:string ;
+        rdfs:domain :testMyResMinimal .
+
+
     :testMyRes a owl:Class ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -153,6 +154,21 @@
                 rdf:type owl:Restriction ;
                 owl:onProperty :hasText ;
                 owl:cardinality 1 ;
+            ] .
+
+    :testMyResMinimal a owl:Class ;
+        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdf:subClassOf
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :test ;
+            ],
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :hasMinimal ;
             ] .
 
 }

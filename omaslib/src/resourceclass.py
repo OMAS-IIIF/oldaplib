@@ -9,6 +9,7 @@ from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
+from omaslib.src.helpers.tools import RdfModifyProp, RdfModifyRes, RdfModifyItem
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.datatypes import QName, Action, AnyIRI
 from omaslib.src.helpers.langstring import Language, LangString
@@ -27,7 +28,7 @@ Properties = Dict[BNode, Attributes]
 
 @dataclass
 class ResourceClassAttributeChange:
-    old_value: Union[AttributeTypes, PropertyClass]
+    old_value: Union[AttributeTypes, PropertyClass, QName, None]
     action: Action
     test_in_use: bool
 
@@ -107,6 +108,8 @@ class ResourceClass(Model):
             return None
 
     def __setitem__(self, key: Union[ResourceClassAttribute, QName], value: Union[AttributeTypes, PropertyClass, QName]) -> None:
+        if type(key) not in {ResourceClassAttribute, PropertyClass, QName}:
+            raise ValueError(f'Invalid key type {type(key)} of key {key}')
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, key)
         if type(key) is ResourceClassAttribute:
@@ -117,28 +120,24 @@ class ResourceClass(Model):
                 if self._changeset.get(key) is None:  # Only first change is recorded
                     self._changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
             self._attributes[key] = value
-        elif type(key) is QName:
+        else:  # QName or PropertyClass
             if self._properties.get(key) is None:  # Property not yet set
                 if self._changeset.get(key) is None:
-                    self._changeset[key] = ResourceClassAttributeChange(self._properties[key], Action.CREATE, False)
+                    self._changeset[key] = ResourceClassAttributeChange(None, Action.CREATE, False)
             else:
                 if self._changeset.get(key) is None:
                     self._changeset[key] = ResourceClassAttributeChange(self._properties[key], Action.REPLACE, False)
-            self._properties = value
-        else:
-            raise ValueError(f'Invalid key type {type(key)} of key {key}')
+            if isinstance(key, QName):
+                self._properties[key] = PropertyClass.read(self._con, key)
+            else:
+                self._properties[key] = value
 
     def __delitem__(self, key: Union[ResourceClassAttribute, QName]) -> None:
-        if type(key) is ResourceClassAttribute:
-            if self._changeset.get(key) is None:
-                self._changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
-            del self._attributes[key]
-        elif type(key) is QName:
-            if self._changeset.get(key) is None:
-                self._changeset[key] = ResourceClassAttributeChange(self._properties[key], Action.DELETE, False)
-            del self._properties[key]
-        else:
+        if type(key) not in {ResourceClassAttribute, PropertyClass, QName}:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
+        if self._changeset.get(key) is None:
+            self._changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
+        del self._attributes[key]
 
     @property
     def owl_class_iri(self) -> QName:
@@ -186,6 +185,12 @@ class ResourceClass(Model):
         for qname, prop in sorted_properties:
             s += f'{blank:{indent*2}}{qname} = {prop}\n'
         return s
+
+    def __changeset_clear(self) -> None:
+        for attr, change in self._changeset.items():
+            if change.action == Action.MODIFY:
+                self._attributes[attr].changeset_clear()
+        self._changeset = {}
 
     def notifier(self, what: Union[ResourceClassAttribute, QName]):
         print('\n+++++> ResourceClass.notifier: ', what)
@@ -500,56 +505,64 @@ class ResourceClass(Model):
         self.__created = timestamp
         self.__modified = timestamp
 
-    def __update_shacl(self, modified: datetime, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+    def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._changeset:
-            if as_string:
-                return ''
-            else:
-                return
-
+            return ''
         blank = ''
         sparql_list = []
 
-        #context = Context(name=self._con.context_name)
-        #sparql = context.sparql_context
         for item, change in self._changeset.items():
             if isinstance(item, ResourceClassAttribute):
                 sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
-                if change.action != Action.CREATE:
-                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} {change.old_value} .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-                if change.action != Action.DELETE:
-                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} {self._attributes[item]} .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:shacl {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self.owl_class_iri}Shape as ?prop)\n'
-                if change.action != Action.CREATE:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {item.value} {change.old_value} .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}}}'
+
+                sparql += RdfModifyRes.shacl(action=change.action,
+                                             owlclass_iri=self._owl_class_iri,
+                                             ele=RdfModifyItem(str(item.value), str(change.old_value), str(self._attributes[item])),
+                                             last_modified=self.__modified)
                 sparql_list.append(sparql)
+            elif isinstance(item, PropertyClass):
+                pass
             elif isinstance(item, QName):
-                sparql = self._properties[item].update_shacl(owlclass_iri=self.owl_class_iri,
-                                                             timestamp=modified,
-                                                             indent=indent, indent_inc=indent_inc)
+                sparql += RdfModifyRes.shacl(action=change.action,
+                                             owlclass_iri=self._owl_class_iri,
+                                             ele=RdfModifyItem('sh:property', str(change.old_value), str(item)),
+                                             last_modified=self.__modified)
                 sparql_list.append(sparql)
-        sparql = ";\n".join(sparql_list)
+                # sparql = self._properties[item].update_shacl(owlclass_iri=self.owl_class_iri,
+                #                                              timestamp=timestamp,
+                #                                              indent=indent, indent_inc=indent_inc)
+                # sparql_list.append(sparql)
+
+        #
+        # Updating the timestamp and contributor ID
+        #
+        sparql = f'#\n# Update/add dcterms:contributor\n#\n'
+        sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
+                                      owlclass_iri=self._owl_class_iri,
+                                      ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
+                                      last_modified=self.__modified)
+        sparql_list.append(sparql)
+
+        sparql = f'#\n# Update/add dcterms:modified\n#\n'
+        sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
+                                      owlclass_iri=self._owl_class_iri,
+                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                      last_modified=self.__modified)
+        sparql_list.append(sparql)
+
+        sparql = " ;\n".join(sparql_list)
         return sparql
 
-    def __update_owl(self, modified: datetime,  indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+    def __update_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
+        if not self._changeset:
+            return ''
         blank = ''
         sparql_list = []
         for item, change in self._changeset.items():
             if isinstance(item, ResourceClassAttribute):
+                #
+                # we only need to add rdf:subClassOf to the ontology – all other attributes are irrelevant
+                #
                 if item == ResourceClassAttribute.SUBCLASS_OF:
                     sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
                     if change.action != Action.CREATE:
@@ -570,28 +583,51 @@ class ResourceClass(Model):
                     if change.action != Action.CREATE:
                         sparql += f'{blank:{(indent + 2) * indent_inc}}?res rdf:subClassOf {change.old_value} .\n'
                     sparql += f'{blank:{(indent + 2) * indent_inc}}?res dcterms:modified ?modified .\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{timestamp.isoformat()}"^^xsd:dateTime)\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}}}'
                     sparql_list.append(sparql)
             else:
                 sparql = self._properties[item].update_owl(owlclass_iri=self.owl_class_iri,
-                                                           timestamp=modified,
+                                                           timestamp=timestamp,
                                                            indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
-        sparql = ";\n".join(sparql_list)
+        #
+        # Updating the timestamp and contributor ID
+        #
+        sparql = f'#\n# Update/add dcterms:contributor\n#\n'
+        sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
+                                    owlclass_iri=self._owl_class_iri,
+                                    ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
+                                    last_modified=self.__modified)
+        sparql_list.append(sparql)
+
+        sparql = f'#\n# Update/add dcterms:modified\n#\n'
+        sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
+                                    owlclass_iri=self._owl_class_iri,
+                                    ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                    last_modified=self.__modified)
+        sparql_list.append(sparql)
+
+        sparql = " ;\n".join(sparql_list)
         return sparql
 
 
     def update(self, as_string: bool = False) -> Union[str, None]:
-        modified = datetime.now()
+        timestamp = datetime.now()
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += self.__update_shacl(timestamp=timestamp)
+        sparql += ' ;\n'
+        sparql += self.__update_owl(timestamp=timestamp)
         if as_string:
-            tmp = self.__update_shacl(modified=modified, as_string=True)
-            tmp += self.__update_owl(modified=modified, as_string=True)
-            return tmp
+            return sparql
         else:
-            self.__update_shacl(modified=modified)
-            self.__update_owl()
+            self._con.update_query(sparql)
+        self.__changeset_clear()
+        self.__modified = timestamp
+        self.__contributor = self._con.user_iri
 
 
 if __name__ == '__main__':

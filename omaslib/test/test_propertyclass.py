@@ -8,6 +8,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
+from omaslib.src.helpers.tools import lprint
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassAttributesContainer, PropertyClassAttributeChange
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
@@ -48,7 +49,8 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.DESCRIPTION: LangString("A property for testing...@en"),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
                 restrictions={PropertyRestrictionType.MAX_COUNT: 1}),
-            PropertyClassAttribute.ORDER: 5
+            PropertyClassAttribute.ORDER: 5,
+            PropertyClassAttribute.EXCLUSIVE_FOR: QName('test:Gaga')
         }
         p = PropertyClass(con=self._connection,
                           property_class_iri=QName('test:testprop'),
@@ -58,7 +60,9 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropertyClassAttribute.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropertyClassAttribute.ORDER), 5)
-        self.assertIsNone(p.get(PropertyClassAttribute.EXCLUSIVE_FOR))
+        self.assertEqual(p.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:Gaga'))
+        p.delete_singleton()
+        del p
 
     def test_propertyclass_read_shacl(self):
         #p1 = PropertyClass(con=self._connection, property_class_iri=QName('test:comment'))
@@ -75,6 +79,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
         self.assertEqual(p1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
         self.assertEqual(p1.created, datetime.fromisoformat("2023-11-04T12:00:00Z"))
+        p1.delete_singleton()
+        del p1
 
         p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:test'))
         self.assertEqual(p2.property_class_iri, QName('test:test'))
@@ -85,6 +91,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 3)
         self.assertEqual(p2[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
+        p2.delete_singleton()
+        del p2
 
     def test_propertyclass_write(self):
         props: PropertyClassAttributesContainer = {
@@ -104,7 +112,7 @@ class TestPropertyClass(unittest.TestCase):
             attrs=props
         )
         p1.create()
-        #p1.delete_singleton()
+        p1.delete_singleton()
         del p1
         p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:testWrite'))
         self.assertEqual(p2.property_class_iri, QName('test:testWrite'))
@@ -114,6 +122,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
                          {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 11)
+        p2.delete_singleton()
+        del p2
 
     def test_propertyclass_undo(self):
         props: PropertyClassAttributesContainer = {
@@ -186,6 +196,8 @@ class TestPropertyClass(unittest.TestCase):
         p1.undo(PropertyClassAttribute.ORDER)
         self.assertEqual(p1[PropertyClassAttribute.ORDER], 11)
         self.assertEqual(p1.changeset, {})
+        p1.delete_singleton()
+        del p1
 
     def test_propertyclass_update(self):
         props: PropertyClassAttributesContainer = {
@@ -221,7 +233,7 @@ class TestPropertyClass(unittest.TestCase):
         p1.update()
         self.assertEqual(p1.changeset, {})
 
-        #p1.delete_singleton()
+        p1.delete_singleton()
         del p1
         #p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:testUpdate'))
         p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:testUpdate'))
@@ -234,6 +246,8 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 12)
         self.assertFalse(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+        p2.delete_singleton()
+        del p2
 
 if __name__ == '__main__':
     unittest.main()
