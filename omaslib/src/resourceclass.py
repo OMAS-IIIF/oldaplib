@@ -329,7 +329,7 @@ class ResourceClass(Model):
             if r['value'] == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
                 continue
             if not isinstance(r['attriri'], URIRef):
-                raise OmasError("There is some inconsistency in this shape!")
+                raise OmasError(f"There is some inconsistency in this shape! ({r['attriri']})")
             propnode = r['prop']  # usually a BNode, but may be a reference to a standalone sh:PropertyShape definition
             prop: Union[PropertyClass, QName]
             if isinstance(propnode, URIRef):
@@ -523,9 +523,10 @@ class ResourceClass(Model):
             elif isinstance(item, PropertyClass):
                 pass
             elif isinstance(item, QName):
+                sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
                 sparql += RdfModifyRes.shacl(action=change.action,
                                              owlclass_iri=self._owl_class_iri,
-                                             ele=RdfModifyItem('sh:property', str(change.old_value), str(item)),
+                                             ele=RdfModifyItem('sh:property', str(change.old_value), f'{item}Shape'),
                                              last_modified=self.__modified)
                 sparql_list.append(sparql)
                 # sparql = self._properties[item].update_shacl(owlclass_iri=self.owl_class_iri,
@@ -587,6 +588,28 @@ class ResourceClass(Model):
                     sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}}}'
                     sparql_list.append(sparql)
+            elif isinstance(item, QName):
+                sparql = f'#\n# Processing QName (reference to property): {item} for OWL\n#\n'
+                if change.action != Action.CREATE:
+                    pass
+                if change.action != Action.DELETE:
+                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:onto {{\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}?resource rdf:subClassOf _:bnode .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}_:bnode a owl:Restriction ;\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}owl:onProperty {item} ;\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:onto {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self.owl_class_iri}Shape as ?resource)\n'
+                #if change.action != Action.CREATE:
+                #    sparql += f'{blank:{(indent + 2) * indent_inc}}?resource rdf:subClassOf {change.old_value} .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource dcterms:modified ?modified .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{timestamp.isoformat()}"^^xsd:dateTime)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}'
+                sparql_list.append(sparql)
             else:
                 sparql = self._properties[item].update_owl(owlclass_iri=self.owl_class_iri,
                                                            timestamp=timestamp,

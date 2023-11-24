@@ -164,10 +164,6 @@
         rdf:subClassOf
             [
                 rdf:type owl:Restriction ;
-                owl:onProperty :test ;
-            ],
-            [
-                rdf:type owl:Restriction ;
                 owl:onProperty :hasMinimal ;
             ] .
 
