@@ -284,7 +284,11 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 return False
 
     def delete_singleton(self) -> None:
-        del self._cache[str(self._property_class_iri)]
+        self._refcnt[str(self._property_class_iri)] -= 1
+        if self._refcnt[str(self._property_class_iri)] <= 0:
+            del self._cache[str(self._property_class_iri)]
+            del self._refcnt[str(self._property_class_iri)]
+        #  del self._cache[str(self._property_class_iri)]
 
     @staticmethod
     def process_triple(context: Context, r: ResultRow, attributes: Attributes) -> None:
@@ -457,6 +461,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     @classmethod
     def read(cls, con: Connection, property_class_iri: QName) -> 'PropertyClass':
         if cls._cache.get(property_class_iri) is not None:
+            cls._refcnt[property_class_iri] += 1
             return cls._cache[property_class_iri]
         property = cls(con=con, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, property_class_iri)

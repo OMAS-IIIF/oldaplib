@@ -16,8 +16,12 @@ class PropertyClassSingleton(type):
             if property_class_iri is None:
                 return self
             cls._cache[key] = self
+            cls._refcnt[key] = 1
+        else:
+            cls._refcnt[key] += 1
         return cls._cache[key]
 
     def __init__(cls, name, bases, attributes):
         super().__init__(name, bases, attributes)
         cls._cache = {}
+        cls._refcnt = {}
