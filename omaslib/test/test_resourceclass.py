@@ -27,6 +27,7 @@ class TestResourceClass(unittest.TestCase):
     def setUpClass(cls):
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://omas.org/test#")
+        cls._context.use('test', 'dcterms')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      userid="rosenth",
@@ -36,6 +37,8 @@ class TestResourceClass(unittest.TestCase):
 
         cls._connection.clear_graph(QName('test:shacl'))
         cls._connection.clear_graph(QName('test:onto'))
+        cls._connection.clear_graph(QName('dcterms:shacl'))
+        cls._connection.clear_graph(QName('dcterms:onto'))
         cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
         sleep(1)  # upload may take a while...
 
@@ -286,8 +289,23 @@ class TestResourceClass(unittest.TestCase):
         r1[ResourceClassAttribute.COMMENT] = LangString("Eine Beschreibung einer minimalen Ressource")
         r1[ResourceClassAttribute.SUBCLASS_OF] = QName('test:testMyRes')
         r1[ResourceClassAttribute.CLOSED] = True
-
+        #
+        # PropertyClass already defined
+        #
         r1[QName('test:test')] = None
+
+        #
+        # Defining external property
+        #
+        attrs: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: QName('test:Person'),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={PropertyRestrictionType.MAX_COUNT: 1}),
+        }
+        p = PropertyClass(con=self._connection,
+                          property_class_iri=QName('dcterms:creator'),
+                          attrs=attrs)
+        r1[QName('dcterms:creator')] = p
         r1.update()
 
         del r1

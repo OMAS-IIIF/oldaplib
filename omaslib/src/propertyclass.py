@@ -1,5 +1,6 @@
 """
 :Author: Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>
+:Copyright: © Lukas Rosenthaler (2023, 2024)
 """
 from dataclasses import dataclass
 from datetime import datetime, date, time
@@ -16,10 +17,10 @@ from rdflib.query import ResultRow
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI, Action
+from omaslib.src.helpers.datatypes import QName, AnyIRI, Action, NCName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists
 from omaslib.src.helpers.propertyclass_singleton import PropertyClassSingleton
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
@@ -53,6 +54,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     This class implements the SHACL/OWL property definition that OMAS supports
 
     """
+    _graph: NCName
     _property_class_iri: Union[QName, None]
     _attributes: PropertyClassAttributesContainer
     _changeset: Dict[PropertyClassAttribute, PropertyClassAttributeChange]
@@ -83,6 +85,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
 
     def __init__(self, *,
                  con: Connection,
+                 graph: NCName,
                  property_class_iri: Optional[QName] = None,
                  attrs: Optional[PropertyClassAttributesContainer] = None,
                  notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
@@ -96,6 +99,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         """
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
+        self._graph = graph
         self._property_class_iri = property_class_iri
         if attrs is None:
             self._attributes = {}
@@ -316,12 +320,12 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             attributes[attriri].add(Language[r['oo'].toPython().upper()])
 
     @staticmethod
-    def __query_shacl(con: Connection, property_class_iri: QName) -> Attributes:
+    def __query_shacl(con: Connection, graph: NCName, property_class_iri: QName) -> Attributes:
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
         SELECT ?attriri ?value ?oo
-        FROM {property_class_iri.prefix}:shacl
+        FROM {graph}:shacl
         WHERE {{
             BIND({property_class_iri}Shape AS ?shape)
             ?shape ?attriri ?value .
@@ -403,7 +407,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         query1 = context.sparql_context
         query1 += f"""
         SELECT ?p ?o
-        FROM {self._property_class_iri.prefix}:onto
+        FROM {self._graph}:onto
         WHERE {{
             {self._property_class_iri} ?p ?o
         }}
@@ -459,12 +463,12 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                     f'Property has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
 
     @classmethod
-    def read(cls, con: Connection, property_class_iri: QName) -> 'PropertyClass':
+    def read(cls, con: Connection, graph: NCName, property_class_iri: QName) -> 'PropertyClass':
         if cls._cache.get(property_class_iri) is not None:
             cls._refcnt[property_class_iri] += 1
             return cls._cache[property_class_iri]
-        property = cls(con=con, property_class_iri=property_class_iri)
-        attributes = PropertyClass.__query_shacl(con, property_class_iri)
+        property = cls(con=con, graph=graph, property_class_iri=property_class_iri)
+        attributes = PropertyClass.__query_shacl(con, graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
         property.read_owl()
         return property
@@ -535,18 +539,18 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
 
     def create(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False):
         if self.__from_triplestore:
-            raise OmasError(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
+            raise OmasErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
         timestamp = datetime.now()
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:shacl {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
         sparql += self.__create_shacl(timestamp=timestamp, indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._property_class_iri.prefix}:onto {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
         sparql += self.create_owl_part1(timestamp=timestamp, indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
@@ -555,8 +559,9 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             return sparql
         else:
             self._con.update_query(sparql)
-        self.__created = timestamp
-        self.__modified = timestamp
+            self.__created = timestamp
+            self.__modified = timestamp
+            self.__from_triplestore = True
 
     def update_shacl(self, *,
                      owlclass_iri: Optional[QName] = None,
@@ -587,6 +592,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                                 str(change.old_value) if change.action != Action.CREATE else None,
                                 str(self._attributes[prop]) if change.action != Action.DELETE else None)
             sparql += RdfModifyProp.shacl(action=change.action,
+                                          graph=self._graph,
                                           owlclass_iri=owlclass_iri,
                                           pclass_iri=self._property_class_iri,
                                           ele=ele,
@@ -598,6 +604,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         #
         sparql = f'#\n# Update/add dcterms:contributor\n#\n'
         sparql += RdfModifyProp.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
+                                      graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
                                       ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
@@ -606,6 +613,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
 
         sparql = f'#\n# Update/add dcterms:modified\n#\n'
         sparql += RdfModifyProp.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
+                                      graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
                                       ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
@@ -640,6 +648,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                                     old_value=str(change.old_value) if change.action != Action.CREATE else None,
                                     new_value=str(self._attributes[prop]) if change.action != Action.DELETE else None)
                 sparql += RdfModifyProp.onto(action=change.action,
+                                             graph=self._graph,
                                              owlclass_iri=owlclass_iri,
                                              pclass_iri=self._property_class_iri,
                                              ele=ele,
@@ -655,6 +664,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                     ele = RdfModifyItem('rdf:type', 'owl:ObjectProperty', 'owl:DatatypeProperty')
                 sparql = f'#\n# OWL:\n# Correct OWL property type with Action "{change.action.value}\n#\n'
                 sparql += RdfModifyProp.onto(action=Action.REPLACE,
+                                             graph=self._graph,
                                              owlclass_iri=owlclass_iri,
                                              pclass_iri=self._property_class_iri,
                                              ele=ele,
@@ -668,6 +678,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         #
         sparql = f'#\n# Update/add dcterms:contributor\n#\n'
         sparql += RdfModifyProp.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
+                                     graph=self._graph,
                                      owlclass_iri=owlclass_iri,
                                      pclass_iri=self._property_class_iri,
                                      ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
@@ -676,6 +687,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
 
         sparql = f'#\n# Update/add dcterms:modified\n#\n'
         sparql += RdfModifyProp.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
+                                     graph=self._graph,
                                      owlclass_iri=owlclass_iri,
                                      pclass_iri=self._property_class_iri,
                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
@@ -712,10 +724,10 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
 
 if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
-    pclass1 = PropertyClass(con=con, property_class_iri=QName('omas:comment'))
+    pclass1 = PropertyClass(con=con, graph=NCName('omas'), property_class_iri=QName('omas:comment'))
     pclass1.read()
     print(pclass1)
 
-    pclass2 = PropertyClass(con=con, property_class_iri=QName('omas:test'))
+    pclass2 = PropertyClass(con=con, graph=NCName('omas'), property_class_iri=QName('omas:test'))
     pclass2.read()
     print(pclass2)

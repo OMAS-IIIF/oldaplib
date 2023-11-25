@@ -11,3 +11,7 @@ class OmasError(Exception):
 @strict
 class OmasErrorNotFound(OmasError):
     pass
+
+@strict
+class OmasErrorAlreadyExists(OmasError):
+    pass

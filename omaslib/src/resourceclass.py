@@ -5,13 +5,13 @@ from pystrict import strict
 from rdflib import URIRef, Literal, BNode
 
 from omaslib.src.connection import Connection
-from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import RdfModifyProp, RdfModifyRes, RdfModifyItem
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
-from omaslib.src.helpers.datatypes import QName, Action, AnyIRI
+from omaslib.src.helpers.datatypes import QName, Action, AnyIRI, NCName
 from omaslib.src.helpers.langstring import Language, LangString
 from omaslib.src.helpers.context import Context
 from omaslib.src.model import Model
@@ -35,6 +35,7 @@ class ResourceClassAttributeChange:
 
 @strict
 class ResourceClass(Model):
+    _graph: NCName
     _owl_class_iri: Union[QName, None]
     _attributes: ResourceClassAttributesContainer
     _properties: Dict[QName, Union[PropertyClass, QName]]
@@ -55,10 +56,12 @@ class ResourceClass(Model):
 
     def __init__(self, *,
                  con: Connection,
+                 graph: NCName,
                  owl_class_iri: Optional[QName] = None,
                  attrs: Optional[ResourceClassAttributesContainer] = None,
                  properties: Optional[List[Union[PropertyClass, QName]]] = None):
         super().__init__(con)
+        self._graph = graph
         self._owl_class_iri = owl_class_iri
         self.__creator = None
         self.__created = None
@@ -120,15 +123,18 @@ class ResourceClass(Model):
                 if self._changeset.get(key) is None:  # Only first change is recorded
                     self._changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
             self._attributes[key] = value
-        else:  # QName or PropertyClass
-            if self._properties.get(key) is None:  # Property not yet set
+        elif isinstance(key, QName):  # QName
+            if self._properties.get(key) is None:  # Property not set
                 if self._changeset.get(key) is None:
                     self._changeset[key] = ResourceClassAttributeChange(None, Action.CREATE, False)
             else:
                 if self._changeset.get(key) is None:
                     self._changeset[key] = ResourceClassAttributeChange(self._properties[key], Action.REPLACE, False)
-            if isinstance(key, QName):
-                self._properties[key] = PropertyClass.read(self._con, key)
+            if self._properties.get(key) is None:
+                try:
+                    self._properties[key] = PropertyClass.read(self._con, key)
+                except OmasErrorNotFound as err:
+                    self._properties[key] = None
             else:
                 self._properties[key] = value
 
@@ -219,10 +225,12 @@ class ResourceClass(Model):
     @staticmethod
     def __query_shacl(con: Connection, owl_class_iri: QName) -> Attributes:
         context = Context(name=con.context_name)
+        graph_list = [f'FROM {graph}:shacl' for graph in context.graphs]
+        graphs = "\n".join(graph_list)
         query = context.sparql_context
         query += f"""
         SELECT ?attriri ?value
-        FROM {owl_class_iri.prefix}:shacl
+        {graphs}
         WHERE {{
             BIND({owl_class_iri}Shape AS ?shape)
             ?shape ?attriri ?value
@@ -303,10 +311,12 @@ class ResourceClass(Model):
         """
 
         context = Context(name=con.context_name)
+        graph_list = [f'FROM {graph}:shacl' for graph in context.graphs]
+        graphs = "\n".join(graph_list)
         query = context.sparql_context
         query += f"""
         SELECT ?prop ?attriri ?value ?oo
-        FROM {owl_class_iri.prefix}:shacl
+        {graphs}
         WHERE {{
             BIND({owl_class_iri}Shape AS ?shape)
             ?shape sh:property ?prop .
@@ -482,7 +492,7 @@ class ResourceClass(Model):
 
     def create(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         if self.__from_triplestore:
-            raise OmasError(f'Cannot create property that was read from triplestore before (property: {self._owl_class_iri}')
+            raise OmasErrorAlreadyExists(f'Cannot create property that was read from triplestore before (property: {self._owl_class_iri}')
         timestamp = datetime.now()
         blank = ''
         context = Context(name=self._con.context_name)
@@ -502,8 +512,9 @@ class ResourceClass(Model):
             return sparql
         else:
             self._con.update_query(sparql)
-        self.__created = timestamp
-        self.__modified = timestamp
+            self.__created = timestamp
+            self.__modified = timestamp
+            self.__from_triplestore = True
 
     def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._changeset:
@@ -516,6 +527,7 @@ class ResourceClass(Model):
                 sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
 
                 sparql += RdfModifyRes.shacl(action=change.action,
+                                             graph=self._graph,
                                              owlclass_iri=self._owl_class_iri,
                                              ele=RdfModifyItem(str(item.value), str(change.old_value), str(self._attributes[item])),
                                              last_modified=self.__modified)
@@ -523,8 +535,16 @@ class ResourceClass(Model):
             elif isinstance(item, PropertyClass):
                 pass
             elif isinstance(item, QName):
+                if self._properties.get(item) is not None:
+                    if change.action == Action.CREATE:
+                        try:
+                            self._properties[item].create()
+                        except OmasErrorAlreadyExists as err:
+                            pass
+
                 sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
                 sparql += RdfModifyRes.shacl(action=change.action,
+                                             graph=self._graph,
                                              owlclass_iri=self._owl_class_iri,
                                              ele=RdfModifyItem('sh:property', str(change.old_value), f'{item}Shape'),
                                              last_modified=self.__modified)
@@ -539,16 +559,18 @@ class ResourceClass(Model):
         #
         sparql = f'#\n# Update/add dcterms:contributor\n#\n'
         sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
-                                      owlclass_iri=self._owl_class_iri,
-                                      ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
-                                      last_modified=self.__modified)
+                                     graph=self._graph,
+                                     owlclass_iri=self._owl_class_iri,
+                                     ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
+                                     last_modified=self.__modified)
         sparql_list.append(sparql)
 
         sparql = f'#\n# Update/add dcterms:modified\n#\n'
         sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
-                                      owlclass_iri=self._owl_class_iri,
-                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
-                                      last_modified=self.__modified)
+                                     graph=self._graph,
+                                     owlclass_iri=self._owl_class_iri,
+                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                     last_modified=self.__modified)
         sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)

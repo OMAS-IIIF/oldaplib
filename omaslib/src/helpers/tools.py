@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List, Tuple, Union
 
-from omaslib.src.helpers.datatypes import Action, QName
+from omaslib.src.helpers.datatypes import Action, QName, NCName
 
 
 def lprint(text: str):
@@ -62,23 +62,25 @@ class RdfModifyRes:
     @classmethod
     def shacl(cls, *,
               action: Action,
+              graph: NCName,
               owlclass_iri: QName,
               ele: RdfModifyItem,
               last_modified: datetime,
               indent: int = 0, indent_inc: int = 4):
-        graph = QName(owlclass_iri.prefix + ':shacl')
+        graph = QName(str(graph) + ':shacl')
         return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
                                          graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
 
     @classmethod
     def onto(cls, *,
-              action: Action,
-              owlclass_iri: QName,
-              ele: RdfModifyItem,
-              last_modified: datetime,
-              indent: int = 0, indent_inc: int = 4):
-        graph = QName(owlclass_iri.prefix + ':onto')
+             action: Action,
+             graph: NCName,
+             owlclass_iri: QName,
+             ele: RdfModifyItem,
+             last_modified: datetime,
+             indent: int = 0, indent_inc: int = 4):
+        graph = QName(str(graph) + ':onto')
         return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
                                          graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
@@ -136,12 +138,13 @@ class RdfModifyProp:
     @classmethod
     def shacl(cls, *,
               action: Action,
+              graph: NCName,
               owlclass_iri: Optional[QName] = None,
               pclass_iri: QName,
               ele: RdfModifyItem,
               last_modified: datetime,
               indent: int = 0, indent_inc: int = 4) -> str:
-        graph = QName(pclass_iri.prefix + ':shacl')
+        graph = QName(str(graph) + ':shacl')
         return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
                                          pclass_iri=pclass_iri, graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
@@ -149,12 +152,13 @@ class RdfModifyProp:
     @classmethod
     def onto(cls, *,
              action: Action,
+             graph: NCName,
              owlclass_iri: Optional[QName] = None,
              pclass_iri: QName,
              ele: RdfModifyItem,
              last_modified: datetime,
              indent: int = 0, indent_inc: int = 4) -> str:
-        graph = QName(pclass_iri.prefix + ':onto')
+        graph = QName(str(graph) + ':onto')
         return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
                                          pclass_iri=pclass_iri, graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)

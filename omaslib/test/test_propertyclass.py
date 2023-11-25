@@ -5,7 +5,7 @@ from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action
+from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action, NCName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.tools import lprint
@@ -23,6 +23,7 @@ class TestPropertyClass(unittest.TestCase):
     def setUpClass(cls):
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://omas.org/test#")
+        cls._context.use('test')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="omas",
@@ -53,6 +54,7 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.EXCLUSIVE_FOR: QName('test:Gaga')
         }
         p = PropertyClass(con=self._connection,
+                          graph=NCName('test'),
                           property_class_iri=QName('test:testprop'),
                           attrs=props)
         self.assertEqual(p.property_class_iri, QName('test:testprop'))
@@ -65,8 +67,9 @@ class TestPropertyClass(unittest.TestCase):
         del p
 
     def test_propertyclass_read_shacl(self):
-        #p1 = PropertyClass(con=self._connection, property_class_iri=QName('test:comment'))
-        p1 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:comment'))
+        p1 = PropertyClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                property_class_iri=QName('test:comment'))
         self.assertEqual(p1.property_class_iri, QName('test:comment'))
         self.assertEqual(p1.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
         self.assertTrue(p1.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.UNIQUE_LANG])
@@ -82,7 +85,9 @@ class TestPropertyClass(unittest.TestCase):
         p1.delete_singleton()
         del p1
 
-        p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:test'))
+        p2 = PropertyClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                property_class_iri=QName('test:test'))
         self.assertEqual(p2.property_class_iri, QName('test:test'))
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
         self.assertEqual(p2[PropertyClassAttribute.NAME], LangString("Test"))
@@ -108,13 +113,16 @@ class TestPropertyClass(unittest.TestCase):
         }
         p1 = PropertyClass(
             con=self._connection,
+            graph=NCName('test'),
             property_class_iri=QName('test:testWrite'),
             attrs=props
         )
         p1.create()
         p1.delete_singleton()
         del p1
-        p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:testWrite'))
+        p2 = PropertyClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                property_class_iri=QName('test:testWrite'))
         self.assertEqual(p2.property_class_iri, QName('test:testWrite'))
         self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))
         self.assertEqual(p2[PropertyClassAttribute.NAME], LangString("Annotations@en"))
@@ -139,6 +147,7 @@ class TestPropertyClass(unittest.TestCase):
         }
         p1 = PropertyClass(
             con=self._connection,
+            graph=NCName('test'),
             property_class_iri=QName('test:testUndo'),
             attrs=props
         )
@@ -215,6 +224,7 @@ class TestPropertyClass(unittest.TestCase):
         }
         p1 = PropertyClass(
             con=self._connection,
+            graph=NCName('test'),
             property_class_iri=QName('test:testUpdate'),
             attrs=props
         )
@@ -235,8 +245,9 @@ class TestPropertyClass(unittest.TestCase):
 
         p1.delete_singleton()
         del p1
-        #p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:testUpdate'))
-        p2 = PropertyClass.read(con=self._connection, property_class_iri=QName('test:testUpdate'))
+        p2 = PropertyClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                property_class_iri=QName('test:testUpdate'))
         self.assertEqual(p2.property_class_iri, QName('test:testUpdate'))
         self.assertEqual(p2[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
         self.assertIsNone(p2.get(PropertyClassAttribute.TO_NODE_IRI))

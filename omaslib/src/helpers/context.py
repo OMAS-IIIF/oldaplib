@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, Union, List
 
 from pystrict import strict
 from rdflib import Graph
@@ -48,6 +48,7 @@ class Context(metaclass=ContextSingleton):
     _name: str
     _context: Dict[NCName, NamespaceIRI]
     _inverse: Dict[NamespaceIRI, NCName]
+    _use: List[NCName]
 
     def __init__(self,
                  name: str):
@@ -92,6 +93,7 @@ class Context(metaclass=ContextSingleton):
             NamespaceIRI('https://orcid.org/'): NCName('orcid'),
             NamespaceIRI('http://omas.org/base#'): NCName('omas'),
         }
+        self._use = []
 
     def __getitem__(self, prefix: Union[NCName, str]) -> NamespaceIRI:
         """
@@ -145,6 +147,14 @@ class Context(metaclass=ContextSingleton):
         Returns an iterator
         """
         return self._context.__iter__()
+
+    @property
+    def graphs(self):
+        return self._use
+
+    def use(self, *args: Union[NCName, str]) -> None:
+        for arg in args:
+            self._use.append(NCName(arg))
 
     def items(self):
         """

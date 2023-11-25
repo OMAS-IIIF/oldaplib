@@ -20,6 +20,7 @@ class TestBasicConnection(unittest.TestCase):
     def setUpClass(cls):
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://omas.org/test#")
+        cls._context.use('test')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="omas",
