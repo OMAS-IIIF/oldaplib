@@ -91,11 +91,17 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                  notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
                  notify_data: Optional[PropertyClassAttribute] = None):
         """
-        Constructor for PropertyClass
+        Constructor for a PropertyClass instance. It represents all the information about a PropertyClass
+        necessary to perform the CRUD (Create, Read, Update and Delete) operations in both the SHACL and
+        OWL representations.
 
-        :param con: A valid instance of the Connection class
-        :param property_class_iri: The OWL QName of the property
-        :param attrs: Props of this instance
+        :param con: A valid Connection instance
+        :param graph: The name of the named graph the information is stored in
+        :param property_class_iri: The QName of the property (as used in OWL)
+        :param attrs: A PropertyClassAttributesContainer containing all the attributes
+        :param notifier: The notifier which is called when an complex atribute such as a LangString or
+                         a restriction has changed
+        :param notify_data: The data that should be given to the notifier
         """
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
@@ -287,7 +293,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             else:
                 return False
 
-    def delete_singleton(self) -> None:
+    def destroy(self) -> None:
         self._refcnt[str(self._property_class_iri)] -= 1
         if self._refcnt[str(self._property_class_iri)] <= 0:
             del self._cache[str(self._property_class_iri)]

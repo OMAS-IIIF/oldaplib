@@ -5,7 +5,7 @@ from typing import Dict, List, Union
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName
+from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorNotFound
@@ -69,7 +69,9 @@ class TestResourceClass(unittest.TestCase):
             PropertyClassAttribute.EXCLUSIVE_FOR: QName('test:TestResource'),
             PropertyClassAttribute.ORDER: 5
         }
-        p = PropertyClass(con=self._connection, property_class_iri=QName('test:testprop'), attrs=props)
+        p = PropertyClass(con=self._connection,
+                          graph=NCName('test'),
+                          property_class_iri=QName('test:testprop'), attrs=props)
         self.assertEqual(p.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:TestResource'))
 
@@ -80,6 +82,7 @@ class TestResourceClass(unittest.TestCase):
         ]
 
         r1 = ResourceClass(con=self._connection,
+                           graph=NCName('test'),
                            owl_class_iri="TestResource",
                            attrs=attrs,
                            properties=properties)
@@ -117,7 +120,9 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
 
     def test_reading(self):
-        r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName('test:testMyRes'))
+        r1 = ResourceClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                owl_class_iri=QName('test:testMyRes'))
         return
         self.assertEqual(r1.owl_class_iri, QName('test:testMyRes'))
         self.assertEqual(r1.version, SemanticVersion(1, 0, 0))
@@ -174,7 +179,10 @@ class TestResourceClass(unittest.TestCase):
                 }),
             PropertyClassAttribute.ORDER: 1
         }
-        p1 = PropertyClass(con=self._connection, property_class_iri=QName('test:testone'), attrs=props1)
+        p1 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           property_class_iri=QName('test:testone'),
+                           attrs=props1)
 
         props2: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:testMyRes'),
@@ -189,7 +197,10 @@ class TestResourceClass(unittest.TestCase):
             PropertyClassAttribute.EXCLUSIVE_FOR: QName('test:TestResource'),
             PropertyClassAttribute.ORDER: 2
         }
-        p2 = PropertyClass(con=self._connection, property_class_iri=QName('test:testtwo'), attrs=props2)
+        p2 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           property_class_iri=QName('test:testtwo'),
+                           attrs=props2)
 
         properties: List[Union[PropertyClass, QName]] = [
             QName("test:comment"),
@@ -202,6 +213,7 @@ class TestResourceClass(unittest.TestCase):
             ResourceClassAttribute.CLOSED: True
         }
         r1 = ResourceClass(con=self._connection,
+                           graph=NCName('test'),
                            owl_class_iri=QName("test:TestResource"),
                            attrs=attrs,
                            properties=properties)
@@ -209,7 +221,9 @@ class TestResourceClass(unittest.TestCase):
         r1.create()
         del r1
 
-        r2 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:TestResource"))
+        r2 = ResourceClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                owl_class_iri=QName("test:TestResource"))
         self.assertEqual(r2.owl_class_iri, QName("test:TestResource"))
         self.assertEqual(r2[ResourceClassAttribute.LABEL], LangString(["CreateResTest@en", "CréationResTeste@fr"]))
         self.assertEqual(r2[ResourceClassAttribute.COMMENT], LangString("For testing purposes@en"))
@@ -262,10 +276,12 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop4.get(PropertyClassAttribute.ORDER), 2)
         self.assertEqual(prop4.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:TestResource'))
 
-        prop3.delete_singleton()
+        prop3.destroy()
         del prop3
 
-        prop5 = PropertyClass.read(con=self._connection, property_class_iri=QName("test:testone"))
+        prop5 = PropertyClass.read(con=self._connection,
+                                   graph=NCName('test'),
+                                   property_class_iri=QName("test:testone"))
         self.assertEqual(prop5.property_class_iri, QName("test:testone"))
         self.assertEqual(prop5.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
         self.assertEqual(prop5.get(PropertyClassAttribute.NAME), LangString(["Test property@en", "Testprädikat@de"]))
@@ -277,14 +293,18 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop5.get(PropertyClassAttribute.ORDER), 1)
         self.assertIsNone(prop5.get(PropertyClassAttribute.EXCLUSIVE_FOR))
 
-        prop4.delete_singleton()
+        prop4.destroy()
         del prop4
         with self.assertRaises(OmasErrorNotFound) as ex:
-            prop6 = PropertyClass.read(con=self._connection, property_class_iri=QName("test:testtwo"))
+            prop6 = PropertyClass.read(con=self._connection,
+                                       graph=NCName('test'),
+                                       property_class_iri=QName("test:testtwo"))
         self.assertEqual(str(ex.exception), 'Property "test:testtwo" not found.')
 
     def test_updating_add_attrs(self):
-        r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyResMinimal"))
+        r1 = ResourceClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                owl_class_iri=QName("test:testMyResMinimal"))
         r1[ResourceClassAttribute.LABEL] = LangString(["Minimal Resource@en", "Kleinste Resource@de"])
         r1[ResourceClassAttribute.COMMENT] = LangString("Eine Beschreibung einer minimalen Ressource")
         r1[ResourceClassAttribute.SUBCLASS_OF] = QName('test:testMyRes')
@@ -303,22 +323,45 @@ class TestResourceClass(unittest.TestCase):
                 restrictions={PropertyRestrictionType.MAX_COUNT: 1}),
         }
         p = PropertyClass(con=self._connection,
+                          graph=NCName('test'),
                           property_class_iri=QName('dcterms:creator'),
                           attrs=attrs)
         r1[QName('dcterms:creator')] = p
         r1.update()
 
         del r1
-        r2 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyResMinimal"))
+        p.destroy()
+        del p
+
+        r2 = ResourceClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                owl_class_iri=QName("test:testMyResMinimal"))
         self.assertEqual(r2.get(ResourceClassAttribute.LABEL), LangString(["Minimal Resource@en", "Kleinste Resource@de"]))
         self.assertEqual(r2.get(ResourceClassAttribute.COMMENT), LangString("Eine Beschreibung einer minimalen Ressource"))
         self.assertEqual(r2.get(ResourceClassAttribute.SUBCLASS_OF), QName('test:testMyRes'))
         self.assertTrue(r2.get(ResourceClassAttribute.CLOSED))
 
+        prop1 = r2[QName('test:test')]
+        self.assertEqual(prop1.property_class_iri, QName('test:test'))
+        self.assertEqual(prop1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
+        self.assertEqual(prop1[PropertyClassAttribute.NAME], LangString("Test"))
+        self.assertEqual(prop1[PropertyClassAttribute.DESCRIPTION], LangString("Property shape for testing purposes"))
+        self.assertIsNone(prop1.get(PropertyClassAttribute.EXCLUSIVE_FOR))
+        self.assertEqual(prop1[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))
+        self.assertEqual(prop1[PropertyClassAttribute.ORDER], 3)
+        self.assertEqual(prop1[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
+
+        prop2 = r2[QName('dcterms:creator')]
+        self.assertEqual(prop2.get(PropertyClassAttribute.TO_NODE_IRI), QName('test:Person'))
+        self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
+        self.assertIsNone(prop2.get(PropertyClassAttribute.EXCLUSIVE_FOR))
+        self.assertEqual(prop1[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
 
     @unittest.skip('Work in progress')
     def test_updating(self):
-        r1 = ResourceClass.read(con=self._connection, owl_class_iri=QName("test:testMyRes"))
+        r1 = ResourceClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                owl_class_iri=QName("test:testMyRes"))
         self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 1)
         self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
         #r1[ResourceClassAttribute.LABEL][Language.IT] = "La mia risorsa"

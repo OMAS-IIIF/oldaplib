@@ -111,6 +111,22 @@ class TestBasicConnection(unittest.TestCase):
             self.assertIn(r[0], s0)
             self.assertIn(r[2], s2)
 
+    @unittest.skip('Work in progress')
+    def test_jsonld_query(self):
+        query = self._context.sparql_context
+        query += """
+        SELECT ?prop ?value ?oo
+        FROM test:shacl
+        WHERE {
+            test:testMyResShape ?prop ?value .
+            OPTIONAL {
+                ?value rdf:rest*/rdf:first ?oo
+            }
+        }
+        """
+        res = self._connection.query(query, format=SparqlResultFormat.JSON)
+        print(res)
+
     def test_update_query(self):
         query1 = self._context.sparql_context
         query1 += """

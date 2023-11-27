@@ -63,7 +63,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropertyClassAttribute.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropertyClassAttribute.ORDER), 5)
         self.assertEqual(p.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:Gaga'))
-        p.delete_singleton()
+        p.destroy()
         del p
 
     def test_propertyclass_read_shacl(self):
@@ -82,7 +82,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
         self.assertEqual(p1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
         self.assertEqual(p1.created, datetime.fromisoformat("2023-11-04T12:00:00Z"))
-        p1.delete_singleton()
+        p1.destroy()
         del p1
 
         p2 = PropertyClass.read(con=self._connection,
@@ -96,7 +96,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 3)
         self.assertEqual(p2[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
-        p2.delete_singleton()
+        p2.destroy()
         del p2
 
     def test_propertyclass_write(self):
@@ -118,7 +118,7 @@ class TestPropertyClass(unittest.TestCase):
             attrs=props
         )
         p1.create()
-        p1.delete_singleton()
+        p1.destroy()
         del p1
         p2 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -130,7 +130,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
                          {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 11)
-        p2.delete_singleton()
+        p2.destroy()
         del p2
 
     def test_propertyclass_undo(self):
@@ -205,7 +205,7 @@ class TestPropertyClass(unittest.TestCase):
         p1.undo(PropertyClassAttribute.ORDER)
         self.assertEqual(p1[PropertyClassAttribute.ORDER], 11)
         self.assertEqual(p1.changeset, {})
-        p1.delete_singleton()
+        p1.destroy()
         del p1
 
     def test_propertyclass_update(self):
@@ -243,7 +243,7 @@ class TestPropertyClass(unittest.TestCase):
         p1.update()
         self.assertEqual(p1.changeset, {})
 
-        p1.delete_singleton()
+        p1.destroy()
         del p1
         p2 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -257,7 +257,7 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 12)
         self.assertFalse(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
-        p2.delete_singleton()
+        p2.destroy()
         del p2
 
 if __name__ == '__main__':

@@ -86,7 +86,7 @@ class ResourceClass(Model):
                 newprop: PropertyClass
                 if isinstance(prop, QName):
                     fixed_prop = QName(str(prop).removesuffix("Shape"))
-                    newprop = PropertyClass.read(self._con, fixed_prop)
+                    newprop = PropertyClass.read(self._con, self._graph, fixed_prop)
                 else:
                     newprop = prop
                 self._properties[newprop.property_class_iri] = newprop
@@ -132,7 +132,7 @@ class ResourceClass(Model):
                     self._changeset[key] = ResourceClassAttributeChange(self._properties[key], Action.REPLACE, False)
             if self._properties.get(key) is None:
                 try:
-                    self._properties[key] = PropertyClass.read(self._con, key)
+                    self._properties[key] = PropertyClass.read(self._con, graph=self._graph, property_class_iri=key)
                 except OmasErrorNotFound as err:
                     self._properties[key] = None
             else:
@@ -223,14 +223,12 @@ class ResourceClass(Model):
                 return False
 
     @staticmethod
-    def __query_shacl(con: Connection, owl_class_iri: QName) -> Attributes:
+    def __query_shacl(con: Connection, graph: NCName, owl_class_iri: QName) -> Attributes:
         context = Context(name=con.context_name)
-        graph_list = [f'FROM {graph}:shacl' for graph in context.graphs]
-        graphs = "\n".join(graph_list)
         query = context.sparql_context
         query += f"""
         SELECT ?attriri ?value
-        {graphs}
+        FROM {graph}:shacl
         WHERE {{
             BIND({owl_class_iri}Shape AS ?shape)
             ?shape ?attriri ?value
@@ -299,24 +297,23 @@ class ResourceClass(Model):
         self.__from_triplestore = True
 
     @staticmethod
-    def __query_resource_props(con: Connection, owl_class_iri: QName) -> List[Union[PropertyClass, QName]]:
+    def __query_resource_props(con: Connection, graph: NCName, owl_class_iri: QName) -> List[Union[PropertyClass, QName]]:
         """
         This method queries and returns a list of properties defined in a sh:NodeShape. The properties may be
         given "inline" as BNode or may be a reference to an external sh:PropertyShape. These external shapes will be
         read when the ResourceClass is constructed (see __init__() of ResourceClass).
 
         :param con: Connection instance
+        :param graph: Name of the graph
         :param owl_class_iri: The QName of the OWL class defining the resource. The "Shape" ending will be added
         :return: List of PropertyClasses/QNames
         """
 
         context = Context(name=con.context_name)
-        graph_list = [f'FROM {graph}:shacl' for graph in context.graphs]
-        graphs = "\n".join(graph_list)
         query = context.sparql_context
         query += f"""
         SELECT ?prop ?attriri ?value ?oo
-        {graphs}
+        FROM {graph}:shacl
         WHERE {{
             BIND({owl_class_iri}Shape AS ?shape)
             ?shape sh:property ?prop .
@@ -361,7 +358,7 @@ class ResourceClass(Model):
             if isinstance(attributes, (QName, URIRef)):
                 proplist.append(prop_iri)
             else:
-                prop = PropertyClass(con=con)
+                prop = PropertyClass(con=con, graph=graph)
                 prop.parse_shacl(attributes=attributes)
                 prop.read_owl()
                 proplist.append(prop)
@@ -413,10 +410,10 @@ class ResourceClass(Model):
             self._properties[prop[0]].prop.read_owl()
 
     @classmethod
-    def read(cls, con: Connection, owl_class_iri: QName) -> 'ResourceClass':
-        attributes = ResourceClass.__query_shacl(con, owl_class_iri=owl_class_iri)
-        properties: List[Union[PropertyClass, QName]] = ResourceClass.__query_resource_props(con=con, owl_class_iri=owl_class_iri)
-        resclass = cls(con=con, owl_class_iri=owl_class_iri, properties=properties)
+    def read(cls, con: Connection, graph: NCName, owl_class_iri: QName) -> 'ResourceClass':
+        attributes = ResourceClass.__query_shacl(con, graph=graph, owl_class_iri=owl_class_iri)
+        properties: List[Union[PropertyClass, QName]] = ResourceClass.__query_resource_props(con=con, graph=graph, owl_class_iri=owl_class_iri)
+        resclass = cls(con=con, graph=graph, owl_class_iri=owl_class_iri, properties=properties)
         for prop in properties:
             if isinstance(prop, PropertyClass):
                 prop.set_notifier(resclass.notifier, prop.property_class_iri)
@@ -499,11 +496,11 @@ class ResourceClass(Model):
         sparql = context.sparql_context
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:shacl {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
         sparql += self.__create_shacl(timestamp=timestamp)
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}}}\n'
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:onto {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
         sparql += self.__create_owl(timestamp=timestamp)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
@@ -642,6 +639,7 @@ class ResourceClass(Model):
         #
         sparql = f'#\n# Update/add dcterms:contributor\n#\n'
         sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
+                                    graph=self._graph,
                                     owlclass_iri=self._owl_class_iri,
                                     ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
                                     last_modified=self.__modified)
@@ -649,6 +647,7 @@ class ResourceClass(Model):
 
         sparql = f'#\n# Update/add dcterms:modified\n#\n'
         sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
+                                    graph=self._graph,
                                     owlclass_iri=self._owl_class_iri,
                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                     last_modified=self.__modified)
