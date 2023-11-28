@@ -483,7 +483,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         return property
 
     def property_node_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
-        blank = ''
+        blank = ' '
         sparql = f'{blank:{indent * indent_inc}}# property_node_shacl()'
         sparql += f'\n{blank:{indent * indent_inc}}sh:path {self._property_class_iri}'
         sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
@@ -582,13 +582,15 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             sparql = f'#\n# SHACL\n# Process "{prop.value}" with Action "{change.action.value}"\n#\n'
             if change.action == Action.MODIFY:
                 if PropertyClass.__datatypes[prop] == {LangString}:
-                    sparql += self._attributes[prop].update_shacl(owlclass_iri=owlclass_iri,
+                    sparql += self._attributes[prop].update_shacl(graph=self._graph,
+                                                                  owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
                                                                   prop=prop,
                                                                   modified=self.__modified,
                                                                   indent=indent, indent_inc=indent_inc)
                 elif PropertyClass.__datatypes[prop] == {PropertyRestrictions}:
-                    sparql += self._attributes[prop].update_shacl(owlclass_iri=owlclass_iri,
+                    sparql += self._attributes[prop].update_shacl(graph=self._graph,
+                                                                  owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
                                                                   modified=self.__modified,
                                                                   indent=indent, indent_inc=indent_inc)
@@ -646,7 +648,8 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql_list = []
         for prop, change in self._changeset.items():
             if prop == PropertyClassAttribute.RESTRICTIONS and change.action == Action.MODIFY:
-                sparql = self._attributes[prop].update_owl(owlclass_iri=owlclass_iri,
+                sparql = self._attributes[prop].update_owl(graph=self._graph,
+                                                           owlclass_iri=owlclass_iri,
                                                            prop_iri=self._property_class_iri,
                                                            modified=self.__modified,
                                                            indent=indent, indent_inc=indent_inc)
@@ -727,7 +730,21 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         self.__contributor = self._con.user_iri
 
     def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
+        #
+        # TODO: Test here if property is in use
+        #
+        blank = ' '
+        sparql = f'#\n# Delete {self._property_class_iri}\n#\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl{{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop ?attr ?value .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?value rdf:first ?head .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'{blank:{indent * indent_inc}}}}'
         self.__from_triplestore = False
+        pass
+
+    def delete(self, as_string: bool = False) -> None:
         pass
 
 

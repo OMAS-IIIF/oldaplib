@@ -8,7 +8,7 @@ from rdflib import Graph, Namespace, ConjunctiveGraph
 from rdflib.namespace import NamespaceManager
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, Action
+from omaslib.src.helpers.datatypes import QName, Action, NCName
 from omaslib.src.helpers.language import Language
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType, PropertyRestrictionChange
 
@@ -256,7 +256,7 @@ class TestPropertyRestriction(unittest.TestCase):
         # now apply the update to the rdflib triple store
         #
         querystr = context.sparql_context
-        querystr += r1.update_shacl(prop_iri=QName('test:test'), modified=modified)
+        querystr += r1.update_shacl(graph=NCName('test'), prop_iri=QName('test:test'), modified=modified)
         g1.update(querystr)
         expected: TurtleExpectation = {
             PropertyRestrictionType.UNIQUE_LANG: ExpectationValue(True, False),
@@ -310,7 +310,7 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r1.changeset, expected)
 
         querystr = context.sparql_context
-        querystr += r1.update_owl(prop_iri=QName('test:test'), modified=modified)
+        querystr += r1.update_owl(graph=NCName('test'), prop_iri=QName('test:test'), modified=modified)
         g1.update(querystr)
         expected = context.sparql_context
         expected += f'''test:onto {{
@@ -329,7 +329,7 @@ class TestPropertyRestriction(unittest.TestCase):
 
         r1[PropertyRestrictionType.MIN_COUNT] = 0
         querystr = context.sparql_context
-        querystr += r1.update_owl(prop_iri=QName('test:test'), modified=modified)
+        querystr += r1.update_owl(graph=NCName('test'), prop_iri=QName('test:test'), modified=modified)
         g1.update(querystr)
         expected = context.sparql_context
         expected += f'''test:onto {{

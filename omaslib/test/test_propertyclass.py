@@ -99,7 +99,7 @@ class TestPropertyClass(unittest.TestCase):
         p2.destroy()
         del p2
 
-    def test_propertyclass_write(self):
+    def test_propertyclass_create(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
             PropertyClassAttribute.DATATYPE: XsdDatatypes.anyURI,

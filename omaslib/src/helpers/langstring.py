@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Union, Set, Callable, Any
 from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
-from omaslib.src.helpers.datatypes import Action, QName
+from omaslib.src.helpers.datatypes import Action, QName, NCName
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
@@ -309,6 +309,7 @@ class LangString(Notify):
         self._changeset = {}
 
     def update_shacl(self, *,
+                     graph: NCName,
                      owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
                      prop: QName,
@@ -332,14 +333,14 @@ class LangString(Notify):
 
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:shacl {{\n'
                 sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {prop.value} ?rval .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:shacl {{\n'
                 langstr = f'"{self._langstring[lang]}"'
                 if lang != Language.XX:
                     langstr += "@" + lang.name.lower()
@@ -348,7 +349,7 @@ class LangString(Notify):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {prop_iri.prefix}:shacl {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:shacl {{\n'
             if owlclass_iri:
                 sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
                 sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
