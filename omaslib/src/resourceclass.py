@@ -526,7 +526,9 @@ class ResourceClass(Model):
                 sparql += RdfModifyRes.shacl(action=change.action,
                                              graph=self._graph,
                                              owlclass_iri=self._owl_class_iri,
-                                             ele=RdfModifyItem(str(item.value), str(change.old_value), str(self._attributes[item])),
+                                             ele=RdfModifyItem(str(item.value),
+                                                               None if change.old_value is None else str(change.old_value),
+                                                               str(self._attributes[item])),
                                              last_modified=self.__modified)
                 sparql_list.append(sparql)
             elif isinstance(item, PropertyClass):
@@ -543,7 +545,9 @@ class ResourceClass(Model):
                 sparql += RdfModifyRes.shacl(action=change.action,
                                              graph=self._graph,
                                              owlclass_iri=self._owl_class_iri,
-                                             ele=RdfModifyItem('sh:property', str(change.old_value), f'{item}Shape'),
+                                             ele=RdfModifyItem('sh:property',
+                                                               None if change.old_value is None else str(change.old_value),
+                                                               f'{item}Shape'),
                                              last_modified=self.__modified)
                 sparql_list.append(sparql)
                 # sparql = self._properties[item].update_shacl(owlclass_iri=self.owl_class_iri,

@@ -357,19 +357,21 @@ class TestResourceClass(unittest.TestCase):
         self.assertIsNone(prop2.get(PropertyClassAttribute.EXCLUSIVE_FOR))
         self.assertEqual(prop1[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
 
-    @unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection,
                                 graph=NCName('test'),
                                 owl_class_iri=QName("test:testMyRes"))
         self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 1)
         self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
-        #r1[ResourceClassAttribute.LABEL][Language.IT] = "La mia risorsa"
+        r1[ResourceClassAttribute.LABEL][Language.IT] = "La mia risorsa"
         #r1[ResourceClassAttribute.CLOSED] = False
         #r1[ResourceClassAttribute.SUBCLASS_OF] = QName('test:TopGaga')
         #r1[QName('test:hasText')][PropertyClassAttribute.NAME][Language.FR] = "Un Texte Français"
-        del r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT]
-        print(r1.update(as_string=True))
+        #del r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT]
+        #lprint(r1.update(as_string=True))
+        r1.update()
+        self.assertEqual(r1.get(ResourceClassAttribute.LABEL), LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr", "La mia risorsa@it"]))
 
 
 

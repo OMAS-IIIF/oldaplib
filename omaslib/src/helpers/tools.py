@@ -33,7 +33,10 @@ class RdfModifyRes:
         if action != Action.CREATE:
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
+            if ele.old_value is not None:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.old_value} . # NOT NONE\n'
+            else:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} ?value . # IS NONE\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -51,7 +54,10 @@ class RdfModifyRes:
         else:
             sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({owlclass_iri} as ?resource)\n'
         if action != Action.CREATE:
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
+            if ele.old_value is not None:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
+            else:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} ?value .\n'
         if ele.property != 'dcterms:modified':
             sparql += f'{blank:{(indent + 2) * indent_inc}}?resource dcterms:modified ?modified .\n'
             sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{last_modified.isoformat()}"^^xsd:dateTime)\n'
