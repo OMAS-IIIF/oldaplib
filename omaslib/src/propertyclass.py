@@ -228,6 +228,9 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     def changeset(self) -> Dict[PropertyClassAttribute, PropertyClassAttributeChange]:
         return self._changeset
 
+    def changeset_clear(self):
+        self._changeset = {}
+
     @property
     def from_triplestore(self) -> bool:
         return self.__from_triplestore

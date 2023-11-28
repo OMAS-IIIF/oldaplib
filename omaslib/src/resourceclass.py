@@ -195,11 +195,15 @@ class ResourceClass(Model):
     def __changeset_clear(self) -> None:
         for attr, change in self._changeset.items():
             if change.action == Action.MODIFY:
-                self._attributes[attr].changeset_clear()
+                if isinstance(attr, ResourceClassAttribute):
+                    self._attributes[attr].changeset_clear()
+                elif isinstance(attr, QName):
+                    self._properties[attr].changeset_clear()
+                else:
+                    raise OmasError("You should never sse this!")
         self._changeset = {}
 
     def notifier(self, what: Union[ResourceClassAttribute, QName]):
-        print('\n+++++> ResourceClass.notifier: ', what)
         self._changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
 
     @property

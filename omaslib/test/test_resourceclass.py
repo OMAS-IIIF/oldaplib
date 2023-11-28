@@ -365,14 +365,17 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 1)
         self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
         r1[ResourceClassAttribute.LABEL][Language.IT] = "La mia risorsa"
-        #r1[ResourceClassAttribute.CLOSED] = False
-        #r1[ResourceClassAttribute.SUBCLASS_OF] = QName('test:TopGaga')
-        #r1[QName('test:hasText')][PropertyClassAttribute.NAME][Language.FR] = "Un Texte Français"
-        #del r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT]
+        r1[ResourceClassAttribute.CLOSED] = False
+        r1[ResourceClassAttribute.SUBCLASS_OF] = QName('test:TopGaga')
+        r1[QName('test:hasText')][PropertyClassAttribute.NAME][Language.FR] = "Un Texte Français"
+        r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT] = 12
         #lprint(r1.update(as_string=True))
         r1.update()
         self.assertEqual(r1.get(ResourceClassAttribute.LABEL), LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr", "La mia risorsa@it"]))
-
+        self.assertFalse(r1.get(ResourceClassAttribute.CLOSED))
+        self.assertEqual(r1.get(ResourceClassAttribute.SUBCLASS_OF), QName('test:TopGaga'))
+        self.assertEqual(r1[QName('test:hasText')].get(PropertyClassAttribute.NAME), LangString(["A text", "Ein Text@de", "Un Texte Français@fr"]))
+        self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 12)
 
 
 
