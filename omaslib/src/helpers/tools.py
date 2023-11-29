@@ -28,40 +28,34 @@ class RdfModifyRes:
                               ele: RdfModifyItem,
                               last_modified: datetime,
                               indent: int = 0, indent_inc: int = 4) -> str:
-        sparql = ''
         blank = ' '
+        sparql = f'WITH {graph}\n'
         if action != Action.CREATE:
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
             if ele.old_value is not None:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.old_value} . # NOT NONE\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value} . # NOT NONE\n'
             else:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} ?value . # IS NONE\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} ?value . # IS NONE\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         if action != Action.DELETE:
             sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.new_value} .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.new_value} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
         if shacl:
-            sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({owlclass_iri}Shape as ?resource)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({owlclass_iri}Shape as ?resource)\n'
         else:
-            sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({owlclass_iri} as ?resource)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({owlclass_iri} as ?resource)\n'
         if action != Action.CREATE:
             if ele.old_value is not None:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
             else:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource {ele.property} ?value .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} ?value .\n'
         if ele.property != 'dcterms:modified':
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?resource dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{last_modified.isoformat()}"^^xsd:dateTime)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?resource dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{last_modified.isoformat()}"^^xsd:dateTime)\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 
@@ -103,41 +97,35 @@ class RdfModifyProp:
                               ele: RdfModifyItem,
                               last_modified: datetime,
                               indent: int = 0, indent_inc: int = 4) -> str:
-        sparql = ''
+        sparql = f'WITH {graph}\n'
         blank = ' '
         if action != Action.CREATE:
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {ele.property} {ele.old_value} .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} {ele.old_value} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         if action != Action.DELETE:
             sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {ele.property} {ele.new_value} .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} {ele.new_value} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
         if owlclass_iri:
             if shacl:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
             else:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?prop .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {pclass_iri} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?prop .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {pclass_iri} .\n'
         else:
             if shacl:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({pclass_iri}Shape as ?prop)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({pclass_iri}Shape as ?prop)\n'
             else:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({pclass_iri} as ?prop)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({pclass_iri} as ?prop)\n'
         if action != Action.CREATE:
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {ele.property} {ele.old_value} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} {ele.old_value} .\n'
         if ele.property != 'dcterms:modified':
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{last_modified.isoformat()}"^^xsd:dateTime)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{last_modified.isoformat()}"^^xsd:dateTime)\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 

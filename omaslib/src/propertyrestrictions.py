@@ -314,6 +314,7 @@ class PropertyRestrictions(Notify):
         sparql_list = []
         for restriction_type, change in self._changeset.items():
             sparql = f'#\n# Process "{restriction_type.value}" with Action "{change.action.value}"\n#\n'
+            sparql += f'WITH {graph}:shacl\n'
             if restriction_type == PropertyRestrictionType.LANGUAGE_IN:
                 #
                 # The SHACL property sh:languageIn is implemented as a RDF List with blank nodes having
@@ -321,10 +322,8 @@ class PropertyRestrictions(Notify):
                 # sh:languageIn is modified we delete the complete list and replace it by the new list.
                 #
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:shacl {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?z rdf:first ?head ;\n'
-                sparql += f'{blank:{(indent + 3) * indent_inc}}rdf:rest ?tail .\n'
-                sparql += f'{blank:{(indent + 1)* indent_inc}}}}\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                 if owlclass_iri:
@@ -338,36 +337,30 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:rest ?tail .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
-                sparql = ''
+                sparql = f'WITH {graph}:shacl\n'
 
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:shacl {{\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:shacl {{\n'
                 if type(self._restrictions[restriction_type]) == set:
                     newval = "(" + " ".join([f'"{x.name.lower()}"' for x in self._restrictions[restriction_type]]) + ")"
                 else:
                     newval = self._restrictions[restriction_type]
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} {newval} .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} {newval} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:shacl {{\n'
             if owlclass_iri:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop sh:path {prop_iri} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
             else:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)
@@ -407,20 +400,17 @@ class PropertyRestrictions(Notify):
                 else:
                     old_max_count = self._changeset[PropertyRestrictionType.MAX_COUNT].old_value
                 sparql += f'#\n# Process "sh:maxCount"/"sh:minCount"...\n#\n'
+                sparql += f'WITH {graph}:onto\n'
                 if old_max_count is not None and old_max_count == old_min_count:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:cardinality {old_max_count} .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:cardinality {old_max_count} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 else:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:onto {{\n'
                     if old_min_count is not None:
                         sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:minCardinality {old_min_count} .\n'
                     if old_max_count is not None:
                         sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:maxCardinality {old_max_count} .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 # we have now removed all cardinality information
                 new_max_count: Union[int, None]
@@ -435,41 +425,36 @@ class PropertyRestrictions(Notify):
                     new_max_count = self._restrictions[PropertyRestrictionType.MAX_COUNT]
                 if new_max_count is not None and new_max_count == new_min_count:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:cardinality {new_max_count} .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:cardinality {new_max_count} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 else:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:onto {{\n'
                     if new_max_count is not None:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:maxCardinality {new_max_count} .\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:maxCardinality {new_max_count} .\n'
                     if new_min_count is not None and new_min_count > 0:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:minCardinality {new_min_count} .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:minCardinality {new_min_count} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:onto {{\n'
                 if owlclass_iri:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?prop .\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:onProperty {prop_iri} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?prop .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:onProperty {prop_iri} .\n'
                 else:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({prop_iri} as ?prop)\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
             minmax_done = True
         return sparql
 
     def delete_shacl(self, *,
+                     graph: NCName,
                      owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
                      restriction_type: PropertyRestrictionType,
                      indent: int = 0, indent_inc: int = 4) -> str:
         # TODO: Include into unittest!
         blank = ''
-        sparql = ''
+        sparql = f'WITH {graph}:shacl\n'
         if restriction_type == PropertyRestrictionType.LANGUAGE_IN:
             sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}?z rdf:first ?head ;\n'

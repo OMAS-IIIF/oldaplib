@@ -593,48 +593,40 @@ class ResourceClass(Model):
                 #
                 if item == ResourceClassAttribute.SUBCLASS_OF:
                     sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
+                    sparql += f'WITH {self._graph}:onto\n'
                     if change.action != Action.CREATE:
                         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:onto {{\n'
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop rdf:subClassOf {change.old_value} .\n'
-                        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop rdf:subClassOf {change.old_value} .\n'
                         sparql += f'{blank:{indent * indent_inc}}}}\n'
                     if change.action != Action.DELETE:
                         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:onto {{\n'
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop rdf:subClassOf {self._attributes[item]} .\n'
-                        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop rdf:subClassOf {self._attributes[item]} .\n'
                         sparql += f'{blank:{indent * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.owl_class_iri.prefix}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self.owl_class_iri}Shape as ?prop)\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri}Shape as ?prop)\n'
                     if change.action != Action.CREATE:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?res rdf:subClassOf {change.old_value} .\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?res dcterms:modified ?modified .\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{timestamp.isoformat()}"^^xsd:dateTime)\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?res rdf:subClassOf {change.old_value} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{timestamp.isoformat()}"^^xsd:dateTime)\n'
                     sparql += f'{blank:{indent * indent_inc}}}}'
                     sparql_list.append(sparql)
             elif isinstance(item, QName):
                 sparql = f'#\n# Processing QName (reference to property): {item} for OWL\n#\n'
+                sparql += f'WITH {self._graph}:onto\n'
                 if change.action != Action.CREATE:
                     pass
                 if change.action != Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:onto {{\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}?resource rdf:subClassOf _:bnode .\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}_:bnode a owl:Restriction ;\n'
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}owl:onProperty {item} ;\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?resource rdf:subClassOf _:bnode .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}_:bnode a owl:Restriction ;\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {item} ;\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._owl_class_iri.prefix}:onto {{\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}BIND({self.owl_class_iri}Shape as ?resource)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri}Shape as ?resource)\n'
                 #if change.action != Action.CREATE:
                 #    sparql += f'{blank:{(indent + 2) * indent_inc}}?resource rdf:subClassOf {change.old_value} .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?modified = "{timestamp.isoformat()}"^^xsd:dateTime)\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource dcterms:modified ?modified .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{timestamp.isoformat()}"^^xsd:dateTime)\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
             else:

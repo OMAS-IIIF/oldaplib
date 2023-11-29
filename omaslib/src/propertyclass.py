@@ -733,13 +733,21 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         #
         # TODO: Test here if property is in use
         #
+        # DELETE WHERE {
+        #    :specialShape ?property ?value .
+        #    OPTIONAL {
+        #        ?value rdf:rest*/rdf:first ?listItem .
+        #    }
+        # };
+
         blank = ' '
-        sparql = f'#\n# Delete {self._property_class_iri}\n#\n'
-        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl{{\n'
+        sparql = f'#\n# Delete {self._property_class_iri} from shacl\n#\n'
+        sparql += f'GRAPH {self._graph}:shacl\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE WHERE{{\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}?prop ?attr ?value .\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}?value rdf:first ?head .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}?value rdf:rest*/rdf:first ?lang'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}}}'
         sparql += f'{blank:{indent * indent_inc}}}}'
         self.__from_triplestore = False
         pass
