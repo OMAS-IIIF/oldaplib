@@ -19,6 +19,7 @@
         sh:description "This is a test property"@de ;
         sh:datatype xsd:string ;
         sh:uniqueLang true ;
+        sh:languageIn ("de" "fr" "en") ;
         sh:maxCount 1 ;
         sh:order 2 ;
         dcterms:hasVersion "1.0.0" ;

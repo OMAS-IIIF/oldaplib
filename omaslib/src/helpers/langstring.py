@@ -312,7 +312,7 @@ class LangString(Notify):
                      graph: NCName,
                      owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
-                     prop: QName,
+                     attr: QName,
                      modified: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         """
@@ -321,19 +321,19 @@ class LangString(Notify):
         :param modified: las modification date as datetime instance
         :param owlclass_iri: If the langstring is used within a property within a resource class
         :param prop_iri: The IRI (name) of the PropertyClass
-        :param prop: The prop of the PropertyClass
+        :param attr: The prop of the PropertyClass
         :param indent: Indent for formatting
         :param indent_inc: Indent increment
         :return: String with the SPARQL fragment
         """
-        blank = ''
+        blank = ' '
         sparql_list = []
         for lang, change in self._changeset.items():
-            sparql = f'# Process "{lang.value}" with Action "{change.action.value}"\n'
+            sparql = f'# LangString: Process "{lang.value}" with Action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {prop.value} ?rval .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} ?rval .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             if change.action != Action.DELETE:
@@ -341,7 +341,7 @@ class LangString(Notify):
                 langstr = f'"{self._langstring[lang]}"'
                 if lang != Language.XX:
                     langstr += "@" + lang.name.lower()
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {prop.value} {langstr} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {langstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
@@ -351,13 +351,36 @@ class LangString(Notify):
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
             oval = change.old_value if change.old_value else "?val"
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {prop.value} {oval} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {oval} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)
         return sparql
+
+    def delete_shacl(self, *,
+                     graph: NCName,
+                     owlclass_iri: Optional[QName] = None,
+                     prop_iri: QName,
+                     attr: QName,
+                     modified: datetime,
+                     indent: int = 0, indent_inc: int = 4
+                     ):
+        blank = ' '
+        sparql = f'#\n# Deleting the complete LangString data for {prop_iri} {attr}\n#\n'
+        sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr} ?langval'
+        sparql += f'{blank:{indent * indent_inc}}}}'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{'
+        if owlclass_iri:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
+        else:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr} ?langval'
+        sparql += f'{blank:{indent * indent_inc}}}}'
 
 
 if __name__ == '__main__':

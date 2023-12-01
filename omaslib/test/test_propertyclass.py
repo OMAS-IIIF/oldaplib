@@ -260,5 +260,42 @@ class TestPropertyClass(unittest.TestCase):
         p2.destroy()
         del p2
 
+    def test_propertyclass_delete(self):
+        props: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.anyURI,
+            PropertyClassAttribute.NAME: LangString("Annotations@en" "Annotationen@de"),
+            PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
+                PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
+                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.MAX_COUNT: 1,
+                PropertyRestrictionType.MIN_COUNT: 0
+            }),
+            PropertyClassAttribute.ORDER: 11
+        }
+        p1 = PropertyClass(
+            con=self._connection,
+            graph=NCName('test'),
+            property_class_iri=QName('test:testDelete'),
+            attrs=props
+        )
+        p1.create()
+        del p1[PropertyClassAttribute.NAME]
+        del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT]
+        del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG]
+        p1.update()
+
+        p1.destroy()
+        del p1
+
+        p2 = PropertyClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                property_class_iri=QName('test:testDelete'))
+        self.assertIsNone(p2.get(PropertyClassAttribute.NAME))
+        self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT))
+        self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.UNIQUE_LANG))
+
+
 if __name__ == '__main__':
     unittest.main()

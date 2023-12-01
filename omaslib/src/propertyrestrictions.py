@@ -382,7 +382,7 @@ class PropertyRestrictions(Notify):
         :param indent_inc:
         :return:
         """
-        blank = ''
+        blank = ' '
         minmax_done = False
         sparql = ''
         for restriction_type, change in self._changeset.items():
