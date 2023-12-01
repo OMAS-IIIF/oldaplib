@@ -264,10 +264,10 @@ class TestPropertyClass(unittest.TestCase):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
             PropertyClassAttribute.DATATYPE: XsdDatatypes.anyURI,
-            PropertyClassAttribute.NAME: LangString("Annotations@en" "Annotationen@de"),
+            PropertyClassAttribute.NAME: LangString(["Annotations@en", "Annotationen@de"]),
             PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
-                PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
+                PropertyRestrictionType.LANGUAGE_IN: {Language.ZU, Language.CY, Language.SV, Language.RM},
                 PropertyRestrictionType.UNIQUE_LANG: True,
                 PropertyRestrictionType.MAX_COUNT: 1,
                 PropertyRestrictionType.MIN_COUNT: 0
@@ -284,6 +284,7 @@ class TestPropertyClass(unittest.TestCase):
         del p1[PropertyClassAttribute.NAME]
         del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT]
         del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG]
+        del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN]
         p1.update()
 
         p1.destroy()
@@ -295,6 +296,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p2.get(PropertyClassAttribute.NAME))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.UNIQUE_LANG))
+        self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.LANGUAGE_IN))
 
 
 if __name__ == '__main__':
