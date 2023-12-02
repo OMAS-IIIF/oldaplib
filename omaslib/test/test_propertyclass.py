@@ -293,10 +293,19 @@ class TestPropertyClass(unittest.TestCase):
         p2 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
                                 property_class_iri=QName('test:testDelete'))
+        self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MIN_COUNT), 0)
         self.assertIsNone(p2.get(PropertyClassAttribute.NAME))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.UNIQUE_LANG))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.LANGUAGE_IN))
+        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
+        self.assertEqual(len(res), 0)
+        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
+        self.assertEqual(len(res), 0)
+        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
+        self.assertEqual(len(res), 0)
+        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
+        self.assertEqual(len(res), 0)
 
 
 if __name__ == '__main__':

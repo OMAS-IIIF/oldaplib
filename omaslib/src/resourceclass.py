@@ -520,10 +520,11 @@ class ResourceClass(Model):
     def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._changeset:
             return ''
-        blank = ''
+        blank = ' '
         sparql_list = []
 
         for item, change in self._changeset.items():
+            print("\n**********>>>>>", item, change)
             if isinstance(item, ResourceClassAttribute):
                 sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
 
@@ -536,28 +537,28 @@ class ResourceClass(Model):
                                              last_modified=self.__modified)
                 sparql_list.append(sparql)
             elif isinstance(item, PropertyClass):
+                sparql = f'#\n# ======> {item}\n#\n'
                 pass
             elif isinstance(item, QName):
                 if self._properties.get(item) is not None:
+
                     if change.action == Action.CREATE:
                         try:
                             self._properties[item].create()
                         except OmasErrorAlreadyExists as err:
                             pass
 
-                sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
-                sparql += RdfModifyRes.shacl(action=change.action,
-                                             graph=self._graph,
-                                             owlclass_iri=self._owl_class_iri,
-                                             ele=RdfModifyItem('sh:property',
-                                                               None if change.old_value is None else str(change.old_value),
-                                                               f'{item}Shape'),
-                                             last_modified=self.__modified)
-                sparql_list.append(sparql)
-                # sparql = self._properties[item].update_shacl(owlclass_iri=self.owl_class_iri,
-                #                                              timestamp=timestamp,
-                #                                              indent=indent, indent_inc=indent_inc)
-                # sparql_list.append(sparql)
+                        sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
+                        sparql += RdfModifyRes.shacl(action=change.action,
+                                                     graph=self._graph,
+                                                     owlclass_iri=self._owl_class_iri,
+                                                     ele=RdfModifyItem('sh:property',
+                                                                       None if change.old_value is None else str(change.old_value),
+                                                                       f'{item}Shape'),
+                                                     last_modified=self.__modified)
+                        sparql_list.append(sparql)
+                    elif change.action == Action.MODIFY:
+                        print("\nMODIFY MODIFY MODIFY MODIFY MODIFY MODIFY MODIFY MODIFY MODIFY \n")
 
         #
         # Updating the timestamp and contributor ID

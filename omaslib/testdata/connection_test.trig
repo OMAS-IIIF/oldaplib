@@ -64,6 +64,7 @@
                 dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
+                sh:languageIn ("de" "en") ;
                 sh:maxCount 1 ;
                 sh:minCount 1 ;
                 sh:name "A text", "Ein Text"@de ;
