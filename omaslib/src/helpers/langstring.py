@@ -329,11 +329,11 @@ class LangString(Notify):
         blank = ' '
         sparql_list = []
         for lang, change in self._changeset.items():
-            sparql = f'# LangString: Process "{lang.value}" with Action "{change.action.value}"\n'
+            sparql = f'# LangString: Process "{lang.name}" with Action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} ?rval .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {change.old_value} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             if change.action != Action.DELETE:
@@ -350,8 +350,8 @@ class LangString(Notify):
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
-            oval = change.old_value if change.old_value else "?val"
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {oval} .\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {change.old_value} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
             sparql += f'{blank:{indent * indent_inc}}}}'

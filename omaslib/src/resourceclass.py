@@ -426,13 +426,13 @@ class ResourceClass(Model):
         return resclass
 
     def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
-        blank = ''
+        blank = ' '
         sparql = ''
         for iri, p in self._properties.items():
             if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is None and not p.from_triplestore:
-                sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape'
-                sparql += ' ;\n'
-                sparql += p.property_node_shacl(timestamp, 3) + " .\n"
+                #sparql += p.create_shacl(timestamp=timestamp)
+                sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape ;\n'
+                sparql += p.property_node_shacl(timestamp=timestamp, indent=3) + " .\n"
                 sparql += "\n"
 
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri}Shape a sh:NodeShape, {self._owl_class_iri}'
@@ -464,7 +464,7 @@ class ResourceClass(Model):
             if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
                 sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}sh:property'
                 sparql += f'\n{blank:{(indent + 4)*indent_inc}}[\n'
-                sparql += p.property_node_shacl(timestamp, 5)
+                sparql += p.property_node_shacl(timestamp=timestamp, indent=5)
                 sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}]'
             else:
                 sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}sh:property {iri}Shape'
@@ -524,7 +524,6 @@ class ResourceClass(Model):
         sparql_list = []
 
         for item, change in self._changeset.items():
-            print("\n**********>>>>>", item, change)
             if isinstance(item, ResourceClassAttribute):
                 sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
 
@@ -537,17 +536,14 @@ class ResourceClass(Model):
                                              last_modified=self.__modified)
                 sparql_list.append(sparql)
             elif isinstance(item, PropertyClass):
-                sparql = f'#\n# ======> {item}\n#\n'
                 pass
             elif isinstance(item, QName):
-                if self._properties.get(item) is not None:
-
-                    if change.action == Action.CREATE:
-                        try:
-                            self._properties[item].create()
-                        except OmasErrorAlreadyExists as err:
-                            pass
-
+                if change.action == Action.CREATE:
+                    if self._properties[item].from_triplestore:
+                        #
+                        # this property is already defined as standalone, and we already read it at
+                        # the time of the assignment. We just have to add the property clause
+                        #
                         sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
                         sparql += RdfModifyRes.shacl(action=change.action,
                                                      graph=self._graph,
@@ -557,8 +553,25 @@ class ResourceClass(Model):
                                                                        f'{item}Shape'),
                                                      last_modified=self.__modified)
                         sparql_list.append(sparql)
-                    elif change.action == Action.MODIFY:
-                        print("\nMODIFY MODIFY MODIFY MODIFY MODIFY MODIFY MODIFY MODIFY MODIFY \n")
+                    else:
+                        #
+                        # this property does not exist in triple store -> create it
+                        #
+                        self._properties[item].create()
+                        if self._properties[item].get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
+                            sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
+                            sparql += RdfModifyRes.shacl(action=change.action,
+                                                         graph=self._graph,
+                                                         owlclass_iri=self._owl_class_iri,
+                                                         ele=RdfModifyItem('sh:property',
+                                                                           None if change.old_value is None else str(change.old_value),
+                                                                           f'{item}Shape'),
+                                                         last_modified=self.__modified)
+                            sparql_list.append(sparql)
+
+
+                elif change.action == Action.MODIFY:
+                    self._properties[item].update()
 
         #
         # Updating the timestamp and contributor ID

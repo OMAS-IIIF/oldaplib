@@ -371,24 +371,23 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE})
         r1[ResourceClassAttribute.LABEL][Language.IT] = "La mia risorsa"
         r1[ResourceClassAttribute.CLOSED] = False
-        #r1[ResourceClassAttribute.SUBCLASS_OF] = QName('test:TopGaga')
+        r1[ResourceClassAttribute.SUBCLASS_OF] = QName('test:TopGaga')
         r1[QName('test:hasText')][PropertyClassAttribute.NAME][Language.FR] = "Un Texte Français"
-        #r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT] = 12
-        #r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN] = {Language.DE, Language.FR, Language.IT}
-        print(r1.update(as_string=True))
-        #r1.update()
+        r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT] = 12
+        r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN] = {Language.DE, Language.FR, Language.IT}
+        r1.update()
 
         del r1
 
         r2 = ResourceClass.read(con=self._connection,
                                 graph=NCName('test'),
                                 owl_class_iri=QName("test:testMyRes"))
-        #self.assertEqual(r2.get(ResourceClassAttribute.LABEL), LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr", "La mia risorsa@it"]))
-        #self.assertFalse(r2.get(ResourceClassAttribute.CLOSED))
-        #self.assertEqual(r2.get(ResourceClassAttribute.SUBCLASS_OF), QName('test:TopGaga'))
-        #self.assertEqual(r2[QName('test:hasText')].get(PropertyClassAttribute.NAME), LangString(["A text", "Ein Text@de", "Un Texte Français@fr"]))
-        #self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 12)
-        #self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.DE, Language.FR, Language.IT})
+        self.assertEqual(r2.get(ResourceClassAttribute.LABEL), LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr", "La mia risorsa@it"]))
+        self.assertFalse(r2.get(ResourceClassAttribute.CLOSED))
+        self.assertEqual(r2.get(ResourceClassAttribute.SUBCLASS_OF), QName('test:TopGaga'))
+        self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.NAME], LangString(["A text", "Ein Text@de", "Un Texte Français@fr"]))
+        self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 12)
+        self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.DE, Language.FR, Language.IT})
 
 
 
