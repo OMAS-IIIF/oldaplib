@@ -759,35 +759,111 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             self._con.update_query(sparql)
         return sparql
 
-
-    def delete_shacl(self, indent: int = 0, indent_inc: int = 4) -> None:
+    def delete_shacl(self, *,
+                     owlclass_iri: Optional[QName] = None,
+                     indent: int = 0, indent_inc: int = 4) -> str:
         #
         # TODO: Test here if property is in use
         #
-        # DELETE WHERE {
-        #    :specialShape ?property ?value .
-        #    OPTIONAL {
-        #        ?value rdf:rest*/rdf:first ?listItem .
-        #    }
-        # };
-
         blank = ' '
+        sparql_list = []
         sparql = f'#\n# Delete {self._property_class_iri} from shacl\n#\n'
+        #
+        # First we delete all list (sh:languageIn restrictions) if existing
+        #
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql += f'{blank:{indent * indent_inc}}WHERE{{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop ?attr ?value .\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}?value rdf:rest*/rdf:first ?lang'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}}}'
-        sparql += f'{blank:{indent * indent_inc}}}}'
-        self.__from_triplestore = False
-        pass
+        if owlclass_iri is not None:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self._property_class_iri} .\n'
+        else:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:languageIn ?list .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?list rdf:rest* ?z .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{indent * indent_inc}}}} ;\n'
+        sparql_list.append(sparql)
 
-    def delete(self, as_string: bool = False) -> None:
-        pass
+        sparql = ''
+        #
+        # Now we delete the remaining triples
+        #
+        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE{{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop ?p ?v\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE{{\n'
+        if owlclass_iri is not None:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} sh:property ?propnode .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self._property_class_iri} .\n'
+        else:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql_list.append(sparql)
+
+        sparql = " ;\n".join(sparql_list)
+        return sparql
+
+    def delete_owl(self, *,
+                   owlclass_iri: Optional[QName] = None,
+                   indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ' '
+        sparql_list = []
+        sparql = f'#\n# Delete {self._property_class_iri} from onto\n#\n'
+        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        sparql += f'{blank:{indent * indent_inc}}BIND({self._property_class_iri} as ?propnode)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{indent * indent_inc}}}}'
+        sparql_list.append(sparql)
+
+        if owlclass_iri is not None:
+            sparql += ''
+            sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
+            sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdf:subClassOf ?propnode .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+
+        sparql = " ;\n".join(sparql_list)
+        return sparql
+
+    def delete(self, do_update: bool = True) -> str:
+        timestamp = datetime.now()
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+
+        sparql += self.delete_shacl()
+        sparql += ' ;\n'
+        sparql += self.delete_owl()
+
+        self.__from_triplestore = False
+        if do_update:
+            self._con.update_query(sparql)
+        return sparql
 
 
 if __name__ == '__main__':
