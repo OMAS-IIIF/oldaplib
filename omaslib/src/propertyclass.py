@@ -788,14 +788,14 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
-        sparql += f'{blank:{indent * indent_inc}}}} ;\n'
+        sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
         sparql = ''
         #
         # Now we delete the remaining triples
         #
-        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}\n'
+        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE{{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop ?p ?v\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -805,10 +805,10 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self._property_class_iri} .\n'
         else:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
@@ -826,7 +826,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{indent * indent_inc}}BIND({self._property_class_iri} as ?propnode)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
@@ -851,7 +851,6 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         return sparql
 
     def delete(self, do_update: bool = True) -> str:
-        timestamp = datetime.now()
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context

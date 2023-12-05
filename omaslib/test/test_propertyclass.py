@@ -260,7 +260,7 @@ class TestPropertyClass(unittest.TestCase):
         p2.destroy()
         del p2
 
-    def test_propertyclass_delete(self):
+    def test_propertyclass_delete_attrs(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
             PropertyClassAttribute.DATATYPE: XsdDatatypes.anyURI,
@@ -298,6 +298,50 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.UNIQUE_LANG))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.LANGUAGE_IN))
+        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
+        self.assertEqual(len(res), 0)
+        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
+        self.assertEqual(len(res), 0)
+        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
+        self.assertEqual(len(res), 0)
+        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
+        self.assertEqual(len(res), 0)
+
+    def test_propertyclass_delete(self):
+        props: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.anyURI,
+            PropertyClassAttribute.NAME: LangString(["Annotations@en", "Annotationen@de"]),
+            PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
+                PropertyRestrictionType.LANGUAGE_IN: {Language.ZU, Language.CY, Language.SV, Language.RM},
+                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.MAX_COUNT: 1,
+                PropertyRestrictionType.MIN_COUNT: 0
+            }),
+            PropertyClassAttribute.ORDER: 11
+        }
+        p1 = PropertyClass(
+            con=self._connection,
+            graph=NCName('test'),
+            property_class_iri=QName('test:testDeleteIt'),
+            attrs=props
+        )
+        p1.create()
+
+        p1.destroy()
+        del p1
+
+        p2 = PropertyClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                property_class_iri=QName('test:testDeleteIt'))
+        p2.delete()
+        p2.destroy()
+        del p2
+        sparql = self._context.sparql_context
+        sparql += 'SELECT ?p ?o WHERE { test:testDeleteIt ?p ?o }'
+        res = self._connection.rdflib_query(sparql)
+        self.assertEqual(len(res), 0)
         res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
         self.assertEqual(len(res), 0)
         res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
