@@ -9,7 +9,7 @@ from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErro
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.tools import RdfModifyProp, RdfModifyRes, RdfModifyItem
+from omaslib.src.helpers.tools import RdfModifyProp, RdfModifyRes, RdfModifyItem, lprint
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.datatypes import QName, Action, AnyIRI, NCName
 from omaslib.src.helpers.langstring import Language, LangString
@@ -32,14 +32,21 @@ class ResourceClassAttributeChange:
     action: Action
     test_in_use: bool
 
+@dataclass
+class ResourceClassPropertyChange:
+    old_value: Union[PropertyClass, QName, None]
+    action: Action
+    test_in_use: bool
+
 
 @strict
 class ResourceClass(Model):
     _graph: NCName
-    _owl_class_iri: Union[QName, None]
+    _owlclass_iri: Union[QName, None]
     _attributes: ResourceClassAttributesContainer
-    _properties: Dict[QName, Union[PropertyClass, QName]]
-    _changeset: Dict[Union[ResourceClassAttribute, QName], ResourceClassAttributeChange]
+    _properties: Dict[QName, PropertyClass]
+    _attr_changeset: Dict[ResourceClassAttribute, ResourceClassAttributeChange]
+    _prop_changeset: Dict[QName, ResourceClassPropertyChange]
     __creator: Optional[QName]
     __created: Optional[datetime]
     __contributor: Optional[QName]
@@ -62,10 +69,10 @@ class ResourceClass(Model):
                  properties: Optional[List[Union[PropertyClass, QName]]] = None):
         super().__init__(con)
         self._graph = graph
-        self._owl_class_iri = owl_class_iri
-        self.__creator = None
+        self._owlclass_iri = owl_class_iri
+        self.__creator = con.user_iri
         self.__created = None
-        self.__contributor = None
+        self.__contributor = con.user_iri
         self.__modified = None
         self.__version = SemanticVersion()
         self._attributes = {}
@@ -91,21 +98,22 @@ class ResourceClass(Model):
                     newprop = prop
                 self._properties[newprop.property_class_iri] = newprop
                 newprop.set_notifier(self.notifier, newprop.property_class_iri)
-        self._changeset = {}
+        self._attr_changeset = {}
+        self._prop_changeset = {}
         self.__from_triplestore = False
 
     def __getitem__(self, key: Union[ResourceClassAttribute, QName]) -> Union[AttributeTypes, PropertyClass, QName]:
-        if type(key) is ResourceClassAttribute:
+        if isinstance(key, ResourceClassAttribute):
             return self._attributes[key]
-        elif type(key) is QName:
+        elif isinstance(key, QName):
             return self._properties[key]
         else:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
 
     def get(self, key: Union[ResourceClassAttribute, QName]) -> Union[AttributeTypes, PropertyClass, QName, None]:
-        if type(key) is ResourceClassAttribute:
+        if isinstance(key, ResourceClassAttribute):
             return self._attributes.get(key)
-        elif type(key) is QName:
+        elif isinstance(key, QName):
             return self._attributes.get(key)
         else:
             return None
@@ -115,43 +123,57 @@ class ResourceClass(Model):
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, key)
-        if type(key) is ResourceClassAttribute:
+        if isinstance(key, ResourceClassAttribute):
             if self._attributes.get(key) is None:  # Attribute not yet set
-                if self._changeset.get(key) is None:  # Only first change is recorded
-                    self._changeset[key] = ResourceClassAttributeChange(None, Action.CREATE, False)  # TODO: Check if "check_in_use" must be set
+                self._attr_changeset[key] = ResourceClassAttributeChange(None, Action.CREATE, False)  # TODO: Check if "check_in_use" must be set
             else:
-                if self._changeset.get(key) is None:  # Only first change is recorded
-                    self._changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
+                if self._attr_changeset.get(key) is None:  # Only first change is recorded
+                    self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
+                else:
+                    self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
             self._attributes[key] = value
         elif isinstance(key, QName):  # QName
-            if self._properties.get(key) is None:  # Property not set
-                if self._changeset.get(key) is None:
-                    self._changeset[key] = ResourceClassAttributeChange(None, Action.CREATE, False)
-            else:
-                if self._changeset.get(key) is None:
-                    self._changeset[key] = ResourceClassAttributeChange(self._properties[key], Action.REPLACE, False)
-            if self._properties.get(key) is None:
-                try:
-                    self._properties[key] = PropertyClass.read(self._con, graph=self._graph, property_class_iri=key)
-                except OmasErrorNotFound as err:
-                    self._properties[key] = None
-            else:
-                self._properties[key] = value
+            if self._properties.get(key) is None:  # Property not set -> CREATE action
+                self._prop_changeset[key] = ResourceClassPropertyChange(None, Action.CREATE, False)
+                if value is None:
+                    try:
+                        self._properties[key] = PropertyClass.read(self._con, graph=self._graph, property_class_iri=key)
+                    except OmasErrorNotFound as err:
+                        self._properties[key] = key
+                else:
+                    self._properties[key] = value
+            else:  # REPLACE action
+                if self._prop_changeset.get(key) is None:
+                    self._prop_changeset[key] = ResourceClassPropertyChange(self._properties[key], Action.REPLACE, True)
+                else:
+                    self._prop_changeset[key] = ResourceClassPropertyChange(self._prop_changeset[key].old_value, Action.REPLACE, True)
+                if value is None:
+                    try:
+                        self._properties[key] = PropertyClass.read(self._con, graph=self._graph, property_class_iri=key)
+                    except OmasErrorNotFound as err:
+                        self._properties[key] = key
+                else:
+                    self._properties[key] = value
 
     def __delitem__(self, key: Union[ResourceClassAttribute, QName]) -> None:
-        if type(key) not in {ResourceClassAttribute, PropertyClass, QName}:
+        if type(key) not in {ResourceClassAttribute, QName}:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
-        if self._changeset.get(key) is None:
-            self._changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
-        del self._attributes[key]
+        if isinstance(key, ResourceClassAttribute):
+            if self._attr_changeset.get(key) is None:
+                self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
+            else:
+                self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.DELETE, False)
+            del self._attributes[key]
+        elif isinstance(key, QName):
+            if self._prop_changeset.get(key) is None:
+                self._prop_changeset[key] = ResourceClassPropertyChange(self._properties[key], Action.DELETE, False)
+            else:
+                self._prop_changeset[key] = ResourceClassPropertyChange(self._prop_changeset[key].old_value, Action.DELETE, False)
+            del self._properties[key]
 
     @property
     def owl_class_iri(self) -> QName:
-        return self._owl_class_iri
-
-    @property
-    def owl_class_iri(self) -> QName:
-        return self._owl_class_iri
+        return self._owlclass_iri
 
     @property
     def version(self) -> SemanticVersion:
@@ -182,7 +204,7 @@ class ResourceClass(Model):
     def __str__(self):
         blank = ' '
         indent = 2
-        s = f'Shape: {self._owl_class_iri}Shape\n'
+        s = f'Shape: {self._owlclass_iri}Shape\n'
         s += f'{blank:{indent*1}}Attributes:\n'
         for attr, value in self._attributes.items():
             s += f'{blank:{indent*2}}{attr.value} = {value}\n'
@@ -193,18 +215,20 @@ class ResourceClass(Model):
         return s
 
     def __changeset_clear(self) -> None:
-        for attr, change in self._changeset.items():
+        for attr, change in self._attr_changeset.items():
             if change.action == Action.MODIFY:
-                if isinstance(attr, ResourceClassAttribute):
-                    self._attributes[attr].changeset_clear()
-                elif isinstance(attr, QName):
-                    self._properties[attr].changeset_clear()
-                else:
-                    raise OmasError("You should never sse this!")
-        self._changeset = {}
+                self._attributes[attr].changeset_clear()
+        self._attr_changeset = {}
+        for prop, change in self._prop_changeset.items():
+            if change.action == Action.MODIFY:
+                self._properties[attr].changeset_clear()
+        self._prop_changeset = {}
 
     def notifier(self, what: Union[ResourceClassAttribute, QName]):
-        self._changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
+        if isinstance(what, ResourceClassAttribute):
+            self._attr_changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
+        elif isinstance(what, QName):
+            self._prop_changeset[what] = ResourceClassPropertyChange(None, Action.MODIFY, True)
 
     @property
     def in_use(self) -> bool:
@@ -213,8 +237,8 @@ class ResourceClass(Model):
         query += f"""
         SELECT (COUNT(?resinstances) as ?nresinstances)
         WHERE {{
-            ?resinstance rdf:type {self._owl_class_iri} .
-            FILTER(?resinstances != {self._owl_class_iri}Shape)
+            ?resinstance rdf:type {self._owlclass_iri} .
+            FILTER(?resinstances != {self._owlclass_iri}Shape)
         }} LIMIT 2
         """
         res = self._con.rdflib_query(query)
@@ -374,7 +398,7 @@ class ResourceClass(Model):
         query1 = context.sparql_context
         query1 += f"""
         SELECT ?prop ?p ?o
-        FROM {self._owl_class_iri.prefix}:onto
+        FROM {self._owlclass_iri.prefix}:onto
         WHERE {{
    	        omas:OmasProject rdfs:subClassOf ?prop .
             ?prop ?p ?o .
@@ -426,7 +450,7 @@ class ResourceClass(Model):
         return resclass
 
     def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
-        blank = ' '
+        blank = ''
         sparql = ''
         for iri, p in self._properties.items():
             if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is None and not p.from_triplestore:
@@ -435,18 +459,15 @@ class ResourceClass(Model):
                 sparql += p.property_node_shacl(timestamp=timestamp, indent=3) + " .\n"
                 sparql += "\n"
 
-        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri}Shape a sh:NodeShape, {self._owl_class_iri}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self._owl_class_iri}'
-        if self.__version is not None:
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{self.__version}"'
-        if self.__created is not None:
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{self.__created}"^^xsd:dateTime'
-        if self.__creator is not None:
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator}'
-        if self.__modified is not None:
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{self.__modified}"^^xsd:dateTime'
-        if self.__contributor is not None:
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor}'
+        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self._owlclass_iri}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{self.__version}"'
+        self.__created = timestamp
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator}'
+        self.__modified = timestamp
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor}'
         for attr, value in self._attributes.items():
             if attr == ResourceClassAttribute.SUBCLASS_OF:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value} {value}Shape'
@@ -476,7 +497,7 @@ class ResourceClass(Model):
         for iri, p in self._properties.items():
             if not p.from_triplestore:
                 sparql += p.create_owl_part1(timestamp, indent + 2) + '\n'
-        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owl_class_iri} rdf:type owl:Class ;\n'
+        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owlclass_iri} rdf:type owl:Class ;\n'
         if self._attributes.get(ResourceClassAttribute.SUBCLASS_OF) is not None:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._attributes[ResourceClassAttribute.SUBCLASS_OF]} ,\n'
         else:
@@ -493,7 +514,7 @@ class ResourceClass(Model):
 
     def create(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
         if self.__from_triplestore:
-            raise OmasErrorAlreadyExists(f'Cannot create property that was read from triplestore before (property: {self._owl_class_iri}')
+            raise OmasErrorAlreadyExists(f'Cannot create property that was read from triplestore before (property: {self._owlclass_iri}')
         timestamp = datetime.now()
         blank = ''
         context = Context(name=self._con.context_name)
@@ -520,58 +541,77 @@ class ResourceClass(Model):
     def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._changeset:
             return ''
-        blank = ' '
+        blank = ''
         sparql_list = []
 
-        for item, change in self._changeset.items():
-            if isinstance(item, ResourceClassAttribute):
-                sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
+        for item, change in self._attr_changeset.items():
+            sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
 
+            sparql += RdfModifyRes.shacl(action=change.action,
+                                         graph=self._graph,
+                                         owlclass_iri=self._owlclass_iri,
+                                         ele=RdfModifyItem(str(item.value),
+                                                           None if change.old_value is None else str(change.old_value),
+                                                           str(self._attributes[item])),
+                                         last_modified=self.__modified)
+            sparql_list.append(sparql)
+
+        for prop, change in self._prop_changeset.items():
+            if change.action == Action.CREATE:
+                sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
                 sparql += RdfModifyRes.shacl(action=change.action,
                                              graph=self._graph,
-                                             owlclass_iri=self._owl_class_iri,
-                                             ele=RdfModifyItem(str(item.value),
+                                             owlclass_iri=self._owlclass_iri,
+                                             ele=RdfModifyItem('sh:property',
                                                                None if change.old_value is None else str(change.old_value),
-                                                               str(self._attributes[item])),
+                                                               f'{prop}Shape'),
                                              last_modified=self.__modified)
                 sparql_list.append(sparql)
-            elif isinstance(item, PropertyClass):
-                pass
-            elif isinstance(item, QName):
-                if change.action == Action.CREATE:
-                    if self._properties[item].from_triplestore:
-                        #
-                        # this property is already defined as standalone, and we already read it at
-                        # the time of the assignment. We just have to add the property clause
-                        #
-                        sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
-                        sparql += RdfModifyRes.shacl(action=change.action,
-                                                     graph=self._graph,
-                                                     owlclass_iri=self._owl_class_iri,
-                                                     ele=RdfModifyItem('sh:property',
-                                                                       None if change.old_value is None else str(change.old_value),
-                                                                       f'{item}Shape'),
-                                                     last_modified=self.__modified)
-                        sparql_list.append(sparql)
-                    else:
-                        #
-                        # this property does not exist in triple store -> create it
-                        #
-                        self._properties[item].create()
-                        if self._properties[item].get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
-                            sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
-                            sparql += RdfModifyRes.shacl(action=change.action,
-                                                         graph=self._graph,
-                                                         owlclass_iri=self._owl_class_iri,
-                                                         ele=RdfModifyItem('sh:property',
-                                                                           None if change.old_value is None else str(change.old_value),
-                                                                           f'{item}Shape'),
-                                                         last_modified=self.__modified)
-                            sparql_list.append(sparql)
+            elif change.action == Action.REPLACE:
+                pass  # TODO
+            elif change.action == Action.MODIFY:
+                pass  # TODO
+            elif change.action == Action.DELETE:
+                pass  # TODO
 
 
-                elif change.action == Action.MODIFY:
-                    self._properties[item].update()
+        # for item, change in self._prop_changeset.items():
+        #     if change.action == Action.CREATE:
+        #         if self._properties[item].from_triplestore:
+        #             #
+        #             # this property is already defined as standalone, and we already read it at
+        #             # the time of the assignment. We just have to add the property clause
+        #             #
+        #             sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
+        #             sparql += RdfModifyRes.shacl(action=change.action,
+        #                                          graph=self._graph,
+        #                                          owlclass_iri=self._owlclass_iri,
+        #                                          ele=RdfModifyItem('sh:property',
+        #                                                            None if change.old_value is None else str(change.old_value),
+        #                                                            f'{item}Shape'),
+        #                                          last_modified=self.__modified)
+        #             sparql_list.append(sparql)
+        #         else:
+        #             #
+        #             # this property does not exist in triple store -> create it
+        #             #
+        #             self._properties[item].create()
+        #             if self._properties[item].get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
+        #                 sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
+        #                 sparql += RdfModifyRes.shacl(action=change.action,
+        #                                              graph=self._graph,
+        #                                              owlclass_iri=self._owlclass_iri,
+        #                                              ele=RdfModifyItem('sh:property',
+        #                                                                None if change.old_value is None else str(change.old_value),
+        #                                                                f'{item}Shape'),
+        #                                              last_modified=self.__modified)
+        #                 sparql_list.append(sparql)
+        #
+        #     elif change.action == Action.MODIFY:
+        #         self._properties[item].update()
+        #     elif change.action == Action.DELETE:
+        #         self._prop_changeset[item].old_value.delete()
+
 
         #
         # Updating the timestamp and contributor ID
@@ -579,7 +619,7 @@ class ResourceClass(Model):
         sparql = f'#\n# Update/add dcterms:contributor\n#\n'
         sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
                                      graph=self._graph,
-                                     owlclass_iri=self._owl_class_iri,
+                                     owlclass_iri=self._owlclass_iri,
                                      ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
@@ -587,7 +627,7 @@ class ResourceClass(Model):
         sparql = f'#\n# Update/add dcterms:modified\n#\n'
         sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
                                      graph=self._graph,
-                                     owlclass_iri=self._owl_class_iri,
+                                     owlclass_iri=self._owlclass_iri,
                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
@@ -625,10 +665,11 @@ class ResourceClass(Model):
                     sparql += f'{blank:{indent * indent_inc}}}}'
                     sparql_list.append(sparql)
             elif isinstance(item, QName):
-                sparql = f'#\n# Processing QName (reference to property): {item} for OWL\n#\n'
+                sparql = f'#\n# Processing QName (reference to property): {item} for OWL (Action={change.action})\n#\n'
                 sparql += f'WITH {self._graph}:onto\n'
                 if change.action != Action.CREATE:
-                    pass
+                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
                 if change.action != Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}?resource rdf:subClassOf _:bnode .\n'
@@ -654,7 +695,7 @@ class ResourceClass(Model):
         sparql = f'#\n# Update/add dcterms:contributor\n#\n'
         sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
                                     graph=self._graph,
-                                    owlclass_iri=self._owl_class_iri,
+                                    owlclass_iri=self._owlclass_iri,
                                     ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
                                     last_modified=self.__modified)
         sparql_list.append(sparql)
@@ -662,7 +703,7 @@ class ResourceClass(Model):
         sparql = f'#\n# Update/add dcterms:modified\n#\n'
         sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
                                     graph=self._graph,
-                                    owlclass_iri=self._owl_class_iri,
+                                    owlclass_iri=self._owlclass_iri,
                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                     last_modified=self.__modified)
         sparql_list.append(sparql)
@@ -673,12 +714,49 @@ class ResourceClass(Model):
 
     def update(self, as_string: bool = False) -> Union[str, None]:
         timestamp = datetime.now()
+        for prop, change in self._prop_changeset.items():
+            if change.action == Action.CREATE:
+                if isinstance(self._properties[prop], QName):
+                    #
+                    # we only reference a "foreign" property that has no further specification
+                    # should be forbidden....
+                    #
+                    pass
+                if not self._properties[prop].from_triplestore:
+                    self._properties[prop].create()
+                else:
+                    #
+                    # add reference using SPARQL, if not EXCLUSIVE_FOR (then create will do it)
+                    #
+                    pass
+            elif change.action == Action.REPLACE:
+                if change.old_value.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
+                    change.old_value.delete()
+                if not self._properties[prop].from_triplestore:
+                    self._properties[prop].create()
+                else:
+                    #
+                    # add reference using SPARQL, if not EXCLUSIVE_FOR (then create will do it)
+                    #
+                    pass
+
+            elif change.action == Action.MODIFY:
+                self._properties[prop].update()
+            elif change.action == Action.DELETE:
+                if change.old_value.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
+                    change.old_value.delete()
+                else:
+                    #
+                    # delete reference to property
+                    #
+                    pass
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += self.__update_shacl(timestamp=timestamp)
         sparql += ' ;\n'
         sparql += self.__update_owl(timestamp=timestamp)
+        lprint(sparql)
         if as_string:
             return sparql
         else:

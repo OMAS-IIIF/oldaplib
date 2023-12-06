@@ -759,12 +759,12 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             self._con.update_query(sparql)
         return sparql
 
-    def delete_shacl(self, *,
-                     owlclass_iri: Optional[QName] = None,
-                     indent: int = 0, indent_inc: int = 4) -> str:
+    def __delete_shacl(self, *,
+                       indent: int = 0, indent_inc: int = 4) -> str:
         #
         # TODO: Test here if property is in use
         #
+        owlclass_iri = self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR)
         blank = ' '
         sparql_list = []
         sparql = f'#\n# Delete {self._property_class_iri} from shacl\n#\n'
@@ -814,10 +814,10 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql = " ;\n".join(sparql_list)
         return sparql
 
-    def delete_owl(self, *,
-                   owlclass_iri: Optional[QName] = None,
-                   indent: int = 0, indent_inc: int = 4) -> str:
-        blank = ' '
+    def __delete_owl(self, *,
+                     indent: int = 0, indent_inc: int = 4) -> str:
+        owlclass_iri = self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR)
+        blank = ''
         sparql_list = []
         sparql = f'#\n# Delete {self._property_class_iri} from onto\n#\n'
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
@@ -833,12 +833,12 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql_list.append(sparql)
 
         if owlclass_iri is not None:
-            sparql += ''
+            sparql = ''
             sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-            sparql += f'{blank:{indent * indent_inc}}}}'
-            sparql += f'{blank:{indent * indent_inc}}WHERE {{'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdf:subClassOf ?propnode .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
@@ -850,14 +850,14 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql = " ;\n".join(sparql_list)
         return sparql
 
-    def delete(self, do_update: bool = True) -> str:
-        blank = ''
+    def delete(self, *,
+               do_update: bool = True) -> str:
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
 
-        sparql += self.delete_shacl()
+        sparql += self.__delete_shacl()
         sparql += ' ;\n'
-        sparql += self.delete_owl()
+        sparql += self.__delete_owl()
 
         self.__from_triplestore = False
         if do_update:

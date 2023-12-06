@@ -389,6 +389,66 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 12)
         self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.DE, Language.FR, Language.IT})
 
+    def test_delete_props(self):
+        props1: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
+            PropertyClassAttribute.NAME: LangString(["Test property@en", "Testprädikat@de"]),
+            PropertyClassAttribute.DESCRIPTION: LangString("A property for testing...@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.MAX_COUNT: 1,
+                    PropertyRestrictionType.MIN_COUNT: 1,
+                    PropertyRestrictionType.UNIQUE_LANG: True,
+                    PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT}
+                }),
+            PropertyClassAttribute.ORDER: 1
+        }
+        p1 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           property_class_iri=QName('test:propA'),
+                           attrs=props1)
 
+        props2: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: QName('test:testMyRes'),
+            PropertyClassAttribute.NAME: LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
+            PropertyClassAttribute.DESCRIPTION: LangString("An exclusive property for testing...@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.MIN_COUNT: 1,
+                    PropertyRestrictionType.UNIQUE_LANG: True,
+                    PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT}
+                }),
+            PropertyClassAttribute.EXCLUSIVE_FOR: QName('test:TestResourceDelProps'),
+            PropertyClassAttribute.ORDER: 2
+        }
+        p2 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           property_class_iri=QName('test:propB'),
+                           attrs=props2)
 
+        properties: List[Union[PropertyClass, QName]] = [
+            QName("test:comment"),
+            QName("test:test"),
+            p1, p2
+        ]
+        attrs: ResourceClassAttributesContainer = {
+            ResourceClassAttribute.LABEL: LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+            ResourceClassAttribute.COMMENT: LangString("For testing purposes@en"),
+            ResourceClassAttribute.CLOSED: True
+        }
+        r1 = ResourceClass(con=self._connection,
+                           graph=NCName('test'),
+                           owl_class_iri=QName("test:TestResourceDelProps"),
+                           attrs=attrs,
+                           properties=properties)
 
+        r1.create()
+        del r1
+
+        r2 = ResourceClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                owl_class_iri=QName("test:TestResourceDelProps"))
+        print("\n========>", r2.modified)
+        del r2[QName('test:propB')]
+        r2.update()
