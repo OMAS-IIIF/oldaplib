@@ -51,11 +51,22 @@ class PropertyClassAttributeChange:
 @strict
 class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     """
-    This class implements the SHACL/OWL property definition that OMAS supports
+    This class implements a property as used by OMASlib. There are 2 types of properties:
+    - _External properties_: External properties are defined outside a specific resource class
+      and can be (re-)used by several resources. In SHACL, they are defined as "sh:PropertyShape"
+      instance.
+    - _Internal or exclusive properties_: These Properties ate defined as blank node within the
+      definition of a resource class. A "sh:property" predicate points to the blank node that
+      defines the property. These properties cannot be re-used!
+
+    *NOTE*: External properties have to be defined and created before being referenced as
+    property within a resource definition. In order to reference an external property, the
+    QName has to be used!
 
     """
     _graph: NCName
     _property_class_iri: Union[QName, None]
+    _internal: Union[QName, None]
     _attributes: PropertyClassAttributesContainer
     _changeset: Dict[PropertyClassAttribute, PropertyClassAttributeChange]
     _test_in_use: bool
@@ -74,7 +85,6 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
         PropertyClassAttribute.SUBPROPERTY_OF: {QName},
         PropertyClassAttribute.PROPERTY_TYPE: {OwlPropertyType},
-        PropertyClassAttribute.EXCLUSIVE_FOR: {QName},
         PropertyClassAttribute.TO_NODE_IRI: {QName, AnyIRI},
         PropertyClassAttribute.DATATYPE: {XsdDatatypes},
         PropertyClassAttribute.RESTRICTIONS: {PropertyRestrictions},
@@ -134,6 +144,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
         self._changeset = {}  # initialize changeset to empty set
         self._test_in_use = False
+        self._internal = None
         self.__creator = None
         self.__created = None
         self.__contributor = None
@@ -440,7 +451,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 else:
                     to_node_iri = obj
             elif attr == 'rdfs:domain':
-                self._attributes[PropertyClassAttribute.EXCLUSIVE_FOR] = obj
+                self._internal = obj
             elif attr == 'dcterms:creator':
                 if self.__creator != obj:
                     raise OmasError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}" for property "{self._property_class_iri}".')
@@ -529,8 +540,8 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
         if self._attributes.get(PropertyClassAttribute.SUBPROPERTY_OF):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF]}'
-        if self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR):
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._attributes[PropertyClassAttribute.EXCLUSIVE_FOR]}'
+        if self._internal:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal}'
         if self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlDataProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
         elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
@@ -575,7 +586,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
         if self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
             sparql += self.__create_shacl(timestamp=timestamp,
-                                          owlclass_iri=self._attributes[PropertyClassAttribute.EXCLUSIVE_FOR],
+                                          owlclass_iri=self._internal,
                                           indent=2)
         else:
             sparql += self.__create_shacl(timestamp=timestamp, indent=2)
@@ -745,10 +756,10 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        sparql += self.update_shacl(owlclass_iri=self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR),
+        sparql += self.update_shacl(owlclass_iri=self._internal,
                                     timestamp=timestamp)
         sparql += " ;\n"
-        sparql += self.update_owl(owlclass_iri=self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR),
+        sparql += self.update_owl(owlclass_iri=self._internal,
                                   timestamp=timestamp)
         for prop, change in self._changeset.items():
             if change.action == Action.MODIFY:
@@ -765,7 +776,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         #
         # TODO: Test here if property is in use
         #
-        owlclass_iri = self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR)
+        owlclass_iri = self._internal
         blank = ' '
         sparql_list = []
         sparql = f'#\n# Delete {self._property_class_iri} from shacl\n#\n'
@@ -817,7 +828,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
 
     def __delete_owl(self, *,
                      indent: int = 0, indent_inc: int = 4) -> str:
-        owlclass_iri = self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR)
+        owlclass_iri = self._internal
         blank = ''
         sparql_list = []
         sparql = f'#\n# Delete {self._property_class_iri} from onto\n#\n'

@@ -64,12 +64,12 @@ class ResourceClass(Model):
     def __init__(self, *,
                  con: Connection,
                  graph: NCName,
-                 owl_class_iri: Optional[QName] = None,
+                 owlclass_iri: Optional[QName] = None,
                  attrs: Optional[ResourceClassAttributesContainer] = None,
                  properties: Optional[List[Union[PropertyClass, QName]]] = None):
         super().__init__(con)
         self._graph = graph
-        self._owlclass_iri = owl_class_iri
+        self._owlclass_iri = owlclass_iri
         self.__creator = con.user_iri
         self.__created = None
         self.__contributor = con.user_iri
@@ -90,23 +90,16 @@ class ResourceClass(Model):
         self._properties = {}
         if properties is not None:
             for prop in properties:
-                newprop: PropertyClass
+                newprop: Union[PropertyClass, QName]
                 if isinstance(prop, QName):
                     fixed_prop = QName(str(prop).removesuffix("Shape"))
                     try:
                         newprop = PropertyClass.read(self._con, self._graph, fixed_prop)
                     except OmasErrorNotFound as err:
                         newprop = fixed_prop
-                else:
+                elif isinstance(prop, PropertyClass):
+                    prop._internal = owlclass_iri
                     newprop = prop
-                    if not prop.from_triplestore:
-                        # we test if this property already exists... If so, we raise an error
-                        try:
-                            prop.read(con=self._con, graph=self._graph, property_class_iri=prop.property_class_iri)
-                            print("\n============>", prop.property_class_iri, prop.from_triplestore)
-                            #raise OmasErrorAlreadyExists(f'Property {prop.property_class_iri} already exists!')
-                        except OmasErrorNotFound:
-                            pass
                 self._properties[newprop.property_class_iri] = newprop
                 newprop.set_notifier(self.notifier, newprop.property_class_iri)
         self._attr_changeset = {}
@@ -341,7 +334,7 @@ class ResourceClass(Model):
         self.__from_triplestore = True
 
     @staticmethod
-    def __query_resource_props(con: Connection, graph: NCName, owl_class_iri: QName) -> List[Union[PropertyClass, QName]]:
+    def __query_resource_props(con: Connection, graph: NCName, owlclass_iri: QName) -> List[Union[PropertyClass, QName]]:
         """
         This method queries and returns a list of properties defined in a sh:NodeShape. The properties may be
         given "inline" as BNode or may be a reference to an external sh:PropertyShape. These external shapes will be
@@ -349,7 +342,7 @@ class ResourceClass(Model):
 
         :param con: Connection instance
         :param graph: Name of the graph
-        :param owl_class_iri: The QName of the OWL class defining the resource. The "Shape" ending will be added
+        :param owlclass_iri: The QName of the OWL class defining the resource. The "Shape" ending will be added
         :return: List of PropertyClasses/QNames
         """
 
@@ -359,7 +352,7 @@ class ResourceClass(Model):
         SELECT ?prop ?attriri ?value ?oo
         FROM {graph}:shacl
         WHERE {{
-            BIND({owl_class_iri}Shape AS ?shape)
+            BIND({owlclass_iri}Shape AS ?shape)
             ?shape sh:property ?prop .
             OPTIONAL {{
                 ?prop ?attriri ?value .
@@ -393,10 +386,10 @@ class ResourceClass(Model):
                 PropertyClass.process_triple(context, r, attributes)
             else:
                 raise OmasError(f'Unexpected type for propnode in SHACL. Type = "{type(propnode)}".')
-            #
-            # now we collected all the information from the triple store. Let's process the informationj into
-            # a list of full PropertyClasses or QName's to external definitions
-            #
+        #
+        # now we collected all the information from the triple store. Let's process the information into
+        # a list of full PropertyClasses or QName's to external definitions
+        #
         proplist: List[Union[QName, PropertyClass]] = []
         for prop_iri, attributes in propinfos.items():
             if isinstance(attributes, (QName, URIRef)):
@@ -405,6 +398,8 @@ class ResourceClass(Model):
                 prop = PropertyClass(con=con, graph=graph)
                 prop.parse_shacl(attributes=attributes)
                 prop.read_owl()
+                if prop._internal != owlclass_iri:
+                    OmasErrorInconsistency(f'ERRROR ERROR ERROR')
                 proplist.append(prop)
         #prop.set_notifier(self.notifier, prop_iri)
         return proplist
@@ -456,8 +451,8 @@ class ResourceClass(Model):
     @classmethod
     def read(cls, con: Connection, graph: NCName, owl_class_iri: QName) -> 'ResourceClass':
         attributes = ResourceClass.__query_shacl(con, graph=graph, owl_class_iri=owl_class_iri)
-        properties: List[Union[PropertyClass, QName]] = ResourceClass.__query_resource_props(con=con, graph=graph, owl_class_iri=owl_class_iri)
-        resclass = cls(con=con, graph=graph, owl_class_iri=owl_class_iri, properties=properties)
+        properties: List[Union[PropertyClass, QName]] = ResourceClass.__query_resource_props(con=con, graph=graph, owlclass_iri=owl_class_iri)
+        resclass = cls(con=con, graph=graph, owlclass_iri=owl_class_iri, properties=properties)
         for prop in properties:
             if isinstance(prop, PropertyClass):
                 prop.set_notifier(resclass.notifier, prop.property_class_iri)
@@ -838,7 +833,7 @@ if __name__ == '__main__':
     }
     comment_class = ResourceClass(
         con=con,
-        owl_class_iri=QName('omas:OmasComment'),
+        owlclass_iri=QName('omas:OmasComment'),
         subclass_of=QName('omas:OmasUser'),
         label=LangString({Language.EN: 'Omas Comment', Language.DE: 'Omas Kommentar'}),
         comment=LangString({Language.EN: 'A class to comment something...'}),
@@ -847,6 +842,6 @@ if __name__ == '__main__':
     )
     comment_class.create()
     comment_class = None
-    comment_class2 = ResourceClass(con=con, owl_class_iri=QName('omas:OmasComment'))
+    comment_class2 = ResourceClass(con=con, owlclass_iri=QName('omas:OmasComment'))
     comment_class2.read()
     print(comment_class2)

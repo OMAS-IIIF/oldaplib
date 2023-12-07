@@ -84,7 +84,7 @@ class TestResourceClass(unittest.TestCase):
 
         r1 = ResourceClass(con=self._connection,
                            graph=NCName('test'),
-                           owl_class_iri="TestResource",
+                           owlclass_iri="TestResource",
                            attrs=attrs,
                            properties=properties)
         self.assertEqual(r1[ResourceClassAttribute.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
@@ -217,7 +217,7 @@ class TestResourceClass(unittest.TestCase):
         }
         r1 = ResourceClass(con=self._connection,
                            graph=NCName('test'),
-                           owl_class_iri=QName("test:TestResource"),
+                           owlclass_iri=QName("test:TestResource"),
                            attrs=attrs,
                            properties=properties)
 
@@ -442,7 +442,7 @@ class TestResourceClass(unittest.TestCase):
         }
         r1 = ResourceClass(con=self._connection,
                            graph=NCName('test'),
-                           owl_class_iri=QName("test:TestResourceDelProps"),
+                           owlclass_iri=QName("test:TestResourceDelProps"),
                            attrs=attrs,
                            properties=properties)
 

@@ -5,7 +5,7 @@ from enum import unique, Enum
 class PropertyClassAttribute(Enum):
     SUBPROPERTY_OF = 'rdfs:subPropertyOf'
     PROPERTY_TYPE = 'rdf:type'
-    EXCLUSIVE_FOR = 'omas:exclusive'
+    # EXCLUSIVE_FOR = 'omas:exclusive'
     TO_NODE_IRI = 'sh:class'
     DATATYPE = 'sh:datatype'
     RESTRICTIONS = 'omas:restrictions'

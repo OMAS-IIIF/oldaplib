@@ -51,7 +51,6 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
                 restrictions={PropertyRestrictionType.MAX_COUNT: 1}),
             PropertyClassAttribute.ORDER: 5,
-            PropertyClassAttribute.EXCLUSIVE_FOR: QName('test:Gaga')
         }
         p = PropertyClass(con=self._connection,
                           graph=NCName('test'),
@@ -62,7 +61,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropertyClassAttribute.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropertyClassAttribute.ORDER), 5)
-        self.assertEqual(p.get(PropertyClassAttribute.EXCLUSIVE_FOR), QName('test:Gaga'))
         p.destroy()
         del p
 
@@ -76,7 +74,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.MAX_COUNT], 1)
         self.assertEqual(p1.get(PropertyClassAttribute.NAME), LangString(["comment@en", "Kommentar@de"]))
         self.assertEqual(p1.get(PropertyClassAttribute.DESCRIPTION), LangString("This is a test property@de"))
-        self.assertIsNone(p1.get(PropertyClassAttribute.EXCLUSIVE_FOR))
         self.assertIsNone(p1.get(PropertyClassAttribute.SUBPROPERTY_OF))
         self.assertEqual(p1[PropertyClassAttribute.ORDER], 2)
         self.assertEqual(p1.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
@@ -92,7 +89,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
         self.assertEqual(p2[PropertyClassAttribute.NAME], LangString("Test"))
         self.assertEqual(p2[PropertyClassAttribute.DESCRIPTION], LangString("Property shape for testing purposes"))
-        self.assertIsNone(p2.get(PropertyClassAttribute.EXCLUSIVE_FOR))
         self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 3)
         self.assertEqual(p2[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
