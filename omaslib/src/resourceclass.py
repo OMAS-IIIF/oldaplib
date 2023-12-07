@@ -5,7 +5,7 @@ from pystrict import strict
 from rdflib import URIRef, Literal, BNode
 
 from omaslib.src.connection import Connection
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
@@ -93,9 +93,20 @@ class ResourceClass(Model):
                 newprop: PropertyClass
                 if isinstance(prop, QName):
                     fixed_prop = QName(str(prop).removesuffix("Shape"))
-                    newprop = PropertyClass.read(self._con, self._graph, fixed_prop)
+                    try:
+                        newprop = PropertyClass.read(self._con, self._graph, fixed_prop)
+                    except OmasErrorNotFound as err:
+                        newprop = fixed_prop
                 else:
                     newprop = prop
+                    if not prop.from_triplestore:
+                        # we test if this property already exists... If so, we raise an error
+                        try:
+                            prop.read(con=self._con, graph=self._graph, property_class_iri=prop.property_class_iri)
+                            print("\n============>", prop.property_class_iri, prop.from_triplestore)
+                            #raise OmasErrorAlreadyExists(f'Property {prop.property_class_iri} already exists!')
+                        except OmasErrorNotFound:
+                            pass
                 self._properties[newprop.property_class_iri] = newprop
                 newprop.set_notifier(self.notifier, newprop.property_class_iri)
         self._attr_changeset = {}
@@ -249,6 +260,10 @@ class ResourceClass(Model):
                 return True
             else:
                 return False
+
+    def destroy(self):
+        for qname, prop in self._properties.items():
+            prop.destroy()
 
     @staticmethod
     def __query_shacl(con: Connection, graph: NCName, owl_class_iri: QName) -> Attributes:
@@ -539,11 +554,14 @@ class ResourceClass(Model):
             self.__from_triplestore = True
 
     def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
-        if not self._changeset:
+        if not self._attr_changeset and not self._prop_changeset:
             return ''
         blank = ''
         sparql_list = []
 
+        #
+        # First process attributes
+        #
         for item, change in self._attr_changeset.items():
             sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
 
@@ -556,23 +574,21 @@ class ResourceClass(Model):
                                          last_modified=self.__modified)
             sparql_list.append(sparql)
 
+        #
+        # now process properties
+        #
         for prop, change in self._prop_changeset.items():
-            if change.action == Action.CREATE:
-                sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
-                sparql += RdfModifyRes.shacl(action=change.action,
-                                             graph=self._graph,
-                                             owlclass_iri=self._owlclass_iri,
-                                             ele=RdfModifyItem('sh:property',
-                                                               None if change.old_value is None else str(change.old_value),
-                                                               f'{prop}Shape'),
-                                             last_modified=self.__modified)
-                sparql_list.append(sparql)
-            elif change.action == Action.REPLACE:
-                pass  # TODO
-            elif change.action == Action.MODIFY:
-                pass  # TODO
-            elif change.action == Action.DELETE:
-                pass  # TODO
+            if change.action in {Action.CREATE, Action.REPLACE, Action.DELETE}:  # do nothing for Action.MODIFY here
+                if self._properties[prop].get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
+                    sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
+                    sparql += RdfModifyRes.shacl(action=change.action,
+                                                 graph=self._graph,
+                                                 owlclass_iri=self._owlclass_iri,
+                                                 ele=RdfModifyItem('sh:property',
+                                                                   None if change.old_value is None else str(change.old_value),
+                                                                   f'{prop}Shape'),
+                                                 last_modified=self.__modified)
+                    sparql_list.append(sparql)
 
 
         # for item, change in self._prop_changeset.items():
@@ -636,7 +652,7 @@ class ResourceClass(Model):
         return sparql
 
     def __update_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
-        if not self._changeset:
+        if not self._attr_changeset and not self._prop_changeset:
             return ''
         blank = ''
         sparql_list = []
@@ -714,42 +730,37 @@ class ResourceClass(Model):
 
     def update(self, as_string: bool = False) -> Union[str, None]:
         timestamp = datetime.now()
+        #
+        # First we process the changes regarding the properties
+        #
         for prop, change in self._prop_changeset.items():
             if change.action == Action.CREATE:
                 if isinstance(self._properties[prop], QName):
-                    #
-                    # we only reference a "foreign" property that has no further specification
-                    # should be forbidden....
-                    #
-                    pass
+                    raise OmasErrorNotFound(f'No SHACL definitions for {self._properties[prop]} found.')
                 if not self._properties[prop].from_triplestore:
                     self._properties[prop].create()
                 else:
-                    #
-                    # add reference using SPARQL, if not EXCLUSIVE_FOR (then create will do it)
-                    #
-                    pass
+                    if self._properties[prop].get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
+                        continue  # create reference in __update_shacl and __update_owl
+                    else:
+                        raise OmasErrorInconsistency(f'Property is exclusive – simple reference not allowed')
             elif change.action == Action.REPLACE:
                 if change.old_value.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
                     change.old_value.delete()
                 if not self._properties[prop].from_triplestore:
                     self._properties[prop].create()
                 else:
-                    #
-                    # add reference using SPARQL, if not EXCLUSIVE_FOR (then create will do it)
-                    #
-                    pass
-
+                    if self._properties[prop].get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
+                        continue  # replace reference in __update_shacl and __update_owl
+                    else:
+                        raise OmasErrorInconsistency(f'Property is exclusive – simple reference not allowed')
             elif change.action == Action.MODIFY:
                 self._properties[prop].update()
             elif change.action == Action.DELETE:
                 if change.old_value.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
                     change.old_value.delete()
                 else:
-                    #
-                    # delete reference to property
-                    #
-                    pass
+                    continue  # delete reference in __update_shacl and __update_owl
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context

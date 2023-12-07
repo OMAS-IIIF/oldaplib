@@ -19,6 +19,7 @@ class PropertyClassSingleton(type):
             cls._refcnt[key] = 1
         else:
             cls._refcnt[key] += 1
+        print("\n===========> INIT CACHE RESPONSE", property_class_iri, cls._refcnt[property_class_iri])
         return cls._cache[key]
 
     def __init__(cls, name, bases, attributes):

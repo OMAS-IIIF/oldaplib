@@ -15,3 +15,7 @@ class OmasErrorNotFound(OmasError):
 @strict
 class OmasErrorAlreadyExists(OmasError):
     pass
+
+@strict
+class OmasErrorInconsistency(OmasError):
+    pass

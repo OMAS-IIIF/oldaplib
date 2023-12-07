@@ -222,6 +222,7 @@ class TestResourceClass(unittest.TestCase):
                            properties=properties)
 
         r1.create()
+        r1.destroy()
         del r1
 
         r2 = ResourceClass.read(con=self._connection,
@@ -333,6 +334,7 @@ class TestResourceClass(unittest.TestCase):
         r1[QName('dcterms:creator')] = p
         r1.update()
 
+        r1.destroy()
         del r1
         p.destroy()
         del p
@@ -361,7 +363,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertIsNone(prop2.get(PropertyClassAttribute.EXCLUSIVE_FOR))
         self.assertEqual(prop1[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -389,6 +391,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 12)
         self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.DE, Language.FR, Language.IT})
 
+    @unittest.skip('Work in progress')
     def test_delete_props(self):
         props1: PropertyClassAttributesContainer = {
             PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),

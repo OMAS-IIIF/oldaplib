@@ -475,6 +475,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     def read(cls, con: Connection, graph: NCName, property_class_iri: QName) -> 'PropertyClass':
         if cls._cache.get(property_class_iri) is not None:
             cls._refcnt[property_class_iri] += 1
+            print("\n===========> READ FROM CACHE", property_class_iri, cls._refcnt[property_class_iri])
             return cls._cache[property_class_iri]
         property = cls(con=con, graph=graph, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, graph, property_class_iri)
