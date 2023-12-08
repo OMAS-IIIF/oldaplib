@@ -61,8 +61,17 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropertyClassAttribute.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropertyClassAttribute.ORDER), 5)
-        p.destroy()
-        del p
+
+        attrs: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: QName('test:Person'),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={PropertyRestrictionType.MAX_COUNT: 1}),
+        }
+        p2 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           attrs=attrs)
+        self.assertEqual(p2.get(PropertyClassAttribute.TO_NODE_IRI), QName('test:Person'))
+        self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
 
     def test_propertyclass_read_shacl(self):
         p1 = PropertyClass.read(con=self._connection,
@@ -79,8 +88,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
         self.assertEqual(p1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
         self.assertEqual(p1.created, datetime.fromisoformat("2023-11-04T12:00:00Z"))
-        p1.destroy()
-        del p1
 
         p2 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -92,8 +99,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], QName('test:comment'))
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 3)
         self.assertEqual(p2[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
-        p2.destroy()
-        del p2
 
     def test_propertyclass_create(self):
         props: PropertyClassAttributesContainer = {
@@ -114,8 +119,6 @@ class TestPropertyClass(unittest.TestCase):
             attrs=props
         )
         p1.create()
-        p1.destroy()
-        del p1
         p2 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
                                 property_class_iri=QName('test:testWrite'))
@@ -126,8 +129,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
                          {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 11)
-        p2.destroy()
-        del p2
 
     def test_propertyclass_undo(self):
         props: PropertyClassAttributesContainer = {
@@ -201,8 +202,6 @@ class TestPropertyClass(unittest.TestCase):
         p1.undo(PropertyClassAttribute.ORDER)
         self.assertEqual(p1[PropertyClassAttribute.ORDER], 11)
         self.assertEqual(p1.changeset, {})
-        p1.destroy()
-        del p1
 
     def test_propertyclass_update(self):
         props: PropertyClassAttributesContainer = {
@@ -239,8 +238,6 @@ class TestPropertyClass(unittest.TestCase):
         p1.update()
         self.assertEqual(p1.changeset, {})
 
-        p1.destroy()
-        del p1
         p2 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
                                 property_class_iri=QName('test:testUpdate'))
@@ -253,8 +250,6 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 12)
         self.assertFalse(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
-        p2.destroy()
-        del p2
 
     def test_propertyclass_delete_attrs(self):
         props: PropertyClassAttributesContainer = {
@@ -282,9 +277,6 @@ class TestPropertyClass(unittest.TestCase):
         del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG]
         del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN]
         p1.update()
-
-        p1.destroy()
-        del p1
 
         p2 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -325,15 +317,10 @@ class TestPropertyClass(unittest.TestCase):
         )
         p1.create()
 
-        p1.destroy()
-        del p1
-
         p2 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
                                 property_class_iri=QName('test:testDeleteIt'))
         p2.delete()
-        p2.destroy()
-        del p2
         sparql = self._context.sparql_context
         sparql += 'SELECT ?p ?o WHERE { test:testDeleteIt ?p ?o }'
         res = self._connection.rdflib_query(sparql)

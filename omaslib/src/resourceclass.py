@@ -91,13 +91,13 @@ class ResourceClass(Model):
         if properties is not None:
             for prop in properties:
                 newprop: Union[PropertyClass, QName]
-                if isinstance(prop, QName):
+                if isinstance(prop, QName):  # Reference to an external, standalone property definition
                     fixed_prop = QName(str(prop).removesuffix("Shape"))
                     try:
                         newprop = PropertyClass.read(self._con, self._graph, fixed_prop)
                     except OmasErrorNotFound as err:
                         newprop = fixed_prop
-                elif isinstance(prop, PropertyClass):
+                elif isinstance(prop, PropertyClass):  # an internal, private property definition
                     prop._internal = owlclass_iri
                     newprop = prop
                 self._properties[newprop.property_class_iri] = newprop
@@ -118,7 +118,7 @@ class ResourceClass(Model):
         if isinstance(key, ResourceClassAttribute):
             return self._attributes.get(key)
         elif isinstance(key, QName):
-            return self._attributes.get(key)
+            return self._properties.get(key)
         else:
             return None
 
@@ -145,6 +145,8 @@ class ResourceClass(Model):
                     except OmasErrorNotFound as err:
                         self._properties[key] = key
                 else:
+                    value._internal = self._owlclass_iri  # we need to access the private variable here
+                    value._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
             else:  # REPLACE action
                 if self._prop_changeset.get(key) is None:
@@ -157,6 +159,8 @@ class ResourceClass(Model):
                     except OmasErrorNotFound as err:
                         self._properties[key] = key
                 else:
+                    value._internal = self._owlclass_iri  # we need to access the private variable here
+                    value._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
 
     def __delitem__(self, key: Union[ResourceClassAttribute, QName]) -> None:
@@ -225,7 +229,7 @@ class ResourceClass(Model):
         self._attr_changeset = {}
         for prop, change in self._prop_changeset.items():
             if change.action == Action.MODIFY:
-                self._properties[attr].changeset_clear()
+                self._properties[prop].changeset_clear()
         self._prop_changeset = {}
 
     def notifier(self, what: Union[ResourceClassAttribute, QName]):
@@ -253,11 +257,6 @@ class ResourceClass(Model):
                 return True
             else:
                 return False
-
-    def destroy(self):
-        for qname, prop in self._properties.items():
-            print(":::::::>", qname)
-            prop.destroy()
 
     @staticmethod
     def __query_shacl(con: Connection, graph: NCName, owl_class_iri: QName) -> Attributes:
@@ -304,7 +303,7 @@ class ResourceClass(Model):
                     attributes[attriri].append(r['value'])
         return attributes
 
-    def parse_shacl(self, attributes: Attributes) -> None:
+    def _parse_shacl(self, attributes: Attributes) -> None:
         for key, val in attributes.items():
             if key == 'sh:targetClass':
                 continue
@@ -456,19 +455,19 @@ class ResourceClass(Model):
         for prop in properties:
             if isinstance(prop, PropertyClass):
                 prop.set_notifier(resclass.notifier, prop.property_class_iri)
-        resclass.parse_shacl(attributes=attributes)
+        resclass._parse_shacl(attributes=attributes)
         resclass.__read_owl()
         return resclass
 
     def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
-        for iri, p in self._properties.items():
-            if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is None and not p.from_triplestore:
-                #sparql += p.create_shacl(timestamp=timestamp)
-                sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape ;\n'
-                sparql += p.property_node_shacl(timestamp=timestamp, indent=3) + " .\n"
-                sparql += "\n"
+        # for iri, p in self._properties.items():
+        #     if p.internal is None and not p.from_triplestore:
+        #         #sparql += p.create_shacl(timestamp=timestamp)
+        #         sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape ;\n'
+        #         sparql += p.property_node_shacl(timestamp=timestamp, indent=3) + " .\n"
+        #         sparql += "\n"
 
         sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self._owlclass_iri}'
@@ -493,7 +492,7 @@ class ResourceClass(Model):
         sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}]'
 
         for iri, p in self._properties.items():
-            if p.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
+            if p.internal is not None:
                 sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}sh:property'
                 sparql += f'\n{blank:{(indent + 4)*indent_inc}}[\n'
                 sparql += p.property_node_shacl(timestamp=timestamp, indent=5)
@@ -574,8 +573,8 @@ class ResourceClass(Model):
         # now process properties
         #
         for prop, change in self._prop_changeset.items():
-            if change.action in {Action.CREATE, Action.REPLACE, Action.DELETE}:  # do nothing for Action.MODIFY here
-                if self._properties[prop].get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
+            if change.action in {Action.CREATE, Action.REPLACE}:  # do nothing for Action.MODIFY here
+                if self._properties[prop].internal is None:
                     sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
                     sparql += RdfModifyRes.shacl(action=change.action,
                                                  graph=self._graph,
@@ -585,7 +584,18 @@ class ResourceClass(Model):
                                                                    f'{prop}Shape'),
                                                  last_modified=self.__modified)
                     sparql_list.append(sparql)
-
+            elif change.action == Action.DELETE:
+                if change.old_value.internal is not None:
+                    change.old_value.delete()
+                sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
+                sparql += RdfModifyRes.shacl(action=change.action,
+                                             graph=self._graph,
+                                             owlclass_iri=self._owlclass_iri,
+                                             ele=RdfModifyItem('sh:property',
+                                                               None if change.old_value is None else str(change.old_value),
+                                                               f'{prop}Shape'),
+                                             last_modified=self.__modified)
+                sparql_list.append(sparql)
 
         # for item, change in self._prop_changeset.items():
         #     if change.action == Action.CREATE:
@@ -730,17 +740,21 @@ class ResourceClass(Model):
         #
         for prop, change in self._prop_changeset.items():
             if change.action == Action.CREATE:
-                if isinstance(self._properties[prop], QName):
-                    raise OmasErrorNotFound(f'No SHACL definitions for {self._properties[prop]} found.')
-                if not self._properties[prop].from_triplestore:
+                if self._properties[prop].internal is not None:
                     self._properties[prop].create()
-                else:
-                    if self._properties[prop].get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
-                        continue  # create reference in __update_shacl and __update_owl
-                    else:
-                        raise OmasErrorInconsistency(f'Property is exclusive – simple reference not allowed')
-            elif change.action == Action.REPLACE:
-                if change.old_value.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
+
+            # if change.action == Action.CREATE:
+            #     if isinstance(self._properties[prop], QName):
+            #         raise OmasErrorNotFound(f'No SHACL definitions for {self._properties[prop]} found.')
+            #     if not self._properties[prop].from_triplestore:
+            #         self._properties[prop].create()
+            #     else:
+            #         if self.internal is None:
+            #             continue  # create reference in __update_shacl and __update_owl
+            #         else:
+            #             raise OmasErrorInconsistency(f'Property is exclusive – simple reference not allowed')
+            if change.action == Action.REPLACE:
+                if change.old_value.internal is not None:
                     change.old_value.delete()
                 if not self._properties[prop].from_triplestore:
                     self._properties[prop].create()
@@ -752,7 +766,7 @@ class ResourceClass(Model):
             elif change.action == Action.MODIFY:
                 self._properties[prop].update()
             elif change.action == Action.DELETE:
-                if change.old_value.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
+                if change.old_value.internal is not None:
                     change.old_value.delete()
                 else:
                     continue  # delete reference in __update_shacl and __update_owl
@@ -762,7 +776,7 @@ class ResourceClass(Model):
         sparql += self.__update_shacl(timestamp=timestamp)
         sparql += ' ;\n'
         sparql += self.__update_owl(timestamp=timestamp)
-        lprint(sparql)
+        #lprint(sparql)
         if as_string:
             return sparql
         else:

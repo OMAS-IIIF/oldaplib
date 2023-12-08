@@ -9,7 +9,6 @@ from enum import Enum, unique
 from pprint import pprint
 from typing import Union, Set, Optional, Any, Tuple, Dict, Callable, List
 
-from isodate import Duration
 from pystrict import strict
 from rdflib import URIRef, Literal, BNode
 from rdflib.query import ResultRow
@@ -49,7 +48,7 @@ class PropertyClassAttributeChange:
 
 
 @strict
-class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
+class PropertyClass(Model, Notify):
     """
     This class implements a property as used by OMASlib. There are 2 types of properties:
     - _External properties_: External properties are defined outside a specific resource class
@@ -239,6 +238,10 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
     def changeset(self) -> Dict[PropertyClassAttribute, PropertyClassAttributeChange]:
         return self._changeset
 
+    @property
+    def internal(self) -> QName:
+        return self._internal
+
     def changeset_clear(self):
         self._changeset = {}
 
@@ -306,13 +309,6 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                 return True
             else:
                 return False
-
-    def destroy(self) -> None:
-        self._refcnt[str(self._property_class_iri)] -= 1
-        if self._refcnt[str(self._property_class_iri)] <= 0:
-            del self._cache[str(self._property_class_iri)]
-            del self._refcnt[str(self._property_class_iri)]
-        #  del self._cache[str(self._property_class_iri)]
 
     @staticmethod
     def process_triple(context: Context, r: ResultRow, attributes: Attributes) -> None:
@@ -484,10 +480,6 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
 
     @classmethod
     def read(cls, con: Connection, graph: NCName, property_class_iri: QName) -> 'PropertyClass':
-        if cls._cache.get(property_class_iri) is not None:
-            cls._refcnt[property_class_iri] += 1
-            print("\n===========> READ FROM CACHE", property_class_iri, cls._refcnt[property_class_iri])
-            return cls._cache[property_class_iri]
         property = cls(con=con, graph=graph, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
@@ -504,16 +496,16 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
             sparql += f'\n{blank:{indent * indent_inc}} {bnode} sh:path {self._property_class_iri}'
         else:
             sparql += f'\n{blank:{indent * indent_inc}}sh:path {self._property_class_iri}'
-        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
-        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:creator {self._con.user_iri}'
-        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:contributor {self._con.user_iri}'
-        sparql += f' ;\n{blank:{indent * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         for prop, value in self._attributes.items():
             if prop == PropertyClassAttribute.PROPERTY_TYPE:
                 continue
             if prop != PropertyClassAttribute.RESTRICTIONS:
-                sparql += f' ;\n{blank:{indent * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
             else:
                 sparql += self._attributes[PropertyClassAttribute.RESTRICTIONS].create_shacl(indent, indent_inc)
         #sparql += f' .\n'
@@ -524,13 +516,13 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
                        owlclass_iri: Optional[QName] = None,
                        indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'\n# PropertyClass.__create_shacl()'
+        sparql = f'\n{blank:{indent * indent_inc}}# PropertyClass.__create_shacl()'
         if owlclass_iri is None:
             sparql += f'\n{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
             sparql += self.property_node_shacl(timestamp=timestamp, indent=indent, indent_inc=indent_inc)
         else:
             bnode = QName('_:propnode')
-            sparql += f'\n{blank:{indent * indent_inc}}{owlclass_iri} sh:property {bnode} .\n'
+            sparql += f'\n{blank:{indent * indent_inc}}{owlclass_iri}Shape sh:property {bnode} .\n'
             sparql += self.property_node_shacl(timestamp=timestamp, bnode=bnode, indent=indent, indent_inc=indent_inc)
         sparql += ' .\n'
         return sparql
@@ -584,7 +576,7 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
-        if self._attributes.get(PropertyClassAttribute.EXCLUSIVE_FOR) is not None:
+        if self._internal is not None:
             sparql += self.__create_shacl(timestamp=timestamp,
                                           owlclass_iri=self._internal,
                                           indent=2)
@@ -603,7 +595,6 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         if do_update:
             self._con.update_query(sparql)
         return sparql
-
 
     def update_shacl(self, *,
                      owlclass_iri: Optional[QName] = None,
@@ -809,11 +800,11 @@ class PropertyClass(Model, Notify, metaclass=PropertyClassSingleton):
         #
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE{{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop ?p ?v\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE{{\n'
         if owlclass_iri is not None:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} sh:property ?propnode .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self._property_class_iri} .\n'
         else:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
