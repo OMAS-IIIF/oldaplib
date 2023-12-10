@@ -13,6 +13,8 @@
 
 :shacl {
 
+    :shaclinfo dcterms:hasVersion "1.0.0" .
+
     :commentShape a sh:PropertyShape ;
         sh:path :comment ;
         sh:name "comment"@en, "Kommentar"@de ;
