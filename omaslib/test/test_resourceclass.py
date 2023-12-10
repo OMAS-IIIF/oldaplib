@@ -409,6 +409,11 @@ class TestResourceClass(unittest.TestCase):
         r2 = ResourceClass.read(con=self._connection,
                                 graph=NCName('test'),
                                 owl_class_iri=QName("test:TestResourceDelProps"))
-        print("\n========>", r2.modified)
         del r2[QName('test:propB')]
+        del r2[QName("test:test")]  # OWL is not yet removed (rdfs:subClassOf is still there)
         r2.update()
+
+        r3 = ResourceClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                owl_class_iri=QName("test:TestResourceDelProps"))
+

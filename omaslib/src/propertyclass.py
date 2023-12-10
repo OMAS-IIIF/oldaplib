@@ -490,7 +490,7 @@ class PropertyClass(Model, Notify):
                             timestamp: datetime,
                             bnode: Optional[QName] = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
-        blank = ' '
+        blank = ''
         sparql = f'{blank:{indent * indent_inc}}# PropertyClass.property_node_shacl()'
         if bnode:
             sparql += f'\n{blank:{indent * indent_inc}} {bnode} sh:path {self._property_class_iri}'
@@ -600,7 +600,7 @@ class PropertyClass(Model, Notify):
                      owlclass_iri: Optional[QName] = None,
                      timestamp: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
-        blank = ' '
+        blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
             sparql = f'#\n# SHACL\n# Process "{prop.value}" with Action "{change.action.value}"\n#\n'
@@ -768,7 +768,7 @@ class PropertyClass(Model, Notify):
         # TODO: Test here if property is in use
         #
         owlclass_iri = self._internal
-        blank = ' '
+        blank = ''
         sparql_list = []
         sparql = f'#\n# Delete {self._property_class_iri} from shacl\n#\n'
         #
@@ -800,6 +800,8 @@ class PropertyClass(Model, Notify):
         #
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE{{\n'
+        if owlclass_iri is not None:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE{{\n'
@@ -839,14 +841,13 @@ class PropertyClass(Model, Notify):
             sparql = ''
             sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdf:subClassOf ?propnode .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
 
