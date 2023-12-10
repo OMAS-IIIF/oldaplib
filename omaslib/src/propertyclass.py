@@ -819,6 +819,23 @@ class PropertyClass(Model, Notify):
         sparql = " ;\n".join(sparql_list)
         return sparql
 
+    def delete_owl_subclass_str(self, *,
+                            owlclass_iri: QName,
+                            indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql = ''
+        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri} .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+        sparql += f'{blank:{indent * indent_inc}}}}'
+        return sparql
+
     def __delete_owl(self, *,
                      indent: int = 0, indent_inc: int = 4) -> str:
         owlclass_iri = self._internal
@@ -838,17 +855,7 @@ class PropertyClass(Model, Notify):
         sparql_list.append(sparql)
 
         if owlclass_iri is not None:
-            sparql = ''
-            sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
-            sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-            sparql += f'{blank:{indent * indent_inc}}}}\n'
-            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri} .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql = self.delete_owl_subclass_str(owlclass_iri=owlclass_iri)
             sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)

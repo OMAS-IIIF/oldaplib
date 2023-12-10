@@ -324,6 +324,46 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
         self.assertEqual(prop1[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
 
+        sparql = self._context.sparql_context
+        sparql += """
+        SELECT ?p ?v
+        WHERE {
+            test:testMyResMinimal rdfs:subClassOf ?prop .
+            ?prop owl:onProperty dcterms:creator .
+            ?prop ?p ?v .
+        }
+        """
+        res = self._connection.rdflib_query(sparql)
+        result = {
+            QName('rdf:type'): 'http://www.w3.org/2002/07/owl#Restriction',
+            QName('owl:onProperty'): 'http://purl.org/dc/terms/creator',
+            QName('owl:maxCardinality'): 1
+        }
+        for r in res:
+            p = self._context.iri2qname(r['p'])
+            v = r['v'].toPython()
+            self.assertEqual(result[p], v)
+
+        sparql = self._context.sparql_context
+        sparql += """
+        SELECT ?p ?v
+        WHERE {
+            test:testMyResMinimal rdfs:subClassOf ?prop .
+            ?prop owl:onProperty test:test .
+            ?prop ?p ?v .
+        }
+        """
+        res = self._connection.rdflib_query(sparql)
+        result = {
+            QName('rdf:type'): 'http://www.w3.org/2002/07/owl#Restriction',
+            QName('owl:onProperty'): 'http://omas.org/test#test',
+            QName('owl:minCardinality'): 1
+        }
+        for r in res:
+            p = self._context.iri2qname(r['p'])
+            v = r['v'].toPython()
+            self.assertEqual(result[p], v)
+
     #@unittest.skip('Work in progress')
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection,
@@ -416,4 +456,30 @@ class TestResourceClass(unittest.TestCase):
         r3 = ResourceClass.read(con=self._connection,
                                 graph=NCName('test'),
                                 owl_class_iri=QName("test:TestResourceDelProps"))
+
+        sparql = self._context.sparql_context
+        sparql += """
+        SELECT ?p ?v
+        WHERE {
+            test:testMyResMinimal rdfs:subClassOf ?prop .
+            ?prop owl:onProperty test:propB .
+            ?prop ?p ?v .
+        }
+        """
+        res = self._connection.rdflib_query(sparql)
+        self.assertEqual(len(res), 0)
+
+        sparql = self._context.sparql_context
+        sparql += """
+        SELECT ?p ?v
+        WHERE {
+            test:testMyResMinimal rdfs:subClassOf ?prop .
+            ?prop owl:onProperty test:test .
+            ?prop ?p ?v .
+        }
+        """
+        res = self._connection.rdflib_query(sparql)
+        self.assertEqual(len(res), 0)
+
+
 

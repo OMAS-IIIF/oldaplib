@@ -111,7 +111,7 @@ class TestBasicConnection(unittest.TestCase):
             self.assertIn(r[0], s0)
             self.assertIn(r[2], s2)
 
-    @unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_jsonld_query(self):
         query = self._context.sparql_context
         query += """
