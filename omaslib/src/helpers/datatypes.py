@@ -64,6 +64,25 @@ class QName:
         parts = self._value.split(':')
         return parts[1]
 
+
+@strict
+class BNode:
+    __value: str
+
+    def __init__(self, value: str) -> None:
+        self.__value = value
+
+    def __str__(self) -> str:
+        return self.__value
+
+    def __repr__(self) -> str:
+        return f'BNode("{self.__value}")'
+
+    @property
+    def value(self) -> str:
+        return self.__value
+
+
 @strict
 class AnyIRI:
     _value: str

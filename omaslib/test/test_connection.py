@@ -9,6 +9,7 @@ from omaslib.src.connection import Connection, SparqlResultFormat
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, NamespaceIRI
 from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
 
 
 #sys.path.append("/Users/rosenth/ProgDev/OMAS/omaslib/omaslib")
@@ -112,7 +113,7 @@ class TestBasicConnection(unittest.TestCase):
             self.assertIn(r[2], s2)
 
     #@unittest.skip('Work in progress')
-    def test_jsonld_query(self):
+    def test_json_query(self):
         query = self._context.sparql_context
         query += """
         SELECT ?prop ?value ?oo
@@ -125,7 +126,9 @@ class TestBasicConnection(unittest.TestCase):
         }
         """
         res = self._connection.query(query, format=SparqlResultFormat.JSON)
-        print(res)
+        result = QueryProcessor(self._context, res)
+        for row in result:
+            pprint(row)
 
     def test_update_query(self):
         query1 = self._context.sparql_context
