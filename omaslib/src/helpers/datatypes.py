@@ -78,6 +78,15 @@ class BNode:
     def __repr__(self) -> str:
         return f'BNode("{self.__value}")'
 
+    def __eq__(self, other: Any) -> bool:
+        return self.__value == str(other)
+
+    def __ne__(self, other: Any) -> bool:
+        return self.__value != str(other)
+
+    def __hash__(self):
+        return hash(self.__value)
+
     @property
     def value(self) -> str:
         return self.__value

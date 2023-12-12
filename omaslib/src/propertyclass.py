@@ -10,18 +10,16 @@ from pprint import pprint
 from typing import Union, Set, Optional, Any, Tuple, Dict, Callable, List
 
 from pystrict import strict
-from rdflib import URIRef, Literal, BNode
-from rdflib.query import ResultRow
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI, Action, NCName
+from omaslib.src.helpers.datatypes import QName, AnyIRI, Action, NCName, BNode
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists
-from omaslib.src.helpers.propertyclass_singleton import PropertyClassSingleton
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.helpers.query_processor import RowType, StringLiteral, QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import lprint, RdfModifyItem, RdfModifyProp
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
@@ -37,7 +35,7 @@ class OwlPropertyType(Enum):
 
 PropTypes = Union[QName, AnyIRI, OwlPropertyType, XsdDatatypes, PropertyRestrictions, LangString, int, float, None]
 PropertyClassAttributesContainer = Dict[PropertyClassAttribute, PropTypes]
-Attributes = Dict[QName, List[Any]]
+Attributes = Dict[QName, Union[List[Any], Set[Any]]]
 
 
 @dataclass
@@ -311,19 +309,16 @@ class PropertyClass(Model, Notify):
                 return False
 
     @staticmethod
-    def process_triple(context: Context, r: ResultRow, attributes: Attributes) -> None:
-        attriri = context.iri2qname(r['attriri'])
-        if isinstance(r['value'], URIRef):
+    def process_triple(r: RowType, attributes: Attributes) -> None:
+        attriri = r['attriri']
+        if isinstance(r['value'], QName):
             if attributes.get(attriri) is None:
                 attributes[attriri] = []
-            attributes[attriri].append(context.iri2qname(r['value']))
-        elif isinstance(r['value'], Literal):
+            attributes[attriri].append(r['value'])
+        elif isinstance(r['value'], StringLiteral):
             if attributes.get(attriri) is None:
                 attributes[attriri] = []
-            if r['value'].language is None:
-                attributes[attriri].append(r['value'].toPython())
-            else:
-                attributes[attriri].append(r['value'].toPython() + '@' + r['value'].language)
+            attributes[attriri].append(str(r['value']))
         elif isinstance(r['value'], BNode):
             pass
         else:
@@ -333,7 +328,7 @@ class PropertyClass(Model, Notify):
         if r['attriri'].fragment == 'languageIn':
             if not attributes.get(attriri):
                 attributes[attriri] = set()
-            attributes[attriri].add(Language[r['oo'].toPython().upper()])
+            attributes[attriri].add(Language[str(r['oo']).upper()])
 
     @staticmethod
     def __query_shacl(con: Connection, graph: NCName, property_class_iri: QName) -> Attributes:
@@ -350,12 +345,13 @@ class PropertyClass(Model, Notify):
             }}
         }}
         """
-        res = con.rdflib_query(query)
+        jsonobj = con.query(query)
+        res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
             raise OmasErrorNotFound(f'Property "{property_class_iri}" not found.')
         attributes: Attributes = {}
         for r in res:
-            PropertyClass.process_triple(context, r, attributes)
+            PropertyClass.process_triple(r, attributes)
         return attributes
 
     def parse_shacl(self, attributes: Attributes) -> None:
@@ -428,16 +424,17 @@ class PropertyClass(Model, Notify):
             {self._property_class_iri} ?p ?o
         }}
         """
-        res = self._con.rdflib_query(query1)
+        jsonobj = self._con.query(query1)
+        res = QueryProcessor(context=context, query_result=jsonobj)
         datatype = None
         to_node_iri = None
         for r in res:
-            attr = context.iri2qname(r['p'])
-            obj = context.iri2qname(r['o']) if isinstance(r['o'], URIRef) else r['o']
-            if str(attr) == 'rdf:type':
-                if str(obj) == 'owl:DatatypeProperty':
+            attr = r['p']
+            obj = r['o']
+            if attr == 'rdf:type':
+                if obj == 'owl:DatatypeProperty':
                     self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
-                elif str(obj) == 'owl:ObjectProperty':
+                elif obj == 'owl:ObjectProperty':
                     self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
             elif attr == 'owl:subPropertyOf':
                 self._attributes[PropertyClassAttribute.SUBPROPERTY_OF] = obj
@@ -452,14 +449,14 @@ class PropertyClass(Model, Notify):
                 if self.__creator != obj:
                     raise OmasError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}" for property "{self._property_class_iri}".')
             elif attr == 'dcterms:created':
-                dt = datetime.fromisoformat(obj)
+                dt = obj
                 if self.__created != dt:
                     raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__created}" vs "{dt}".')
             elif attr == 'dcterms:contributor':
                 if self.__creator != obj:
                     raise OmasError(f'Inconsistency between SHACL and OWL: contributor "{self.__contributor}" vs "{obj}".')
             elif attr == 'dcterms:modified':
-                dt = datetime.fromisoformat(obj)
+                dt = obj
                 if self.__modified != dt:
                     raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__modified}" vs "{dt}".')
         #

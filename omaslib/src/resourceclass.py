@@ -1,17 +1,18 @@
 from dataclasses import dataclass
 from datetime import datetime
+from pprint import pprint
 from typing import Union, Optional, List, Dict
 from pystrict import strict
-from rdflib import URIRef, Literal, BNode
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
 from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import RdfModifyProp, RdfModifyRes, RdfModifyItem, lprint
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
-from omaslib.src.helpers.datatypes import QName, Action, AnyIRI, NCName
+from omaslib.src.helpers.datatypes import QName, Action, AnyIRI, NCName, BNode
 from omaslib.src.helpers.langstring import Language, LangString
 from omaslib.src.helpers.context import Context
 from omaslib.src.model import Model
@@ -249,7 +250,8 @@ class ResourceClass(Model):
             FILTER(?resinstances != {self._owlclass_iri}Shape)
         }} LIMIT 2
         """
-        res = self._con.rdflib_query(query)
+        jsonobj = self._con.query(query)
+        res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
             raise OmasError('Internal Error in "ResourceClass.in_use"')
         for r in res:
@@ -270,31 +272,29 @@ class ResourceClass(Model):
             ?shape ?attriri ?value
         }}
          """
-        res = con.rdflib_query(query)
+        jsonobj = con.query(query)
+        res = QueryProcessor(context, jsonobj)
         attributes: Attributes = {}
         for r in res:
-            attriri = context.iri2qname(r['attriri'])
-            if attriri == QName('rdf:type'):
-                tmp_owl_class_iri = context.iri2qname(r[1])
-                if tmp_owl_class_iri == QName('sh:NodeShape'):
+            attriri = r['attriri']
+            if attriri == 'rdf:type':
+                tmp_owl_class_iri = r['value']
+                if tmp_owl_class_iri == 'sh:NodeShape':
                     continue
                 if tmp_owl_class_iri != owl_class_iri:
                     raise OmasError(f'Inconsistent Shape for "{owl_class_iri}": rdf:type="{tmp_owl_class_iri}"')
-            elif attriri == QName('sh:property'):
+            elif attriri == 'sh:property':
                 continue  # processes later – points to a BNode containing
             else:
-                attriri = context.iri2qname(r['attriri'])
-                if isinstance(r['value'], URIRef):
+                attriri = r['attriri']
+                if isinstance(r['value'], QName):
                     if attributes.get(attriri) is None:
                         attributes[attriri] = []
-                    attributes[attriri].append(context.iri2qname(r['value']))
-                elif isinstance(r['value'], Literal):
+                    attributes[attriri].append(r['value'])
+                elif isinstance(r['value'], StringLiteral):
                     if attributes.get(attriri) is None:
                         attributes[attriri] = []
-                    if r['value'].language is None:
-                        attributes[attriri].append(r['value'].toPython())
-                    else:
-                        attributes[attriri].append(r['value'].toPython() + '@' + r['value'].language)
+                    attributes[attriri].append(str(r['value']))
                 elif isinstance(r['value'], BNode):
                     pass
                 else:
@@ -361,7 +361,8 @@ class ResourceClass(Model):
             }}
         }}
         """
-        res = con.rdflib_query(query)
+        jsonobj = con.query(query)
+        res = QueryProcessor(context=context, query_result=jsonobj)
         propinfos: Dict[QName, Attributes] = {}
         #
         # first we run over all triples to gather the information about the properties of the possible
@@ -369,20 +370,20 @@ class ResourceClass(Model):
         # NOTE: some of the nodes may actually be QNames referencing shapes defines as "standalone" sh:PropertyShape's.
         #
         for r in res:
-            if r['value'] == URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'):
+            if r['value'] == 'rdf:type':
                 continue
-            if not isinstance(r['attriri'], URIRef):
+            if not isinstance(r['attriri'], QName):
                 raise OmasError(f"There is some inconsistency in this shape! ({r['attriri']})")
             propnode = r['prop']  # usually a BNode, but may be a reference to a standalone sh:PropertyShape definition
             prop: Union[PropertyClass, QName]
-            if isinstance(propnode, URIRef):
-                qname = context.iri2qname(propnode)
+            if isinstance(propnode, QName):
+                qname = propnode
                 propinfos[qname] = propnode
             elif isinstance(propnode, BNode):
                 if propinfos.get(propnode) is None:
                     propinfos[propnode]: Attributes = {}
                 attributes: Attributes = propinfos[propnode]
-                PropertyClass.process_triple(context, r, attributes)
+                PropertyClass.process_triple(r, propinfos[propnode])
             else:
                 raise OmasError(f'Unexpected type for propnode in SHACL. Type = "{type(propnode)}".')
         #
@@ -391,7 +392,7 @@ class ResourceClass(Model):
         #
         proplist: List[Union[QName, PropertyClass]] = []
         for prop_iri, attributes in propinfos.items():
-            if isinstance(attributes, (QName, URIRef)):
+            if isinstance(attributes, QName):
                 proplist.append(prop_iri)
             else:
                 prop = PropertyClass(con=con, graph=graph)
@@ -415,29 +416,29 @@ class ResourceClass(Model):
             FILTER(?o != owl:Restriction)
         }}
         """
-        res = self._con.rdflib_query(query1)
+        jsonobj = self._con.query(query1)
+        res = QueryProcessor(context=context, query_result=jsonobj)
         propdict = {}
         for r in res:
-            bnode_id = str(r[0])
+            bnode_id = str(r['prop'])
             if not propdict.get(bnode_id):
                 propdict[bnode_id] = {}
-            p = context.iri2qname(str(r[1]))
-            pstr = str(p)
-            if pstr == 'owl:onProperty':
-                propdict[bnode_id]['property_iri'] = context.iri2qname(str(r[2]))
-            elif pstr == 'owl:onClass':
-                propdict[bnode_id]['to_node_iri'] = context.iri2qname(str(r[2]))
-            elif pstr == 'owl:minQualifiedCardinality':
-                propdict[bnode_id]['min_count'] = r[2].value
-            elif pstr == 'owl:maxQualifiedCardinality':
-                propdict[bnode_id]['max_count'] = r[2].value
-            elif pstr == 'owl:qualifiedCardinality':
-                propdict[bnode_id]['min_count'] = r[2].value
-                propdict[bnode_id]['max_count'] = r[2].value
-            elif pstr == 'owl:onDataRange':
-                propdict[bnode_id]['datatype'] = context.iri2qname(str(r[2]))
+            p = r['p']
+            if p == 'owl:onProperty':
+                propdict[bnode_id]['property_iri'] = r['o']
+            elif p == 'owl:onClass':
+                propdict[bnode_id]['to_node_iri'] = r['o']
+            elif p == 'owl:minQualifiedCardinality':
+                propdict[bnode_id]['min_count'] = r['o']
+            elif p == 'owl:maxQualifiedCardinality':
+                propdict[bnode_id]['max_count'] = r['o']
+            elif p == 'owl:qualifiedCardinality':
+                propdict[bnode_id]['min_count'] = r['o']
+                propdict[bnode_id]['max_count'] = r['o']
+            elif p == 'owl:onDataRange':
+                propdict[bnode_id]['datatype'] = r['o']
             else:
-                print(f'ERROR ERROR ERROR: Unknown restriction property: "{pstr}"')
+                print(f'ERROR ERROR ERROR: Unknown restriction property: "{p}"')
         for bn, pp in propdict.items():
             if pp.get('property_iri') is None:
                 OmasError('Invalid restriction node: No property_iri!')
@@ -702,7 +703,6 @@ class ResourceClass(Model):
 
         sparql = " ;\n".join(sparql_list)
         return sparql
-
 
     def update(self, as_string: bool = False) -> Union[str, None]:
         timestamp = datetime.now()

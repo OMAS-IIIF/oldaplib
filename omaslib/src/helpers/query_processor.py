@@ -7,7 +7,7 @@ from isodate import Duration
 from pystrict import strict
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode
+from omaslib.src.helpers.datatypes import BNode, QName
 from omaslib.src.helpers.language import Language
 
 
@@ -15,7 +15,8 @@ class StringLiteral:
     pass
 
 
-RowElementType = Union[bool, int, float, str, datetime, time, Duration, timedelta, BNode, StringLiteral]
+RowElementType = Union[bool, int, float, str, datetime, time, date, Duration, timedelta, QName, BNode, StringLiteral]
+RowType = Dict[str, RowElementType]
 
 
 @dataclass
@@ -24,12 +25,15 @@ class StringLiteral:
     __value: str
     __lang: Union[Language, None]
 
-    def __init__(self, value:str, lang: Optional[str] = None):
+    def __init__(self, value: str, lang: Optional[str] = None):
         self.__value = value
         self.__lang = Language[lang.upper()] if lang else None
 
     def __str__(self) -> str:
-        return self.__value
+        if self.__lang:
+            return f'{self.__value}@{self.__lang.name.lower()}'
+        else:
+            return self.__value
 
     def __repr__(self) -> str:
         if self.__lang:
@@ -97,6 +101,9 @@ class QueryProcessor:
                             row[name] = str(valobj["value"])
             self.__rows.append(row)
 
+    def __len__(self) -> int:
+        return len(self.__rows)
+
     def __iter__(self):
         self.__pos = 0
         return self
@@ -107,6 +114,10 @@ class QueryProcessor:
             return self.__rows[self.__pos]
         else:
             raise StopIteration
+
+    @property
+    def names(self) -> List[str]:
+        return list(self.__names)
 
 
 
