@@ -483,6 +483,25 @@ class PropertyClass(Model, Notify):
         property.read_owl()
         return property
 
+    def read_modified_shacl(self, *,
+                            context: Context,
+                            graph: NCName,
+                            indent: int = 0, indent_inc: int = 4) -> datetime:
+        blank = ''
+        sparql = context.sparql_context
+        owlclass_iri = self._internal
+        sparql += f"{blank:{indent * indent_inc}}FROM {graph}:shacl\n"
+        sparql += f"{blank:{indent * indent_inc}}SELECT ?modified\n"
+        sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
+        if owlclass_iri:
+            sparql += f"{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n"
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {self._property_class_iri} .\n'
+        else:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+        sparql += f"{blank:{indent * indent_inc}}}}"
+        return sparql
+
     def property_node_shacl(self, *,
                             timestamp: datetime,
                             bnode: Optional[QName] = None,
@@ -744,6 +763,12 @@ class PropertyClass(Model, Notify):
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
+
+        tmp = self.read_modified_shacl(context=context, graph='test')
+        jsonobj = self._con.query(tmp)
+        res = QueryProcessor(context, jsonobj)
+        print("\n========--------->", res[0])
+
         sparql += self.update_shacl(owlclass_iri=self._internal,
                                     timestamp=timestamp)
         sparql += " ;\n"
