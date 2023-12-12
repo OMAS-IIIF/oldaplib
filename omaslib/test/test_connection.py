@@ -1,15 +1,18 @@
 import json
 import unittest
+from datetime import datetime, timezone
 from pprint import pprint
 from time import sleep
+from typing import List
 
-from rdflib import URIRef, BNode
+from rdflib import URIRef
 
 from omaslib.src.connection import Connection, SparqlResultFormat
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, NamespaceIRI
+from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
+from omaslib.src.helpers.semantic_version import SemanticVersion
 
 
 #sys.path.append("/Users/rosenth/ProgDev/OMAS/omaslib/omaslib")
@@ -114,6 +117,19 @@ class TestBasicConnection(unittest.TestCase):
 
     #@unittest.skip('Work in progress')
     def test_json_query(self):
+        expected = {
+            QName('rdf:type'): QName('test:testMyRes'),
+            QName("rdfs:comment"): "Resource for testing...",
+            QName("rdfs:label"): {"My Resource@en", "Meine Ressource@de",  "Ma Resource@fr"},
+            QName("sh:property"): QName("test:testShape"),
+            QName("sh:closed"): True,
+            QName("sh:targetClass"): QName("test:testMyRes"),
+            QName("dcterms:hasVersion"): '1.0.0',
+            QName("dcterms:creator"): QName("orcid:ORCID-0000-0003-1681-4036"),
+            QName("dcterms:created"): datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc),
+            QName("dcterms:contributor"):  QName("orcid:ORCID-0000-0003-1681-4036"),
+            QName("dcterms:modified"): datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)
+        }
         query = self._context.sparql_context
         query += """
         SELECT ?prop ?value ?oo
@@ -127,8 +143,13 @@ class TestBasicConnection(unittest.TestCase):
         """
         res = self._connection.query(query, format=SparqlResultFormat.JSON)
         result = QueryProcessor(self._context, res)
-        for row in result:
-            pprint(row)
+        for r in result:
+            if isinstance(r['prop'], BNode) or isinstance(r['value'], BNode):
+                continue
+            if r['prop'] == 'rdfs:label':
+                self.assertTrue(str(r['value']) in expected[r['prop']])
+            else:
+                self.assertEqual(r['value'], expected[r['prop']])
 
     def test_update_query(self):
         query1 = self._context.sparql_context
@@ -173,9 +194,8 @@ class TestBasicConnection(unittest.TestCase):
             self.assertEqual(str(r[0]), "GUGUS")
 
     def test_transaction(self):
-        self._connection.transaction_start()
-        query1 = self._context.sparql_context
-        query1 += """
+        query = self._context.sparql_context
+        query += """
         INSERT DATA {
             GRAPH test:shacl {
                 test:waseliwas a test:Waseliwas .
@@ -183,7 +203,24 @@ class TestBasicConnection(unittest.TestCase):
             }
         }
         """
-        self._connection.transaction_update(query1)
+        self._connection.update_query(query)
+
+        self._connection.transaction_start()
+        query = self._context.sparql_context
+        query += """
+        SELECT ?label
+        WHERE {
+            GRAPH test:shacl {
+                ?obj a test:Waseliwas .
+                ?obj rdfs:label ?label .
+            }
+        }
+        """
+        jsonobj = self._connection.transaction_query(query)
+        res = QueryProcessor(self._context, jsonobj)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(str(res[0]['label']), 'WASELIWAS')
+
         query2 = self._context.sparql_context
         query2 += """
         DELETE {
@@ -202,14 +239,15 @@ class TestBasicConnection(unittest.TestCase):
         }
         """
         self._connection.transaction_update(query2)
-        self._connection.transaction_commit()
 
         qq2 = self._context.sparql_context
         qq2 += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?o}"
-        res = self._connection.rdflib_query(qq2)
-        self.assertEqual(len(res), 1)
+        jsonobj = self._connection.transaction_query(qq2)
+        res = QueryProcessor(self._context, jsonobj)
         for r in res:
-            self.assertEqual(str(r[0]), "WASELIWAS ISCH DAS DENN AU?")
+            self.assertEqual(str(r['o']), "WASELIWAS ISCH DAS DENN AU?")
+
+        self._connection.transaction_commit()
 
         self._connection.transaction_start()
         query3 = self._context.sparql_context

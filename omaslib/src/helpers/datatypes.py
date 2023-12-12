@@ -40,7 +40,7 @@ class QName:
         return QName(self._value + str(other))
 
     def __repr__(self):
-        return f"QName({self._value})"
+        return f'QName("{self._value}")'
 
     def __str__(self):
         return self._value

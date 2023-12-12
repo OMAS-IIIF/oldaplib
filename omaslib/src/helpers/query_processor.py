@@ -41,6 +41,16 @@ class StringLiteral:
         else:
             return self.__value
 
+    def __eq__(self, other: Union[str, StringLiteral]) -> bool:
+        if isinstance(other, StringLiteral):
+            return self.__value == other.__value and self.__lang == other.__lang
+        elif isinstance(other, str):
+            return self.__value == other
+
+    def __hash__(self) -> int:
+        return hash(self.__value + '@' + self.__lang.value)
+
+
     @property
     def value(self) -> str:
         return self.__value
@@ -114,6 +124,9 @@ class QueryProcessor:
             return self.__rows[self.__pos]
         else:
             raise StopIteration
+
+    def __getitem__(self, item: int) -> Dict[str, RowElementType]:
+        return self.__rows[item]
 
     @property
     def names(self) -> List[str]:
