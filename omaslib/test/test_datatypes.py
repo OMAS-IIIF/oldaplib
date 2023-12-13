@@ -17,7 +17,7 @@ class TestQname(unittest.TestCase):
         qn3 = QName.build('prefix', 'name')
         self.assertTrue(qn == qn3)
         self.assertEqual(hash(qn), hash(qn3))
-        self.assertEqual(repr(qn3), 'QName(prefix:name)')
+        self.assertEqual(repr(qn3), 'prefix:name')
         self.assertTrue(qn != qn2)
         qn += 'Shape'
         self.assertEqual(str(qn), 'prefix:nameShape')

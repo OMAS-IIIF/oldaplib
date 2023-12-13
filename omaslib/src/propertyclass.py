@@ -675,7 +675,7 @@ class PropertyClass(Model, Notify):
                                       graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified.isoformat()}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -751,7 +751,7 @@ class PropertyClass(Model, Notify):
                                      graph=self._graph,
                                      owlclass_iri=owlclass_iri,
                                      pclass_iri=self._property_class_iri,
-                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified.isoformat()}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -764,11 +764,11 @@ class PropertyClass(Model, Notify):
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
 
+        self._con.transaction_start()
         tmp = self.read_modified_shacl(context=context, graph='test')
-        jsonobj = self._con.query(tmp)
+        jsonobj = self._con.transaction_query(tmp)
         res = QueryProcessor(context, jsonobj)
-        print("\n=========>", res[0]['modified'], type(res[0]['modified']))
-
+        print("\n1=========>", res[0]['modified'], timestamp)
 
         sparql += self.update_shacl(owlclass_iri=self._internal,
                                     timestamp=timestamp)
@@ -782,7 +782,17 @@ class PropertyClass(Model, Notify):
         self.__modified = timestamp
         self.__contributor = self._con.user_iri
         if do_update:
-            self._con.update_query(sparql)
+            self._con.transaction_update(sparql)
+            tmp = self.read_modified_shacl(context=context, graph='test')
+            jsonobj = self._con.transaction_query(tmp)
+            res = QueryProcessor(context, jsonobj)
+            if res[0]['modified'] == timestamp:
+                self._con.transaction_commit()
+            else:
+                self._con.transaction_abort()
+                print(sparql)
+                raise OmasError(f"====>Scheisse: {res[0]['modified']} vs. {timestamp}")
+
         return sparql
 
     def __delete_shacl(self, *,
