@@ -10,6 +10,7 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorNotFound
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import lprint
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
@@ -327,41 +328,44 @@ class TestResourceClass(unittest.TestCase):
         sparql = self._context.sparql_context
         sparql += """
         SELECT ?p ?v
+        FROM test:onto
         WHERE {
             test:testMyResMinimal rdfs:subClassOf ?prop .
             ?prop owl:onProperty dcterms:creator .
             ?prop ?p ?v .
         }
         """
-        res = self._connection.rdflib_query(sparql)
+        jsonobj = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonobj)
         result = {
-            QName('rdf:type'): 'http://www.w3.org/2002/07/owl#Restriction',
-            QName('owl:onProperty'): 'http://purl.org/dc/terms/creator',
+            QName('rdf:type'): 'owl:Restriction',
+            QName('owl:onProperty'): 'dcterms:creator',
             QName('owl:maxCardinality'): 1
         }
         for r in res:
-            p = self._context.iri2qname(r['p'])
-            v = r['v'].toPython()
+            p = r['p']
+            v = r['v']
             self.assertEqual(result[p], v)
 
         sparql = self._context.sparql_context
         sparql += """
         SELECT ?p ?v
+        FROM test:onto
         WHERE {
             test:testMyResMinimal rdfs:subClassOf ?prop .
             ?prop owl:onProperty test:test .
             ?prop ?p ?v .
         }
         """
-        res = self._connection.rdflib_query(sparql)
+        jsonobj = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonobj)
         result = {
-            QName('rdf:type'): 'http://www.w3.org/2002/07/owl#Restriction',
-            QName('owl:onProperty'): 'http://omas.org/test#test',
+            QName('owl:onProperty'): 'test:test',
             QName('owl:minCardinality'): 1
         }
         for r in res:
-            p = self._context.iri2qname(r['p'])
-            v = r['v'].toPython()
+            p = r['p']
+            v = r['v']
             self.assertEqual(result[p], v)
 
     #@unittest.skip('Work in progress')
