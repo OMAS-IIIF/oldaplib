@@ -490,8 +490,8 @@ class PropertyClass(Model, Notify):
         blank = ''
         sparql = context.sparql_context
         owlclass_iri = self._internal
-        sparql += f"{blank:{indent * indent_inc}}FROM {graph}:shacl\n"
         sparql += f"{blank:{indent * indent_inc}}SELECT ?modified\n"
+        sparql += f"{blank:{indent * indent_inc}}FROM {graph}:shacl\n"
         sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
         if owlclass_iri:
             sparql += f"{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n"
@@ -767,7 +767,8 @@ class PropertyClass(Model, Notify):
         tmp = self.read_modified_shacl(context=context, graph='test')
         jsonobj = self._con.query(tmp)
         res = QueryProcessor(context, jsonobj)
-        print("\n========--------->", res[0])
+        print("\n=========>", res[0]['modified'], type(res[0]['modified']))
+
 
         sparql += self.update_shacl(owlclass_iri=self._internal,
                                     timestamp=timestamp)
