@@ -929,8 +929,7 @@ class PropertyClass(Model, Notify):
         sparql = " ;\n".join(sparql_list)
         return sparql
 
-    def delete(self, *,
-               do_update: bool = True) -> str:
+    def delete(self) -> None:
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
 
@@ -939,9 +938,15 @@ class PropertyClass(Model, Notify):
         sparql += self.__delete_owl()
 
         self.__from_triplestore = False
-        if do_update:
-            self._con.update_query(sparql)
-        return sparql
+        self._con.transaction_start()
+        self._con.transaction_update(sparql)
+        modtime_shacl = self.read_modified_shacl(context=context, graph='test')
+        modtime_owl = self.read_modified_owl(context=context, graph='test')
+        if modtime_shacl is not None or modtime_owl is not None:
+            self._con.transaction_abort()
+            raise OmasErrorUpdateFailed("Deleting Property failed")
+        else:
+            self._con.transaction_commit()
 
 
 if __name__ == '__main__':

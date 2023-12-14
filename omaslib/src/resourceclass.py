@@ -5,7 +5,7 @@ from typing import Union, Optional, List, Dict
 from pystrict import strict
 
 from omaslib.src.connection import Connection
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
 from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
@@ -460,6 +460,42 @@ class ResourceClass(Model):
         resclass.__read_owl()
         return resclass
 
+    def read_modified_shacl(self, *,
+                            context: Context,
+                            graph: NCName,
+                            indent: int = 0, indent_inc: int = 4) -> Union[datetime, None]:
+        blank = ''
+        sparql = context.sparql_context
+        sparql += f"{blank:{indent * indent_inc}}SELECT ?modified\n"
+        sparql += f"{blank:{indent * indent_inc}}FROM {graph}:shacl\n"
+        sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
+        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._owlclass_iri}Shape as ?res)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
+        sparql += f"{blank:{indent * indent_inc}}}}"
+        jsonobj = self._con.transaction_query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            return None
+        return res[0].get('modified')
+
+    def read_modified_owl(self, *,
+                            context: Context,
+                            graph: NCName,
+                            indent: int = 0, indent_inc: int = 4) -> Union[datetime, None]:
+        blank = ''
+        sparql = context.sparql_context
+        sparql += f"{blank:{indent * indent_inc}}SELECT ?modified\n"
+        sparql += f"{blank:{indent * indent_inc}}FROM {graph}:onto\n"
+        sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
+        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._owlclass_iri} as ?res)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
+        sparql += f"{blank:{indent * indent_inc}}}}"
+        jsonobj = self._con.transaction_query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            return None
+        return res[0].get('modified')
+
     def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
@@ -508,7 +544,13 @@ class ResourceClass(Model):
         for iri, p in self._properties.items():
             if not p.from_triplestore:
                 sparql += p.create_owl_part1(timestamp, indent + 2) + '\n'
-        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owlclass_iri} rdf:type owl:Class ;\n'
+
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owlclass_iri} rdf:type owl:Class ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{self.__version}" ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor} ;\n'
         if self._attributes.get(ResourceClassAttribute.SUBCLASS_OF) is not None:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._attributes[ResourceClassAttribute.SUBCLASS_OF]} ,\n'
         else:
@@ -523,7 +565,7 @@ class ResourceClass(Model):
             i += 1
         return sparql
 
-    def create(self, indent: int = 0, indent_inc: int = 4, as_string: bool = False) -> Union[str, None]:
+    def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
             raise OmasErrorAlreadyExists(f'Cannot create property that was read from triplestore before (property: {self._owlclass_iri}')
         timestamp = datetime.now()
@@ -541,13 +583,18 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        if as_string:
-            return sparql
-        else:
-            self._con.update_query(sparql)
+        self._con.transaction_start()
+        self._con.transaction_update(sparql)
+        modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
+        modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+        if modtime_shacl == timestamp and modtime_owl == timestamp:
+            self._con.transaction_commit()
             self.__created = timestamp
             self.__modified = timestamp
             self.__from_triplestore = True
+        else:
+            self._con.transaction_abort()
+            raise OmasErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
 
     def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._attr_changeset and not self._prop_changeset:
@@ -615,7 +662,7 @@ class ResourceClass(Model):
         sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
                                      graph=self._graph,
                                      owlclass_iri=self._owlclass_iri,
-                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified.isoformat()}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -655,34 +702,6 @@ class ResourceClass(Model):
                 sparql_list.append(sparql)
 
         #
-        # Adapt OWL for changing *properties*
-        #
-        # for prop, change in self._prop_changeset.items():
-        #     sparql = f'#\n# OWL: Process property "{prop}" with Action "{change.action.value}"\n#\n'
-        #     sparql += f'WITH {self._graph}:onto\n'
-        #     if change.action != Action.CREATE:
-        #         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?resource rdfs:subClassOf ?propnode .\n'
-        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-        #         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        #     if change.action != Action.DELETE:
-        #         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?resource rdfs:subClassOf _:bnode .\n'
-        #         sparql += f'{blank:{(indent + 1) * indent_inc}}_:bnode a owl:Restriction ;\n'
-        #         sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {prop}'
-        #         sparql += self._properties[prop][PropertyClassAttribute.RESTRICTIONS].create_owl(indent + 1, indent_inc)
-        #         sparql += ' ;\n'
-        #         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        #
-        #     sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-        #     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri} as ?resource)\n'
-        #     if change.action != Action.CREATE:
-        #         sparql += f'{blank:{(indent + 2) * indent_inc}}?resource rdfs:subClassOf ?propnode .\n'
-        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {prop} .\n'
-        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-        #     sparql += f'{blank:{indent * indent_inc}}}}'
-        #     sparql_list.append(sparql)
-        #
         # Updating the timestamp and contributor ID
         #
         sparql = f'#\n# Update/add dcterms:contributor\n#\n'
@@ -704,7 +723,7 @@ class ResourceClass(Model):
         sparql = " ;\n".join(sparql_list)
         return sparql
 
-    def update(self, as_string: bool = False) -> Union[str, None]:
+    def update(self) -> None:
         timestamp = datetime.now()
         context = Context(name=self._con.context_name)
         #
@@ -714,6 +733,8 @@ class ResourceClass(Model):
             if change.action == Action.CREATE:
                 if self._properties[prop].internal is not None:
                     self._properties[prop].create()
+                print("\n+++++++++++++++++++++++++++++++++++>", self._properties[prop].internal)
+                
                     # TODO: Add here the OWL rdfs:subClassOf to the owl ontology
             elif change.action == Action.REPLACE:
                 if change.old_value.internal is not None:
@@ -740,13 +761,19 @@ class ResourceClass(Model):
         sparql += self.__update_shacl(timestamp=timestamp)
         sparql += ' ;\n'
         sparql += self.__update_owl(timestamp=timestamp)
-        if as_string:
-            return sparql
+        self._con.transaction_start()
+        self._con.transaction_update(sparql)
+        modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
+        modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+        print(modtime_shacl, modtime_owl, timestamp)
+        if modtime_shacl == timestamp and modtime_owl == timestamp:
+            self._con.transaction_commit()
+            self.__changeset_clear()
+            self.__modified = timestamp
+            self.__contributor = self._con.user_iri
         else:
-            self._con.update_query(sparql)
-        self.__changeset_clear()
-        self.__modified = timestamp
-        self.__contributor = self._con.user_iri
+            self._con.transaction_abort()
+            raise OmasErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
 
 
 if __name__ == '__main__':
@@ -761,7 +788,7 @@ if __name__ == '__main__':
     #omas_project.closed = False
     #omas_project.subclass_of = QName('omas:Object')
     omas_project[QName('omas:projectEnd')].name = LangString({Language.DE: "Projektende"})
-    print(omas_project.update(as_string=True))
+    print(omas_project.update())
     # omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
     # omas_project2.read()
     # print(omas_project2)
