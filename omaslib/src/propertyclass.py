@@ -17,7 +17,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, AnyIRI, Action, NCName, BNode
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import RowType, StringLiteral, QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
@@ -486,7 +486,7 @@ class PropertyClass(Model, Notify):
     def read_modified_shacl(self, *,
                             context: Context,
                             graph: NCName,
-                            indent: int = 0, indent_inc: int = 4) -> datetime:
+                            indent: int = 0, indent_inc: int = 4) -> Union[datetime, None]:
         blank = ''
         sparql = context.sparql_context
         owlclass_iri = self._internal
@@ -500,7 +500,31 @@ class PropertyClass(Model, Notify):
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
         sparql += f"{blank:{indent * indent_inc}}}}"
-        return sparql
+        jsonobj = self._con.transaction_query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            return None
+        return res[0].get('modified')
+
+    def read_modified_owl(self, *,
+                          context: Context,
+                          graph: NCName,
+                          indent: int = 0, indent_inc: int = 4) -> Union[datetime, None]:
+        blank = ''
+        sparql = context.sparql_context
+        owlclass_iri = self._internal
+        sparql += f"{blank:{indent * indent_inc}}SELECT ?modified\n"
+        sparql += f"{blank:{indent * indent_inc}}FROM {graph}:onto\n"
+        sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
+        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+        sparql += f"{blank:{indent * indent_inc}}}}"
+        jsonobj = self._con.transaction_query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            return None
+        return res[0].get('modified')
+
 
     def property_node_shacl(self, *,
                             timestamp: datetime,
@@ -580,12 +604,10 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def create(self, *,
-               timestamp: Optional[datetime] = None,
-               indent: int = 0, indent_inc: int = 4, do_update: bool = True) -> Union[str, None]:
+               indent: int = 0, indent_inc: int = 4) -> Union[str, None]:
         if self.__from_triplestore:
             raise OmasErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
-        if timestamp is None:
-            timestamp = datetime.now()
+        timestamp = datetime.now()
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -606,11 +628,20 @@ class PropertyClass(Model, Notify):
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         self.__created = timestamp
+        self.__creator = self._con.user_iri
         self.__modified = timestamp
+        self.__contributor = self._con.user_iri
         self.__from_triplestore = True
-        if do_update:
-            self._con.update_query(sparql)
-        return sparql
+
+        self._con.transaction_start()
+        self._con.transaction_update(sparql)
+        modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
+        modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+        if modtime_shacl == timestamp and modtime_owl == timestamp:
+            self._con.transaction_commit()
+        else:
+            self._con.transaction_abort()
+            raise OmasErrorUpdateFailed(f"Update of RDF didn't work!")
 
     def update_shacl(self, *,
                      owlclass_iri: Optional[QName] = None,
@@ -770,40 +801,34 @@ class PropertyClass(Model, Notify):
         sparql = " ;\n".join(sparql_list)
         return sparql
 
-    def update(self, do_update: bool = True) -> str:
+    def update(self) -> None:
         timestamp = datetime.now()
+
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
 
         self._con.transaction_start()
-        tmp = self.read_modified_shacl(context=context, graph='test')
-        jsonobj = self._con.transaction_query(tmp)
-        res = QueryProcessor(context, jsonobj)
 
         sparql += self.update_shacl(owlclass_iri=self._internal,
                                     timestamp=timestamp)
         sparql += " ;\n"
         sparql += self.update_owl(owlclass_iri=self._internal,
                                   timestamp=timestamp)
-        for prop, change in self._changeset.items():
-            if change.action == Action.MODIFY:
-                self._attributes[prop].changeset_clear()
-        self.__changeset_clear()
-        self.__modified = timestamp
-        self.__contributor = self._con.user_iri
-        if do_update:
-            self._con.transaction_update(sparql)
-            tmp = self.read_modified_shacl(context=context, graph='test')
-            jsonobj = self._con.transaction_query(tmp)
-            res = QueryProcessor(context, jsonobj)
-            if res[0]['modified'] == timestamp:
-                self._con.transaction_commit()
-            else:
-                self._con.transaction_abort()
-                raise OmasError(f"====>Scheisse: {res[0]['modified']} vs. {timestamp}")
-
-        return sparql
+        self._con.transaction_update(sparql)
+        modtime_shacl = self.read_modified_shacl(context=context, graph='test')
+        modtime_owl = self.read_modified_owl(context=context, graph='test')
+        if modtime_shacl == timestamp and modtime_owl == timestamp:
+            self._con.transaction_commit()
+            self.__modified = timestamp
+            self.__contributor = self._con.user_iri
+            for prop, change in self._changeset.items():
+                if change.action == Action.MODIFY:
+                    self._attributes[prop].changeset_clear()
+            self._changeset = {}
+        else:
+            self._con.transaction_abort()
+            raise OmasErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} owl={modtime_owl} timestamp={timestamp}')
 
     def __delete_shacl(self, *,
                        indent: int = 0, indent_inc: int = 4) -> str:

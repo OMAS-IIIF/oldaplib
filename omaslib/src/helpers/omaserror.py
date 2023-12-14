@@ -19,3 +19,7 @@ class OmasErrorAlreadyExists(OmasError):
 @strict
 class OmasErrorInconsistency(OmasError):
     pass
+
+@strict
+class OmasErrorUpdateFailed(OmasError):
+    pass

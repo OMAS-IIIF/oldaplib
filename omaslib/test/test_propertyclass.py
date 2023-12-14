@@ -42,6 +42,7 @@ class TestPropertyClass(unittest.TestCase):
         #cls._connection.clear_graph(QName('test:onto'))
         pass
 
+    #@unittest.skip('Work in progress')
     def test_propertyclass_constructor(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),
@@ -73,6 +74,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.get(PropertyClassAttribute.TO_NODE_IRI), QName('test:Person'))
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
 
+    #@unittest.skip('Work in progress')
     def test_propertyclass_read_shacl(self):
         p1 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -100,6 +102,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 3)
         self.assertEqual(p2[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
 
+    #@unittest.skip('Work in progress')
     def test_propertyclass_create(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
@@ -130,6 +133,7 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE, Language.FR, Language.IT})
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 11)
 
+    #@unittest.skip('Work in progress')
     def test_propertyclass_undo(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
@@ -251,6 +255,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 12)
         self.assertFalse(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
 
+    #@unittest.skip('Work in progress')
     def test_propertyclass_delete_attrs(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
@@ -295,6 +300,7 @@ class TestPropertyClass(unittest.TestCase):
         res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
         self.assertEqual(len(res), 0)
 
+    #@unittest.skip('Work in progress')
     def test_propertyclass_delete(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
