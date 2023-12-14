@@ -26,9 +26,9 @@
         sh:order 2 ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime .
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime .
 
     :testShape a sh:PropertyShape ;
         sh:path :test ;
@@ -39,17 +39,17 @@
         sh:order 3 ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime .
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime .
 
     :testMyResShape a sh:NodeShape, :testMyRes ;
         sh:targetClass :testMyRes ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "My Resource"@en, "Meine Ressource"@de, "Ma Resource"@fr ;
         rdfs:comment "Resource for testing..." ;
         sh:property
@@ -62,9 +62,9 @@
                 sh:path :hasText ;
                 dcterms:hasVersion "1.0.0" ;
                 dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
                 sh:languageIn ("de" "en") ;
                 sh:maxCount 1 ;
@@ -79,9 +79,9 @@
         sh:targetClass :testMyResMinimal ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -91,9 +91,9 @@
                 sh:path :hasMinimal ;
                 dcterms:hasVersion "1.0.0" ;
                 dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
             ] ;
         sh:closed true .
@@ -105,49 +105,49 @@
     :ontology rdf:type owl:Ontology ;
         owl:versionIRI <http://omas.org/test/ontology/version/1.0.0> ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         owl:imports <http://www.w3.org/2004/02/skos/core> ;
         owl:imports omas:ontology .
 
 
     :comment rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:range xsd:string .
 
     :test rdf:type owl:ObjectProperty ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:range :comment .
 
     :hasText rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:range xsd:string ;
         rdfs:domain :testMyRes .
 
     :hasMinimal a owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:range xsd:string ;
         rdfs:domain :testMyResMinimal .
 
 
     :testMyRes a owl:Class ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:subClassOf
             [
                 rdf:type owl:Restriction ;
@@ -162,9 +162,9 @@
 
     :testMyResMinimal a owl:Class ;
         dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:subClassOf
             [
                 rdf:type owl:Restriction ;

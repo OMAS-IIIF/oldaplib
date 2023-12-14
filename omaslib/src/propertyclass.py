@@ -703,7 +703,7 @@ class PropertyClass(Model, Notify):
                                                            indent=indent, indent_inc=indent_inc)
                 if sparql:
                     sparql_list.append(sparql)
-            if prop in owl_propclass_attributes:
+            elif prop in owl_propclass_attributes:
                 sparql = f'#\n# OWL:\n# Process "{owl_prop[prop]}" with Action "{change.action.value}"\n#\n'
                 ele = RdfModifyItem(property=owl_prop[prop],
                                     old_value=str(change.old_value) if change.action != Action.CREATE else None,
@@ -738,21 +738,33 @@ class PropertyClass(Model, Notify):
         # Updating the timestamp and contributor ID
         #
         sparql = f'#\n# Update/add dcterms:contributor {self._graph}:onto\n#\n'
-        sparql += RdfModifyProp.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
-                                     graph=self._graph,
-                                     owlclass_iri=owlclass_iri,
-                                     pclass_iri=self._property_class_iri,
-                                     ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
-                                     last_modified=self.__modified)
+        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self.__contributor}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self._con.user_iri}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql_list.append(sparql)
 
         sparql = f'#\n# Update/add dcterms:modified in {self._graph}:onto\n#\n'
-        sparql += RdfModifyProp.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
-                                     graph=self._graph,
-                                     owlclass_iri=owlclass_iri,
-                                     pclass_iri=self._property_class_iri,
-                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified.isoformat()}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
-                                     last_modified=self.__modified)
+        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
@@ -768,7 +780,6 @@ class PropertyClass(Model, Notify):
         tmp = self.read_modified_shacl(context=context, graph='test')
         jsonobj = self._con.transaction_query(tmp)
         res = QueryProcessor(context, jsonobj)
-        print("\n1=========>", res[0]['modified'], timestamp)
 
         sparql += self.update_shacl(owlclass_iri=self._internal,
                                     timestamp=timestamp)
@@ -790,7 +801,6 @@ class PropertyClass(Model, Notify):
                 self._con.transaction_commit()
             else:
                 self._con.transaction_abort()
-                print(sparql)
                 raise OmasError(f"====>Scheisse: {res[0]['modified']} vs. {timestamp}")
 
         return sparql

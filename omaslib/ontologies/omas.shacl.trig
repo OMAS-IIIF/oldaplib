@@ -13,7 +13,7 @@
 :shacl {
 
     :shacl dc:hasVersion "1.0.0" ;
-        dc:modified "2023-11-04T12:00:00Z"^^xsd:dateTime .
+        dc:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime .
 
 #
 # First we have 2 properties which can by used by any sh:NodeShape.

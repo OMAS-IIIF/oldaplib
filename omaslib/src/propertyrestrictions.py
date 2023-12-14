@@ -339,10 +339,10 @@ class PropertyRestrictions(Notify):
                 sparql_list.append(sparql)
                 sparql = f'WITH {graph}:shacl\n'
 
-            sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
-            sparql += f'{blank:{indent * indent_inc}}}}\n'
-
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 if type(self._restrictions[restriction_type]) == set:

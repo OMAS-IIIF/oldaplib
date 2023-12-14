@@ -657,31 +657,31 @@ class ResourceClass(Model):
         #
         # Adapt OWL for changing *properties*
         #
-        for prop, change in self._prop_changeset.items():
-            sparql = f'#\n# OWL: Process property "{prop}" with Action "{change.action.value}"\n#\n'
-            sparql += f'WITH {self._graph}:onto\n'
-            if change.action != Action.CREATE:
-                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource rdfs:subClassOf ?propnode .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-                sparql += f'{blank:{indent * indent_inc}}}}\n'
-            if change.action != Action.DELETE:
-                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource rdfs:subClassOf _:bnode .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}_:bnode a owl:Restriction ;\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {prop}'
-                sparql += self._properties[prop][PropertyClassAttribute.RESTRICTIONS].create_owl(indent + 1, indent_inc)
-                sparql += ' ;\n'
-                sparql += f'{blank:{indent * indent_inc}}}}\n'
-
-            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri} as ?resource)\n'
-            if change.action != Action.CREATE:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?resource rdfs:subClassOf ?propnode .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {prop} .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-            sparql += f'{blank:{indent * indent_inc}}}}'
-            sparql_list.append(sparql)
+        # for prop, change in self._prop_changeset.items():
+        #     sparql = f'#\n# OWL: Process property "{prop}" with Action "{change.action.value}"\n#\n'
+        #     sparql += f'WITH {self._graph}:onto\n'
+        #     if change.action != Action.CREATE:
+        #         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?resource rdfs:subClassOf ?propnode .\n'
+        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+        #         sparql += f'{blank:{indent * indent_inc}}}}\n'
+        #     if change.action != Action.DELETE:
+        #         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?resource rdfs:subClassOf _:bnode .\n'
+        #         sparql += f'{blank:{(indent + 1) * indent_inc}}_:bnode a owl:Restriction ;\n'
+        #         sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {prop}'
+        #         sparql += self._properties[prop][PropertyClassAttribute.RESTRICTIONS].create_owl(indent + 1, indent_inc)
+        #         sparql += ' ;\n'
+        #         sparql += f'{blank:{indent * indent_inc}}}}\n'
+        #
+        #     sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        #     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri} as ?resource)\n'
+        #     if change.action != Action.CREATE:
+        #         sparql += f'{blank:{(indent + 2) * indent_inc}}?resource rdfs:subClassOf ?propnode .\n'
+        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {prop} .\n'
+        #         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+        #     sparql += f'{blank:{indent * indent_inc}}}}'
+        #     sparql_list.append(sparql)
         #
         # Updating the timestamp and contributor ID
         #
