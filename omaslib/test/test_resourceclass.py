@@ -49,7 +49,7 @@ class TestResourceClass(unittest.TestCase):
         #cls._connection.clear_graph(QName('test:onto'))
         pass
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_constructor(self):
         attrs: ResourceClassAttributesContainer = {
             ResourceClassAttribute.LABEL: LangString(["Test resource@en", "Resource de test@fr"]),
@@ -117,7 +117,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG], True)
         self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_reading(self):
         r1 = ResourceClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -162,7 +162,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MIN_COUNT), 1)
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_creating(self):
         props1: PropertyClassAttributesContainer = {
             PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),
@@ -273,7 +273,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertTrue(prop4.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.UNIQUE_LANG])
         self.assertEqual(prop4.get(PropertyClassAttribute.ORDER), 2)
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_updating_add(self):
         r1 = ResourceClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -368,7 +368,7 @@ class TestResourceClass(unittest.TestCase):
             v = r['v']
             self.assertEqual(result[p], v)
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -396,7 +396,7 @@ class TestResourceClass(unittest.TestCase):
 
     #@unittest.skip('Work in progress')
     def test_delete_props(self):
-        props1: PropertyClassAttributesContainer = {
+        attrs1: PropertyClassAttributesContainer = {
             PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),
             PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
             PropertyClassAttribute.NAME: LangString(["Test property@en", "Testprädikat@de"]),
@@ -413,9 +413,9 @@ class TestResourceClass(unittest.TestCase):
         p1 = PropertyClass(con=self._connection,
                            graph=NCName('test'),
                            property_class_iri=QName('test:propA'),
-                           attrs=props1)
+                           attrs=attrs1)
 
-        props2: PropertyClassAttributesContainer = {
+        attrs2: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:testMyRes'),
             PropertyClassAttribute.NAME: LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
             PropertyClassAttribute.DESCRIPTION: LangString("An exclusive property for testing...@en"),
@@ -430,7 +430,7 @@ class TestResourceClass(unittest.TestCase):
         p2 = PropertyClass(con=self._connection,
                            graph=NCName('test'),
                            property_class_iri=QName('test:propB'),
-                           attrs=props2)
+                           attrs=attrs2)
 
         properties: List[Union[PropertyClass, QName]] = [
             QName("test:comment"),

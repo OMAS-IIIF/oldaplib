@@ -693,13 +693,35 @@ class ResourceClass(Model):
                     sparql += f'{blank:{(indent + 1) * indent_inc}}?prop rdfs:subClassOf {self._attributes[item]} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri}Shape as ?prop)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri} as ?prop)\n'
                 if change.action != Action.CREATE:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}?res rdfs:subClassOf {change.old_value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{timestamp.isoformat()}"^^xsd:dateTime)\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
+
+        for prop, change in self._prop_changeset.items():
+            sparql = f'#\n# OWL: Process property "{prop}" with Action "{change.action.value}"\n#\n'
+            print(sparql)
+            sparql += f'WITH {self._graph}:onto\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?res rdfs:subClassOf ?node .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?node ?p ?v\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if change.action != Action.DELETE:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?res rdfs:subClassOf\n'
+                sparql += self._properties[prop].create_owl_part2(indent=2)
+                sparql += '\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri} as ?res)\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?node owl:onProperty {prop}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql_list.append(sparql)
 
         #
         # Updating the timestamp and contributor ID
@@ -716,7 +738,7 @@ class ResourceClass(Model):
         sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
                                     graph=self._graph,
                                     owlclass_iri=self._owlclass_iri,
-                                    ele=RdfModifyItem('dcterms:modified', f'"{self.__modified}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                    ele=RdfModifyItem('dcterms:modified', f'"{self.__modified.isoformat()}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
                                     last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -733,8 +755,7 @@ class ResourceClass(Model):
             if change.action == Action.CREATE:
                 if self._properties[prop].internal is not None:
                     self._properties[prop].create()
-                print("\n+++++++++++++++++++++++++++++++++++>", self._properties[prop].internal)
-                
+
                     # TODO: Add here the OWL rdfs:subClassOf to the owl ontology
             elif change.action == Action.REPLACE:
                 if change.old_value.internal is not None:
@@ -751,12 +772,6 @@ class ResourceClass(Model):
             elif change.action == Action.DELETE:
                 if change.old_value.internal is not None:
                     change.old_value.delete()
-                else:
-                    #sparql = context.sparql_context
-                    #sparql += change.old_value.delete_owl_subclass_str(owlclass_iri=self._owlclass_iri)
-                    #self._con.update_query(sparql)
-                    pass
-        blank = ''
         sparql = context.sparql_context
         sparql += self.__update_shacl(timestamp=timestamp)
         sparql += ' ;\n'
@@ -765,7 +780,6 @@ class ResourceClass(Model):
         self._con.transaction_update(sparql)
         modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
         modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
-        print(modtime_shacl, modtime_owl, timestamp)
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
             self.__changeset_clear()
@@ -775,6 +789,20 @@ class ResourceClass(Model):
             self._con.transaction_abort()
             raise OmasErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
 
+    def __delete_shacl(self) -> str:
+        blank = ''
+        sparql = f'#\n# SHALC: Delete "{self._owlclass_iri}" completely\n#\n'
+        sparql += f'DELETE WHERE {{\n'
+        sparql += f'  {self._owlclass_iri} ?p ?v'
+
+        sparql += f'}}\n'
+        return sparql
+
+    def __delete_owl(self) -> str:
+        pass
+
+    def delete(self) -> None:
+        pass
 
 if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
