@@ -28,14 +28,14 @@ class RdfModifyRes:
                               ele: RdfModifyItem,
                               last_modified: datetime,
                               indent: int = 0, indent_inc: int = 4) -> str:
-        blank = ' '
+        blank = ''
         sparql = f'WITH {graph}\n'
         if action != Action.CREATE:
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
             if ele.old_value is not None:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value} . # NOT NONE\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
             else:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} ?value . # IS NONE\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} ?value .\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         if action != Action.DELETE:
@@ -81,7 +81,7 @@ class RdfModifyRes:
              last_modified: datetime,
              indent: int = 0, indent_inc: int = 4):
         graph = QName(str(graph) + ':onto')
-        return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
+        return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
                                          graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
 
