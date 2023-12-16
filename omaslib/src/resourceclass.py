@@ -703,7 +703,6 @@ class ResourceClass(Model):
 
         for prop, change in self._prop_changeset.items():
             sparql = f'#\n# OWL: Process property "{prop}" with Action "{change.action.value}"\n#\n'
-            print(sparql)
             sparql += f'WITH {self._graph}:onto\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
@@ -792,10 +791,84 @@ class ResourceClass(Model):
     def __delete_shacl(self) -> str:
         blank = ''
         sparql = f'#\n# SHALC: Delete "{self._owlclass_iri}" completely\n#\n'
-        sparql += f'DELETE WHERE {{\n'
-        sparql += f'  {self._owlclass_iri} ?p ?v'
 
-        sparql += f'}}\n'
+        sparql +="""        
+        WITH test:shacl
+        DELETE {{
+            test:testMyResShape ?rattr ?rvalue .
+            ?rvalue ?pattr ?pval .
+            ?z rdf:first ?head ;
+               rdf:rest ?tail .
+        }}
+        WHERE {{
+            {self._owlclass_iri} ?rattr ?rvalue .
+            OPTIONAL {{
+            	?rvalue ?pattr ?pval .
+                OPTIONAL {{
+        			?pval rdf:rest* ?z .
+            		?z rdf:first ?head ;
+               			rdf:rest ?tail .
+                }}
+            }}
+        }}
+        
+WITH test:shacl
+DELETE {
+    ?propnode sh:languageIn ?langlist .
+    ?lang rdf:first ?head ;
+       rdf:rest ?tail .
+}
+WHERE {
+    test:testMyResShape sh:property ?propnode .
+    ?propnode sh:path test:hasText .
+    ?propnode sh:languageIn ?langlist .
+	?langlist rdf:rest* ?lang .
+    ?lang rdf:first ?head ;
+    	rdf:rest ?tail .
+}
+
+WITH test:shacl
+DELETE {
+	test:testMyResShape ?rattr ?rvalue .
+    ?rvalue ?pattr ?pval .
+    ?z rdf:first ?head ;
+       rdf:rest ?tail .
+}
+WHERE {
+	test:testMyResShape ?rattr ?rvalue .
+	OPTIONAL {
+		?rvalue ?pattr ?pval .
+		OPTIONAL {
+			?pval rdf:rest* ?z .
+			?z rdf:first ?head ;
+				rdf:rest ?tail .
+		}
+	}
+}
+
+
+WITH test:shacl
+DELETE {
+	test:testMyResShape ?rattr ?rvalue .
+    ?rvalue ?pattr ?pval .
+    ?z rdf:first ?head ;
+       rdf:rest ?tail .
+}
+WHERE {
+	test:testMyResShape ?rattr ?rvalue .
+	OPTIONAL {
+		?rvalue ?pattr ?pval .
+		OPTIONAL {
+			?pval rdf:rest* ?z .
+			?z rdf:first ?head ;
+				rdf:rest ?tail .
+		}
+	}
+    FILTER(!isBlank(?rvalue))
+}
+
+
+        """
         return sparql
 
     def __delete_owl(self) -> str:
