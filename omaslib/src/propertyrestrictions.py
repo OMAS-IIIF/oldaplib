@@ -18,6 +18,7 @@ class PropertyRestrictionType(Enum):
     MAX_COUNT = 'sh:maxCount'  # used also for OWL ontology
     LANGUAGE_IN = 'sh:languageIn'
     UNIQUE_LANG = 'sh:uniqueLang'
+    IN = 'sh:in'
     MIN_LENGTH = 'sh:minLength'
     MAX_LENGTH = 'sh:maxLength'
     PATTERN = 'sh:pattern'
@@ -37,7 +38,7 @@ class Compare(Enum):
     XX = '__x__'
 
 
-RestrictionTypes = Union[bool, int, float, str, Set[Language], QName, None]
+RestrictionTypes = Union[bool, int, float, str, Set[Union[Language, str, int]], QName, None]
 RestrictionContainer = Dict[PropertyRestrictionType, RestrictionTypes]
 
 
@@ -91,6 +92,7 @@ class PropertyRestrictions(Notify):
         PropertyRestrictionType.MIN_COUNT: {int},
         PropertyRestrictionType.MAX_COUNT: {int},
         PropertyRestrictionType.LANGUAGE_IN: {set},
+        PropertyRestrictionType.IN: {set},
         PropertyRestrictionType.UNIQUE_LANG: {bool},
         PropertyRestrictionType.MIN_LENGTH: {int},
         PropertyRestrictionType.MAX_LENGTH: {int},
@@ -103,19 +105,20 @@ class PropertyRestrictions(Notify):
         PropertyRestrictionType.LESS_THAN_OR_EQUALS: {QName},
     }
     compare = {
-            PropertyRestrictionType.LANGUAGE_IN: Compare.XX,
-            PropertyRestrictionType.UNIQUE_LANG: Compare.XX,
-            PropertyRestrictionType.MIN_COUNT: Compare.GT,
-            PropertyRestrictionType.MAX_COUNT: Compare.LT,
-            PropertyRestrictionType.MIN_LENGTH: Compare.GT,
-            PropertyRestrictionType.MAX_LENGTH: Compare.LT,
-            PropertyRestrictionType.PATTERN: Compare.XX,
-            PropertyRestrictionType.MIN_EXCLUSIVE: Compare.GT,
-            PropertyRestrictionType.MIN_INCLUSIVE: Compare.GE,
-            PropertyRestrictionType.MAX_EXCLUSIVE: Compare.LT,
-            PropertyRestrictionType.MAX_INCLUSIVE: Compare.LE,
-            PropertyRestrictionType.LESS_THAN: Compare.XX,
-            PropertyRestrictionType.LESS_THAN_OR_EQUALS: Compare.XX
+        PropertyRestrictionType.LANGUAGE_IN: Compare.XX,
+        PropertyRestrictionType.IN: Compare.XX,
+        PropertyRestrictionType.UNIQUE_LANG: Compare.XX,
+        PropertyRestrictionType.MIN_COUNT: Compare.GT,
+        PropertyRestrictionType.MAX_COUNT: Compare.LT,
+        PropertyRestrictionType.MIN_LENGTH: Compare.GT,
+        PropertyRestrictionType.MAX_LENGTH: Compare.LT,
+        PropertyRestrictionType.PATTERN: Compare.XX,
+        PropertyRestrictionType.MIN_EXCLUSIVE: Compare.GT,
+        PropertyRestrictionType.MIN_INCLUSIVE: Compare.GE,
+        PropertyRestrictionType.MAX_EXCLUSIVE: Compare.LT,
+        PropertyRestrictionType.MAX_INCLUSIVE: Compare.LE,
+        PropertyRestrictionType.LESS_THAN: Compare.XX,
+        PropertyRestrictionType.LESS_THAN_OR_EQUALS: Compare.XX
         }
 
     def __init__(self, *,
@@ -161,7 +164,7 @@ class PropertyRestrictions(Notify):
     def __len__(self) -> int:
         return len(self._restrictions)
 
-    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[bool, int, float, str, Set[Language], QName]:
+    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[bool, int, float, str, Set[Union[Language, str, int]], QName]:
         return self._restrictions[restriction_type]
 
     def __setitem__(self,
@@ -269,7 +272,11 @@ class PropertyRestrictions(Notify):
         shacl = ''
         for name, rval in self._restrictions.items():
             if type(rval) is set:
-                tmp = [f'"{x.name.lower()}"' for x in rval]
+                tmp = list(rval)
+                if isinstance(tmp[0], Language):
+                    tmp = [f'"{x.name.lower()}"' for x in rval]
+                elif isinstance(tmp[0], str):
+                    tmp = [f'"{x}"' for x in rval]
                 value = '(' + ' '.join(tmp) + ')'
             elif type(rval) is bool:
                 value = 'true' if rval else 'false'
@@ -315,7 +322,7 @@ class PropertyRestrictions(Notify):
         for restriction_type, change in self._changeset.items():
             sparql = f'#\n# Process "{restriction_type.value}" with Action "{change.action.value}"\n#\n'
             sparql += f'WITH {graph}:shacl\n'
-            if restriction_type == PropertyRestrictionType.LANGUAGE_IN:
+            if restriction_type == PropertyRestrictionType.LANGUAGE_IN or restriction_type == PropertyRestrictionType.IN:
                 #
                 # The SHACL property sh:languageIn is implemented as a RDF List with blank nodes having
                 # a rdf:first and rdf:rest property. This makes the manipulation a bit complicated. If
@@ -346,7 +353,13 @@ class PropertyRestrictions(Notify):
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 if type(self._restrictions[restriction_type]) == set:
-                    newval = "(" + " ".join([f'"{x.name.lower()}"' for x in self._restrictions[restriction_type]]) + ")"
+                    items = list(self._restrictions[restriction_type])
+                    if isinstance(items[0], Language):
+                        newval = "(" + " ".join([f'"{x.name.lower()}"' for x in self._restrictions[restriction_type]]) + ")"
+                    elif isinstance(items[0], str):
+                        newval = "(" + " ".join([f'"{x}"' for x in self._restrictions[restriction_type]]) + ")"
+                    else:
+                        newval = "(" + " ".join(items) + ")"
                 else:
                     newval = self._restrictions[restriction_type]
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} {newval} .\n'
@@ -455,7 +468,7 @@ class PropertyRestrictions(Notify):
         # TODO: Include into unittest!
         blank = ''
         sparql = f'WITH {graph}:shacl\n'
-        if restriction_type == PropertyRestrictionType.LANGUAGE_IN:
+        if restriction_type == PropertyRestrictionType.LANGUAGE_IN or restriction_type == PropertyRestrictionType.MIN_COUNT:
             sparql += f'{blank:{indent*indent_inc}}DELETE {{\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}?z rdf:first ?head ;\n'
             sparql += f'{blank:{(indent + 2)*indent_inc}}rdf:rest ?tail .\n'

@@ -329,6 +329,10 @@ class PropertyClass(Model, Notify):
             if not attributes.get(attriri):
                 attributes[attriri] = set()
             attributes[attriri].add(Language[str(r['oo']).upper()])
+        if r['attriri'].fragment == 'in':
+            if not attributes.get(attriri):
+                attributes[attriri] = set()
+            attributes[attriri].add(r['oo'])
 
     @staticmethod
     def __query_shacl(con: Connection, graph: NCName, property_class_iri: QName) -> Attributes:
@@ -394,7 +398,7 @@ class PropertyClass(Model, Notify):
                     self._attributes[attr] = val[0]
             else:
                 try:
-                    self._attributes[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType(key)] = val if key == "sh:languageIn" else val[0]
+                    self._attributes[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType(key)] = val if (key == "sh:languageIn") or (key == "sh:in") else val[0]
                 except (ValueError, TypeError) as err:
                     raise OmasError(f'Invalid shacl definition of PropertyClass attribute: "{key} {val}"')
         if self._attributes.get(PropertyClassAttribute.RESTRICTIONS):
@@ -840,7 +844,7 @@ class PropertyClass(Model, Notify):
         sparql_list = []
         sparql = f'#\n# Delete {self._property_class_iri} from shacl\n#\n'
         #
-        # First we delete all list (sh:languageIn restrictions) if existing
+        # First we delete all list (sh:languageIn/sh:in restrictions) if existing
         #
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
@@ -853,7 +857,8 @@ class PropertyClass(Model, Notify):
             sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self._property_class_iri} .\n'
         else:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:languageIn ?list .\n'
+        #sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:languageIn ?list .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?listprop ?list .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?list rdf:rest* ?z .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'

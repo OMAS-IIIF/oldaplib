@@ -39,6 +39,14 @@ def check_turtle_expectation(turtle: str, expectation: TurtleExpectation, cl: un
             langsset = set(langslist)
             if langsset >= expectation[ptype].value and langsset <= expectation[ptype].value:
                 expectation[ptype].done = True
+        elif ptype == PropertyRestrictionType.IN:
+            items = value.strip("( )")
+            itemlist = items.split(" ")
+            itemlist = [x.strip('"') for x in itemlist]
+            itemset = set(itemlist)
+            if itemset >= expectation[ptype].value and itemset <= expectation[ptype].value:
+                expectation[ptype].done = True
+
         else:
             value = value.strip(" .")
             tvalue: Union[bool, int, float, str, QName, None] = None
@@ -64,28 +72,29 @@ def check_turtle_expectation(turtle: str, expectation: TurtleExpectation, cl: un
 
 
 class TestPropertyRestriction(unittest.TestCase):
-
     test_restrictions = {
-            PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
-            PropertyRestrictionType.UNIQUE_LANG: True,
-            PropertyRestrictionType.MIN_COUNT: 1,
-            PropertyRestrictionType.MAX_COUNT: 4,
-            PropertyRestrictionType.MIN_LENGTH: 8,
-            PropertyRestrictionType.MAX_LENGTH: 64,
-            PropertyRestrictionType.MIN_EXCLUSIVE: 6.5,
-            PropertyRestrictionType.MIN_INCLUSIVE: 8,
-            PropertyRestrictionType.MAX_EXCLUSIVE: 6.5,
-            PropertyRestrictionType.MAX_INCLUSIVE: 8,
-            PropertyRestrictionType.PATTERN: '.*',
-            PropertyRestrictionType.LESS_THAN: QName('test:greater'),
-            PropertyRestrictionType.LESS_THAN_OR_EQUALS: QName('test:gaga')
-        }
+        PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
+        PropertyRestrictionType.IN: {'A', 'B', 'C'},
+        PropertyRestrictionType.UNIQUE_LANG: True,
+        PropertyRestrictionType.MIN_COUNT: 1,
+        PropertyRestrictionType.MAX_COUNT: 4,
+        PropertyRestrictionType.MIN_LENGTH: 8,
+        PropertyRestrictionType.MAX_LENGTH: 64,
+        PropertyRestrictionType.MIN_EXCLUSIVE: 6.5,
+        PropertyRestrictionType.MIN_INCLUSIVE: 8,
+        PropertyRestrictionType.MAX_EXCLUSIVE: 6.5,
+        PropertyRestrictionType.MAX_INCLUSIVE: 8,
+        PropertyRestrictionType.PATTERN: '.*',
+        PropertyRestrictionType.LESS_THAN: QName('test:greater'),
+        PropertyRestrictionType.LESS_THAN_OR_EQUALS: QName('test:gaga')
+    }
 
     def test_restriction_constructor(self):
         r1 = PropertyRestrictions()
         r2 = PropertyRestrictions(restrictions=TestPropertyRestriction.test_restrictions)
-        self.assertEqual(len(r2), 13)
+        self.assertEqual(len(r2), 14)
         self.assertEqual(r2[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertEqual(r2[PropertyRestrictionType.IN], {'A', 'B', 'C'})
         self.assertTrue(r2[PropertyRestrictionType.UNIQUE_LANG])
         self.assertEqual(r2[PropertyRestrictionType.MIN_COUNT], 1)
         self.assertEqual(r2[PropertyRestrictionType.MAX_COUNT], 4)
@@ -107,6 +116,7 @@ class TestPropertyRestriction(unittest.TestCase):
         test3_restriction = deepcopy(test2_restriction)
         r1 = PropertyRestrictions(restrictions=test2_restriction)
         r1[PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE}
+        r1[PropertyRestrictionType.IN] = {'X', 'Y'}
         r1[PropertyRestrictionType.UNIQUE_LANG] = False
         r1[PropertyRestrictionType.MIN_COUNT] = 2
         r1[PropertyRestrictionType.MAX_COUNT] = 2
@@ -122,6 +132,8 @@ class TestPropertyRestriction(unittest.TestCase):
         expected: Dict[PropertyRestrictionType, PropertyRestrictionChange] = {
             PropertyRestrictionType.LANGUAGE_IN:
                 PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.LANGUAGE_IN], Action.REPLACE, True),
+            PropertyRestrictionType.IN:
+                PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.IN], Action.REPLACE, True),
             PropertyRestrictionType.UNIQUE_LANG:
                 PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.UNIQUE_LANG], Action.REPLACE, False),
             PropertyRestrictionType.MIN_COUNT:
@@ -154,6 +166,7 @@ class TestPropertyRestriction(unittest.TestCase):
         undo_restrictions = deepcopy(TestPropertyRestriction.test_restrictions)
         r1 = PropertyRestrictions(restrictions=undo_restrictions)
         r1[PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE}
+        r1[PropertyRestrictionType.IN] = {'X', 'Y'}
         r1[PropertyRestrictionType.UNIQUE_LANG] = False
         r1[PropertyRestrictionType.MIN_COUNT] = 3
         r1[PropertyRestrictionType.MAX_COUNT] = 10
@@ -167,6 +180,7 @@ class TestPropertyRestriction(unittest.TestCase):
         r1[PropertyRestrictionType.LESS_THAN] = QName('test:waseliwas')
         r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = QName('test:soso')
         self.assertEqual(r1[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE})
+        self.assertEqual(r1[PropertyRestrictionType.IN], {'X', 'Y'})
         self.assertFalse(r1[PropertyRestrictionType.UNIQUE_LANG])
         self.assertEqual(r1[PropertyRestrictionType.MIN_COUNT], 3)
         self.assertEqual(r1[PropertyRestrictionType.MAX_COUNT], 10)
@@ -181,6 +195,7 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS], QName('test:soso'))
 
         r1.undo(PropertyRestrictionType.LANGUAGE_IN)
+        r1.undo(PropertyRestrictionType.IN)
         r1.undo(PropertyRestrictionType.UNIQUE_LANG)
         r1.undo(PropertyRestrictionType.MIN_COUNT)
         r1.undo(PropertyRestrictionType.MAX_COUNT)
@@ -194,8 +209,9 @@ class TestPropertyRestriction(unittest.TestCase):
         r1.undo(PropertyRestrictionType.LESS_THAN)
         r1.undo(PropertyRestrictionType.LESS_THAN_OR_EQUALS)
 
-        self.assertEqual(len(r1), 13)
+        self.assertEqual(len(r1), 14)
         self.assertEqual(r1[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertEqual(r1[PropertyRestrictionType.IN], {'A', 'B', 'C'})
         self.assertTrue(r1[PropertyRestrictionType.UNIQUE_LANG])
         self.assertEqual(r1[PropertyRestrictionType.MIN_COUNT], 1)
         self.assertEqual(r1[PropertyRestrictionType.MAX_COUNT], 4)
@@ -228,7 +244,6 @@ class TestPropertyRestriction(unittest.TestCase):
             dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
             dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
-
         }} 
         '''
         g1 = ConjunctiveGraph()
@@ -240,6 +255,7 @@ class TestPropertyRestriction(unittest.TestCase):
         del r1[PropertyRestrictionType.MAX_LENGTH]
         r1[PropertyRestrictionType.LESS_THAN] = QName('test:mustbemore')
         r1[PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE, Language.FR, Language.IT, Language.ES}
+        r1[PropertyRestrictionType.IN] = {'X', 'Y'}
         self.assertIsNone(r1.get(PropertyRestrictionType.MAX_LENGTH))
         expected: Dict[PropertyRestrictionType, PropertyRestrictionChange] = {
             PropertyRestrictionType.MAX_LENGTH:
@@ -248,6 +264,8 @@ class TestPropertyRestriction(unittest.TestCase):
                 PropertyRestrictionChange(TestPropertyRestriction.test_restrictions[PropertyRestrictionType.LESS_THAN], Action.REPLACE, True),
             PropertyRestrictionType.LANGUAGE_IN:
                 PropertyRestrictionChange(TestPropertyRestriction.test_restrictions[PropertyRestrictionType.LANGUAGE_IN], Action.REPLACE, False),
+            PropertyRestrictionType.IN:
+                PropertyRestrictionChange(TestPropertyRestriction.test_restrictions[PropertyRestrictionType.IN], Action.REPLACE, True),
         }
         self.maxDiff = None
         self.assertEqual(r1.changeset, expected)
@@ -262,6 +280,7 @@ class TestPropertyRestriction(unittest.TestCase):
             PropertyRestrictionType.UNIQUE_LANG: ExpectationValue(True, False),
             PropertyRestrictionType.LANGUAGE_IN: ExpectationValue({
                 Language.FR, Language.EN, Language.DE, Language.IT, Language.ES}, False),
+            PropertyRestrictionType.IN: ExpectationValue({'X', 'Y'}, False),
             PropertyRestrictionType.MIN_COUNT: ExpectationValue(1, False),
             PropertyRestrictionType.MAX_COUNT: ExpectationValue(4, False),
             PropertyRestrictionType.MIN_LENGTH: ExpectationValue(8, False),
@@ -359,6 +378,7 @@ class TestPropertyRestriction(unittest.TestCase):
             PropertyRestrictionType.UNIQUE_LANG: ExpectationValue(True, False),
             PropertyRestrictionType.LANGUAGE_IN: ExpectationValue({
                 Language.FR, Language.EN, Language.DE, Language.IT}, False),
+            PropertyRestrictionType.IN: ExpectationValue({'A', 'B', 'C'}, False),
             PropertyRestrictionType.MIN_COUNT: ExpectationValue(1, False),
             PropertyRestrictionType.MAX_COUNT: ExpectationValue(4, False),
             PropertyRestrictionType.MIN_LENGTH: ExpectationValue(8, False),
