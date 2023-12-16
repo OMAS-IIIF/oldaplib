@@ -789,93 +789,80 @@ class ResourceClass(Model):
             raise OmasErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
 
     def __delete_shacl(self) -> str:
-        blank = ''
         sparql = f'#\n# SHALC: Delete "{self._owlclass_iri}" completely\n#\n'
-
-        sparql +="""        
-        WITH test:shacl
+        sparql += f"""
+        WITH {self._graph}:shacl
         DELETE {{
-            test:testMyResShape ?rattr ?rvalue .
+            {self._owlclass_iri}Shape ?rattr ?rvalue .
             ?rvalue ?pattr ?pval .
             ?z rdf:first ?head ;
-               rdf:rest ?tail .
+            rdf:rest ?tail .
         }}
         WHERE {{
-            {self._owlclass_iri} ?rattr ?rvalue .
+            {self._owlclass_iri}Shape ?rattr ?rvalue .
             OPTIONAL {{
-            	?rvalue ?pattr ?pval .
+                ?rvalue ?pattr ?pval .
                 OPTIONAL {{
-        			?pval rdf:rest* ?z .
-            		?z rdf:first ?head ;
-               			rdf:rest ?tail .
+                    ?pval rdf:rest* ?z .
+                    ?z rdf:first ?head ;
+                    rdf:rest ?tail .
                 }}
+                FILTER(isBlank(?rvalue))
             }}
         }}
-        
-WITH test:shacl
-DELETE {
-    ?propnode sh:languageIn ?langlist .
-    ?lang rdf:first ?head ;
-       rdf:rest ?tail .
-}
-WHERE {
-    test:testMyResShape sh:property ?propnode .
-    ?propnode sh:path test:hasText .
-    ?propnode sh:languageIn ?langlist .
-	?langlist rdf:rest* ?lang .
-    ?lang rdf:first ?head ;
-    	rdf:rest ?tail .
-}
-
-WITH test:shacl
-DELETE {
-	test:testMyResShape ?rattr ?rvalue .
-    ?rvalue ?pattr ?pval .
-    ?z rdf:first ?head ;
-       rdf:rest ?tail .
-}
-WHERE {
-	test:testMyResShape ?rattr ?rvalue .
-	OPTIONAL {
-		?rvalue ?pattr ?pval .
-		OPTIONAL {
-			?pval rdf:rest* ?z .
-			?z rdf:first ?head ;
-				rdf:rest ?tail .
-		}
-	}
-}
-
-
-WITH test:shacl
-DELETE {
-	test:testMyResShape ?rattr ?rvalue .
-    ?rvalue ?pattr ?pval .
-    ?z rdf:first ?head ;
-       rdf:rest ?tail .
-}
-WHERE {
-	test:testMyResShape ?rattr ?rvalue .
-	OPTIONAL {
-		?rvalue ?pattr ?pval .
-		OPTIONAL {
-			?pval rdf:rest* ?z .
-			?z rdf:first ?head ;
-				rdf:rest ?tail .
-		}
-	}
-    FILTER(!isBlank(?rvalue))
-}
-
-
         """
         return sparql
 
     def __delete_owl(self) -> str:
-        pass
+        sparql = f'#\n# OWL: Delete "{self._owlclass_iri}" completely\n#\n'
+        sparql += f"""
+        WITH {self._graph}:onto
+        DELETE {{
+            ?prop ?p ?v
+        }}
+        WHERE {{
+            ?prop rdfs:domain {self._owlclass_iri} .
+            ?prop ?p ?v
+        }} ;
+        WITH {self._graph}:onto
+        DELETE {{
+            ?res ?prop ?value .
+            ?value ?pp ?vv .
+        }}
+        WHERE {{
+            BIND({self._owlclass_iri} AS ?res)
+            ?res ?prop ?value
+            OPTIONAL {{
+                ?value ?pp ?vv
+                FILTER(isBlank(?value))
+            }}
+        }}
+        """
+        return sparql
 
     def delete(self) -> None:
-        pass
+        timestamp = datetime.now()
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += self.__delete_shacl()
+        sparql += ' ;\n'
+        sparql += self.__delete_owl()
+        self._con.transaction_start()
+        self._con.transaction_update(sparql)
+        sparql = context.sparql_context
+        sparql += f"SELECT * FROM {self._graph}:shacl WHERE {{ {self._owlclass_iri}Shape ?p ?v }}"
+        jsonobj = self._con.transaction_query(sparql)
+        res_shacl = QueryProcessor(context, jsonobj)
+        sparql = context.sparql_context
+        sparql += f"SELECT * FROM {self._graph}:onto WHERE {{ {self._owlclass_iri} ?p ?v }}"
+        jsonobj = self._con.transaction_query(sparql)
+        res_onto = QueryProcessor(context, jsonobj)
+        if len(res_shacl) > 0 or len(res_onto) > 0:
+            self._con.transaction_abort()
+            raise OmasErrorUpdateFailed(f'Could not delete "{self._owlclass_iri}".')
+        else:
+            self._con.transaction_commit()
+
 
 if __name__ == '__main__':
     con = Connection('http://localhost:7200', 'omas')
