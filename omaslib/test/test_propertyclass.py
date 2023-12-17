@@ -74,6 +74,19 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.get(PropertyClassAttribute.TO_NODE_IRI), QName('test:Person'))
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
 
+        attrs: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={PropertyRestrictionType.IN: {'yes', 'no'}})
+        }
+        p3 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           property_class_iri=QName('test:testprop3'),
+                           attrs=attrs)
+        self.assertEqual(p3.property_class_iri, QName('test:testprop3'))
+        self.assertEqual(p3[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.IN), {'yes', 'no'})
+        self.assertEqual(p3.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
+
     #@unittest.skip('Work in progress')
     def test_propertyclass_read_shacl(self):
         p1 = PropertyClass.read(con=self._connection,
