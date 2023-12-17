@@ -48,7 +48,10 @@ class StringLiteral:
             return self.__value == other
 
     def __hash__(self) -> int:
-        return hash(self.__value + '@' + self.__lang.value)
+        if self.__lang:
+            return hash(self.__value + '@' + self.__lang.value)
+        else:
+            return hash(self.__value)
 
 
     @property

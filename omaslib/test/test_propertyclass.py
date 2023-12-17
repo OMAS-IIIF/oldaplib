@@ -77,14 +77,14 @@ class TestPropertyClass(unittest.TestCase):
         attrs: PropertyClassAttributesContainer = {
             PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
-                restrictions={PropertyRestrictionType.IN: {'yes', 'no'}})
+                restrictions={PropertyRestrictionType.IN: {'yes', 'may be', 'no'}})
         }
         p3 = PropertyClass(con=self._connection,
                            graph=NCName('test'),
                            property_class_iri=QName('test:testprop3'),
                            attrs=attrs)
         self.assertEqual(p3.property_class_iri, QName('test:testprop3'))
-        self.assertEqual(p3[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.IN), {'yes', 'no'})
+        self.assertEqual(p3[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.IN), {'yes', 'may be', 'no'})
         self.assertEqual(p3.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
 
     #@unittest.skip('Work in progress')
@@ -115,6 +115,12 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 3)
         self.assertEqual(p2[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
 
+        p3 = PropertyClass.read(con=self._connection,
+                                graph=NCName('test'),
+                                property_class_iri=QName('test:enum'))
+        self.assertEqual(p3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         {"very good", "good", "fair", "insufficient"})
+
     #@unittest.skip('Work in progress')
     def test_propertyclass_create(self):
         props: PropertyClassAttributesContainer = {
@@ -124,7 +130,8 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
                 PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
-                PropertyRestrictionType.UNIQUE_LANG: True
+                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.IN: {"http://www.test.org/comment1", "http://www.test.org/comment2"}
             }),
             PropertyClassAttribute.ORDER: 11
         }
@@ -144,6 +151,9 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.DESCRIPTION], LangString("An annotation@en"))
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
                          {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         {"http://www.test.org/comment1", "http://www.test.org/comment2"})
+
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 11)
 
     #@unittest.skip('Work in progress')
@@ -155,7 +165,8 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
                 PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE},
                 PropertyRestrictionType.UNIQUE_LANG: True,
-                PropertyRestrictionType.PATTERN: '*.'
+                PropertyRestrictionType.PATTERN: '*.',
+                PropertyRestrictionType.IN: {"http://www.test.org/comment1", "http://www.test.org/comment2", "http://www.test.org/comment3"}
             }),
             PropertyClassAttribute.ORDER: 11
         }
@@ -172,6 +183,9 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE})
         self.assertTrue(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
         self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.PATTERN], '*.')
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         {"http://www.test.org/comment1", "http://www.test.org/comment2", "http://www.test.org/comment3"})
+
         self.assertEqual(p1[PropertyClassAttribute.ORDER], 11)
 
         p1[PropertyClassAttribute.TO_NODE_IRI] = QName('test:waseliwas')
@@ -179,6 +193,7 @@ class TestPropertyClass(unittest.TestCase):
         del p1[PropertyClassAttribute.NAME][Language.EN]
         p1[PropertyClassAttribute.DESCRIPTION] = LangString("A description@en")
         p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE, Language.FR}
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN] = {"http://google.com", "https//google.com"}
         p1[PropertyClassAttribute.ORDER] = 22
 
         self.assertEqual(p1[PropertyClassAttribute.TO_NODE_IRI], QName('test:waseliwas'))
@@ -188,6 +203,8 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE, Language.FR})
         self.assertTrue(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
         self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.PATTERN], '*.')
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         {"http://google.com", "https//google.com"})
         self.assertEqual(p1[PropertyClassAttribute.ORDER], 22)
 
         p1.undo()
@@ -198,6 +215,8 @@ class TestPropertyClass(unittest.TestCase):
                          {Language.EN, Language.DE})
         self.assertTrue(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
         self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.PATTERN], '*.')
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         {"http://www.test.org/comment1", "http://www.test.org/comment2", "http://www.test.org/comment3"})
         self.assertEqual(p1[PropertyClassAttribute.ORDER], 11)
 
         p1[PropertyClassAttribute.TO_NODE_IRI] = QName('test:waseliwas')
@@ -205,6 +224,9 @@ class TestPropertyClass(unittest.TestCase):
         del p1[PropertyClassAttribute.NAME][Language.EN]
         p1[PropertyClassAttribute.DESCRIPTION] = LangString("A description@en")
         p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE, Language.FR}
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN] = {
+            "https://gaga.com", "https:/gugus.com"
+        }
         p1[PropertyClassAttribute.ORDER] = 22
 
         p1.undo(PropertyClassAttribute.TO_NODE_IRI)
@@ -216,6 +238,9 @@ class TestPropertyClass(unittest.TestCase):
         p1.undo(PropertyRestrictionType.LANGUAGE_IN)
         self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
                          {Language.EN, Language.DE})
+        p1.undo(PropertyRestrictionType.IN)
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         {"http://www.test.org/comment1", "http://www.test.org/comment2", "http://www.test.org/comment3"})
         p1.undo(PropertyClassAttribute.ORDER)
         self.assertEqual(p1[PropertyClassAttribute.ORDER], 11)
         self.assertEqual(p1.changeset, {})
@@ -244,6 +269,7 @@ class TestPropertyClass(unittest.TestCase):
         p1[PropertyClassAttribute.ORDER] = 12
         p1[PropertyClassAttribute.NAME][Language.DE] = 'Annotationen'
         p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = False
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN] = {"gaga", "is was"}
         p1[PropertyClassAttribute.DATATYPE] = XsdDatatypes.string
         self.assertEqual(p1.changeset, {
             PropertyClassAttribute.ORDER: PropertyClassAttributeChange(11, Action.REPLACE, True),
@@ -265,6 +291,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.DESCRIPTION], LangString("An annotation@en"))
         self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
                          {Language.EN, Language.DE, Language.FR, Language.IT})
+        self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN], {"gaga", "is was"})
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 12)
         self.assertFalse(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
 

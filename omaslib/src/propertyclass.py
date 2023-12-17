@@ -273,11 +273,15 @@ class PropertyClass(Model, Notify):
                         self._attributes[attr] = self._changeset[attr].old_value
                     del self._changeset[attr]
             elif type(attr) is PropertyRestrictionType:
+                if self._attributes.get(PropertyClassAttribute.RESTRICTIONS) is None:
+                    return
                 self._attributes[PropertyClassAttribute.RESTRICTIONS].undo(attr)
-                if len(self._attributes[PropertyClassAttribute.RESTRICTIONS]) == 0:
-                    del self._attributes[PropertyClassAttribute.RESTRICTIONS]
                 if len(self._attributes[PropertyClassAttribute.RESTRICTIONS].changeset) == 0:
-                    del self._changeset[PropertyClassAttribute.RESTRICTIONS]
+                    if self._changeset.get(PropertyClassAttribute.RESTRICTIONS) is not None:
+                        del self._changeset[PropertyClassAttribute.RESTRICTIONS]
+                if self._attributes.get(PropertyClassAttribute.RESTRICTIONS) is not None:
+                    if len(self._attributes[PropertyClassAttribute.RESTRICTIONS]) == 0:
+                        del self._attributes[PropertyClassAttribute.RESTRICTIONS]
 
     def __changeset_clear(self) -> None:
         for attr, change in self._changeset.items():
