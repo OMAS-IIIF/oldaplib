@@ -277,6 +277,8 @@ class PropertyRestrictions(Notify):
                     tmp = [f'"{x.name.lower()}"' for x in rval]
                 elif isinstance(tmp[0], str):
                     tmp = [f'"{x}"' for x in rval]
+                else:
+                    tmp = [f'{x}' for x in rval]
                 value = '(' + ' '.join(tmp) + ')'
             elif type(rval) is bool:
                 value = 'true' if rval else 'false'

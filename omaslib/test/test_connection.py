@@ -84,6 +84,9 @@ class TestBasicConnection(unittest.TestCase):
                               },
                              {'o': {'type': 'uri', 'value': 'http://omas.org/test#test'},
                               's': {'type': 'uri', 'value': 'http://omas.org/test#testShape'}
+                              },
+                             {'o': {'type': 'uri', 'value': 'http://omas.org/test#enum'},
+                              's': {'type': 'uri', 'value': 'http://omas.org/test#enumShape'}
                               }]
             }
         }
@@ -102,14 +105,16 @@ class TestBasicConnection(unittest.TestCase):
         """
         p = URIRef(str(self._context.qname2iri('sh:PropertyShape')))
         res = self._connection.rdflib_query(query, {'p': p})
-        self.assertEqual(len(res), 2)
+        self.assertEqual(len(res), 3)
         s0 = {
             URIRef('http://omas.org/test#commentShape'),
             URIRef('http://omas.org/test#testShape'),
+            URIRef('http://omas.org/test#enumShape'),
         }
         s2 = {
             URIRef('http://omas.org/test#comment'),
             URIRef('http://omas.org/test#test'),
+            URIRef('http://omas.org/test#enum'),
         }
         for r in res:
             self.assertIn(r[0], s0)

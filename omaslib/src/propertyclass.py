@@ -98,6 +98,7 @@ class PropertyClass(Model, Notify):
                  notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
                  notify_data: Optional[PropertyClassAttribute] = None):
         """
+        TODO: 1) check if a valid datatype is defined!
         Constructor for a PropertyClass instance. It represents all the information about a PropertyClass
         necessary to perform the CRUD (Create, Read, Update and Delete) operations in both the SHACL and
         OWL representations.

@@ -306,7 +306,8 @@ class TestPropertyClass(unittest.TestCase):
                 PropertyRestrictionType.LANGUAGE_IN: {Language.ZU, Language.CY, Language.SV, Language.RM},
                 PropertyRestrictionType.UNIQUE_LANG: True,
                 PropertyRestrictionType.MAX_COUNT: 1,
-                PropertyRestrictionType.MIN_COUNT: 0
+                PropertyRestrictionType.MIN_COUNT: 0,
+                PropertyRestrictionType.IN: {'A', 'B', 'C'}
             }),
             PropertyClassAttribute.ORDER: 11
         }
@@ -321,6 +322,7 @@ class TestPropertyClass(unittest.TestCase):
         del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT]
         del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG]
         del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN]
+        del p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN]
         p1.update()
 
         p2 = PropertyClass.read(con=self._connection,
@@ -331,6 +333,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.UNIQUE_LANG))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.LANGUAGE_IN))
+        self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.IN))
         res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
         self.assertEqual(len(res), 0)
         res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
@@ -339,6 +342,9 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(len(res), 0)
         res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
         self.assertEqual(len(res), 0)
+        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "A" . ?s ?p ?o}')
+        self.assertEqual(len(res), 0)
+
 
     #@unittest.skip('Work in progress')
     def test_propertyclass_delete(self):

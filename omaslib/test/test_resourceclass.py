@@ -1,7 +1,10 @@
 import unittest
 from datetime import datetime
+from enum import Enum
 from time import sleep
 from typing import Dict, List, Union
+
+from xmlschema import XsdType
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
@@ -18,6 +21,54 @@ from omaslib.src.propertyclass import PropertyClassAttributesContainer, Property
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType
 from omaslib.src.resourceclass import ResourceClassAttributesContainer, ResourceClass
 from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
+
+
+class Graph(Enum):
+    ONTO = 'test:onto'
+    SHACL = 'test:shacl'
+
+
+def check_prop_empty(con: Connection, context: Context, graph: Graph, res: str, prop: str) -> bool:
+    sparql = context.sparql_context
+    if graph == Graph.SHACL:
+        sparql += f"""
+        SELECT ?p ?v ?pp ?oo
+        FROM {graph.value}
+        WHERE {{
+            {res}Shape sh:property ?prop .
+            ?prop sh:path {prop} .
+            ?prop ?p ?v .
+            OPTIONAL {{ ?v ?pp ?oo }}
+        }}
+        """
+    else:
+        sparql += f"""
+        SELECT ?p ?v ?pp ?oo
+        FROM {graph.value}
+        WHERE {{
+            {res} rdfs:subClassOf ?prop .
+            ?prop owl:onProperty test:propB .
+            ?prop ?p ?v .
+            OPTIONAL {{ ?v ?pp ?oo }}
+        }}
+        """
+    res = con.rdflib_query(sparql)
+    return len(res) == 0
+
+def check_res_empty(con: Connection, context: Context, graph: Graph, res: str) -> bool:
+    sparql = context.sparql_context
+    if graph == Graph.SHACL:
+        res += 'Shape'
+    sparql += f"""
+    SELECT ?p ?v ?pp ?oo
+    FROM {graph.value}
+    WHERE {{
+        {res} ?p ?v .
+        OPTIONAL {{ ?v ?pp ?oo }}
+    }}
+    """
+    res = con.rdflib_query(sparql)
+    return len(res) == 0
 
 
 class TestResourceClass(unittest.TestCase):
@@ -69,14 +120,29 @@ class TestResourceClass(unittest.TestCase):
                 }),
             PropertyClassAttribute.ORDER: 5
         }
-        p = PropertyClass(con=self._connection,
+        p1 = PropertyClass(con=self._connection,
                           graph=NCName('test'),
                           property_class_iri=QName('test:testprop'), attrs=props)
+
+        props: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
+            PropertyClassAttribute.NAME: LangString(["Test enum@en", "Enumerationen@de"]),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.MAX_COUNT: 1,
+                    PropertyRestrictionType.MIN_COUNT: 1,
+                    PropertyRestrictionType.IN: {"yes", "maybe", "no"}
+                }),
+            PropertyClassAttribute.ORDER: 6
+        }
+        p2 = PropertyClass(con=self._connection,
+                          graph=NCName('test'),
+                          property_class_iri=QName('test:enumprop'), attrs=props)
 
         properties: List[Union[PropertyClass, QName]] = [
             QName("test:comment"),
             QName("test:test"),
-            p
+            p1, p2
         ]
 
         r1 = ResourceClass(con=self._connection,
@@ -116,6 +182,10 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
         self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG], True)
         self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE, Language.FR, Language.IT})
+
+        prop4 = r1[QName("test:enumprop")]
+        self.assertEqual(prop4[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         {"yes", "maybe", "no"})
 
     #@unittest.skip('Work in progress')
     def test_reading(self):
@@ -162,6 +232,12 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MIN_COUNT), 1)
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
 
+        prop3 = r1[QName('test:hasEnum')]
+        self.assertEqual(prop3.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop3.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
+        self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.IN),
+                         {'red', 'green', 'blue', 'yellow'})
+
     #@unittest.skip('Work in progress')
     def test_creating(self):
         props1: PropertyClassAttributesContainer = {
@@ -200,10 +276,25 @@ class TestResourceClass(unittest.TestCase):
                            property_class_iri=QName('test:testtwo'),
                            attrs=props2)
 
+        props3: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.int,
+            PropertyClassAttribute.NAME: LangString(["E.N.U.M@en"]),
+            PropertyClassAttribute.DESCRIPTION: LangString("An exclusive enum testing...@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.IN: {1, 2, 3}
+                }),
+            PropertyClassAttribute.ORDER: 3
+        }
+        p3 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           property_class_iri=QName('test:testthree'),
+                           attrs=props3)
+
         properties: List[Union[PropertyClass, QName]] = [
             QName("test:comment"),
             QName("test:test"),
-            p1, p2
+            p1, p2, p3
         ]
         attrs: ResourceClassAttributesContainer = {
             ResourceClassAttribute.LABEL: LangString(["CreateResTest@en", "CréationResTeste@fr"]),
@@ -273,6 +364,9 @@ class TestResourceClass(unittest.TestCase):
         self.assertTrue(prop4.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.UNIQUE_LANG])
         self.assertEqual(prop4.get(PropertyClassAttribute.ORDER), 2)
 
+        prop5 = r2[QName("test:testthree")]
+        self.assertEqual(prop5.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.IN], {1, 2, 3})
+
     #@unittest.skip('Work in progress')
     def test_updating_add(self):
         r1 = ResourceClass.read(con=self._connection,
@@ -299,6 +393,16 @@ class TestResourceClass(unittest.TestCase):
                           graph=NCName('test'),
                           attrs=attrs)
         r1[QName('dcterms:creator')] = p
+
+        attrs2: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={PropertyRestrictionType.IN: {'A', 'B', 'C', 'D'}}),
+        }
+        p2 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           attrs=attrs2)
+        r1[QName('test:color')] = p2
         r1.update()
 
         r2 = ResourceClass.read(con=self._connection,
@@ -324,6 +428,11 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.get(PropertyClassAttribute.TO_NODE_IRI), QName('test:Person'))
         self.assertEqual(prop2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.MAX_COUNT), 1)
         self.assertEqual(prop1[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
+
+        prop3 = r2[QName('test:color')]
+        self.assertEqual(prop3.internal, QName("test:testMyResMinimal"))
+        self.assertEqual(prop3[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.IN),
+                         {'A', 'B', 'C', 'D'})
 
         sparql = self._context.sparql_context
         sparql += """
@@ -382,6 +491,7 @@ class TestResourceClass(unittest.TestCase):
         r1[QName('test:hasText')][PropertyClassAttribute.NAME][Language.FR] = "Un Texte Français"
         r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT] = 12
         r1[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN] = {Language.DE, Language.FR, Language.IT}
+        r1[QName('test:hasEnum')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN] = {'L', 'a', 'b'}
         r1.update()
 
         r2 = ResourceClass.read(con=self._connection,
@@ -393,6 +503,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.NAME], LangString(["A text", "Ein Text@de", "Un Texte Français@fr"]))
         self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 12)
         self.assertEqual(r2[QName('test:hasText')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN], {Language.DE, Language.FR, Language.IT})
+        self.assertEqual(r2[QName('test:hasEnum')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN], {'L', 'a', 'b'})
 
     #@unittest.skip('Work in progress')
     def test_delete_props(self):
@@ -432,10 +543,22 @@ class TestResourceClass(unittest.TestCase):
                            property_class_iri=QName('test:propB'),
                            attrs=attrs2)
 
+        attrs3: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.int,
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.IN: {10, 20, 30}
+                }),
+        }
+        p3 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           property_class_iri=QName('test:propC'),
+                           attrs=attrs3)
+
         properties: List[Union[PropertyClass, QName]] = [
             QName("test:comment"),
             QName("test:test"),
-            p1, p2
+            p1, p2, p3
         ]
         attrs: ResourceClassAttributesContainer = {
             ResourceClassAttribute.LABEL: LangString(["CreateResTest@en", "CréationResTeste@fr"]),
@@ -455,35 +578,21 @@ class TestResourceClass(unittest.TestCase):
                                 owl_class_iri=QName("test:TestResourceDelProps"))
         del r2[QName('test:propB')]
         del r2[QName("test:test")]  # OWL is not yet removed (rdfs:subClassOf is still there)
+        del r2[QName('test:propC')]
         r2.update()
 
         r3 = ResourceClass.read(con=self._connection,
                                 graph=NCName('test'),
                                 owl_class_iri=QName("test:TestResourceDelProps"))
 
-        sparql = self._context.sparql_context
-        sparql += """
-        SELECT ?p ?v
-        WHERE {
-            test:testMyResMinimal rdfs:subClassOf ?prop .
-            ?prop owl:onProperty test:propB .
-            ?prop ?p ?v .
-        }
-        """
-        res = self._connection.rdflib_query(sparql)
-        self.assertEqual(len(res), 0)
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.SHACL, 'test:testMyResMinimal', 'test:propB'))
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.ONTO, 'test:testMyResMinimal', 'test:propB'))
 
-        sparql = self._context.sparql_context
-        sparql += """
-        SELECT ?p ?v
-        WHERE {
-            test:testMyResMinimal rdfs:subClassOf ?prop .
-            ?prop owl:onProperty test:test .
-            ?prop ?p ?v .
-        }
-        """
-        res = self._connection.rdflib_query(sparql)
-        self.assertEqual(len(res), 0)
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.SHACL, 'test:testMyResMinimal', 'test:test'))
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.ONTO, 'test:testMyResMinimal', 'test:test'))
+
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.SHACL, 'test:testMyResMinimal', 'test:propC'))
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.ONTO, 'test:testMyResMinimal', 'test:propC'))
 
     #@unittest.skip('Work in progress')
     def test_delete(self):
@@ -523,10 +632,22 @@ class TestResourceClass(unittest.TestCase):
                            property_class_iri=QName('test:deleteB'),
                            attrs=attrs2)
 
+        attrs3: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.int,
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.IN: {10, 20, 30}
+                }),
+        }
+        p3 = PropertyClass(con=self._connection,
+                           graph=NCName('test'),
+                           property_class_iri=QName('test:deleteC'),
+                           attrs=attrs3)
+
         properties: List[Union[PropertyClass, QName]] = [
             QName("test:comment"),
             QName("test:test"),
-            p1, p2
+            p1, p2, p3
         ]
         attrs: ResourceClassAttributesContainer = {
             ResourceClassAttribute.LABEL: LangString(["DeleteResTest@en", "EffaçerResTeste@fr"]),
@@ -546,6 +667,12 @@ class TestResourceClass(unittest.TestCase):
                                 graph=NCName('test'),
                                 owl_class_iri=QName("test:TestResourceDelete"))
         r2.delete()
+
+        self.assertTrue(check_res_empty(self._connection, self._context, Graph.SHACL, 'test:TestResourceDelete'))
+        self.assertTrue(check_res_empty(self._connection, self._context, Graph.ONTO, 'test:TestResourceDelete'))
+
+
+
 
 
 
