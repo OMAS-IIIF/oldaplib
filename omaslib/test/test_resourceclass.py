@@ -11,7 +11,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
-from omaslib.src.helpers.omaserror import OmasErrorNotFound
+from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
@@ -366,6 +366,27 @@ class TestResourceClass(unittest.TestCase):
 
         prop5 = r2[QName("test:testthree")]
         self.assertEqual(prop5.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.IN], {1, 2, 3})
+
+    def test_double_creation(self):
+        properties: List[Union[PropertyClass, QName]] = [
+            QName("test:comment"),
+            QName("test:test"),
+        ]
+        attrs: ResourceClassAttributesContainer = {
+            ResourceClassAttribute.LABEL: LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+            ResourceClassAttribute.COMMENT: LangString("For testing purposes@en"),
+            ResourceClassAttribute.CLOSED: True
+        }
+        r1 = ResourceClass(con=self._connection,
+                           graph=NCName('test'),
+                           owlclass_iri=QName("test:testMyResMinimal"),
+                           attrs=attrs,
+                           properties=properties)
+
+        with self.assertRaises(OmasErrorAlreadyExists) as ex:
+            r1.create()
+        self.assertEqual(str(ex.exception), 'Object "test:testMyResMinimal" already exists.')
+
 
     #@unittest.skip('Work in progress')
     def test_updating_add(self):

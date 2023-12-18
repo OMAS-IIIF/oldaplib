@@ -8,6 +8,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action, NCName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
+from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
 from omaslib.src.helpers.tools import lprint
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassAttributesContainer, PropertyClassAttributeChange
@@ -42,7 +43,6 @@ class TestPropertyClass(unittest.TestCase):
         #cls._connection.clear_graph(QName('test:onto'))
         pass
 
-    #@unittest.skip('Work in progress')
     def test_propertyclass_constructor(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),
@@ -87,7 +87,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p3[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.IN), {'yes', 'may be', 'no'})
         self.assertEqual(p3.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
 
-    #@unittest.skip('Work in progress')
     def test_propertyclass_read_shacl(self):
         p1 = PropertyClass.read(con=self._connection,
                                 graph=NCName('test'),
@@ -121,7 +120,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
                          {"very good", "good", "fair", "insufficient"})
 
-    #@unittest.skip('Work in progress')
     def test_propertyclass_create(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
@@ -156,7 +154,19 @@ class TestPropertyClass(unittest.TestCase):
 
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 11)
 
-    #@unittest.skip('Work in progress')
+        props: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.int,
+        }
+        pX = PropertyClass(
+            con=self._connection,
+            graph=NCName('test'),
+            property_class_iri=QName('test:testWrite'),
+            attrs=props
+        )
+        with self.assertRaises(OmasErrorAlreadyExists) as ex:
+            pX.create()
+        self.assertEqual(str(ex.exception), 'Property "test:testWrite" already exists.')
+
     def test_propertyclass_undo(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
@@ -295,7 +305,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropertyClassAttribute.ORDER], 12)
         self.assertFalse(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
 
-    #@unittest.skip('Work in progress')
     def test_propertyclass_delete_attrs(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
@@ -346,7 +355,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(len(res), 0)
 
 
-    #@unittest.skip('Work in progress')
     def test_propertyclass_delete(self):
         props: PropertyClassAttributesContainer = {
             PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
@@ -385,7 +393,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(len(res), 0)
         res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
         self.assertEqual(len(res), 0)
-
 
 if __name__ == '__main__':
     unittest.main()

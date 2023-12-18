@@ -643,6 +643,9 @@ class PropertyClass(Model, Notify):
         self.__from_triplestore = True
 
         self._con.transaction_start()
+        if self.read_modified_shacl(context=context, graph=self._graph) is not None:
+            self._con.transaction_abort()
+            raise OmasErrorAlreadyExists(f'Property "{self._property_class_iri}" already exists.')
         self._con.transaction_update(sparql)
         modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
         modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
