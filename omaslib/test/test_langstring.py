@@ -63,6 +63,10 @@ class TestLangstring(unittest.TestCase):
         ls7 = LangString("xyz@ur")
         self.assertEqual(ls7[Language.YI], '--no string--')
 
+        ls8 = LangString("lukas.rosenthaler@unibas.ch@en")
+        self.assertEqual(ls8['en'], 'lukas.rosenthaler@unibas.ch')
+
+
     def test_langstring_setitem(self):
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
         ls1['fr'] = 'français'

@@ -66,11 +66,10 @@ class LangString(Notify):
         elif isinstance(langstring, List):
             self._langstring = {}
             for lstr in langstring:
-                index = lstr.find('@')
-                if index >= 0:
-                    tmpls: str = lstr[(index + 1):].upper()
+                if lstr[-3] == "@":
+                    tmpls: str = lstr[-2:].upper()
                     try:
-                        self._langstring[Language[tmpls]] = lstr[:index]
+                        self._langstring[Language[tmpls]] = lstr[:-3]
                     except KeyError as er:
                         raise OmasError(f'Language in string "{lstr}" is invalid')
                 else:
