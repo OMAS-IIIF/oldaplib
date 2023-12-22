@@ -19,6 +19,8 @@ from urllib.parse import quote_plus, urlencode
 from omaslib.src.helpers.datatypes import QName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
+from omaslib.src.helpers.query_processor import QueryProcessor
+
 
 #
 # For bootstrapping the whole tripel store, the following SPARQL has to be executed within the GraphDB
@@ -136,8 +138,6 @@ class Connection:
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
         self._transaction_url = None
         context = Context(name=context_name)
-        for prefix, iri in context.items():
-            self._store.bind(str(prefix), Namespace(str(iri)))
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?s ?p ?o
@@ -149,15 +149,26 @@ class Connection:
         }}
         """
         success = False
-        res = self._store.query(sparql)
-        #
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
+        }
+        data = {
+            'query': sparql,
+        }
+        res = requests.post(url=self._query_url, headers=headers, data=data)
+        if res.status_code == 200:
+            jsonobj = res.json()
+        else:
+            raise OmasError(res.status_code, res.text)
+        res = QueryProcessor(context=context, query_result=jsonobj)
         # TODO: Add more user information / permissions
         for r in res:
-            if str(r['p']) == context.qname2iri('omas:userCredentials'):
+            if str(r['p']) == 'omas:userCredentials':
                 hashed = str(r['o']).encode('utf-8')
                 if bcrypt.checkpw(credentials.encode('utf-8'), hashed):
                     success = True
-                    self._user_iri = context.iri2qname(r['s'])
+                    self._user_iri = r['s']
         if not success:
             raise OmasError("Wrong credentials")
 
