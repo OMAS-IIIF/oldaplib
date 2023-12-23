@@ -138,6 +138,13 @@ skos:prefLabel rdfs:range xsd:string .
     rdfs:domain :User ;
     rdfs:range omas:Project .
 
+:hasRights rdf:type owl:ObjectProperty ;
+    dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime .
+
+
 
 #################################################################
 #    Data properties
@@ -394,6 +401,18 @@ skos:prefLabel rdf:type owl:DatatypeProperty .
 #################################################################
 #    Classes
 #################################################################
+
+:ROOT_RIGHTS a rdfs:Resource ;
+        rdfs:label "root" .
+
+:ADMIN_RIGHTS a rdf:Resource ;
+        rdfs:label "admin" .
+
+:CREATE_RIGHTS a rdf:Resource ;
+        rdfs:label "create" .
+
+:MODIFY_RIGHTS a rdf:Resource ;
+        rdfs:label "modify" .
 
 ###  http://omas.org/base#Date
 omas:Date rdf:type owl:Class ;

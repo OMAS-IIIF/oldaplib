@@ -2,12 +2,19 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
 @prefix omas: <http://omas.org/base#> .
-
 @prefix : <http://omas.org/base#> .
 
 :admin {
+
+    :SystemProject a :Project ;
+        :projectId "system"^^xsd:string ;
+        :projectName "system"^^xsd:string ;
+        :projectDescription "Project for system administration"^^xsd:string ;
+        :projectStart "20230601T000000+0200"^^xsd:date ;
+        :projectHasUser <https://orcid.org/ORCID-0000-0003-1681-4036> .
+
+    <<:SystemProject :projectHasUser <https://orcid.org/ORCID-0000-0003-1681-4036>>> :hasRights :ROOT_RIGHTS .
 
     <https://orcid.org/ORCID-0000-0003-1681-4036> a omas:User ;
         omas:personLastName "Rosenthaler" ;
