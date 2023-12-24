@@ -490,6 +490,7 @@ class TestResourceClass(unittest.TestCase):
         jsonobj = self._connection.query(sparql)
         res = QueryProcessor(self._context, jsonobj)
         result = {
+            QName('rdf:type'): 'owl:Restriction',
             QName('owl:onProperty'): 'test:test',
             QName('owl:minCardinality'): 1
         }
@@ -692,10 +693,56 @@ class TestResourceClass(unittest.TestCase):
         self.assertTrue(check_res_empty(self._connection, self._context, Graph.SHACL, 'test:TestResourceDelete'))
         self.assertTrue(check_res_empty(self._connection, self._context, Graph.ONTO, 'test:TestResourceDelete'))
 
+    def test_write_trig(self):
+        project_id = PropertyClass(con=self._connection,
+                                   graph=NCName('test'),
+                                   property_class_iri=QName('test:projectId'),
+                                   attrs={
+                                       PropertyClassAttribute.DATATYPE: XsdDatatypes.NCName,
+                                       PropertyClassAttribute.NAME: LangString([
+                                           "Project ID@en", "Projekt ID@de"
+                                       ]),
+                                       PropertyClassAttribute.DESCRIPTION: LangString([
+                                           "Unique ID for project@en", "Eindeutige ID für Projekt@de"
+                                       ]),
+                                       PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
+                                           PropertyRestrictionType.MIN_COUNT: 1,
+                                           PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
+                                           PropertyRestrictionType.UNIQUE_LANG: True
+                                       }),
+                                       PropertyClassAttribute.ORDER: 1
+                                   })
+        project_name = PropertyClass(con=self._connection,
+                                     graph=NCName('test'),
+                                     property_class_iri=QName('test:projectName'),
+                                     attrs={
+                                         PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
+                                         PropertyClassAttribute.NAME: LangString([
+                                             "Project name@en", "Projektname@de"
+                                         ]),
+                                         PropertyClassAttribute.DESCRIPTION: LangString([
+                                             "A description of the project@en", "EineBeschreibung des Projekts@de"
+                                         ]),
+                                         PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
+                                             PropertyRestrictionType.MIN_COUNT: 1,
+                                             PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
+                                             PropertyRestrictionType.UNIQUE_LANG: True
+                                         }),
+                                         PropertyClassAttribute.ORDER: 2
+                                     })
 
-
-
-
-
-
+        properties: List[Union[PropertyClass, QName]] = [
+            project_id, project_name
+        ]
+        attrs: ResourceClassAttributesContainer = {
+            ResourceClassAttribute.LABEL: LangString(["Project@en", "Projekt@de"]),
+            ResourceClassAttribute.COMMENT: LangString(["Definiton of a project@en", "Definition eines Projektes@de"]),
+            ResourceClassAttribute.CLOSED: True
+        }
+        r1 = ResourceClass(con=self._connection,
+                           graph=NCName('test'),
+                           owlclass_iri=QName("test:Project"),
+                           attrs=attrs,
+                           properties=properties)
+        r1.write_as_trig("gaga.trig")
 

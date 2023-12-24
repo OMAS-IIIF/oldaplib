@@ -123,7 +123,7 @@ class TestBasicConnection(unittest.TestCase):
     #@unittest.skip('Work in progress')
     def test_json_query(self):
         expected = {
-            QName('rdf:type'): QName('test:testMyRes'),
+            QName('rdf:type'): {QName('test:testMyRes'), QName('sh:NodeShape')},
             QName("rdfs:comment"): "Resource for testing...",
             QName("rdfs:label"): {"My Resource@en", "Meine Ressource@de",  "Ma Resource@fr"},
             QName("sh:property"): QName("test:testShape"),
@@ -152,6 +152,8 @@ class TestBasicConnection(unittest.TestCase):
             if isinstance(r['prop'], BNode) or isinstance(r['value'], BNode):
                 continue
             if r['prop'] == 'rdfs:label':
+                self.assertTrue(str(r['value']) in expected[r['prop']])
+            elif r['prop'] == 'rdf:type':
                 self.assertTrue(str(r['value']) in expected[r['prop']])
             else:
                 self.assertEqual(r['value'], expected[r['prop']])

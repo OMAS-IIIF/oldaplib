@@ -540,11 +540,11 @@ class PropertyClass(Model, Notify):
                             bnode: Optional[QName] = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}# PropertyClass.property_node_shacl()'
+        sparql = f'{blank:{(indent + 1) * indent_inc}}# PropertyClass.property_node_shacl()'
         if bnode:
-            sparql += f'\n{blank:{indent * indent_inc}} {bnode} sh:path {self._property_class_iri}'
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}} {bnode} sh:path {self._property_class_iri}'
         else:
-            sparql += f'\n{blank:{indent * indent_inc}}sh:path {self._property_class_iri}'
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user_iri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
@@ -556,7 +556,7 @@ class PropertyClass(Model, Notify):
             if prop != PropertyClassAttribute.RESTRICTIONS:
                 sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
             else:
-                sparql += self._attributes[PropertyClassAttribute.RESTRICTIONS].create_shacl(indent, indent_inc)
+                sparql += self._attributes[PropertyClassAttribute.RESTRICTIONS].create_shacl(indent + 1, indent_inc)
         #sparql += f' .\n'
         return sparql
 
@@ -654,6 +654,24 @@ class PropertyClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OmasErrorUpdateFailed(f"Update of RDF didn't work!")
+
+    def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
+        with open(filename, 'w') as f:
+            timestamp = datetime.now()
+            blank = ''
+            context = Context(name=self._con.context_name)
+            f.write(context.turtle_context)
+
+            f.write(f'{blank:{indent * indent_inc}}{self._graph}:shacl {{\n')
+            if self._internal is not None:
+                f.write(self.__create_shacl(timestamp=timestamp, owlclass_iri=self._internal, indent=2))
+            else:
+                f.write(self.__create_shacl(timestamp=timestamp, indent=2))
+            f.write(f'{blank:{indent * indent_inc}}}}\n')
+
+            f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
+            f.write(self.create_owl_part1(timestamp=timestamp, indent=2))
+            f.write(f'{blank:{indent * indent_inc}}}}\n')
 
     def update_shacl(self, *,
                      owlclass_iri: Optional[QName] = None,

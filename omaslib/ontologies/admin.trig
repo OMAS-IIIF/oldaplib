@@ -8,7 +8,7 @@
 :admin {
 
     :SystemProject a :Project ;
-        :projectId "system"^^xsd:string ;
+        :projectId "system"^^xsd:NCName ;
         :projectName "system"^^xsd:string ;
         :projectDescription "Project for system administration"^^xsd:string ;
         :projectStart "20230601T000000+0200"^^xsd:date ;
@@ -25,3 +25,14 @@
 
 }
 
+#SELECT *
+#FROM omas:base
+#FROM omas:admin
+#WHERE {
+#    ?user a :User .
+#    ?user :userId "rosenth" .
+#    ?project :projectHasUser ?user .
+#    ?project :projectId "system"^^xsd:string .
+#    <<?project :projectHasUser ?user>> :hasRights ?rights .
+#
+#}

@@ -21,27 +21,31 @@ omas:ontology rdf:type owl:Ontology ;
 #################################################################
 
 ###  http://www.w3.org/2004/02/skos/core#altLabel
-skos:altLabel rdfs:range xsd:string .
-
+skos:altLabel rdf:type owl:DatatypeProperty ;
+              rdfs:range xsd:string .
 
 ###  http://www.w3.org/2004/02/skos/core#changeNote
-skos:changeNote rdfs:range xsd:string .
-
+skos:changeNote rdf:type owl:DatatypeProperty ;
+                rdfs:range xsd:string .
 
 ###  http://www.w3.org/2004/02/skos/core#definition
-skos:definition rdfs:range xsd:string .
+skos:definition rdf:type owl:DatatypeProperty ;
+                rdfs:range xsd:string .
 
 
 ###  http://www.w3.org/2004/02/skos/core#editorialNote
-skos:editorialNote rdfs:range xsd:string .
+skos:editorialNote rdf:type owl:DatatypeProperty ;
+                   rdfs:range xsd:string .
 
 
 ###  http://www.w3.org/2004/02/skos/core#note
-skos:note rdfs:range xsd:string .
+skos:note rdf:type owl:DatatypeProperty ;
+          rdfs:range xsd:string .
 
 
 ###  http://www.w3.org/2004/02/skos/core#prefLabel
-skos:prefLabel rdfs:range xsd:string .
+skos:prefLabel rdf:type owl:DatatypeProperty ;
+               rdfs:range xsd:string .
 
 
 #################################################################
@@ -151,19 +155,15 @@ skos:prefLabel rdfs:range xsd:string .
 #################################################################
 
 ###  http://www.w3.org/2004/02/skos/core#altLabel
-skos:altLabel rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#changeNote
-skos:changeNote rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#definition
-skos:definition rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#editorialNote
-skos:editorialNote rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#note
@@ -171,7 +171,6 @@ skos:note rdf:type owl:DatatypeProperty .
 
 
 ###  http://www.w3.org/2004/02/skos/core#prefLabel
-skos:prefLabel rdf:type owl:DatatypeProperty .
 
 
 ###  omas:ontology#creationDate
@@ -342,7 +341,7 @@ skos:prefLabel rdf:type owl:DatatypeProperty .
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:subPropertyOf owl:topDataProperty ;
     rdfs:domain omas:Project ;
-    rdfs:range xsd:dateTime .
+    rdfs:range xsd:date .
 
 
 ###  omas:ontology#rightIndex
@@ -468,14 +467,14 @@ omas:Project rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty :projectName ;
-            owl:cardinality 1 ;
+            owl:minCardinality 1 ;
             owl:onDataRange xsd:string
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :projectStart ;
             owl:cardinality 1 ;
-            owl:onDataRange xsd:dateTime
+            owl:onDataRange xsd:date
         ],
         [
             rdf:type owl:Restriction ;
@@ -486,7 +485,7 @@ omas:Project rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty :projectId ;
-            owl:maxCardinality 1 ;
+            owl:cardinality 1 ;
             owl:onDataRange xsd:NCName
         ],
         [

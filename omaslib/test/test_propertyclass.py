@@ -394,5 +394,28 @@ class TestPropertyClass(unittest.TestCase):
         res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
         self.assertEqual(len(res), 0)
 
+    def test_write_trig(self):
+        props: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: QName('test:comment'),
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.anyURI,
+            PropertyClassAttribute.NAME: LangString(["Annotations@en", "Annotationen@de"]),
+            PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
+                PropertyRestrictionType.LANGUAGE_IN: {Language.ZU, Language.CY, Language.SV, Language.RM},
+                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.MAX_COUNT: 1,
+                PropertyRestrictionType.MIN_COUNT: 0
+            }),
+            PropertyClassAttribute.ORDER: 11
+        }
+        p1 = PropertyClass(
+            con=self._connection,
+            graph=NCName('test'),
+            property_class_iri=QName('test:testWriteIt'),
+            attrs=props
+        )
+        p1.write_as_trig('propclass_test.trig')
+
+
 if __name__ == '__main__':
     unittest.main()

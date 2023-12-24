@@ -506,36 +506,36 @@ class ResourceClass(Model):
         #         sparql += p.property_node_shacl(timestamp=timestamp, indent=3) + " .\n"
         #         sparql += "\n"
 
-        sparql += f'{blank:{(indent + 2)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self._owlclass_iri}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{self.__version}"'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:targetClass {self._owlclass_iri}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:hasVersion "{self.__version}"'
         self.__created = timestamp
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:creator {self.__creator}'
         self.__modified = timestamp
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self.__contributor}'
         for attr, value in self._attributes.items():
             if attr == ResourceClassAttribute.SUBCLASS_OF:
-                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value} {value}Shape'
+                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}{attr.value} {value}Shape'
             elif attr == ResourceClassAttribute.CLOSED:
-                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:closed {"true" if value else "false"}'
+                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:closed {"true" if value else "false"}'
             else:
-                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value} {value}'
+                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}{attr.value} {value}'
 
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property'
-        sparql += f'\n{blank:{(indent + 4) * indent_inc}}['
-        sparql += f'\n{blank:{(indent + 5) * indent_inc}}sh:path rdf:type'
-        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}]'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property'
+        sparql += f'\n{blank:{(indent + 3) * indent_inc}}['
+        sparql += f'\n{blank:{(indent + 4) * indent_inc}}sh:path rdf:type'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
 
         for iri, p in self._properties.items():
             if p.internal is not None:
-                sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}sh:property'
-                sparql += f'\n{blank:{(indent + 4)*indent_inc}}[\n'
-                sparql += p.property_node_shacl(timestamp=timestamp, indent=5)
-                sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}]'
+                sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property'
+                sparql += f'\n{blank:{(indent + 3)*indent_inc}}[\n'
+                sparql += p.property_node_shacl(timestamp=timestamp, indent=4)
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
             else:
-                sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}sh:property {iri}Shape'
+                sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property {iri}Shape'
         return sparql
 
     def __create_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4):
@@ -598,6 +598,22 @@ class ResourceClass(Model):
         else:
             self._con.transaction_abort()
             raise OmasErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
+
+    def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
+        with open(filename, 'w') as f:
+            timestamp = datetime.now()
+            blank = ''
+            context = Context(name=self._con.context_name)
+            f.write(context.turtle_context)
+
+            f.write(f'{blank:{indent * indent_inc}}{self._graph}:shacl {{\n')
+            f.write(self.__create_shacl(timestamp=timestamp))
+            f.write(f' ;\n{blank:{indent * indent_inc}}}}\n')
+
+            f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
+            f.write(self.__create_owl(timestamp=timestamp))
+            f.write(f'{blank:{indent * indent_inc}}}}\n')
+
 
     def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._attr_changeset and not self._prop_changeset:

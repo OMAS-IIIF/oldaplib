@@ -122,11 +122,15 @@ class QueryProcessor:
         return self
 
     def __next__(self):
-        self.__pos += 1
-        if self.__pos < len(self.__rows):
-            return self.__rows[self.__pos]
-        else:
+        if self.__pos >= len(self.__rows):
             raise StopIteration
+        self.__pos += 1
+        return self.__rows[self.__pos - 1]
+        # self.__pos += 1
+        # if self.__pos < len(self.__rows):
+        #     return self.__rows[self.__pos]
+        # else:
+        #     raise StopIteration
 
     def __getitem__(self, item: int) -> Dict[str, RowElementType]:
         return self.__rows[item]
