@@ -474,15 +474,15 @@ class PropertyClass(Model, Notify):
         if self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
             if not datatype:
                 raise OmasError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
-            if datatype != self._attributes[PropertyClassAttribute.DATATYPE].value:
+            if datatype != self._attributes.get(PropertyClassAttribute.DATATYPE).value:
                 raise OmasError(
-                    f'Property has inconsistent datatype definitions: OWL: "{datatype}" vs. SHACL: "{self._attributes[PropertyClassAttribute.DATATYPE].value}"')
+                    f'Property "{self._property_class_iri}" has inconsistent datatype definitions: OWL: "{datatype}" vs. SHACL: "{self._attributes[PropertyClassAttribute.DATATYPE].value}"')
         if self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
             if not to_node_iri:
                 raise OmasError(f'OwlObjectProperty "{self._property_class_iri}" has no rdfs:range resource class defined!')
             if to_node_iri != self._attributes.get(PropertyClassAttribute.TO_NODE_IRI):
                 raise OmasError(
-                    f'Property has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
+                    f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
 
     @classmethod
     def read(cls, con: Connection, graph: NCName, property_class_iri: QName) -> 'PropertyClass':

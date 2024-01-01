@@ -62,8 +62,12 @@ class DataModel(Model):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
+        cls.__resclasses = {}
         for r in res:
-            print('::-->>', r['shape'])
+            resnameshacl = str(r['shape'])
+            resclassiri = resnameshacl.removesuffix("Shape")
+            resclass = ResourceClass.read(con, graph, QName(resclassiri))
+            cls.__resclasses[resclass.owl_class_iri] = resclass
 
         return cls
 

@@ -31,6 +31,7 @@ class XsdDatatypes(Enum):
     language = 'xsd:language'
     Name = 'xsd:name'
     NCName = 'xsd:NCName'
+    NMTOKEN = 'xsd:NMTOKEN'
     ID = 'xsd:ID'
     IDREF = 'xsd:IDREF'
     IDREFS = 'xsd: IDREFS'

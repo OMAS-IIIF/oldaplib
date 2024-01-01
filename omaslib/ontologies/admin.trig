@@ -14,7 +14,7 @@
         :projectStart "20230601T000000+0200"^^xsd:date ;
         :projectHasUser <https://orcid.org/ORCID-0000-0003-1681-4036> .
 
-    <<:SystemProject :projectHasUser <https://orcid.org/ORCID-0000-0003-1681-4036>>> :hasRights :ROOT_RIGHTS .
+    #<<:SystemProject :projectHasUser <https://orcid.org/ORCID-0000-0003-1681-4036>>> :hasRights :ROOT_RIGHTS .
 
     <https://orcid.org/ORCID-0000-0003-1681-4036> a omas:User ;
         omas:personLastName "Rosenthaler" ;
