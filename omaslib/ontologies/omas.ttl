@@ -37,6 +37,8 @@ skos:definition rdf:type owl:DatatypeProperty ;
 skos:editorialNote rdf:type owl:DatatypeProperty ;
                    rdfs:range xsd:string .
 
+skos:inScheme rdf:type owl:ObjectProperty ;
+                       rdfs:range :OmasList .
 
 ###  http://www.w3.org/2004/02/skos/core#note
 skos:note rdf:type owl:DatatypeProperty ;
@@ -45,8 +47,16 @@ skos:note rdf:type owl:DatatypeProperty ;
 
 ###  http://www.w3.org/2004/02/skos/core#prefLabel
 skos:prefLabel rdf:type owl:DatatypeProperty ;
-               rdfs:range xsd:string .
+          rdfs:range xsd:string .
 
+skos:broaderTransitive rdf:type owl:ObjectProperty ;
+          rdfs:range :OmasListNode .
+
+skos:notation rdf:type owl:DatatypeProperty ;
+          rdfs:range xsd:string .
+
+skos:alternativeLabel rdf:type owl:DatatypeProperty ;
+          rdfs:range xsd:string .
 
 #################################################################
 #    Object Properties
@@ -190,7 +200,7 @@ skos:note rdf:type owl:DatatypeProperty .
     dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:domain omas:Date ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:anyURI .
 
 
 ###  omas:ontology#dateJDCEnd

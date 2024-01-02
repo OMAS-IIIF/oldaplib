@@ -40,8 +40,7 @@
         sh:datatype xsd:string ;
         sh:name "Kommentar"@de, "Comment"@en, "Commentaire"@fr, "Commentario"@it ;
         sh:languageIn ( "en" "de" "fr" "it" ) ;
-        sh:uniqueLang true ;
-        sh:maxCount 1 .
+        sh:uniqueLang true .
 
     :testShape a sh:PropertyShape ;
         sh:path :test ;
@@ -240,6 +239,7 @@
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:datatype xsd:anyURI ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
                 sh:in ( :GREGORIAN :JULIAN ) ;
@@ -313,7 +313,7 @@
                 dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
-                sh:dataType xsd:dateTimeStamp ;
+                sh:datatype xsd:dateTimeStamp ;
             ] ;
         sh:property
             [
@@ -325,6 +325,8 @@
                 sh:maxCount 1 ;
                 sh:class :User ;
             ] .
+
+
 
     #
     # Nodeshape for the list...
@@ -342,7 +344,7 @@
             ] ;
         sh:property
             [
-                sh:path skos:preferredLabel ;
+                sh:path skos:prefLabel ;
                 dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
@@ -441,7 +443,7 @@
             ] ;
         sh:property
             [
-                sh:path skos:preferredLabel ;
+                sh:path skos:prefLabel ;
                 dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
