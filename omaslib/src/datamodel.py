@@ -31,6 +31,12 @@ class DataModel(Model):
             for r in resclasses:
                 self.__resclasses[r.owl_class_iri] = r
 
+    def get_propclasses(self) -> List[QName]:
+        return [x for x in self.__propclasses]
+
+    def get_resclasses(self) -> List[QName]:
+        return [x for x in self.__resclasses]
+
     @classmethod
     def read(cls, con: Connection, graph: NCName):
         cls.__graph = graph
@@ -45,12 +51,12 @@ class DataModel(Model):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
-        cls.__propclasses = {}
+        propclasses = []
         for r in res:
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
             propclass = PropertyClass.read(con, graph, QName(propclassiri))
-            cls.__propclasses[propclass.property_class_iri] = propclass
+            propclasses.append(propclass)
 
         query = cls.__context.sparql_context
         query += f"""
@@ -62,14 +68,13 @@ class DataModel(Model):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
-        cls.__resclasses = {}
+        resclasses = []
         for r in res:
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
             resclass = ResourceClass.read(con, graph, QName(resclassiri))
-            cls.__resclasses[resclass.owl_class_iri] = resclass
-
-        return cls
+            resclasses.append(resclass)
+        return cls(graph=graph, con=con, propclasses=propclasses, resclasses=resclasses)
 
 
 

@@ -34,5 +34,7 @@ class TestDataModel(unittest.TestCase):
 
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
+        print(model.get_propclasses())
+        print(model.get_resclasses())
 
 
