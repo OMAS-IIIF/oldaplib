@@ -35,6 +35,10 @@ class TestDataModel(unittest.TestCase):
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
         print(model.get_propclasses())
-        print(model.get_resclasses())
+        self.assertTrue(set(model.get_propclasses()) == {QName("omas:comment"), QName("omas:test")})
+        self.assertTrue(set(model.get_resclasses()) == {
+            QName("omas:Project"), QName("omas:User"), QName("omas:Date"),
+            QName("omas:Thing"), QName("omas:List"), QName("omas:ListNode")
+        })
 
 

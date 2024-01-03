@@ -10,6 +10,7 @@ def lprint(text: str):
     for i, line in enumerate(lines, start=1):
         print(f"{i}: {line}")
 
+
 @dataclass
 class RdfModifyItem:
     property: str
@@ -85,6 +86,7 @@ class RdfModifyRes:
                                          graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
 
+
 class RdfModifyProp:
 
     @classmethod
@@ -156,3 +158,40 @@ class RdfModifyProp:
         return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
                                          pclass_iri=pclass_iri, graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
+
+
+class DataModelModtime:
+
+    @classmethod
+    def __set_dm_modtime(cls, shacl: bool, graph: NCName, timestamp: datetime, contributor: str) -> str:
+        graphname = f"{graph}:shacl" if shacl else f"{graph}:onto"
+        element = f"{graph}:shapes" if shacl else f"{graph}:ontology"
+        return f"""
+        DELETE {{
+            GRAPH {graphname} {{ {element} dcterms:modified ?value . }}
+        }}
+        INSERT {{
+            GRAPH {graphname} {{ {element} dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime . }}
+        }}
+        WHERE {{
+            GRAPH {graphname} {{ {element} dcterms:modified ?value . }}
+        }} ;
+        DELETE {{
+            GRAPH {graphname} {{ {element} dcterms:contributor ?value . }}
+        }}
+        INSERT {{
+            GRAPH {graphname} {{ {element} dcterms:contributor "{contributor}" . }}
+        }}
+        WHERE {{
+            GRAPH {graphname} {{ {element} dcterms:contributor ?value . }}
+        }}
+        """
+
+    @classmethod
+    def set_dm_modtime_shacl(cls, graph: NCName, timestamp: datetime, contributor: str) -> str:
+        return cls.__set_dm_modtime(True, graph, timestamp, contributor)
+
+    @classmethod
+    def set_dm_modtime_onto(cls, graph: NCName, timestamp: datetime, contributor: str) -> str:
+        return cls.__set_dm_modtime(False, graph, timestamp, contributor)
+

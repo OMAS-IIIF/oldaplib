@@ -14,7 +14,7 @@ omas:ontology rdf:type owl:Ontology ;
               dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
               dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
               dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-              owl:imports <http://www.w3.org/2004/02/skos/core> .
+              owl:imports <http://www.w3.org/2004/02/skos/core>, <http://purl.org/dc/terms/> .
 
 #################################################################
 #    Annotation properties
