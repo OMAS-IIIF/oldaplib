@@ -587,7 +587,7 @@ class ResourceClass(Model):
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
         sparql += self.create_shacl(timestamp=timestamp)
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
         sparql += self.create_owl(timestamp=timestamp)

@@ -367,6 +367,7 @@ class TestResourceClass(unittest.TestCase):
         prop5 = r2[QName("test:testthree")]
         self.assertEqual(prop5.get(PropertyClassAttribute.RESTRICTIONS)[PropertyRestrictionType.IN], {1, 2, 3})
 
+    #@unittest.skip('Work in progress')
     def test_double_creation(self):
         properties: List[Union[PropertyClass, QName]] = [
             QName("test:comment"),
@@ -693,6 +694,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertTrue(check_res_empty(self._connection, self._context, Graph.SHACL, 'test:TestResourceDelete'))
         self.assertTrue(check_res_empty(self._connection, self._context, Graph.ONTO, 'test:TestResourceDelete'))
 
+    #@unittest.skip('Work in progress')
     def test_write_trig(self):
         project_id = PropertyClass(con=self._connection,
                                    graph=NCName('test'),

@@ -1,6 +1,6 @@
 import json
 import datetime
-import urllib
+#import urllib
 
 import bcrypt
 import requests
@@ -8,13 +8,13 @@ from enum import Enum, unique
 
 from pystrict import strict
 from typing import List, Set, Dict, Tuple, Optional, Any, Union, Mapping
-from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
+#from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from rdflib.query import Result
 from rdflib.term import Identifier
-from requests import get, post
+#from requests import get, post
 from pathlib import Path
-from urllib.parse import quote_plus, urlencode
+#from urllib.parse import quote_plus, urlencode
 
 from omaslib.src.helpers.datatypes import QName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasError
