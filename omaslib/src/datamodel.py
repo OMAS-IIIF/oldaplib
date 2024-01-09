@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Union
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName
+from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasError
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass
@@ -47,10 +48,6 @@ class DataModel(Model):
 
     def get_resclass(self, resclass_iri: QName) ->  Union[ResourceClass, None]:
         return self.__resclasses.get(resclass_iri)
-
-    def create(self):
-        pass
-
 
     @classmethod
     def read(cls, con: Connection, graph: NCName):
@@ -132,5 +129,59 @@ class DataModel(Model):
             resclasses.append(resclass)
         return cls(graph=graph, con=con, propclasses=propclasses, resclasses=resclasses)
 
+    def create(self, indent: int = 0, indent_inc: int = 4) -> None:
+        timestamp = datetime.now()
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+
+        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
+
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:creator {self._con.user_iri} ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self._con.user_iri} ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
+        sparql += '\n'
+
+        for propiri, propclass in self.__propclasses.items():
+            if propclass.internal:
+                raise OmasErrorInconsistency(f"Property class {propclass.property_class_iri} is internal and cannot be used here.")
+            sparql += propclass.create_shacl(timestamp=timestamp, indent=2)
+
+        for resiri, resclass in self.__resclasses.items():
+            sparql += resclass.create_shacl(timestamp=timestamp, indent=2)
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
+
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:creator {self._con.user_iri} ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self._con.user_iri} ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
+        sparql += '\n'
+
+        for propiri, propclass in self.__propclasses.items():
+            sparql += propclass.create_owl_part1(timestamp=timestamp, indent=2)
+
+        for resiri, resclass in self.__resclasses.items():
+            sparql += resclass.create_owl(timestamp=timestamp, indent=2)
+
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+
+        try:
+            self._con.transaction_start()
+            self._con.transaction_update(sparql)
+            for propiri, propclass in self.__propclasses.items():
+                propclass.set_creation_metadata(timestamp=timestamp)
+            for resiri, resclass in self.__resclasses.items():
+                resclass.set_creation_metadata(timestamp=timestamp)
+            self._con.transaction_commit()
+        except OmasError as err:
+            self._con.transaction_abort()
+            raise
 
 

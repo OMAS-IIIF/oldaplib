@@ -102,12 +102,7 @@ class TestResourceClass(unittest.TestCase):
 
     #@unittest.skip('Work in progress')
     def test_constructor(self):
-        attrs: ResourceClassAttributesContainer = {
-            ResourceClassAttribute.LABEL: LangString(["Test resource@en", "Resource de test@fr"]),
-            ResourceClassAttribute.COMMENT: LangString("For testing purposes@en"),
-            ResourceClassAttribute.CLOSED: True
-        }
-        props: PropertyClassAttributesContainer = {
+        attrs: PropertyClassAttributesContainer = {
             PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),
             PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
             PropertyClassAttribute.NAME: LangString(["Test property@en", "Testprädikat@de"]),
@@ -122,9 +117,9 @@ class TestResourceClass(unittest.TestCase):
         }
         p1 = PropertyClass(con=self._connection,
                           graph=NCName('test'),
-                          property_class_iri=QName('test:testprop'), attrs=props)
+                          property_class_iri=QName('test:testprop'), attrs=attrs)
 
-        props: PropertyClassAttributesContainer = {
+        attrs: PropertyClassAttributesContainer = {
             PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
             PropertyClassAttribute.NAME: LangString(["Test enum@en", "Enumerationen@de"]),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
@@ -137,7 +132,7 @@ class TestResourceClass(unittest.TestCase):
         }
         p2 = PropertyClass(con=self._connection,
                           graph=NCName('test'),
-                          property_class_iri=QName('test:enumprop'), attrs=props)
+                          property_class_iri=QName('test:enumprop'), attrs=attrs)
 
         properties: List[Union[PropertyClass, QName]] = [
             QName("test:comment"),
@@ -145,10 +140,15 @@ class TestResourceClass(unittest.TestCase):
             p1, p2
         ]
 
+        rattrs: ResourceClassAttributesContainer = {
+            ResourceClassAttribute.LABEL: LangString(["Test resource@en", "Resource de test@fr"]),
+            ResourceClassAttribute.COMMENT: LangString("For testing purposes@en"),
+            ResourceClassAttribute.CLOSED: True
+        }
         r1 = ResourceClass(con=self._connection,
                            graph=NCName('test'),
                            owlclass_iri=QName("test:TestResource"),
-                           attrs=attrs,
+                           attrs=rattrs,
                            properties=properties)
         self.assertEqual(r1[ResourceClassAttribute.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
         self.assertEqual(r1[ResourceClassAttribute.COMMENT], LangString("For testing purposes@en"))

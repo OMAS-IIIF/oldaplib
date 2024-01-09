@@ -131,7 +131,7 @@ class PropertyClass(Model, Notify):
                     value.set_notifier(self.notifier, attr)
             self._attributes = attrs
 
-        # setting property type for OWL which distinguished between Data- and Object-^properties
+        # setting property type for OWL which distinguished between Data- and Object-properties
         if self._attributes:
             if self._attributes.get(PropertyClassAttribute.TO_NODE_IRI) is not None:
                 self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
@@ -240,6 +240,9 @@ class PropertyClass(Model, Notify):
     @property
     def internal(self) -> QName:
         return self._internal
+
+    def force_external(self):
+        self._internal = "STANDALONE"
 
     def changeset_clear(self):
         self._changeset = {}
@@ -560,12 +563,12 @@ class PropertyClass(Model, Notify):
         #sparql += f' .\n'
         return sparql
 
-    def __create_shacl(self, *,
-                       timestamp: datetime,
-                       owlclass_iri: Optional[QName] = None,
-                       indent: int = 0, indent_inc: int = 4) -> str:
+    def create_shacl(self, *,
+                     timestamp: datetime,
+                     owlclass_iri: Optional[QName] = None,
+                     indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'\n{blank:{indent * indent_inc}}# PropertyClass.__create_shacl()'
+        sparql = f'\n{blank:{indent * indent_inc}}# PropertyClass.create_shacl()'
         if owlclass_iri is None:
             sparql += f'\n{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
             sparql += self.property_node_shacl(timestamp=timestamp, indent=indent, indent_inc=indent_inc)
@@ -612,6 +615,13 @@ class PropertyClass(Model, Notify):
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
 
+    def set_creation_metadata(self, timestamp: datetime):
+        self.__created = timestamp
+        self.__creator = self._con.user_iri
+        self.__modified = timestamp
+        self.__contributor = self._con.user_iri
+        self.__from_triplestore = True
+
     def create(self, *,
                indent: int = 0, indent_inc: int = 4) -> Union[str, None]:
         if self.__from_triplestore:
@@ -624,11 +634,11 @@ class PropertyClass(Model, Notify):
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
         if self._internal is not None:
-            sparql += self.__create_shacl(timestamp=timestamp,
-                                          owlclass_iri=self._internal,
-                                          indent=2)
+            sparql += self.create_shacl(timestamp=timestamp,
+                                        owlclass_iri=self._internal,
+                                        indent=2)
         else:
-            sparql += self.__create_shacl(timestamp=timestamp, indent=2)
+            sparql += self.create_shacl(timestamp=timestamp, indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
@@ -636,11 +646,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        self.__created = timestamp
-        self.__creator = self._con.user_iri
-        self.__modified = timestamp
-        self.__contributor = self._con.user_iri
-        self.__from_triplestore = True
+        self.set_creation_metadata(timestamp)
 
         self._con.transaction_start()
         if self.read_modified_shacl(context=context, graph=self._graph) is not None:
@@ -664,9 +670,9 @@ class PropertyClass(Model, Notify):
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:shacl {{\n')
             if self._internal is not None:
-                f.write(self.__create_shacl(timestamp=timestamp, owlclass_iri=self._internal, indent=2))
+                f.write(self.create_shacl(timestamp=timestamp, owlclass_iri=self._internal, indent=2))
             else:
-                f.write(self.__create_shacl(timestamp=timestamp, indent=2))
+                f.write(self.create_shacl(timestamp=timestamp, indent=2))
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')

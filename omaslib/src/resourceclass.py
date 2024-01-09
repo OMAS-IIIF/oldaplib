@@ -99,7 +99,10 @@ class ResourceClass(Model):
                     except OmasErrorNotFound as err:
                         newprop = fixed_prop
                 elif isinstance(prop, PropertyClass):  # an internal, private property definition
-                    prop._internal = owlclass_iri
+                    if prop._internal == "STANDALONE":
+                        prop._internal = None
+                    else:
+                        prop._internal = owlclass_iri
                     newprop = prop
                 self._properties[newprop.property_class_iri] = newprop
                 newprop.set_notifier(self.notifier, newprop.property_class_iri)
@@ -496,7 +499,7 @@ class ResourceClass(Model):
             return None
         return res[0].get('modified')
 
-    def __create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
+    def create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
         # for iri, p in self._properties.items():
@@ -538,7 +541,7 @@ class ResourceClass(Model):
                 sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property {iri}Shape'
         return sparql
 
-    def __create_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4):
+    def create_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4):
         blank = ''
         sparql = ''
         for iri, p in self._properties.items():
@@ -565,6 +568,14 @@ class ResourceClass(Model):
             i += 1
         return sparql
 
+    def set_creation_metadata(self, timestamp: datetime):
+        self.__created = timestamp
+        self.__creator = self._con.user_iri
+        self.__modified = timestamp
+        self.__contributor = self._con.user_iri
+        self.__from_triplestore = True
+
+
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
             raise OmasErrorAlreadyExists(f'Cannot create property that was read from triplestore before (property: {self._owlclass_iri}')
@@ -575,11 +586,11 @@ class ResourceClass(Model):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
-        sparql += self.__create_shacl(timestamp=timestamp)
+        sparql += self.create_shacl(timestamp=timestamp)
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
-        sparql += self.__create_owl(timestamp=timestamp)
+        sparql += self.create_owl(timestamp=timestamp)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -592,9 +603,7 @@ class ResourceClass(Model):
         modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
-            self.__created = timestamp
-            self.__modified = timestamp
-            self.__from_triplestore = True
+            self.set_creation_metadata(timestamp=timestamp)
         else:
             self._con.transaction_abort()
             raise OmasErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
@@ -607,11 +616,11 @@ class ResourceClass(Model):
             f.write(context.turtle_context)
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:shacl {{\n')
-            f.write(self.__create_shacl(timestamp=timestamp))
+            f.write(self.create_shacl(timestamp=timestamp))
             f.write(f' ;\n{blank:{indent * indent_inc}}}}\n')
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
-            f.write(self.__create_owl(timestamp=timestamp))
+            f.write(self.create_owl(timestamp=timestamp))
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
 
