@@ -170,24 +170,30 @@ class TestDataModel(unittest.TestCase):
 
         r1 = dm2[QName('dmtest:Book')]
         r1p1 = r1[QName('dmtest:title')]
+        self.assertEqual(r1p1.internal, QName('dmtest:Book'))
         self.assertEqual(r1p1[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
         self.assertEqual(r1p1[PropertyClassAttribute.NAME], LangString(["Title@en", "Titel@de"]))
         self.assertEqual(r1p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
         r1p2 = r1[QName('dmtest:authors')]
+        self.assertEqual(r1p2.internal, QName('dmtest:Book'))
         self.assertEqual(r1p2[PropertyClassAttribute.TO_NODE_IRI], QName('omas:Person'))
         self.assertEqual(r1p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
         r1p3 = r1[QName('dmtest:comment')]
+        self.assertIsNone(r1p3.internal)
         self.assertEqual(r1p3[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
 
         r2 = dm2[QName('dmtest:Page')]
         r2p1 = r2[QName('dmtest:pagenum')]
+        self.assertEqual(r2p1.internal, QName('dmtest:Page'))
         self.assertEqual(r2p1[PropertyClassAttribute.DATATYPE], XsdDatatypes.int)
         r2p2 = r2[QName('dmtest:inbook')]
+        self.assertEqual(r2p2.internal, QName('dmtest:Page'))
         self.assertEqual(r2p2[PropertyClassAttribute.TO_NODE_IRI], QName('dmtest:Book'))
         r2p3 = r1[QName('dmtest:comment')]
+        self.assertIsNone(r2p3.internal)
         self.assertEqual(r2p3[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
 
-    @unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
         print(model.get_propclasses())
@@ -197,9 +203,6 @@ class TestDataModel(unittest.TestCase):
             QName("omas:Thing"), QName("omas:List"), QName("omas:ListNode")
         })
 
-    @unittest.skip('Work in progress')
-    def test_datamodel_create(self):
-        pass
 
 
 
