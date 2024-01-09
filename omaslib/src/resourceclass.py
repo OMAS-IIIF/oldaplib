@@ -99,9 +99,7 @@ class ResourceClass(Model):
                     except OmasErrorNotFound as err:
                         newprop = fixed_prop
                 elif isinstance(prop, PropertyClass):  # an internal, private property definition
-                    if prop._internal == "STANDALONE":
-                        prop._internal = None
-                    else:
+                    if not prop._force_external:
                         prop._internal = owlclass_iri
                     newprop = prop
                 self._properties[newprop.property_class_iri] = newprop
@@ -539,6 +537,8 @@ class ResourceClass(Model):
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
             else:
                 sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property {iri}Shape'
+        if len(self._properties) > 0:
+            sparql += ' .\n'
         return sparql
 
     def create_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4):

@@ -6,6 +6,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasError
 from omaslib.src.helpers.query_processor import QueryProcessor
+from omaslib.src.helpers.tools import lprint
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass
 from omaslib.src.resourceclass import ResourceClass
@@ -37,6 +38,14 @@ class DataModel(Model):
             for r in resclasses:
                 self.__resclasses[r.owl_class_iri] = r
 
+    def __getitem__(self, key: QName) -> Union[PropertyClass, ResourceClass]:
+        if key in self.__resclasses:
+            return self.__resclasses[key]
+        if key in self.__propclasses:
+            return self.__propclasses[key]
+        else:
+            raise KeyError(key)
+
     def get_propclasses(self) -> List[QName]:
         return [x for x in self.__propclasses]
 
@@ -52,7 +61,7 @@ class DataModel(Model):
     @classmethod
     def read(cls, con: Connection, graph: NCName):
         cls.__graph = graph
-        cls.__context = Context(name=cls.__graph)
+        cls.__context = Context(name=con.context_name)
         #
         # first we read the shapes metadata
         #
@@ -137,25 +146,28 @@ class DataModel(Model):
 
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:creator {self._con.user_iri} ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self._con.user_iri} ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.user_iri} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
         sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
             if propclass.internal:
                 raise OmasErrorInconsistency(f"Property class {propclass.property_class_iri} is internal and cannot be used here.")
             sparql += propclass.create_shacl(timestamp=timestamp, indent=2)
+            sparql += '\n'
 
         for resiri, resclass in self.__resclasses.items():
             sparql += resclass.create_shacl(timestamp=timestamp, indent=2)
+            sparql += '\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += '\n'
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:onto {{\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:creator {self._con.user_iri} ;\n'
@@ -171,6 +183,7 @@ class DataModel(Model):
             sparql += resclass.create_owl(timestamp=timestamp, indent=2)
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         try:
             self._con.transaction_start()

@@ -22,7 +22,8 @@ class TestDataModel(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls._context = Context(name="DEFAULT")
-        cls._context['dmtest'] = 'http://omas.org/dmtest#'
+        cls._context['test'] = NamespaceIRI("http://omas.org/test#")
+        cls._context['dmtest'] = NamespaceIRI('http://omas.org/dmtest#')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="omas",
@@ -30,9 +31,11 @@ class TestDataModel(unittest.TestCase):
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 
-        #cls._connection.clear_graph(QName('test:shacl'))
-        #cls._connection.clear_graph(QName('test:onto'))
-        #cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
+        cls._connection.clear_graph(QName('test:shacl'))
+        cls._connection.clear_graph(QName('test:onto'))
+        cls._connection.clear_graph(QName('dmtest:shacl'))
+        cls._connection.clear_graph(QName('dmtest:onto'))
+        cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
         sleep(1)  # upload may take a while...
 
     def tearDown(self):
@@ -89,7 +92,7 @@ class TestDataModel(unittest.TestCase):
                 restrictions={
                     PropertyRestrictionType.MIN_COUNT: 1,
                 }),
-            PropertyClassAttribute.ORDER: 1
+            PropertyClassAttribute.ORDER: 2
         }
         authors = PropertyClass(con=self._connection,
                                 graph=dm_name,
@@ -155,6 +158,34 @@ class TestDataModel(unittest.TestCase):
                        graph=dm_name,
                        propclasses=[comment],
                        resclasses=[book, page])
+        dm.create()
+
+        del dm
+
+        dm2 = DataModel.read(con=self._connection, graph=dm_name)
+        p1 = dm2[QName('dmtest:comment')]
+        self.assertEqual(p1[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
+        self.assertEqual(p1[PropertyClassAttribute.NAME], LangString(["Comment@en", "Kommentar@de"]))
+        self.assertTrue(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+
+        r1 = dm2[QName('dmtest:Book')]
+        r1p1 = r1[QName('dmtest:title')]
+        self.assertEqual(r1p1[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
+        self.assertEqual(r1p1[PropertyClassAttribute.NAME], LangString(["Title@en", "Titel@de"]))
+        self.assertEqual(r1p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
+        r1p2 = r1[QName('dmtest:authors')]
+        self.assertEqual(r1p2[PropertyClassAttribute.TO_NODE_IRI], QName('omas:Person'))
+        self.assertEqual(r1p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
+        r1p3 = r1[QName('dmtest:comment')]
+        self.assertEqual(r1p3[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
+
+        r2 = dm2[QName('dmtest:Page')]
+        r2p1 = r2[QName('dmtest:pagenum')]
+        self.assertEqual(r2p1[PropertyClassAttribute.DATATYPE], XsdDatatypes.int)
+        r2p2 = r2[QName('dmtest:inbook')]
+        self.assertEqual(r2p2[PropertyClassAttribute.TO_NODE_IRI], QName('dmtest:Book'))
+        r2p3 = r1[QName('dmtest:comment')]
+        self.assertEqual(r2p3[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
 
     @unittest.skip('Work in progress')
     def test_datamodel_read(self):

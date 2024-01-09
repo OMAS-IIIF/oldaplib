@@ -64,6 +64,7 @@ class PropertyClass(Model, Notify):
     _graph: NCName
     _property_class_iri: Union[QName, None]
     _internal: Union[QName, None]
+    _force_external: bool
     _attributes: PropertyClassAttributesContainer
     _changeset: Dict[PropertyClassAttribute, PropertyClassAttributeChange]
     _test_in_use: bool
@@ -143,6 +144,7 @@ class PropertyClass(Model, Notify):
         self._changeset = {}  # initialize changeset to empty set
         self._test_in_use = False
         self._internal = None
+        self._force_external = False
         self.__creator = None
         self.__created = None
         self.__contributor = None
@@ -242,7 +244,7 @@ class PropertyClass(Model, Notify):
         return self._internal
 
     def force_external(self):
-        self._internal = "STANDALONE"
+        self._force_external = True
 
     def changeset_clear(self):
         self._changeset = {}
