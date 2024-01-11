@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
 from pprint import pprint
-from typing import Dict, List, Optional, Union, Set, Callable, Any
+from typing import Dict, List, Optional, Union, Set, Callable, Any, Self
 
 from pystrict import strict
 
@@ -15,7 +15,7 @@ from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 
 @dataclass
 class LangStringChange:
-    old_value: Union[str, None]
+    old_value: str | None
     action: Action
 
 @strict
@@ -32,10 +32,10 @@ class LangString(Notify):
     _langstring: Dict[Language, str]
     _priorities: List[Language]
     _changeset: Dict[Language, LangStringChange]
-    _notifier: Union[Callable[[type], None], None]
+    _notifier: Callable[[type], None] | None
 
     def __init__(self,
-                 langstring: Optional[Union[str, List[str], Dict[str, str], Dict[Language, str]]] = None,
+                 langstring: Optional[str | List[str] | Dict[str, str] | Dict[Language, str]] = None,
                  priorities: Optional[List[Language]] = None,
                  notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
                  notify_data: Optional[PropertyClassAttribute] = None):
@@ -98,7 +98,7 @@ class LangString(Notify):
         """
         return len(self._langstring)
 
-    def __getitem__(self, lang: Union[str, Language]) -> str:
+    def __getitem__(self, lang: str | Language) -> str:
         """
         Get the string of the given language.
         :param lang: The desired language, either as string shortname or as Language enum
@@ -118,7 +118,7 @@ class LangString(Notify):
                     return self._langstring.get(ll)
             return '--no string--'
 
-    def __setitem__(self, lang: Union[Language, str], value: str) -> None:
+    def __setitem__(self, lang: Language | str, value: str) -> None:
         """
         Set a new or change an existing language steing
         :param lang: Language as shortname or Language enum
@@ -144,7 +144,7 @@ class LangString(Notify):
         else:
             raise OmasError(f'Language "{lang}" is invalid')
 
-    def __delitem__(self, lang: Union[Language, str]) -> None:
+    def __delitem__(self, lang: Language | str) -> None:
         """
         Delete a given language from a language string
         :param lang: The language (as short name of as Language enum) to be deleted
@@ -183,12 +183,12 @@ class LangString(Notify):
              resstr += f'"{self._langstring[Language.XX]}"'
         return resstr
 
-    def get(self, lang: Union[str, Language]):
+    def get(self, lang: str | Language):
         if isinstance(lang, str):
             lang = Language[lang.upper()]
         return self._langstring.get(lang)
 
-    def __eq__(self, other: 'LangString') -> bool:
+    def __eq__(self, other: Self) -> bool:
         if len(self._langstring) != len(other._langstring):
             return False
         for lang in self._langstring:
@@ -198,7 +198,7 @@ class LangString(Notify):
                 return False
         return True
 
-    def __ne__(self, other: 'LangString') -> bool:
+    def __ne__(self, other: Self) -> bool:
         if len(self._langstring) != len(other._langstring):
             return True
         for lang in self._langstring:
@@ -215,7 +215,7 @@ class LangString(Notify):
     def langstring(self) -> Dict[Language, str]:
         return self._langstring
 
-    def add(self, langs: Union[str, List[str], Dict[str, str], Dict[Language, str]]) -> None:
+    def add(self, langs: str | List[str] | Dict[str, str] | Dict[Language, str]) -> None:
         """
         Add one or several new languages to a lang string
         :param langs: The language/string pairs as single value, list or dict

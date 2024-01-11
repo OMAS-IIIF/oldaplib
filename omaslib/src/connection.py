@@ -360,9 +360,9 @@ class Connection:
         res = requests.post(self._transaction_url, data={'action': 'QUERY', 'query': query}, headers=headers)
         if not res.ok:
             raise OmasError(f'GraphDB Transaction query failed. Reason: "{res.text}"')
-        return res.json()
+        return Connection._switcher[result_format](res)
 
-    def transaction_update(self, query: str):
+    def transaction_update(self, query: str) -> None:
         if not self._user_iri:
             raise OmasError("No login")
         headers = {
@@ -375,7 +375,7 @@ class Connection:
         if not res.ok:
             raise OmasError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
 
-    def transaction_commit(self):
+    def transaction_commit(self) -> None:
         if not self._user_iri:
             raise OmasError("No login")
         headers = {
@@ -388,7 +388,7 @@ class Connection:
             raise OmasError(f'GraphDB transaction commit failed. Reason: "{res.text}"')
         self._transaction_url = None
 
-    def transaction_abort(self):
+    def transaction_abort(self) -> None:
         if not self._user_iri:
             raise OmasError("No login")
         headers = {

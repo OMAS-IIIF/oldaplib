@@ -38,7 +38,7 @@ class Compare(Enum):
     XX = '__x__'
 
 
-RestrictionTypes = Union[bool, int, float, str, Set[Union[Language, str, int]], QName, None]
+RestrictionTypes = bool | int | float | str | Set[Language | str | int] | QName | None
 RestrictionContainer = Dict[PropertyRestrictionType, RestrictionTypes]
 
 
@@ -86,7 +86,7 @@ class PropertyRestrictions(Notify):
     _restrictions: RestrictionContainer
     _test_in_use: Set[PropertyRestrictionType]
     _changeset: Dict[PropertyRestrictionType, PropertyRestrictionChange]
-    _notifier: Union[Callable[[type], None], None]
+    _notifier: Callable[[type], None] | None
 
     datatypes = {
         PropertyRestrictionType.MIN_COUNT: {int},

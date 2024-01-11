@@ -11,7 +11,7 @@ from omaslib.src.connection import Connection, SparqlResultFormat
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
+from omaslib.src.helpers.query_processor import QueryProcessor, OmasStringLiteral
 from omaslib.src.helpers.semantic_version import SemanticVersion
 
 

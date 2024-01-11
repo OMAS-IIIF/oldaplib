@@ -1,3 +1,5 @@
+from typing import Self
+
 from omaslib.src.helpers.omaserror import OmasError
 
 
@@ -17,13 +19,13 @@ class SemanticVersion:
     def __repr__(self) -> str:
         return f"SemanticVersion({self.__major}, {self.__minor}, {self.__patch})"
 
-    def __eq__(self, other: 'SemanticVersion') -> bool:
+    def __eq__(self, other: Self) -> bool:
         return self.__major == other.__major and self.__minor == other.__minor and self.__patch == other.__patch
 
-    def __ne__(self, other: 'SemanticVersion') -> bool:
+    def __ne__(self, other: Self) -> bool:
         return self.__major != other.__major or self.__minor != other.__minor or self.__patch != other.__patch
 
-    def __gt__(self, other: 'SemanticVersion') -> bool:
+    def __gt__(self, other: Self) -> bool:
         if self.__major > other.__major:
             return True
         if self.__major == other.__major and self.__minor > other.__minor:
@@ -32,7 +34,7 @@ class SemanticVersion:
             return True
         return False
 
-    def __ge__(self, other: 'SemanticVersion') -> bool:
+    def __ge__(self, other: Self) -> bool:
         if self.__major >= other.__major:
             return True
         if self.__major == other.__major and self.__minor >= other.__minor:
@@ -41,7 +43,7 @@ class SemanticVersion:
             return True
         return False
 
-    def __lt__(self, other: 'SemanticVersion') -> bool:
+    def __lt__(self, other: Self) -> bool:
         if self.__major < other.__major:
             return True
         if self.__major == other.__major and self.__minor < other.__minor:
@@ -50,7 +52,7 @@ class SemanticVersion:
             return True
         return False
 
-    def __le__(self, other: 'SemanticVersion') -> bool:
+    def __le__(self, other: Self) -> bool:
         if self.__major <= other.__major:
             return True
         if self.__major == other.__major and self.__minor <= other.__minor:
@@ -60,7 +62,7 @@ class SemanticVersion:
         return False
 
     @classmethod
-    def fromString(cls, versionstring: str) -> 'SemanticVersion':
+    def fromString(cls, versionstring: str) -> Self:
         try:
             major, minor, patch = versionstring.split(".")
             return cls(int(major), int(minor),int(patch) )

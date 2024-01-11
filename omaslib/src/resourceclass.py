@@ -7,7 +7,7 @@ from pystrict import strict
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
-from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
+from omaslib.src.helpers.query_processor import QueryProcessor, OmasStringLiteral
 from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import RdfModifyProp, RdfModifyRes, RdfModifyItem, lprint
@@ -292,7 +292,7 @@ class ResourceClass(Model):
                     if attributes.get(attriri) is None:
                         attributes[attriri] = []
                     attributes[attriri].append(r['value'])
-                elif isinstance(r['value'], StringLiteral):
+                elif isinstance(r['value'], OmasStringLiteral):
                     if attributes.get(attriri) is None:
                         attributes[attriri] = []
                     attributes[attriri].append(str(r['value']))

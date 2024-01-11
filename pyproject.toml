@@ -6,8 +6,17 @@ authors = ["Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>"]
 license = "GNU Affero General Public License version 3"
 readme = "README.md"
 
+packages = [
+    { include = "omaslib" }
+]
+
+exclude = [
+    "omaslib/test",
+    "omaslib/testdata"
+]
+
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 pystrict = "^1.3"
 requests = "^2.31.0"
 rdflib = "^7.0.0"

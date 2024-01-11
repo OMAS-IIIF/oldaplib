@@ -95,7 +95,7 @@ class Context(metaclass=ContextSingleton):
         }
         self._use = []
 
-    def __getitem__(self, prefix: Union[NCName, str]) -> NamespaceIRI:
+    def __getitem__(self, prefix: NCName | str) -> NamespaceIRI:
         """
         Access a context by prefix. The key may be a QName or a valid string
 
@@ -109,7 +109,7 @@ class Context(metaclass=ContextSingleton):
         except KeyError as err:
             raise OmasError(f'Unknown prefix "{prefix}"')
 
-    def __setitem__(self, prefix: Union[NCName, str], iri: Union[NamespaceIRI, str]) -> None:
+    def __setitem__(self, prefix: NCName | str, iri: NamespaceIRI | str) -> None:
         """
         Set a context. The prefix may be a QName or a valid string, the iri must be a NamespaceIRI (with a
         terminating "#" or "/").
@@ -125,7 +125,7 @@ class Context(metaclass=ContextSingleton):
         self._context[prefix] = iri
         self._inverse[iri] = prefix
 
-    def __delitem__(self, prefix: Union[NCName, str]) -> None:
+    def __delitem__(self, prefix: NCName | str) -> None:
         """
         Delete an item. The prefix must be a QName or a valid string
 
@@ -152,7 +152,7 @@ class Context(metaclass=ContextSingleton):
     def graphs(self):
         return self._use
 
-    def use(self, *args: Union[NCName, str]) -> None:
+    def use(self, *args: NCName | str) -> None:
         for arg in args:
             self._use.append(NCName(arg))
 
@@ -162,7 +162,7 @@ class Context(metaclass=ContextSingleton):
         """
         return self._context.items()
 
-    def iri2qname(self, iri: Union[str, AnyIRI]) -> Union[QName, None]:
+    def iri2qname(self, iri: str | AnyIRI) -> QName | None:
         """
         Returns a QName
 
@@ -177,7 +177,7 @@ class Context(metaclass=ContextSingleton):
                 return QName.build(str(prefix), fragment)
         return None
 
-    def qname2iri(self, qname: Union[QName, str]) -> str:
+    def qname2iri(self, qname: QName | str) -> str:
         """
         Convert a QName into a IRI string.
 

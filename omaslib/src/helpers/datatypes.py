@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Union
+from typing import Any, Union, Self
 from pystrict import strict
 
 from .xsd_datatypes import XsdDatatypes, XsdValidator
@@ -7,10 +7,44 @@ from .omaserror import OmasError
 
 
 @strict
+class NCName:
+    _value: str
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, NCName):
+            self._value = str(value)
+        else:
+            if not XsdValidator.validate(XsdDatatypes.NCName, value):
+                raise OmasError("Invalid string for NCName")
+            self._value = value
+
+    def __add__(self, other: Any) -> Self:
+        return NCName(self._value + str(other))
+
+    def __iadd__(self, other) -> Self:
+        return NCName(self._value + str(other))
+
+    def __repr__(self) -> str:
+        return f"NCName({self._value})"
+
+    def __str__(self) -> str:
+        return self._value
+
+    def __eq__(self, other: Any) -> bool:
+        return self._value == str(other)
+
+    def __ne__(self, other: Any) -> bool:
+        return self._value != str(other)
+
+    def __hash__(self) -> int:
+        return self._value.__hash__()
+
+
+@strict
 class QName:
     _value: str
 
-    def __init__(self, value: Union['QName', str]) -> None:
+    def __init__(self, value: Self | str) -> None:
         if type(value) is QName:
             self._value = str(value)
             return
@@ -27,7 +61,7 @@ class QName:
             self._value = value
 
     @classmethod
-    def build(cls, prefix: str, fragment: str):
+    def build(cls, prefix: str | NCName, fragment: str | NCName):
         return cls(f"{prefix}:{fragment}")
 
     def __len__(self) -> int:
@@ -97,7 +131,7 @@ class AnyIRI:
     _value: str
     _append_allowed: bool
 
-    def __init__(self, value: Union['AnyIRI', str]):
+    def __init__(self, value: Self | str):
         if isinstance(value, AnyIRI):
             self._value = str(value)
         else:
@@ -106,10 +140,10 @@ class AnyIRI:
             self._value = value
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 
-    def __add__(self, other: Any) -> 'AnyIRI':
+    def __add__(self, other: Any) -> Self:
         return AnyIRI(self._value + str(other))
 
-    def __iadd__(self, other) -> 'AnyIRI':
+    def __iadd__(self, other) -> Self:
         return AnyIRI(self._value + str(other))
 
     def __repr__(self) -> str:
@@ -137,44 +171,10 @@ class AnyIRI:
 
 class NamespaceIRI(AnyIRI):
 
-    def __init__(self, value: Union['NamespaceIRI', str]):
+    def __init__(self, value: Self | str):
         super().__init__(value)
         if self._value[-1] != '/' and self._value[-1] != '#':
             raise OmasError("NamespaceIRI must end with '/' or '#'!")
-
-
-@strict
-class NCName:
-    _value: str
-
-    def __init__(self, value: Union['NCName', str]):
-        if isinstance(value, NCName):
-            self._value = str(value)
-        else:
-            if not XsdValidator.validate(XsdDatatypes.NCName, value):
-                raise OmasError("Invalid string for NCName")
-            self._value = value
-
-    def __add__(self, other: Any) -> 'NCName':
-        return NCName(self._value + str(other))
-
-    def __iadd__(self, other) -> 'NCName':
-        return NCName(self._value + str(other))
-
-    def __repr__(self) -> str:
-        return f"NCName({self._value})"
-
-    def __str__(self) -> str:
-        return self._value
-
-    def __eq__(self, other: Any) -> bool:
-        return self._value == str(other)
-
-    def __ne__(self, other: Any) -> bool:
-        return self._value != str(other)
-
-    def __hash__(self) -> int:
-        return self._value.__hash__()
 
 
 class Action(Enum):

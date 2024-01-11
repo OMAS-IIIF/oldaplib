@@ -55,7 +55,7 @@ class DataModel(Model):
     def get_resclasses(self) -> List[QName]:
         return [x for x in self.__resclasses]
 
-    def get_resclass(self, resclass_iri: QName) ->  Union[ResourceClass, None]:
+    def get_resclass(self, resclass_iri: QName) -> Union[ResourceClass, None]:
         return self.__resclasses.get(resclass_iri)
 
     @classmethod

@@ -7,7 +7,7 @@ from datetime import datetime, date, time
 from decimal import Decimal
 from enum import Enum, unique
 from pprint import pprint
-from typing import Union, Set, Optional, Any, Tuple, Dict, Callable, List
+from typing import Union, Set, Optional, Any, Tuple, Dict, Callable, List, Self
 
 from pystrict import strict
 
@@ -19,7 +19,7 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
-from omaslib.src.helpers.query_processor import RowType, StringLiteral, QueryProcessor
+from omaslib.src.helpers.query_processor import RowType, OmasStringLiteral, QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import lprint, RdfModifyItem, RdfModifyProp
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
@@ -33,9 +33,9 @@ class OwlPropertyType(Enum):
     OwlObjectProperty = 'owl:ObjectProperty'
 
 
-PropTypes = Union[QName, AnyIRI, OwlPropertyType, XsdDatatypes, PropertyRestrictions, LangString, int, float, None]
+PropTypes = QName | AnyIRI | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | int | float | None
 PropertyClassAttributesContainer = Dict[PropertyClassAttribute, PropTypes]
-Attributes = Dict[QName, Union[List[Any], Set[Any]]]
+Attributes = Dict[QName, List[Any] | Set[Any]]
 
 
 @dataclass
@@ -62,13 +62,13 @@ class PropertyClass(Model, Notify):
 
     """
     _graph: NCName
-    _property_class_iri: Union[QName, None]
-    _internal: Union[QName, None]
+    _property_class_iri: QName | None
+    _internal: QName | None
     _force_external: bool
     _attributes: PropertyClassAttributesContainer
     _changeset: Dict[PropertyClassAttribute, PropertyClassAttributeChange]
     _test_in_use: bool
-    _notifier: Union[Callable[[type], None], None]
+    _notifier: Callable[[type], None] | None
     #
     # The following attributes of this class cannot be set explicitely by the used
     # They are automatically managed by the OMAS system
@@ -164,7 +164,7 @@ class PropertyClass(Model, Notify):
     def __getitem__(self, attr: PropertyClassAttribute) -> PropTypes:
         return self._attributes[attr]
 
-    def get(self, attr: PropertyClassAttribute) -> Union[PropTypes, None]:
+    def get(self, attr: PropertyClassAttribute) -> PropTypes | None:
         return self._attributes.get(attr)
 
     def __setitem__(self, attr: PropertyClassAttribute, value: PropTypes) -> None:
@@ -253,7 +253,7 @@ class PropertyClass(Model, Notify):
     def from_triplestore(self) -> bool:
         return self.__from_triplestore
 
-    def undo(self, attr: Optional[Union[PropertyClassAttribute, PropertyRestrictionType]] = None) -> None:
+    def undo(self, attr: Optional[PropertyClassAttribute | PropertyRestrictionType] = None) -> None:
         if attr is None:
             for p, change in self._changeset.items():
                 if change.action == Action.MODIFY:
@@ -325,7 +325,7 @@ class PropertyClass(Model, Notify):
             if attributes.get(attriri) is None:
                 attributes[attriri] = []
             attributes[attriri].append(r['value'])
-        elif isinstance(r['value'], StringLiteral):
+        elif isinstance(r['value'], OmasStringLiteral):
             if attributes.get(attriri) is None:
                 attributes[attriri] = []
             attributes[attriri].append(str(r['value']))
@@ -445,34 +445,35 @@ class PropertyClass(Model, Notify):
         for r in res:
             attr = r['p']
             obj = r['o']
-            if attr == 'rdf:type':
-                if obj == 'owl:DatatypeProperty':
-                    self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
-                elif obj == 'owl:ObjectProperty':
-                    self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
-            elif attr == 'owl:subPropertyOf':
-                self._attributes[PropertyClassAttribute.SUBPROPERTY_OF] = obj
-            elif attr == 'rdfs:range':
-                if obj.prefix == 'xsd':
-                    datatype = obj
-                else:
-                    to_node_iri = obj
-            elif attr == 'rdfs:domain':
-                self._internal = obj
-            elif attr == 'dcterms:creator':
-                if self.__creator != obj:
-                    raise OmasError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}" for property "{self._property_class_iri}".')
-            elif attr == 'dcterms:created':
-                dt = obj
-                if self.__created != dt:
-                    raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__created}" vs "{dt}".')
-            elif attr == 'dcterms:contributor':
-                if self.__creator != obj:
-                    raise OmasError(f'Inconsistency between SHACL and OWL: contributor "{self.__contributor}" vs "{obj}".')
-            elif attr == 'dcterms:modified':
-                dt = obj
-                if self.__modified != dt:
-                    raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__modified}" vs "{dt}".')
+            match attr:
+                case 'rdf:type':
+                    if obj == 'owl:DatatypeProperty':
+                        self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+                    elif obj == 'owl:ObjectProperty':
+                        self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
+                case 'owl:subPropertyOf':
+                    self._attributes[PropertyClassAttribute.SUBPROPERTY_OF] = obj
+                case 'rdfs:range':
+                    if obj.prefix == 'xsd':
+                        datatype = obj
+                    else:
+                        to_node_iri = obj
+                case 'rdfs:domain':
+                    self._internal = obj
+                case 'dcterms:creator':
+                    if self.__creator != obj:
+                        raise OmasError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}" for property "{self._property_class_iri}".')
+                case 'dcterms:created':
+                    dt = obj
+                    if self.__created != dt:
+                        raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__created}" vs "{dt}".')
+                case 'dcterms:contributor':
+                    if self.__creator != obj:
+                        raise OmasError(f'Inconsistency between SHACL and OWL: contributor "{self.__contributor}" vs "{obj}".')
+                case 'dcterms:modified':
+                    dt = obj
+                    if self.__modified != dt:
+                        raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__modified}" vs "{dt}".')
         #
         # Consistency checks
         #
@@ -490,7 +491,7 @@ class PropertyClass(Model, Notify):
                     f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
 
     @classmethod
-    def read(cls, con: Connection, graph: NCName, property_class_iri: QName) -> 'PropertyClass':
+    def read(cls, con: Connection, graph: NCName, property_class_iri: QName) -> Self:
         property = cls(con=con, graph=graph, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
@@ -500,7 +501,7 @@ class PropertyClass(Model, Notify):
     def read_modified_shacl(self, *,
                             context: Context,
                             graph: NCName,
-                            indent: int = 0, indent_inc: int = 4) -> Union[datetime, None]:
+                            indent: int = 0, indent_inc: int = 4) -> datetime | None:
         blank = ''
         sparql = context.sparql_context
         owlclass_iri = self._internal
@@ -523,7 +524,7 @@ class PropertyClass(Model, Notify):
     def read_modified_owl(self, *,
                           context: Context,
                           graph: NCName,
-                          indent: int = 0, indent_inc: int = 4) -> Union[datetime, None]:
+                          indent: int = 0, indent_inc: int = 4) -> datetime | None:
         blank = ''
         sparql = context.sparql_context
         owlclass_iri = self._internal
@@ -625,7 +626,7 @@ class PropertyClass(Model, Notify):
         self.__from_triplestore = True
 
     def create(self, *,
-               indent: int = 0, indent_inc: int = 4) -> Union[str, None]:
+               indent: int = 0, indent_inc: int = 4) -> str | None:
         if self.__from_triplestore:
             raise OmasErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
         timestamp = datetime.now()

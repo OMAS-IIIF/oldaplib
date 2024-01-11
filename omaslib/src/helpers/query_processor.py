@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, time, date, timedelta
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Self
 
 import isodate
 from isodate import Duration
@@ -15,15 +15,15 @@ class StringLiteral:
     pass
 
 
-RowElementType = Union[bool, int, float, str, datetime, time, date, Duration, timedelta, QName, BNode, StringLiteral]
+RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | StringLiteral
 RowType = Dict[str, RowElementType]
 
 
 @dataclass
 @strict
-class StringLiteral:
+class OmasStringLiteral:
     __value: str
-    __lang: Union[Language, None]
+    __lang: Language |  None
 
     def __init__(self, value: str, lang: Optional[str] = None):
         self.__value = value
@@ -41,8 +41,8 @@ class StringLiteral:
         else:
             return self.__value
 
-    def __eq__(self, other: Union[str, StringLiteral]) -> bool:
-        if isinstance(other, StringLiteral):
+    def __eq__(self, other: str | Self) -> bool:
+        if isinstance(other, OmasStringLiteral):
             return self.__value == other.__value and self.__lang == other.__lang
         elif isinstance(other, str):
             return self.__value == other
@@ -59,7 +59,7 @@ class StringLiteral:
         return self.__value
 
     @property
-    def lang(self) -> Union[Language, None]:
+    def lang(self) -> Language | None:
         return self.__lang
 
 
@@ -87,31 +87,32 @@ class QueryProcessor:
                 elif valobj["type"] == "literal":
                     dt = valobj.get("datatype")
                     if dt is None:
-                        row[name] = StringLiteral(valobj["value"], valobj.get("xml:lang"))
+                        row[name] = OmasStringLiteral(valobj["value"], valobj.get("xml:lang"))
                     else:
                         dt = context.iri2qname(dt)
-                        if dt == 'xsd:string':
-                            row[name] = StringLiteral(valobj["value"], valobj.get("xml:lang"))
-                        elif dt == 'xsd:boolean':
-                            row[name] = True if valobj["value"] == 'true' else False
-                        elif dt == 'xsd:integer':
-                            row[name] = int(valobj["value"])
-                        elif dt == 'xsd:float':
-                            row[name] = float(valobj["value"])
-                        elif dt == 'xsd:double':
-                            row[name] = float(valobj["value"])
-                        elif dt == 'xsd:decimal':
-                            row[name] = float(valobj["value"])
-                        elif dt == 'xsd:dateTime':
-                            row[name] = datetime.fromisoformat(valobj["value"])
-                        elif dt == 'xsd:time':
-                            row[name] = time.fromisoformat(valobj["value"])
-                        elif dt == 'xsd:date':
-                            row[name] = date.fromisoformat(valobj["value"])
-                        elif dt == 'xsd:duration':
-                            row[name] = isodate.parse_duration(valobj["value"])
-                        else:
-                            row[name] = str(valobj["value"])
+                        match dt:
+                            case 'xsd:string':
+                                row[name] = OmasStringLiteral(valobj["value"], valobj.get("xml:lang"))
+                            case 'xsd:boolean':
+                                row[name] = True if valobj["value"] == 'true' else False
+                            case 'xsd:integer':
+                                row[name] = int(valobj["value"])
+                            case 'xsd:float':
+                                row[name] = float(valobj["value"])
+                            case 'xsd:double':
+                                row[name] = float(valobj["value"])
+                            case 'xsd:decimal':
+                                row[name] = float(valobj["value"])
+                            case 'xsd:dateTime':
+                                row[name] = datetime.fromisoformat(valobj["value"])
+                            case 'xsd:time':
+                                row[name] = time.fromisoformat(valobj["value"])
+                            case 'xsd:date':
+                                row[name] = date.fromisoformat(valobj["value"])
+                            case 'xsd:duration':
+                                row[name] = isodate.parse_duration(valobj["value"])
+                            case _:
+                                row[name] = str(valobj["value"])
             self.__rows.append(row)
 
     def __len__(self) -> int:
