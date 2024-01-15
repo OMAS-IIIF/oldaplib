@@ -1,3 +1,9 @@
+"""
+Implementation of the context (aka prefixes for RDF-trig and SPARQL notation).
+
+Each context has a name and is for this name a singleton which is implemented using
+a metaclass.
+"""
 from typing import Dict, Union, List
 
 from pystrict import strict
@@ -11,6 +17,8 @@ DEFAULT_CONTEXT = "OMAS_DEFAULT_CONTEXT"
 
 class ContextSingleton(type):
     """
+    Implementation of the metaclass for a singleton class that makes a named contex to act as a singleton
+
     The idea for this class came from "https://stackoverflow.com/questions/3615565/python-get-constructor-to-return-an-existing-object-instead-of-a-new-one".
     """
     def __call__(cls, *, name, **kwargs):
@@ -28,16 +36,21 @@ class ContextSingleton(type):
 @strict
 class Context(metaclass=ContextSingleton):
     """
-    This class is used to hold the "context" of an RDF query/update. The context contains the
-    association of the prefixes with the full IRI's of the namespaces.
+    This class is used to hold the "context" for RDF (trig-format) of a SPARQL query/update.
+    The context contains the association of the prefixes with the full IRI's of the namespaces.
 
     The context instances are singletons of the given name. That is, Constructors refering the
     same context name will return a shared context for this name.
+    A Context instance can also store the graph names that should be added to a "FROM" or "FROM NAMED" clause
+    for  SPARQL queries. The graph names are special prefixes (NCNames) that are used with the
+    appropriate fragments (<graphname>:shacl, <graphname>:onto, <graphname>:data) to form the graph IRI's.
 
     The following methods are defined, In case of an error they raise an OmasError():
-    * _[] aka getitem_: Access a full IRI using the prefix, e.g. ```context['rdfs']```
-    * _[]_ aka setitem_: Set or modify a prefix/IRI pair, e.g. ```context['test'] = 'http://www.test.org/gaga#'```
+    * _[] (aka getitem)_: Access a full IRI using the prefix, e.g. ```context['rdfs']```
+    * _[] (aka setitem)_: Set or modify a prefix/IRI pair, e.g. ```context['test'] = 'http://www.test.org/gaga#'```
     * _del_: Delete an item, e.g. ```del context['skos']```
+    * _graphs_: Return list of graph names that should be used for sparql queries
+    * _use_: Add a graph name to the list for graph names that should be used for sparql queries
     * _iri2qname()_: Convert a full IRI to a QNAME ('<prefix>:<name>'), e.g.
       ```context.iri2qname('http://www.w3.org/2000/01/rdf-schema#label')``` -> 'rdfs:label'
     * _qname2iri()_: Convert a qname to a full IRI, e.g.
@@ -61,6 +74,9 @@ class Context(metaclass=ContextSingleton):
         - xml
         - sh (SHACL)
         - skos
+        - dc (http://purl.org/dc/elements/1.1/)
+        - dcterms (http://purl.org/dc/terms/)
+        - orcid (https://orcid.org/)
         - omas (http://omas.org/base#)
         Note: If a context with the same name already exists, a reference to the already existing is returned:
 
@@ -149,10 +165,19 @@ class Context(metaclass=ContextSingleton):
         return self._context.__iter__()
 
     @property
-    def graphs(self):
+    def graphs(self) -> List[NCName]:
+        """
+        Returns the list of graphs to be used for this context
+        :return:
+        """
         return self._use
 
     def use(self, *args: NCName | str) -> None:
+        """
+        Add graoh names to the context
+        :param args: Parameter list of graph names
+        :return: None
+        """
         for arg in args:
             self._use.append(NCName(arg))
 
@@ -174,7 +199,7 @@ class Context(metaclass=ContextSingleton):
         for prefix, trunk in self._context.items():
             if str(iri).startswith(str(trunk)):
                 fragment = str(iri)[len(trunk):]
-                return QName.build(str(prefix), fragment)
+                return QName(prefix, fragment)
         return None
 
     def qname2iri(self, qname: QName | str) -> str:

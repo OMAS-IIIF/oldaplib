@@ -8,17 +8,26 @@ class OmasError(Exception):
     """
     pass
 
+
+@strict
+class OmasValueError(OmasError):
+    pass
+
+
 @strict
 class OmasErrorNotFound(OmasError):
     pass
+
 
 @strict
 class OmasErrorAlreadyExists(OmasError):
     pass
 
+
 @strict
 class OmasErrorInconsistency(OmasError):
     pass
+
 
 @strict
 class OmasErrorUpdateFailed(OmasError):

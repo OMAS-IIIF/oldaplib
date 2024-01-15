@@ -1,70 +1,173 @@
+"""
+This module implements common data classes that are used throughout the OMASLIB library
+
+* _NCName_: An XML NCName
+* _QName_: An XML QName
+* _BNode_: A blank node a returned by the triple store
+* _AnyIRI_: A generic IRI
+* _NamespaceIRI_: A namespace IRI, that is an IRI that ends with either "#" or "/"
+* _Action_: The action that can be performed on resources and properties
+
+These classes perform consistency checks to guarantee that the data is consistent with the syntax rules
+for the given XML datatypes. They should be used instead of simple string representations wherever possible
+"""
 from enum import Enum
-from typing import Any, Union, Self
+from typing import Any, Union, Self, Optional
 from pystrict import strict
 
 from .xsd_datatypes import XsdDatatypes, XsdValidator
-from .omaserror import OmasError
+from .omaserror import OmasValueError
 
 
 @strict
 class NCName:
+    """
+    Implements a NCName according to the XML datatyping).
+
+    NCName is according to the XML datatype a "unqualified name". This class implements the
+    following operations/methods:
+    * _Constructor_: NCName(<string>), NCName(<NCName>)
+    * " _+_: <NCName> + <string>
+    * " _+=_: <NCName> += <string>
+    * _repr_(): Get the representation of the NCName
+    * _str_(): Get the string representation of the NCName
+    * _==_: Compare a NCName to another NCName or string for equality
+    * _!=_: Compare a NCName to another NCName or string for inequality
+    * ___hash__()_: Get the hash of the NCName
+    * _prefix()_: Get the prefix of the NCName
+    * _fragment()_: Get the suffix of the NCName
+    """
     _value: str
 
     def __init__(self, value: Self | str):
+        """
+        Initialize the NCName
+        :param value: Either a string conforming to the QName syntax or a NCName
+        """
         if isinstance(value, NCName):
             self._value = str(value)
         else:
             if not XsdValidator.validate(XsdDatatypes.NCName, value):
-                raise OmasError("Invalid string for NCName")
+                raise OmasValueError(f'Invalid string "{value}" for NCName')
             self._value = value
 
-    def __add__(self, other: Any) -> Self:
-        return NCName(self._value + str(other))
+    def __add__(self, other: Self | str) -> Self:
+        """
+        Append a string (which must conform to the NCName restriction) to the NCName
+        :param other: string or NCName to append
+        :return: A _new_ NCName with string appended
+        """
+        if isinstance(other, str):
+            other = NCName(other)  # convert to NCName. Will raise OmasValueError if string does not conform to NCName form
+        if isinstance(other, NCName):
+            return NCName(self._value + str(other))
+        else:
+            raise OmasValueError("Can only add a string or a NCName to a NCName")
 
-    def __iadd__(self, other) -> Self:
-        return NCName(self._value + str(other))
+    def __iadd__(self, other: Self | str) -> Self:
+        """
+        Append a string to the NCName
+        :param other: string to append to the NCName
+        :return:
+        """
+        if isinstance(other, str):
+            other = NCName(other)  # convert to NCName. Will raise OmasValueError if string does not conform to NCName form
+        if isinstance(other, NCName):
+            self._value += str(other)
+            return self
+        else:
+            raise OmasValueError("Can only add a string to NCName")
 
     def __repr__(self) -> str:
+        """
+        Return the representation string
+        :return: Python representation of the instance
+        """
         return f"NCName({self._value})"
 
     def __str__(self) -> str:
+        """
+        Return the value as string
+        :return: Value as string
+        """
         return self._value
 
     def __eq__(self, other: Any) -> bool:
+        """
+        Test two NCNames for equality
+        :param other: The other NCName/str to compare
+        :return: True of False
+        """
         return self._value == str(other)
 
     def __ne__(self, other: Any) -> bool:
+        """
+        Test for non-equality
+        :param other: The other NCName/str to compare
+        :return: True of False
+        """
         return self._value != str(other)
 
     def __hash__(self) -> int:
+        """
+        Return the hash of the NCName
+        :return: hash of the NCName
+        """
         return self._value.__hash__()
 
 
 @strict
 class QName:
+    """
+    Implements a XSD qualified name (xs:QName)
+
+    A QName consists of a prefix (itelf a NCName) and a fragment (also itself a NCName) seperatet
+    by a colon (":").
+    The following methods are implemented:
+    * _Constructor_: Construct a QName from a QName, string (with a ":") or a prefix/fragment pair
+    * _len()_: Return the length of the QName, that is the number of characters of the string representation
+    * _repr()_: Return the Python representation of the QName
+    * _str()_: Return the string representation of the QName
+    * _==_: Test for equality
+    * _!=_: Test for inequality
+    * hash(): Return the hash of the QName
+    * _prefix_: Return the prefix of the QName as property
+    * _fragment_: Return the fragment of the QName as property
+    """
     _value: str
 
-    def __init__(self, value: Self | str) -> None:
-        if type(value) is QName:
-            self._value = str(value)
-            return
-        tmp = value.split(':')
-        if len(tmp) != 2:
-            raise OmasError(f'Invalid string "{value}" for QName')
-        if tmp[0] == 'xml':
-            if not XsdValidator.validate(XsdDatatypes.NCName, tmp[1]):
-                raise OmasError(f'Invalid string "{value}" for QName')
-            self._value = value
+    def __init__(self, value: Self | str | NCName, fragment: Optional[str | NCName] = None) -> None:
+        """
+        Construct a QName from a QName, string (with a ":") or a prefix/fragment pair
+        :param value: A Qname, string (with a ":") or a prefix as NCName or string
+        :param fragment: A NCName or string (conforming to NCName the convention) for the fragment part
+        """
+        if fragment is None:
+            if isinstance(value, QName):
+                self._value = str(value)
+            elif isinstance(value, str):
+                try:
+                    prefix, fragment = value.split(':')
+                except ValueError as err:
+                    raise OmasValueError(f'Invalid string "{value}" for QName')
+                try:
+                    prefix = NCName(prefix)
+                    fragment = NCName(fragment)
+                except OmasValueError as err:
+                    raise OmasValueError(f'Invalid string "{value}" for QName. Error: {err}')
+                self._value = f'{prefix}:{fragment}'
+            else:
+                raise OmasValueError(f'Invalid value for QName "{value}"')
         else:
-            if not XsdValidator.validate(XsdDatatypes.QName, value):
-                raise OmasError(f'Invalid string "{value}" for QName')
-            self._value = value
-
-    @classmethod
-    def build(cls, prefix: str | NCName, fragment: str | NCName):
-        return cls(f"{prefix}:{fragment}")
+            prefix = NCName(value)
+            fragment = NCName(fragment)
+            self._value = f'{prefix}:{fragment}'
 
     def __len__(self) -> int:
+        """
+        Return the number of characters in the QName
+        :return: Length of the QName
+        """
         return len(self._value)
 
     def __add__(self, other: Any) -> 'QName':
@@ -74,98 +177,221 @@ class QName:
         return QName(self._value + str(other))
 
     def __repr__(self):
+        """
+        Return the Python representation of the QName
+        :return: Python representation of the QName
+        """
         return f'QName("{self._value}")'
 
     def __str__(self):
+        """
+        Return the string representation of the QName
+        :return: String representation of the QName
+        """
         return self._value
 
     def __eq__(self, other: Any):
+        """
+        Test for equality of two QNames
+        :param other: Another QName/str to compare with
+        :return: True of False
+        """
         return self._value == str(other)
 
     def __ne__(self, other: Any):
+        """
+        Test for inequality of two QNames
+        :param other: Another QName/str to compare with
+        :return: True of False
+        """
         return self._value != str(other)
 
     def __hash__(self):
+        """
+        Return the hast value of the QName
+        :return: Hash of the QName
+        """
         return self._value.__hash__()
 
     @property
-    def prefix(self):
+    def prefix(self) -> str:
+        """
+        Access the prefix of the QName as property
+        :return: Prefix as string
+        """
         parts = self._value.split(':')
         return parts[0]
 
     @property
-    def fragment(self):
+    def fragment(self) -> str:
+        """
+        Access the fragment as fragment of the QName as property
+        :return: Fragment as string
+        """
         parts = self._value.split(':')
         return parts[1]
 
 
 @strict
 class BNode:
+    """
+    Represents a blank node in the triple store
+    """
     __value: str
 
     def __init__(self, value: str) -> None:
+        """
+        Construct a blank node from its name
+        :param value:
+        """
         self.__value = value
 
     def __str__(self) -> str:
+        """
+        Return the string representation of the BNode
+        :return: string representation of the BNode
+        """
         return self.__value
 
     def __repr__(self) -> str:
+        """
+        Return the Python representation of the BNode
+        :return: Python representation of the BNode
+        """
         return f'BNode("{self.__value}")'
 
     def __eq__(self, other: Any) -> bool:
+        """
+        Test for equality of two BNodes
+        :param other: Another BNode to compare with
+        :return: True of False
+        """
         return self.__value == str(other)
 
     def __ne__(self, other: Any) -> bool:
+        """
+        Test for inequality of two BNodes
+        :param other: Any BNode to compare with
+        :return: True or False
+        """
         return self.__value != str(other)
 
     def __hash__(self):
+        """
+        Return the hash of the BNode
+        :return: Hash of the BNode
+        """
         return hash(self.__value)
 
     @property
     def value(self) -> str:
+        """
+        Return the BNode's value (equivalent to str())
+        :return: String representation of the BNode
+        """
         return self.__value
 
 
 @strict
 class AnyIRI:
+    """
+    Represents a generic IRI
+
+    This class is used to represent a generic IRI
+    """
     _value: str
     _append_allowed: bool
 
     def __init__(self, value: Self | str):
+        """
+        Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI
+        :param value: A string or another AnyIRI instance
+        """
         if isinstance(value, AnyIRI):
             self._value = str(value)
         else:
             if not XsdValidator.validate(XsdDatatypes.anyURI, value):
-                raise OmasError(f'Invalid string "{value}" for anyIRI')
+                raise OmasValueError(f'Invalid string "{value}" for anyIRI')
             self._value = value
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 
-    def __add__(self, other: Any) -> Self:
-        return AnyIRI(self._value + str(other))
+    def __add__(self, other: str | NCName) -> Self:
+        """
+        Add a string/NCName to a AnyIRI
+        :param other: A string/NCName to be appended to the AnyIRI
+        :return: A new AnyIRI
+        """
+        if isinstance(other, str):
+            other = NCName(other)
+        if isinstance(other, NCName):
+            return AnyIRI(self._value + str(other))
+        else:
+            return OmasValueError(f'Cannot add "{other}" to AnyIRI')
 
-    def __iadd__(self, other) -> Self:
-        return AnyIRI(self._value + str(other))
+    def __iadd__(self, other: str | NCName) -> Self:
+        """
+        Add a string/NCName to an AnyIRI
+        :param other: A string/NCName to be appended to the AnyIRI
+        :return: self
+        """
+        if isinstance(other, str):
+            other = NCName(other)
+        if isinstance(other, NCName):
+            self._value + str(other)
+        else:
+            return OmasValueError(f'Cannot add "{other}" to AnyIRI')
+        return self
 
     def __repr__(self) -> str:
+        """
+        Returns the Python representation of the AnyIRI
+        :return: Python representation of the AnyIRI
+        """
         return f"AnyURI({self._value})"
 
     def __str__(self) -> str:
+        """
+        Returns the string representation of the AnyIRI
+        :return: String representation of the AnyIRI
+        """
         return self._value
 
     def __eq__(self, other: Any) -> bool:
+        """
+        Test for equality of two AnyIRIs
+        :param other: A string/AnyIRI to be compared
+        :return: True or False
+        """
         return self._value == str(other)
 
     def __ne__(self, other: Any) -> bool:
+        """
+        Test for inequality of two
+        :param other: A string/AnyIRI to be compared
+        :return: True or False
+        """
         return self._value != str(other)
 
     def __hash__(self) -> int:
+        """
+        Returns the hash of the AnyIRI
+        :return: Hash of the AnyIRI
+        """
         return self._value.__hash__()
 
     def __len__(self):
+        """
+        Returns the number of characters in the AnyIRI
+        :return: Number of characters in the AnyIRI
+        """
         return len(self._value)
 
     @property
     def append_allowed(self) -> bool:
+        """
+        Property which is "True" if the AnyURI is ending with "#" or "/"
+        :return: True of False
+        """
         return self._append_allowed
 
 
@@ -173,8 +399,8 @@ class NamespaceIRI(AnyIRI):
 
     def __init__(self, value: Self | str):
         super().__init__(value)
-        if self._value[-1] != '/' and self._value[-1] != '#':
-            raise OmasError("NamespaceIRI must end with '/' or '#'!")
+        if not self._append_allowed:
+            raise OmasValueError("NamespaceIRI must end with '/' or '#'!")
 
 
 class Action(Enum):
