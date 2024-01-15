@@ -323,6 +323,7 @@ class AnyIRI:
         """
         if isinstance(other, str):
             other = NCName(other)
+            return AnyIRI(self._value + str(other))
         if isinstance(other, NCName):
             return AnyIRI(self._value + str(other))
         else:
@@ -337,9 +338,9 @@ class AnyIRI:
         if isinstance(other, str):
             other = NCName(other)
         if isinstance(other, NCName):
-            self._value + str(other)
+            self._value += str(other)
         else:
-            return OmasValueError(f'Cannot add "{other}" to AnyIRI')
+            raise OmasValueError(f'Cannot add "{other}" to AnyIRI')
         return self
 
     def __repr__(self) -> str:

@@ -45,8 +45,6 @@ class TestAnyIRI(unittest.TestCase):
         self.assertEqual(iri3, 'http://www.ch/tescht#gaga')
         self.assertFalse(iri1 == iri3)
         iri2 += 'gaga'
-        print("\n------>", str(iri2))
-        print("\n------>", str(iri3))
         self.assertTrue(iri2 == iri3)
         self.assertEqual(hash(iri2), hash(iri3))
         with self.assertRaises(OmasValueError) as ex:
