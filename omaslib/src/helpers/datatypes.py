@@ -11,7 +11,7 @@ This module implements common data classes that are used throughout the OMASLIB 
 These classes perform consistency checks to guarantee that the data is consistent with the syntax rules
 for the given XML datatypes. They should be used instead of simple string representations wherever possible
 """
-from enum import Enum
+from enum import Enum, unique
 from typing import Any, Union, Self, Optional
 from pystrict import strict
 
@@ -397,14 +397,24 @@ class AnyIRI:
 
 
 class NamespaceIRI(AnyIRI):
-
+    """
+    An IRI representing a namespace
+    """
     def __init__(self, value: Self | str):
+        """
+        Constructor for the NamespaceIRI
+        :param value: A string or another NamespaceIRI
+        """
         super().__init__(value)
         if not self._append_allowed:
             raise OmasValueError("NamespaceIRI must end with '/' or '#'!")
 
 
+@unique
 class Action(Enum):
+    """
+    An Enumeration of the Actions that can be performed on ResourceClass or PropertyClass instances
+    """
     CREATE = 'create'  # a new value has been added
     MODIFY = 'modify'  # a complex value (LangString, PropertyRestriction) has been modified
     REPLACE = 'replace'  # an existing value has been replaced by a new value
