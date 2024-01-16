@@ -1,3 +1,8 @@
+"""
+This module provides the handling for language dependent strings. RDF allows to attach a language tag to
+a string to identify which language is used. In turtle/trig notation it has the form "<string>"@<lang>,
+eg "this is a string in english"@en. In order to handle such strings easyli in OMAS, the Language class provides all necessay
+"""
 from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
