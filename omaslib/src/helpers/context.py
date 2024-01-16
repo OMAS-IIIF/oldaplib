@@ -46,17 +46,17 @@ class Context(metaclass=ContextSingleton):
     appropriate fragments (<graphname>:shacl, <graphname>:onto, <graphname>:data) to form the graph IRI's.
 
     The following methods are defined, In case of an error they raise an OmasError():
-    * _[] (aka getitem)_: Access a full IRI using the prefix, e.g. ```context['rdfs']```
-    * _[] (aka setitem)_: Set or modify a prefix/IRI pair, e.g. ```context['test'] = 'http://www.test.org/gaga#'```
-    * _del_: Delete an item, e.g. ```del context['skos']```
-    * _graphs_: Return list of graph names that should be used for sparql queries
-    * _use_: Add a graph name to the list for graph names that should be used for sparql queries
-    * _iri2qname()_: Convert a full IRI to a QNAME ('<prefix>:<name>'), e.g.
-      ```context.iri2qname('http://www.w3.org/2000/01/rdf-schema#label')``` -> 'rdfs:label'
+    * *[] (aka getitem)*: Access a full IRI using the prefix, e.g. ```context['rdfs']```
+    * *[] (aka setitem)*: Set or modify a prefix/IRI pair, e.g. ```context['test'] = 'http://www.test.org/gaga#'```
+    * *del*: Delete an item, e.g. ```del context['skos']```
+    * *graphs*: Return list of graph names that should be used for sparql queries
+    * *use*: Add a graph name to the list for graph names that should be used for sparql queries
+    * *iri2qname()*: Convert a full IRI to a QNAME ('<prefix>:<name>'), e.g.
+      ``context.iri2qname('http://www.w3.org/2000/01/rdf-schema#label')`` -> 'rdfs:label'
     * _qname2iri()_: Convert a qname to a full IRI, e.g.
-      ```context.qname2iri('rdfs:label')``` -> 'http://www.w3.org/2000/01/rdf-schema#label'
-    * sparql_context: Property that returns the context as sparql compatible string
-    * turtle_context: Property that return the context as turtle compatible string
+      ``context.qname2iri('rdfs:label')`` -> 'http://www.w3.org/2000/01/rdf-schema#label'
+    * *sparql_context*: Property that returns the context as sparql compatible string
+    * *turtle_context*: Property that return the context as turtle compatible string
     """
     _name: str
     _context: Dict[NCName, NamespaceIRI]
@@ -67,17 +67,17 @@ class Context(metaclass=ContextSingleton):
                  name: str):
         """
         Constructs a context with the given name. The following namespaces are defined by default:
-        - rdf
-        - rdfs
-        - owl
-        - xsd
-        - xml
-        - sh (SHACL)
-        - skos
-        - dc (http://purl.org/dc/elements/1.1/)
-        - dcterms (http://purl.org/dc/terms/)
-        - orcid (https://orcid.org/)
-        - omas (http://omas.org/base#)
+        * rdf
+        * rdfs
+        * owl
+        * xsd
+        * xml
+        * sh (SHACL)
+        * skos
+        * dc (http://purl.org/dc/elements/1.1/)
+        * dcterms (http://purl.org/dc/terms/)
+        * orcid (https://orcid.org/)
+        * omas (http://omas.org/base#)
         Note: If a context with the same name already exists, a reference to the already existing is returned:
 
         :param name: Name of the context

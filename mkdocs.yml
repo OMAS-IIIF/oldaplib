@@ -1,0 +1,7 @@
+site_name: OMASLIB
+site_url: https://omaslib.org
+docs_dir: omaslib/docs
+nav:
+  - About: index.md
+  - Introduction: introduction.md
+theme: readthedocs
