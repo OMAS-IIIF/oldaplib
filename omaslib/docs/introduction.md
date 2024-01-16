@@ -42,7 +42,7 @@ For each project, there are 3 different graphs (assuming *projpre* as project pr
 * `projpre:onto`: This graph contains all the OWL declaration
 * `projpre:data`. This graphs contains the actual data
 
-OMASLIB primarely deals with the first two, that is the SHACL and OWL declaration and allows to build and maintain a
+OMASLIB primarily deals with the first two, that is the SHACL and OWL declaration and allows to build and maintain a
 consistent representation of a data model. Within the data model, resource class and properties which must follow
 certain project-defined constraints are defined.
 
@@ -70,5 +70,10 @@ used to add a comment to different resource classes.
 ### Resource Classes
 Resource classes represent classes of "real world" things (which may be abstract things such as en "event"). A
 Resource Class has a unique IRI and a set of rules that define which properties an instance must or may have.
+
+### Data Model
+A data model encompasses all definitions of property and resource classes that are defined for a specific project.
+A data model as well as its constituents (properties, resources) can be created, read, updated and deleted
+(CRUD-Operation) using the methods of the Python classes of OMASLIB. 
 
 

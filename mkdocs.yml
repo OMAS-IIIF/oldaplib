@@ -4,4 +4,16 @@ docs_dir: omaslib/docs
 nav:
   - About: index.md
   - Introduction: introduction.md
+  - LangString: langstring.md
+
 theme: readthedocs
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: sphinx
