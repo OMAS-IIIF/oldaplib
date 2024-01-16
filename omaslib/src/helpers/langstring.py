@@ -1,7 +1,8 @@
 """
 This module provides the handling for language dependent strings. RDF allows to attach a language tag to
-a string to identify which language is used. In turtle/trig notation it has the form "<string>"@<lang>,
-eg "this is a string in english"@en. In order to handle such strings easyli in OMAS, the Language class provides all necessay
+a string to identify which language is used. In turtle/trig notation it has the form "string"@lang,
+eg "this is a string in english"@en. In order to handle such strings easily in OMAS,
+the Language class provides all necessary enumerations.
 """
 from dataclasses import dataclass
 from datetime import datetime
@@ -37,13 +38,27 @@ class LangString(Notify):
     use of the enumeration is strongly recommended.
     An instance of this class implements some dictionary behaviours:
 
-    * access to a specific language string representation: ``myvar[Language.FR]``or myvar["fr"]
-    * to add or replace a specific language string representation: ``myvar[Language.DE] = "Ein neuer string"``or
-      ``myvar["de"] = "Ein neuer string"``.
-    * to delete a language: ``del myvar[Language.FR]``
+    - access to a specific language string representation: `myvar[Language.FR]` or `myvar["fr"]`
+    - to add or replace a specific language string representation: `myvar[Language.DE] = "Ein neuer string"` or
+      `myvar["de"] = "Ein neuer string"`.
+    - to delete a language: `del myvar[Language.FR]`
 
     The class implements the following methods:
-    * _constructor_
+
+    - _LangString()_: Initiate a language string instance (`__init__()`)
+    - _len()_: (see `__len__()_)Return the number of language strings present in the instance
+    - _str()_: Return the string representation of the Langstring as it would be used in a SPARQL insert statement
+    - _get()_: Return the language string or None, if it does not exist
+    - _==_: Test for equality of 2 langstrings
+    - _!=_: Test for inequality of 2 langstrings
+    - _items()_: Retuns an iterator over all strings in the LangString instance
+    - _langstring_: Returns dict containing all languages present in the instance
+    - _add()_: Add a string
+    - _undo_(): Forget all changes
+    - _changeset()_: Return the changeset dict (Note: this is not for generic use)
+    - _changeset_clear()_: Clear changeset to an empty dict
+    - _update_shacl_(): Return the SPARQL code piece that updates a Language string SHACL part of the triple store.
+    - _delete_shacl_(): Return the SPARQL code piece that deletes an LanguageString
     """
     _langstring: Dict[Language, str]
     _priorities: List[Language]
@@ -56,14 +71,17 @@ class LangString(Notify):
                  notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
                  notify_data: Optional[PropertyClassAttribute] = None):
         """
-        Implements language dependent strings
+        Implements language dependent strings.
 
-        :param langstring: A definition of one or several langiage dependent strings. The parameter can either be
-          - a string in the form "string@ll", eg "Lastname@en". A string without language qualifier has the language
-            Language.XX associated
-          - a list of strings: ["Lastname@en", "Nachname@de"]
-          - a dict with language short names as key: {'en': "Lastname", 'de': "Nachname"}
-          - a dict with Language enum values as keys: {Language.EN: "Lastname, Language.DE: "Nachname"}
+        The parameter `langstring`can either be
+
+        - a string in the form `"string@ll"`, eg `"Lastname@en"`. A string without language qualifier has the
+            language `Language.XX` associated.
+        - A list of strings: `["Lastname@en", "Nachname@de"]`
+        - A dict with language short names as key: `{'en': "Lastname", 'de': "Nachname"}`
+        - A dict with Language enum values as keys: `{Language.EN: "Lastname, Language.DE: "Nachname"}`
+
+        :param langstring: A definition of one or several langiage dependent strings.
         :param priorities: If a desired language is not found, then the next string is used given this priority list
           which as the form [Langguage.LL, ...], eg [Language.EN, Language.DE, Language.XX]. The default value
           is [Language.XX, Language.EN, Language.DE, Language.FR]
