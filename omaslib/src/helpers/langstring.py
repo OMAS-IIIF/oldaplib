@@ -28,11 +28,22 @@ class LangString(Notify):
     """
     Implements a multi-language representation of a string.
 
-    RDF allows to tag strings with language identifieres, e.g. 'this is a text'@en . To support multiple languages it
+    RDF allows to tag strings with language identifieres, e.g. "this is a text"@en . To support multiple languages it
     may make sense to allow for some string properties a cardinality > 1 so that multiple strings in different labguages
-    may be assigned. The SHACL restriction sh:uniqueLang allows to restrict the string to a unique value for each language.
-    This class uses a Dict with the language as key (see Language.py) and the string as value. For strings with no attached
-    language the Language.XX tag is used.
+    may be assigned. The SHACL restriction sh:uniqueLang allows to restrict the string to a unique value for each
+    language. This class uses a Dict with the language as key (see Language.py) and the string as value. For strings
+    with no attached language the Language.XX tag is used. Methods that require a language parameter, it can usually
+    be given as member of the enum class *Language*, e.g. ``Language.EN`` as 2-character shortname, e.g. ``"en"``. The
+    use of the enumeration is strongly recommended.
+    An instance of this class implements some dictionary behaviours:
+
+    * access to a specific language string representation: ``myvar[Language.FR]``or myvar["fr"]
+    * to add or replace a specific language string representation: ``myvar[Language.DE] = "Ein neuer string"``or
+      ``myvar["de"] = "Ein neuer string"``.
+    * to delete a language: ``del myvar[Language.FR]``
+
+    The class implements the following methods:
+    * _constructor_
     """
     _langstring: Dict[Language, str]
     _priorities: List[Language]
@@ -98,7 +109,7 @@ class LangString(Notify):
 
     def __len__(self):
         """
-        Returns the number of languages defined
+        Returns the number of languages defined for the given the LangString instance
         :return: Number of languages defined
         """
         return len(self._langstring)
@@ -152,8 +163,10 @@ class LangString(Notify):
     def __delitem__(self, lang: Language | str) -> None:
         """
         Delete a given language from a language string
-        :param lang: The language (as short name of as Language enum) to be deleted
-        :return: None
+         :param lang: The language (as short name of as Language enum) to be deleted
+        :type lang: Language or str (shortname)
+        :return: Does return nothing
+        :rtype: None
         """
         if isinstance(lang, Language):
             try:
@@ -178,7 +191,8 @@ class LangString(Notify):
     def __str__(self) -> str:
         """
         Return the language string as it would be used in a SPARQL insert statement
-        :return: language string
+        :return: language string as it would be used in a SPARQL insert statement
+        :rtype: str
         """
         langlist = [f'"{val}"@{lang.name.lower()}' for lang, val in self._langstring.items() if lang != Language.XX]
         resstr = ", ".join(langlist)
@@ -188,12 +202,26 @@ class LangString(Notify):
              resstr += f'"{self._langstring[Language.XX]}"'
         return resstr
 
-    def get(self, lang: str | Language):
+    def get(self, lang: str | Language) -> str:
+        """
+        Return the language string or None, if it does not exist
+        :param lang: Desired language
+        :type lang: Either a string (shortname) or a Language enum element.
+        :return: language string
+        :rtype: str
+        """
         if isinstance(lang, str):
             lang = Language[lang.upper()]
         return self._langstring.get(lang)
 
     def __eq__(self, other: Self) -> bool:
+        """
+        test for equality of two language strings
+        :param other: The other Language string to compare to
+        :type other: LanguageString
+        :return: True or False
+        :rtype: bool
+        """
         if len(self._langstring) != len(other._langstring):
             return False
         for lang in self._langstring:
@@ -204,6 +232,13 @@ class LangString(Notify):
         return True
 
     def __ne__(self, other: Self) -> bool:
+        """
+        Test for inequality of two language strings
+        :param other: The other Language string to compare to
+        :type other: LanguageString
+        :return: True if inequal, otherweise False
+        :rtype: bool
+        """
         if len(self._langstring) != len(other._langstring):
             return True
         for lang in self._langstring:
@@ -214,17 +249,34 @@ class LangString(Notify):
         return False
 
     def items(self):
+        """
+        Return an iterator over the language strings
+        :return: iterator over the language strings
+        :rtype: iterator
+        """
         return self._langstring.items()
 
     @property
     def langstring(self) -> Dict[Language, str]:
+        """
+        Return all language strings as Dict
+        :return: Dictionary of language strings
+        :rtype: Dict[Language, str]
+        """
         return self._langstring
 
     def add(self, langs: str | List[str] | Dict[str, str] | Dict[Language, str]) -> None:
         """
-        Add one or several new languages to a lang string
+        Add one or several new languages to a lang string. The method accepts several forms:
+        * ``mylstr.add("a new string@en")``
+        * ``mylstr.add(["a new string@en", "eine neue Zeichenketter@de])``
+        * ``mylstr.add({"fr": "Nouveau", "de": "Neue Zeichenketter"})``
+        * ``mylstr.add({Language.FR: "Nouveau", Language.DE: "Neue Zeichenketter"})
+        As this, it's a very versatile method for adding new languages to a LanguageString instance
         :param langs: The language/string pairs as single value, list or dict
-        :return: None
+        :type langs: str | List[str] | Dict[str, str] | Dict[Language, str]
+        :return: No return value
+        :rtype: None
         """
         if isinstance(langs, str):
             if langs[-3] == "@":
@@ -288,7 +340,8 @@ class LangString(Notify):
     def undo(self) -> None:
         """
         Undo all changes made since last update/creation/read
-        :return: None
+        :return: Nothing
+        :rtype: None
         """
         for lang, change in self._changeset.items():
             if change.action == Action.CREATE:
@@ -300,15 +353,17 @@ class LangString(Notify):
     @property
     def changeset(self) -> Dict[Language, LangStringChange]:
         """
-        Return the changeset dict
+        Return the changeset dict (Note: this is not for generic use)
         :return: Dict with changeset
+        :rtype: Dict[Language, LangStringChange]
         """
         return self._changeset
 
     def changeset_clear(self) -> None:
         """
-        Clear changeset to an empty dicz
-        :return: None
+        Clear changeset to an empty dict
+        :return: Nothing
+        :rtype: None
         """
         self._changeset = {}
 
@@ -320,16 +375,25 @@ class LangString(Notify):
                      modified: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         """
-        Return the SPARQL fragment to update a Language string (a property that has a cardinality
-        greater than one and is of string value with associated languages.
-        :param modified: las modification date as datetime instance
-        :param owlclass_iri: If the langstring is used within a property within a resource class
-        :param prop_iri: The IRI (name) of the PropertyClass
-        :param attr: The prop of the PropertyClass
-        :param indent: Indent for formatting
-        :param indent_inc: Indent increment
-        :return: String with the SPARQL fragment
+        Return the SPARQL code piece that updates a Language string SHACL part of the triple store.
+        :param graph: SPARQL graph as described in the introduction to OMASLIB
+        :type graph: NCName
+        :param owlclass_iri: The OWL class IRI of the associated ResourceClass. May be omitted for standalone properties
+        :type owlclass_iri: QName | None
+        :param prop_iri: The property IRI of the associated PropertyClass
+        :type prop_iri: QName
+        :param attr: The QName of the associated attribute
+        :type attr: QName
+        :param modified: timestamp that should be applied
+        :type modified: datetime
+        :param indent: The indent for the generated SPARQL code
+        :type indent: int
+        :param indent_inc: The indent increment for the generated SPARQL code
+        :type indent_inc: int
+        :return: SPARQL code piece
+        :rtype: str
         """
+
         blank = ' '
         sparql_list = []
         for lang, change in self._changeset.items():
@@ -369,8 +433,27 @@ class LangString(Notify):
                      prop_iri: QName,
                      attr: QName,
                      modified: datetime,
-                     indent: int = 0, indent_inc: int = 4
-                     ):
+                     indent: int = 0, indent_inc: int = 4) -> str:
+        # TODO: Include into unit tests!
+        """
+        Return the SPARQL code piece that deletes an LanguageString
+        :param graph: SPARQL graph as described in the introduction to OMASLIB
+        :type graph: NCName
+        :param owlclass_iri: The OWL class IRI of the associated ResourceClass. May be omitted for standalone properties
+        :type owlclass_iri: NCName or None
+        :param prop_iri: The property IRI of the associated PropertyClass
+        :type prop_iri: QName
+        :param attr: The QName of the associated attribute
+        :type attr: QName
+        :param modified: Modification date to apply
+        :type modified: datetime
+        :param indent: The indent for the generated SPARQL code
+        :type indent: int
+        :param indent_inc: The indent increment for the generated SPARQL code
+        :type indent_inc: int
+        :return: Piece of SPARQL code that deletes the Language String from the SHACL definition
+        :rtype: str
+        """
         blank = ' '
         sparql = f'#\n# Deleting the complete LangString data for {prop_iri} {attr}\n#\n'
         sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl'
@@ -385,6 +468,7 @@ class LangString(Notify):
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr} ?langval'
         sparql += f'{blank:{indent * indent_inc}}}}'
+        return sparql
 
 
 if __name__ == '__main__':

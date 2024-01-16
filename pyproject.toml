@@ -6,6 +6,9 @@ authors = ["Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>"]
 license = "GNU Affero General Public License version 3"
 readme = "README.md"
 
+[tool.mkdocs]
+plugins = ["mkdocs-material", "mkdocstrings"]
+
 packages = [
     { include = "omaslib" }
 ]
@@ -24,6 +27,7 @@ pyshacl = "^0.25.0"
 xmlschema = "^3.0.1"
 isodate = "^0.6.1"
 bcrypt = "^4.1.2"
+mkdocs = "^1.5.3"
 
 
 [build-system]
