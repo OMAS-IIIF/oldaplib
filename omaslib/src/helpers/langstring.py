@@ -46,12 +46,12 @@ class LangString(Notify):
     The class implements the following methods:
 
     - _LangString()_: Initiate a language string instance (`__init__()`)
-    - _len()_: (see `__len__()_)Return the number of language strings present in the instance
-    - _str()_: Return the string representation of the Langstring as it would be used in a SPARQL insert statement
-    - _get()_: Return the language string or None, if it does not exist
-    - _==_: Test for equality of 2 langstrings
-    - _!=_: Test for inequality of 2 langstrings
-    - _items()_: Retuns an iterator over all strings in the LangString instance
+    - _len()_: (see `__len__()_`) Return the number of language strings present in the instance
+    - _str()_: (see `__str__()`) Return the string representation of the Langstring as it would be used in a SPARQL insert statement
+    - _get()_: (see `__get__()`)Return the language string or None, if it does not exist
+    - _==_: (see `__eq__()`) Test for equality of 2 langstrings
+    - _!=_: (see `__ne__()`) Test for inequality of 2 langstrings
+    - _items()_: (see `__items__()')Retuns an iterator over all strings in the LangString instance
     - _langstring_: Returns dict containing all languages present in the instance
     - _add()_: Add a string
     - _undo_(): Forget all changes
