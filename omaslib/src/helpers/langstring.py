@@ -234,7 +234,7 @@ class LangString(Notify):
 
     def __eq__(self, other: Self) -> bool:
         """
-        test for equality of two language strings
+        Test for equality of two language strings
         :param other: The other Language string to compare to
         :type other: LanguageString
         :return: True or False
@@ -277,9 +277,9 @@ class LangString(Notify):
     @property
     def langstring(self) -> Dict[Language, str]:
         """
-        Return all language strings as Dict
-        :return: Dictionary of language strings
-        :rtype: Dict[Language, str]
+        All language strings as Dict
+        :return: A dictionary of all language strings
+        :rtype: Dict
         """
         return self._langstring
 
@@ -372,7 +372,7 @@ class LangString(Notify):
     def changeset(self) -> Dict[Language, LangStringChange]:
         """
         Return the changeset dict (Note: this is not for generic use)
-        :return: Dict with changeset
+        :return: The changeset information
         :rtype: Dict[Language, LangStringChange]
         """
         return self._changeset
