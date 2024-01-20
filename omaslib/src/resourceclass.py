@@ -48,9 +48,9 @@ class ResourceClass(Model):
     _properties: Dict[QName, PropertyClass]
     _attr_changeset: Dict[ResourceClassAttribute, ResourceClassAttributeChange]
     _prop_changeset: Dict[QName, ResourceClassPropertyChange]
-    __creator: Optional[QName]
+    __creator: Optional[AnyIRI]
     __created: Optional[datetime]
-    __contributor: Optional[QName]
+    __contributor: Optional[AnyIRI]
     __modified: Optional[datetime]
     __version: SemanticVersion
     __from_triplestore: bool
@@ -512,10 +512,10 @@ class ResourceClass(Model):
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:hasVersion "{self.__version}"'
         self.__created = timestamp
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:creator {self.__creator}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:creator <{self.__creator}>'
         self.__modified = timestamp
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self.__contributor}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor <{self.__contributor}>'
         for attr, value in self._attributes.items():
             if attr == ResourceClassAttribute.SUBCLASS_OF:
                 sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}{attr.value} {value}Shape'
@@ -551,9 +551,9 @@ class ResourceClass(Model):
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owlclass_iri} rdf:type owl:Class ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{self.__version}" ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator <{self.__creator}> ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self.__contributor}> ;\n'
         if self._attributes.get(ResourceClassAttribute.SUBCLASS_OF) is not None:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._attributes[ResourceClassAttribute.SUBCLASS_OF]} ,\n'
         else:
@@ -682,7 +682,7 @@ class ResourceClass(Model):
         sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
                                      graph=self._graph,
                                      owlclass_iri=self._owlclass_iri,
-                                     ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
+                                     ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.user_iri}>'),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -757,7 +757,7 @@ class ResourceClass(Model):
         sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
                                     graph=self._graph,
                                     owlclass_iri=self._owlclass_iri,
-                                    ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
+                                    ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.user_iri}>'),
                                     last_modified=self.__modified)
         sparql_list.append(sparql)
 

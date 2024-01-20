@@ -8,7 +8,7 @@ from xmlschema import XsdType
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName
+from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists
@@ -194,9 +194,9 @@ class TestResourceClass(unittest.TestCase):
                                 owl_class_iri=QName('test:testMyRes'))
         self.assertEqual(r1.owl_class_iri, QName('test:testMyRes'))
         self.assertEqual(r1.version, SemanticVersion(1, 0, 0))
-        self.assertEqual(r1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(r1.creator, AnyIRI('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(r1.created, datetime.fromisoformat('2023-11-04T12:00:00Z'))
-        self.assertEqual(r1.contributor, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(r1.contributor, AnyIRI('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(r1.modified, datetime.fromisoformat('2023-11-04T12:00:00Z'))
         self.assertEqual(r1.get(ResourceClassAttribute.LABEL), LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr"]))
         self.assertEqual(r1.get(ResourceClassAttribute.COMMENT), LangString("Resource for testing..."))
@@ -206,9 +206,9 @@ class TestResourceClass(unittest.TestCase):
         self.assertIsNone(prop1.internal)
         self.assertEqual(prop1.property_class_iri, QName("test:test"))
         self.assertEqual(prop1.version, SemanticVersion(1, 0, 0))
-        self.assertEqual(prop1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop1.creator, AnyIRI('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop1.created, datetime.fromisoformat('2023-11-04T12:00:00Z'))
-        self.assertEqual(prop1.contributor, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop1.contributor, AnyIRI('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop1.modified, datetime.fromisoformat('2023-11-04T12:00:00Z'))
         self.assertEqual(prop1.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlObjectProperty)
         self.assertEqual(prop1.get(PropertyClassAttribute.TO_NODE_IRI), QName('test:comment'))
@@ -220,9 +220,9 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.internal, QName('test:testMyRes'))
         self.assertEqual(prop2.property_class_iri, QName("test:hasText"))
         self.assertEqual(prop2.version, SemanticVersion(1, 0, 0))
-        self.assertEqual(prop2.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop2.creator, AnyIRI('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop2.created, datetime.fromisoformat('2023-11-04T12:00:00Z'))
-        self.assertEqual(prop2.contributor, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop2.contributor, AnyIRI('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop2.modified, datetime.fromisoformat('2023-11-04T12:00:00Z'))
         self.assertEqual(prop2.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
         self.assertEqual(prop2.get(PropertyClassAttribute.DATATYPE), XsdDatatypes.string)
@@ -328,7 +328,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertIsNone(prop1.get(PropertyClassAttribute.SUBPROPERTY_OF))
         self.assertEqual(prop1[PropertyClassAttribute.ORDER], 2)
         self.assertEqual(prop1.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
-        self.assertEqual(prop1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(prop1.creator, AnyIRI('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop1.created, datetime.fromisoformat("2023-11-04T12:00:00Z"))
 
         prop2 = r2[QName("test:test")]

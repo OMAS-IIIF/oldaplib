@@ -83,7 +83,6 @@ PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
-PREFIX orcid: <https://orcid.org/>
 PREFIX omas: <http://omas.org/base#>
 PREFIX test: <http://www.test.org/gaga#>
 """
@@ -101,7 +100,6 @@ PREFIX test: <http://www.test.org/gaga#>
 @PREFIX skos: <http://www.w3.org/2004/02/skos/core#> .
 @PREFIX dc: <http://purl.org/dc/elements/1.1/> .
 @PREFIX dcterms: <http://purl.org/dc/terms/> .
-@PREFIX orcid: <https://orcid.org/> .
 @PREFIX omas: <http://omas.org/base#> .
 @PREFIX test: <http://www.test.org/gaga#> .
 """

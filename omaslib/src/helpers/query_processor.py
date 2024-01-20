@@ -7,15 +7,16 @@ from isodate import Duration
 from pystrict import strict
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName
+from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI
 from omaslib.src.helpers.language import Language
+from omaslib.src.helpers.omaserror import OmasValueError
 
 
 class StringLiteral:
     pass
 
 
-RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | StringLiteral
+RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | StringLiteral
 RowType = Dict[str, RowElementType]
 
 
@@ -82,6 +83,9 @@ class QueryProcessor:
             for name, valobj in tmprow.items():
                 if valobj["type"] == "uri":
                     row[name] = context.iri2qname(valobj["value"])
+                    if row[name] is None:
+                         row[name] = AnyIRI(valobj["value"])
+
                 elif valobj["type"] == "bnode":
                     row[name] = BNode(valobj["value"])
                 elif valobj["type"] == "literal":

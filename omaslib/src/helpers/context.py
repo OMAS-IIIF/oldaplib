@@ -1,8 +1,10 @@
 """
 Implementation of the context (aka prefixes for RDF-trig and SPARQL notation).
 
-Each context has a name and is for this name a singleton which is implemented using
-a metaclass.
+Each context has a name. For each name, the contex instance is a *singleton* (which is implemented using
+a metaclass). That is, each instantiation of Context with the same name will point to the same context
+object. This means that the contex *name* uniquely identifies a context and all changes will be
+visible for all contexts with the same name.
 """
 from typing import Dict, Union, List
 
@@ -46,6 +48,7 @@ class Context(metaclass=ContextSingleton):
     appropriate fragments (<graphname>:shacl, <graphname>:onto, <graphname>:data) to form the graph IRI's.
 
     The following methods are defined, In case of an error they raise an OmasError():
+
     * *[] (aka getitem)*: Access a full IRI using the prefix, e.g. ```context['rdfs']```
     * *[] (aka setitem)*: Set or modify a prefix/IRI pair, e.g. ```context['test'] = 'http://www.test.org/gaga#'```
     * *del*: Delete an item, e.g. ```del context['skos']```
@@ -67,18 +70,20 @@ class Context(metaclass=ContextSingleton):
                  name: str):
         """
         Constructs a context with the given name. The following namespaces are defined by default:
-        * rdf
-        * rdfs
-        * owl
-        * xsd
-        * xml
-        * sh (SHACL)
-        * skos
+
+        * rdf (http://www.w3.org/1999/02/22-rdf-syntax-ns#)
+        * rdfs (http://www.w3.org/2000/01/rdf-schema#)
+        * owl (http://www.w3.org/2002/07/owl#)
+        * xsd (http://www.w3.org/2001/XMLSchema#)
+        * xml (http://www.w3.org/XML/1998/namespace#)
+        * sh (http://www.w3.org/ns/shacl#)
+        * skos (http://www.w3.org/2004/02/skos/core#)
         * dc (http://purl.org/dc/elements/1.1/)
         * dcterms (http://purl.org/dc/terms/)
         * orcid (https://orcid.org/)
         * omas (http://omas.org/base#)
-        Note: If a context with the same name already exists, a reference to the already existing is returned:
+
+        *Note*: If a context with the same name already exists, a reference to the already existing is returned:
 
         :param name: Name of the context
         """
@@ -93,7 +98,6 @@ class Context(metaclass=ContextSingleton):
             NCName('skos'): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
             NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
             NCName('dcterms'): NamespaceIRI('http://purl.org/dc/terms/'),
-            NCName('orcid'): NamespaceIRI('https://orcid.org/'),
             NCName('omas'): NamespaceIRI('http://omas.org/base#')
         }
         self._inverse = {
@@ -106,7 +110,6 @@ class Context(metaclass=ContextSingleton):
             NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): NCName('skos'),
             NamespaceIRI('http://purl.org/dc/elements/1.1/'): NCName('dc'),
             NamespaceIRI('http://purl.org/dc/terms/'): NCName('dcterms'),
-            NamespaceIRI('https://orcid.org/'): NCName('orcid'),
             NamespaceIRI('http://omas.org/base#'): NCName('omas'),
         }
         self._use = []

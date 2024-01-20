@@ -95,3 +95,4 @@ class XsdValidator:
 
 if __name__ == '__main__':
     print(XsdValidator.validate(XsdDatatypes.anyURI, "http://waelo.org/data/gaga#uuu"))
+    print(XsdValidator.validate(XsdDatatypes.NMTOKEN, "https://orcid.org/0000-0003-1681-4036"))

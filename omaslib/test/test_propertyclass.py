@@ -5,7 +5,7 @@ from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action, NCName
+from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action, NCName, AnyIRI
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
@@ -100,7 +100,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p1.get(PropertyClassAttribute.SUBPROPERTY_OF))
         self.assertEqual(p1[PropertyClassAttribute.ORDER], 2)
         self.assertEqual(p1.get(PropertyClassAttribute.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
-        self.assertEqual(p1.creator, QName('orcid:ORCID-0000-0003-1681-4036'))
+        self.assertEqual(p1.creator, AnyIRI('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(p1.created, datetime.fromisoformat("2023-11-04T12:00:00Z"))
 
         p2 = PropertyClass.read(con=self._connection,
