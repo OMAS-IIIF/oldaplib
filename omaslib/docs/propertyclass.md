@@ -80,6 +80,7 @@ class PropertyClassAttribute(Enum):
 The correspond to SHACL or OWL properties that are used to define the characteristics of a property shape.
 
 #### NAME
+*Datatype*: `LangString`      
 This attribute defines a human readable name for the property that should be used in GUI's instead of the IRI.  
 *NOTE*: The name is a `LangString`-instance in oder to give language dependent names, e.g.
 ```python
@@ -91,6 +92,7 @@ This attribute defines a human readable name for the property that should be use
 ```
 
 #### DESCRIPTION
+*Datatape*: `LangString`  
 A short description about the property. This attribute may for example be used in GUI to display a help popup when
 the property is used in an input form. It also multilingual and thus must be a `LangString`.
 ```python
@@ -102,6 +104,7 @@ the property is used in an input form. It also multilingual and thus must be a `
 ```
 
 #### ORDER
+*Datatype*: `int`  
 The order is hint that indicates the order in which the properties should be displayed in a GUI form. It is an
 integer number. The following code would put the given property on the 3rd row in a entry form.
 ```python
@@ -113,6 +116,7 @@ integer number. The following code would put the given property on the 3rd row i
 ```
 
 #### SUBPROPERTY_OF
+*Datatype*: `QName`  
 In OWL allows to declare that a certain property is a sub-property of another proerty (which means that it is
 more specialized). E.g. a *side-node* may be a specialized subproperty of a *comment* property. This declaration is
 only defined in OWL and can be used for queries that will encompass all subproperties. E.g. the search for *comment*
@@ -128,6 +132,7 @@ super-property.
 Above example defines the given property to be a sub-property of the *test:comment* property.
 
 #### PROPERTY_TYPE
+*Datatype*: `QName`  
 The attribute `PROPERTY_TYPE` is usually set automatically by the system. But it is possible to get its value. This
 attribute sets the OWL type of the property, that is either `owl:DatatypeProperty` or `owl:ObjectProperty`.
 The first indicates that the property points to a literal value, where as the latter requires the property to point
@@ -138,6 +143,7 @@ ptype = prop[PropertyClassAttribute.PROPERTY_TYPE]
 ```
 
 #### DATATYPE
+*Datatype*: `XsdDatatype`  
 An attribute that defines the datatype of the property. This is a mandatory attributes (excpept when the `TO_NODE_IRI`)
 is given. The following datatypes from the [XML Schema Datatypes](https://www.w3.org/TR/xmlschema-2/) are supported:
 
@@ -184,6 +190,7 @@ is given. The following datatypes from the [XML Schema Datatypes](https://www.w3
 - XsdDatatypes.positiveInteger = 'xsd:positiveInteger'
 
 #### TO_NODE_IRI
+*Datatype*: `QName`  
 This attribute indicates the ResourceClass the given property should point at. It automatically sets `PROPERTY_TYPE` to
 `owl:ObjectProperty`.
 ```python
@@ -195,6 +202,7 @@ This attribute indicates the ResourceClass the given property should point at. I
 ```
 
 #### RESTRICTIONS and PropertyRestcrion-Class
+*Datatype*: `PropertyRestrictions`  
 Restrictions is a compound attribute that itself of an instance of the `PropertyRestrictions` class. Property
 restriction are rules that a property and it(s) value(s) must obey. The following restrictions are supported by
 OMASLIB and defines as Enum `PropertyRestrictions(Enum)`:
@@ -217,6 +225,7 @@ OMASLIB and defines as Enum `PropertyRestrictions(Enum)`:
 
 
 ##### MIN_COUNT
+*Datatype*: `int`  
 Indicates the minimal cardinality a property must have. E.g. a `MIN_COUNT 1` indicates, that at least one instance
 of the property must be present. The value is an integer number. Can be combined with *MAX_COUNT*.  
 **NOTE**: The restriction *MIN_COUNT* also sets `owl:minCardinalty` in the OWL ontology for this property. If
@@ -226,6 +235,7 @@ PropertyRestrictions(restrictions={PropertyRestrictionType.MAX_COUNT: 1})
 ```
 
 #### MAX_COUNT
+*Datatype*: `int`  
 Indicates the maximal cardinalty a property must have. E.g. a `MAX_COUNT 1` indicates, that a property must occur only
 once. The value is an integer number. Can be combined with *MIN_COUNT*  
 **NOTE**: The restriction *MIN_COUNT* also sets `owl:maxCardinalty` in the OWL ontology for this property. If
@@ -234,16 +244,19 @@ once. The value is an integer number. Can be combined with *MIN_COUNT*
 PropertyRestrictions(restrictions={PropertyRestrictionType.MIN_COUNT: 1})
 ```
 #### LANGUAGE_IN
+*Datatype*: `Set[Language]`  
 This restriction enforces, that the given `string` property will only accept strings with the given language tags. The
 value is a set of Language enums.
 ```python
 PropertyRestrictions(restrictions={PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE}})
 ```
 #### UNIQUE_LANG
+*Datatype*: `bool`  
 If set to `True`, the given `string` property will only accept one value per language tag.
 PropertyRestrictions(restrictions={PropertyRestrictionType.UNIQUE_LANG: True})
 
 #### IN
+*Datatype*: `Set[]`  
 Allow only values for the properties that are in the given set.
 ```python
 PropertyRestrictions(restrictions={
@@ -255,6 +268,7 @@ PropertyRestrictions(restrictions={
 })
 ```
 #### MIN_LENGTH
+*Datatype*: `int`  
 Requires that the value of the properties hat a length >= the given value. The value is a positive integer. 
 Is often used for strings.
 ```python
@@ -262,6 +276,7 @@ PropertyRestrictions(restrictions={PropertyRestrictionType.MIN_LENGTH: 8})
 ```
 
 #### MAX_LENGTH
+*Datatype*: `int`  
 Requires that the value of the properties hat a length <= the given value. The value is a positive integer. 
 Is often used for strings.
 ```python
@@ -269,6 +284,7 @@ PropertyRestrictions(restrictions={PropertyRestrictionType.MAX_LENGTH: 32})
 ```
 
 #### PATTERN
+*Datatype*: `str`  
 This restriction defines a regex pattern that the value (string) must conform to. THe value of this restriction must be
 a regex expression as string
 ```python
