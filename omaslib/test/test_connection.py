@@ -9,7 +9,7 @@ from rdflib import URIRef
 
 from omaslib.src.connection import Connection, SparqlResultFormat
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode
+from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode, AnyIRI
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.query_processor import QueryProcessor, OmasStringLiteral
 from omaslib.src.helpers.semantic_version import SemanticVersion
@@ -130,9 +130,9 @@ class TestBasicConnection(unittest.TestCase):
             QName("sh:closed"): True,
             QName("sh:targetClass"): QName("test:testMyRes"),
             QName("dcterms:hasVersion"): '1.0.0',
-            QName("dcterms:creator"): QName("orcid:ORCID-0000-0003-1681-4036"),
+            QName("dcterms:creator"): AnyIRI("https://orcid.org/0000-0003-1681-4036"),
             QName("dcterms:created"): datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc),
-            QName("dcterms:contributor"):  QName("orcid:ORCID-0000-0003-1681-4036"),
+            QName("dcterms:contributor"):  AnyIRI("https://orcid.org/0000-0003-1681-4036"),
             QName("dcterms:modified"): datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)
         }
         query = self._context.sparql_context

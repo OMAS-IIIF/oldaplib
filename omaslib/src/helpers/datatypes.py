@@ -15,8 +15,12 @@ from enum import Enum, unique
 from typing import Any, Self, Optional
 from pystrict import strict
 
-from .xsd_datatypes import XsdDatatypes, XsdValidator
-from .omaserror import OmasValueError
+from omaslib.src.helpers.omaserror import OmasValueError
+from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
+
+
+#from .xsd_datatypes import XsdDatatypes, XsdValidator
+#from .omaserror import OmasValueError
 
 
 @strict
@@ -438,3 +442,6 @@ class Action(Enum):
     MODIFY = 'modify'  # a complex value (LangString, PropertyRestriction) has been modified
     REPLACE = 'replace'  # an existing value has been replaced by a new value
     DELETE = 'delete'  # an existing value has been deleted
+
+if __name__ == "__main__":
+    print(NCName("orcid") + "0000-0003-1681-4036")

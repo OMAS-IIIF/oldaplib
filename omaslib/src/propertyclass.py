@@ -73,9 +73,9 @@ class PropertyClass(Model, Notify):
     # The following attributes of this class cannot be set explicitely by the used
     # They are automatically managed by the OMAS system
     #
-    __creator: Optional[QName]
+    __creator: Optional[AnyIRI]
     __created: Optional[datetime]
-    __contributor: Optional[QName]
+    __contributor: Optional[AnyIRI]
     __modified: Optional[datetime]
     __version: SemanticVersion
     __from_triplestore: bool
@@ -552,9 +552,9 @@ class PropertyClass(Model, Notify):
         else:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.user_iri}>'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.user_iri}>'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         for prop, value in self._attributes.items():
             if prop == PropertyClassAttribute.PROPERTY_TYPE:
@@ -593,9 +593,9 @@ class PropertyClass(Model, Notify):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
         elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.user_iri}>'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.user_iri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.user_iri}>'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += ' .\n'
         return sparql
@@ -736,7 +736,7 @@ class PropertyClass(Model, Notify):
                                       graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:contributor', str(self.__contributor), str(self._con.user_iri)),
+                                      ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.user_iri}>'),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -810,10 +810,10 @@ class PropertyClass(Model, Notify):
         sparql = f'#\n# Update/add dcterms:contributor {self._graph}:onto\n#\n'
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self.__contributor}\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor <{self.__contributor}>\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self._con.user_iri}\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor <{self._con.user_iri}>\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'

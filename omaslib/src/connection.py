@@ -1,14 +1,11 @@
 import json
-import datetime
-#import urllib
-
 import bcrypt
 import requests
 from enum import Enum, unique
 
 from pystrict import strict
 from typing import List, Set, Dict, Tuple, Optional, Any, Union, Mapping
-#from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
+from datetime import datetime
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from rdflib.query import Result
 from rdflib.term import Identifier
@@ -20,7 +17,7 @@ from omaslib.src.helpers.datatypes import QName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.helpers.query_processor import QueryProcessor
-
+from omaslib.src.helpers.tools import lprint
 
 #
 # For bootstrapping the whole tripel store, the following SPARQL has to be executed within the GraphDB
@@ -30,7 +27,7 @@ from omaslib.src.helpers.query_processor import QueryProcessor
 #
 # INSERT DATA {
 # 	GRAPH omas:admin {
-# 		<https://orcid.org/ORCID-0000-0003-1681-4036> a omas:User ;
+# 		<https://orcid.org/0000-0003-1681-4036> a omas:User ;
 #         	omas:personLastName "Rosenthaler" ;
 #         	omas:personFirstName "Lukas" ;
 #         	omas:userId "rosenth" ;
@@ -42,6 +39,13 @@ from omaslib.src.helpers.query_processor import QueryProcessor
 # Then, executing the __main__ of the file "connection.py" will initialize the triple store with all the data
 # needed to run the tests
 #
+jwt_format = {
+    "userId": "https://orcid.org/0000-0003-1681-4036",
+    "exp": "2023-11-04T12:00:00+00:00",
+    "iat": datetime.now().isoformat(),
+    "iss": "http://oldap.org"
+}
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIkMmIkMTIkaldDSloucWRYRTlNU0NQZFVjMHk0Ljlzd1dZSmNnTFpuMGVQdFJUdS83VThxSC9PWFhrQjIiLCJleHAiOiIyMDI0LTExLTA0VDEyOjAwOjAwKzAwOjAwIiwiaWF0IjoiMjAyNC0wMS0xOVQyMzo0MTozMS45NTI5MTkiLCJpc3MiOiJodHRwOi8vb2xkYXAub3JnIn0.Vsc2qamfyeTW6Xz5l2Wca-mFnA5PcLuOoWPVEo__4Z4"
 
 @unique
 class SparqlResultFormat(Enum):
@@ -98,7 +102,7 @@ class Connection:
     _server: str
     _repo: str
     _userid: str
-    _user_iri: QName
+    _user_iri: AnyIRI
     _context_name: str
     _store: SPARQLUpdateStore
     _query_url: str
@@ -125,7 +129,7 @@ class Connection:
         Constructor that establishes the connection parameters.
 
         :param server: URL of the server (including port information if necessary)
-        :param repo: Name of the repository on the server
+        :param repo: Name of the triple store repository on the server
         :param context_name: A name of the Context to be used (see ~Context). If no such context exists,
             a new context of this name is created
         """
@@ -187,7 +191,7 @@ class Connection:
         return self._userid
 
     @property
-    def user_iri(self) -> QName:
+    def user_iri(self) -> AnyIRI:
         return self._user_iri
 
     @property
@@ -258,7 +262,7 @@ class Connection:
             elif ext == ".trig":
                 mime = "application/x-trig"
 
-            ct = datetime.datetime.now()
+            ct = datetime.now()
             ts = ct.timestamp()
             data = {
                 "name": f'Data from "{filename}"',

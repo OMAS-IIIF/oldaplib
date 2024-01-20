@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Union
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, QName
+from omaslib.src.helpers.datatypes import NCName, QName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasError
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.tools import lprint
@@ -15,9 +15,9 @@ from omaslib.src.resourceclass import ResourceClass
 class DataModel(Model):
     __graph: NCName
     __context: Context
-    __creator: Optional[QName]
+    __creator: Optional[AnyIRI]
     __created: Optional[datetime]
-    __contributor: Optional[QName]
+    __contributor: Optional[AnyIRI]
     __modified: Optional[datetime]
     __propclasses: Dict[QName, PropertyClass]
     __resclasses: Dict[QName, ResourceClass]
@@ -148,9 +148,9 @@ class DataModel(Model):
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:creator {self._con.user_iri} ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:creator <{self._con.user_iri}> ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.user_iri} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.user_iri}> ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
         sparql += '\n'
 
@@ -170,9 +170,9 @@ class DataModel(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:onto {{\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:creator {self._con.user_iri} ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:creator <{self._con.user_iri}> ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self._con.user_iri} ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:contributor <{self._con.user_iri}> ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
         sparql += '\n'
 

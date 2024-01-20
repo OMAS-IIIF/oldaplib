@@ -240,9 +240,9 @@ class TestPropertyRestriction(unittest.TestCase):
         data += f'''test:shacl {{
           test:testShape a sh:PropertyShape ;
             sh:path test:test{r1.create_shacl(indent=2, indent_inc=2)} ;
-            dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
         }} 
         '''
@@ -308,9 +308,9 @@ class TestPropertyRestriction(unittest.TestCase):
         data1 = context.sparql_context
         data1 += f'''test:onto {{
           test:test a owl:DatatypeProperty ;
-            dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
             owl:minCardinality 1 ;
             owl:maxCardinality 4 ;
@@ -334,9 +334,9 @@ class TestPropertyRestriction(unittest.TestCase):
         expected = context.sparql_context
         expected += f'''test:onto {{
           test:test a owl:DatatypeProperty ;
-            dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
             owl:cardinality 1 ;
         }} 
@@ -353,9 +353,9 @@ class TestPropertyRestriction(unittest.TestCase):
         expected = context.sparql_context
         expected += f'''test:onto {{
           test:test a owl:DatatypeProperty ;
-            dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "{modified.isoformat()}"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "{modified.isoformat()}"^^xsd:dateTime ;
             owl:maxCardinality 1 ;
         }} 

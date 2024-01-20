@@ -14,9 +14,9 @@
 :shacl {
 
     :shapes dcterms:hasVersion "1.0.0" ;
-        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime .
 
 #
@@ -36,9 +36,9 @@
     :commentShape a sh:PropertyShape ;
         sh:path :comment ;
         dcterms:hasVersion "1.0.0" ;
-        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:string ;
         sh:name "Kommentar"@de, "Comment"@en, "Commentaire"@fr, "Commentario"@it ;
@@ -48,9 +48,9 @@
     :testShape a sh:PropertyShape ;
         sh:path :test ;
         dcterms:hasVersion "1.0.0" ;
-        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:integer .
 
@@ -60,9 +60,9 @@
     :ProjectShape a sh:NodeShape, :Project ;
         sh:targetClass :Project ;
         dcterms:hasVersion "1.0.0" ;
-        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "Project"@en, "Projekt"@de, "Projet"@fr, "Progetto"@it ;
         rdfs:comment "Metadata about a project" ;
@@ -75,9 +75,9 @@
             [
                 sh:path :projectId ;
                 dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -90,9 +90,9 @@
             [
                 sh:path :projectName ;
                 dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:datatype xsd:string ;
@@ -106,9 +106,9 @@
             [
                 sh:path :projectDescription ;
                 dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:datatype xsd:string ;
@@ -122,9 +122,9 @@
             [
                 sh:path :projectStart ;
                 dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -137,9 +137,9 @@
             [
                 sh:path :projectEnd ;
                 dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:date ;
@@ -149,9 +149,9 @@
         sh:property
             [
                 sh:path :projectHasUser ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:class :User ;
                 sh:order 6 ;
@@ -171,21 +171,21 @@
         sh:property
             [
                 sh:path :userId ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:minCount 1 ;
-                sh:datatype xsd:NMTOKEN ;
+                sh:datatype xsd:anyURI ;
                 sh:minLength 6 ;
             ] ;
         sh:property
             [
                 sh:path :userCredentials ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -194,18 +194,18 @@
         sh:property
             [
                 sh:path :userInProject ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:class :Project ;
             ] ;
         sh:property
             [
                 sh:path :userIsActive ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -227,9 +227,9 @@
     #
     :DateShape a sh:NodeShape, :Date ;
         sh:targetClass :Date ;
-        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:property
             [
@@ -238,9 +238,9 @@
         sh:property
             [
                 sh:path :dateCalendar ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:anyURI ;
                 sh:minCount 1 ;
@@ -250,9 +250,9 @@
         sh:property
             [
                 sh:path :dateJDCStart ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -262,9 +262,9 @@
         sh:property
             [
                 sh:path :dateJDCEnd ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -278,9 +278,9 @@
     #
     :ThingShape a sh:NodeShape, :Thing ;
         sh:targetClass :Thing ;
-        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:property
             [
@@ -289,9 +289,9 @@
         sh:property
             [
                 sh:path :createdBy ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -300,9 +300,9 @@
         sh:property
             [
                 sh:path :creationDate ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -311,9 +311,9 @@
         sh:property
             [
                 sh:path :lastModificationDate ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:dateTimeStamp ;
@@ -321,9 +321,9 @@
         sh:property
             [
                 sh:path :lastModifiedBy ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:class :User ;
@@ -336,9 +336,9 @@
     #
     :ListShape a sh:NodeShape, :List ;
         sh:targetClass :List ;
-        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:subClassOf skos:ConceptScheme ;
         sh:property
@@ -348,9 +348,9 @@
         sh:property
             [
                 sh:path skos:prefLabel ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:datatype xsd:string ;
@@ -361,9 +361,9 @@
         sh:property
             [
                 sh:path skos:definition ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:string ;
@@ -372,9 +372,9 @@
 
     :ListNodeShape a sh:NodeShape, :ListNode ;
         sh:targetClass :ListNode ;
-        dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:subClassOf skos:ConceptScheme ;
         sh:property
@@ -384,9 +384,9 @@
         sh:property
             [
                 sh:path skos:inScheme ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -395,9 +395,9 @@
         sh:property
             [
                 sh:path skos:broaderTransitive ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:class :OmasListNode ;
@@ -405,9 +405,9 @@
         sh:property
             [
                 sh:path :nextNode ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:class :OmasListNode ;
@@ -415,9 +415,9 @@
         sh:property
             [
                 sh:path :leftIndex ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -426,9 +426,9 @@
         sh:property
             [
                 sh:path :rightIndex ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
@@ -437,9 +437,9 @@
         sh:property
             [
                 sh:path skos:notation ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:string ;
@@ -447,9 +447,9 @@
         sh:property
             [
                 sh:path skos:prefLabel ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
                 sh:datatype xsd:string ;
@@ -460,18 +460,18 @@
         sh:property
             [
                 sh:path skos:alternativeLabel ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
             ] ;
         sh:property
             [
                 sh:path skos:definition ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:string ;
@@ -479,9 +479,9 @@
         sh:property
             [
                 sh:path skos:note ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:string ;
@@ -489,9 +489,9 @@
         sh:property
             [
                 sh:path skos:changeNote ;
-                dcterms:creator <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/ORCID-0000-0003-1681-4036> ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
             ] ;
