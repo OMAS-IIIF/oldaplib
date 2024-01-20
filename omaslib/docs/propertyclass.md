@@ -21,7 +21,8 @@ props: PropertyClassAttributesContainer = {
     PropertyClassAttribute.NAME: LangString(["Test property@en", "Testprädikat@de"]),
     PropertyClassAttribute.DESCRIPTION: LangString("A property for testing...@en"),
     PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
-        restrictions={PropertyRestrictionType.MAX_COUNT: 1}),
+        restrictions={PropertyRestrictionType.MAX_COUNT: 1}
+    ),
     PropertyClassAttribute.ORDER: 5,
 }
 p = PropertyClass(con=self._connection,
@@ -213,7 +214,79 @@ OMASLIB and defines as Enum `PropertyRestrictions(Enum)`:
 - LESS_THAN  (sh:lessThan)
 - LESS_THAN_OR_EQUALS (sh:lessThanOrEquals)
 
+
+
 ##### MIN_COUNT
+Indicates the minimal cardinality a property must have. E.g. a `MIN_COUNT 1` indicates, that at least one instance
+of the property must be present. The value is an integer number. Can be combined with *MAX_COUNT*.  
+**NOTE**: The restriction *MIN_COUNT* also sets `owl:minCardinalty` in the OWL ontology for this property. If
+*MIN_COUNT* is equal *MAX_COUNT*, `owl:cardinality` will be set!
+```python
+PropertyRestrictions(restrictions={PropertyRestrictionType.MAX_COUNT: 1})
+```
+
+#### MAX_COUNT
+Indicates the maximal cardinalty a property must have. E.g. a `MAX_COUNT 1` indicates, that a property must occur only
+once. The value is an integer number. Can be combined with *MIN_COUNT*  
+**NOTE**: The restriction *MIN_COUNT* also sets `owl:maxCardinalty` in the OWL ontology for this property. If
+*MAN_COUNT* is equal *MIX_COUNT*, `owl:cardinality` will be set!
+```python
+PropertyRestrictions(restrictions={PropertyRestrictionType.MIN_COUNT: 1})
+```
+#### LANGUAGE_IN
+This restriction enforces, that the given `string` property will only accept strings with the given language tags. The
+value is a set of Language enums.
+```python
+PropertyRestrictions(restrictions={PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE}})
+```
+#### UNIQUE_LANG
+If set to `True`, the given `string` property will only accept one value per language tag.
+PropertyRestrictions(restrictions={PropertyRestrictionType.UNIQUE_LANG: True})
+
+#### IN
+Allow only values for the properties that are in the given set.
+```python
+PropertyRestrictions(restrictions={
+    PropertyRestrictionType.IN: {
+        "http://www.test.org/comment1",
+        "http://www.test.org/comment2",
+        "http://www.test.org/comment3"
+    }
+})
+```
+#### MIN_LENGTH
+Requires that the value of the properties hat a length >= the given value. The value is a positive integer. 
+Is often used for strings.
+```python
+PropertyRestrictions(restrictions={PropertyRestrictionType.MIN_LENGTH: 8})
+```
+
+#### MAX_LENGTH
+Requires that the value of the properties hat a length <= the given value. The value is a positive integer. 
+Is often used for strings.
+```python
+PropertyRestrictions(restrictions={PropertyRestrictionType.MAX_LENGTH: 32})
+```
+
+#### PATTERN
+This restriction defines a regex pattern that the value (string) must conform to. THe value of this restriction must be
+a regex expression as string
+```python
+PropertyRestrictions(restrictions={PropertyRestrictionType.PATTERN: "[A..Z]*"})
+```
+
+#### MIN_EXCLUSIVE
+
+#### MIN_INCLUSIVE
+
+#### MAX_EXCLUSIVE
+
+#### MAX_INCLUSIVE
+
+#### LESS_THAN
+
+#### LESS_THAN_OR_EQUALS
+
 
 
 
