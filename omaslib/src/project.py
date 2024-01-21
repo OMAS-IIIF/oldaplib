@@ -1,10 +1,17 @@
 import json
-from pystrict import strict
-from typing import List, Set, Dict, Tuple, Optional, Any, Union
-from urllib.parse import quote_plus
-from datetime import date
+from pprint import pprint
 
-from omaslib.src.helpers.omaserror import OmasError
+from elementpath.datatypes import AnyURI
+from pystrict import strict
+from typing import List, Set, Dict, Tuple, Optional, Any, Union, Self
+from urllib.parse import quote_plus
+from datetime import date, datetime
+
+from omaslib.src.helpers.context import Context
+from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI
+from omaslib.src.helpers.langstring import LangString
+from omaslib.src.helpers.omaserror import OmasError, OmasValueError
+from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 from connection import Connection, SparqlResultFormat
 from model import Model
@@ -14,76 +21,116 @@ from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
 
 @strict
 class Project(Model):
-    _projectId: str
-    _projectName: str
-    _projectDescription: Union[str, None]
+    _projectIri: QName | None
+    _namespaceIri: NamespaceIRI | None
+    _projectId: NCName
+    _projectName: LangString
+    _projectDescription: LangString | None
     _projectStart: date
-    _projectEnd: Union[date, None]
+    _projectEnd: date | None
 
     def __init__(self,
                  con: Connection,
-                 id: Optional[str] = None,
-                 name: Optional[str] = None,
-                 description: Optional[str] = None,
+                 id: NCName,
+                 namespace_iri: NamespaceIRI,
+                 name: Optional[LangString |str] = None,
+                 description: Optional[LangString | str] = None,
                  start: Optional[date] = None,
                  end: Optional[date] = None):
         super().__init__(con)
+        self._projectIri = None
+        self._namespaceIri = namespace_iri
+        if not isinstance(id, NCName):
+            raise OmasValueError(f'Project ID {id} is not a NCName')
+        self._project = id
+        if name is not None:
+            self._projectName = name if isinstance(name, LangString) else LangString(name)
+        else:
+            self._projectName = LangString()
+        if description is not None:
+            self._projectDescription = description if description is isinstance(description, LangString) else LangString(description)
+        else:
+            self._projectDescription = LangString()
+        if start and isinstance(start, date):
+            self._projectStart = start
+        else:
+            start = datetime.now().date()
+        if end and isinstance(end, date):
+            self._projectStart = end
 
-        query1 = """
-        PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX sh:   <http://www.w3.org/ns/shacl#>
-        PREFIX omas: <http://omas.org/base#>
-        PREFIX data: <http://omas.org/data#>
-        CONSTRUCT {
-	        ?shape sh:property ?po .
-	        ?po ?p ?o .
-        }
-        FROM omas:shacl
-        WHERE {
-		    BIND(omas:OmasProjectShape AS ?shape)
-		    ?shape sh:property ?po .
-		    ?po ?p ?o .
-        }
-        """
-        """
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX xml: <http://www.w3.org/XML/1998/namespace#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX omas: <http://omas.org/base#>
-SELECT ?shape ?prop ?p ?o
-FROM omas:shacl
-WHERE {
-    BIND(omas:OmasProjectShape AS ?shape)
-    ?shape sh:property ?po .
-    ?po ?p ?o .
-}
-"""
-        query = """
-                PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                PREFIX sh:   <http://www.w3.org/ns/shacl#>
-                PREFIX omas: <http://omas.org/base#>
-                PREFIX data: <http://omas.org/data#>
-                SELECT ?shape ?prop ?p ?o
-                FROM omas:shacl
-                WHERE {
-        		    BIND(omas:OmasProjectShape AS ?shape)
-        		    ?shape sh:property ?prop .
-        		    ?prop ?p ?o .
-                }
-                """
-        gaga = "prefix omas: <http://omas.org/base#> CONSTRUCT { ?s ?p ?o } FROM omas:shacl WHERE { ?s ?p ?o }"
-        res = self._con.query(query)
+    @property
+    def projectIri(self) -> QName:
+        return self._projectIri
 
+    @projectIri.setter
+    def projectIri(self, qName: QName):
+        if self._projectIri is None:
+            self._projectIri = qName
+        else:
+            raise OmasValueError(f'')
+
+    def __str__(self) -> str:
+        return (f'Project "{self._projectName}":\n  iri: {self._projectIri}\n'
+                f'  namespace: {self._namespaceIri}\n  name: {self._projectName}\n'
+                f'  description: {self._projectDescription}\n  start: {self._projectStart.isoformat()}\n')
+
+    @classmethod
+    def read(cls, con: Connection, id: NCName) -> Self:
+        context = Context(name=con.context_name)
+        query = context.sparql_context
+        query += f"""
+            SELECT ?project ?prop ?val
+            FROM omas:admin
+            WHERE {{
+                ?project omas:projectId "{id}"^^xsd:NCName .
+                ?project ?prop ?val
+            }}
+        """
+        jsonobj = con.query(query)
+        res = QueryProcessor(context, jsonobj)
+        project_iri = None
+        project_id = None
+        namespace_iri = None
+        project_name = LangString()
+        project_description = LangString()
+        project_start = None
+        project_end = None
         for r in res:
-            if isinstance(r[0], URIRef):
-                print(r[0].fragment)
+            if not project_iri:
+                project_iri = r['project']
+            if r['prop'] == QName('omas:projectId'):
+                project_id = r['val']
+            if r['prop'] == QName('omas:namespaceIri'):
+                namespace_iri = NamespaceIRI(r['val'])
+            elif r['prop'] == QName('omas:projectName'):
+                project_name.add(str(r['val']))
+            elif r['prop'] == QName('omas:projectDescription'):
+                project_description.add(str(r['val']))
+            elif r['prop'] == QName('omas:projectStart'):
+                project_start = r['val']
+            elif r['prop'] == QName('omas:projectEnd'):
+                project_end = r['val']
+
+        return cls(con=con,
+                   id=project_id,
+                   namespace_iri=namespace_iri,
+                   name=project_name,
+                   description=project_description,
+                   start=project_start,
+                   end=project_end)
+
+    def create(self):
+        pass
 
 
 if __name__ == "__main__":
-    con = Connection('http://localhost:7200', 'omas')
-    project = Project(con)
+    con = Connection(server='http://localhost:7200',
+                                     repo="omas",
+                                     userid="rosenth",
+                                     credentials="RioGrande",
+                                     context_name="DEFAULT")
+    project = Project.read(con, NCName("system"))
+    print(str(project))
+
+    hyha = Project.read(con, NCName("hyha"))
+    print(str(hyha))

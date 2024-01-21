@@ -7,21 +7,51 @@
 
 :admin {
 
+    :ADMIN_PROJECT a :AdminRights ;
+        rdfs:description "May modify a project, users, groups etc." ;
+        rdfs:label "admin project" ;
+        :value 1 .
+
+    :ADMIN_PERMISSIONS a :AdminRights ;
+        rdfs:description "May modifiy groups and permissions thereof." ;
+        rdfs:label "admin permissions" ;
+        :value 2 .
+
+    :ADMIN_USER a :AdminRights ;
+        rdfs:description "May add/modify/delete users incl. group membership." ;
+        rdfs:label "admin user" ;
+        :value 3 .
+
+    :CREATE_RIGHTS a :AdminRights ;
+        rdfs:description "May create new resources." ;
+        rdfs:label "create" ;
+        :value 4 .
+
+
     :SystemProject a :Project ;
         :projectId "system"^^xsd:NCName ;
-        :projectName "system"^^xsd:string ;
-        :projectDescription "Project for system administration"^^xsd:string ;
-        :projectStart "20230601T000000+0200"^^xsd:date ;
-        :projectHasUser <https://orcid.org/0000-0003-1681-4036> .
+        :namespaceIri "http://omas.org/base#"^^xsd:anyURI ;
+        :projectName "System"@en, "System"@de, "Système"@fr, "Systema"@it ;
+        :projectDescription "Project for system administration"@en ;
+        :projectStart "2024-01-01"^^xsd:date .
 
-    #<<:SystemProject :projectHasUser <https://orcid.org/0000-0003-1681-4036>>> :hasRights :ROOT_RIGHTS .
+    :HyperHamlet a :Project ;
+        :projectId "hyha"^^xsd:NCName ;
+        :namespaceIri "http://hyperhamlet.unibas.ch/"^^xsd:anyURI ;
+        :projectName "HyperHamlet"@en, "HyperHamlet"@de, "HyperHamlet"@fr, "HyperHamlet"@it ;
+        :projectDescription "Reception of Hamlet"@en ;
+        :projectStart "2024-01-01"^^xsd:date .
 
     <https://orcid.org/0000-0003-1681-4036> a omas:User ;
-        omas:personLastName "Rosenthaler" ;
-        omas:personFirstName "Lukas" ;
-        omas:userId "rosenth" ;
-        omas:userCredentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
-        omas:userIsActive true .
+        :personLastName "Rosenthaler" ;
+        :personFirstName "Lukas" ;
+        :userId "rosenth" ;
+        :userCredentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
+        :userInProject :SystemProject ;
+        :userIsActive true .
+
+    <<<https://orcid.org/0000-0003-1681-4036> :userInProject :SystemProject>> :hasRights :ADMIN_PROJECT .
+    <<<https://orcid.org/0000-0003-1681-4036> :userInProject :HyperHamlet>> :hasRights :ADMIN_PROJECT .
 
 }
 

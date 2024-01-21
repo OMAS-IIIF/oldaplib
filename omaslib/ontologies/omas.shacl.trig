@@ -54,6 +54,66 @@
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:integer .
 
+    :AdminRightsShape a sh:NodeShape, :AdminRights ;
+        sh:targetClass :AdminRights ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:label "AdminRights"@en, "AdminRights"@de, "AdminRights"@fr, "AdminRights"@it ;
+        rdfs:comment "Defines administrator rights." ;
+
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path rdfs:label ;
+                dcterms:hasVersion "1.0.0" ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:minCount 1 ;
+                sh:datatype xsd:string ;
+                sh:languageIn ( "en" "de" "fr" "it" ) ;
+                sh:uniqueLang true ;
+                sh:name "Short name of right" ;
+                sh:description "A unique NCName identifying the project" ;
+           ] ;
+        sh:property
+            [
+                sh:path rdfs:description ;
+                dcterms:hasVersion "1.0.0" ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:minCount 1 ;
+                sh:datatype xsd:string ;
+                sh:languageIn ( "en" "de" "fr" "it" ) ;
+                sh:uniqueLang true ;
+                sh:name "Description of right" ;
+                sh:description "A description of the action this right encompasses." ;
+           ] ;
+        sh:property
+            [
+                sh:path :value ;
+                dcterms:hasVersion "1.0.0" ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:nonNegativeInteger ;
+                sh:name "A priority value" ;
+                sh:description "An integer priority value used to evaluate the rights." ;
+           ] .
+
+
 #
 # Nodeshape for :Project class
 #
@@ -88,6 +148,21 @@
             ] ;
         sh:property
             [
+                sh:path :namespaceIri ;
+                dcterms:hasVersion "1.0.0" ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:anyURI ;
+                sh:name "Namespace IRI", ;
+                sh:description "The namespace to use for this project." ;
+                sh:order 2 ;
+            ] ;
+        sh:property
+            [
                 sh:path :projectName ;
                 dcterms:hasVersion "1.0.0" ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -100,7 +175,7 @@
                 sh:uniqueLang true ;
                 sh:name "Project Name" ;
                 sh:description "A Name for the project for the human reader" ;
-                sh:order 2 ;
+                sh:order 3 ;
             ] ;
         sh:property
             [
@@ -116,7 +191,7 @@
                 sh:uniqueLang true ;
                 sh:name "Project description" ;
                 sh:description "A description of the content, topic, purpose etc. of the project" ;
-                sh:order 3 ;
+                sh:order 4 ;
             ] ;
         sh:property
             [
@@ -131,7 +206,7 @@
                 sh:name "Start date" ;
                 sh:description "The date when the project will start/has started" ;
                 sh:datatype xsd:date ;
-                sh:order 4 ;
+                sh:order 5 ;
             ] ;
         sh:property
             [
@@ -144,19 +219,8 @@
                 sh:maxCount 1 ;
                 sh:datatype xsd:date ;
                 sh:name "The date when the project wll end/has ended" ;
-                sh:order 5 ;
-            ] ;
-        sh:property
-            [
-                sh:path :projectHasUser ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:class :User ;
                 sh:order 6 ;
             ] ;
-        sh:property :commentShape ;
         sh:closed true .
 
     #
@@ -200,7 +264,7 @@
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:class :Project ;
             ] ;
-        sh:property
+       sh:property
             [
                 sh:path :userIsActive ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;

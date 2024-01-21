@@ -7,7 +7,7 @@ from isodate import Duration
 from pystrict import strict
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI
+from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasValueError
 
@@ -16,15 +16,13 @@ class StringLiteral:
     pass
 
 
-RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | StringLiteral
-RowType = Dict[str, RowElementType]
 
 
 @dataclass
 @strict
 class OmasStringLiteral:
     __value: str
-    __lang: Language |  None
+    __lang: Language | None
 
     def __init__(self, value: str, lang: Optional[str] = None):
         self.__value = value
@@ -64,6 +62,10 @@ class OmasStringLiteral:
         return self.__lang
 
 
+RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | OmasStringLiteral
+RowType = Dict[str, RowElementType]
+
+
 @dataclass
 @strict
 class QueryProcessor:
@@ -95,6 +97,8 @@ class QueryProcessor:
                     else:
                         dt = context.iri2qname(dt)
                         match dt:
+                            case 'xsd:NCName':
+                                row[name] = NCName(valobj["value"])
                             case 'xsd:string':
                                 row[name] = OmasStringLiteral(valobj["value"], valobj.get("xml:lang"))
                             case 'xsd:boolean':

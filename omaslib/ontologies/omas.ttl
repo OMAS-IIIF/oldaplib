@@ -132,17 +132,6 @@ skos:alternativeLabel rdf:type owl:DatatypeProperty ;
     rdfs:range :OmasLocation .
 
 
-###  omas:ontology#projectHasUser
-:projectHasUser rdf:type owl:ObjectProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    owl:inverseOf :userInProject ;
-    rdfs:domain omas:Project ;
-    rdfs:range :User .
-
-
 ###  omas:ontology#userInProject
 :userInProject rdf:type owl:ObjectProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -156,7 +145,8 @@ skos:alternativeLabel rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime .
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:range :AdminRights .
 
 
 
@@ -411,18 +401,6 @@ skos:note rdf:type owl:DatatypeProperty .
 #    Classes
 #################################################################
 
-:ROOT_RIGHTS a rdfs:Resource ;
-        rdfs:label "root" .
-
-:ADMIN_RIGHTS a rdf:Resource ;
-        rdfs:label "admin" .
-
-:CREATE_RIGHTS a rdf:Resource ;
-        rdfs:label "create" .
-
-:MODIFY_RIGHTS a rdf:Resource ;
-        rdfs:label "modify" .
-
 ###  http://omas.org/base#Date
 omas:Date rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -449,9 +427,33 @@ omas:Date rdf:type owl:Class ;
             owl:onDataRange xsd:double
         ] .
 
+omas:AdminRights rdf:type owl:Class ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:subClassOf
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty rdfs:label ;
+            owl:onDataRange xsd:string
+        ] ;
+    rdfs:subClassOf
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty rdfs:description ;
+            owl:onDataRange xsd:string
+        ] ;
+    rdfs:subClassOf
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :value ;
+            owl:onDataRange xsd:nonNegativeInteger
+        ] ;
+
 
 ###  http://omas.org/base#Project
-omas:Project rdf:type owl:Class ;
+:Project rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
