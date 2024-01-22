@@ -8,7 +8,7 @@ from urllib.parse import quote_plus
 from datetime import date, datetime
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI
+from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasError, OmasValueError
 from omaslib.src.helpers.query_processor import QueryProcessor
@@ -21,9 +21,13 @@ from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
 
 @strict
 class Project(Model):
+    __creator: Optional[AnyIRI]
+    __created: Optional[datetime]
+    __contributor: Optional[AnyIRI]
+    __modified: Optional[datetime]
     _projectIri: QName | None
     _namespaceIri: NamespaceIRI | None
-    _projectId: NCName
+    _projectShortName: NCName
     _projectName: LangString
     _projectDescription: LangString | None
     _projectStart: date
@@ -31,18 +35,21 @@ class Project(Model):
 
     def __init__(self,
                  con: Connection,
-                 id: NCName,
+                 short_name: NCName,
                  namespace_iri: NamespaceIRI,
                  name: Optional[LangString |str] = None,
                  description: Optional[LangString | str] = None,
                  start: Optional[date] = None,
                  end: Optional[date] = None):
         super().__init__(con)
-        self._projectIri = None
+        self.__creator = con.user_iri
+        self.__created = None
+        self.__contributor = con.user_iri
+        self.__modified = None
         self._namespaceIri = namespace_iri
-        if not isinstance(id, NCName):
-            raise OmasValueError(f'Project ID {id} is not a NCName')
-        self._project = id
+        if not isinstance(short_name, NCName):
+            raise OmasValueError(f'Project ID {short_name} is not a NCName')
+        self._project = short_name
         if name is not None:
             self._projectName = name if isinstance(name, LangString) else LangString(name)
         else:
@@ -79,11 +86,10 @@ class Project(Model):
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
-            SELECT ?project ?prop ?val
+            SELECT omas:{id} ?prop ?val
             FROM omas:admin
             WHERE {{
-                ?project omas:projectId "{id}"^^xsd:NCName .
-                ?project ?prop ?val
+                 ?project ?prop ?val
             }}
         """
         jsonobj = con.query(query)
@@ -96,8 +102,6 @@ class Project(Model):
         project_start = None
         project_end = None
         for r in res:
-            if not project_iri:
-                project_iri = r['project']
             if r['prop'] == QName('omas:projectId'):
                 project_id = r['val']
             if r['prop'] == QName('omas:namespaceIri'):
@@ -112,16 +116,23 @@ class Project(Model):
                 project_end = r['val']
 
         return cls(con=con,
-                   id=project_id,
+                   short_name=project_id,
                    namespace_iri=namespace_iri,
                    name=project_name,
                    description=project_description,
                    start=project_start,
                    end=project_end)
 
-    def create(self):
-        pass
-
+    def create(self, indent: int = 0, indent_inc: int = 4):
+        timestamp = datetime.now()
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
 
 if __name__ == "__main__":
     con = Connection(server='http://localhost:7200',

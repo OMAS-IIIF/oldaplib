@@ -1,4 +1,5 @@
 from datetime import datetime
+from pprint import pprint
 from typing import Dict, List, Optional, Union
 
 from omaslib.src.connection import Connection
@@ -28,6 +29,10 @@ class DataModel(Model):
                  propclasses: Optional[List[PropertyClass]] = None,
                  resclasses: Optional[List[ResourceClass]] = None) -> None:
         super().__init__(con)
+        self.__creator = None
+        self.__created = None
+        self.__contributor = None
+
         self.__graph = graph
         self.__propclasses = {}
         if propclasses is not None:
@@ -193,6 +198,10 @@ class DataModel(Model):
             for resiri, resclass in self.__resclasses.items():
                 resclass.set_creation_metadata(timestamp=timestamp)
             self._con.transaction_commit()
+            self.__creator = self._con.user_iri
+            self.__created = timestamp
+            self.__contributor = self._con.user_iri
+            self.__modified = timestamp
         except OmasError as err:
             self._con.transaction_abort()
             raise

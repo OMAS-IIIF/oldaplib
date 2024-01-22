@@ -1,15 +1,16 @@
 import json
 import bcrypt
+import jwt
 import requests
 from enum import Enum, unique
 
+from jwt import InvalidTokenError
 from pystrict import strict
 from typing import List, Set, Dict, Tuple, Optional, Any, Union, Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from rdflib.query import Result
 from rdflib.term import Identifier
-#from requests import get, post
 from pathlib import Path
 #from urllib.parse import quote_plus, urlencode
 
@@ -108,6 +109,8 @@ class Connection:
     _query_url: str
     _update_url: str
     _transaction_url: Optional[str]
+    __token: str | None
+    jwtkey: str = "You have to change this!!! +D&RWG+"
     _switcher = {
         SparqlResultFormat.XML: lambda a: a.text,
         SparqlResultFormat.JSON: lambda a: a.json(),
@@ -120,11 +123,13 @@ class Connection:
         SparqlResultFormat.TEXT: lambda a: a.text
     }
 
-    def __init__(self, server: str,
+    def __init__(self, *,
+                 server: str,
                  repo: str,
-                 userid: str,
-                 credentials: str,
-                 context_name: str = DEFAULT_CONTEXT) -> None:
+                 userid: Optional[str] = None,
+                 credentials: Optional[str] = None,
+                 token: Optional[str] = None,
+                 context_name: Optional[str] = DEFAULT_CONTEXT) -> None:
         """
         Constructor that establishes the connection parameters.
 
@@ -142,6 +147,17 @@ class Connection:
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
         self._transaction_url = None
         context = Context(name=context_name)
+        if token is not None:
+            try:
+                payload = jwt.decode(jwt=token, key=Connection.jwtkey, algorithms="HS256")
+            except InvalidTokenError:
+                raise OmasError("Wrong credentials")
+            self._userid = payload['userId']
+            self._user_iri = AnyIRI(payload['userIri'])
+            self.__token = token
+            return
+        if userid is None or credentials is None:
+            raise OmasError("Wrong credentials")
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?s ?p ?o
@@ -175,6 +191,18 @@ class Connection:
                     self._user_iri = r['s']
         if not success:
             raise OmasError("Wrong credentials")
+        expiration = datetime.now() + timedelta(days=1)
+        payload = {
+            "userId": self._userid,
+            "userIri": str(self._user_iri),
+            "exp": expiration.timestamp(),
+            "iat": int(datetime.now().timestamp()),
+            "iss": "http://oldap.org"
+        }
+        self.__token = jwt.encode(
+            payload=payload,
+            key=Connection.jwtkey,
+            algorithm="HS256")
 
     @property
     def server(self) -> str:
@@ -202,6 +230,10 @@ class Connection:
     def context_name(self) -> str:
         """Getter for the context name"""
         return self._context_name
+
+    @property
+    def token(self) -> str:
+        return self.__token
 
     def clear_graph(self, graph_iri: QName) -> None:
         """

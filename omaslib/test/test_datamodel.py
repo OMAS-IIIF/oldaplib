@@ -41,6 +41,7 @@ class TestDataModel(unittest.TestCase):
     def tearDown(self):
         pass
 
+    #@unittest.skip('Work in progress')
     def test_datamodel_constructor(self):
         props = {}
 
@@ -196,11 +197,10 @@ class TestDataModel(unittest.TestCase):
     #@unittest.skip('Work in progress')
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
-        print(model.get_propclasses())
         self.assertTrue(set(model.get_propclasses()) == {QName("omas:comment"), QName("omas:test")})
         self.assertTrue(set(model.get_resclasses()) == {
-            QName("omas:Project"), QName("omas:User"), QName("omas:Date"),
-            QName("omas:Thing"), QName("omas:List"), QName("omas:ListNode")
+            QName("omas:ListNode"), QName("omas:User"), QName("omas:Thing"),
+            QName("omas:Project"), QName("omas:Date"), QName("omas:List"), QName("omas:AdminRights")
         })
 
 

@@ -32,6 +32,7 @@ setuptools = "^69.0.3"
 lazydocs = "^0.4.8"
 mkdocstrings = "^0.24.0"
 mkdocstrings-python = "^1.8.0"
+pyjwt = "^2.8.0"
 
 
 [build-system]

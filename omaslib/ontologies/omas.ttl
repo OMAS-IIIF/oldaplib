@@ -313,14 +313,22 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:range xsd:date .
 
 
-###  omas:ontology#projectId
-:projectId rdf:type owl:DatatypeProperty ;
+###  omas:ontology#projectShortName
+:projectShortName rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:domain omas:Project ;
     rdfs:range xsd:NCName .
+
+:namespaceIri rdf:type owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:domain omas:Project ;
+    rdfs:range xsd:anyURI .
 
 
 ###  omas:ontology#projectName
@@ -397,6 +405,27 @@ skos:note rdf:type owl:DatatypeProperty .
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:range xsd:integer .
 
+rdfs:label a owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:range xsd:string .
+
+rdfs:description a owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:range xsd:string .
+
+omas:value a owl:DatatypeProperty ;
+     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:range xsd:nonNegativeInteger .
+
 #################################################################
 #    Classes
 #################################################################
@@ -432,24 +461,24 @@ omas:AdminRights rdf:type owl:Class ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:subClassOf
-        [
-            rdf:type owl:Restriction ;
-            owl:onProperty rdfs:label ;
-            owl:onDataRange xsd:string
-        ] ;
-    rdfs:subClassOf
-        [
-            rdf:type owl:Restriction ;
-            owl:onProperty rdfs:description ;
-            owl:onDataRange xsd:string
-        ] ;
+#    rdfs:subClassOf
+#        [
+#            rdf:type owl:Restriction ;
+#            owl:onProperty rdfs:label ;
+#            owl:onDataRange xsd:string
+#        ] ;
+#    rdfs:subClassOf
+#        [
+#            rdf:type owl:Restriction ;
+#            owl:onProperty rdfs:description ;
+#            owl:onDataRange xsd:string
+#        ] ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
             owl:onProperty :value ;
             owl:onDataRange xsd:nonNegativeInteger
-        ] ;
+        ] .
 
 
 ###  http://omas.org/base#Project
@@ -496,7 +525,7 @@ omas:AdminRights rdf:type owl:Class ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :projectId ;
+            owl:onProperty :projectShortName ;
             owl:cardinality 1 ;
             owl:onDataRange xsd:NCName
         ],

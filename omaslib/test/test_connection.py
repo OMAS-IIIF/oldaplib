@@ -62,6 +62,30 @@ class TestBasicConnection(unittest.TestCase):
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
+    def test_token(self):
+        Connection.jwtkey = "This is a very special secret, yeah!"
+        con = Connection(server='http://localhost:7200',
+                         repo="omas",
+                         userid="rosenth",
+                         credentials="RioGrande",
+                         context_name="DEFAULT")
+        token = con.token
+        con = Connection(server='http://localhost:7200',
+                         repo="omas",
+                         token=token,
+                         context_name="DEFAULT")
+        self.assertEqual(con.userid, "rosenth")
+        self.assertEqual(con.user_iri, AnyIRI("https://orcid.org/0000-0003-1681-4036"))
+
+        with self.assertRaises(OmasError) as ex:
+            con = Connection(server='http://localhost:7200',
+                             repo="omas",
+                             token=token + "X",
+                             context_name="DEFAULT")
+        self.assertEqual(str(ex.exception), "Wrong credentials")
+
+
+
     #@unittest.skip('Has to be adapted to test data...')
     def test_query(self):
         query = self._context.sparql_context

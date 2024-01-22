@@ -27,16 +27,13 @@
         rdfs:label "create" ;
         :value 4 .
 
-
     :SystemProject a :Project ;
-        :projectId "system"^^xsd:NCName ;
         :namespaceIri "http://omas.org/base#"^^xsd:anyURI ;
         :projectName "System"@en, "System"@de, "Système"@fr, "Systema"@it ;
         :projectDescription "Project for system administration"@en ;
         :projectStart "2024-01-01"^^xsd:date .
 
     :HyperHamlet a :Project ;
-        :projectId "hyha"^^xsd:NCName ;
         :namespaceIri "http://hyperhamlet.unibas.ch/"^^xsd:anyURI ;
         :projectName "HyperHamlet"@en, "HyperHamlet"@de, "HyperHamlet"@fr, "HyperHamlet"@it ;
         :projectDescription "Reception of Hamlet"@en ;
@@ -62,7 +59,7 @@
 #    ?user a :User .
 #    ?user :userId "rosenth" .
 #    ?project :projectHasUser ?user .
-#    ?project :projectId "system"^^xsd:string .
+#    ?project :projectShortName "system"^^xsd:string .
 #    <<?project :projectHasUser ?user>> :hasRights ?rights .
 #
 #}
