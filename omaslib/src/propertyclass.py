@@ -396,6 +396,8 @@ class PropertyClass(Model, Notify):
                 self.__contributor = val[0]
             elif key == 'dcterms:modified':
                 self.__modified = val[0]
+            elif key == 'sh:group':
+                pass  # TODO: Process property group correctly.... (at Moment only omas:SystemPropGroup)
             elif key in propkeys:
                 attr = PropertyClassAttribute(key)
                 if {QName, AnyIRI} == self.__datatypes[attr]:

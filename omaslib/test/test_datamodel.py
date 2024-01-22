@@ -1,4 +1,5 @@
 import unittest
+from pprint import pprint
 from time import sleep
 
 from omaslib.src.connection import Connection
@@ -200,7 +201,8 @@ class TestDataModel(unittest.TestCase):
         self.assertTrue(set(model.get_propclasses()) == {QName("omas:comment"), QName("omas:test")})
         self.assertTrue(set(model.get_resclasses()) == {
             QName("omas:ListNode"), QName("omas:User"), QName("omas:Thing"),
-            QName("omas:Project"), QName("omas:Date"), QName("omas:List"), QName("omas:AdminRights")
+            QName("omas:Project"), QName("omas:Date"), QName("omas:List"),
+            QName("omas:AdminRights"), QName("omas:Group")
         })
 
 

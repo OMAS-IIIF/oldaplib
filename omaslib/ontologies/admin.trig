@@ -2,6 +2,7 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix omas: <http://omas.org/base#> .
 @prefix : <http://omas.org/base#> .
 
@@ -28,18 +29,30 @@
         :value 4 .
 
     :SystemProject a :Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         :namespaceIri "http://omas.org/base#"^^xsd:anyURI ;
         :projectName "System"@en, "System"@de, "Système"@fr, "Systema"@it ;
         :projectDescription "Project for system administration"@en ;
         :projectStart "2024-01-01"^^xsd:date .
 
     :HyperHamlet a :Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         :namespaceIri "http://hyperhamlet.unibas.ch/"^^xsd:anyURI ;
         :projectName "HyperHamlet"@en, "HyperHamlet"@de, "HyperHamlet"@fr, "HyperHamlet"@it ;
         :projectDescription "Reception of Hamlet"@en ;
         :projectStart "2024-01-01"^^xsd:date .
 
     <https://orcid.org/0000-0003-1681-4036> a omas:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         :personLastName "Rosenthaler" ;
         :personFirstName "Lukas" ;
         :userId "rosenth" ;
