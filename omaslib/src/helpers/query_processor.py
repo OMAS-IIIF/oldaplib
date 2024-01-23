@@ -10,6 +10,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasValueError
+from omaslib.src.helpers.serializer import serializer
 
 
 class StringLiteral:
@@ -20,6 +21,7 @@ class StringLiteral:
 
 @dataclass
 @strict
+@serializer
 class OmasStringLiteral:
     __value: str
     __lang: Language | None

@@ -1,7 +1,14 @@
 from enum import Enum, unique
 
+from omaslib.src.helpers.serializer import serializer
+
+
 @unique
+@serializer
 class Language(Enum):
+    def _as_dict(self):
+        return {"value": self.value }
+
     AB = "Abkhazian"
     AA = "Afar"
     AF = "Afrikaans"

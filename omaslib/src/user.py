@@ -15,8 +15,9 @@ from omaslib.src.helpers.tools import lprint
 from omaslib.src.model import Model
 
 
-class User(Model):
-
+@serializer
+class User:
+    _con: Connection | None
     __creator: AnyIRI | None
     __created: datetime | None
     __contributor: AnyIRI | None
@@ -31,21 +32,31 @@ class User(Model):
     __active: bool
 
     def __init__(self, *,
-                 con: Connection,
+                 con: Optional[Connection] = None,
                  last_name: str,
                  first_name: str,
-                 userid: AnyIRI,
-                 credentials: str,
+                 user_id: AnyIRI,
+                 user_credentials: str,
                  active: bool,
-                 in_projects: Optional[Dict[QName, List[QName]]] = None):
-        super().__init__(con)
+                 in_projects: Optional[Dict[QName, List[QName]]] = None,
+                 creator: Optional[AnyIRI] = None,  # Only for serializer
+                 created: Optional[datetime] = None,  # Only for serializer
+                 contributor: Optional[AnyIRI] = None,  # Only for serializer
+                 modified: Optional[datetime] = None):  # Only for serializer
+        #super().__init__(con)
+        self._con = con
         self.__lastName = last_name
         self.__firstName = first_name
-        self.__userId = userid
-        self.__userCredentials = credentials
+        self.__userId = user_id
+        self.__userCredentials = user_credentials
         self.__active = active
         self.__inProject = in_projects or {}
         self.__inGroup = []
+        self.__created = created
+        self.__creator = creator
+        self.__modified = modified
+        self.__contributor = contributor
+
 
     def __str__(self) -> str:
         return f'User: {self.__userId}\n'\
@@ -63,12 +74,18 @@ class User(Model):
         return {
             "last_name": self.__lastName,
             "first_name": self.__firstName,
-            "userId": self.__userId,
-            "userCredentials": self.__userCredentials,
+            "user_id": self.__userId,
+            "user_credentials": self.__userCredentials,
             "active": self.__active,
-            "in_projects": self.__inProject
+            "in_projects": self.__inProject,
+            "creator": self.__creator,
+            "created": self.__created,
+            "modified": self.__modified,
+            "contributor": self.__contributor
         }
 
+    def set_con(self, con: Connection):
+        self._con = con
 
     @property
     def creator(self) -> AnyIRI | None:
@@ -114,7 +131,8 @@ class User(Model):
         pass
 
     @classmethod
-    def read(cls, con: Connection, userid: str) -> Self:
+    def read(cls, con: Connection, user_id: str) -> Self:
+        cls._con = con
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f"""
@@ -123,7 +141,7 @@ class User(Model):
         WHERE {{
             {{
                 ?user a omas:User .
-                ?user omas:userId "{userid}" .
+                ?user omas:userId "{user_id}" .
                 ?user ?prop ?val .
             }} UNION {{
                 <<?user omas:userInProject ?proj>> omas:hasRights ?rights .
@@ -167,10 +185,10 @@ class User(Model):
                             in_project[str(r['proj'])] = []
                         in_project[str(r['proj'])].append(r['rights'])
         return cls(con=con,
-                   userid=userid,
+                   user_id=user_id,
                    last_name=last_name,
                    first_name=first_name,
-                   credentials=user_credentials,
+                   user_credentials=user_credentials,
                    active=active,
                    in_projects=in_project)
 
@@ -184,8 +202,8 @@ if __name__ == '__main__':
 
     user = User.read(con, 'rosenth')
     print(user)
-    pprint(user.in_project)
     jsonstr = json.dumps(user, default=serializer.encoder_default)
-    user2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-    print(user2)
-    #print(user.creator)
+    print(jsonstr)
+    gaga = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+    print("=====================================")
+    print(gaga)

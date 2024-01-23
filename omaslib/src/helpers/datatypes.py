@@ -12,10 +12,11 @@ These classes perform consistency checks to guarantee that the data is consisten
 for the given XML datatypes. They should be used instead of simple string representations wherever possible
 """
 from enum import Enum, unique
-from typing import Any, Self, Optional
+from typing import Any, Self, Optional, Dict
 from pystrict import strict
 
 from omaslib.src.helpers.omaserror import OmasValueError
+from omaslib.src.helpers.serializer import serializer
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
 
@@ -24,6 +25,7 @@ from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
 
 @strict
+@serializer
 class NCName:
     """
     Implements a NCName according to the XML datatyping).
@@ -121,6 +123,7 @@ class NCName:
 
 
 @strict
+@serializer
 class QName:
     """
     Implements a XSD qualified name (xs:QName)
@@ -242,6 +245,7 @@ class QName:
 
 
 @strict
+@serializer
 class BNode:
     """
     Represents a blank node in the triple store. The class has the following methods:
@@ -299,6 +303,11 @@ class BNode:
         """
         return hash(self.__value)
 
+    def _as_dicts(self):
+        return {
+            'value': self.__value
+        }
+
     @property
     def value(self) -> str:
         """
@@ -309,6 +318,7 @@ class BNode:
 
 
 @strict
+@serializer
 class AnyIRI:
     """
     Represents a generic IRI
@@ -414,6 +424,11 @@ class AnyIRI:
         """
         return len(self._value)
 
+    def _as_dict(self) -> Dict[str, str]:
+        return {
+            'value': self._value
+        }
+
     @property
     def append_allowed(self) -> bool:
         """
@@ -423,6 +438,7 @@ class AnyIRI:
         return self._append_allowed
 
 
+@serializer
 class NamespaceIRI(AnyIRI):
     """
     An IRI representing a namespace. A namespace is an IRI that ends with a fragment separates, that is a "#" or "/".
@@ -436,6 +452,11 @@ class NamespaceIRI(AnyIRI):
         super().__init__(value)
         if not self._append_allowed:
             raise OmasValueError("NamespaceIRI must end with '/' or '#'!")
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {
+            'value': self._value
+        }
 
 
 @unique
