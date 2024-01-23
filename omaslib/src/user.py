@@ -57,7 +57,6 @@ class User:
         self.__modified = modified
         self.__contributor = contributor
 
-
     def __str__(self) -> str:
         return f'User: {self.__userId}\n'\
         f'  LastName: {self.__lastName}\n'\

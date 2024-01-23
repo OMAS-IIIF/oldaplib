@@ -20,9 +20,6 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
 
-#from .xsd_datatypes import XsdDatatypes, XsdValidator
-#from .omaserror import OmasValueError
-
 
 @strict
 @serializer
@@ -120,6 +117,11 @@ class NCName:
         :return: hash of the NCName
         """
         return self._value.__hash__()
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {
+            'value': self._value
+        }
 
 
 @strict
@@ -303,7 +305,7 @@ class BNode:
         """
         return hash(self.__value)
 
-    def _as_dicts(self):
+    def _as_dict(self):
         return {
             'value': self.__value
         }

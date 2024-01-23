@@ -17,6 +17,7 @@ from omaslib.src.helpers.datatypes import Action, QName, NCName
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.helpers.serializer import serializer
 
 
 @dataclass
@@ -25,6 +26,7 @@ class LangStringChange:
     action: Action
 
 @strict
+@serializer
 class LangString(Notify):
     """
     Implements a multi-language representation of a string.
@@ -219,6 +221,12 @@ class LangString(Notify):
                  resstr += ', '
              resstr += f'"{self._langstring[Language.XX]}"'
         return resstr
+
+    def _as_dict(self) -> dict:
+        return {
+            'langstring': [f'"{val}@{lang.value.lower()}"' for lang, val in self._langstring.items()],
+            'priorities': [lang.value.lower() for lang in self._priorities]
+        }
 
     def get(self, lang: str | Language) -> str:
         """

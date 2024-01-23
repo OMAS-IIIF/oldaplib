@@ -1,0 +1,143 @@
+---
+openapi: 3.0.0
+info:
+  title: OLDAP-API
+  description: RESTful API for oldap
+  version: 0.1.0
+servers:
+- url: https://virtserver.swaggerhub.com/rosenth/oldap-api/0.1.0
+  description: SwaggerHub API Auto Mocking
+paths:
+  /admin/login:
+    post:
+      summary: Perform login
+      description: Perform login with userid/password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/admin_login_body'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/login_response_200'
+        "401":
+          description: "Unauthorized"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/login_response_401'
+  /admin/user/{userid}:
+    get:
+      summary: "Get user info"
+      description: "Get all information about a user"
+      security:
+        - AccessToken: []
+      parameters:
+        - name: userid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "OK"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userid:
+                    type: string
+                  lastname:
+                    type: string
+                  firstname:
+                    type: string
+                  in_project:
+                    type: object
+        "401":
+          description: Unauthorized"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/login_response_401'
+        "404":
+          description: "Not Found"
+    put:
+      summary: "Create a new user"
+      description: "Create a new user with the given data"
+      security:
+        - AccessToken: []
+      parameters:
+        - name: userid
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/new_user'
+        required: true
+      responses:
+        "200":
+          description: "OK"
+    post:
+      summary: "Modify a user"
+      description: "Modify value(s) of a user definition."
+      security:
+        - AccessToken: []
+      parameters:
+        - name: userid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "OK"
+
+components:
+  schemas:
+    admin_login_body:
+      type: object
+      properties:
+        userid:
+          type: string
+        password:
+          type: string
+    login_response_200:
+      type: object
+      properties:
+        token:
+          type: string
+    login_response_401:
+      type: object
+      properties:
+        message:
+          type: string
+    new_user:
+      type: object
+      properties:
+        user_iri:
+          type: string
+        firstname:
+          type: string
+        lastname:
+          type: string
+        password:
+          type: string
+          minLength: 8
+  securitySchemes:
+    AccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+
