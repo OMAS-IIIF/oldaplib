@@ -52,6 +52,12 @@ class OmasStringLiteral:
         else:
             return hash(self.__value)
 
+    def _as_dict(self) -> dict:
+        return {
+            "value": self.__value,
+            "lang": self.__lang
+        }
+
 
     @property
     def value(self) -> str:

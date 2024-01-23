@@ -217,6 +217,11 @@ class QName:
         """
         return self._value.__hash__()
 
+    def _as_dict(self):
+        return {
+            'value': self._value
+        }
+
     @property
     def prefix(self) -> str:
         """

@@ -1,6 +1,7 @@
 """
 Ths class User
 """
+import json
 from datetime import datetime
 from pprint import pprint
 from typing import List, Optional, Self, Dict
@@ -9,6 +10,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName
 from omaslib.src.helpers.query_processor import QueryProcessor
+from omaslib.src.helpers.serializer import serializer
 from omaslib.src.helpers.tools import lprint
 from omaslib.src.model import Model
 
@@ -24,7 +26,7 @@ class User(Model):
     __firstName: str
     __userId: AnyIRI
     __userCredentials: str
-    __inProject: Dict[QName, List[QName]]
+    __inProject: Dict[str, List[QName]]
     __inGroup: List[str]
     __active: bool
 
@@ -56,6 +58,17 @@ class User(Model):
         f'  Created at: {self.__created}\n'\
         f'  Modified by: {self.__contributor}\n'\
         f'  Modified at: {self.__modified}\n'
+
+    def _as_dict(self) -> Dict:
+        return {
+            "last_name": self.__lastName,
+            "first_name": self.__firstName,
+            "userId": self.__userId,
+            "userCredentials": self.__userCredentials,
+            "active": self.__active,
+            "in_projects": self.__inProject
+        }
+
 
     @property
     def creator(self) -> AnyIRI | None:
@@ -92,6 +105,10 @@ class User(Model):
     @property
     def active(self) -> bool:
         return self.__active
+
+    @property
+    def in_project(self) -> bool:
+        return self.__inProject
 
     def create(self):
         pass
@@ -143,11 +160,12 @@ class User(Model):
                 case 'omas:userIsActive':
                     active = r['val']
                 case 'omas:userInProject':
-                    in_project[r['val']] = []
+                    in_project[str(r['val'])] = []
                 case _:
                     if r.get('proj') is not None:
-                        pass
-                        in_project[r['proj']] = r['rights']
+                        if in_project.get(str(r['proj'])) is None:
+                            in_project[str(r['proj'])] = []
+                        in_project[str(r['proj'])].append(r['rights'])
         return cls(con=con,
                    userid=userid,
                    last_name=last_name,
@@ -166,4 +184,8 @@ if __name__ == '__main__':
 
     user = User.read(con, 'rosenth')
     print(user)
-    print(user.creator)
+    pprint(user.in_project)
+    jsonstr = json.dumps(user, default=serializer.encoder_default)
+    user2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+    print(user2)
+    #print(user.creator)
