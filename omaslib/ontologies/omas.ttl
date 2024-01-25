@@ -9,16 +9,34 @@
 @prefix : <http://omas.org/base#> .
 
 omas:ontology rdf:type owl:Ontology ;
-              owl:versionIRI <http://omas.org/ontology/version/1.0.0> ;
-              dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-              dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-              dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-              dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-              owl:imports <http://www.w3.org/2004/02/skos/core>, <http://purl.org/dc/terms/> .
+    owl:versionIRI <http://omas.org/ontology/version/1.0.0> ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    owl:imports <http://www.w3.org/2004/02/skos/core>, <http://purl.org/dc/terms/> .
 
 #################################################################
 #    Annotation properties
 #################################################################
+
+rdfs:label a owl:DatatypeProperty ;
+    rdfs:range xsd:string .
+
+rdfs:description a owl:DatatypeProperty ;
+    rdfs:range xsd:string .
+
+dcterms:creator a owl:ObjectProperty ;
+    rdfs:range :User .
+
+dcterms:created a owl:DatatypeProperty ;
+    rdfs:range xsd:dateTime .
+
+dcterms:contributor a owl:ObjectProperty ;
+    rdfs:range :User .
+
+dcterms:modified a owl:DatatypeProperty ;
+        rdfs:range xsd:dateTime .
 
 ###  http://www.w3.org/2004/02/skos/core#altLabel
 skos:altLabel rdf:type owl:DatatypeProperty ;
@@ -509,6 +527,49 @@ omas:AdminRights rdf:type owl:Class ;
             owl:onDataRange xsd:nonNegativeInteger
         ] .
 
+:Group a owl:class ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:subClassOf
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :creator ;
+            owl:onClass :User ;
+            owl:cardinality 1 ;
+        ],
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :created ;
+            owl:onDataProperty xsd:dateTime ;
+            owl:cardinality 1 ;
+        ],
+                        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :contributor ;
+            owl:onClass :User ;
+            owl:cardinality 1 ;
+        ],
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :modified ;
+            owl:onDataProperty xsd:dateTime ;
+            owl:cardinality 1 ;
+        ],
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty rdfs:label ;
+            owl:onDataProperty xsd:string ;
+            owl:minCardinality 1 ;
+        ],
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty rdfs:description ;
+            owl:onDataProperty xsd:string ;
+            owl:minCardinality 1 ;
+        ] .
+
 
 ###  http://omas.org/base#Project
 :Project rdf:type owl:Class ;
@@ -519,8 +580,27 @@ omas:AdminRights rdf:type owl:Class ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :test ;
-            owl:onDataRange xsd:integer
+            owl:onProperty :creator ;
+            owl:onClass :User ;
+            owl:cardinality 1 ;
+        ],
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :created ;
+            owl:onDataProperty xsd:dateTime ;
+            owl:cardinality 1 ;
+        ],
+                        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :contributor ;
+            owl:onClass :User ;
+            owl:cardinality 1 ;
+        ],
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :modified ;
+            owl:onDataProperty xsd:dateTime ;
+            owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;

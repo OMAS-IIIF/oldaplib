@@ -39,6 +39,34 @@
 	    sh:order 0 ;
 	    rdfs:label "System Property" .
 
+    :labelShape a sh:PropertyShape ;
+        sh:path rdfs:label ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:languageIn ( "en" "de" "fr" "it" ) ;
+        sh:uniqueLang true ;
+        sh:name "Label" ;
+        sh:description "A human readable name for something." .
+
+    :descriptionShape a sh:PropertyShape ;
+        sh:path rdfs:description ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:languageIn ( "en" "de" "fr" "it" ) ;
+        sh:uniqueLang true ;
+        sh:name "Description" ;
+        sh:description "A description for something." .
+
     :commentShape a sh:PropertyShape ;
         sh:path :comment ;
         dcterms:hasVersion "1.0.0" ;
@@ -60,6 +88,54 @@
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:integer .
 
+    :creatorShape a sh:PropertyShape ;
+        sh:path dcterms:creator ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class :User ;
+        sh:group :SystemPropGroup .
+
+    :createdShape a sh:PropertyShape ;
+        sh:path dcterms:created ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+        sh:group :SystemPropGroup .
+
+    :contributorShape a sh:PropertyShape ;
+        sh:path dcterms:contributor ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype :User ;
+        sh:group :SystemPropGroup .
+
+    :modifiedShape a sh:PropertyShape ;
+        sh:path dcterms:modified ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime ;
+        sh:group :SystemPropGroup .
+
     :AdminRightsShape a sh:NodeShape, :AdminRights ;
         sh:targetClass :AdminRights ;
         dcterms:hasVersion "1.0.0" ;
@@ -69,41 +145,12 @@
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "AdminRights"@en, "AdminRights"@de, "AdminRights"@fr, "AdminRights"@it ;
         rdfs:comment "Defines administrator rights." ;
-
         sh:property
             [
                 sh:path rdf:type ;
             ] ;
-        sh:property
-            [
-                sh:path rdfs:label ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:datatype xsd:string ;
-                sh:languageIn ( "en" "de" "fr" "it" ) ;
-                sh:uniqueLang true ;
-                sh:name "Short name of right" ;
-                sh:description "A unique NCName identifying the project" ;
-           ] ;
-        sh:property
-            [
-                sh:path rdfs:description ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:datatype xsd:string ;
-                sh:languageIn ( "en" "de" "fr" "it" ) ;
-                sh:uniqueLang true ;
-                sh:name "Description of right" ;
-                sh:description "A description of the action this right encompasses." ;
-           ] ;
+        sh:property :labelShape ;
+        sh:property :descriptionShape ;
         sh:property
             [
                 sh:path :value ;
@@ -118,6 +165,26 @@
                 sh:name "A priority value" ;
                 sh:description "An integer priority value used to evaluate the rights." ;
            ] .
+
+    :GroupShape a sh:NodeShape, :Group ;
+        sh:targetClass :Group ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:label "Group"@en, "Gruppe"@de, "Groupe"@fr, "Gruppo"@it ;
+        rdfs:comment "Metadata about a project" ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property :creatorShape ;
+        sh:property :createdShape ;
+        sh:property :contributorShape ;
+        sh:property :modifiedShape ;
+        sh:property :labelShape ;
+        sh:property :descriptionShape .
 
 #
 # Nodeshape for :Project class
@@ -136,58 +203,12 @@
             [
                 sh:path rdf:type ;
             ] ;
-        sh:property
-            [
-                sh:path dcterms:creator ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:anyURI ;
-                sh:group :SystemPropGroup ;
-            ] ;
-        sh:property
-            [
-                sh:path dcterms:created ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:dateTime ;
-                sh:group :SystemPropGroup ;
-           ] ;
-        sh:property
-            [
-                sh:path dcterms:contributor ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:anyURI ;
-                sh:group :SystemPropGroup ;
-            ] ;
-        sh:property
-            [
-                sh:path dcterms:modified ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:dateTime ;
-                sh:group :SystemPropGroup ;
-            ] ;
+        sh:property :creatorShape ;
+        sh:property :createdShape ;
+        sh:property :contributorShape ;
+        sh:property :modifiedShape ;
+        sh:property :labelShape ;
+        sh:property :descriptionShape ;
         sh:property
             [
                 sh:path :projectShortName ;
@@ -220,38 +241,6 @@
             ] ;
         sh:property
             [
-                sh:path :projectName ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:datatype xsd:string ;
-                sh:languageIn ( "en" "de" "fr" "it" ) ;
-                sh:uniqueLang true ;
-                sh:name "Project Name" ;
-                sh:description "A Name for the project for the human reader" ;
-                sh:order 3 ;
-            ] ;
-        sh:property
-            [
-                sh:path :projectDescription ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:datatype xsd:string ;
-                sh:languageIn ( "en" "de" "fr" "it" ) ;
-                sh:uniqueLang true ;
-                sh:name "Project description" ;
-                sh:description "A description of the content, topic, purpose etc. of the project" ;
-                sh:order 4 ;
-            ] ;
-        sh:property
-            [
                 sh:path :projectStart ;
                 dcterms:hasVersion "1.0.0" ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -280,95 +269,6 @@
             ] ;
         sh:closed true .
 
-    :GroupShape a sh:NodeShape, :Group ;
-        sh:targetClass :Group ;
-        sh:property
-            [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
-                sh:path dcterms:creator ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:anyURI ;
-                sh:group :SystemPropGroup ;
-            ] ;
-        sh:property
-            [
-                sh:path dcterms:created ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:dateTime ;
-                sh:group :SystemPropGroup ;
-           ] ;
-        sh:property
-            [
-                sh:path dcterms:contributor ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:anyURI ;
-                sh:group :SystemPropGroup ;
-            ] ;
-        sh:property
-            [
-                sh:path dcterms:modified ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:dateTime ;
-                sh:group :SystemPropGroup ;
-            ] ;
-        sh:property
-            [
-                sh:path rdfs:label ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:datatype xsd:string ;
-                sh:languageIn ( "en" "de" "fr" "it" ) ;
-                sh:uniqueLang true ;
-                sh:name "Short name of the group" ;
-                sh:description "A unique NCName identifying the project" ;
-           ] ;
-        sh:property
-            [
-                sh:path rdfs:description ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:datatype xsd:string ;
-                sh:languageIn ( "en" "de" "fr" "it" ) ;
-                sh:uniqueLang true ;
-                sh:name "Description of the group" ;
-                sh:description "A description of the action this right encompasses." ;
-           ] .
-
 
     #
     # Nodeshape for :User class which is a subclass of :OmasPerson
@@ -379,58 +279,10 @@
             [
                 sh:path rdf:type ;
             ] ;
-        sh:property
-            [
-                sh:path dcterms:creator ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:anyURI ;
-                sh:group :SystemPropGroup ;
-            ] ;
-        sh:property
-            [
-                sh:path dcterms:created ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:dateTime ;
-                sh:group :SystemPropGroup ;
-           ] ;
-        sh:property
-            [
-                sh:path dcterms:contributor ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:anyURI ;
-                sh:group :SystemPropGroup ;
-            ] ;
-        sh:property
-            [
-                sh:path dcterms:modified ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:dateTime ;
-                sh:group :SystemPropGroup ;
-            ] ;
+        sh:property :creatorShape ;
+        sh:property :createdShape ;
+        sh:property :contributorShape ;
+        sh:property :modifiedShape ;
         sh:property
             [
                 sh:path :userId ;
@@ -551,59 +403,10 @@
             [
                 sh:path rdf:type ;
             ] ;
-        sh:property
-            [
-                sh:path dcterms:creator ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:anyURI ;
-                sh:group :SystemPropGroup ;
-            ] ;
-        sh:property
-            [
-                sh:path dcterms:created ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:dateTime ;
-                sh:group :SystemPropGroup ;
-           ] ;
-        sh:property
-            [
-                sh:path dcterms:contributor ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:anyURI ;
-                sh:group :SystemPropGroup ;
-            ] ;
-        sh:property
-            [
-                sh:path dcterms:modified ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:dateTime ;
-                sh:group :SystemPropGroup ;
-            ] .
-
+        sh:property :creatorShape ;
+        sh:property :createdShape ;
+        sh:property :contributorShape ;
+        sh:property :modifiedShape ;
 
 
     #
