@@ -198,7 +198,11 @@ class TestDataModel(unittest.TestCase):
     #@unittest.skip('Work in progress')
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
+        print("\n1111=================\n")
+        pprint(model.get_propclasses())
         self.assertTrue(set(model.get_propclasses()) == {QName("omas:comment"), QName("omas:test")})
+        print("\n2222=================\n")
+        pprint(model.get_resclasses())
         self.assertTrue(set(model.get_resclasses()) == {
             QName("omas:ListNode"), QName("omas:User"), QName("omas:Thing"),
             QName("omas:Project"), QName("omas:Date"), QName("omas:List"),

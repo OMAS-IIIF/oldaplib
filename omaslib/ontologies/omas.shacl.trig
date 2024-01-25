@@ -34,11 +34,18 @@
 #      sh:property :testPropShape .
 #
 
+    #
+    # Define a SHACL property group for all system properties. This info can be used to hide these properties from
+    # a GUI. These properties should be handled by OLDAPLIB...
+    #
     :SystemPropGroup
 	    a sh:PropertyGroup ;
 	    sh:order 0 ;
 	    rdfs:label "System Property" .
 
+    #
+    # Define the SHACL for OLAPDLIB's use of rdfs:label
+    #
     :labelShape a sh:PropertyShape ;
         sh:path rdfs:label ;
         dcterms:hasVersion "1.0.0" ;
@@ -53,6 +60,8 @@
         sh:name "Label" ;
         sh:description "A human readable name for something." .
 
+    #
+    # Define SHACl for OLDAPLIB's use rdf:description
     :descriptionShape a sh:PropertyShape ;
         sh:path rdfs:description ;
         dcterms:hasVersion "1.0.0" ;
@@ -67,6 +76,9 @@
         sh:name "Description" ;
         sh:description "A description for something." .
 
+    #
+    # DEPRECATED – do not use...
+    #
     :commentShape a sh:PropertyShape ;
         sh:path :comment ;
         dcterms:hasVersion "1.0.0" ;
@@ -79,6 +91,9 @@
         sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true .
 
+    #
+    # DEPRECATED - do not use
+    #
     :testShape a sh:PropertyShape ;
         sh:path :test ;
         dcterms:hasVersion "1.0.0" ;
@@ -88,6 +103,9 @@
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:integer .
 
+    #
+    # Definition of SHACL for OLDAP's use of dcterms:creator. Points an omas:User .
+    #
     :creatorShape a sh:PropertyShape ;
         sh:path dcterms:creator ;
         dcterms:hasVersion "1.0.0" ;
@@ -100,6 +118,9 @@
         sh:class :User ;
         sh:group :SystemPropGroup .
 
+    #
+    # Definitionm of SHACL for OLDAPLIB's use of dcterms:created
+    #
     :createdShape a sh:PropertyShape ;
         sh:path dcterms:created ;
         dcterms:hasVersion "1.0.0" ;
@@ -112,6 +133,9 @@
         sh:datatype xsd:dateTime ;
         sh:group :SystemPropGroup .
 
+    #
+    # Define SHACL for OLDAPLIB's use of dcterms:contributer. Points an omas:User .
+    #
     :contributorShape a sh:PropertyShape ;
         sh:path dcterms:contributor ;
         dcterms:hasVersion "1.0.0" ;
@@ -124,6 +148,9 @@
         sh:datatype :User ;
         sh:group :SystemPropGroup .
 
+    #
+    # Define SHACL of OLDAPLIB's use of dcterms:modified
+    #
     :modifiedShape a sh:PropertyShape ;
         sh:path dcterms:modified ;
         dcterms:hasVersion "1.0.0" ;
@@ -136,6 +163,11 @@
         sh:datatype xsd:dateTime ;
         sh:group :SystemPropGroup .
 
+    #
+    # SHACL definition of the omas:AdminRights class. The AdminRights are attached as RDF*star to the triple
+    # that defines to which omas:project as omas:User belongs to.
+    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :userInProject :SystemProject>> :hasRights :ADMIN_PROJECT .
+    #
     :AdminRightsShape a sh:NodeShape, :AdminRights ;
         sh:targetClass :AdminRights ;
         dcterms:hasVersion "1.0.0" ;
@@ -166,6 +198,10 @@
                 sh:description "An integer priority value used to evaluate the rights." ;
            ] .
 
+    #
+    # SHACL to define a (user-) group. For each resource, there are RDF-triples which define the permissions for
+    # user groups.
+    #
     :GroupShape a sh:NodeShape, :Group ;
         sh:targetClass :Group ;
         dcterms:hasVersion "1.0.0" ;
@@ -186,9 +222,10 @@
         sh:property :labelShape ;
         sh:property :descriptionShape .
 
-#
-# Nodeshape for :Project class
-#
+    #
+    # SHACl definition for project descriptions. Projects are important definitions because the define the namespaces
+    # and graph names that are used to store the project specific datamodels (SHACl and OWL)  and data
+    #
     :ProjectShape a sh:NodeShape, :Project ;
         sh:targetClass :Project ;
         dcterms:hasVersion "1.0.0" ;
@@ -292,10 +329,9 @@
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount 1 ;
                 sh:minCount 1 ;
-                sh:minLength 4 ;
+                sh:minLength 3 ;
                 sh:maxLength 32 ;
-                sh:datatype xsd:string ;
-                sh:minLength 6 ;
+                sh:datatype xsd:NCName ;
             ] ;
         sh:property
             [
@@ -317,7 +353,7 @@
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:class :Project ;
             ] ;
-       sh:property
+        sh:property
             [
                 sh:path :userIsActive ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -331,86 +367,7 @@
         sh:closed true .
 
     #
-    # Definitionen for Date
-    #
-    :GREGORIAN a rdfs:Resource ;
-        rdfs:label "Gregorian" .
-
-    :JULIAN a rdfs:Resource ;
-        rdfs:label "Julian" .
-
-    #
-    # Nodeshape for :OmasDate
-    #
-    :DateShape a sh:NodeShape, :Date ;
-        sh:targetClass :Date ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:property
-            [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
-                sh:path :dateCalendar ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:datatype xsd:anyURI ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:in ( :GREGORIAN :JULIAN ) ;
-            ] ;
-        sh:property
-            [
-                sh:path :dateJDCStart ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:double ;
-                sh:lessThanOrEquals :dateJDCEnd ;
-            ] ;
-        sh:property
-            [
-                sh:path :dateJDCEnd ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:double ;
-            ] ;
-        sh:closed true .
-
-
-    #
-    # Nodeshape for all resources
-    #
-    :ThingShape a sh:NodeShape, :Thing ;
-        sh:targetClass :Thing ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:property
-            [
-                sh:path rdf:type ;
-            ] ;
-        sh:property :creatorShape ;
-        sh:property :createdShape ;
-        sh:property :contributorShape ;
-        sh:property :modifiedShape ;
-
-
-    #
-    # Nodeshape for the list...
+    # Hierarchical lists are implemented using :List's and :ListNodes. We will use some skos vocabulary
     #
     :ListShape a sh:NodeShape, :List ;
         sh:targetClass :List ;
@@ -423,6 +380,10 @@
             [
                 sh:path rdf:type ;
             ] ;
+        sh:property :creatorShape ;
+        sh:property :createdShape ;
+        sh:property :contributorShape ;
+        sh:property :modifiedShape ;
         sh:property
             [
                 sh:path skos:prefLabel ;
@@ -448,6 +409,7 @@
             ] ;
         sh:closed true .
 
+
     :ListNodeShape a sh:NodeShape, :ListNode ;
         sh:targetClass :ListNode ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -459,6 +421,10 @@
             [
                 sh:path rdf:type ;
             ] ;
+        sh:property :creatorShape ;
+        sh:property :createdShape ;
+        sh:property :contributorShape ;
+        sh:property :modifiedShape ;
         sh:property
             [
                 sh:path skos:inScheme ;
@@ -572,6 +538,66 @@
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
+            ] ;
+        sh:closed true .
+
+
+    #
+    # Definitionen for Date
+    #
+    :GREGORIAN a rdfs:Resource ;
+        rdfs:label "Gregorian" .
+
+    :JULIAN a rdfs:Resource ;
+        rdfs:label "Julian" .
+
+    #
+    # Nodeshape for :OmasDate
+    #
+    :DateShape a sh:NodeShape, :Date ;
+        sh:targetClass :Date ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                sh:path :dateCalendar ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:datatype xsd:anyURI ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:in ( :GREGORIAN :JULIAN ) ;
+            ] ;
+        sh:property
+            [
+                sh:path :dateJDCStart ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:double ;
+                sh:lessThanOrEquals :dateJDCEnd ;
+            ] ;
+        sh:property
+            [
+                sh:path :dateJDCEnd ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+                sh:datatype xsd:double ;
             ] ;
         sh:closed true .
 
