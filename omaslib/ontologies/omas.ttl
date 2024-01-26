@@ -1,3 +1,4 @@
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace#> .
@@ -62,6 +63,20 @@ dcterms:modified a owl:DatatypeProperty ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:range xsd:dateTime .
+
+foaf:familyName a owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:range xsd:string .
+
+foaf:givenName a owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:range xsd:string .
 
 
 ###############################################################################
@@ -144,6 +159,16 @@ skos:note rdf:type owl:DatatypeProperty .
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:domain :Thing ;
     rdfs:range xsd:dateTimeStamp .
+
+:grantsPermission rdf:type owl:ObjectProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:domain :Thing ;
+    rdfs:range :PermissionSet .
+
+
 
 
 :nextNode rdf:type owl:ObjectProperty ;
@@ -294,13 +319,15 @@ omas:AdminPermissions rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:label ;
-            owl:onDatatype xsd:string
+            owl:onDatatype xsd:string ;
+            owl:minCardinality 1
         ] ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:description ;
-            owl:onDatatype xsd:string
+            owl:onDatatype xsd:string ;
+            owl:minCardinality 1
         ] .
 
 
@@ -316,25 +343,25 @@ omas:AdminPermissions rdf:type owl:Class ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :creator ;
+            owl:onProperty dcterms:creator ;
             owl:onClass :User ;
             owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :created ;
+            owl:onProperty dcterms:created ;
             owl:onDataProperty xsd:dateTime ;
             owl:cardinality 1 ;
         ],
                         [
             rdf:type owl:Restriction ;
-            owl:onProperty :contributor ;
+            owl:onProperty dcterms:contributor ;
             owl:onClass :User ;
             owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :modified ;
+            owl:onProperty dcterms:modified ;
             owl:onDataProperty xsd:dateTime ;
             owl:cardinality 1 ;
         ],
@@ -363,19 +390,19 @@ omas:AdminPermissions rdf:type owl:Class ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :creator ;
+            owl:onProperty dcterms:creator ;
             owl:onClass :User ;
             owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :created ;
+            owl:onProperty dcterms:created ;
             owl:onDataProperty xsd:dateTime ;
             owl:cardinality 1 ;
         ],
                         [
             rdf:type owl:Restriction ;
-            owl:onProperty :contributor ;
+            owl:onProperty dcterms:contributor ;
             owl:onClass :User ;
             owl:cardinality 1 ;
         ],
@@ -423,7 +450,7 @@ omas:AdminPermissions rdf:type owl:Class ;
         ] .
 
 #################################################################
-# User class defining a the temolate of a OLDAP user
+# User class defining a the template of a OLDAP user
 #################################################################
 :User rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -433,27 +460,27 @@ omas:AdminPermissions rdf:type owl:Class ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :creator ;
+            owl:onProperty dcterms:creator ;
             owl:onClass :User ;
             owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :created ;
+            owl:onProperty dcterms:created ;
             owl:onDataProperty xsd:dateTime ;
             owl:cardinality 1 ;
         ],
                         [
             rdf:type owl:Restriction ;
-            owl:onProperty :contributor ;
-            owl:onClass :User ;
+            owl:onProperty dcterms:contributor ;
             owl:cardinality 1 ;
-        ],
+            owl:onClass :User ;
+       ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :modified ;
-            owl:onDataProperty xsd:dateTime ;
+            owl:onProperty dcterms:modified ;
             owl:cardinality 1 ;
+            owl:onDataProperty xsd:dateTime ;
         ],
         [
             rdf:type owl:Restriction ;
@@ -461,9 +488,21 @@ omas:AdminPermissions rdf:type owl:Class ;
             owl:cardinality 1 ;
             owl:onDatatype xsd:NCName
         ],
-         [
+        [
             rdf:type owl:Restriction ;
             owl:onProperty :userCredentials ;
+            owl:cardinality 1 ;
+            owl:onDatatype xsd:string
+        ] ,
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty foaf:familyName ;
+            owl:cardinality 1 ;
+            owl:onDatatype xsd:string
+        ] ,
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty foaf:givenName ;
             owl:cardinality 1 ;
             owl:onDatatype xsd:string
         ] ,
@@ -499,25 +538,25 @@ omas:AdminPermissions rdf:type owl:Class ;
         skos:ConceptScheme,
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :creator ;
+            owl:onProperty dcterms:creator ;
             owl:onClass :User ;
             owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :created ;
+            owl:onProperty dcterms:created ;
             owl:onDataProperty xsd:dateTime ;
             owl:cardinality 1 ;
         ],
                         [
             rdf:type owl:Restriction ;
-            owl:onProperty :contributor ;
+            owl:onProperty dcterms:contributor ;
             owl:onClass :User ;
             owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :modified ;
+            owl:onProperty dcterms:modified ;
             owl:onDataProperty xsd:dateTime ;
             owl:cardinality 1 ;
         ],
@@ -547,25 +586,25 @@ omas:AdminPermissions rdf:type owl:Class ;
         skos:Concept,
          [
             rdf:type owl:Restriction ;
-            owl:onProperty :creator ;
+            owl:onProperty dcterms:creator ;
             owl:onClass :User ;
             owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :created ;
+            owl:onProperty dcterms:created ;
             owl:onDataProperty xsd:dateTime ;
             owl:cardinality 1 ;
         ],
                         [
             rdf:type owl:Restriction ;
-            owl:onProperty :contributor ;
+            owl:onProperty dcterms:contributor ;
             owl:onClass :User ;
             owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :modified ;
+            owl:onProperty dcterms:modified ;
             owl:onDataProperty xsd:dateTime ;
             owl:cardinality 1 ;
         ],
@@ -638,10 +677,8 @@ omas:AdminPermissions rdf:type owl:Class ;
 
 
 
-
-
 ###  omas:ontology#OmasThing
-:OmasThing rdf:type owl:Class ;
+:Thing rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -670,6 +707,12 @@ omas:AdminPermissions rdf:type owl:Class ;
             owl:onProperty :lastModificationDate ;
             owl:maxCardinality 1 ;
             owl:onDatatype xsd:dateTimeStamp
+        ] ,
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :grantsPermissions ;
+            owl:minCardinality 0 ;
+            owl:onClass :PermissionSet
         ] ;
     rdfs:comment "General super class of all things (resources) in tghe OMAS universe"@en .
 

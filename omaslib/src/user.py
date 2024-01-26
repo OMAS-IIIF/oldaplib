@@ -21,38 +21,41 @@ class User(Model):
     __contributor: AnyIRI | None
     __modified: datetime | None
 
-    __lastName: str
-    __firstName: str
+    __familyName: str
+    __givenName: str
     __userId: AnyIRI
     __userCredentials: str
-    __inProject: Dict[QName, AdminRights | None] | None
+    __inProject: Dict[QName, List[AdminRights]] | None
     __inGroup: List[str]
     __active: bool
 
     def __init__(self, *,
                  con: Optional[Connection] = None,
-                 last_name: str,
-                 first_name: str,
+                 family_name: str,
+                 given_name: str,
                  user_id: AnyIRI,
                  user_credentials: str,
                  active: bool,
-                 in_projects: Optional[Dict[QName, AdminRights | None]] = None):
+                 in_projects: Optional[Dict[QName, List[AdminRights]]] = None):
         super().__init__(con)
-        self.__lastName = last_name
-        self.__firstName = first_name
+        self.__familyName = family_name
+        self.__givenName = given_name
         self.__userId = user_id
         self.__userCredentials = user_credentials
         self.__active = active
-        self.__inProject = in_projects
+        self.__inProject = in_projects or []
         self.__inGroup = []
 
     def __str__(self) -> str:
+        pp = {}
+        for proj, perms in self.__inProject.items():
+            pp[str(proj)] = [str(x) for x in perms]
         return f'User: {self.__userId}\n'\
-            f'  LastName: {self.__lastName}\n'\
-            f'  FirstName: {self.__firstName}\n'\
+            f'  FamilyName: {self.__familyName}\n'\
+            f'  GivenName: {self.__givenName}\n'\
             f'  UserID: {self.__userId}\n'\
             f'  Credentials: {self.__userCredentials}\n'\
-            f'  Project rights: {self.__inProject}\n'\
+            f'  Project permissions: {pp}\n'\
             f'  Creator: {self.__creator}\n'\
             f'  Created at: {self.__created}\n'\
             f'  Modified by: {self.__contributor}\n'\
@@ -76,11 +79,11 @@ class User(Model):
         return self.__modified
 
     @property
-    def lastName(self) -> str:
+    def familyName(self) -> str:
         return self.__lastName
 
     @property
-    def firstName(self) -> str:
+    def givenName(self) -> str:
         return self.__firstName
 
     @property
@@ -116,20 +119,19 @@ class User(Model):
                 ?user omas:userId "{user_id}" .
                 ?user ?prop ?val .
             }} UNION {{
-                <<?user omas:userInProject ?proj>> omas:hasRights ?rights .
-                ?rights omas:value ?rval
+                <<?user omas:userInProject ?proj>> omas:hasPermission ?rval .
             }}
         }}
         """
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        last_name: str = None
-        first_name: str = None
-        user_credentials: str = None
+        family_name: str = ""
+        given_name: str = ""
+        user_credentials: str = ""
         active: bool = None
-        in_project: Dict[QName, List[QName]] = {}
+        in_project: Dict[QName, List[AdminRights]] = {}
         for r in res:
-            print("==>", r)
+            #print("==>", r)
             match str(r.get('prop')):
                 case 'dcterms:creator':
                     cls.__creator = r['val']
@@ -139,23 +141,25 @@ class User(Model):
                     cls.__contributor = r['val']
                 case 'dcterms:modified':
                     cls.__modified = r['val']
-                case 'omas:personLastName':
-                    last_name = r['val']
-                case 'omas:personFirstName':
-                    first_name = r['val']
+                case 'foaf:familyName':
+                    family_name = r['val']
+                case 'foaf:givenName':
+                    given_name = r['val']
                 case 'omas:userCredentials':
                     user_credentials = r['val']
                 case 'omas:userIsActive':
                     active = r['val']
                 case 'omas:userInProject':
-                    in_project = {r['val']: None}
+                    in_project = {r['val']: []}
                 case _:
                     if r.get('proj') is not None:
-                        in_project[r['proj']] = AdminRights(r['rval'])
+                        if in_project.get(r['proj']) is None:
+                            in_project[r['proj']] = []
+                        in_project[r['proj']].append(AdminRights(r['rval']))
         return cls(con=con,
                    user_id=user_id,
-                   last_name=last_name,
-                   first_name=first_name,
+                   family_name=family_name,
+                   given_name=given_name,
                    user_credentials=user_credentials,
                    active=active,
                    in_projects=in_project)

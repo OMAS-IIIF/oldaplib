@@ -1,11 +1,14 @@
 from enum import Enum
 
+from omaslib.src.helpers.datatypes import QName
+
 
 class AdminRights(Enum):
-    ADMIN_PROJECT = 1
-    ADMIN_USERS = 2
-    ADMIN_RESOURCES = 3
-    ADMIN_NONE = 4
+    ADMIN_OLDAP = QName('omas:ADMIN_OLDAP')
+    ADMIN_USERS = QName('omas:ADMIN_USERS')
+    ADMIN_RESOURCES = QName('omas:ADMIN_RESOURCES')
+    ADMIN_MODEL = QName('omas:ADMIN_MODEL')
+    ADMIN_CREATE = QName('omas:ADMIN_CREATE')
 
 
 class GroupRights(Enum):

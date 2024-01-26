@@ -7,6 +7,7 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix omas: <http://omas.org/base#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 
 @prefix : <http://omas.org/base#> .
 
@@ -41,7 +42,7 @@
     :SystemPropGroup
         a sh:PropertyGroup ;
         sh:order 0 ;
-        rdfs:label "System Property" .
+        rdfs:label "System Property"@en .
 
     #
     # Define the SHACL for OLAPDLIB's use of rdfs:label
@@ -57,8 +58,8 @@
         sh:datatype xsd:string ;
         sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true ;
-        sh:name "Label" ;
-        sh:description "A human readable name for something." .
+        sh:name "Label"@en,  "Label"@de, "Label"@fr, "Label"@it ;
+        sh:description "A human readable name for something."@en .
 
     #
     # Define SHACl for OLDAPLIB's use rdf:description
@@ -74,7 +75,7 @@
         sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true ;
         sh:name "Description" ;
-        sh:description "A description for something." .
+        sh:description "A description for something."@en .
 
     #
     # DEPRECATED – do not use...
@@ -329,6 +330,35 @@
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:string ;
+                sh:name "Password"@en, "Passwort"@de, "Mot de passe"@fr, "Password"@it ;
+                sh:description "Password for user."@en ;
+            ] ;
+        sh:property
+            [
+                sh:path foaf:familyName ;
+                dcterms:hasVersion "1.0.0" ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:minCount 1 ;
+                sh:maxCount: 1 ;
+                sh:datatype xsd:string ;
+                sh:name "Family name"@en, "Familiennamen"@de, "Nom de famillie"@fr, "Nome della famiglia"@it ;
+                sh:description "The family name of some person."@en ;
+            ] ;
+        sh:property
+            [
+                sh:path foaf:givenName ;
+                dcterms:hasVersion "1.0.0" ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:minCount 1 ;
+                sh:datatype xsd:string ;
+                sh:name "Given name"@en, "Vornamen"@de, "Pénom"@fr, "Nome"@it ;
+                sh:description "The given name of some person"@en ;
             ] ;
         sh:property
             [

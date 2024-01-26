@@ -98,6 +98,7 @@ class Context(metaclass=ContextSingleton):
             NCName('skos'): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
             NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
             NCName('dcterms'): NamespaceIRI('http://purl.org/dc/terms/'),
+            NCName('foaf'): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
             NCName('omas'): NamespaceIRI('http://omas.org/base#')
         }
         self._inverse = {
@@ -110,6 +111,7 @@ class Context(metaclass=ContextSingleton):
             NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): NCName('skos'),
             NamespaceIRI('http://purl.org/dc/elements/1.1/'): NCName('dc'),
             NamespaceIRI('http://purl.org/dc/terms/'): NCName('dcterms'),
+            NamespaceIRI('http://xmlns.com/foaf/0.1/'): NCName('foaf'),
             NamespaceIRI('http://omas.org/base#'): NCName('omas'),
         }
         self._use = []
