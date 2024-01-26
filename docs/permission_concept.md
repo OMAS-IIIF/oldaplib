@@ -5,10 +5,10 @@ There are two kinds of permissions that have to be defined to OLDAP users:
 ## Administrative permissions
 
 - `ADMIN_OLDAP`: Quasi "root"-permissions, system administration
-- `ADMIN_MODEL`: User has permission to modify the data model.
-- `ADMIN_USERS`: add/modify/delete users.
 - `ADMIN_RESOURCES`: _Override_ resource permissions to manipulate
   any resources within the given project (All CRUD-operations)
+- `ADMIN_USERS`: add/modify/delete users.
+- `ADMIN_MODEL`: User has permission to modify the data model.
 - `ADMIN_CREATE`: The user is allowed to _add_ new resources.
 
 Administrative resources are attached to the RDF-triple that defines the
@@ -18,10 +18,10 @@ membership of a user to a project using the RDF*star syntax:
 ex:NikolaiTesla a :User .
 ex:Electrify a :project .
 
-ex:NikolaTestla :inProject ex:Electrify .
-<<ex:NikolaTestla :inProject ex:Electrify>> :hasPermission :ADMIN_MODEL
-<<ex:NikolaTestla :inProject ex:Electrify>> :hasPermission :ADMIN_USER
-<<ex:NikolaTestla :inProject ex:Electrify>> :hasPermission :ADMIN_CREATE
+ex:NikolaTesla :inProject ex:Electrify .
+<<ex:NikolaTesla :inProject ex:Electrify>> :hasPermission :ADMIN_MODEL
+<<ex:NikolaTesla :inProject ex:Electrify>> :hasPermission :ADMIN_USER
+<<ex:NikolaTesla :inProject ex:Electrify>> :hasPermission :ADMIN_CREATE
 ```
 
 Above example would the user ex:NikolaTesla would have the permission to modify
@@ -36,7 +36,8 @@ are granted the access permissions. Each resource gets the access permissions ba
 the connection to one or many groups using the `:permissionFromGroup`-property. A
 given user is member of one or many groups based on the `:inGroup`-property.
 
-The following data permissions are available:
+The following data permissions are available. Every further permission includes the previous permissions. 
+If a user has e.g. the `UPDATE` permission, the user has automatically also the `EXTEND` and `VIEW` permissions:
 
 - `VIEW`: Readonly access to a resource
 - `EXTEND`: Allows to extend the data (e.g. adding a comment or annotation or
