@@ -8,25 +8,25 @@
 
 :admin {
 
-    :ADMIN_PROJECT a :AdminRights ;
-        rdfs:description "May modify a datamodel etc. etc." ;
-        rdfs:label "admin project" ;
-        :value 1 .
+    :ADMIN_OLDAP a :AdminPermissions ;
+        rdfs:description "Quasi 'root'-permissions, system administration" ;
+        rdfs:label "ADMIN_OLDAP" .
 
-    :ADMIN_USERS a :AdminRights ;
-        rdfs:description "May add/modify/delete users incl. group membership." ;
-        rdfs:label "admin user" ;
-        :value 2 .
+    :ADMIN_USERS a :AdminPermissions ;
+        rdfs:description "add/modify/delete users." ;
+        rdfs:label "ADMIN_USERS" .
 
-    :ADMIN_RESOURCES a :AdminRights ;
-        rdfs:description "May create new resources." ;
-        rdfs:label "create" ;
-        :value 3 .
+    :ADMIN_RESOURCES a :AdminPermissions ;
+        rdfs:description "Override resource permissions to manipulate any resources within the given project (All CRUD-operations)." ;
+        rdfs:label "ADMIN_RESOURCES" .
 
-    :ADMIN_NONE a :AdminRights ;
-        rdfs:description "Is just member of project." ;
-        rdfs:label "none" ;
-        :value 4 .
+    :ADMIN_MODEL a :AdminPermissions ;
+        rdfs:description "User has permission to modify the data model." ;
+        rdfs:label "ADMIN_MODEL" .
+
+    :ADMIN_CREATE a :AdminPermissions ;
+        rdfs:description "The user is allowed to add new resources." ;
+        rdfs:label "ADMIN_CREATE" .
 
     :SystemProject a :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;

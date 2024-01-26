@@ -16,33 +16,58 @@ omas:ontology rdf:type owl:Ontology ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     owl:imports <http://www.w3.org/2004/02/skos/core>, <http://purl.org/dc/terms/> .
 
-#################################################################
-#    Annotation properties
-#################################################################
 
-# OLDAPLIB's use of rdfs:lib
+###############################################################################
+# Standard Properties that are used everywhere
+###############################################################################
+
 rdfs:label a owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:range xsd:string .
 
-# OLDAPLIB's use of rdfs:description
 rdfs:description a owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:range xsd:string .
 
-# OLDAPLIB's use of dcterms:creator
 dcterms:creator a owl:ObjectProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:range :User .
 
-# OLDAPLIB's use of dcterms:created
 dcterms:created a owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:range xsd:dateTime .
 
-# OLDAPLIB's use of dcterms:contributor
 dcterms:contributor a owl:ObjectProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:range :User .
 
-# OLDAPLIB's use of dcterms:modified
 dcterms:modified a owl:DatatypeProperty ;
-        rdfs:range xsd:dateTime .
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:range xsd:dateTime .
+
+
+###############################################################################
+# Properties that are used by skos,
+###############################################################################
+
 
 ###  http://www.w3.org/2004/02/skos/core#altLabel
 skos:altLabel rdf:type owl:DatatypeProperty ;
@@ -56,7 +81,6 @@ skos:changeNote rdf:type owl:DatatypeProperty ;
 skos:definition rdf:type owl:DatatypeProperty ;
                 rdfs:range xsd:string .
 
-
 ###  http://www.w3.org/2004/02/skos/core#editorialNote
 skos:editorialNote rdf:type owl:DatatypeProperty ;
                    rdfs:range xsd:string .
@@ -67,7 +91,6 @@ skos:inScheme rdf:type owl:ObjectProperty ;
 ###  http://www.w3.org/2004/02/skos/core#note
 skos:note rdf:type owl:DatatypeProperty ;
           rdfs:range xsd:string .
-
 
 ###  http://www.w3.org/2004/02/skos/core#prefLabel
 skos:prefLabel rdf:type owl:DatatypeProperty ;
@@ -82,11 +105,14 @@ skos:notation rdf:type owl:DatatypeProperty ;
 skos:alternativeLabel rdf:type owl:DatatypeProperty ;
           rdfs:range xsd:string .
 
-#################################################################
-#    Object Properties
-#################################################################
+###  http://www.w3.org/2004/02/skos/core#note
+skos:note rdf:type owl:DatatypeProperty .
 
-###  omas:ontology#createdBy
+
+###############################################################################
+# Properties that are used by the :Thing class
+###############################################################################
+
 :createdBy rdf:type owl:ObjectProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -95,8 +121,6 @@ skos:alternativeLabel rdf:type owl:DatatypeProperty ;
     rdfs:domain :OmasThing ;
     rdfs:range :User .
 
-
-###  omas:ontology#lastModifiedBy
 :lastModifiedBy rdf:type owl:ObjectProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -105,99 +129,6 @@ skos:alternativeLabel rdf:type owl:DatatypeProperty ;
     rdfs:domain :OmasThing ;
     rdfs:range :User .
 
-
-###  omas:ontology#nextNode
-:nextNode rdf:type owl:ObjectProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :OmasListNode ;
-    rdfs:range :OmasListNode .
-
-
-###  omas:ontology#personBirthDate
-:personBirthDate rdf:type owl:ObjectProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Person ;
-    rdfs:range omas:Date .
-
-
-###  omas:ontology#personBirthPlace
-:personBirthPlace rdf:type owl:ObjectProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Person ;
-    rdfs:range :OmasLocation .
-
-
-###  omas:ontology#personDeathDate
-:personDeathDate rdf:type owl:ObjectProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Person ;
-    rdfs:range omas:Date .
-
-
-###  omas:ontology#personDeathPlace
-:personDeathPlace rdf:type owl:ObjectProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Person ;
-    rdfs:range :OmasLocation .
-
-
-###  omas:ontology#userInProject
-:userInProject rdf:type owl:ObjectProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :User ;
-    rdfs:range omas:Project .
-
-:hasRights rdf:type owl:ObjectProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range :AdminRights .
-
-
-
-#################################################################
-#    Data properties
-#################################################################
-
-###  http://www.w3.org/2004/02/skos/core#altLabel
-
-
-###  http://www.w3.org/2004/02/skos/core#changeNote
-
-
-###  http://www.w3.org/2004/02/skos/core#definition
-
-
-###  http://www.w3.org/2004/02/skos/core#editorialNote
-
-
-###  http://www.w3.org/2004/02/skos/core#note
-skos:note rdf:type owl:DatatypeProperty .
-
-
-###  http://www.w3.org/2004/02/skos/core#prefLabel
-
-
-###  omas:ontology#creationDate
 :creationDate rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -206,38 +137,6 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain :Thing ;
     rdfs:range xsd:dateTimeStamp .
 
-
-###  omas:ontology#dateCalendar
-:dateCalendar rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain omas:Date ;
-    rdfs:range xsd:anyURI .
-
-
-###  omas:ontology#dateJDCEnd
-:dateJDCEnd rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain omas:Date ;
-    rdfs:range xsd:double .
-
-
-###  omas:ontology#dateJDCStart
-:dateJDCStart rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain omas:Date ;
-    rdfs:range xsd:double .
-
-
-###  omas:ontology#lastModificationDate
 :lastModificationDate rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -247,97 +146,64 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:range xsd:dateTimeStamp .
 
 
-###  omas:ontology#leftIndex
-:leftIndex rdf:type owl:DatatypeProperty ;
+:nextNode rdf:type owl:ObjectProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :ListNode ;
-    rdfs:range xsd:positiveInteger .
+    rdfs:domain :OmasListNode ;
+    rdfs:range :OmasListNode .
 
 
-###  omas:ontology#locationGeonamesId
-:locationGeonamesId rdf:type owl:DatatypeProperty ;
+###############################################################################
+# Properties used for :User
+###############################################################################
+
+:userId rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Location ;
-    rdfs:range xsd:positiveInteger .
+    rdfs:domain :User ;
+    rdfs:range xsd:NCName .
 
-
-###  omas:ontology#locationLatitude
-:locationLatitude rdf:type owl:DatatypeProperty ;
+:userCredentials rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Location ;
-    rdfs:range xsd:double .
-
-
-###  omas:ontology#locationLongitude
-:locationLongitude rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Location ;
-    rdfs:range xsd:double .
-
-
-###  omas:ontology#locationName
-:locationName rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Location ;
+    rdfs:domain :User ;
     rdfs:range xsd:string .
 
-
-###  omas:ontology#personFirstName
-:personFirstName rdf:type owl:DatatypeProperty ;
+:userInProject rdf:type owl:ObjectProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Person ;
-    rdfs:range xsd:string .
+    rdfs:domain :User ;
+    rdfs:range omas:Project .
 
-
-###  omas:ontology#personLastName
-:personLastName rdf:type owl:DatatypeProperty ;
+:userIsActive rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :Person ;
-    rdfs:range xsd:string .
+    rdfs:domain :User ;
+    rdfs:range xsd:boolean .
 
-
-###  omas:ontology#projectDescription
-:projectDescription rdf:type owl:DatatypeProperty ;
+:hasPermissions rdf:type owl:ObjectProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain omas:Project ;
-    rdfs:range xsd:string .
+    rdfs:domain :User ;
+    rdfs:range :PermissionSet .
 
 
-###  omas:ontology#projectEnd
-:projectEnd rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain omas:Project ;
-    rdfs:range xsd:date .
+###############################################################################
+# Properties used for :Project
+###############################################################################
 
-
-###  omas:ontology#projectShortName
 :projectShortName rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -354,18 +220,6 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain omas:Project ;
     rdfs:range xsd:anyURI .
 
-
-###  omas:ontology#projectName
-:projectName rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain omas:Project ;
-    rdfs:range xsd:string .
-
-
-###  omas:ontology#projectStart
 :projectStart rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -375,6 +229,27 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain omas:Project ;
     rdfs:range xsd:date .
 
+:projectEnd rdf:type owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:domain omas:Project ;
+    rdfs:range xsd:date .
+
+
+###############################################################################
+# Properties used for :List and :ListNode
+###############################################################################
+
+###  omas:ontology#leftIndex
+:leftIndex rdf:type owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:domain :ListNode ;
+    rdfs:range xsd:positiveInteger .
 
 ###  omas:ontology#rightIndex
 :rightIndex rdf:type owl:DatatypeProperty ;
@@ -385,35 +260,6 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain :ListNode ;
     rdfs:range xsd:positiveInteger .
 
-
-###  omas:ontology#userCredentials
-:userCredentials rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :User ;
-    rdfs:range xsd:string .
-
-
-###  omas:ontology#userId
-:userId rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :User ;
-    rdfs:range xsd:anyURI .
-
-
-###  omas:ontology#userIsActive
-:userIsActive rdf:type owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :User ;
-    rdfs:range xsd:boolean .
 
 :comment rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -429,87 +275,17 @@ skos:note rdf:type owl:DatatypeProperty .
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:range xsd:integer .
 
-rdfs:label a owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:string .
 
-rdfs:description a owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:string .
-
-dcterms:creator a owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:anyURI .
-
-dcterms:created a owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:dateTime .
-
-dcterms:contributor a owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:anyURI .
-
-dcterms:modified a owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:dateTime .
-
-
-omas:value a owl:DatatypeProperty ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:nonNegativeInteger .
 
 #################################################################
 #    Classes
 #################################################################
 
-###  http://omas.org/base#Date
-omas:Date rdf:type owl:Class ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:subClassOf
-        [
-            rdf:type owl:Restriction ;
-            owl:onProperty :dateCalendar ;
-            owl:cardinality 1 ;
-            owl:onDatatype xsd:string
-        ],
-        [
-            rdf:type owl:Restriction ;
-            owl:onProperty :dateJDCEnd ;
-            owl:cardinality 1 ;
-            owl:onDatatype xsd:double
-        ],
-        [
-            rdf:type owl:Restriction ;
-            owl:onProperty :dateJDCStart ;
-            owl:cardinality 1 ;
-            owl:onDatatype xsd:double
-        ] .
+#################################################################
+# AdminPermission class (template for administrative permissions)
+#################################################################
 
-omas:AdminRights rdf:type owl:Class ;
+omas:AdminPermissions rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -525,15 +301,14 @@ omas:AdminRights rdf:type owl:Class ;
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:description ;
             owl:onDatatype xsd:string
-        ] ;
-    rdfs:subClassOf
-        [
-            rdf:type owl:Restriction ;
-            owl:onProperty :value ;
-            owl:onDatatype xsd:nonNegativeInteger
         ] .
 
-:Group a owl:class ;
+
+#################################################################
+# PermissionSet class (Holding class of resource permissions)
+#################################################################
+
+:PermissionSet a owl:class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -577,9 +352,9 @@ omas:AdminRights rdf:type owl:Class ;
         ] .
 
 
-#
-# Definition of the OWL class for representing a omas:Project.
-#
+#################################################################
+# Project class defining a project in OLDAP...
+#################################################################
 :Project rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -647,9 +422,9 @@ omas:AdminRights rdf:type owl:Class ;
             owl:onDatatype xsd:date
         ] .
 
-#
-# OWL declarations for omas:User
-#
+#################################################################
+# User class defining a the temolate of a OLDAP user
+#################################################################
 :User rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -691,22 +466,30 @@ omas:AdminRights rdf:type owl:Class ;
             owl:onProperty :userCredentials ;
             owl:cardinality 1 ;
             owl:onDatatype xsd:string
-        ],
-       [
+        ] ,
+        [
             rdf:type owl:Restriction ;
             owl:onProperty :userInProject ;
             owl:minCardinality 0 ;
             owl:onClass omas:Project
-        ],
+        ] ,
         [
             rdf:type owl:Restriction ;
             owl:onProperty :userIsActive ;
             owl:cardinality 1 ;
             owl:onDatatype xsd:boolean
+        ] ,
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :hasPermissions ;
+            owl:minCardinality 0 ;
+            owl:onClass :PermissionSet
         ] .
 
 
-###  omas:ontology#OmasList
+#################################################################
+# List class defining a (possibly hierarchical) list
+#################################################################
 :List rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -752,7 +535,9 @@ omas:AdminRights rdf:type owl:Class ;
         ] .
 
 
-###  omas:ontology#OmasListNode
+#################################################################
+# List class defining a list node
+#################################################################
 :ListNode rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;

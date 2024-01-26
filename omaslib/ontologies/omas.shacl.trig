@@ -19,29 +19,29 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime .
 
-#
-# First we have 2 properties which can by used by any sh:NodeShape.
-# Note: sh:maxCount, sh:minCount and sh:order will have to be defined here and will be used by any reference in a
-#       sh:NodeShape!
-#
-# These properties are references as follows:
-#
-#   :testPropShape a sh:PropertyShape ;
-#      sh:path test;
-#      sh:datatype xsd:integer .
-#
-#   :exampeShape a sh:NodeShape ;
-#      sh:property :testPropShape .
-#
+    #
+    # First we have 2 properties which can by used by any sh:NodeShape.
+    # Note: sh:maxCount, sh:minCount and sh:order will have to be defined here and will be used by any reference in a
+    #       sh:NodeShape!
+    #
+    # These properties are references as follows:
+    #
+    #   :testPropShape a sh:PropertyShape ;
+    #      sh:path test;
+    #      sh:datatype xsd:integer .
+    #
+    #   :exampeShape a sh:NodeShape ;
+    #      sh:property :testPropShape .
+    #
 
     #
     # Define a SHACL property group for all system properties. This info can be used to hide these properties from
     # a GUI. These properties should be handled by OLDAPLIB...
     #
     :SystemPropGroup
-	    a sh:PropertyGroup ;
-	    sh:order 0 ;
-	    rdfs:label "System Property" .
+        a sh:PropertyGroup ;
+        sh:order 0 ;
+        rdfs:label "System Property" .
 
     #
     # Define the SHACL for OLAPDLIB's use of rdfs:label
@@ -145,7 +145,7 @@
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
-        sh:datatype :User ;
+        sh:class :User ;
         sh:group :SystemPropGroup .
 
     #
@@ -168,8 +168,8 @@
     # that defines to which omas:project as omas:User belongs to.
     # E.g. <<<https://orcid.org/0000-0003-1681-4036> :userInProject :SystemProject>> :hasRights :ADMIN_PROJECT .
     #
-    :AdminRightsShape a sh:NodeShape, :AdminRights ;
-        sh:targetClass :AdminRights ;
+    :AdminPermissionsShape a sh:NodeShape, :AdminPermissions ;
+        sh:targetClass :AdminPermissions ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
@@ -182,35 +182,21 @@
                 sh:path rdf:type ;
             ] ;
         sh:property :labelShape ;
-        sh:property :descriptionShape ;
-        sh:property
-            [
-                sh:path :value ;
-                dcterms:hasVersion "1.0.0" ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:nonNegativeInteger ;
-                sh:name "A priority value" ;
-                sh:description "An integer priority value used to evaluate the rights." ;
-           ] .
+        sh:property :descriptionShape .
 
     #
-    # SHACL to define a (user-) group. For each resource, there are RDF-triples which define the permissions for
-    # user groups.
+    # SHACL to define a permission sets. For each resource, there are RDF-triples which define the
+    # permissions for permission sets.
     #
-    :GroupShape a sh:NodeShape, :Group ;
-        sh:targetClass :Group ;
+    :PermissionSetShape a sh:NodeShape, :PermissionSet ;
+        sh:targetClass :PermissionSet ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "Group"@en, "Gruppe"@de, "Groupe"@fr, "Gruppo"@it ;
-        rdfs:comment "Metadata about a project" ;
+        rdfs:label "Permission set"@en, "Berechtigungssatz"@de, "Ensemble de permissions"@fr, "Set di permessi"@it ;
+        rdfs:comment "A set of permissions a user and a resource grants." ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -363,6 +349,15 @@
                 sh:minCount 1 ;
                 sh:maxCount 1 ;
                 sh:datatype xsd:boolean ;
+            ] ;
+        sh:property
+            [
+                sh:path :hasPermissions ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:class :PermissionSet ;
             ] ;
         sh:closed true .
 
@@ -541,67 +536,8 @@
             ] ;
         sh:closed true .
 
-
-    #
-    # Definitionen for Date
-    #
-    :GREGORIAN a rdfs:Resource ;
-        rdfs:label "Gregorian" .
-
-    :JULIAN a rdfs:Resource ;
-        rdfs:label "Julian" .
-
-    #
-    # Nodeshape for :OmasDate
-    #
-    :DateShape a sh:NodeShape, :Date ;
-        sh:targetClass :Date ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:property
-            [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
-                sh:path :dateCalendar ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:datatype xsd:anyURI ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:in ( :GREGORIAN :JULIAN ) ;
-            ] ;
-        sh:property
-            [
-                sh:path :dateJDCStart ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:double ;
-                sh:lessThanOrEquals :dateJDCEnd ;
-            ] ;
-        sh:property
-            [
-                sh:path :dateJDCEnd ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount 1 ;
-                sh:maxCount 1 ;
-                sh:datatype xsd:double ;
-            ] ;
-        sh:closed true .
-
 }
+
 
 
 
