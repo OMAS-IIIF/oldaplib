@@ -628,7 +628,7 @@ class PropertyClass(Model, Notify):
         self.__from_triplestore = True
 
     def create(self, *,
-               indent: int = 0, indent_inc: int = 4) -> str | None:
+               indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
             raise OmasErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
         timestamp = datetime.now()

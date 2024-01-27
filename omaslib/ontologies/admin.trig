@@ -9,25 +9,56 @@
 
 :admin {
 
-    :ADMIN_OLDAP a :AdminPermissions ;
-        rdfs:description "Quasi 'root'-permissions, system administration" ;
-        rdfs:label "ADMIN_OLDAP" .
+    #
+    # Define the administrative permissions here
+    #
+    :ADMIN_OLDAP a :AdminPermission ;
+        rdfs:label "ADMIN_OLDAP" ;
+        rdfs:description "Quasi 'root'-permissions, system administration" ;.
 
-    :ADMIN_USERS a :AdminPermissions ;
-        rdfs:description "add/modify/delete users." ;
-        rdfs:label "ADMIN_USERS" .
+    :ADMIN_USERS a :AdminPermission ;
+        rdfs:label "ADMIN_USERS" ;
+        rdfs:description "add/modify/delete users." .
 
-    :ADMIN_RESOURCES a :AdminPermissions ;
-        rdfs:description "Override resource permissions to manipulate any resources within the given project (All CRUD-operations)." ;
-        rdfs:label "ADMIN_RESOURCES" .
+    :ADMIN_RESOURCES a :AdminPermission ;
+        rdfs:label "ADMIN_RESOURCES" ;
+        rdfs:description "Override resource permissions to manipulate any resources within the given project (All CRUD-operations)." .
 
-    :ADMIN_MODEL a :AdminPermissions ;
-        rdfs:description "User has permission to modify the data model." ;
-        rdfs:label "ADMIN_MODEL" .
+    :ADMIN_MODEL a :AdminPermission ;
+        rdfs:label "ADMIN_MODEL" ;
+        rdfs:description "User has permission to modify the data model." .
 
-    :ADMIN_CREATE a :AdminPermissions ;
-        rdfs:description "The user is allowed to add new resources." ;
-        rdfs:label "ADMIN_CREATE" .
+    :ADMIN_CREATE a :AdminPermission ;
+        rdfs:label "ADMIN_CREATE" ;
+        rdfs:description "The user is allowed to add new resources." .
+
+    #
+    # Define the data permissions here
+    #
+    :DATA_RESTRICTED a :DataPermission ;
+        rdfs:label "DATA_RESTRICTED" ;
+        rdfs:description "Allows a restricted view of the resource." .
+
+    :DATA_VIEW a :DataPermission ;
+        rdfs:label "DATA_VIEW" ;
+        rdfs:descriptions "Readonly access to a resource (full view)." .
+
+    :DATA_EXTEND a :DataPermission ;
+        rdfs:label "EXTEND" ;
+        rdfs:descriptions "Allows to extend the data (e.g. adding a comment or annotation or adding data to a filed that has a cardinality greater one)." .
+
+    :DATA_UPDATE a :DataPermission ;
+        rdfs:label "DATA_UPDATE" ;
+        rdfs:descriptions "Allows to modify or update an existing resource." .
+
+    :DATA_DELETE a :DataPermission ;
+        rdfs:label "DATA_DELETE" ;
+        rdfs:descriptions "Allows to completely remove a resource." .
+
+    :DATA_PERMISSIONS a :DataPermission ;
+        rdfs:label "DATA_PERMISSIONS" ;
+        rdfs:descriptions "Allows the user to change the assignments of groups and the ownership of a given resource." .
+
 
     :SystemProject a :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -54,15 +85,38 @@
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        :userId "rosenth"^^xsd:NCName ;
         foaf:familyName "Rosenthaler" ;
         foaf:givenName "Lukas" ;
-        :userId "rosenth" ;
-        :userCredentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
-        :userInProject :SystemProject, :HyperHamlet ;
-        :userIsActive true .
+        :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
+        :inProject :SystemProject, :HyperHamlet ;
+        :isActive true .
 
-    <<<https://orcid.org/0000-0003-1681-4036> :userInProject :SystemProject>> :hasPermission :ADMIN_OLDAP .
-    <<<https://orcid.org/0000-0003-1681-4036> :userInProject :HyperHamlet>> :hasPermission :ADMIN_RESOURCES .
+        <https://orcid.org/0000-0003-1681-4036> a omas:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        :userId "rosenth"^^xsd:NCName ;
+        foaf:familyName "Rosenthaler" ;
+        foaf:givenName "Lukas" ;
+        :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
+        :inProject :SystemProject, :HyperHamlet ;
+        :isActive true .
+
+    <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasPermission :ADMIN_OLDAP .
+    <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasPermission :ADMIN_RESOURCES .
+
+        <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> a omas:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        :userId "anonymous"^^xsd:NCName ;
+        foaf:familyName "-" ;
+        foaf:givenName "-" ;
+        :credentials "*" ;
+        :isActive true .
 
 }
 

@@ -473,3 +473,5 @@ class Action(Enum):
 
 if __name__ == "__main__":
     print(NCName("orcid") + "0000-0003-1681-4036")
+
+    AnyIRI('urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b')

@@ -165,19 +165,35 @@
         sh:group :SystemPropGroup .
 
     #
-    # SHACL definition of the omas:AdminRights class. The AdminRights are attached as RDF*star to the triple
-    # that defines to which omas:project as omas:User belongs to.
-    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :userInProject :SystemProject>> :hasRights :ADMIN_PROJECT .
+    # SHACL definition of the omas:AdminPermission class. The AdminPermission instances are attached as
+    # RDF*star to the triple that defines to which omas:project as omas:User belongs to.
+    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasRights :ADMIN_PROJECT .
     #
-    :AdminPermissionsShape a sh:NodeShape, :AdminPermissions ;
-        sh:targetClass :AdminPermissions ;
+    :AdminPermissionShape a sh:NodeShape, :AdminPermission ;
+        sh:targetClass :AdminPermission ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "AdminRights"@en, "AdminRights"@de, "AdminRights"@fr, "AdminRights"@it ;
-        rdfs:comment "Defines administrator rights." ;
+        rdfs:label "AdminPermission"@en, "AdminPermission"@de, "AdminPermission"@fr, "AdminPermission"@it ;
+        rdfs:comment "Defines administrator permissions." ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property :labelShape ;
+        sh:property :descriptionShape .
+
+    :DataPermissionShape a sh:NodeShape, :DataPermission ;
+        sh:targetClass :DataPermission ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:label "DataPermission"@en, "DataPermission"@de, "DataPermission"@fr, "DataPermission"@it ;
+        rdfs:comment "Defines data permissions." ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -206,6 +222,18 @@
         sh:property :createdShape ;
         sh:property :contributorShape ;
         sh:property :modifiedShape ;
+        sh:property
+            [
+                sh:path :givesPermission ;
+                dcterms:hasVersion "1.0.0" ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:class :DataPermission ;
+                sh:name "Data permission"@en, "Data permission"@de, "Data permission"@fr, "Data permission"@it ;
+                sh:description "Permission type to access a resource"@en, "Berechtigungstyp für Ressource"@de, "Type d'autorisation pour accéder à une ressource"@fr, "Tipo di autorizzazione per accedere a una risorsa"@it ;
+           ] ;
         sh:property :labelShape ;
         sh:property :descriptionShape .
 
@@ -322,7 +350,7 @@
             ] ;
         sh:property
             [
-                sh:path :userCredentials ;
+                sh:path :credentials ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -362,7 +390,7 @@
             ] ;
         sh:property
             [
-                sh:path :userInProject ;
+                sh:path :inProject ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -371,7 +399,7 @@
             ] ;
         sh:property
             [
-                sh:path :userIsActive ;
+                sh:path :isActive ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;

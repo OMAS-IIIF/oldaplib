@@ -61,7 +61,16 @@ class IriValidator:
     def validate(cls, val: str) -> bool:
         try:
             result = urlparse(val)
-            return all([result.scheme, result.netloc])
+            match result.scheme:
+                case 'http':
+                    return True if result.netloc else False
+                case 'https':
+                    return True if result.netloc else False
+                case 'urn':
+                    return True if result.path else False
+                case _:
+                    return False
+            #return all([result.scheme, result.netloc])
         except Exception:
             return False
 
@@ -95,4 +104,8 @@ class XsdValidator:
 
 if __name__ == '__main__':
     print(XsdValidator.validate(XsdDatatypes.anyURI, "http://waelo.org/data/gaga#uuu"))
+    print(XsdValidator.validate(XsdDatatypes.anyURI, "https://waelo.org/data/gaga#uuu"))
+    print(XsdValidator.validate(XsdDatatypes.anyURI, "https://waelo.org/data/gaga#"))
     print(XsdValidator.validate(XsdDatatypes.NMTOKEN, "https://orcid.org/0000-0003-1681-4036"))
+    print(XsdValidator.validate(XsdDatatypes.anyURI, "urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b"))
+    print(XsdValidator.validate(XsdDatatypes.anyURI, "waselias"))

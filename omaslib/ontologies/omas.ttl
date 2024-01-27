@@ -168,16 +168,13 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain :Thing ;
     rdfs:range :PermissionSet .
 
-
-
-
-:nextNode rdf:type owl:ObjectProperty ;
+:givesPermission rdf:type owl:ObjectProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:domain :OmasListNode ;
-    rdfs:range :OmasListNode .
+    rdfs:domain :PermissionSet ;
+    rdfs:range :DataPermission .
 
 
 ###############################################################################
@@ -192,7 +189,7 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain :User ;
     rdfs:range xsd:NCName .
 
-:userCredentials rdf:type owl:DatatypeProperty ;
+:credentials rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -200,7 +197,7 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain :User ;
     rdfs:range xsd:string .
 
-:userInProject rdf:type owl:ObjectProperty ;
+:inProject rdf:type owl:ObjectProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -208,7 +205,7 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain :User ;
     rdfs:range omas:Project .
 
-:userIsActive rdf:type owl:DatatypeProperty ;
+:isActive rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -285,6 +282,17 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain :ListNode ;
     rdfs:range xsd:positiveInteger .
 
+:nextNode rdf:type owl:ObjectProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:domain :OmasListNode ;
+    rdfs:range :OmasListNode .
+
+###############################################################################
+# Other properties: Deprecated!
+###############################################################################
 
 :comment rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -310,7 +318,32 @@ skos:note rdf:type owl:DatatypeProperty .
 # AdminPermission class (template for administrative permissions)
 #################################################################
 
-omas:AdminPermissions rdf:type owl:Class ;
+omas:AdminPermission rdf:type owl:Class ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:subClassOf
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty rdfs:label ;
+            owl:onDatatype xsd:string ;
+            owl:minCardinality 1
+        ] ;
+    rdfs:subClassOf
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty rdfs:description ;
+            owl:onDatatype xsd:string ;
+            owl:minCardinality 1
+        ] .
+
+
+#################################################################
+# DataPermission class (template for administrative permissions)
+#################################################################
+
+omas:DataPermission rdf:type owl:Class ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -364,6 +397,12 @@ omas:AdminPermissions rdf:type owl:Class ;
             owl:onProperty dcterms:modified ;
             owl:onDataProperty xsd:dateTime ;
             owl:cardinality 1 ;
+        ],
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :givesPermission ;
+            owl:onClass :DataPermission ;
+            owl:minCardinality 0 ;
         ],
         [
             rdf:type owl:Restriction ;
@@ -490,7 +529,7 @@ omas:AdminPermissions rdf:type owl:Class ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :userCredentials ;
+            owl:onProperty :credentials ;
             owl:cardinality 1 ;
             owl:onDatatype xsd:string
         ] ,
@@ -508,13 +547,13 @@ omas:AdminPermissions rdf:type owl:Class ;
         ] ,
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :userInProject ;
+            owl:onProperty :inProject ;
             owl:minCardinality 0 ;
             owl:onClass omas:Project
         ] ,
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :userIsActive ;
+            owl:onProperty :isActive ;
             owl:cardinality 1 ;
             owl:onDatatype xsd:boolean
         ] ,

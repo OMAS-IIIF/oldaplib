@@ -164,7 +164,7 @@ class Connection:
         FROM omas:admin
         WHERE {{
             ?s a omas:User ;
-                omas:userId "{self._userid}" ;
+                omas:userId "{self._userid}"^^xsd:NCName ;
                 ?p ?o .
         }}
         """
@@ -184,7 +184,7 @@ class Connection:
         res = QueryProcessor(context=context, query_result=jsonobj)
         # TODO: Add more user information / permissions
         for r in res:
-            if str(r['p']) == 'omas:userCredentials':
+            if str(r['p']) == 'omas:credentials':
                 hashed = str(r['o']).encode('utf-8')
                 if bcrypt.checkpw(credentials.encode('utf-8'), hashed):
                     success = True

@@ -43,45 +43,22 @@ set is given the `UPDATE`-permission!
 
 The following data permissions are available:
 
-- `VIEW`: Readonly access to a resource
-- `EXTEND`: Allows to extend the data (e.g. adding a comment or annotation or
+- `DATA_RESTRICTED`: A resticted view of the resource
+- `DATA_VIEW`: Readonly access to a resource
+- `DATA_EXTEND`: Allows to extend the data (e.g. adding a comment or annotation or
   adding data to a filed that has a cardinality greater one).
-- `UPDATE`: Allows to modify or update an existing resource
-- `DELETE`: Allows to completely remove a resource
-- `PERMISSIONS`: Allows the user to change the assignments of groups
+- `DATA_UPDATE`: Allows to modify or update an existing resource
+- `DATA_DELETE`: Allows to completely remove a resource
+- `DATA_PERMISSIONS`: Allows the user to change the assignments of groups
   and the ownership of a given resource.
 
-
-### Special Groups:
-
-Special permission sets are assigned automatically to a given user according to
-its login status. The following special groups are defined for
-each project:
-
-- `UNKNOWN_USER`:  
-  An anonymous that is user not known. The user `anonymous` is automatically
-  attached to this group. The IRI is `[admin_namespace]/psets/anonymous`.
-- `KNOWN_USER`:  
-  A user with a login, but not specially attached to
-  a given resource (e.g. through a group assignment or project membership). A user is automatically
-  assigned to this group if she/sh is authorized. The IRI `[admin_namespace]/psets/known` is
-  used for this group.
-- `PROJECT_MEMBER`:  
-  A user is member of the project the resource is
-  attached to, but is not assigned to any other group related to the
-  resource. For each project, there is a project-specific group `PROJECT_MEMBER`.
-  The IRI of the group is built as `[admin_namespace]/psets/project/[fragment(project_iri)]`.
-- `OWNER`:  
-  For each user, a user-spcific group `OWNER` is created where the user is
-  automatically a member of. The IRI of the user-specific group is built as
-  `[admin_namespace]/psets/user/[user_id]`.
-
-The permission sets `UNKNOWN_USER` and `KNOWN_USER` are defined system-wide, the permission set `PROJECT_MEMBER` is
-being created for each project at the moment the project is created. The permission set `OWNER` is being created
-when a user is being added.
-
-
 The concept looks as follows: ![PermissionConcept](assets/PermissionConcept.gif)
+
+As the above schema shows, a user **must** be connected to a permission set in order to have access
+to any resources. Since at least part of the data should also be available for users that have
+not logged in, they will automatically assigned the **anonymous** user. This, Each project is
+able (and should if some of the data should be visible to the public) to define permission sets for
+the anonymous user.
 
 ### Example
 
@@ -102,7 +79,7 @@ WHERE
     ?resource rdfs:Label ?label .
     ?resource :grantsPermissions ?pset .
     <thisuser> :hasPermissions ?pset .
-    ?pset :givesPermission :VIEW .
+    ?pset :givesPermission :VIEW_RESTRICTED .
 }
 ```
 
