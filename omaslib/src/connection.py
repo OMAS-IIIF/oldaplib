@@ -14,7 +14,7 @@ from rdflib.term import Identifier
 from pathlib import Path
 #from urllib.parse import quote_plus, urlencode
 
-from omaslib.src.helpers.datatypes import QName, AnyIRI
+from omaslib.src.helpers.datatypes import QName, AnyIRI, NCName
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.helpers.query_processor import QueryProcessor
@@ -234,6 +234,37 @@ class Connection:
     @property
     def token(self) -> str:
         return self.__token
+
+    def readUser(self, context: Context, user_id: NCName | str) -> None:
+        sparql = context.sparql_context
+        sparql += f"""
+        SELECT ?user ?prop ?val ?proj ?rval
+        FROM omas:admin
+        WHERE {{
+            {{
+                ?user a omas:User .
+                ?user omas:userId "{user_id}"^^xsd:NCName .
+                ?user ?prop ?val .
+            }} UNION {{
+                <<?user omas:userInProject ?proj>> omas:hasPermission ?rval .
+            }}
+        }}
+        """
+        success = False
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
+        }
+        data = {
+            'query': sparql,
+        }
+        request_result = requests.post(url=self._query_url, headers=headers, data=data)
+        if request_result.status_code == 200:
+            jsonobj = request_result.json()
+        else:
+            raise OmasError(request_result.status_code, request_result.text)
+        res = QueryProcessor(context=context, query_result=jsonobj)
+
 
     def clear_graph(self, graph_iri: QName) -> None:
         """

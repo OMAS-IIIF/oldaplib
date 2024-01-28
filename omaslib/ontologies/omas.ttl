@@ -176,6 +176,14 @@ skos:note rdf:type owl:DatatypeProperty .
     rdfs:domain :PermissionSet ;
     rdfs:range :DataPermission .
 
+:definedByProject rdf:type owl:ObjectProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:domain :PermissionSet ;
+    rdfs:range :Project .
+
 
 ###############################################################################
 # Properties used for :User
@@ -403,6 +411,12 @@ omas:DataPermission rdf:type owl:Class ;
             owl:onProperty :givesPermission ;
             owl:onClass :DataPermission ;
             owl:minCardinality 0 ;
+        ],
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :definedByProject ;
+            owl:onClass :DataPermission ;
+            owl:cardinality 1 ;
         ],
         [
             rdf:type owl:Restriction ;

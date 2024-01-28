@@ -9,7 +9,7 @@
 
 :admin {
 
-    #
+    #==================================================================
     # Define the administrative permissions here
     #
     :ADMIN_OLDAP a :AdminPermission ;
@@ -32,7 +32,7 @@
         rdfs:label "ADMIN_CREATE" ;
         rdfs:description "The user is allowed to add new resources." .
 
-    #
+    #==================================================================
     # Define the data permissions here
     #
     :DATA_RESTRICTED a :DataPermission ;
@@ -59,7 +59,6 @@
         rdfs:label "DATA_PERMISSIONS" ;
         rdfs:descriptions "Allows the user to change the assignments of groups and the ownership of a given resource." .
 
-
     :SystemProject a :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -80,6 +79,31 @@
         rdfs:description "Reception of Hamlet"@en ;
         :projectStart "2024-01-01"^^xsd:date .
 
+    #==================================================================
+    # Define default permission sets here
+    #
+    :GenericRestricted a :PermissionSet ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
+        :givesPermission :DATA_RESTRICTED ;
+        :defineByProject :SystemProject .
+
+    :GenericView a :PermissionSet ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
+        :givesPermission :DATA_RESTRICTED ;
+        :givesPermission :DATA_VIEW ;
+        :defineByProject :SystemProject .
+
+    #==================================================================
+    # Define default permission sets here
+    #
     <https://orcid.org/0000-0003-1681-4036> a omas:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -92,7 +116,7 @@
         :inProject :SystemProject, :HyperHamlet ;
         :isActive true .
 
-        <https://orcid.org/0000-0003-1681-4036> a omas:User ;
+    <https://orcid.org/0000-0003-1681-4036> a omas:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -104,8 +128,8 @@
         :inProject :SystemProject, :HyperHamlet ;
         :isActive true .
 
-    <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasPermission :ADMIN_OLDAP .
-    <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasPermission :ADMIN_RESOURCES .
+    <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_OLDAP .
+    <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
 
         <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> a omas:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
