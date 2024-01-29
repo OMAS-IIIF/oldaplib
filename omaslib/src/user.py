@@ -11,7 +11,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helpers.permissions import AdminPermission
+from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.tools import lprint
 from omaslib.src.model import Model
 from omaslib.user_dataclass import UserDataclass
@@ -23,29 +23,60 @@ class User(Model, UserDataclass):
     __contributor: AnyIRI | None
     __modified: datetime | None
 
+    __userId: NCName
+    __userIri: AnyIRI
+    __familyName: str
+    __givenName: str
+    __credentials: str
+    __inProjects: Dict[QName, List[AdminPermission]] | None
+    __hasPermissions: List[DataPermission] | None
+    __active: bool
+
 
     def __init__(self, *,
                  con: Connection | None = None,
+                 creator: AnyIRI | None = None,
+                 created: datetime | None = None,
+                 contributor: AnyIRI | None = None,
+                 modified: datetime | None = None,
                  user_iri: AnyIRI | None = None,
                  user_id: NCName,
                  family_name: str,
                  given_name: str,
                  credentials: str | None = None,
                  active: bool,
-                 in_projects: Optional[Dict[QName, List[AdminPermission]]] = None):
+                 in_projects: Optional[Dict[QName, List[AdminPermission]]] = None,
+                 has_permissions: Optional[List[DataPermission]] = None):
         Model.__init__(self, con)
-        UserDataclass.__init__(self,
-                               user_iri=user_iri,
-                               user_id=user_id,
-                               family_name=family_name,
-                               given_name=given_name,
-                               credentials=credentials,
-                               active=active,
-                               in_projects=in_projects)
-        self.__creator = con.user_iri
-        self.__created = datetime.now()
-        self.__contributor = con.user_iri
-        self.__modified = datetime.now()
+        self.__creator = creator
+        self.__created = created
+        self.__contributor = contributor
+        self.__modified = modified
+        self.__userId = user_id
+        self.__userIri = user_iri
+        self.__familyName = family_name
+        self.__givenName = given_name
+        self.__credentials = credentials
+        self.__active = active
+        self.__inProjects = in_projects or {}
+        self.__hasPermissions = has_permissions or []
+
+
+    @classmethod
+    def init_from_dataclass(cls, con: Connection, data: UserDataclass) -> Self:
+        return cls(con=con,
+                   creator=data.creator,
+                   created=data.created,
+                   contributor=data.contributor,
+                   modified=data.modified,
+                   user_iri=data.userIri,
+                   user_id=data.userId,
+                   family_name=data.familyName,
+                   given_name=data.givenName,
+                   credentials=data.credentials,
+                   active=data.active,
+                   in_projects=data.inProjects,
+                   has_permissions=data.hasPermissions)
 
     def __str__(self) -> str:
         return UserDataclass.__str__(self) + \
@@ -70,6 +101,34 @@ class User(Model, UserDataclass):
     @property
     def modified(self) -> datetime | None:
         return self.__modified
+
+    @property
+    def familyName(self) -> str:
+        return self.__familyName
+
+    @property
+    def givenName(self) -> str:
+        return self.__givenName
+
+    @property
+    def credentials(self) -> str:
+        return self.__credentials
+
+    @property
+    def user_id(self) -> NCName:
+        return self.__userId
+
+    @property
+    def active(self) -> bool:
+        return self.__active
+
+    @property
+    def in_project(self) -> Dict[QName, List[AdminPermission]]:
+        return self.__inProjects
+
+    @property
+    def has_permissions(self) ->List[DataPermission]:
+        return self.__hasPermissions
 
     @property
     def json(self) -> str:
@@ -109,50 +168,14 @@ class User(Model, UserDataclass):
             user_id = NCName(user_id)
         cls._con = con
         context = Context(name=con.context_name)
-        jsonobj = con.query(super(User, cls).sparql_query(context, user_id))
+        jsonobj = con.query(cls.sparql_query(context, user_id))
         res = QueryProcessor(context, jsonobj)
-        user = super(User, cls).create_from_queryresult(res)
-        
-        user_iri: AnyIRI | None = None
-        family_name: str = ""
-        given_name: str = ""
-        credentials: str = ""
-        active: bool | None = None
-        in_project: Dict[QName, List[AdminPermission]] = {}
-        for r in res:
-            match str(r.get('prop')):
-                case 'dcterms:creator':
-                    cls.__creator = r['val']
-                    user_iri = r['user']
-                case 'dcterms:created':
-                    cls.__created = r['val']
-                case 'dcterms:contributor':
-                    cls.__contributor = r['val']
-                case 'dcterms:modified':
-                    cls.__modified = r['val']
-                case 'foaf:familyName':
-                    family_name = r['val']
-                case 'foaf:givenName':
-                    given_name = r['val']
-                case 'omas:credentials':
-                    credentials = r['val']
-                case 'omas:isActive':
-                    active = r['val']
-                case 'omas:inProject':
-                    in_project = {r['val']: []}
-                case _:
-                    if r.get('proj') is not None:
-                        if in_project.get(r['proj']) is None:
-                            in_project[r['proj']] = []
-                        in_project[r['proj']].append(AdminPermission(r['rval']))
-        return cls(con=con,
-                   user_iri=user_iri,
-                   user_id=user_id,
-                   family_name=family_name,
-                   given_name=given_name,
-                   credentials=credentials,
-                   active=active,
-                   in_projects=in_project)
+        userdata = super(User, cls).create_from_queryresult(res)
+        return cls()
+        user.__creator = data['creator']
+        user.__created = data['created']
+        user.__contributor = data['contributor']
+        user.__modified = data['modified']
 
 
 if __name__ == '__main__':

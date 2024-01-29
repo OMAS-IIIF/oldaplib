@@ -11,6 +11,7 @@ This module implements common data classes that are used throughout the OMASLIB 
 These classes perform consistency checks to guarantee that the data is consistent with the syntax rules
 for the given XML datatypes. They should be used instead of simple string representations wherever possible
 """
+import json
 from enum import Enum, unique
 from typing import Any, Self, Optional, Dict
 from pystrict import strict
@@ -462,6 +463,7 @@ class NamespaceIRI(AnyIRI):
 
 
 @unique
+@serializer
 class Action(Enum):
     """
     An Enumeration of the Actions that are supported on PropertyClass and ResourceClass attributes/restrictions
@@ -471,7 +473,16 @@ class Action(Enum):
     REPLACE = 'replace'  # an existing value has been replaced by a new value
     DELETE = 'delete'  # an existing value has been deleted
 
+    def _as_dict(self) -> Dict[str, str]:
+        return {__class__: self.__class__.__name__, 'value': self.value}
+
 if __name__ == "__main__":
-    print(NCName("orcid") + "0000-0003-1681-4036")
+    #print(NCName("orcid") + "0000-0003-1681-4036")
 
     AnyIRI('urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b')
+
+    gaga = Action.REPLACE
+    json_repr = json.dumps(gaga, default=serializer.encoder_default)
+    print(json_repr)
+    gugus = json.loads(json_repr, object_hook=serializer.decoder_hook)
+    print(gugus)

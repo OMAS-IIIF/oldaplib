@@ -1,4 +1,5 @@
 from base64 import b85encode, b85decode
+from enum import Enum
 from typing import Dict, Any
 from datetime import datetime
 from uuid import UUID
@@ -47,7 +48,10 @@ class _Serializer:
                 return UUID(d['__value__'])
             if classname == 'bytes':
                 return b85decode(d['__value__'].encode(encoding='UTF-8'))
-            return self._classes[classname](**d)
+            if type(self._classes[classname]) == type(Enum):
+                return self._classes[classname](d['__value__'])
+            else:
+                return self._classes[classname](**d)
         return d
 
     def encoder_default(self, obj):
@@ -55,6 +59,8 @@ class _Serializer:
             return {self._key: 'datetime', '__value__': str(obj)}
         if isinstance(obj, UUID):
             return {self._key: 'UUID', '__value__': str(obj)}
+        if isinstance(obj, Enum):
+            return {self._key: obj.__class__.__name__, '__value__': obj.value}
         if isinstance(obj, bytes):
             #  NOTE: if bytes are real bytes (image, sound,...) encoding as UTF-8 will not work...
             #  Therefore I use b85-encoding
