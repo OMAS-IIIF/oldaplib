@@ -1,17 +1,21 @@
 from enum import Enum, unique
 
 from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.serializer import serializer
+
 
 @unique
+@serializer
 class AdminPermission(Enum):
-    ADMIN_OLDAP = QName('omas:ADMIN_OLDAP')
-    ADMIN_USERS = QName('omas:ADMIN_USERS')
-    ADMIN_RESOURCES = QName('omas:ADMIN_RESOURCES')
-    ADMIN_MODEL = QName('omas:ADMIN_MODEL')
-    ADMIN_CREATE = QName('omas:ADMIN_CREATE')
+    ADMIN_OLDAP = 'omas:ADMIN_OLDAP'
+    ADMIN_USERS = 'omas:ADMIN_USERS'
+    ADMIN_RESOURCES = 'omas:ADMIN_RESOURCES'
+    ADMIN_MODEL = 'omas:ADMIN_MODEL'
+    ADMIN_CREATE = 'omas:ADMIN_CREATE'
 
 
 @unique
+@serializer
 class DataPermission(Enum):
     DATA_RESTRICTED = 1
     DATA_VIEW = 2

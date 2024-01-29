@@ -1,4 +1,6 @@
 import json
+from pprint import pprint
+
 import bcrypt
 import jwt
 import requests
@@ -18,7 +20,9 @@ from omaslib.src.helpers.datatypes import QName, AnyIRI, NCName
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.helpers.query_processor import QueryProcessor
+from omaslib.src.helpers.serializer import serializer
 from omaslib.src.helpers.tools import lprint
+from omaslib.user_dataclass import UserDataclass
 
 #
 # For bootstrapping the whole tripel store, the following SPARQL has to be executed within the GraphDB
@@ -102,8 +106,8 @@ class Connection:
     """
     _server: str
     _repo: str
-    _userid: str
-    _user_iri: AnyIRI
+    _user_id: str
+    __userdata: UserDataclass
     _context_name: str
     _store: SPARQLUpdateStore
     _query_url: str
@@ -126,7 +130,7 @@ class Connection:
     def __init__(self, *,
                  server: str,
                  repo: str,
-                 userid: Optional[str] = None,
+                 user_id: Optional[str] = None,
                  credentials: Optional[str] = None,
                  token: Optional[str] = None,
                  context_name: Optional[str] = DEFAULT_CONTEXT) -> None:
@@ -140,7 +144,6 @@ class Connection:
         """
         self._server = server
         self._repo = repo
-        self._userid = userid
         self._context_name = context_name
         self._query_url = f'{self._server}/repositories/{self._repo}'
         self._update_url = f'{self._server}/repositories/{self._repo}/statements'
@@ -152,23 +155,12 @@ class Connection:
                 payload = jwt.decode(jwt=token, key=Connection.jwtkey, algorithms="HS256")
             except InvalidTokenError:
                 raise OmasError("Wrong credentials")
-            self._userid = payload['userId']
-            self._user_iri = AnyIRI(payload['userIri'])
+            self.__userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
             self.__token = token
             return
-        if userid is None or credentials is None:
+        if user_id is None or credentials is None:
             raise OmasError("Wrong credentials")
-        sparql = context.sparql_context
-        sparql += f"""
-        SELECT ?s ?p ?o
-        FROM omas:admin
-        WHERE {{
-            ?s a omas:User ;
-                omas:userId "{self._userid}"^^xsd:NCName ;
-                ?p ?o .
-        }}
-        """
-        success = False
+        sparql = UserDataclass.sparql_query(context=context, user_id=user_id)
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
@@ -182,19 +174,16 @@ class Connection:
         else:
             raise OmasError(res.status_code, res.text)
         res = QueryProcessor(context=context, query_result=jsonobj)
-        # TODO: Add more user information / permissions
-        for r in res:
-            if str(r['p']) == 'omas:credentials':
-                hashed = str(r['o']).encode('utf-8')
-                if bcrypt.checkpw(credentials.encode('utf-8'), hashed):
-                    success = True
-                    self._user_iri = r['s']
-        if not success:
+
+        self.__userdata = UserDataclass()
+        self.__userdata.create_from_queryresult(queryresult=res)
+        hashed = str(self.__userdata.credentials).encode('utf-8')
+        if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
             raise OmasError("Wrong credentials")
+
         expiration = datetime.now() + timedelta(days=1)
         payload = {
-            "userId": self._userid,
-            "userIri": str(self._user_iri),
+            "userdata": json.dumps(self.__userdata, default=serializer.encoder_default),
             "exp": expiration.timestamp(),
             "iat": int(datetime.now().timestamp()),
             "iss": "http://oldap.org"
@@ -215,12 +204,16 @@ class Connection:
         return self._repo
 
     @property
-    def userid(self) -> str:
-        return self._userid
+    def userdata(self) -> UserDataclass:
+        return self.__userdata
+
+    @property
+    def userid(self) -> NCName:
+        return self.__userdata.user_id
 
     @property
     def user_iri(self) -> AnyIRI:
-        return self._user_iri
+        return self.__userdata.user_iri
 
     @property
     def login(self) -> bool:
@@ -273,7 +266,7 @@ class Connection:
         :param graph_iri: RDF graph name as QName. The prefix must be defined in the context!
         :return: None
         """
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         context = Context(name=self._context_name)
         headers = {
@@ -314,7 +307,7 @@ class Connection:
         :param graphname: Optional name of the RDF-graph where the data should be imported in.
         :return: None
         """
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         with open(filename, encoding="utf-8") as f:
             content = f.read()
@@ -370,7 +363,7 @@ class Connection:
         :param format: The format desired (see ~SparqlResultFormat)
         :return: Query results or an error message (as text)
         """
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -393,7 +386,7 @@ class Connection:
         :param query: SPARQL UPDATE query as string
         :return:
         """
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         headers = {
             "Accept": "*/*"
@@ -404,7 +397,7 @@ class Connection:
             raise OmasError(f'Update query failed. Reason: "{res.text}"')
 
     def transaction_start(self):
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         headers = {
             "Accept": "*/*"
@@ -416,7 +409,7 @@ class Connection:
         self._transaction_url = res.headers['location']
 
     def transaction_query(self, query: str, result_format: SparqlResultFormat = SparqlResultFormat.JSON):
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -430,7 +423,7 @@ class Connection:
         return Connection._switcher[result_format](res)
 
     def transaction_update(self, query: str) -> None:
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -443,7 +436,7 @@ class Connection:
             raise OmasError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
 
     def transaction_commit(self) -> None:
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         headers = {
             "Accept": "*/*"
@@ -456,7 +449,7 @@ class Connection:
         self._transaction_url = None
 
     def transaction_abort(self) -> None:
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         headers = {
             "Accept": "*/*"
@@ -479,14 +472,14 @@ class Connection:
         :param bindings: Bindings to variables
         :return: a RDFLib Result instance
         """
-        if not self._user_iri:
+        if not self.__userdata:
             raise OmasError("No login")
         return self._store.query(query, initBindings=bindings)
 
 
 if __name__ == "__main__":
     con = Connection(server='http://localhost:7200',
-                     userid="rosenth",
+                     user_id="rosenth",
                      credentials="RioGrande",
                      repo="omas",
                      context_name="DEFAULT")

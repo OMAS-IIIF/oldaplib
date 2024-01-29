@@ -28,7 +28,7 @@ class TestDataModel(unittest.TestCase):
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="omas",
-                                     userid="rosenth",
+                                     user_id="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 

@@ -136,10 +136,10 @@ class Project(Model):
 
 if __name__ == "__main__":
     con = Connection(server='http://localhost:7200',
-                                     repo="omas",
-                                     userid="rosenth",
-                                     credentials="RioGrande",
-                                     context_name="DEFAULT")
+                     repo="omas",
+                     user_id="rosenth",
+                     credentials="RioGrande",
+                     context_name="DEFAULT")
     project = Project.read(con, NCName("system"))
     print(str(project))
 

@@ -28,7 +28,7 @@ class TestBasicConnection(unittest.TestCase):
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="omas",
-                                     userid="rosenth",
+                                     user_id="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 
@@ -46,7 +46,7 @@ class TestBasicConnection(unittest.TestCase):
     def test_basic_connection(self):
         con = Connection(server='http://localhost:7200',
                          repo="omas",
-                         userid="rosenth",
+                         user_id="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         self.assertIsInstance(con, Connection)
@@ -57,7 +57,7 @@ class TestBasicConnection(unittest.TestCase):
         with self.assertRaises(OmasError) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
-                             userid="rosenth",
+                             user_id="rosenth",
                              credentials="XXX",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
@@ -66,7 +66,7 @@ class TestBasicConnection(unittest.TestCase):
         Connection.jwtkey = "This is a very special secret, yeah!"
         con = Connection(server='http://localhost:7200',
                          repo="omas",
-                         userid="rosenth",
+                         user_id="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         token = con.token

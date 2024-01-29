@@ -126,6 +126,7 @@
         foaf:givenName "Lukas" ;
         :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
         :inProject :SystemProject, :HyperHamlet ;
+        :hasPermissions :GenericRestricted, :GenericView ;
         :isActive true .
 
     <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_OLDAP .
@@ -140,6 +141,7 @@
         foaf:familyName "Doe" ;
         foaf:givenName "John" ;
         :credentials "*" ;
+        :hasPermissions :GenericRestricted ;
         :isActive true .
 
 }

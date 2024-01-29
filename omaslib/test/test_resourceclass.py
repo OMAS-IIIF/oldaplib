@@ -82,7 +82,7 @@ class TestResourceClass(unittest.TestCase):
         cls._context.use('test', 'dcterms')
 
         cls._connection = Connection(server='http://localhost:7200',
-                                     userid="rosenth",
+                                     user_id="rosenth",
                                      credentials="RioGrande",
                                      repo="omas",
                                      context_name="DEFAULT")
