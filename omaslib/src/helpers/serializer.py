@@ -1,6 +1,6 @@
 from base64 import b85encode, b85decode
 from enum import Enum
-from typing import Dict, Any
+from typing import Dict, Any, Self
 from datetime import datetime
 from uuid import UUID
 import json
@@ -16,8 +16,8 @@ class _Serializer:
         In addition, the dict which will store the class names as key and the class constructors as value, is initialized.
     - Serializer demands, that each custom class that is to be serialized has a _as_dict methode, that transforms the
         object in a dict.
-    - The serializer has to be instantiated exactly once. The resulting instance should then be used as decorator for
-        the classes that should be serialized.
+    - The serializer will be instantiated exactly once (designed as singleton -> see __new__ function).
+        The resulting instance should then be used as decorator for the classes that should be serialized.
     - The methode encoder_default is passed to the json.dumps methode as the named parameter "default". If specified,
         default should be a function that gets called for objects that can’t otherwise be serialized. It should return a
         JSON encodable version of the object or raise a TypeError. If not specified, TypeError is raised. In this case
@@ -30,6 +30,13 @@ class _Serializer:
     - Additions done by me:
       - serialization/deserialization of `datetime`- and `UUID` objects added
     """
+    _instance: Self | None = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(_Serializer, cls).__new__(cls)
+            # Initialisierung der Instanz kann hier erfolgen
+        return cls._instance
 
     def __init__(self, classname_key='__class__'):
         self._key = classname_key
