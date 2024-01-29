@@ -4,8 +4,7 @@ Ths class User
 import json
 import uuid
 from datetime import datetime
-from pprint import pprint
-from typing import List, Optional, Self, Dict
+from typing import List, Self, Dict
 
 import bcrypt
 
@@ -16,9 +15,8 @@ from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.serializer import serializer
-from omaslib.src.helpers.tools import lprint
 from omaslib.src.model import Model
-from omaslib.user_dataclass import UserDataclass
+from omaslib.src.user_dataclass import UserDataclass
 
 
 @serializer
@@ -36,9 +34,11 @@ class User(Model, UserDataclass):
                  given_name: str | None = None,
                  credentials: str | None = None,
                  active: bool | None = None,
-                 in_projects: Dict[QName, List[AdminPermission]] | None = None,
-                 has_permissions: List[DataPermission] | None = None):
-        Model.__init__(self, con)
+                 in_project: Dict[QName, List[AdminPermission]] | None = None,
+                 has_permissions: List[QName] | None = None):
+        if user_iri is None:
+            user_iri = AnyIRI(uuid.uuid4().urn)
+        Model.__init__(self, connection=con)
         UserDataclass.__init__(self,
                                creator=creator,
                                created=created,
@@ -50,24 +50,14 @@ class User(Model, UserDataclass):
                                given_name=given_name,
                                credentials=credentials,
                                active=active,
-                               in_projects=in_projects,
+                               in_project=in_project,
                                has_permissions=has_permissions)
-
-    @property
-    def json(self) -> str:
-        obj = {
-                'userId': self.__userId,
-                'userIri': self.__userIri,
-                'inProject': self.__inProjects,
-                'hasPermissions': self.__hasPermissions
-        }
-        return json.dumps(obj)
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OmasError("Cannot create: no connection")
-        if self.__userIri is None:
-            self.__userIri = AnyIRI(uuid.uuid4().urn)
+        if self.user_iri is None:
+            self.user_iri = AnyIRI(uuid.uuid4().urn)
         context = Context(name=self._con.context_name)
         sparql1 = context.sparql_context
         sparql1 += f"""
@@ -75,41 +65,44 @@ class User(Model, UserDataclass):
         FROM omas:admin
         WHERE {{
             ?user a omas:User .
-            ?user omas:userId "{self.__userId}"^^NCName
+            ?user omas:userId "{self.user_id}"^^NCName
         }}
         """
 
         salt = bcrypt.gensalt()
-        credentials = bcrypt.hashpw(self.credentials.encode('utf-8'), salt)
+        credentials = bcrypt.hashpw(str(self.credentials).encode('utf-8'), salt).decode('utf-8')
         timestamp = datetime.now()
         blank = ''
         sparql = context.sparql_context
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}}<{self.__userIri}> a omas:User ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:creator {self._con.user_iri} ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:created {timestamp.isoformat()}^^xsd:datetime ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self._con.user_iri} ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:modified {timestamp.isoformat()}^^xsd:datetime ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}omas:userId "{self.user_id}"^^xsd:NCName ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}foaf:familyName "{self.familyName}" ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}foaf:givenName "{self.givenName}" ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}omas:credentials "{credentials}" ;\n'
-        if self.in_projects:
-            projects = [p.value for p in self.in_projects.values()]
-            rdfstr = ", ".join(projects)
-            sparql += f'{blank:{(indent + 2) * indent_inc}}omas:inProjects {rdfstr} ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}<{self.user_iri}> a omas:User'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator <{self._con.user_iri}>'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:datetime'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.user_iri}>'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:datetime'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId "{self.user_id}"^^xsd:NCName'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName "{self.familyName}"'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName "{self.givenName}"'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:credentials "{credentials}"'
+        star = ''
+        if self.in_project:
+            project = [str(p) for p in self.in_project.keys()]
+            rdfstr = ", ".join(project)
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:inProject {rdfstr}'
+            for p in project:
+                for admin_p in self.in_project[p]:
+                    star += f'{blank:{(indent + 2) * indent_inc}}<<<{self.user_iri}> omas:inProject {p}>> omas:hasAdminPermission {admin_p.value} .\n'
         if self.has_permissions:
-            rdfstr = ", ".join(self.has_permissions)
-            sparql += f'{blank:{(indent + 2) * indent_inc}}omas:hasPermissions {rdfstr} ;\n'
-
-
-
-
-
+            permissions = [str(p) for p in self.has_permissions]
+            rdfstr = ", ".join(permissions)
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:hasPermissions {rdfstr}'
+        sparql += f' .\n\n'
+        sparql += star
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
+        print(sparql)
 
     @classmethod
     def read(cls, con: Connection, user_id: NCName | str) -> Self:
@@ -132,9 +125,19 @@ if __name__ == '__main__':
                      context_name="DEFAULT")
 
     user = User.read(con, 'rosenth')
-    print(user)
-    jsonstr = json.dumps(user, default=serializer.encoder_default, indent=4)
-    print(jsonstr)
-    user2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+    #print(user)
+    user2 = User(con=con,
+                 user_id=NCName("testuser"),
+                 family_name="Test",
+                 given_name="Test",
+                 credentials="Ein@geheimes&Passw0rt",
+                 in_project={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE]},
+                 has_permissions=[QName('omas:GenericView')])
     print(user2)
-
+    user2.create()
+    #jsonstr = json.dumps(user2, default=serializer.encoder_default, indent=4)
+    #print(jsonstr)
+    #user3 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+    #print(user3)

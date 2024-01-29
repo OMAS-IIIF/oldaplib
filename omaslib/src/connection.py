@@ -1,5 +1,4 @@
 import json
-from pprint import pprint
 
 import bcrypt
 import jwt
@@ -8,7 +7,7 @@ from enum import Enum, unique
 
 from jwt import InvalidTokenError
 from pystrict import strict
-from typing import List, Set, Dict, Tuple, Optional, Any, Union, Mapping
+from typing import Dict, Optional, Any, Mapping
 from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from rdflib.query import Result
@@ -21,8 +20,7 @@ from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
-from omaslib.src.helpers.tools import lprint
-from omaslib.user_dataclass import UserDataclass
+from omaslib.src.user_dataclass import UserDataclass
 
 #
 # For bootstrapping the whole tripel store, the following SPARQL has to be executed within the GraphDB
@@ -286,7 +284,7 @@ class Connection:
 
         :return: None
         """
-        if not self._user_iri:
+        if not self.user_iri:
             raise OmasError("No login")
         headers = {
             "Accept": "application/json, text/plain, */*",

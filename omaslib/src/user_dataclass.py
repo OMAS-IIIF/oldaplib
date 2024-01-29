@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName
+from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
@@ -20,8 +21,8 @@ class UserDataclass:
     __familyName: str | None
     __givenName: str | None
     __credentials: str | None
-    __inProjects: Dict[str, List[AdminPermission]] | None
-    __hasPermissions: List[DataPermission] | None
+    __inProject: Dict[str, List[AdminPermission]] | None
+    __hasPermissions: List[QName] | None
     __active: bool | None
 
     def __init__(self, *,
@@ -35,12 +36,12 @@ class UserDataclass:
                  given_name: str | None = None,
                  credentials: str | None = None,
                  active: bool | None = None,
-                 in_projects: Optional[Dict[QName, List[AdminPermission]]] = None,
-                 has_permissions: Optional[List[DataPermission]] = None):
-        if in_projects:
-            __in_projects = {str(key): val for key, val in in_projects.items()}
+                 in_project: Optional[Dict[QName, List[AdminPermission]]] = None,
+                 has_permissions: Optional[List[QName]] = None):
+        if in_project:
+            __in_project = {str(key): val for key, val in in_project.items()}
         else:
-            __in_projects = {}
+            __in_project = {}
         self.__creator = creator
         self.__created = created
         self.__contributor = contributor
@@ -51,12 +52,12 @@ class UserDataclass:
         self.__givenName = given_name
         self.__credentials = credentials
         self.__active = active
-        self.__inProjects = __in_projects
+        self.__inProject = __in_project
         self.__hasPermissions = has_permissions or []
 
     def __str__(self) -> str:
         admin_permissions = {}
-        for proj, permissions in self.__inProjects.items():
+        for proj, permissions in self.__inProject.items():
             admin_permissions[str(proj)] = [str(x.value) for x in permissions]
         return \
         f'Userdata for <{self.__userIri}>:\n'\
@@ -68,7 +69,7 @@ class UserDataclass:
         f'  Family name: {self.__familyName}\n' \
         f'  Given name: {self.__givenName}\n' \
         f'  Active: {self.__active}\n' \
-        f'  In projects: {admin_permissions}\n' \
+        f'  In project: {admin_permissions}\n' \
         f'  Has permissions: {self.__hasPermissions}\n'
 
     def _as_dict(self) -> dict:
@@ -77,7 +78,7 @@ class UserDataclass:
                 'user_id': self.__userId,
                 'active': self.__active,
                 'has_permissions': self.__hasPermissions,
-                'in_projects': self.__inProjects
+                'in_project': self.__inProject
         }
 
     @property
@@ -116,16 +117,23 @@ class UserDataclass:
     def user_iri(self) -> AnyIRI:
         return self.__userIri
 
+    @user_iri.setter
+    def user_iri(self, value: AnyIRI) -> None:
+        if self.__userIri is None:
+            self.__userIri = value
+        else:
+            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__userIri}".')
+
     @property
     def active(self) -> bool:
         return self.__active
 
     @property
-    def in_projects(self) -> Dict[QName, List[AdminPermission]]:
-        return {QName(key): val for key, val in self.__inProjects.items()} if self.__inProjects else {}
+    def in_project(self) -> Dict[QName, List[AdminPermission]]:
+        return {QName(key): val for key, val in self.__inProject.items()} if self.__inProject else {}
 
     @property
-    def has_permissions(self) -> List[DataPermission]:
+    def has_permissions(self) -> List[QName]:
         return self.__hasPermissions
 
     @staticmethod
@@ -170,12 +178,12 @@ class UserDataclass:
                 case 'omas:isActive':
                     self.__active = r['val']
                 case 'omas:inProject':
-                    self.__inProjects = {str(r['val']): []}
+                    self.__inProject = {str(r['val']): []}
                 case 'omas:hasPermissions':
                     self.__hasPermissions.append(r['val'])
                 case _:
                     if r.get('proj') and r.get('rval'):
-                        if self.__inProjects.get(str(r['proj'])) is None:
-                            self.__inProjects[str(r['proj'])] = []
-                        self.__inProjects[str(r['proj'])].append(AdminPermission(str(r['rval'])))
+                        if self.__inProject.get(str(r['proj'])) is None:
+                            self.__inProject[str(r['proj'])] = []
+                        self.__inProject[str(r['proj'])].append(AdminPermission(str(r['rval'])))
 
