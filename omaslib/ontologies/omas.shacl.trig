@@ -393,7 +393,7 @@
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount 1 ;
-                sh:maxCount: 1 ;
+                sh:maxCount 1 ;
                 sh:datatype xsd:string ;
                 sh:name "Family name"@en, "Familiennamen"@de, "Nom de famillie"@fr, "Nome della famiglia"@it ;
                 sh:description "The family name of some person."@en ;

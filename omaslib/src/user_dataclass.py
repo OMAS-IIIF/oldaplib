@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName
@@ -24,6 +24,7 @@ class UserDataclass:
     __inProject: Dict[str, List[AdminPermission]] | None
     __hasPermissions: List[QName] | None
     __active: bool | None
+    __change_set: Set[str]
 
     def __init__(self, *,
                  creator: AnyIRI | None = None,
@@ -54,6 +55,7 @@ class UserDataclass:
         self.__active = active
         self.__inProject = __in_project
         self.__hasPermissions = has_permissions or []
+        self.__change_set = set()
 
     def __str__(self) -> str:
         admin_permissions = {}
@@ -101,17 +103,37 @@ class UserDataclass:
     def familyName(self) -> str:
         return self.__familyName
 
+    @familyName.setter
+    def familyName(self, value: str) -> None:
+        self.__familyName = value
+        self.__change_set.add("familyName")
+
     @property
     def givenName(self) -> str:
         return self.__givenName
+
+    @givenName.setter
+    def givenName(self, value: str) -> None:
+        self.__givenName = value
+        self.__change_set.add("givenName")
 
     @property
     def credentials(self) -> str:
         return self.__credentials
 
+    @credentials.setter
+    def credentials(self, value: str) -> None:
+        self.__credentials = value
+        self.__change_set.add("credentials")
+
     @property
     def user_id(self) -> NCName:
         return self.__userId
+
+    @user_id.setter
+    def user_id(self, value: str) -> None:
+        self.__userId = value
+        self.__change_set.add("usedId")
 
     @property
     def user_iri(self) -> AnyIRI:
@@ -128,6 +150,11 @@ class UserDataclass:
     def active(self) -> bool:
         return self.__active
 
+    @active.setter
+    def active(self, value: bool) -> None:
+        self.__active = value
+        self.__change_set.add("active")
+
     @property
     def in_project(self) -> Dict[QName, List[AdminPermission]]:
         return {QName(key): val for key, val in self.__inProject.items()} if self.__inProject else {}
@@ -135,6 +162,10 @@ class UserDataclass:
     @property
     def has_permissions(self) -> List[QName]:
         return self.__hasPermissions
+
+    @property
+    def changeset(self) -> Set[str]:
+        return self.__change_set
 
     @staticmethod
     def sparql_query(context: Context, user_id: NCName) -> str:
@@ -148,6 +179,8 @@ class UserDataclass:
                 ?user omas:userId "{user_id}"^^xsd:NCName .
                 ?user ?prop ?val .
             }} UNION {{
+                ?user a omas:User .
+                ?user omas:userId "{user_id}"^^xsd:NCName .
                 <<?user omas:inProject ?proj>> omas:hasAdminPermission ?rval
             }}
         }}
@@ -159,10 +192,10 @@ class UserDataclass:
         for r in queryresult:
             match str(r.get('prop')):
                 case 'dcterms:creator':
-                    self.__creatorcreator = r['val']
+                    self.__creator = r['val']
                     self.__userIri = r['user']
                 case 'dcterms:created':
-                    self.__creatod = r['val']
+                    self.__created = r['val']
                 case 'dcterms:contributor':
                     self.__contributor = r['val']
                 case 'dcterms:modified':
@@ -186,4 +219,7 @@ class UserDataclass:
                         if self.__inProject.get(str(r['proj'])) is None:
                             self.__inProject[str(r['proj'])] = []
                         self.__inProject[str(r['proj'])].append(AdminPermission(str(r['rval'])))
+
+    def sparql_update(self, indent: int = 0, indent_inc: int = 4):
+        pass
 

@@ -11,10 +11,11 @@ import bcrypt
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.serializer import serializer
+from omaslib.src.helpers.tools import lprint
 from omaslib.src.model import Model
 from omaslib.src.user_dataclass import UserDataclass
 
@@ -65,17 +66,17 @@ class User(Model, UserDataclass):
         FROM omas:admin
         WHERE {{
             ?user a omas:User .
-            ?user omas:userId "{self.user_id}"^^NCName            
+            ?user omas:userId "{self.user_id}"^^xsd:NCName .         
         }}
         """
 
-        sparql2 = context.sparql_contextl
+        sparql2 = context.sparql_context
         sparql2 += f"""
         SELECT ?user
         FROM omas:admin
         WHERE {{
             ?user a omas:User .
-            FILTER( ?user == {self.user_iri})
+            FILTER(?user = <{self.user_iri}>)
         }}
         """
 
@@ -105,11 +106,12 @@ class User(Model, UserDataclass):
                 for admin_p in self.in_project[p]:
                     star += f'{blank:{(indent + 2) * indent_inc}}<<<{self.user_iri}> omas:inProject {p}>> omas:hasAdminPermission {admin_p.value} .\n'
         if self.has_permissions:
-            rdfstr = ", ".join(self.has_permissions)
-            sparql += f'{blank:{(indent + 2) * indent_inc}}omas:hasPermissions {rdfstr} ;\n'
+            rdfstr = ", ".join([ str(x) for x in self.has_permissions])
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:hasPermissions {rdfstr}'
+        sparql += " .\n\n"
+        sparql += star
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        print(sparql)
 
         self._con.transaction_start()
         try:
@@ -135,6 +137,12 @@ class User(Model, UserDataclass):
         except OmasError:
             self._con.transaction_abort()
             raise
+        try:
+            self._con.transaction_commit()
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+
 
     @classmethod
     def read(cls, con: Connection, user_id: NCName | str) -> Self:
@@ -144,9 +152,31 @@ class User(Model, UserDataclass):
         context = Context(name=con.context_name)
         jsonobj = con.query(cls.sparql_query(context, user_id))
         res = QueryProcessor(context, jsonobj)
+        if len(res) == 0:
+            raise OmasErrorNotFound(f'User "{user_id}" not found.')
         instance = cls(con=con)
         instance.create_from_queryresult(res)
         return instance
+
+    def delete(self) -> None:
+        context = Context(name=self._con.context_name)
+        blank = ''
+        sparql = context.sparql_context
+        sparql += f"""
+        DELETE {{
+            <<?user omas:inProject ?proj>> omas:hasAdminPermission ?rval .    
+        }}
+        WHERE {{
+            ?user a omas:User .
+            ?user omas:userId "{self.user_id}"^^xsd:NCName .
+        }} ;
+        DELETE WHERE {{
+            ?user a omas:User .
+            ?user omas:userId "{self.user_id}"^^xsd:NCName .
+            ?user ?prop ?val .
+        }} 
+        """
+        self._con.update_query(sparql)
 
 
 if __name__ == '__main__':
@@ -157,7 +187,7 @@ if __name__ == '__main__':
                      context_name="DEFAULT")
 
     user = User.read(con, 'rosenth')
-    #print(user)
+    print(user)
     user2 = User(con=con,
                  user_id=NCName("testuser"),
                  family_name="Test",
@@ -169,6 +199,8 @@ if __name__ == '__main__':
                  has_permissions=[QName('omas:GenericView')])
     print(user2)
     user2.create()
+    user3 = User.read(con, 'testuser')
+    print(user3)
     #jsonstr = json.dumps(user2, default=serializer.encoder_default, indent=4)
     #print(jsonstr)
     #user3 = json.loads(jsonstr, object_hook=serializer.decoder_hook)

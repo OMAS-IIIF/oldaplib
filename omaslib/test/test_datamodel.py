@@ -210,11 +210,12 @@ class TestDataModel(unittest.TestCase):
         })
         self.assertTrue(set(model.get_resclasses()) == {
             QName("omas:Project"),
-            QName("omas:User"),
-            QName("omas:List"),
-            QName("omas:ListNode"),
-            QName("omas:AdminPermissions"),
-            QName("omas:PermissionSet")
+                QName("omas:User"),
+                QName("omas:List"),
+                QName("omas:ListNode"),
+                QName("omas:AdminPermission"),
+                QName("omas:DataPermission"),
+                QName("omas:PermissionSet")
         })
 
 
