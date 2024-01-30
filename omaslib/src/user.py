@@ -11,7 +11,7 @@ import bcrypt
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
-from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.serializer import serializer
@@ -65,7 +65,17 @@ class User(Model, UserDataclass):
         FROM omas:admin
         WHERE {{
             ?user a omas:User .
-            ?user omas:userId "{self.user_id}"^^NCName
+            ?user omas:userId "{self.user_id}"^^NCName            
+        }}
+        """
+
+        sparql2 = context.sparql_contextl
+        sparql2 += f"""
+        SELECT ?user
+        FROM omas:admin
+        WHERE {{
+            ?user a omas:User .
+            FILTER( ?user == {self.user_iri})
         }}
         """
 
@@ -95,14 +105,36 @@ class User(Model, UserDataclass):
                 for admin_p in self.in_project[p]:
                     star += f'{blank:{(indent + 2) * indent_inc}}<<<{self.user_iri}> omas:inProject {p}>> omas:hasAdminPermission {admin_p.value} .\n'
         if self.has_permissions:
-            permissions = [str(p) for p in self.has_permissions]
-            rdfstr = ", ".join(permissions)
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:hasPermissions {rdfstr}'
-        sparql += f' .\n\n'
-        sparql += star
+            rdfstr = ", ".join(self.has_permissions)
+            sparql += f'{blank:{(indent + 2) * indent_inc}}omas:hasPermissions {rdfstr} ;\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         print(sparql)
+
+        self._con.transaction_start()
+        try:
+            jsonobj = self._con.transaction_query(sparql1)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        if len(res) > 0:
+            self._con.transaction_abort()
+            raise OmasErrorAlreadyExists(f'A user with a user ID "{self.user_id}" already exists')
+        try:
+            jsonobj = self._con.transaction_query(sparql2)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        if len(res) > 0:
+            self._con.transaction_abort()
+            raise OmasErrorAlreadyExists(f'A user with a user IRI "{self.user_iri}" already exists')
+        try:
+            self._con.transaction_update(sparql)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
 
     @classmethod
     def read(cls, con: Connection, user_id: NCName | str) -> Self:
