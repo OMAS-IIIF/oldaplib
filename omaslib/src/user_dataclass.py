@@ -1,13 +1,34 @@
 from dataclasses import dataclass
 from datetime import datetime
+from enum import unique, Enum
 from typing import Dict, List, Optional, Set
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName
+from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
-from omaslib.src.helpers.query_processor import QueryProcessor
+from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
 from omaslib.src.helpers.serializer import serializer
+
+InProjectType = Dict[str, List[AdminPermission]]
+
+UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | List[QName] | InProjectType | datetime | bool | None
+
+@dataclass
+class UserFieldChange:
+    old_value: UserFieldTypes
+    action: Action
+
+@unique
+class UserFields(Enum):
+    USER_IRI = "USER_IRI"
+    USER_ID = 'omas:userId'
+    FAMILY_NAME = 'omas:familyName'
+    GIVEN_NAME = 'omas:givenName'
+    CREDENTIALS = 'omas:credentials'
+    ACTIVE = 'omas:active'
+    IN_PROJECT = 'omas:inProject'
+    HAS_PERMISSIONS = 'omas:hasPermissions'
 
 
 @serializer
@@ -16,15 +37,18 @@ class UserDataclass:
     __created: datetime | None
     __contributor: AnyIRI | None
     __modified: datetime | None
-    __userId: NCName | None
     __userIri: AnyIRI | None
-    __familyName: str | None
-    __givenName: str | None
-    __credentials: str | None
-    __inProject: Dict[str, List[AdminPermission]] | None
-    __hasPermissions: List[QName] | None
-    __active: bool | None
-    __change_set: Set[str]
+    __userId: NCName | None
+
+    __fields: Dict[UserFields, UserFieldTypes]
+
+    #__familyName: StringLiteral | None
+    #__givenName: StringLiteral | None
+    #__credentials: StringLiteral | None
+    #__inProject: Dict[str, List[AdminPermission]] | None
+    #__hasPermissions: List[QName] | None
+    #__active: bool | None
+    __change_set: Dict[UserFields, UserFieldChange]
 
     def __init__(self, *,
                  creator: AnyIRI | None = None,
@@ -33,12 +57,13 @@ class UserDataclass:
                  modified: datetime | None = None,
                  user_iri: AnyIRI | None = None,
                  user_id: NCName | None = None,
-                 family_name: str | None = None,
-                 given_name: str | None = None,
-                 credentials: str | None = None,
+                 family_name: str | StringLiteral | None = None,
+                 given_name: str | StringLiteral | None = None,
+                 credentials: str | StringLiteral | None = None,
                  active: bool | None = None,
-                 in_project: Optional[Dict[QName, List[AdminPermission]]] = None,
-                 has_permissions: Optional[List[QName]] = None):
+                 in_project: Dict[QName, List[AdminPermission]] | None = None,
+                 has_permissions: List[QName] | None = None):
+        self.__fields = {}
         if in_project:
             __in_project = {str(key): val for key, val in in_project.items()}
         else:
@@ -48,18 +73,18 @@ class UserDataclass:
         self.__contributor = contributor
         self.__modified = modified
         self.__userIri = user_iri
-        self.__userId = user_id
-        self.__familyName = family_name
-        self.__givenName = given_name
-        self.__credentials = credentials
-        self.__active = active
-        self.__inProject = __in_project
-        self.__hasPermissions = has_permissions or []
-        self.__change_set = set()
+        self.__fields[UserFields.USER_ID] = user_id
+        self.__fields[UserFields.FAMILY_NAME] = StringLiteral(family_name)
+        self.__fields[UserFields.GIVEN_NAME] = StringLiteral(given_name)
+        self.__fields[UserFields.CREDENTIALS] = StringLiteral(credentials)
+        self.__fields[UserFields.ACTIVE] = active
+        self.__fields[UserFields.IN_PROJECT] = __in_project
+        self.__fields[UserFields.HAS_PERMISSIONS] = has_permissions or []
+        self.__change_set = {}
 
     def __str__(self) -> str:
         admin_permissions = {}
-        for proj, permissions in self.__inProject.items():
+        for proj, permissions in self.__fields[UserFields.IN_PROJECT].items():
             admin_permissions[str(proj)] = [str(x.value) for x in permissions]
         return \
         f'Userdata for <{self.__userIri}>:\n'\
@@ -67,21 +92,34 @@ class UserDataclass:
         f'  Created at: {self.__created}\n' \
         f'  Modified by: {self.__contributor}\n' \
         f'  Modified at: {self.__modified}\n' \
-        f'  User id: {self.__userId}\n' \
-        f'  Family name: {self.__familyName}\n' \
-        f'  Given name: {self.__givenName}\n' \
-        f'  Active: {self.__active}\n' \
+        f'  User id: {self.__fields[UserFields.USER_ID]}\n' \
+        f'  Family name: {self.__fields[UserFields.FAMILY_NAME]}\n' \
+        f'  Given name: {self.__fields[UserFields.GIVEN_NAME]}\n' \
+        f'  Active: {self.__fields[UserFields.ACTIVE]}\n' \
         f'  In project: {admin_permissions}\n' \
-        f'  Has permissions: {self.__hasPermissions}\n'
+        f'  Has permissions: {self.__fields[UserFields.HAS_PERMISSIONS]}\n'
 
     def _as_dict(self) -> dict:
         return {
                 'user_iri': self.__userIri,
-                'user_id': self.__userId,
-                'active': self.__active,
-                'has_permissions': self.__hasPermissions,
-                'in_project': self.__inProject
+                'user_id': self.__fields[UserFields.USER_ID],
+                'active': self.__fields[UserFields.ACTIVE],
+                'has_permissions': self.__fields[UserFields.HAS_PERMISSIONS],
+                'in_project': self.__fields[UserFields.IN_PROJECT]
         }
+
+    def __change_setter(self, field: UserFields, value: UserFieldTypes) -> None:
+        if self.__fields[field] == value:
+            return
+        if self.__fields[field] is None:
+            self.__change_set[field] = UserFieldChange(None, Action.CREATE)
+        else:
+            if value is None:
+                self.__change_set[field] = UserFieldChange(self.__familyName, Action.DELETE)
+            else:
+                self.__change_set[field] = UserFieldChange(self.__familyName, Action.REPLACE)
+        self.__fields[field] = value
+
 
     @property
     def creator(self) -> AnyIRI | None:
@@ -100,40 +138,36 @@ class UserDataclass:
         return self.__modified
 
     @property
-    def familyName(self) -> str:
-        return self.__familyName
+    def familyName(self) -> StringLiteral:
+        return self.__fields[UserFields.FAMILY_NAME]
 
     @familyName.setter
-    def familyName(self, value: str) -> None:
-        self.__familyName = value
-        self.__change_set.add("familyName")
+    def familyName(self, value: str | StringLiteral) -> None:
+        self.__change_setter(UserFields.FAMILY_NAME, StringLiteral(value))
 
     @property
-    def givenName(self) -> str:
-        return self.__givenName
+    def givenName(self) -> StringLiteral:
+        return self.__fields[UserFields.GIVEN_NAME]
 
     @givenName.setter
-    def givenName(self, value: str) -> None:
-        self.__givenName = value
-        self.__change_set.add("givenName")
+    def givenName(self, value: str | StringLiteral) -> None:
+        self.__change_setter(UserFields.GIVEN_NAME, value)
 
     @property
-    def credentials(self) -> str:
-        return self.__credentials
+    def credentials(self) -> StringLiteral:
+        return self.__fields[UserFields.CREDENTIALS]
 
     @credentials.setter
-    def credentials(self, value: str) -> None:
-        self.__credentials = value
-        self.__change_set.add("credentials")
+    def credentials(self, value: StringLiteral) -> None:
+        self.__change_setter(UserFields.CREDENTIALS, value)
 
     @property
     def user_id(self) -> NCName:
-        return self.__userId
+        return self.__fields[UserFields.USER_ID]
 
     @user_id.setter
-    def user_id(self, value: str) -> None:
-        self.__userId = value
-        self.__change_set.add("usedId")
+    def user_id(self, value: StringLiteral) -> None:
+        self.__change_setter(UserFields.USER_ID, value)
 
     @property
     def user_iri(self) -> AnyIRI:
@@ -142,29 +176,28 @@ class UserDataclass:
     @user_iri.setter
     def user_iri(self, value: AnyIRI) -> None:
         if self.__userIri is None:
-            self.__userIri = value
+            self.__change_setter("userIri", value)
         else:
             OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__userIri}".')
 
     @property
     def active(self) -> bool:
-        return self.__active
+        return self.__fields[UserFields.ACTIVE]
 
     @active.setter
     def active(self, value: bool) -> None:
-        self.__active = value
-        self.__change_set.add("active")
+        self.__change_setter(UserFields.ACTIVE, value)
 
     @property
     def in_project(self) -> Dict[QName, List[AdminPermission]]:
-        return {QName(key): val for key, val in self.__inProject.items()} if self.__inProject else {}
+        return {QName(key): val for key, val in self.__fields[UserFields.IN_PROJECT].items()} if self.__fields[UserFields.IN_PROJECT] else {}
 
     @property
     def has_permissions(self) -> List[QName]:
-        return self.__hasPermissions
+        return self.__fields[UserFields.HAS_PERMISSIONS]
 
     @property
-    def changeset(self) -> Set[str]:
+    def changeset(self) -> Dict[UserFields, UserFieldChange]:
         return self.__change_set
 
     @staticmethod
@@ -201,25 +234,45 @@ class UserDataclass:
                 case 'dcterms:modified':
                     self.__modified = r['val']
                 case 'omas:userId':
-                    self.__userId = r['val']
+                    self.__fields[UserFields.USER_ID] = StringLiteral(r['val'])
                 case 'foaf:familyName':
-                    self.__familyName = r['val']
+                    self.__fields[UserFields.FAMILY_NAME] = StringLiteral(r['val'])
                 case 'foaf:givenName':
-                    self.__givenName = r['val']
+                    self.__fields[UserFields.GIVEN_NAME] = StringLiteral(r['val'])
                 case 'omas:credentials':
-                    self.__credentials = r['val']
+                    self.__fields[UserFields.CREDENTIALS] = StringLiteral(r['val'])
                 case 'omas:isActive':
-                    self.__active = r['val']
+                    self.__fields[UserFields.ACTIVE] = r['val']
                 case 'omas:inProject':
-                    self.__inProject = {str(r['val']): []}
+                    self.__fields[UserFields.IN_PROJECT] = {str(r['val']): []}
                 case 'omas:hasPermissions':
-                    self.__hasPermissions.append(r['val'])
+                    self.__fields[UserFields.HAS_PERMISSIONS].append(r['val'])
                 case _:
                     if r.get('proj') and r.get('rval'):
-                        if self.__inProject.get(str(r['proj'])) is None:
-                            self.__inProject[str(r['proj'])] = []
-                        self.__inProject[str(r['proj'])].append(AdminPermission(str(r['rval'])))
+                        if self.__fields[UserFields.IN_PROJECT].get(str(r['proj'])) is None:
+                            self.__fields[UserFields.IN_PROJECT][str(r['proj'])] = []
+                        self.__fields[UserFields.IN_PROJECT][str(r['proj'])].append(AdminPermission(str(r['rval'])))
 
     def sparql_update(self, indent: int = 0, indent_inc: int = 4):
-        pass
+        blank = ''
+        sparql_list = []
+        for field, change in self.__change_set.items():
+            sparql = f'{blank:{indent * indent_inc}}# User field "{field.value} with action {change.action.value}\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} ?val .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if change.action != Action.DELETE:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(self.__fields[field])} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.user_iri)} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql_list.append(sparql)
+
+
+
 

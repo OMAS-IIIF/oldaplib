@@ -124,6 +124,9 @@ class NCName:
             'value': self._value
         }
 
+    def as_rdf(self) -> str:
+        return f'"{self._value}"'
+
 
 @strict
 @serializer
@@ -228,6 +231,9 @@ class QName:
             'value': self._value
         }
 
+    def as_rdf(self) -> str:
+        return self._value
+
     @property
     def prefix(self) -> str:
         """
@@ -310,6 +316,9 @@ class BNode:
         return {
             'value': self.__value
         }
+
+    def as_rdf(self) ->str:
+        return self.__value
 
     @property
     def value(self) -> str:
@@ -432,6 +441,9 @@ class AnyIRI:
             'value': self._value
         }
 
+    def as_rdf(self) -> str:
+        return f'<{self._value}>'
+
     @property
     def append_allowed(self) -> bool:
         """
@@ -456,10 +468,10 @@ class NamespaceIRI(AnyIRI):
         if not self._append_allowed:
             raise OmasValueError("NamespaceIRI must end with '/' or '#'!")
 
-    def _as_dict(self) -> Dict[str, str]:
-        return {
-            'value': self._value
-        }
+    # def _as_dict(self) -> Dict[str, str]:
+    #     return {
+    #         'value': self._value
+    #     }
 
 
 @unique

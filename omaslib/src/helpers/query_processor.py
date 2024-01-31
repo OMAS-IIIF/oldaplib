@@ -13,9 +13,10 @@ from omaslib.src.helpers.omaserror import OmasValueError
 from omaslib.src.helpers.serializer import serializer
 
 
-class StringLiteral:
-    pass
+class StringLiteral(str):
 
+    def __repr__(self):
+        return f'"{self}"'
 
 
 
@@ -40,7 +41,7 @@ class OmasStringLiteral:
         if self.__lang:
             return f'"{self.__value}"@{self.__lang.name.lower()}'
         else:
-            return self.__value
+            return f'"self.__value"'
 
     def __eq__(self, other: str | Self) -> bool:
         if isinstance(other, OmasStringLiteral):
