@@ -17,7 +17,7 @@ class TestQname(unittest.TestCase):
         qn3 = QName('prefix', 'name')
         self.assertTrue(qn == qn3)
         self.assertEqual(hash(qn), hash(qn3))
-        self.assertEqual(repr(qn3), 'QName("prefix:name")')
+        self.assertEqual(repr(qn3), "prefix:name")
         self.assertTrue(qn != qn2)
         qn += 'Shape'
         self.assertEqual(str(qn), 'prefix:nameShape')
@@ -65,7 +65,7 @@ class TestNCName(unittest.TestCase):
     def test_ncname(self):
         ncn1 = NCName('AnId0')
         self.assertEqual(str(ncn1), 'AnId0')
-        self.assertEqual(repr(ncn1), 'NCName(AnId0)')
+        self.assertEqual(repr(ncn1), 'AnId0')
         ncn1a = ncn1 + 'X'
         self.assertEqual(str(ncn1a), 'AnId0X')
         ncn1a += 'Y'

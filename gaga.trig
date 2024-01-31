@@ -15,9 +15,9 @@ test:shacl {
     test:ProjectShape a sh:NodeShape, test:Project ;
         sh:targetClass test:Project ;
         dcterms:hasVersion "1.0.0" ;
-        dcterms:created "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+        dcterms:created "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+        dcterms:modified "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         rdfs:label "Project"@en, "Projekt"@de ;
         rdfs:comment "Definiton of a project"@en, "Definition eines Projektes"@de ;
@@ -32,9 +32,9 @@ test:shacl {
                     sh:path test:projectId ;
                     dcterms:hasVersion "1.0.0" ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:created "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+                    dcterms:created "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:modified "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+                    dcterms:modified "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
                     sh:datatype xsd:NCName ;
                     sh:name "Project ID"@en, "Projekt ID"@de ;
                     sh:description "Unique ID for project"@en, "Eindeutige ID für Projekt"@de ;
@@ -49,9 +49,9 @@ test:shacl {
                     sh:path test:projectName ;
                     dcterms:hasVersion "1.0.0" ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:created "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+                    dcterms:created "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:modified "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+                    dcterms:modified "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
                     sh:datatype xsd:string ;
                     sh:name "Project name"@en, "Projektname"@de ;
                     sh:description "A description of the project"@en, "EineBeschreibung des Projekts"@de ;
@@ -67,23 +67,23 @@ test:onto {
             rdfs:domain test:Project ;
             rdfs:range xsd:NCName ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+            dcterms:created "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-01-28T00:36:33.376077"^^xsd:dateTime .
+            dcterms:modified "2024-01-31T01:19:22.383896"^^xsd:dateTime .
 
         test:projectName rdf:type owl:DatatypeProperty ;
             rdfs:domain test:Project ;
             rdfs:range xsd:string ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+            dcterms:created "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-01-28T00:36:33.376077"^^xsd:dateTime .
+            dcterms:modified "2024-01-31T01:19:22.383896"^^xsd:dateTime .
 
         test:Project rdf:type owl:Class ;
             dcterms:hasVersion "1.0.0" ;
-            dcterms:created "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+            dcterms:created "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-01-28T00:36:33.376077"^^xsd:dateTime ;
+            dcterms:modified "2024-01-31T01:19:22.383896"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             rdfs:subClassOf
                 [

@@ -3,7 +3,7 @@ from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName
+from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.user import User
@@ -72,7 +72,7 @@ class TestUser(unittest.TestCase):
 
     def test_create_user(self):
         user = User(con=self._connection,
-                    user_iri="https://orcid.org/0000-0003-3478-9313",
+                    user_iri=AnyIRI("https://orcid.org/0000-0003-3478-9313"),
                     user_id=NCName("coyote"),
                     family_name="Coyote",
                     given_name="Wiley E.",
@@ -95,7 +95,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(str(ex.exception), 'A user with a user ID "coyote" already exists')
 
         user3 = User(con=self._connection,
-                     user_iri="https://orcid.org/0000-0003-3478-9313",
+                     user_iri=AnyIRI("https://orcid.org/0000-0003-3478-9313"),
                      user_id=NCName("brown"),
                      family_name="Brown",
                      given_name="Emmett",
@@ -111,7 +111,7 @@ class TestUser(unittest.TestCase):
 
     def test_delete_user(self):
         user = User(con=self._connection,
-                    user_iri="https://orcid.org/0000-0002-9991-2055",
+                    user_iri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
                     user_id=NCName("edison"),
                     family_name="Edison",
                     given_name="Thomas A.",
@@ -127,6 +127,27 @@ class TestUser(unittest.TestCase):
         with self.assertRaises(OmasErrorNotFound) as ex:
             user = User.read(con=self._connection, user_id="edison")
         self.assertEqual(str(ex.exception), 'User "edison" not found.')
+
+    #@unittest.skip('Work in progress')
+    def test_update_user(self):
+        user = User(con=self._connection,
+                    user_iri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
+                    user_id=NCName("edison"),
+                    family_name="Edison",
+                    given_name="Thomas A.",
+                    credentials="Lightbulb&Phonograph",
+                    in_project={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
+                                                            AdminPermission.ADMIN_RESOURCES,
+                                                            AdminPermission.ADMIN_CREATE]},
+                    has_permissions=[QName('omas:GenericView')])
+        user.create()
+        user2 = User.read(con=self._connection, user_id="edison")
+        user2.user_id = "aedison"
+        user2.familyName = "Edison et al."
+        user2.givenName = "Thomas"
+        user2.update()
+        user.delete()
+
 
 if __name__ == '__main__':
     unittest.main()

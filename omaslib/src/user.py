@@ -178,6 +178,9 @@ class User(Model, UserDataclass):
         """
         self._con.update_query(sparql)
 
+    def update(self) -> None:
+        print(self.sparql_update())
+
 
 if __name__ == '__main__':
     con = Connection(server='http://localhost:7200',

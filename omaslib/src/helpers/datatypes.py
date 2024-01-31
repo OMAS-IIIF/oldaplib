@@ -87,7 +87,7 @@ class NCName:
         Return the representation string
         :return: Python representation of the instance
         """
-        return f"NCName({self._value})"
+        return self._value
 
     def __str__(self) -> str:
         """
@@ -123,9 +123,6 @@ class NCName:
         return {
             'value': self._value
         }
-
-    def as_rdf(self) -> str:
-        return f'"{self._value}"'
 
 
 @strict
@@ -194,7 +191,7 @@ class QName:
         Return the Python representation of the QName
         :return: Python representation of the QName
         """
-        return f'QName("{self._value}")'
+        return str(self._value)
 
     def __str__(self):
         """
@@ -287,7 +284,7 @@ class BNode:
         Return the Python representation of the BNode
         :return: Python representation of the BNode
         """
-        return f'BNode("{self.__value}")'
+        return self.__value
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -316,9 +313,6 @@ class BNode:
         return {
             'value': self.__value
         }
-
-    def as_rdf(self) ->str:
-        return self.__value
 
     @property
     def value(self) -> str:
@@ -397,7 +391,7 @@ class AnyIRI:
         Returns the Python representation of the AnyIRI
         :return: Python representation of the AnyIRI
         """
-        return f"AnyURI({self._value})"
+        return f'<{self._value}>'
 
     def __str__(self) -> str:
         """

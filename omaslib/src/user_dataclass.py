@@ -23,8 +23,8 @@ class UserFieldChange:
 class UserFields(Enum):
     USER_IRI = "USER_IRI"
     USER_ID = 'omas:userId'
-    FAMILY_NAME = 'omas:familyName'
-    GIVEN_NAME = 'omas:givenName'
+    FAMILY_NAME = 'foaf:familyName'
+    GIVEN_NAME = 'foaf:givenName'
     CREDENTIALS = 'omas:credentials'
     ACTIVE = 'omas:active'
     IN_PROJECT = 'omas:inProject'
@@ -115,9 +115,9 @@ class UserDataclass:
             self.__change_set[field] = UserFieldChange(None, Action.CREATE)
         else:
             if value is None:
-                self.__change_set[field] = UserFieldChange(self.__familyName, Action.DELETE)
+                self.__change_set[field] = UserFieldChange(self.__fields[field], Action.DELETE)
             else:
-                self.__change_set[field] = UserFieldChange(self.__familyName, Action.REPLACE)
+                self.__change_set[field] = UserFieldChange(self.__fields[field], Action.REPLACE)
         self.__fields[field] = value
 
 
@@ -267,11 +267,13 @@ class UserDataclass:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(self.__fields[field])} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
-            sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.user_iri)} as ?user)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)}\n'
-            sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
+
+        return " ;\n".join(sparql_list)
 
 
 
