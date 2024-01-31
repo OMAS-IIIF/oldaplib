@@ -137,6 +137,10 @@ class UserDataclass:
     def modified(self) -> datetime | None:
         return self.__modified
 
+    @modified.setter
+    def modified(self, value: datetime) -> None:
+        self.__modified = value
+
     @property
     def familyName(self) -> StringLiteral:
         return self.__fields[UserFields.FAMILY_NAME]
@@ -200,6 +204,9 @@ class UserDataclass:
     def changeset(self) -> Dict[UserFields, UserFieldChange]:
         return self.__change_set
 
+    def clear_changeset(self):
+        self.__change_set = {}
+
     @staticmethod
     def sparql_query(context: Context, user_id: NCName) -> str:
         sparql = context.sparql_context
@@ -252,6 +259,8 @@ class UserDataclass:
                         if self.__fields[UserFields.IN_PROJECT].get(str(r['proj'])) is None:
                             self.__fields[UserFields.IN_PROJECT][str(r['proj'])] = []
                         self.__fields[UserFields.IN_PROJECT][str(r['proj'])].append(AdminPermission(str(r['rval'])))
+        if not isinstance(self.__modified, datetime):
+            raise Exception(f"Modified field is {type(self.__modified)} and not datetime!!!!")
 
     def sparql_update(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -261,15 +270,15 @@ class UserDataclass:
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} ?val .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)}^^xsd:NCName .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(self.__fields[field])} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(self.__fields[field])}^^xsd:NCName .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.user_iri)} as ?user)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)}\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)}^^xsd:NCName .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
 

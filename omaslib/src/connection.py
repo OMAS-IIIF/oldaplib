@@ -257,14 +257,14 @@ class Connection:
         res = QueryProcessor(context=context, query_result=jsonobj)
 
 
-    def clear_graph(self, graph_iri: QName) -> None:
+    def clear_graph(self, graph_iri: QName, login_required = True) -> None:
         """
         This method clears (deletes) the given RDF graph. May raise an ~herlper.OmasError.
 
         :param graph_iri: RDF graph name as QName. The prefix must be defined in the context!
         :return: None
         """
-        if not self.__userdata:
+        if not self.__userdata and login_required:
             raise OmasError("No login")
         context = Context(name=self._context_name)
         headers = {
@@ -296,7 +296,7 @@ class Connection:
         if not req.ok:
             raise OmasError(req.text)
 
-    def upload_turtle(self, filename: str, graphname: Optional[str] = None) -> None:
+    def upload_turtle(self, filename: str, graphname: Optional[str] = None, login_required = True) -> None:
         """
         Upload a turtle- or trig-file to the given repository. This method returns immediately after sending the
         command to upload the given file to the triplestore. The import process may take a while!
@@ -305,7 +305,7 @@ class Connection:
         :param graphname: Optional name of the RDF-graph where the data should be imported in.
         :return: None
         """
-        if not self.__userdata:
+        if not self.__userdata and login_required:
             raise OmasError("No login")
         with open(filename, encoding="utf-8") as f:
             content = f.read()
@@ -458,6 +458,9 @@ class Connection:
         if not res.ok:
             raise OmasError(f'GraphDB transaction abort failed. Reason: "{res.text}"')
         self._transaction_url = None
+
+    def in_transaction(self) -> bool:
+        return self._transaction_url is not None
 
 
 

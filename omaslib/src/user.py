@@ -11,7 +11,7 @@ import bcrypt
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.serializer import serializer
@@ -90,9 +90,9 @@ class User(Model, UserDataclass):
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}<{self.user_iri}> a omas:User'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator <{self._con.user_iri}>'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:datetime'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.user_iri}>'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:datetime'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId "{self.user_id}"^^xsd:NCName'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName "{self.familyName}"'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName "{self.givenName}"'
@@ -179,7 +179,34 @@ class User(Model, UserDataclass):
         self._con.update_query(sparql)
 
     def update(self) -> None:
-        print(self.sparql_update())
+        timestamp = datetime.now()
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += self.sparql_update()
+        self._con.transaction_start()
+        try:
+            modtime = self.get_modified_by_iri(QName('omas:admin'), self.user_iri)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        if modtime != self.modified:
+            self._con.transaction_abort()
+            raise OmasErrorUpdateFailed(f'Modifying user "{self.user_id}" failed because of changed modification time: {modtime}')
+        try:
+            self._con.transaction_update(sparql)
+            self.set_modified_by_iri(QName('omas:admin'), self.user_iri, self.modified, timestamp)
+            modtime = self.get_modified_by_iri(QName('omas:admin'), self.user_iri)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        if timestamp != modtime:
+            raise OmasErrorUpdateFailed("Update failed! Timestamp does not match")
+        try:
+            self._con.transaction_commit()
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        self.modified = timestamp
 
 
 if __name__ == '__main__':

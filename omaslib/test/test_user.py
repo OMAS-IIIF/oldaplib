@@ -15,6 +15,7 @@ class TestUser(unittest.TestCase):
 
     @classmethod
     def setUp(cls):
+
         cls._context = Context(name="DEFAULT")
 
         cls._connection = Connection(server='http://localhost:7200',
@@ -24,9 +25,10 @@ class TestUser(unittest.TestCase):
                                      context_name="DEFAULT")
         user = User(con=cls._connection, user_id=NCName("coyote"))
         user.delete()
-        #cls._connection.clear_graph(QName('omas:admin'))
-        #cls._connection.upload_turtle("omaslib/ontologies/ontologies/admin.trig")
+        #cls._connection.clear_graph(QName('omas:admin'), login_required=False)
+        #cls._connection.upload_turtle("omaslib/ontologies/ontologies/admin.trig", login_required=False)
         #sleep(1)  # upload may take a while...
+
 
     def tearDown(self):
         pass
@@ -70,6 +72,7 @@ class TestUser(unittest.TestCase):
             user = User.read(con=self._connection, user_id="nosuchuser")
         self.assertEqual(str(ex.exception), 'User "nosuchuser" not found.')
 
+    #@unittest.skip('Work in progress')
     def test_create_user(self):
         user = User(con=self._connection,
                     user_iri=AnyIRI("https://orcid.org/0000-0003-3478-9313"),
@@ -108,7 +111,7 @@ class TestUser(unittest.TestCase):
             user3.create()
         self.assertEqual(str(ex.exception), 'A user with a user IRI "https://orcid.org/0000-0003-3478-9313" already exists')
 
-
+    #@unittest.skip('Work in progress')
     def test_delete_user(self):
         user = User(con=self._connection,
                     user_iri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
@@ -146,7 +149,8 @@ class TestUser(unittest.TestCase):
         user2.familyName = "Edison et al."
         user2.givenName = "Thomas"
         user2.update()
-        user.delete()
+        user3 = User.read(con=self._connection, user_id="aedison")
+        user3.delete()
 
 
 if __name__ == '__main__':
