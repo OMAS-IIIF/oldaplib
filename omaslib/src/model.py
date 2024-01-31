@@ -66,7 +66,7 @@ class Model:
         }}
         INSERT {{
             ?res dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .
-            ?res dcterms:contributor {repr(self._con.user_iri)} .
+            ?res dcterms:contributor {repr(self._con.userIri)} .
         }}
         WHERE {{
             BIND({repr(iri)} as ?res)

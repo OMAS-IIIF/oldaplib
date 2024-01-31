@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
-from typing import Dict, List, Optional, Set
+from functools import partial
+from typing import Dict, List, Optional, Set, Self
 
 import bcrypt
 
@@ -49,19 +50,19 @@ class UserDataclass:
                  created: datetime | None = None,
                  contributor: AnyIRI | None = None,
                  modified: datetime | None = None,
-                 user_iri: AnyIRI | None = None,
-                 user_id: NCName | None = None,
+                 userIri: AnyIRI | None = None,
+                 userId: NCName | None = None,
                  family_name: str | StringLiteral | None = None,
                  given_name: str | StringLiteral | None = None,
                  credentials: str | StringLiteral | None = None,
                  active: bool | None = None,
-                 in_project: Dict[QName, List[AdminPermission]] | None = None,
-                 has_permissions: List[QName] | None = None):
+                 inProject: Dict[QName, List[AdminPermission]] | None = None,
+                 hasPermissions: List[QName] | None = None):
         self.__fields = {}
-        if in_project:
-            __in_project = {str(key): val for key, val in in_project.items()}
+        if inProject:
+            __inProject = {str(key): val for key, val in inProject.items()}
         else:
-            __in_project = {}
+            __inProject = {}
         if credentials is not None:
             salt = bcrypt.gensalt()
             credentials = bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8')
@@ -70,26 +71,42 @@ class UserDataclass:
         self.__created = created
         self.__contributor = contributor
         self.__modified = modified
-        self.__fields[UserFields.USER_IRI] = user_iri
-        self.__fields[UserFields.USER_ID] = user_id
+        self.__fields[UserFields.USER_IRI] = userIri
+        self.__fields[UserFields.USER_ID] = userId
         self.__fields[UserFields.FAMILY_NAME] = StringLiteral(family_name)
         self.__fields[UserFields.GIVEN_NAME] = StringLiteral(given_name)
         self.__fields[UserFields.CREDENTIALS] = StringLiteral(credentials)
         self.__fields[UserFields.ACTIVE] = active
-        self.__fields[UserFields.IN_PROJECT] = __in_project
-        self.__fields[UserFields.HAS_PERMISSIONS] = has_permissions or []
+        self.__fields[UserFields.IN_PROJECT] = __inProject
+        self.__fields[UserFields.HAS_PERMISSIONS] = hasPermissions or []
         self.__change_set = {}
+        #
+        # here we dynamically generate class properties for the UserFields.
+        # This we can access these properties either a Dict or as property
+        # for get, set and sel:
+        # - user[UserFields.USER_ID]
+        # - user.userId
+        #
         for field in UserFields:
             prefix, name = field.value.split(':')
-            setattr(self, name, property(self.__get_value, self.__set_value))
+            setattr(UserDataclass, name, property(
+                partial(self.__get_value, field=field),
+                partial(self.__set_value, field=field),
+                partial(self.__del_value, field=field)))
 
-    def __get_value(self, field: UserFields) -> UserFieldTypes:
+    def __get_value(self: Self, self2: Self, field: UserFields) -> UserFieldTypes:
         return self.__fields.get(field)
 
-    def __set_value(self, field: UserFields, value: UserFieldTypes):
-        self.__fields[field] = value
+    def __set_value(self: Self, self2: Self, value: UserFieldTypes, field: UserFields) -> None:
+        if field == UserFields.CREDENTIALS:
+            salt = bcrypt.gensalt()
+            value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
+        if field == UserFields.USER_IRI and self.__fields.get(UserFields.USER_IRI) is not None:
+            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{repr(self.__fields.get(UserFields.USER_IRI))}".')
+        self.__change_setter(field, value)
 
-    def __del_value(self, field: UserFields):
+    def __del_value(self: Self, self2: Self, field: UserFields) -> None:
+        del self.__fields[field]
 
     def __str__(self) -> str:
         admin_permissions = {}
@@ -111,7 +128,7 @@ class UserDataclass:
     def __getitem__(self, item: UserFields) -> UserFieldTypes:
         return self.__fields.get(item)
 
-    def __setitem(self, field: UserFields, value: UserFieldTypes) -> None:
+    def __setitem__(self, field: UserFields, value: UserFieldTypes) -> None:
         if field == UserFields.CREDENTIALS:
             salt = bcrypt.gensalt()
             value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
@@ -121,11 +138,11 @@ class UserDataclass:
 
     def _as_dict(self) -> dict:
         return {
-                'user_iri': repr(self.__fields.get(UserFields.USER_IRI)),
-                'user_id': self.__fields[UserFields.USER_ID],
+                'userIri': repr(self.__fields.get(UserFields.USER_IRI)),
+                'userId': self.__fields[UserFields.USER_ID],
                 'active': self.__fields[UserFields.ACTIVE],
-                'has_permissions': self.__fields[UserFields.HAS_PERMISSIONS],
-                'in_project': self.__fields[UserFields.IN_PROJECT]
+                'hasPermissions': self.__fields[UserFields.HAS_PERMISSIONS],
+                'inProject': self.__fields[UserFields.IN_PROJECT]
         }
 
     def __change_setter(self, field: UserFields, value: UserFieldTypes) -> None:
@@ -162,67 +179,6 @@ class UserDataclass:
         self.__modified = value
 
     @property
-    def familyName(self) -> StringLiteral:
-        return self.__fields[UserFields.FAMILY_NAME]
-
-    @familyName.setter
-    def familyName(self, value: str | StringLiteral) -> None:
-        self.__change_setter(UserFields.FAMILY_NAME, StringLiteral(value))
-
-    @property
-    def givenName(self) -> StringLiteral:
-        return self.__fields[UserFields.GIVEN_NAME]
-
-    @givenName.setter
-    def givenName(self, value: str | StringLiteral) -> None:
-        self.__change_setter(UserFields.GIVEN_NAME, value)
-
-    @property
-    def credentials(self) -> StringLiteral:
-        return self.__fields[UserFields.CREDENTIALS]
-
-    @credentials.setter
-    def credentials(self, value: StringLiteral) -> None:
-        salt = bcrypt.gensalt()
-        credentials = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
-        self.__change_setter(UserFields.CREDENTIALS, credentials)
-
-    @property
-    def user_id(self) -> NCName:
-        return self.__fields[UserFields.USER_ID]
-
-    @user_id.setter
-    def user_id(self, value: StringLiteral) -> None:
-        self.__change_setter(UserFields.USER_ID, value)
-
-    @property
-    def user_iri(self) -> AnyIRI:
-        return self.__fields.get(UserFields.USER_IRI)
-
-    @user_iri.setter
-    def user_iri(self, value: AnyIRI) -> None:
-        if self.__fields.get(UserFields.USER_IRI) is None:
-            self.__change_setter("userIri", value)
-        else:
-            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{repr(self.__fields.get(UserFields.USER_IRI))}".')
-
-    @property
-    def active(self) -> bool:
-        return self.__fields[UserFields.ACTIVE]
-
-    @active.setter
-    def active(self, value: bool) -> None:
-        self.__change_setter(UserFields.ACTIVE, value)
-
-    @property
-    def in_project(self) -> Dict[QName, List[AdminPermission]]:
-        return {QName(key): val for key, val in self.__fields[UserFields.IN_PROJECT].items()} if self.__fields[UserFields.IN_PROJECT] else {}
-
-    @property
-    def has_permissions(self) -> List[QName]:
-        return self.__fields[UserFields.HAS_PERMISSIONS]
-
-    @property
     def changeset(self) -> Dict[UserFields, UserFieldChange]:
         return self.__change_set
 
@@ -230,7 +186,7 @@ class UserDataclass:
         self.__change_set = {}
 
     @staticmethod
-    def sparql_query(context: Context, user_id: NCName) -> str:
+    def sparql_query(context: Context, userId: NCName) -> str:
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?user ?prop ?val ?proj ?rval
@@ -238,11 +194,11 @@ class UserDataclass:
         WHERE {{
             {{
                 ?user a omas:User .
-                ?user omas:userId "{user_id}"^^xsd:NCName .
+                ?user omas:userId "{userId}"^^xsd:NCName .
                 ?user ?prop ?val .
             }} UNION {{
                 ?user a omas:User .
-                ?user omas:userId "{user_id}"^^xsd:NCName .
+                ?user omas:userId "{userId}"^^xsd:NCName .
                 <<?user omas:inProject ?proj>> omas:hasAdminPermission ?rval
             }}
         }}
@@ -299,7 +255,7 @@ class UserDataclass:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(self.__fields[field])}^^xsd:NCName .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.user_iri)} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.userIri)} as ?user)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)}^^xsd:NCName .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
@@ -307,5 +263,15 @@ class UserDataclass:
         return " ;\n".join(sparql_list)
 
 
-
-
+if __name__ == "__main__":
+    user_dataclass = UserDataclass(
+        userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
+        userId=NCName("edison"),
+        family_name="Edison",
+        given_name="Thomas A.",
+        credentials="Lightbulb&Phonograph",
+        inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
+                                                AdminPermission.ADMIN_RESOURCES,
+                                                AdminPermission.ADMIN_CREATE]},
+        hasPermissions=[QName('omas:GenericView')])
+    print(user_dataclass.userId)

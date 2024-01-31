@@ -104,7 +104,7 @@ class Connection:
     """
     _server: str
     _repo: str
-    _user_id: str
+    _userId: str
     __userdata: UserDataclass
     _context_name: str
     _store: SPARQLUpdateStore
@@ -128,7 +128,7 @@ class Connection:
     def __init__(self, *,
                  server: str,
                  repo: str,
-                 user_id: Optional[str] = None,
+                 userId: Optional[str] = None,
                  credentials: Optional[str] = None,
                  token: Optional[str] = None,
                  context_name: Optional[str] = DEFAULT_CONTEXT) -> None:
@@ -156,9 +156,9 @@ class Connection:
             self.__userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
             self.__token = token
             return
-        if user_id is None or credentials is None:
+        if userId is None or credentials is None:
             raise OmasError("Wrong credentials")
-        sparql = UserDataclass.sparql_query(context=context, user_id=user_id)
+        sparql = UserDataclass.sparql_query(context=context, userId=userId)
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
@@ -207,15 +207,15 @@ class Connection:
 
     @property
     def userid(self) -> NCName:
-        return self.__userdata.user_id
+        return self.__userdata.userId
 
     @property
-    def user_iri(self) -> AnyIRI:
-        return self.__userdata.user_iri
+    def userIri(self) -> AnyIRI:
+        return self.__userdata.userIri
 
     @property
     def login(self) -> bool:
-        return self._user_iri is not None
+        return self._userIri is not None
 
     @property
     def context_name(self) -> str:
@@ -226,7 +226,7 @@ class Connection:
     def token(self) -> str:
         return self.__token
 
-    def readUser(self, context: Context, user_id: NCName | str) -> None:
+    def readUser(self, context: Context, userId: NCName | str) -> None:
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?user ?prop ?val ?proj ?rval
@@ -234,7 +234,7 @@ class Connection:
         WHERE {{
             {{
                 ?user a omas:User .
-                ?user omas:userId "{user_id}"^^xsd:NCName .
+                ?user omas:userId "{userId}"^^xsd:NCName .
                 ?user ?prop ?val .
             }} UNION {{
                 <<?user omas:userInProject ?proj>> omas:hasPermission ?rval .
@@ -284,7 +284,7 @@ class Connection:
 
         :return: None
         """
-        if not self.user_iri:
+        if not self.userIri:
             raise OmasError("No login")
         headers = {
             "Accept": "application/json, text/plain, */*",
@@ -480,7 +480,7 @@ class Connection:
 
 if __name__ == "__main__":
     con = Connection(server='http://localhost:7200',
-                     user_id="rosenth",
+                     userId="rosenth",
                      credentials="RioGrande",
                      repo="omas",
                      context_name="DEFAULT")
