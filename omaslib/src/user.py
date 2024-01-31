@@ -6,8 +6,6 @@ import uuid
 from datetime import datetime
 from typing import List, Self, Dict
 
-import bcrypt
-
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
@@ -80,8 +78,6 @@ class User(Model, UserDataclass):
         }}
         """
 
-        salt = bcrypt.gensalt()
-        credentials = bcrypt.hashpw(str(self.credentials).encode('utf-8'), salt).decode('utf-8')
         timestamp = datetime.now()
         blank = ''
         sparql = context.sparql_context
@@ -96,7 +92,7 @@ class User(Model, UserDataclass):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId "{self.user_id}"^^xsd:NCName'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName "{self.familyName}"'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName "{self.givenName}"'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:credentials "{credentials}"'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:credentials "{self.credentials}"'
         star = ''
         if self.in_project:
             project = [str(p) for p in self.in_project.keys()]

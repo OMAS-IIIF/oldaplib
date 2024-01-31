@@ -3,6 +3,8 @@ from datetime import datetime
 from enum import unique, Enum
 from typing import Dict, List, Optional, Set
 
+import bcrypt
+
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
@@ -21,7 +23,7 @@ class UserFieldChange:
 
 @unique
 class UserFields(Enum):
-    USER_IRI = "USER_IRI"
+    USER_IRI = 'omas:userIri'
     USER_ID = 'omas:userId'
     FAMILY_NAME = 'foaf:familyName'
     GIVEN_NAME = 'foaf:givenName'
@@ -37,17 +39,9 @@ class UserDataclass:
     __created: datetime | None
     __contributor: AnyIRI | None
     __modified: datetime | None
-    __userIri: AnyIRI | None
-    __userId: NCName | None
 
     __fields: Dict[UserFields, UserFieldTypes]
 
-    #__familyName: StringLiteral | None
-    #__givenName: StringLiteral | None
-    #__credentials: StringLiteral | None
-    #__inProject: Dict[str, List[AdminPermission]] | None
-    #__hasPermissions: List[QName] | None
-    #__active: bool | None
     __change_set: Dict[UserFields, UserFieldChange]
 
     def __init__(self, *,
@@ -68,11 +62,15 @@ class UserDataclass:
             __in_project = {str(key): val for key, val in in_project.items()}
         else:
             __in_project = {}
+        if credentials is not None:
+            salt = bcrypt.gensalt()
+            credentials = bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8')
+
         self.__creator = creator
         self.__created = created
         self.__contributor = contributor
         self.__modified = modified
-        self.__userIri = user_iri
+        self.__fields[UserFields.USER_IRI] = user_iri
         self.__fields[UserFields.USER_ID] = user_id
         self.__fields[UserFields.FAMILY_NAME] = StringLiteral(family_name)
         self.__fields[UserFields.GIVEN_NAME] = StringLiteral(given_name)
@@ -81,13 +79,24 @@ class UserDataclass:
         self.__fields[UserFields.IN_PROJECT] = __in_project
         self.__fields[UserFields.HAS_PERMISSIONS] = has_permissions or []
         self.__change_set = {}
+        for field in UserFields:
+            prefix, name = field.value.split(':')
+            setattr(self, name, property(self.__get_value, self.__set_value))
+
+    def __get_value(self, field: UserFields) -> UserFieldTypes:
+        return self.__fields.get(field)
+
+    def __set_value(self, field: UserFields, value: UserFieldTypes):
+        self.__fields[field] = value
+
+    def __del_value(self, field: UserFields):
 
     def __str__(self) -> str:
         admin_permissions = {}
         for proj, permissions in self.__fields[UserFields.IN_PROJECT].items():
             admin_permissions[str(proj)] = [str(x.value) for x in permissions]
         return \
-        f'Userdata for <{self.__userIri}>:\n'\
+        f'Userdata for {repr(self.__fields[UserFields.USER_IRI])}:\n'\
         f'  Creator: {self.__creator}\n' \
         f'  Created at: {self.__created}\n' \
         f'  Modified by: {self.__contributor}\n' \
@@ -99,9 +108,20 @@ class UserDataclass:
         f'  In project: {admin_permissions}\n' \
         f'  Has permissions: {self.__fields[UserFields.HAS_PERMISSIONS]}\n'
 
+    def __getitem__(self, item: UserFields) -> UserFieldTypes:
+        return self.__fields.get(item)
+
+    def __setitem(self, field: UserFields, value: UserFieldTypes) -> None:
+        if field == UserFields.CREDENTIALS:
+            salt = bcrypt.gensalt()
+            value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
+        if field == UserFields.USER_IRI and self.__fields.get(UserFields.USER_IRI) is not None:
+            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{repr(self.__fields.get(UserFields.USER_IRI))}".')
+        self.__change_setter(field, value)
+
     def _as_dict(self) -> dict:
         return {
-                'user_iri': self.__userIri,
+                'user_iri': repr(self.__fields.get(UserFields.USER_IRI)),
                 'user_id': self.__fields[UserFields.USER_ID],
                 'active': self.__fields[UserFields.ACTIVE],
                 'has_permissions': self.__fields[UserFields.HAS_PERMISSIONS],
@@ -163,7 +183,9 @@ class UserDataclass:
 
     @credentials.setter
     def credentials(self, value: StringLiteral) -> None:
-        self.__change_setter(UserFields.CREDENTIALS, value)
+        salt = bcrypt.gensalt()
+        credentials = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
+        self.__change_setter(UserFields.CREDENTIALS, credentials)
 
     @property
     def user_id(self) -> NCName:
@@ -175,14 +197,14 @@ class UserDataclass:
 
     @property
     def user_iri(self) -> AnyIRI:
-        return self.__userIri
+        return self.__fields.get(UserFields.USER_IRI)
 
     @user_iri.setter
     def user_iri(self, value: AnyIRI) -> None:
-        if self.__userIri is None:
+        if self.__fields.get(UserFields.USER_IRI) is None:
             self.__change_setter("userIri", value)
         else:
-            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__userIri}".')
+            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{repr(self.__fields.get(UserFields.USER_IRI))}".')
 
     @property
     def active(self) -> bool:
@@ -233,7 +255,7 @@ class UserDataclass:
             match str(r.get('prop')):
                 case 'dcterms:creator':
                     self.__creator = r['val']
-                    self.__userIri = r['user']
+                    self.__fields[UserFields.USER_IRI] = r['user']
                 case 'dcterms:created':
                     self.__created = r['val']
                 case 'dcterms:contributor':
