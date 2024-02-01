@@ -2,20 +2,22 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
 from functools import partial
-from typing import Dict, List, Optional, Set, Self
+from typing import Dict, List, Self, Set
 
 import bcrypt
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action
+from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
-from omaslib.src.helpers.permissions import AdminPermission, DataPermission
+from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
 from omaslib.src.helpers.serializer import serializer
 
 InProjectType = Dict[str, List[AdminPermission]]
 
-UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | List[QName] | InProjectType | datetime | bool | None
+UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectType | datetime | bool | None
+
 
 @dataclass
 class UserFieldChange:
@@ -36,6 +38,17 @@ class UserFields(Enum):
 
 @serializer
 class UserDataclass:
+    __datatypes = {
+        UserFields.USER_IRI: AnyIRI,
+        UserFields.USER_ID: NCName,
+        UserFields.FAMILY_NAME: str,
+        UserFields.GIVEN_NAME: str,
+        UserFields.CREDENTIALS: str,
+        UserFields.ACTIVE: bool,
+        UserFields.IN_PROJECT: InProjectType,
+        UserFields.HAS_PERMISSIONS: ObservableSet[QName]
+    }
+
     __creator: AnyIRI | None
     __created: datetime | None
     __contributor: AnyIRI | None
@@ -57,12 +70,14 @@ class UserDataclass:
                  credentials: str | StringLiteral | None = None,
                  active: bool | None = None,
                  inProject: Dict[QName, List[AdminPermission]] | None = None,
-                 hasPermissions: List[QName] | None = None):
+                 hasPermissions: Set[QName] | None = None):
         self.__fields = {}
         if inProject:
             __inProject = {str(key): val for key, val in inProject.items()}
         else:
             __inProject = {}
+        if not isinstance(hasPermissions, ObservableSet):
+            hasPermissions = ObservableSet(hasPermissions, onChange=self.__hasPermission_cb)
         if credentials is not None:
             salt = bcrypt.gensalt()
             credentials = bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8')
@@ -71,14 +86,14 @@ class UserDataclass:
         self.__created = created
         self.__contributor = contributor
         self.__modified = modified
-        self.__fields[UserFields.USER_IRI] = userIri
-        self.__fields[UserFields.USER_ID] = userId
+        self.__fields[UserFields.USER_IRI] = AnyIRI(userIri) if userIri else None
+        self.__fields[UserFields.USER_ID] = NCName(userId) if userId else None
         self.__fields[UserFields.FAMILY_NAME] = StringLiteral(family_name)
         self.__fields[UserFields.GIVEN_NAME] = StringLiteral(given_name)
         self.__fields[UserFields.CREDENTIALS] = StringLiteral(credentials)
-        self.__fields[UserFields.ACTIVE] = active
+        self.__fields[UserFields.ACTIVE] = bool(active)
         self.__fields[UserFields.IN_PROJECT] = __inProject
-        self.__fields[UserFields.HAS_PERMISSIONS] = hasPermissions or []
+        self.__fields[UserFields.HAS_PERMISSIONS] = hasPermissions
         self.__change_set = {}
         #
         # here we dynamically generate class properties for the UserFields.
@@ -93,6 +108,7 @@ class UserDataclass:
                 partial(self.__get_value, field=field),
                 partial(self.__set_value, field=field),
                 partial(self.__del_value, field=field)))
+        self.clear_changeset()
 
     def __get_value(self: Self, self2: Self, field: UserFields) -> UserFieldTypes:
         return self.__fields.get(field)
@@ -155,8 +171,10 @@ class UserDataclass:
                 self.__change_set[field] = UserFieldChange(self.__fields[field], Action.DELETE)
             else:
                 self.__change_set[field] = UserFieldChange(self.__fields[field], Action.REPLACE)
-        self.__fields[field] = value
+        self.__fields[field] = self.__datatypes[field](value)
 
+    def __hasPermission_cb(self, action: Action):
+        self.__change_set[UserFields.HAS_PERMISSIONS] = UserFieldChange(self.__fields[UserFields.HAS_PERMISSIONS].copy(), Action.MODIFY)
 
     @property
     def creator(self) -> AnyIRI | None:
@@ -231,7 +249,7 @@ class UserDataclass:
                 case 'omas:inProject':
                     self.__fields[UserFields.IN_PROJECT] = {str(r['val']): []}
                 case 'omas:hasPermissions':
-                    self.__fields[UserFields.HAS_PERMISSIONS].append(r['val'])
+                    self.__fields[UserFields.HAS_PERMISSIONS].add(r['val'])
                 case _:
                     if r.get('proj') and r.get('rval'):
                         if self.__fields[UserFields.IN_PROJECT].get(str(r['proj'])) is None:
@@ -239,6 +257,7 @@ class UserDataclass:
                         self.__fields[UserFields.IN_PROJECT][str(r['proj'])].append(AdminPermission(str(r['rval'])))
         if not isinstance(self.__modified, datetime):
             raise Exception(f"Modified field is {type(self.__modified)} and not datetime!!!!")
+        self.clear_changeset()
 
     def sparql_update(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -248,15 +267,15 @@ class UserDataclass:
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)}^^xsd:NCName .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(self.__fields[field])}^^xsd:NCName .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(self.__fields[field])} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.userIri)} as ?user)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)}^^xsd:NCName .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
 

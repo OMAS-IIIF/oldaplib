@@ -87,7 +87,7 @@ class NCName:
         Return the representation string
         :return: Python representation of the instance
         """
-        return self._value
+        return f'"self._value"^^xsd:NCName'
 
     def __str__(self) -> str:
         """

@@ -42,7 +42,7 @@ class TestUser(unittest.TestCase):
                      inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
                                                              AdminPermission.ADMIN_RESOURCES,
                                                              AdminPermission.ADMIN_CREATE]},
-                     hasPermissions=[QName('omas:GenericView')])
+                     hasPermissions={QName('omas:GenericView')})
 
         self.assertEqual(user.userId, NCName("testuser"))
         self.assertEqual(user.familyName, "Test")
@@ -52,8 +52,9 @@ class TestUser(unittest.TestCase):
                 AdminPermission.ADMIN_RESOURCES,
                 AdminPermission.ADMIN_CREATE
         ]})
-        self.assertEqual(user.hasPermissions, [QName('omas:GenericView')])
+        self.assertEqual(user.hasPermissions, {QName('omas:GenericView')})
 
+    #@unittest.skip('Work in progress')
     def test_read_user(self):
         user = User.read(con=self._connection, userId="rosenth")
         self.assertEqual(user.userId, NCName("rosenth"))
@@ -64,8 +65,9 @@ class TestUser(unittest.TestCase):
                 QName("omas:SystemProject"): [AdminPermission.ADMIN_OLDAP],
                 QName('omas:HyperHamlet'): [AdminPermission.ADMIN_RESOURCES]
         })
-        self.assertEqual(user.hasPermissions, [QName("omas:GenericRestricted"), QName('omas:GenericView')])
+        self.assertEqual(user.hasPermissions, {QName("omas:GenericRestricted"), QName('omas:GenericView')})
 
+    #@unittest.skip('Work in progress')
     def test_read_unknown_user(self):
         with self.assertRaises(OmasErrorNotFound) as ex:
             user = User.read(con=self._connection, userId="nosuchuser")
@@ -82,7 +84,7 @@ class TestUser(unittest.TestCase):
                     inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
                                                             AdminPermission.ADMIN_RESOURCES,
                                                             AdminPermission.ADMIN_CREATE]},
-                    hasPermissions=[QName('omas:GenericView')])
+                    hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="coyote")
         self.assertEqual(user2.userId, user.userId)
@@ -105,7 +107,7 @@ class TestUser(unittest.TestCase):
                      inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
                                                              AdminPermission.ADMIN_RESOURCES,
                                                              AdminPermission.ADMIN_CREATE]},
-                     hasPermissions=[QName('omas:GenericView')])
+                     hasPermissions={QName('omas:GenericView')})
         with self.assertRaises(OmasErrorAlreadyExists) as ex:
             user3.create()
         self.assertEqual(str(ex.exception), 'A user with a user IRI "https://orcid.org/0000-0003-3478-9313" already exists')
@@ -121,7 +123,7 @@ class TestUser(unittest.TestCase):
                     inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
                                                             AdminPermission.ADMIN_RESOURCES,
                                                             AdminPermission.ADMIN_CREATE]},
-                    hasPermissions=[QName('omas:GenericView')])
+                    hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
         self.assertEqual(user2.userIri, user.userIri)
@@ -141,10 +143,11 @@ class TestUser(unittest.TestCase):
                     inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
                                                             AdminPermission.ADMIN_RESOURCES,
                                                             AdminPermission.ADMIN_CREATE]},
-                    hasPermissions=[QName('omas:GenericView')])
+                    hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
         user2.userId = "aedison"
+        print("--------------------***>", user2.changeset)
         user2.familyName = "Edison et al."
         user2.givenName = "Thomas"
         user2.update()

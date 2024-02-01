@@ -4,7 +4,7 @@ Ths class User
 import json
 import uuid
 from datetime import datetime
-from typing import List, Self, Dict
+from typing import List, Self, Dict, Set
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
@@ -34,7 +34,7 @@ class User(Model, UserDataclass):
                  credentials: str | None = None,
                  active: bool | None = None,
                  inProject: Dict[QName, List[AdminPermission]] | None = None,
-                 hasPermissions: List[QName] | None = None):
+                 hasPermissions: Set[QName] | None = None):
         if userIri is None:
             userIri = AnyIRI(uuid.uuid4().urn)
         Model.__init__(self, connection=con)
@@ -179,6 +179,7 @@ class User(Model, UserDataclass):
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += self.sparql_update()
+        lprint(sparql)
         self._con.transaction_start()
         try:
             modtime = self.get_modified_by_iri(QName('omas:admin'), self.userIri)
