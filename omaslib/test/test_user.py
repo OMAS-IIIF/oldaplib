@@ -111,6 +111,17 @@ class TestUser(unittest.TestCase):
         with self.assertRaises(OmasErrorAlreadyExists) as ex:
             user3.create()
         self.assertEqual(str(ex.exception), 'A user with a user IRI "https://orcid.org/0000-0003-3478-9313" already exists')
+        user4 = User(con=self._connection,
+                     userId=NCName("brown"),
+                     family_name="Dock",
+                     given_name="Donald",
+                     credentials="Entenhausen@for&Ever",
+                     inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
+                                                             AdminPermission.ADMIN_RESOURCES,
+                                                             AdminPermission.ADMIN_CREATE]},
+                     hasPermissions={QName('omas:GenericView'), QName('omas:Gaga')})
+        with self.assertRaises(OmasValueError) as ex:
+            user4.create()
 
     #@unittest.skip('Work in progress')
     def test_delete_user(self):

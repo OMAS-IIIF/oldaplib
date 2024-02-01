@@ -79,6 +79,16 @@ class User(Model, UserDataclass):
         }}
         """
 
+        ptest = context.sparql_context
+        ptest += f"""
+        SELECT ?permissionset
+        FROM omas:admin
+        WHERE {{
+            ?permissionset a omas:PermissionSet .
+            FILTER(?permissionset IN ({repr(self.hasPermissions)}))
+        }}
+        """
+
         timestamp = datetime.now()
         blank = ''
         sparql = context.sparql_context
@@ -120,6 +130,7 @@ class User(Model, UserDataclass):
         if len(res) > 0:
             self._con.transaction_abort()
             raise OmasErrorAlreadyExists(f'A user with a user ID "{self.userId}" already exists')
+        
         try:
             jsonobj = self._con.transaction_query(sparql2)
         except OmasError:
@@ -129,6 +140,17 @@ class User(Model, UserDataclass):
         if len(res) > 0:
             self._con.transaction_abort()
             raise OmasErrorAlreadyExists(f'A user with a user IRI "{self.userIri}" already exists')
+
+        try:
+            jsonobj = self._con.transaction_query(ptest)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != len(self.hasPermissions):
+            self._con.transaction_abort()
+            raise OmasValueError("One of the permission sets is not existing!")
+
         try:
             self._con.transaction_update(sparql)
         except OmasError:
