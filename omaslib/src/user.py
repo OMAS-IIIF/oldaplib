@@ -9,7 +9,8 @@ from typing import List, Self, Dict, Set
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
+    OmasValueError
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.serializer import serializer
@@ -178,7 +179,8 @@ class User(Model, UserDataclass):
         timestamp = datetime.now()
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        sparql += self.sparql_update()
+        ptest, ptest_len, tmpsparql = self.sparql_update()
+        sparql += tmpsparql
         self._con.transaction_start()
         try:
             modtime = self.get_modified_by_iri(QName('omas:admin'), self.userIri)
@@ -188,6 +190,14 @@ class User(Model, UserDataclass):
         if modtime != self.modified:
             self._con.transaction_abort()
             raise OmasErrorUpdateFailed(f'Modifying user "{self.userId}" failed because of changed modification time: {modtime}')
+        if ptest and ptest_len > 0:
+            ptest_sparql = context.sparql_context
+            ptest_sparql += ptest
+            jsonobj = self._con.transaction_query(ptest_sparql)
+            res = QueryProcessor(context, jsonobj)
+            if len(res) != ptest_len:
+                self._con.transaction_abort()
+                raise OmasValueError("One of the permission sets is not existing!")
         try:
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(QName('omas:admin'), self.userIri, self.modified, timestamp)

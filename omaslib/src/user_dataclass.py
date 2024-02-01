@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
 from functools import partial
-from typing import Dict, List, Self, Set
+from typing import Dict, List, Self, Set, Tuple
 
 import bcrypt
 
@@ -263,7 +263,9 @@ class UserDataclass:
             raise Exception(f"Modified field is {type(self.__modified)} and not datetime!!!!")
         self.clear_changeset()
 
-    def sparql_update(self, indent: int = 0, indent_inc: int = 4):
+    def sparql_update(self, indent: int = 0, indent_inc: int = 4) -> Tuple[str | None, int, str]:
+        ptest = None
+        ptest_len = 0
         blank = ''
         sparql_list = []
         for field, change in self.__change_set.items():
@@ -307,8 +309,21 @@ class UserDataclass:
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
 
+            #
+            # check if existing :PermissionSet's have been given!
+            #
+            if added:
+                ptest = f"""
+                SELECT ?permissionset
+                FROM omas:admin
+                WHERE {{
+                    ?permissionset a omas:PermissionSet .
+                    FILTER(?permissionset IN ({repr(added)}))
+                }}
+                """
+                ptest_len = len(added) if added else 0
 
-        return " ;\n".join(sparql_list)
+        return ptest, ptest_len, " ;\n".join(sparql_list)
 
 
 if __name__ == "__main__":

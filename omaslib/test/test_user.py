@@ -4,7 +4,7 @@ from time import sleep
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
-from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists
+from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasValueError
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.user import User
 
@@ -155,6 +155,10 @@ class TestUser(unittest.TestCase):
         user2.update()
         user3 = User.read(con=self._connection, userId="aedison")
         self.assertEqual({'omas:GenericRestricted', 'omas:HyperHamletMember'}, user3.hasPermissions)
+        user3.hasPermissions.add(QName('omas:DoesNotExist'))
+        with self.assertRaises(OmasValueError) as ex:
+            user3.update()
+            self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
         user3.delete()
 
 
