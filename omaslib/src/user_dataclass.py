@@ -2,21 +2,55 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
 from functools import partial
-from typing import Dict, List, Self, Set, Tuple
+from typing import Dict, List, Self, Set, Tuple, Callable, Any
 
 import bcrypt
+from pystrict import strict
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action
 from omaslib.src.helpers.observable_set import ObservableSet
-from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
+from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasValueError
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
 from omaslib.src.helpers.serializer import serializer
 
-InProjectType = Dict[str, List[AdminPermission]]
+InProjectType = Dict[str, ObservableSet[AdminPermission]]
 
 UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectType | datetime | bool | None
+
+# @strict
+# @serializer
+# class InProjectType:
+#     __data: Dict[str, ObservableSet[AdminPermission]]
+#     __on_change: Callable[[str], None]
+#
+#     def __init__(self,
+#                  data: Dict[str, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
+#                  on_change: Callable[[str], None] = None) -> None:
+#         self.__data = {key: ObservableSet(val, on_change=self.__on_set_changed, data=key) for key, val in data.items()}
+#         self.__on_change = on_change
+#
+#     def __on_set_changed(self, oldset: ObservableSet[AdminPermission], key: str):
+#         self.__on_change(key) ## Action.MODIFY
+#
+#     def __getitem__(self, key: str) -> ObservableSet[AdminPermission]:
+#         return self.__data[key]
+#
+#     def __setitem__(self, key: str, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
+#         if self.__data.get(key) is None:
+#             self.__on_change(key) ## Action.CREATE
+#         else:
+#             self.__on_change(key)  ## Action.REPLACE
+#         self.__data[key] = ObservableSet(value, on_change=self.__on_set_changed)
+#
+#     def __delitem__(self, key: str) -> None:
+#         if self.__data.get(key) is not None:
+#             self.__on_change(key)  ## Action.DELETE
+#             del self.__data[key]
+#
+#     def get(self, key: str) -> ObservableSet[AdminPermission] | None:
+#         return self.__data.get(key)
 
 
 @dataclass
@@ -69,7 +103,7 @@ class UserDataclass:
                  given_name: str | StringLiteral | None = None,
                  credentials: str | StringLiteral | None = None,
                  active: bool | None = None,
-                 inProject: Dict[QName, List[AdminPermission]] | None = None,
+                 inProject: Dict[QName, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[QName] | None = None):
         self.__fields = {}
         if inProject:
@@ -110,6 +144,9 @@ class UserDataclass:
                 partial(self.__del_value, field=field)))
         self.clear_changeset()
 
+    #
+    # these are the methods for the getter, setter and deleter
+    #
     def __get_value(self: Self, self2: Self, field: UserFields) -> UserFieldTypes:
         return self.__fields.get(field)
 
@@ -176,7 +213,7 @@ class UserDataclass:
                     self.__change_set[field] = UserFieldChange(self.__fields[field], Action.REPLACE)
         self.__fields[field] = self.__datatypes[field](value)
 
-    def __hasPermission_cb(self, oldset: ObservableSet):
+    def __hasPermission_cb(self, oldset: ObservableSet, data: Any = None) -> None:
         if self.__change_set.get(UserFields.HAS_PERMISSIONS) is None:
             self.__change_set[UserFields.HAS_PERMISSIONS] = UserFieldChange(oldset, Action.MODIFY)
 
@@ -199,6 +236,19 @@ class UserDataclass:
     @modified.setter
     def modified(self, value: datetime) -> None:
         self.__modified = value
+
+    def add_project_permission(self, project: QName, permission: AdminPermission) -> None:
+        if self.__fields[UserFields.IN_PROJECT].get(str(project)) is None:
+            self.__fields[UserFields.IN_PROJECT][str(project)] = ObservableSet({permission})
+        else:
+            self.__fields[UserFields.IN_PROJECT][str(project)].add(permission)
+
+    def remove_project_permission(self, project: QName, permission: AdminPermission) -> None:
+        if self.__fields[UserFields.IN_PROJECT].get(str(project)) is None:
+            raise OmasValueError(f"Project '{project}' does not exist")
+        
+
+
 
     @property
     def changeset(self) -> Dict[UserFields, UserFieldChange]:
@@ -251,14 +301,14 @@ class UserDataclass:
                 case 'omas:isActive':
                     self.__fields[UserFields.ACTIVE] = r['val']
                 case 'omas:inProject':
-                    self.__fields[UserFields.IN_PROJECT] = {str(r['val']): []}
+                    self.__fields[UserFields.IN_PROJECT] = {str(r['val']): ObservableSet()}
                 case 'omas:hasPermissions':
                     self.__fields[UserFields.HAS_PERMISSIONS].add(r['val'])
                 case _:
                     if r.get('proj') and r.get('rval'):
                         if self.__fields[UserFields.IN_PROJECT].get(str(r['proj'])) is None:
-                            self.__fields[UserFields.IN_PROJECT][str(r['proj'])] = []
-                        self.__fields[UserFields.IN_PROJECT][str(r['proj'])].append(AdminPermission(str(r['rval'])))
+                            self.__fields[UserFields.IN_PROJECT][str(r['proj'])] = ObservableSet()
+                        self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
         if not isinstance(self.__modified, datetime):
             raise Exception(f"Modified field is {type(self.__modified)} and not datetime!!!!")
         self.clear_changeset()
@@ -269,7 +319,7 @@ class UserDataclass:
         blank = ''
         sparql_list = []
         for field, change in self.__change_set.items():
-            if field == UserFields.HAS_PERMISSIONS:
+            if field == UserFields.HAS_PERMISSIONS or field == UserFields.IN_PROJECT:
                 continue
             sparql = f'{blank:{indent * indent_inc}}# User field "{field.value}" with action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
@@ -333,8 +383,8 @@ if __name__ == "__main__":
         family_name="Edison",
         given_name="Thomas A.",
         credentials="Lightbulb&Phonograph",
-        inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
+        inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                 AdminPermission.ADMIN_RESOURCES,
-                                                AdminPermission.ADMIN_CREATE]},
-        hasPermissions=[QName('omas:GenericView')])
+                                                AdminPermission.ADMIN_CREATE}},
+        hasPermissions={QName('omas:GenericView')})
     print(user_dataclass.userId)

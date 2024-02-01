@@ -1,17 +1,24 @@
+import json
 from typing import List, Callable, Any, Iterable, Set, Self
 
 from pystrict import strict
 
 from omaslib.src.helpers.datatypes import Action
-
+from omaslib.src.helpers.serializer import serializer
 
 
 @strict
+@serializer
 class ObservableSet(Set):
-    __on_change: Callable[[], None]
+    __on_change: Callable[[Self, Any], None]
+    __on_change_data: Any
 
-    def __init__(self, setitems: Iterable | None = None, on_change: Callable[[Self], None] = None):
+    def __init__(self,
+                 setitems: Iterable | None = None,
+                 on_change: Callable[[Self, Any], None] = None,
+                 on_change_data: Any = None) -> None:
         self.__on_change = on_change
+        self.__on_change_data = on_change_data
         if setitems is None:
             super().__init__(set())
         else:
@@ -38,39 +45,48 @@ class ObservableSet(Set):
         return NotImplemented
 
     def update(self, items: Iterable):
-        self.__on_change(self.copy())
+        if self.__on_change is not None:
+            self.__on_change(self.copy(), self.__on_change_data)
         super().update(items)
 
     def intersection_update(self, items: Iterable):
-        self.__on_change(self.copy())
+        if self.__on_change is not None:
+            self.__on_change(self.copy(), self.__on_change_data)
         super().intersection_update(items)
 
     def difference_update(self, items: Iterable):
-        self.__on_change(self.copy())
+        if self.__on_change is not None:
+            self.__on_change(self.copy(), self.__on_change_data)
         super().difference_update(items)
 
     def symmetric_difference_update(self, items: Iterable):
-        self.__on_change(self.copy())
+        if self.__on_change is not None:
+            self.__on_change(self.copy(), self.__on_change_data)
         super().symmetric_difference_update(items)
 
     def add(self, item: Any) -> None:
-        self.__on_change(self.copy())
+        if self.__on_change is not None:
+            self.__on_change(self.copy(), self.__on_change_data)
         super().add(item)
 
     def remove(self, item: Any) -> None:
-        self.__on_change(self.copy())
+        if self.__on_change is not None:
+            self.__on_change(self.copy(), self.__on_change_data)
         super().remove(item)
 
     def discard(self, item: Any):
-        self.__on_change(self.copy())
+        if self.__on_change is not None:
+            self.__on_change(self.copy(), self.__on_change_data)
         super().discard(item)
 
     def pop(self):
-        self.__on_change(self.copy())
+        if self.__on_change is not None:
+            self.__on_change(self.copy(), self.__on_change_data)
         super().pop()
 
     def clear(self) -> None:
-        self.__on_change(self.copy())
+        if self.__on_change is not None:
+            self.__on_change(self.copy(), self.__on_change_data)
         super().clear()
 
     def copy(self) -> Self:
@@ -79,27 +95,36 @@ class ObservableSet(Set):
     def _as_dict(self):
         return {'setitems': list(self)}
 
+    def asSet(self):
+        return super().copy()
+
 
 if __name__ == '__main__':
+    @serializer
     class Test:
-        def __init__(self):
-            self.__data = ObservableSet(onChange=self.__changing)
+        def __init__(self, data: ObservableSet[str] = None, on_change: Callable[[Self], None] = None):
+            self.__data = ObservableSet(setitems=data, on_change=self.__changing)
 
         @property
         def data(self) -> Any:
             return self.__data
 
-        def __changing(self, action: Action) -> None:
-            print("--->", Action)
+        def __changing(self, old: Self, data: Any = None) -> None:
+            print("--->", old)
+
+        def _as_dict(self):
+            return {
+                'data': self.__data
+            }
 
     t = Test()
     t.data.add('x')
     t.data.add('a')
     t.data.add('b')
     print(t.data)
-    tt = t.data.copy()
-    tt.add('w')
-    print(set(tt) - set(t.data))
-    print(set(t.data) - set(tt))
-    gaga = ObservableSet(['a', 'b', 'c'])
-    print(gaga)
+    jsonstr = json.dumps(t, default=serializer.encoder_default)
+    print(jsonstr)
+    t2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+    print(t2.data)
+    gaga = t2.data.asSet()
+    print(type(gaga))

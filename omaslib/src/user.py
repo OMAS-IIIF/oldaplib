@@ -34,7 +34,7 @@ class User(Model, UserDataclass):
                  given_name: str | None = None,
                  credentials: str | None = None,
                  active: bool | None = None,
-                 inProject: Dict[QName, List[AdminPermission]] | None = None,
+                 inProject: Dict[QName, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[QName] | None = None):
         if userIri is None:
             userIri = AnyIRI(uuid.uuid4().urn)
