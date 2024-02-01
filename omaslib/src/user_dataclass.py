@@ -77,7 +77,7 @@ class UserDataclass:
         else:
             __inProject = {}
         if not isinstance(hasPermissions, ObservableSet):
-            hasPermissions = ObservableSet(hasPermissions, onChange=self.__hasPermission_cb)
+            hasPermissions = ObservableSet(hasPermissions, on_change=self.__hasPermission_cb)
         if credentials is not None:
             salt = bcrypt.gensalt()
             credentials = bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8')
@@ -165,16 +165,20 @@ class UserDataclass:
         if self.__fields[field] == value:
             return
         if self.__fields[field] is None:
-            self.__change_set[field] = UserFieldChange(None, Action.CREATE)
+            if self.__change_set.get(field) is None:
+                self.__change_set[field] = UserFieldChange(None, Action.CREATE)
         else:
             if value is None:
-                self.__change_set[field] = UserFieldChange(self.__fields[field], Action.DELETE)
+                if self.__change_set.get(field) is None:
+                    self.__change_set[field] = UserFieldChange(self.__fields[field], Action.DELETE)
             else:
-                self.__change_set[field] = UserFieldChange(self.__fields[field], Action.REPLACE)
+                if self.__change_set.get(field) is None:
+                    self.__change_set[field] = UserFieldChange(self.__fields[field], Action.REPLACE)
         self.__fields[field] = self.__datatypes[field](value)
 
-    def __hasPermission_cb(self, action: Action):
-        self.__change_set[UserFields.HAS_PERMISSIONS] = UserFieldChange(self.__fields[UserFields.HAS_PERMISSIONS].copy(), Action.MODIFY)
+    def __hasPermission_cb(self, oldset: ObservableSet):
+        if self.__change_set.get(UserFields.HAS_PERMISSIONS) is None:
+            self.__change_set[UserFields.HAS_PERMISSIONS] = UserFieldChange(oldset, Action.MODIFY)
 
     @property
     def creator(self) -> AnyIRI | None:
@@ -263,7 +267,9 @@ class UserDataclass:
         blank = ''
         sparql_list = []
         for field, change in self.__change_set.items():
-            sparql = f'{blank:{indent * indent_inc}}# User field "{field.value} with action {change.action.value}\n'
+            if field == UserFields.HAS_PERMISSIONS:
+                continue
+            sparql = f'{blank:{indent * indent_inc}}# User field "{field.value}" with action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
@@ -278,6 +284,29 @@ class UserDataclass:
             sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
+        if UserFields.HAS_PERMISSIONS in self.__change_set:
+            new_set = self.__fields[UserFields.HAS_PERMISSIONS]
+            old_set = self.__change_set[UserFields.HAS_PERMISSIONS].old_value
+            added = new_set - old_set
+            removed = old_set - new_set
+            sparql = f'{blank:{indent * indent_inc}}# User field "hasPermission"\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
+            if removed:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                for perm in removed:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user omas:hasPermissions {perm} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if added:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                for perm in added:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user omas:hasPermissions {perm} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.userIri)} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user a omas:User .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+
 
         return " ;\n".join(sparql_list)
 

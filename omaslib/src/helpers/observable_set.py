@@ -5,61 +5,79 @@ from pystrict import strict
 from omaslib.src.helpers.datatypes import Action
 
 
+
 @strict
 class ObservableSet(Set):
+    __on_change: Callable[[], None]
 
-    def __init__(self, items: Iterable | None = None, onChange: Callable[[Action], None] = None):
-        self.__onChange = onChange
-        if items is None:
+    def __init__(self, setitems: Iterable | None = None, on_change: Callable[[Self], None] = None):
+        self.__on_change = on_change
+        if setitems is None:
             super().__init__(set())
         else:
-            super().__init__(items)
+            super().__init__(setitems)
 
     def __repr__(self) -> str:
         l = [repr(x) for x in self]
         return ", ".join(l)
 
+    def __or__(self, other: Self) -> Self:
+        if isinstance(other, ObservableSet):
+            return ObservableSet(super().__or__(other))
+        return NotImplemented
+
+    def __ror__(self, other: Self) -> Self:
+        return self.__or__(other)
+
+    def __rsub__(self, other: Self) -> Self:
+        return self.__sub__(other)
+
+    def __sub__(self, other: Self) -> Self:
+        if isinstance(other, ObservableSet):
+            return ObservableSet(super().__sub__(other))
+        return NotImplemented
+
     def update(self, items: Iterable):
+        self.__on_change(self.copy())
         super().update(items)
-        self.__onChange(Action.MODIFY)
 
     def intersection_update(self, items: Iterable):
+        self.__on_change(self.copy())
         super().intersection_update(items)
-        self.__onChange(Action.MODIFY)
 
     def difference_update(self, items: Iterable):
+        self.__on_change(self.copy())
         super().difference_update(items)
-        self.__onChange(Action.MODIFY)
 
     def symmetric_difference_update(self, items: Iterable):
+        self.__on_change(self.copy())
         super().symmetric_difference_update(items)
-        self.__onChange(Action.MODIFY)
 
     def add(self, item: Any) -> None:
+        self.__on_change(self.copy())
         super().add(item)
-        self.__onChange(Action.MODIFY)
 
     def remove(self, item: Any) -> None:
+        self.__on_change(self.copy())
         super().remove(item)
-        self.__onChange(Action.MODIFY)
 
     def discard(self, item: Any):
+        self.__on_change(self.copy())
         super().discard(item)
-        self.__onChange(Action.DELETE)
 
     def pop(self):
+        self.__on_change(self.copy())
         super().pop()
-        self.__onChange(Action.DELETE)
 
     def clear(self) -> None:
+        self.__on_change(self.copy())
         super().clear()
-        self.__onChange(Action.DELETE)
 
     def copy(self) -> Self:
         return ObservableSet(super().copy())
 
     def _as_dict(self):
-        return {'set': list(self)}
+        return {'setitems': list(self)}
 
 
 if __name__ == '__main__':
