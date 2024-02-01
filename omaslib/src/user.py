@@ -179,7 +179,6 @@ class User(Model, UserDataclass):
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += self.sparql_update()
-        lprint(sparql)
         self._con.transaction_start()
         try:
             modtime = self.get_modified_by_iri(QName('omas:admin'), self.userIri)

@@ -147,7 +147,6 @@ class TestUser(unittest.TestCase):
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
         user2.userId = "aedison"
-        print("--------------------***>", user2.changeset)
         user2.familyName = "Edison et al."
         user2.givenName = "Thomas"
         user2.update()

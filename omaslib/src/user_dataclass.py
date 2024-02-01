@@ -237,7 +237,7 @@ class UserDataclass:
                 case 'dcterms:modified':
                     self.__modified = r['val']
                 case 'omas:userId':
-                    self.__fields[UserFields.USER_ID] = StringLiteral(r['val'])
+                    self.__fields[UserFields.USER_ID] = NCName(r['val'])
                 case 'foaf:familyName':
                     self.__fields[UserFields.FAMILY_NAME] = StringLiteral(r['val'])
                 case 'foaf:givenName':
