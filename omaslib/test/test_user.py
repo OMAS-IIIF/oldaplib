@@ -163,6 +163,7 @@ class TestUser(unittest.TestCase):
         user2.hasPermissions.add(QName('omas:GenericRestricted'))
         user2.hasPermissions.add(QName('omas:HyperHamletMember'))
         user2.hasPermissions.remove(QName('omas:GenericView'))
+        user2.inProject = {QName('omas:SystemProject'): {AdminPermission.ADMIN_USERS}}
         user2.update()
         user3 = User.read(con=self._connection, userId="aedison")
         self.assertEqual({'omas:GenericRestricted', 'omas:HyperHamletMember'}, user3.hasPermissions)

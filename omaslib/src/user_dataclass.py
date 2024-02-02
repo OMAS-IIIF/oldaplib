@@ -79,7 +79,7 @@ class UserDataclass:
         UserFields.GIVEN_NAME: str,
         UserFields.CREDENTIALS: str,
         UserFields.ACTIVE: bool,
-        UserFields.IN_PROJECT: InProjectType,
+        UserFields.IN_PROJECT: dict,
         UserFields.HAS_PERMISSIONS: ObservableSet[QName]
     }
 
@@ -237,18 +237,22 @@ class UserDataclass:
     def modified(self, value: datetime) -> None:
         self.__modified = value
 
-    def add_project_permission(self, project: QName, permission: AdminPermission) -> None:
+    def add_project_permission(self, project: QName, permission: AdminPermission | None) -> None:
         if self.__fields[UserFields.IN_PROJECT].get(str(project)) is None:
+            if self.__change_set.get(UserFields.IN_PROJECT) is None:
+                self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.CREATE)
             self.__fields[UserFields.IN_PROJECT][str(project)] = ObservableSet({permission})
         else:
+            if self.__change_set.get(UserFields.IN_PROJECT) is None:
+                self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.MODIFY)
             self.__fields[UserFields.IN_PROJECT][str(project)].add(permission)
 
-    def remove_project_permission(self, project: QName, permission: AdminPermission) -> None:
+    def remove_project_permission(self, project: QName, permission: AdminPermission | None) -> None:
         if self.__fields[UserFields.IN_PROJECT].get(str(project)) is None:
             raise OmasValueError(f"Project '{project}' does not exist")
-        
-
-
+        if self.__change_set.get(UserFields.IN_PROJECT) is None:
+            self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.MODIFY)
+        self.__fields[UserFields.IN_PROJECT][str(project)].remove(permission)
 
     @property
     def changeset(self) -> Dict[UserFields, UserFieldChange]:
