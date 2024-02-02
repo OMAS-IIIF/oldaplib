@@ -55,20 +55,20 @@ class TestUser(unittest.TestCase):
         }}))
         self.assertEqual(user.hasPermissions, {QName('omas:GenericView')})
 
-    @unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_read_user(self):
         user = User.read(con=self._connection, userId="rosenth")
         self.assertEqual(user.userId, NCName("rosenth"))
         self.assertEqual(user.userIri, "https://orcid.org/0000-0003-1681-4036")
         self.assertEqual(user.familyName, "Rosenthaler")
         self.assertEqual(user.givenName, "Lukas")
-        self.assertEqual(user.inProject, {
+        self.assertEqual(user.inProject, InProjectType({
                 QName("omas:SystemProject"): {AdminPermission.ADMIN_OLDAP},
                 QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
-        })
+        }))
         self.assertEqual(user.hasPermissions, {QName("omas:GenericRestricted"), QName('omas:GenericView')})
 
-    @unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_read_unknown_user(self):
         with self.assertRaises(OmasErrorNotFound) as ex:
             user = User.read(con=self._connection, userId="nosuchuser")
@@ -82,9 +82,9 @@ class TestUser(unittest.TestCase):
                     family_name="Coyote",
                     given_name="Wiley E.",
                     credentials="Super-Genius",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                            AdminPermission.ADMIN_RESOURCES,
-                                                            AdminPermission.ADMIN_CREATE}},
+                    inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                                         AdminPermission.ADMIN_RESOURCES,
+                                                                         AdminPermission.ADMIN_CREATE}}),
                     hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="coyote")
@@ -105,9 +105,9 @@ class TestUser(unittest.TestCase):
                      family_name="Brown",
                      given_name="Emmett",
                      credentials="Time-Machine@1985",
-                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                             AdminPermission.ADMIN_RESOURCES,
-                                                             AdminPermission.ADMIN_CREATE}},
+                     inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                                          AdminPermission.ADMIN_RESOURCES,
+                                                                          AdminPermission.ADMIN_CREATE}}),
                      hasPermissions={QName('omas:GenericView')})
         with self.assertRaises(OmasErrorAlreadyExists) as ex:
             user3.create()
@@ -117,14 +117,14 @@ class TestUser(unittest.TestCase):
                      family_name="Dock",
                      given_name="Donald",
                      credentials="Entenhausen@for&Ever",
-                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                             AdminPermission.ADMIN_RESOURCES,
-                                                             AdminPermission.ADMIN_CREATE}},
+                     inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                                          AdminPermission.ADMIN_RESOURCES,
+                                                                          AdminPermission.ADMIN_CREATE}}),
                      hasPermissions={QName('omas:GenericView'), QName('omas:Gaga')})
         with self.assertRaises(OmasValueError) as ex:
             user4.create()
 
-    @unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_delete_user(self):
         user = User(con=self._connection,
                     userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
@@ -132,9 +132,9 @@ class TestUser(unittest.TestCase):
                     family_name="Edison",
                     given_name="Thomas A.",
                     credentials="Lightbulb&Phonograph",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                            AdminPermission.ADMIN_RESOURCES,
-                                                            AdminPermission.ADMIN_CREATE}},
+                    inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                                         AdminPermission.ADMIN_RESOURCES,
+                                                                         AdminPermission.ADMIN_CREATE}}),
                     hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
@@ -144,7 +144,7 @@ class TestUser(unittest.TestCase):
             user = User.read(con=self._connection, userId="edison")
         self.assertEqual(str(ex.exception), 'User "edison" not found.')
 
-    @unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_update_user(self):
         user = User(con=self._connection,
                     userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
@@ -152,9 +152,9 @@ class TestUser(unittest.TestCase):
                     family_name="Edison",
                     given_name="Thomas A.",
                     credentials="Lightbulb&Phonograph",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                            AdminPermission.ADMIN_RESOURCES,
-                                                            AdminPermission.ADMIN_CREATE}},
+                    inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                                         AdminPermission.ADMIN_RESOURCES,
+                                                                         AdminPermission.ADMIN_CREATE}}),
                     hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
@@ -164,7 +164,7 @@ class TestUser(unittest.TestCase):
         user2.hasPermissions.add(QName('omas:GenericRestricted'))
         user2.hasPermissions.add(QName('omas:HyperHamletMember'))
         user2.hasPermissions.remove(QName('omas:GenericView'))
-        user2.inProject = {QName('omas:SystemProject'): {AdminPermission.ADMIN_USERS}}
+        user2.inProject[QName('omas:SystemProject')] = {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES}
         user2.update()
         user3 = User.read(con=self._connection, userId="aedison")
         self.assertEqual({'omas:GenericRestricted', 'omas:HyperHamletMember'}, user3.hasPermissions)

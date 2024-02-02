@@ -38,7 +38,6 @@ class InProjectType:
             self.__on_change(str(key), oldset) ## Action.MODIFY
 
     def __getitem__(self, key: QName | str) -> ObservableSet[AdminPermission]:
-        print("------->", key)
         return self.__data[str(key)]
 
     def __setitem__(self, key: QName | str, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
