@@ -65,7 +65,7 @@ class TestNCName(unittest.TestCase):
     def test_ncname(self):
         ncn1 = NCName('AnId0')
         self.assertEqual(str(ncn1), 'AnId0')
-        self.assertEqual(repr(ncn1), 'AnId0')
+        self.assertEqual(repr(ncn1), '"AnId0"^^xsd:NCName')
         ncn1a = ncn1 + 'X'
         self.assertEqual(str(ncn1a), 'AnId0X')
         ncn1a += 'Y'
