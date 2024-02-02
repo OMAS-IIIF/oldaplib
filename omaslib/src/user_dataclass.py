@@ -377,6 +377,11 @@ class UserDataclass:
                 """
                 ptest_len = len(added) if added else 0
 
+        if UserFields.IN_PROJECT in self.__change_set:
+            print("\nUPDATING IN_PROJECT...... Not Yet Implemented")
+            print("OLD: ", self.__change_set[UserFields.IN_PROJECT].old_value)
+            print("NEW: ", self.__fields[UserFields.IN_PROJECT])
+
         return ptest, ptest_len, " ;\n".join(sparql_list)
 
 
