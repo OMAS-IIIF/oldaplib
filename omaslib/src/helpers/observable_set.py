@@ -28,6 +28,9 @@ class ObservableSet(Set):
         l = [repr(x) for x in self]
         return ", ".join(l)
 
+    def __str__(self) -> str:
+        return super().__str__()
+
     def __or__(self, other: Self) -> Self:
         if isinstance(other, ObservableSet):
             return ObservableSet(super().__or__(other))
@@ -90,7 +93,7 @@ class ObservableSet(Set):
         super().clear()
 
     def copy(self) -> Self:
-        return ObservableSet(super().copy())
+        return ObservableSet(super().copy(), on_change=self.__on_change)
 
     def _as_dict(self):
         return {'setitems': list(self)}

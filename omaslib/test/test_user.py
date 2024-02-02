@@ -7,7 +7,7 @@ from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasValueError
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.user import User
-from omaslib.src.user_dataclass import InProjectType
+from omaslib.src.in_project import InProjectType
 
 
 class TestUser(unittest.TestCase):
@@ -165,6 +165,7 @@ class TestUser(unittest.TestCase):
         user2.hasPermissions.add(QName('omas:HyperHamletMember'))
         user2.hasPermissions.remove(QName('omas:GenericView'))
         user2.inProject[QName('omas:SystemProject')] = {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES}
+        user2.inProject[QName('omas:HyperHamlet')].remove(AdminPermission.ADMIN_USERS)
         user2.update()
         user3 = User.read(con=self._connection, userId="aedison")
         self.assertEqual({'omas:GenericRestricted', 'omas:HyperHamletMember'}, user3.hasPermissions)
@@ -172,6 +173,10 @@ class TestUser(unittest.TestCase):
         with self.assertRaises(OmasValueError) as ex:
             user3.update()
             self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
+        self.assertEqual(InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES,
+                                                                    AdminPermission.ADMIN_CREATE},
+                                        QName('omas:SystemProject'): {AdminPermission.ADMIN_USERS,
+                                                                      AdminPermission.ADMIN_RESOURCES}}), user3.inProject)
         user3.delete()
 
 

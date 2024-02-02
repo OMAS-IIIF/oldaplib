@@ -2,10 +2,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
 from functools import partial
-from typing import Dict, List, Self, Set, Tuple, Callable, Any, ItemsView, KeysView
+from typing import Dict, Self, Set, Tuple, Any
 
 import bcrypt
-from pystrict import strict
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action
@@ -14,64 +13,9 @@ from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasValueError
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
 from omaslib.src.helpers.serializer import serializer
+from omaslib.src.in_project import InProjectType
 
 # InProjectType = Dict[str, ObservableSet[AdminPermission]]
-
-
-@strict
-@serializer
-class InProjectType:
-    __data: Dict[str, ObservableSet[AdminPermission]]
-    __on_change: Callable[[str, ObservableSet[AdminPermission] | None], None]
-
-    def __init__(self,
-                 data: Dict[str | QName, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
-                 on_change: Callable[[str, ObservableSet[AdminPermission] | None], None] = None) -> None:
-        if data is not None:
-            self.__data = {str(key): ObservableSet(val, on_change=self.__on_set_changed, on_change_data=str(key)) for key, val in data.items()}
-        else:
-            self.__data = {}
-        self.__on_change = on_change
-
-    def __on_set_changed(self, oldset: ObservableSet[AdminPermission], key: QName | str):
-        if self.__on_change is not None:
-            self.__on_change(str(key), oldset) ## Action.MODIFY
-
-    def __getitem__(self, key: QName | str) -> ObservableSet[AdminPermission]:
-        return self.__data[str(key)]
-
-    def __setitem__(self, key: QName | str, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
-        if self.__data.get(str(key)) is None:
-            if self.__on_change is not None:
-                self.__on_change(str(key), None) ## Action.CREATE: Create a new inProject connection to a new project and add permissions
-        else:
-            if self.__on_change is not None:
-                self.__on_change(str(key), self.__data[str(key)].copy())  ## Action.REPLACE Replace all the permission of the given connection to a project
-        self.__data[key] = ObservableSet(value, on_change=self.__on_set_changed)
-
-    def __delitem__(self, key: QName | str) -> None:
-        if self.__data.get(str(key)) is not None:
-            if self.__on_change is not None:
-                self.__on_change(str(key), self.__data[str(key)].copy())  ## Action.DELETE
-            del self.__data[key]
-
-    def __eq__(self, other: Self) -> bool:
-        return self.__data == other.__data
-
-    def __ne__(self, other: Self) -> bool:
-        return self.__data != other.__data
-
-    def get(self, key: str | QName) -> ObservableSet[AdminPermission] | None:
-        return self.__data.get(str(key))
-
-    def items(self) -> ItemsView[str, ObservableSet[AdminPermission]]:
-        return self.__data.items()
-
-    def keys(self) -> KeysView:
-        return self.__data.keys()
-
-    def _as_dict(self) -> dict:
-        return self.__data
 
 
 UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectType | datetime | bool | None
@@ -254,7 +198,10 @@ class UserDataclass:
             self.__change_set[UserFields.HAS_PERMISSIONS] = UserFieldChange(oldset, Action.MODIFY)
 
     def __hasInProject_cb(self, key: str, old: ObservableSet[AdminPermission] | None = None) -> None:
-        print("\nKey=", key, "  old=", old)
+        if self.__change_set.get(UserFields.IN_PROJECT) is None:
+            old = self.__fields[UserFields.IN_PROJECT].copy()
+            self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(old, Action.MODIFY)
+        #print("\nKey=", key, "  old=", old)
 
     @property
     def creator(self) -> AnyIRI | None:
@@ -424,9 +371,65 @@ class UserDataclass:
                 ptest_len = len(added) if added else 0
 
         if UserFields.IN_PROJECT in self.__change_set:
-            print("\nUPDATING IN_PROJECT...... Not Yet Implemented")
-            print("OLD: ", self.__change_set[UserFields.IN_PROJECT].old_value)
-            print("NEW: ", self.__fields[UserFields.IN_PROJECT])
+            # first get all keys that must be added, that is that are in NEW but not in OLD:
+            addedprojs = self.__fields[UserFields.IN_PROJECT].keys() - self.__change_set[UserFields.IN_PROJECT].old_value.keys()
+            deletedprojs = self.__change_set[UserFields.IN_PROJECT].old_value.keys() - self.__fields[UserFields.IN_PROJECT].keys()
+            changedprojs = self.__fields[UserFields.IN_PROJECT].keys() & self.__change_set[UserFields.IN_PROJECT].old_value.keys()
+
+            # add projects
+            if addedprojs:
+                sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+                for proj in addedprojs:
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(self.userIri)} omas:inProject {proj} .\n'
+                    for perm in self.__fields[UserFields.IN_PROJECT][proj]:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                sparql_list.append(sparql)
+
+            # delete projects
+            if deletedprojs:
+                sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+                for proj in deletedprojs:
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(self.userIri)} omas:inProject {proj} .\n'
+                    for perm in self.__change_set[UserFields.IN_PROJECT].old_value[proj]:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                sparql_list.append(sparql)
+
+            if changedprojs:
+                doit = False
+                sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+                for proj in changedprojs:
+                    perms = self.__fields[UserFields.IN_PROJECT][proj] - self.__change_set[UserFields.IN_PROJECT].old_value[proj]
+                    for perm in perms:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        doit = True
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                if doit:
+                    sparql_list.append(sparql)
+
+                doit = False
+                sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+                for proj in changedprojs:
+                    perms = self.__change_set[UserFields.IN_PROJECT].old_value[proj] - self.__fields[UserFields.IN_PROJECT][proj]
+                    for perm in perms:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        doit = True
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                if doit:
+                    sparql_list.append(sparql)
+
+            #print("\nUPDATING IN_PROJECT...... Not Yet Implemented")
+            #print("OLD: ", self.__change_set[UserFields.IN_PROJECT].old_value)
+            #print("NEW: ", self.__fields[UserFields.IN_PROJECT])
 
         return ptest, ptest_len, " ;\n".join(sparql_list)
 
