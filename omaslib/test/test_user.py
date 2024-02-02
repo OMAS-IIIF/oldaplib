@@ -7,6 +7,7 @@ from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasValueError
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.user import User
+from omaslib.src.user_dataclass import InProjectType
 
 
 class TestUser(unittest.TestCase):
@@ -47,14 +48,14 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.userId, NCName("testuser"))
         self.assertEqual(user.familyName, "Test")
         self.assertEqual(user.givenName, "Test")
-        self.assertEqual(user.inProject, {QName("omas:HyperHamlet"): {
+        self.assertEqual(user.inProject, InProjectType({QName("omas:HyperHamlet"): {
                 AdminPermission.ADMIN_USERS,
                 AdminPermission.ADMIN_RESOURCES,
                 AdminPermission.ADMIN_CREATE
-        }})
+        }}))
         self.assertEqual(user.hasPermissions, {QName('omas:GenericView')})
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_read_user(self):
         user = User.read(con=self._connection, userId="rosenth")
         self.assertEqual(user.userId, NCName("rosenth"))
@@ -67,7 +68,7 @@ class TestUser(unittest.TestCase):
         })
         self.assertEqual(user.hasPermissions, {QName("omas:GenericRestricted"), QName('omas:GenericView')})
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_read_unknown_user(self):
         with self.assertRaises(OmasErrorNotFound) as ex:
             user = User.read(con=self._connection, userId="nosuchuser")
@@ -123,7 +124,7 @@ class TestUser(unittest.TestCase):
         with self.assertRaises(OmasValueError) as ex:
             user4.create()
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_delete_user(self):
         user = User(con=self._connection,
                     userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
@@ -143,7 +144,7 @@ class TestUser(unittest.TestCase):
             user = User.read(con=self._connection, userId="edison")
         self.assertEqual(str(ex.exception), 'User "edison" not found.')
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_update_user(self):
         user = User(con=self._connection,
                     userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
 from functools import partial
-from typing import Dict, List, Self, Set, Tuple, Callable, Any
+from typing import Dict, List, Self, Set, Tuple, Callable, Any, ItemsView, KeysView
 
 import bcrypt
 from pystrict import strict
@@ -15,42 +15,67 @@ from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor, StringLiteral
 from omaslib.src.helpers.serializer import serializer
 
-InProjectType = Dict[str, ObservableSet[AdminPermission]]
+# InProjectType = Dict[str, ObservableSet[AdminPermission]]
+
+
+@strict
+@serializer
+class InProjectType:
+    __data: Dict[str, ObservableSet[AdminPermission]]
+    __on_change: Callable[[str, ObservableSet[AdminPermission] | None], None]
+
+    def __init__(self,
+                 data: Dict[str | QName, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
+                 on_change: Callable[[str, ObservableSet[AdminPermission] | None], None] = None) -> None:
+        if data is not None:
+            self.__data = {str(key): ObservableSet(val, on_change=self.__on_set_changed, on_change_data=str(key)) for key, val in data.items()}
+        else:
+            self.__data = {}
+        self.__on_change = on_change
+
+    def __on_set_changed(self, oldset: ObservableSet[AdminPermission], key: QName | str):
+        if self.__on_change is not None:
+            self.__on_change(str(key), oldset) ## Action.MODIFY
+
+    def __getitem__(self, key: QName | str) -> ObservableSet[AdminPermission]:
+        print("------->", key)
+        return self.__data[str(key)]
+
+    def __setitem__(self, key: QName | str, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
+        if self.__data.get(str(key)) is None:
+            if self.__on_change is not None:
+                self.__on_change(str(key), None) ## Action.CREATE: Create a new inProject connection to a new project and add permissions
+        else:
+            if self.__on_change is not None:
+                self.__on_change(str(key), self.__data[str(key)].copy())  ## Action.REPLACE Replace all the permission of the given connection to a project
+        self.__data[key] = ObservableSet(value, on_change=self.__on_set_changed)
+
+    def __delitem__(self, key: QName | str) -> None:
+        if self.__data.get(str(key)) is not None:
+            if self.__on_change is not None:
+                self.__on_change(str(key), self.__data[str(key)].copy())  ## Action.DELETE
+            del self.__data[key]
+
+    def __eq__(self, other: Self) -> bool:
+        return self.__data == other.__data
+
+    def __ne__(self, other: Self) -> bool:
+        return self.__data != other.__data
+
+    def get(self, key: str | QName) -> ObservableSet[AdminPermission] | None:
+        return self.__data.get(str(key))
+
+    def items(self) -> ItemsView[str, ObservableSet[AdminPermission]]:
+        return self.__data.items()
+
+    def keys(self) -> KeysView:
+        return self.__data.keys()
+
+    def _as_dict(self) -> dict:
+        return self.__data
+
 
 UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectType | datetime | bool | None
-
-# @strict
-# @serializer
-# class InProjectType:
-#     __data: Dict[str, ObservableSet[AdminPermission]]
-#     __on_change: Callable[[str], None]
-#
-#     def __init__(self,
-#                  data: Dict[str, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
-#                  on_change: Callable[[str], None] = None) -> None:
-#         self.__data = {key: ObservableSet(val, on_change=self.__on_set_changed, data=key) for key, val in data.items()}
-#         self.__on_change = on_change
-#
-#     def __on_set_changed(self, oldset: ObservableSet[AdminPermission], key: str):
-#         self.__on_change(key) ## Action.MODIFY
-#
-#     def __getitem__(self, key: str) -> ObservableSet[AdminPermission]:
-#         return self.__data[key]
-#
-#     def __setitem__(self, key: str, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
-#         if self.__data.get(key) is None:
-#             self.__on_change(key) ## Action.CREATE
-#         else:
-#             self.__on_change(key)  ## Action.REPLACE
-#         self.__data[key] = ObservableSet(value, on_change=self.__on_set_changed)
-#
-#     def __delitem__(self, key: str) -> None:
-#         if self.__data.get(key) is not None:
-#             self.__on_change(key)  ## Action.DELETE
-#             del self.__data[key]
-#
-#     def get(self, key: str) -> ObservableSet[AdminPermission] | None:
-#         return self.__data.get(key)
 
 
 @dataclass
@@ -107,9 +132,9 @@ class UserDataclass:
                  hasPermissions: Set[QName] | None = None):
         self.__fields = {}
         if inProject:
-            __inProject = {str(key): val for key, val in inProject.items()}
+            inProjectTmp = InProjectType(inProject, self.__hasInProject_cb)
         else:
-            __inProject = {}
+            inProjectTmp = InProjectType()
         if not isinstance(hasPermissions, ObservableSet):
             hasPermissions = ObservableSet(hasPermissions, on_change=self.__hasPermission_cb)
         if credentials is not None:
@@ -126,7 +151,7 @@ class UserDataclass:
         self.__fields[UserFields.GIVEN_NAME] = StringLiteral(given_name)
         self.__fields[UserFields.CREDENTIALS] = StringLiteral(credentials)
         self.__fields[UserFields.ACTIVE] = bool(active)
-        self.__fields[UserFields.IN_PROJECT] = __inProject
+        self.__fields[UserFields.IN_PROJECT] = inProjectTmp
         self.__fields[UserFields.HAS_PERMISSIONS] = hasPermissions
         self.__change_set = {}
         #
@@ -211,11 +236,26 @@ class UserDataclass:
             else:
                 if self.__change_set.get(field) is None:
                     self.__change_set[field] = UserFieldChange(self.__fields[field], Action.REPLACE)
-        self.__fields[field] = self.__datatypes[field](value)
+        if value is None:
+            del self.__fields[field]
+            if field == UserFields.IN_PROJECT:
+                self.__fields[field] = InProjectType(on_change=self.__hasInProject_cb)
+            elif field == UserFields.HAS_PERMISSIONS:
+                self.__fields[field] = ObservableSet(on_change=self.__hasPermission_cb)
+        else:
+            if field == UserFields.IN_PROJECT:
+                self.__fields[field] = InProjectType(value, on_change=self.__hasInProject_cb)
+            elif field == UserFields.HAS_PERMISSIONS:
+                self.__fields[field] = ObservableSet(value, on_change=self.__hasPermission_cb)
+            else:
+                self.__fields[field] = self.__datatypes[field](value)
 
     def __hasPermission_cb(self, oldset: ObservableSet, data: Any = None) -> None:
         if self.__change_set.get(UserFields.HAS_PERMISSIONS) is None:
             self.__change_set[UserFields.HAS_PERMISSIONS] = UserFieldChange(oldset, Action.MODIFY)
+
+    def __hasInProject_cb(self, key: str, old: ObservableSet[AdminPermission] | None = None) -> None:
+        print("\nKey=", key, "  old=", old)
 
     @property
     def creator(self) -> AnyIRI | None:
@@ -283,6 +323,7 @@ class UserDataclass:
 
     def create_from_queryresult(self,
                                 queryresult: QueryProcessor):
+        in_project: Dict[str, Set[AdminPermission]] | None = None
         for r in queryresult:
             match str(r.get('prop')):
                 case 'dcterms:creator':
@@ -305,14 +346,20 @@ class UserDataclass:
                 case 'omas:isActive':
                     self.__fields[UserFields.ACTIVE] = r['val']
                 case 'omas:inProject':
-                    self.__fields[UserFields.IN_PROJECT] = {str(r['val']): ObservableSet()}
+                    in_project = {str(r['val']): set()}
+                    #self.__fields[UserFields.IN_PROJECT] = {str(r['val']): ObservableSet()}
                 case 'omas:hasPermissions':
                     self.__fields[UserFields.HAS_PERMISSIONS].add(r['val'])
                 case _:
                     if r.get('proj') and r.get('rval'):
-                        if self.__fields[UserFields.IN_PROJECT].get(str(r['proj'])) is None:
-                            self.__fields[UserFields.IN_PROJECT][str(r['proj'])] = ObservableSet()
-                        self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
+                        if in_project.get(str(r['proj'])) is None:
+                            in_project[str(r['proj'])] = set()
+                        in_project[str(r['proj'])].add(AdminPermission(str(r['rval'])))
+                        #if self.__fields[UserFields.IN_PROJECT].get(str(r['proj'])) is None:
+                        #    self.__fields[UserFields.IN_PROJECT][str(r['proj'])] = ObservableSet()
+                        #self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
+        if in_project:
+            self.__fields[UserFields.IN_PROJECT] = InProjectType(in_project, on_change=self.__hasInProject_cb)
         if not isinstance(self.__modified, datetime):
             raise Exception(f"Modified field is {type(self.__modified)} and not datetime!!!!")
         self.clear_changeset()
