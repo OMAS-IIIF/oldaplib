@@ -7,7 +7,7 @@ from omaslib.src.helpers.datatypes import QName
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.helpers.serializer import serializer
-
+import json
 
 @strict
 @serializer
@@ -73,4 +73,12 @@ class InProjectType:
         return self.__data.keys()
 
     def _as_dict(self) -> dict:
-        return self.__data
+        return {'data': self.__data}
+
+
+if __name__ == '__main__':
+    in_proj = InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}})
+    jsonstr = json.dumps(in_proj, default=serializer.encoder_default)
+    in_proj2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)

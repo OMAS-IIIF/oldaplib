@@ -353,6 +353,8 @@ class AnyIRI:
         if isinstance(value, AnyIRI):
             self._value = str(value)
         else:
+            if isinstance(value, str):
+                value = value.replace("<", "").replace(">", "")
             if not XsdValidator.validate(XsdDatatypes.anyURI, value):
                 raise OmasValueError(f'Invalid string "{value}" for anyIRI')
             self._value = value
