@@ -153,9 +153,9 @@ class DataModel(Model):
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:creator <{self._con.user_iri}> ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:creator <{self._con.userIri}> ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.user_iri}> ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.userIri}> ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
         sparql += '\n'
 
@@ -175,9 +175,9 @@ class DataModel(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:onto {{\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:creator <{self._con.user_iri}> ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:creator <{self._con.userIri}> ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:contributor <{self._con.user_iri}> ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:contributor <{self._con.userIri}> ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
         sparql += '\n'
 
@@ -198,9 +198,9 @@ class DataModel(Model):
             for resiri, resclass in self.__resclasses.items():
                 resclass.set_creation_metadata(timestamp=timestamp)
             self._con.transaction_commit()
-            self.__creator = self._con.user_iri
+            self.__creator = self._con.userIri
             self.__created = timestamp
-            self.__contributor = self._con.user_iri
+            self.__contributor = self._con.userIri
             self.__modified = timestamp
         except OmasError as err:
             self._con.transaction_abort()

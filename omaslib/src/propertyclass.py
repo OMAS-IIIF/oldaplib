@@ -554,9 +554,9 @@ class PropertyClass(Model, Notify):
         else:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.user_iri}>'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.userIri}>'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.user_iri}>'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         for prop, value in self._attributes.items():
             if prop == PropertyClassAttribute.PROPERTY_TYPE:
@@ -595,9 +595,9 @@ class PropertyClass(Model, Notify):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
         elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.user_iri}>'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.userIri}>'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.user_iri}>'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += ' .\n'
         return sparql
@@ -622,9 +622,9 @@ class PropertyClass(Model, Notify):
 
     def set_creation_metadata(self, timestamp: datetime):
         self.__created = timestamp
-        self.__creator = self._con.user_iri
+        self.__creator = self._con.userIri
         self.__modified = timestamp
-        self.__contributor = self._con.user_iri
+        self.__contributor = self._con.userIri
         self.__from_triplestore = True
 
     def create(self, *,
@@ -738,7 +738,7 @@ class PropertyClass(Model, Notify):
                                       graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.user_iri}>'),
+                                      ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.userIri}>'),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -815,7 +815,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor <{self.__contributor}>\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor <{self._con.user_iri}>\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor <{self._con.userIri}>\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
@@ -862,7 +862,7 @@ class PropertyClass(Model, Notify):
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
             self.__modified = timestamp
-            self.__contributor = self._con.user_iri
+            self.__contributor = self._con.userIri
             for prop, change in self._changeset.items():
                 if change.action == Action.MODIFY:
                     self._attributes[prop].changeset_clear()

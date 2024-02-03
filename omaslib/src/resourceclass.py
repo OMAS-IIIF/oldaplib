@@ -71,9 +71,9 @@ class ResourceClass(Model):
         super().__init__(con)
         self._graph = graph
         self._owlclass_iri = owlclass_iri
-        self.__creator = con.user_iri
+        self.__creator = con.userIri
         self.__created = None
-        self.__contributor = con.user_iri
+        self.__contributor = con.userIri
         self.__modified = None
         self.__version = SemanticVersion()
         self._attributes = {}
@@ -570,9 +570,9 @@ class ResourceClass(Model):
 
     def set_creation_metadata(self, timestamp: datetime):
         self.__created = timestamp
-        self.__creator = self._con.user_iri
+        self.__creator = self._con.userIri
         self.__modified = timestamp
-        self.__contributor = self._con.user_iri
+        self.__contributor = self._con.userIri
         self.__from_triplestore = True
 
 
@@ -682,7 +682,7 @@ class ResourceClass(Model):
         sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
                                      graph=self._graph,
                                      owlclass_iri=self._owlclass_iri,
-                                     ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.user_iri}>'),
+                                     ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.userIri}>'),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -757,7 +757,7 @@ class ResourceClass(Model):
         sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
                                     graph=self._graph,
                                     owlclass_iri=self._owlclass_iri,
-                                    ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.user_iri}>'),
+                                    ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.userIri}>'),
                                     last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -811,7 +811,7 @@ class ResourceClass(Model):
             self._con.transaction_commit()
             self.__changeset_clear()
             self.__modified = timestamp
-            self.__contributor = self._con.user_iri
+            self.__contributor = self._con.userIri
         else:
             self._con.transaction_abort()
             raise OmasErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')

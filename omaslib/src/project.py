@@ -42,9 +42,9 @@ class Project(Model):
                  start: Optional[date] = None,
                  end: Optional[date] = None):
         super().__init__(con)
-        self.__creator = con.user_iri
+        self.__creator = con.userIri
         self.__created = None
-        self.__contributor = con.user_iri
+        self.__contributor = con.userIri
         self.__modified = None
         self._namespaceIri = namespace_iri
         if not isinstance(short_name, NCName):
@@ -137,7 +137,7 @@ class Project(Model):
 if __name__ == "__main__":
     con = Connection(server='http://localhost:7200',
                      repo="omas",
-                     user_id="rosenth",
+                     userId="rosenth",
                      credentials="RioGrande",
                      context_name="DEFAULT")
     project = Project.read(con, NCName("system"))

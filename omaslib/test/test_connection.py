@@ -28,7 +28,7 @@ class TestBasicConnection(unittest.TestCase):
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="omas",
-                                     user_id="rosenth",
+                                     userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 
@@ -46,7 +46,7 @@ class TestBasicConnection(unittest.TestCase):
     def test_basic_connection(self):
         con = Connection(server='http://localhost:7200',
                          repo="omas",
-                         user_id="rosenth",
+                         userId="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         self.assertIsInstance(con, Connection)
@@ -57,7 +57,7 @@ class TestBasicConnection(unittest.TestCase):
         with self.assertRaises(OmasError) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
-                             user_id="rosenth",
+                             userId="rosenth",
                              credentials="XXX",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
@@ -66,7 +66,7 @@ class TestBasicConnection(unittest.TestCase):
         Connection.jwtkey = "This is a very special secret, yeah!"
         con = Connection(server='http://localhost:7200',
                          repo="omas",
-                         user_id="rosenth",
+                         userId="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         token = con.token
@@ -75,7 +75,7 @@ class TestBasicConnection(unittest.TestCase):
                          token=token,
                          context_name="DEFAULT")
         self.assertEqual(con.userid, "rosenth")
-        self.assertEqual(con.user_iri, AnyIRI("https://orcid.org/0000-0003-1681-4036"))
+        self.assertEqual(con.userIri, AnyIRI("https://orcid.org/0000-0003-1681-4036"))
 
         with self.assertRaises(OmasError) as ex:
             con = Connection(server='http://localhost:7200',
