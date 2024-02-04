@@ -1,3 +1,12 @@
+"""
+This module implements the UserDataclass class which can be used to represent all
+information about a user in the oldap universe.
+
+The class internally represents the properties of the given user in a hidden dict.
+The properties however can be accessed directly as if the class itself is a dict
+or using "virtual" properties which are implemented as dynamically created getter,
+setter and deleter methods.
+"""
 from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
@@ -23,11 +32,18 @@ UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] 
 
 @dataclass
 class UserFieldChange:
+    """
+    Used to represent the changes made to a field.
+    """
     old_value: UserFieldTypes
     action: Action
 
+
 @unique
 class UserFields(Enum):
+    """
+    Enumeration of user fields/properties.
+    """
     USER_IRI = 'omas:userIri'
     USER_ID = 'omas:userId'
     FAMILY_NAME = 'foaf:familyName'
@@ -40,6 +56,21 @@ class UserFields(Enum):
 
 @serializer
 class UserDataclass:
+    """
+    The UserDataclass class implements the main handling of the user data of an oldap user. The
+    UserDataclass class is the base class for the User class which implements the CRUD operations
+    with the RDF store. Therefore, the UserDataclass class does not inherit from model since it
+    does not need the connection instance. The class internally represents the properties of the
+    given user in a hidden dict. The properties however can be accessed directly as if the class
+    itself is a dict or using "virtual" properties which are implemented as dynamically created
+    getter, setter and deleter methods. The class implements the following methods:
+
+    - *UserDataclass(...)*: Constructor method for the class
+    - *str()*: String representation of the class for printing
+    - *add_project_permission(...)*: If the project does already exists, adds the given permission.
+      If the project does not exist, it also adds the project.
+    - *remove_project_permission(...)*: Removes the given permission
+    """
     __datatypes = {
         UserFields.USER_IRI: AnyIRI,
         UserFields.USER_ID: NCName,
@@ -73,6 +104,21 @@ class UserDataclass:
                  active: bool | None = None,
                  inProject: Dict[QName, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[QName] | None = None):
+        """
+        Constructs a new UserDataclass
+        :param creator: AnyIRI of the creator of this UserDataclass
+        :param created: datetime of the creation of this UserDataclass
+        :param contributor: AnyIRI of the contributor of this UserDataclass
+        :param modified: datetime of the modification of this UserDataclass
+        :param userIri: AnyIRI of the User to be used for this UserDataclass
+        :param userId: A unique identifier for the user (NCName, must be unique)
+        :param family_name: The foaf:family name of the User
+        :param given_name: The foaf:givenname of the User
+        :param credentials: The password
+        :param active: A boolean indicating if the user is active
+        :param inProject: an InProjectType instance for the project permissions of the user
+        :param hasPermissions: Set of Administrative Permissions for the user
+        """
         self.__fields = {}
         if inProject:
             inProjectTmp = InProjectType(inProject, self.__hasInProject_cb)
@@ -134,17 +180,17 @@ class UserDataclass:
         for proj, permissions in self.__fields[UserFields.IN_PROJECT].items():
             admin_permissions[str(proj)] = [str(x.value) for x in permissions]
         return \
-        f'Userdata for {repr(self.__fields[UserFields.USER_IRI])}:\n'\
-        f'  Creator: {self.__creator}\n' \
-        f'  Created at: {self.__created}\n' \
-        f'  Modified by: {self.__contributor}\n' \
-        f'  Modified at: {self.__modified}\n' \
-        f'  User id: {self.__fields[UserFields.USER_ID]}\n' \
-        f'  Family name: {self.__fields[UserFields.FAMILY_NAME]}\n' \
-        f'  Given name: {self.__fields[UserFields.GIVEN_NAME]}\n' \
-        f'  Active: {self.__fields[UserFields.ACTIVE]}\n' \
-        f'  In project: {admin_permissions}\n' \
-        f'  Has permissions: {self.__fields[UserFields.HAS_PERMISSIONS]}\n'
+            f'Userdata for {repr(self.__fields[UserFields.USER_IRI])}:\n' \
+            f'  Creator: {self.__creator}\n' \
+            f'  Created at: {self.__created}\n' \
+            f'  Modified by: {self.__contributor}\n' \
+            f'  Modified at: {self.__modified}\n' \
+            f'  User id: {self.__fields[UserFields.USER_ID]}\n' \
+            f'  Family name: {self.__fields[UserFields.FAMILY_NAME]}\n' \
+            f'  Given name: {self.__fields[UserFields.GIVEN_NAME]}\n' \
+            f'  Active: {self.__fields[UserFields.ACTIVE]}\n' \
+            f'  In project: {admin_permissions}\n' \
+            f'  Has permissions: {self.__fields[UserFields.HAS_PERMISSIONS]}\n'
 
     def __getitem__(self, item: UserFields) -> UserFieldTypes:
         return self.__fields.get(item)
@@ -159,11 +205,11 @@ class UserDataclass:
 
     def _as_dict(self) -> dict:
         return {
-                'userIri': repr(self.__fields.get(UserFields.USER_IRI)),
-                'userId': self.__fields[UserFields.USER_ID],
-                'active': self.__fields[UserFields.ACTIVE],
-                'hasPermissions': self.__fields[UserFields.HAS_PERMISSIONS],
-                'inProject': self.__fields[UserFields.IN_PROJECT]
+            'userIri': repr(self.__fields.get(UserFields.USER_IRI)),
+            'userId': self.__fields[UserFields.USER_ID],
+            'active': self.__fields[UserFields.ACTIVE],
+            'hasPermissions': self.__fields[UserFields.HAS_PERMISSIONS],
+            'inProject': self.__fields[UserFields.IN_PROJECT]
         }
 
     def __change_setter(self, field: UserFields, value: UserFieldTypes) -> None:
@@ -201,7 +247,6 @@ class UserDataclass:
         if self.__change_set.get(UserFields.IN_PROJECT) is None:
             old = self.__fields[UserFields.IN_PROJECT].copy()
             self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(old, Action.MODIFY)
-        #print("\nKey=", key, "  old=", old)
 
     @property
     def creator(self) -> AnyIRI | None:
@@ -267,8 +312,8 @@ class UserDataclass:
         """
         return sparql
 
-    def create_from_queryresult(self,
-                                queryresult: QueryProcessor):
+    def _create_from_queryresult(self,
+                                 queryresult: QueryProcessor):
         in_project: Dict[str, Set[AdminPermission]] | None = None
         for r in queryresult:
             match str(r.get('prop')):
@@ -293,7 +338,7 @@ class UserDataclass:
                     self.__fields[UserFields.ACTIVE] = r['val']
                 case 'omas:inProject':
                     in_project = {str(r['val']): set()}
-                    #self.__fields[UserFields.IN_PROJECT] = {str(r['val']): ObservableSet()}
+                    # self.__fields[UserFields.IN_PROJECT] = {str(r['val']): ObservableSet()}
                 case 'omas:hasPermissions':
                     self.__fields[UserFields.HAS_PERMISSIONS].add(r['val'])
                 case _:
@@ -301,16 +346,16 @@ class UserDataclass:
                         if in_project.get(str(r['proj'])) is None:
                             in_project[str(r['proj'])] = set()
                         in_project[str(r['proj'])].add(AdminPermission(str(r['rval'])))
-                        #if self.__fields[UserFields.IN_PROJECT].get(str(r['proj'])) is None:
+                        # if self.__fields[UserFields.IN_PROJECT].get(str(r['proj'])) is None:
                         #    self.__fields[UserFields.IN_PROJECT][str(r['proj'])] = ObservableSet()
-                        #self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
+                        # self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
         if in_project:
             self.__fields[UserFields.IN_PROJECT] = InProjectType(in_project, on_change=self.__hasInProject_cb)
         if not isinstance(self.__modified, datetime):
             raise Exception(f"Modified field is {type(self.__modified)} and not datetime!!!!")
         self.clear_changeset()
 
-    def sparql_update(self, indent: int = 0, indent_inc: int = 4) -> Tuple[str | None, int, str]:
+    def _sparql_update(self, indent: int = 0, indent_inc: int = 4) -> Tuple[str | None, int, str]:
         ptest = None
         ptest_len = 0
         blank = ''
@@ -427,9 +472,9 @@ class UserDataclass:
                 if doit:
                     sparql_list.append(sparql)
 
-            #print("\nUPDATING IN_PROJECT...... Not Yet Implemented")
-            #print("OLD: ", self.__change_set[UserFields.IN_PROJECT].old_value)
-            #print("NEW: ", self.__fields[UserFields.IN_PROJECT])
+            # print("\nUPDATING IN_PROJECT...... Not Yet Implemented")
+            # print("OLD: ", self.__change_set[UserFields.IN_PROJECT].old_value)
+            # print("NEW: ", self.__fields[UserFields.IN_PROJECT])
 
         return ptest, ptest_len, " ;\n".join(sparql_list)
 
@@ -442,7 +487,7 @@ if __name__ == "__main__":
         given_name="Thomas A.",
         credentials="Lightbulb&Phonograph",
         inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                AdminPermission.ADMIN_RESOURCES,
-                                                AdminPermission.ADMIN_CREATE}},
+                                               AdminPermission.ADMIN_RESOURCES,
+                                               AdminPermission.ADMIN_CREATE}},
         hasPermissions={QName('omas:GenericView')})
     print(user_dataclass.userId)

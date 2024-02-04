@@ -8,11 +8,13 @@ nav:
   - LangString: langstring.md
   - PropertyClass: propertyclass.md
   - Context: context.md
+  - UserDataclass: userdataclass.md
 
 theme: readthedocs
 
 plugins:
   - search
+  - autorefs
   - mkdocstrings:
       default_handler: python
       handlers:

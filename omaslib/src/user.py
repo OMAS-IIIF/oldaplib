@@ -1,6 +1,4 @@
-"""
-Ths class User
-"""
+
 import json
 import uuid
 from datetime import datetime
@@ -174,7 +172,7 @@ class User(Model, UserDataclass):
         if len(res) == 0:
             raise OmasErrorNotFound(f'User "{userId}" not found.')
         instance = cls(con=con)
-        instance.create_from_queryresult(res)
+        instance._create_from_queryresult(res)
         return instance
 
     def delete(self) -> None:
@@ -201,7 +199,7 @@ class User(Model, UserDataclass):
         timestamp = datetime.now()
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        ptest, ptest_len, tmpsparql = self.sparql_update()
+        ptest, ptest_len, tmpsparql = self._sparql_update()
         sparql += tmpsparql
         self._con.transaction_start()
         try:

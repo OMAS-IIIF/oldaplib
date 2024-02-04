@@ -174,7 +174,7 @@ class Connection:
         res = QueryProcessor(context=context, query_result=jsonobj)
 
         self.__userdata = UserDataclass()
-        self.__userdata.create_from_queryresult(queryresult=res)
+        self.__userdata._create_from_queryresult(queryresult=res)
         hashed = str(self.__userdata.credentials).encode('utf-8')
         if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
             raise OmasError("Wrong credentials")
