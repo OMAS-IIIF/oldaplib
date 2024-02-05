@@ -1,4 +1,15 @@
+"""
+# User class
 
+This module implements the Python representation of an OLDAP user. It offers methods to
+
+- create
+- read
+- update
+- delete
+
+a user from the triple store.
+"""
 import json
 import uuid
 from datetime import datetime
@@ -19,7 +30,10 @@ from omaslib.src.user_dataclass import UserDataclass
 
 @serializer
 class User(Model, UserDataclass):
-
+    """
+    The OLDAP user class is based on the [UserDataclass](/userdataclass#UserDataclass). It implements together with the UserDataclass
+    all the methods ot manage OLDAP users.
+    """
     def __init__(self, *,
                  con: Connection | None = None,
                  creator: AnyIRI | None = None,
@@ -34,6 +48,35 @@ class User(Model, UserDataclass):
                  active: bool | None = None,
                  inProject: Dict[QName, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[QName] | None = None):
+        """
+        Constructor for the User class
+        :param con: Connection instance
+        :type con: Connection | None
+        :param creator: AnyIRI of the creator
+        :type creator: AnyIRI | None
+        :param created: DateTime of the creation of the user
+        :type created: datetime | None
+        :param contributor: AnyIRI of the user that changed the given User instance
+        :type contributor: AnyIRI | None
+        :param modified: Modification of the User
+        :type modified: datetime
+        :param userIri: The IRI of the new user (e.g. the ORCID) If omitted, a unique urn: is created
+        :type userIri: AnyIRI | None
+        :param userId: The UserId that the user types in at login
+        :type userId: NCName | None
+        :param family_name: The foaf:familyName of the User to be created
+        :type family_name: str
+        :param given_name: The foaf:givenName of the User to be created
+        :type given_name: str
+        :param credentials: The initial credentials (password) of the user to be created
+        :type credentials: str
+        :param active: True if the user is active, False otherwise
+        :type active: bool
+        :param inProject: Membership and admin permissions the user has in the given projects
+        :type inProject: InProjectType
+        :param hasPermissions: Connection to permission sets
+        :type hasPermissions: PermissionSet
+        """
         if userIri is None:
             userIri = AnyIRI(uuid.uuid4().urn)
         Model.__init__(self, connection=con)
@@ -51,7 +94,17 @@ class User(Model, UserDataclass):
                                inProject=inProject,
                                hasPermissions=hasPermissions)
 
-    def create(self, indent: int = 0, indent_inc: int = 4) -> None:
+    def create(self) -> None:
+        """
+        Creates the given user in the triple store. Before the creation, the method checks if a
+        user with the given userID or userIri already exists and raises an exception.
+        :return: None
+        :raises OmasErrorAlreadyExists: User already exists
+        :raises OmasValueError: PermissionSet is not existing
+        :raises OmasError: Internal error
+        """
+        indent: int = 0
+        indent_inc: int = 4
         if self._con is None:
             raise OmasError("Cannot create: no connection")
         if self.userIri is None:
@@ -163,6 +216,15 @@ class User(Model, UserDataclass):
 
     @classmethod
     def read(cls, con: Connection, userId: NCName | str) -> Self:
+        """
+        Reads a User instance from the data in the triple store
+        :param con: Connection instance
+        :type con: Connection
+        :param userId: The userId of the user to be read
+        :type userId: NCName | str
+        :return: Self
+        :raises OmasErrorNotFound: Required user does ot exist
+        """
         if isinstance(userId, str):
             userId = NCName(userId)
 
@@ -176,6 +238,10 @@ class User(Model, UserDataclass):
         return instance
 
     def delete(self) -> None:
+        """
+        Delete the given user from the triple store
+        :return: None
+        """
         context = Context(name=self._con.context_name)
         blank = ''
         sparql = context.sparql_context
@@ -193,9 +259,17 @@ class User(Model, UserDataclass):
             ?user ?prop ?val .
         }} 
         """
+        # TODO: use transaction for error handling
         self._con.update_query(sparql)
 
     def update(self) -> None:
+        """
+        Update an existing user from the triple store
+        :return: None
+        :raises OmasErrorUpdateFailed: Updating user failed because user has been changed through race condition
+        :raises OmasValueError: A PermissionSet is not existing
+        :raises OmasError: An internal error occurred
+        """
         timestamp = datetime.now()
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context

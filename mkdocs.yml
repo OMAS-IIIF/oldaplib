@@ -5,10 +5,13 @@ nav:
   - About: index.md
   - Introduction: introduction.md
   - Permission Concept: permission_concept.md
-  - LangString: langstring.md
   - PropertyClass: propertyclass.md
-  - Context: context.md
-  - UserDataclass: userdataclass.md
+  - Python Documentation:
+      - Datatypes: datatypes.md
+      - Contex class: context.md
+      - LangString class: langstring.md
+      - UserDataclass class: userdataclass.md
+      - User class: user.md
 
 theme: readthedocs
 

@@ -1,4 +1,5 @@
 """
+# Datatypes
 This module implements common data classes that are used throughout the OMASLIB library
 
 * _NCName_: An XML NCName
@@ -30,16 +31,18 @@ class NCName:
 
     NCName is according to the XML datatype a "unqualified name". This class implements the
     following operations/methods:
-    * *Constructor*: NCName(<string>), NCName(<NCName>)
-    * " *+*: <NCName> + <string>
-    * " *+=*: <NCName> += <string>
-    * *repr()*: Get the representation of the NCName
-    * *str()*: Get the string representation of the NCName
-    * *==*: Compare a NCName to another NCName or string for equality
-    * *!=*: Compare a NCName to another NCName or string for inequality
-    * *hash()*: Get the hash of the NCName
-    * *prefix()*: Get the prefix of the NCName
-    * *fragment()*: Get the suffix of the NCName
+
+    - *Constructor*: NCName(string), NCName(NCName)
+    - *+*: NCName + string
+    - *+=*: NCName += string
+    - *repr()*: Get the representation of the NCName
+    - *str()*: Get the string representation of the NCName
+    - *==*: Compare a NCName to another NCName or string for equality
+    - *!=*: Compare a NCName to another NCName or string for inequality
+    - *hash()*: Get the hash of the NCName
+    - *prefix()*: Get the prefix of the NCName
+    - *fragment()*: Get the suffix of the NCName
+
     """
     _value: str
 
@@ -47,6 +50,7 @@ class NCName:
         """
         Initialize the NCName
         :param value: Either a string conforming to the QName syntax or a NCName
+        :type value: NCName | str
         """
         if isinstance(value, NCName):
             self._value = str(value)
@@ -59,6 +63,7 @@ class NCName:
         """
         Append a string (which must conform to the NCName restriction) to the NCName
         :param other: string or NCName to append
+        :type other: NCName | str
         :return: A *new* NCName with string appended
         """
         if isinstance(other, str):
@@ -72,8 +77,7 @@ class NCName:
         """
         Append a string to the NCName
         :param other: string to append to the NCName
-        :return:
-        """
+        :return: Self        """
         if isinstance(other, str):
             other = NCName(other)  # convert to NCName. Will raise OmasValueError if string does not conform to NCName form
         if isinstance(other, NCName):
@@ -134,15 +138,17 @@ class QName:
     A QName consists of a prefix (itelf a NCName) and a fragment (also itself a NCName) seperatet
     by a colon (":").
     The following methods are implemented:
-    * *Constructor*: Construct a QName from a QName, string (with a ":") or a prefix/fragment pair
-    * *len()*: Return the length of the QName, that is the number of characters of the string representation
-    * *repr()*: Return the Python representation of the QName
-    * *str()*: Return the string representation of the QName
-    * *==*: Test for equality
-    * *!=*: Test for inequality
-    * *hash()*: Return the hash of the QName
-    * *prefix*: Property for the prefix of the QName
-    * *fragment*: Property for the fragment of the QName
+
+    - *Constructor*: Construct a QName from a QName, string (with a ":") or a prefix/fragment pair
+    - *len()*: Return the length of the QName, that is the number of characters of the string representation
+    - *repr()*: Return the Python representation of the QName
+    - *str()*: Return the string representation of the QName
+    - *==*: Test for equality
+    - *!=*: Test for inequality
+    - *hash()*: Return the hash of the QName
+    - *prefix*: Property for the prefix of the QName
+    - *fragment*: Property for the fragment of the QName
+
     """
     _value: str
 
@@ -255,13 +261,14 @@ class QName:
 class BNode:
     """
     Represents a blank node in the triple store. The class has the following methods:
-    * *Constructor*: Initialize a blank node
-    * *str()*: Return the name of the blank node
-    * *repr()*: Return the Python representation of the blank node
-    * *==*: Test for equality of 2 blank nodes
-    * *!=*: Test for inequality of 2 blank nodes
-    * *hash()*: Return the hash of the blank node
-    * *value()*: Return the value of the blank node (same as str())
+
+    - *Constructor*: Initialize a blank node
+    - *str()*: Return the name of the blank node
+    - *repr()*: Return the Python representation of the blank node
+    - *==*: Test for equality of 2 blank nodes
+    - *!=*: Test for inequality of 2 blank nodes
+    - *hash()*: Return the hash of the blank node
+    - *value()*: Return the value of the blank node (same as str())
     """
     __value: str
 
@@ -328,18 +335,18 @@ class BNode:
 class AnyIRI:
     """
     Represents a generic IRI
-
     This class is used to represent a generic IRI. This class has the following methods:
-    * *Constructor()*: Constructor which initializes a AnyIRI instance
-    * *+*: Append a string or NCName to an AnyIRI instance
-    * *+=*: Append a string or NCName to an AnyIRI instance
-    * *repr()*: Returns the Python representation of the AnyIRI instance
-    * *str()*: Returns the string representation of the AnyIRI instance
-    * *==*: Tests for equality of 2 AnyIRI instances
-    * *!=*: Tests for inequality of 2 AnyIRI instances
-    * *hash()*: Returns the hash of the AnyIRI instance
-    * *len()*: Returns the number of characters in the string representation of the AnyIRI
-    * *append_allowed()*: Returns True if the AnyIRI instance allows appending a fragment, that is if it terminates
+
+    - *Constructor()*: Constructor which initializes a AnyIRI instance
+    - *+*: Append a string or NCName to an AnyIRI instance
+    - *+=*: Append a string or NCName to an AnyIRI instance
+    - *repr()*: Returns the Python representation of the AnyIRI instance
+    - *str()*: Returns the string representation of the AnyIRI instance
+    - *==*: Tests for equality of 2 AnyIRI instances
+    - *!=*: Tests for inequality of 2 AnyIRI instances
+    - *hash()*: Returns the hash of the AnyIRI instance
+    - *len()*: Returns the number of characters in the string representation of the AnyIRI
+    - *append_allowed()*: Returns True if the AnyIRI instance allows appending a fragment, that is if it terminates
       with a "#" or "/" character
     """
     _value: str

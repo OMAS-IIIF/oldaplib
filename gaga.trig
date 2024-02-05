@@ -1,0 +1,99 @@
+@PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@PREFIX owl: <http://www.w3.org/2002/07/owl#> .
+@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
+@PREFIX xml: <http://www.w3.org/XML/1998/namespace#> .
+@PREFIX sh: <http://www.w3.org/ns/shacl#> .
+@PREFIX skos: <http://www.w3.org/2004/02/skos/core#> .
+@PREFIX dc: <http://purl.org/dc/elements/1.1/> .
+@PREFIX dcterms: <http://purl.org/dc/terms/> .
+@PREFIX foaf: <http://xmlns.com/foaf/0.1/> .
+@PREFIX omas: <http://omas.org/base#> .
+@PREFIX test: <http://omas.org/test#> .
+@PREFIX dmtest: <http://omas.org/dmtest#> .
+test:shacl {
+    test:ProjectShape a sh:NodeShape, test:Project ;
+        sh:targetClass test:Project ;
+        dcterms:hasVersion "1.0.0" ;
+        dcterms:created "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        rdfs:label "Project"@en, "Projekt"@de ;
+        rdfs:comment "Definiton of a project"@en, "Definition eines Projektes"@de ;
+        sh:closed true ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] ;
+        sh:property
+            [
+                    # PropertyClass.property_node_shacl()
+                    sh:path test:projectId ;
+                    dcterms:hasVersion "1.0.0" ;
+                    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:created "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+                    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:modified "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+                    sh:datatype xsd:NCName ;
+                    sh:name "Project ID"@en, "Projekt ID"@de ;
+                    sh:description "Unique ID for project"@en, "Eindeutige ID für Projekt"@de ;
+                    sh:minCount 1 ;
+                    sh:languageIn ("fr" "de" "en" "it") ;
+                    sh:uniqueLang true ;
+                    sh:order 1 ;
+            ] ;
+        sh:property
+            [
+                    # PropertyClass.property_node_shacl()
+                    sh:path test:projectName ;
+                    dcterms:hasVersion "1.0.0" ;
+                    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:created "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+                    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:modified "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+                    sh:datatype xsd:string ;
+                    sh:name "Project name"@en, "Projektname"@de ;
+                    sh:description "A description of the project"@en, "EineBeschreibung des Projekts"@de ;
+                    sh:minCount 1 ;
+                    sh:languageIn ("fr" "de" "en" "it") ;
+                    sh:uniqueLang true ;
+                    sh:order 2 ;
+            ] .
+ ;
+}
+test:onto {
+        test:projectId rdf:type owl:DatatypeProperty ;
+            rdfs:domain test:Project ;
+            rdfs:range xsd:NCName ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2024-02-04T00:30:32.375083"^^xsd:dateTime .
+
+        test:projectName rdf:type owl:DatatypeProperty ;
+            rdfs:domain test:Project ;
+            rdfs:range xsd:string ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2024-02-04T00:30:32.375083"^^xsd:dateTime .
+
+        test:Project rdf:type owl:Class ;
+            dcterms:hasVersion "1.0.0" ;
+            dcterms:created "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2024-02-04T00:30:32.375083"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            rdfs:subClassOf
+                [
+                    rdf:type owl:Restriction ;
+                    owl:onProperty test:projectId ;
+                    owl:minCardinality 1 ;
+                ] ,
+                [
+                    rdf:type owl:Restriction ;
+                    owl:onProperty test:projectName ;
+                    owl:minCardinality 1 ;
+                ] .
+}
