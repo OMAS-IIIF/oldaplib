@@ -275,7 +275,8 @@ class BNode:
     def __init__(self, value: str) -> None:
         """
         Construct a blank node from its name
-        :param value:
+        :param value: Name/id of the blank node
+        :type value: str
         """
         self.__value = value
 
@@ -305,6 +306,7 @@ class BNode:
         """
         Test for inequality of two BNodes
         :param other: Any BNode to compare with
+        :type other: BNode
         :return: True or False
         """
         return self.__value != str(other)
@@ -317,6 +319,7 @@ class BNode:
         return hash(self.__value)
 
     def _as_dict(self):
+        """used for json serialization using serializer"""
         return {
             'value': self.__value
         }
@@ -326,6 +329,7 @@ class BNode:
         """
         Return the BNode's value (equivalent to str())
         :return: String representation of the BNode
+        :rtype: string
         """
         return self.__value
 
@@ -356,6 +360,7 @@ class AnyIRI:
         """
         Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI
         :param value: A string or another AnyIRI instance
+        :type value: AnyIRI | str
         """
         if isinstance(value, AnyIRI):
             self._value = str(value)
@@ -371,7 +376,9 @@ class AnyIRI:
         """
         Add a string/NCName to a AnyIRI
         :param other: A string/NCName to be appended to the AnyIRI
+        :type other: NCName | str
         :return: A new AnyIRI
+        :rtype: AnyIRI
         """
         if isinstance(other, str):
             other = NCName(other)
@@ -482,6 +489,11 @@ class NamespaceIRI(AnyIRI):
 class Action(Enum):
     """
     An Enumeration of the Actions that are supported on PropertyClass and ResourceClass attributes/restrictions
+
+    - `Action.CREATE` = 'create'
+    - `Action.MODIFY` = 'modify'
+    - `Action.REPLACE` = 'replace'
+    - `Action.DELETE` = 'delete'
     """
     CREATE = 'create'  # a new value has been added
     MODIFY = 'modify'  # a complex value (LangString, PropertyRestriction) has been modified

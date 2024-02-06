@@ -7,11 +7,13 @@ nav:
   - Permission Concept: permission_concept.md
   - PropertyClass: propertyclass.md
   - Python Documentation:
-      - Datatypes: datatypes.md
-      - Contex class: context.md
-      - LangString class: langstring.md
-      - UserDataclass class: userdataclass.md
-      - User class: user.md
+      - Language enum: python_docstrings/language.md
+      - Datatypes: python_docstrings/datatypes.md
+      - Contex class: python_docstrings/context.md
+      - LangString class: python_docstrings/langstring.md
+      - Property class: python_docstrings/propertyclass.md
+      - UserDataclass class: python_docstrings/userdataclass.md
+      - User class: python_docstrings/user.md
 
 theme: readthedocs
 

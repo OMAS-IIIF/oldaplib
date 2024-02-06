@@ -6,6 +6,16 @@ from omaslib.src.helpers.serializer import serializer
 @unique
 @serializer
 class Language(Enum):
+    """
+    Implements an Enum class for all ISO language. The form is as follows
+
+    - ...
+    - `Language.EN` = 'English'
+    - `Language.DE` = 'German'
+    - `Language.FR` = 'French'
+    - `Language.IT` = 'Italian'
+    - ...
+    """
     def _as_dict(self):
         return {"value": self.value }
 
