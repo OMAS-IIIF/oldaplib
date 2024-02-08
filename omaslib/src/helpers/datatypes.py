@@ -1,5 +1,6 @@
 """
 # Datatypes
+
 This module implements common data classes that are used throughout the OMASLIB library
 
 * _NCName_: An XML NCName
@@ -513,3 +514,11 @@ if __name__ == "__main__":
     print(json_repr)
     gugus = json.loads(json_repr, object_hook=serializer.decoder_hook)
     print(gugus)
+
+
+class StringLiteral(str):
+    """
+    A string literal is a supclass of str that implements a repr() function that includes the '"'.
+    """
+    def __repr__(self):
+        return f'"{self}"'

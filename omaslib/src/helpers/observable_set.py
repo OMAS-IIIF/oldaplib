@@ -1,3 +1,9 @@
+"""
+# Observalbe Set
+
+This module implements a set which is observable. That means, that a callback function/method may
+be given that is called whenever the set is changed (adding/removing of items)
+"""
 import json
 from typing import List, Callable, Any, Iterable, Set, Self
 
@@ -10,6 +16,11 @@ from omaslib.src.helpers.serializer import serializer
 @strict
 @serializer
 class ObservableSet(Set):
+    """
+    The ObservableSet class is a subclass of `Set` which allows the notification if the set is changed, that
+    is items are added or removed. For this purpose, a callback function can be added to the set which is
+    called whenever the set changes.
+    """
     __on_change: Callable[[Self, Any], None]
     __on_change_data: Any
 
@@ -17,6 +28,13 @@ class ObservableSet(Set):
                  setitems: Iterable | None = None,
                  on_change: Callable[[Self, Any], None] = None,
                  on_change_data: Any = None) -> None:
+        """
+        Constructor of the ObservableSet class
+
+        :param setitems: The items the ObservableSet will be initialized with
+        :param on_change: Callback function to be called when an item is added/removed
+        :param on_change_data: data supplied to the callback function
+        """
         self.__on_change = on_change
         self.__on_change_data = on_change_data
         if setitems is None:

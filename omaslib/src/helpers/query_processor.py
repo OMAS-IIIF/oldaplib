@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, time, date, timedelta
-from typing import List, Dict, Optional, Union, Self
+from typing import List, Dict, Optional, Self
 
 import isodate
 from isodate import Duration
@@ -9,15 +9,7 @@ from pystrict import strict
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName
 from omaslib.src.helpers.language import Language
-from omaslib.src.helpers.omaserror import OmasValueError
 from omaslib.src.helpers.serializer import serializer
-
-
-class StringLiteral(str):
-
-    def __repr__(self):
-        return f'"{self}"'
-
 
 
 @dataclass

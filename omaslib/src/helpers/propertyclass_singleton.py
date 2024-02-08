@@ -6,7 +6,7 @@ from omaslib.src.helpers.datatypes import QName
 class PropertyClassSingleton(type):
     """
     The idea for this class came from "https://stackoverflow.com/questions/3615565/python-get-constructor-to-return-an-existing-object-instead-of-a-new-one".
-    This class is used to create a singleton of the AppendOnlyLog class.
+    This class is used to create a singleton of the class.
     """
     def __call__(cls, *, property_class_iri: Optional[QName] = None, **kwargs):
         key = f'{property_class_iri}'

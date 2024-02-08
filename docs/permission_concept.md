@@ -1,5 +1,9 @@
 # OLDAP Permission Concept
 
+In OLDAP, not every user is allowed to do everything. A simple but efficient permission concept
+allows to control which user has which permission to modify the data in OLDAP. Basically the following
+permission structure is implemented:
+
 There are two kinds of permissions that have to be defined to OLDAP users:
 
 ## Administrative permissions

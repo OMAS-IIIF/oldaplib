@@ -21,16 +21,31 @@ class Notify:
     def __init__(self,
                  notifier: Optional[Callable[[Union[PropertyClassAttribute, ResourceClassAttribute, QName]], None]],
                  data: Union[PropertyClassAttribute, ResourceClassAttribute, QName, None] = None):
+        """
+        Constructor of the notifier. Usually, the notifier is only used a base class and not used directly.
+        :param notifier: The callable that is to be called by the subclass when an item is beeing chaged
+        :param data: Arbitrary data that will be given to the callback
+        """
         self._notifier = notifier
         self._data = data
 
     def set_notifier(self,
                      notifier: Callable[[Union[PropertyClassAttribute, ResourceClassAttribute, QName]], None],
                      data: Union[PropertyClassAttribute, ResourceClassAttribute, QName, None] = None) -> None:
+        """
+        Sets the notifier callback function and the data it should return...
+        :param notifier: A callable that is to be called by the subclass when an item changes
+        :param data: Data to be given to the callback
+        :return: None
+        """
         self._notifier = notifier
         self._data = data
 
     def notify(self) -> None:
+        """
+        Used to call the callback when an item is beeing modified
+        :return: None
+        """
         if self._notifier is not None:
             self._notifier(self._data)
 

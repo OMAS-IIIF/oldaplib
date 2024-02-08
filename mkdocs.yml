@@ -9,9 +9,11 @@ nav:
   - Python Documentation:
       - Language enum: python_docstrings/language.md
       - Datatypes: python_docstrings/datatypes.md
+      - XSD datatypes: python_docstrings/xsddatatypes.md
       - Contex class: python_docstrings/context.md
       - LangString class: python_docstrings/langstring.md
       - Property class: python_docstrings/propertyclass.md
+      - Property attribute class: python_docstrings/propertyclassattr.md
       - UserDataclass class: python_docstrings/userdataclass.md
       - User class: python_docstrings/user.md
 

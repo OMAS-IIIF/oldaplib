@@ -1,7 +1,29 @@
 # Introduction ot OMASLIB
 
 OMASLIB implements several Python Classes which can be used to build a consistent, project specific data model in RDF,
-usually implemented in a triplestore. OMASLIB has the following prerequisites:
+usually implemented in a triplestore. The following terms are important:
+
+- *Project* a project is any number of RDF statements that are associated with a certain topic/organisation
+  that is called *Project* within OLDAP. *Users" (see below) may be member of one or more projects.  
+  For each project, all data related RDF statements are collected in a *Named Graph* in the triple store.
+- *User* is person that is registered as user. It gets access by providing its credentials (currently a
+  password, but this may change in the future) on login. All Users have associated permissions which
+  are connected to the association with a project. These permissions called *administrative permissions*.
+- *Resources* are used to store data. All Resources are subclasses of `omas:Thing` which implements some
+  basic properties like creator, creation date etc. (see below).
+- *PermissionSet* is an entity that connects the resources to the user. A permission set holds the
+  "DataPermissions" that define the access to the resource.
+
+Data modeling relies on the notion of *property* and *resource* following the RDF standards.
+
+- *Resource* is the digital equivalent to a real world object or an abstract thing like an event, a location
+  etc. A Resource may have *properties* that define the properties of the subject.
+- *Property* is a predicate defining some data associated with the resource.
+
+In a datamodel, resources and properties are pre-defined and form the data model or *ontology* . Datamodels
+are specific to a given project. Each datamodel is stroed in 2 distinct named graphs.
+
+OMASLIB has the following prerequisites:
 
 ## Named Graphs in OMASLIB
 OMASLIB relies on the systematic use of **named graphs** which are used to separate the different areas and projects.

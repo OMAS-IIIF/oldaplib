@@ -1,4 +1,6 @@
 """
+# Context class
+
 Implementation of the context (aka prefixes for RDF-trig and SPARQL notation).
 
 Each context has a name. For each name, the contex instance is a *singleton* (which is implemented using
@@ -49,17 +51,17 @@ class Context(metaclass=ContextSingleton):
 
     The following methods are defined, In case of an error they raise an OmasError():
 
-    * *[] (aka getitem)*: Access a full IRI using the prefix, e.g. ```context['rdfs']```
-    * *[] (aka setitem)*: Set or modify a prefix/IRI pair, e.g. ```context['test'] = 'http://www.test.org/gaga#'```
-    * *del*: Delete an item, e.g. ```del context['skos']```
-    * *graphs*: Return list of graph names that should be used for sparql queries
-    * *use*: Add a graph name to the list for graph names that should be used for sparql queries
-    * *iri2qname()*: Convert a full IRI to a QNAME ('<prefix>:<name>'), e.g.
+    - *[] (aka getitem)*: Access a full IRI using the prefix, e.g. ```context['rdfs']```
+    - *[] (aka setitem)*: Set or modify a prefix/IRI pair, e.g. ```context['test'] = 'http://www.test.org/gaga#'```
+    - *del*: Delete an item, e.g. ```del context['skos']```
+    - *graphs*: Return list of graph names that should be used for sparql queries
+    - *use*: Add a graph name to the list for graph names that should be used for sparql queries
+    - *iri2qname()*: Convert a full IRI to a QNAME ('<prefix>:<name>'), e.g.
       ``context.iri2qname('http://www.w3.org/2000/01/rdf-schema#label')`` -> 'rdfs:label'
-    * _qname2iri()_: Convert a qname to a full IRI, e.g.
+    - _qname2iri()_: Convert a qname to a full IRI, e.g.
       ``context.qname2iri('rdfs:label')`` -> 'http://www.w3.org/2000/01/rdf-schema#label'
-    * *sparql_context*: Property that returns the context as sparql compatible string
-    * *turtle_context*: Property that return the context as turtle compatible string
+    - *sparql_context*: Property that returns the context as sparql compatible string
+    - *turtle_context*: Property that return the context as turtle compatible string
     """
     _name: str
     _context: Dict[NCName, NamespaceIRI]

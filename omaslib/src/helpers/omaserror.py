@@ -1,3 +1,6 @@
+"""
+This module implements the error clasees
+"""
 from pystrict import strict
 from traceback import format_exc
 
@@ -11,24 +14,39 @@ class OmasError(Exception):
 
 @strict
 class OmasValueError(OmasError):
+    """
+    Raised when an invalid value is passed/processed
+    """
     pass
 
 
 @strict
 class OmasErrorNotFound(OmasError):
+    """
+    Raised when something was not found
+    """
     pass
 
 
 @strict
 class OmasErrorAlreadyExists(OmasError):
+    """
+    Raised when something should be created which already exists
+    """
     pass
 
 
 @strict
 class OmasErrorInconsistency(OmasError):
+    """
+    Raised when an inconsistency is encountered
+    """
     pass
 
 
 @strict
 class OmasErrorUpdateFailed(OmasError):
+    """
+    Updating failed for some reason
+    """
     pass
