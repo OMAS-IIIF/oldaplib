@@ -10,7 +10,7 @@ from datetime import date, datetime
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasError, OmasValueError
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 from connection import Connection, SparqlResultFormat
@@ -48,7 +48,7 @@ class Project(Model):
         self.__modified = None
         self._namespaceIri = namespace_iri
         if not isinstance(short_name, NCName):
-            raise OmasValueError(f'Project ID {short_name} is not a NCName')
+            raise OmasErrorValue(f'Project ID {short_name} is not a NCName')
         self._project = short_name
         if name is not None:
             self._projectName = name if isinstance(name, LangString) else LangString(name)
@@ -74,7 +74,7 @@ class Project(Model):
         if self._projectIri is None:
             self._projectIri = qName
         else:
-            raise OmasValueError(f'')
+            raise OmasErrorValue(f'')
 
     def __str__(self) -> str:
         return (f'Project "{self._projectName}":\n  iri: {self._projectIri}\n'

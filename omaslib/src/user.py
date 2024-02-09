@@ -19,7 +19,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
-    OmasValueError
+    OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.serializer import serializer
@@ -200,7 +200,7 @@ class User(Model, UserDataclass):
         res = QueryProcessor(context, jsonobj)
         if len(res) != len(self.hasPermissions):
             self._con.transaction_abort()
-            raise OmasValueError("One of the permission sets is not existing!")
+            raise OmasErrorValue("One of the permission sets is not existing!")
 
         try:
             self._con.transaction_update(sparql)
@@ -291,7 +291,7 @@ class User(Model, UserDataclass):
             res = QueryProcessor(context, jsonobj)
             if len(res) != ptest_len:
                 self._con.transaction_abort()
-                raise OmasValueError("One of the permission sets is not existing!")
+                raise OmasErrorValue("One of the permission sets is not existing!")
         try:
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(QName('omas:admin'), self.userIri, self.modified, timestamp)

@@ -4,7 +4,7 @@ from time import sleep
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
-from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasValueError
+from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorValue
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.user import User
 from omaslib.src.in_project import InProjectType
@@ -121,7 +121,7 @@ class TestUser(unittest.TestCase):
                                                                           AdminPermission.ADMIN_RESOURCES,
                                                                           AdminPermission.ADMIN_CREATE}}),
                      hasPermissions={QName('omas:GenericView'), QName('omas:Gaga')})
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             user4.create()
 
     #@unittest.skip('Work in progress')
@@ -170,7 +170,7 @@ class TestUser(unittest.TestCase):
         user3 = User.read(con=self._connection, userId="aedison")
         self.assertEqual({'omas:GenericRestricted', 'omas:HyperHamletMember'}, user3.hasPermissions)
         user3.hasPermissions.add(QName('omas:DoesNotExist'))
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             user3.update()
             self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
         self.assertEqual(InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES,

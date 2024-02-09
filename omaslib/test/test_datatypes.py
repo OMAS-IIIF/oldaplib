@@ -1,7 +1,7 @@
 import unittest
 
 from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI, NCName
-from omaslib.src.helpers.omaserror import OmasValueError
+from omaslib.src.helpers.omaserror import OmasErrorValue
 
 
 class TestQname(unittest.TestCase):
@@ -21,12 +21,12 @@ class TestQname(unittest.TestCase):
         self.assertTrue(qn != qn2)
         qn += 'Shape'
         self.assertEqual(str(qn), 'prefix:nameShape')
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             qn4 = QName('2gaga')
         self.assertEqual(str(ex.exception), 'Invalid string "2gaga" for QName')
         qn5 = QName('xml:double')
         self.assertEqual(str(qn5), 'xml:double')
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             qn6 = QName('xml:2gaga')
         self.assertEqual(str(ex.exception), 'Invalid string "xml:2gaga" for QName. Error: Invalid string "2gaga" for NCName')
 
@@ -47,7 +47,7 @@ class TestAnyIRI(unittest.TestCase):
         iri2 += 'gaga'
         self.assertTrue(iri2 == iri3)
         self.assertEqual(hash(iri2), hash(iri3))
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             noiri = AnyIRI('waseliwas')
         self.assertEqual(str(ex.exception), 'Invalid string "waseliwas" for anyIRI')
 
@@ -56,7 +56,7 @@ class TestAnyIRI(unittest.TestCase):
         self.assertEqual(str(ns1), 'http://www.org/test/')
         ns2 = NamespaceIRI('http://www.org/test#')
         self.assertEqual(str(ns2), 'http://www.org/test#')
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             nons = NamespaceIRI('http://www.org/test')
         self.assertEqual(str(ex.exception), "NamespaceIRI must end with '/' or '#'!")
 
@@ -74,16 +74,16 @@ class TestNCName(unittest.TestCase):
         self.assertTrue(ncn1a == ncn1b)
         self.assertEqual(hash(ncn1a), hash(ncn1b))
         self.assertFalse(ncn1a != ncn1b)
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             ncn2 = NCName('0AnId')
         self.assertEqual(str(ex.exception), 'Invalid string "0AnId" for NCName')
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             ncn3 = NCName('An$Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An$Id" for NCName')
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             ncn4 = NCName('An:Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An:Id" for NCName')
-        with self.assertRaises(OmasValueError) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             ncn5 = NCName('An@Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An@Id" for NCName')
 

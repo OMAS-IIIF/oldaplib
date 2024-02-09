@@ -42,7 +42,7 @@ import bcrypt
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, StringLiteral
 from omaslib.src.helpers.observable_set import ObservableSet
-from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasValueError
+from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
@@ -340,7 +340,7 @@ class UserDataclass:
         :return:
         """
         if self.__fields[UserFields.IN_PROJECT].get(str(project)) is None:
-            raise OmasValueError(f"Project '{project}' does not exist")
+            raise OmasErrorValue(f"Project '{project}' does not exist")
         if self.__change_set.get(UserFields.IN_PROJECT) is None:
             self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.MODIFY)
         self.__fields[UserFields.IN_PROJECT][str(project)].remove(permission)

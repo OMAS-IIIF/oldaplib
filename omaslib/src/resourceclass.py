@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
 from pprint import pprint
-from typing import Union, Optional, List, Dict
+from typing import Union, Optional, List, Dict, Callable
 from pystrict import strict
 
 from omaslib.src.connection import Connection
+from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import QueryProcessor, OmasStringLiteral
@@ -41,7 +42,7 @@ class ResourceClassPropertyChange:
 
 
 @strict
-class ResourceClass(Model):
+class ResourceClass(Model, Notify):
     _graph: NCName
     _owlclass_iri: Union[QName, None]
     _attributes: ResourceClassAttributesContainer
@@ -67,8 +68,11 @@ class ResourceClass(Model):
                  graph: NCName,
                  owlclass_iri: Optional[QName] = None,
                  attrs: Optional[ResourceClassAttributesContainer] = None,
-                 properties: Optional[List[Union[PropertyClass, QName]]] = None):
-        super().__init__(con)
+                 properties: Optional[List[Union[PropertyClass, QName]]] = None,
+                 notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
+                 notify_data: Optional[PropertyClassAttribute] = None):
+        Model.__init__(self, con)
+        Notify.__init__(self, notifier, notify_data)
         self._graph = graph
         self._owlclass_iri = owlclass_iri
         self.__creator = con.userIri
@@ -224,7 +228,7 @@ class ResourceClass(Model):
             s += f'{blank:{indent*2}}{qname} = {prop}\n'
         return s
 
-    def __changeset_clear(self) -> None:
+    def changeset_clear(self) -> None:
         for attr, change in self._attr_changeset.items():
             if change.action == Action.MODIFY:
                 self._attributes[attr].changeset_clear()
@@ -234,7 +238,7 @@ class ResourceClass(Model):
                 self._properties[prop].changeset_clear()
         self._prop_changeset = {}
 
-    def notifier(self, what: Union[ResourceClassAttribute, QName]):
+    def notifier(self, what: ResourceClassAttribute | QName):
         if isinstance(what, ResourceClassAttribute):
             self._attr_changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
         elif isinstance(what, QName):
@@ -809,7 +813,7 @@ class ResourceClass(Model):
         modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
-            self.__changeset_clear()
+            self.changeset_clear()
             self.__modified = timestamp
             self.__contributor = self._con.userIri
         else:

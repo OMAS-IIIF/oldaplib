@@ -13,7 +13,7 @@ class OmasError(Exception):
 
 
 @strict
-class OmasValueError(OmasError):
+class OmasErrorValue(OmasError):
     """
     Raised when an invalid value is passed/processed
     """

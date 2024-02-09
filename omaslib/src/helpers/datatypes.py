@@ -18,7 +18,7 @@ from enum import Enum, unique
 from typing import Any, Self, Optional, Dict
 from pystrict import strict
 
-from omaslib.src.helpers.omaserror import OmasValueError
+from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
@@ -57,7 +57,7 @@ class NCName:
             self._value = str(value)
         else:
             if not XsdValidator.validate(XsdDatatypes.NCName, value):
-                raise OmasValueError(f'Invalid string "{value}" for NCName')
+                raise OmasErrorValue(f'Invalid string "{value}" for NCName')
             self._value = value
 
     def __add__(self, other: Self | str) -> Self:
@@ -72,7 +72,7 @@ class NCName:
         if isinstance(other, NCName):
             return NCName(self._value + str(other))
         else:
-            raise OmasValueError("Can only add a string or a NCName to a NCName")
+            raise OmasErrorValue("Can only add a string or a NCName to a NCName")
 
     def __iadd__(self, other: Self | str) -> Self:
         """
@@ -85,7 +85,7 @@ class NCName:
             self._value += str(other)
             return self
         else:
-            raise OmasValueError("Can only add a string to NCName")
+            raise OmasErrorValue("Can only add a string to NCName")
 
     def __repr__(self) -> str:
         """
@@ -166,15 +166,15 @@ class QName:
                 try:
                     prefix, fragment = value.split(':')
                 except ValueError as err:
-                    raise OmasValueError(f'Invalid string "{value}" for QName')
+                    raise OmasErrorValue(f'Invalid string "{value}" for QName')
                 try:
                     prefix = NCName(prefix)
                     fragment = NCName(fragment)
-                except OmasValueError as err:
-                    raise OmasValueError(f'Invalid string "{value}" for QName. Error: {err}')
+                except OmasErrorValue as err:
+                    raise OmasErrorValue(f'Invalid string "{value}" for QName. Error: {err}')
                 self._value = f'{prefix}:{fragment}'
             else:
-                raise OmasValueError(f'Invalid value for QName "{value}"')
+                raise OmasErrorValue(f'Invalid value for QName "{value}"')
         else:
             prefix = NCName(value)
             fragment = NCName(fragment)
@@ -369,7 +369,7 @@ class AnyIRI:
             if isinstance(value, str):
                 value = value.replace("<", "").replace(">", "")
             if not XsdValidator.validate(XsdDatatypes.anyURI, value):
-                raise OmasValueError(f'Invalid string "{value}" for anyIRI')
+                raise OmasErrorValue(f'Invalid string "{value}" for anyIRI')
             self._value = value
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 
@@ -387,7 +387,7 @@ class AnyIRI:
         if isinstance(other, NCName):
             return AnyIRI(self._value + str(other))
         else:
-            return OmasValueError(f'Cannot add "{other}" to AnyIRI')
+            return OmasErrorValue(f'Cannot add "{other}" to AnyIRI')
 
     def __iadd__(self, other: str | NCName) -> Self:
         """
@@ -400,7 +400,7 @@ class AnyIRI:
         if isinstance(other, NCName):
             self._value += str(other)
         else:
-            raise OmasValueError(f'Cannot add "{other}" to AnyIRI')
+            raise OmasErrorValue(f'Cannot add "{other}" to AnyIRI')
         return self
 
     def __repr__(self) -> str:
@@ -477,7 +477,7 @@ class NamespaceIRI(AnyIRI):
         """
         super().__init__(value)
         if not self._append_allowed:
-            raise OmasValueError("NamespaceIRI must end with '/' or '#'!")
+            raise OmasErrorValue("NamespaceIRI must end with '/' or '#'!")
 
     # def _as_dict(self) -> Dict[str, str]:
     #     return {
