@@ -115,10 +115,10 @@ class DataModel(Model):
         self.__resclasses_changeset = {}
 
     def notifier(self, what: QName) -> None:
-        if what in self.__resclasses:
-            self.__resclasses[what].update()
+        if what in self.__propclasses:
+            self.__propclasses_changeset[what] = PropertyClassChange(None, Action.MODIFY)
         elif what in self.__resclasses:
-            self.__resclasses[what].update()
+            self.__resclasses_changeset[what] = ResourceClassChange(None, Action.MODIFY)
         else:
             raise OmasErrorInconsistency(f'No resclass or property "{what}" in datamodel.')
 
@@ -180,7 +180,7 @@ class DataModel(Model):
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
             propclass = PropertyClass.read(con, graph, QName(propclassiri))
-            propclass.set_notifier(cls.notifier, propclass.property_class_iri)
+            #propclass.set_notifier(cls.notifier, propclass.property_class_iri)
             propclasses.append(propclass)
         #
         # now get all resources defined in the data model
@@ -200,9 +200,14 @@ class DataModel(Model):
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
             resclass = ResourceClass.read(con, graph, QName(resclassiri))
-            resclass.set_notifier(cls.notifier, QName(resclass.owl_class_iri))
+            #resclass.set_notifier(cls.notifier, QName(resclass.owl_class_iri))
             resclasses.append(resclass)
-        return cls(graph=graph, con=con, propclasses=propclasses, resclasses=resclasses)
+        instance = cls(graph=graph, con=con, propclasses=propclasses, resclasses=resclasses)
+        for qname in instance.get_propclasses():
+            instance[qname].set_notifier(instance.notifier, qname)
+        for qname in instance.get_resclasses():
+            instance[qname].set_notifier(instance.notifier, qname)
+        return instance
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         timestamp = datetime.now()

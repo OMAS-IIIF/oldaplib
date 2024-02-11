@@ -47,7 +47,5 @@ class Notify:
         :return: None
         """
         if self._notifier is not None:
-            print("???????????>>>>>", self._notifier, self._data)
             self._notifier(self._data)
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!¨")
 

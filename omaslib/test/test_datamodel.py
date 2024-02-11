@@ -3,7 +3,7 @@ from pprint import pprint
 from time import sleep
 
 from omaslib.src.connection import Connection
-from omaslib.src.datamodel import DataModel, PropertyClassChange
+from omaslib.src.datamodel import DataModel, PropertyClassChange, ResourceClassChange
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, Action
 from omaslib.src.helpers.langstring import LangString
@@ -159,7 +159,7 @@ class TestDataModel(unittest.TestCase):
                        resclasses=[book, page])
         return dm
 
-    @unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_datamodel_constructor(self):
         props = {}
 
@@ -312,7 +312,7 @@ class TestDataModel(unittest.TestCase):
         self.assertIsNone(r2p3.internal)
         self.assertEqual(r2p3[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
 
-    @unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
         self.assertTrue(set(model.get_propclasses()) == {
@@ -360,6 +360,47 @@ class TestDataModel(unittest.TestCase):
         dm[QName(f'{dm_name}:pubYear')] = pubyear
         self.assertEqual({QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE)}, dm.changeset)
 
-        print("\n=====>", dm[QName(f'{dm_name}:comment')]._data)
         dm[QName(f'{dm_name}:comment')][PropertyClassAttribute.NAME][Language.FR] = 'Commentaire'
-        print(dm.changeset)
+        self.assertEqual({
+            QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
+            QName(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY)
+        }, dm.changeset)
+
+        dm[QName(f'{dm_name}:Book')][QName(f'{dm_name}:authors')][PropertyClassAttribute.NAME][Language.FR] = "Ecrivain(s)"
+        self.assertEqual({
+            QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
+            QName(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
+            QName(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY)
+        }, dm.changeset)
+
+        del dm[QName(f'{dm_name}:Page')][QName(f'{dm_name}:comment')]
+
+        self.assertEqual({
+            QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
+            QName(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
+            QName(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY),
+            QName(f'{dm_name}:Page'): ResourceClassChange(None, Action.MODIFY)
+        }, dm.changeset)
+
+        attrs: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
+            PropertyClassAttribute.NAME: LangString(["Page name@en", "Seitenbezeichnung@de"]),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.MAX_COUNT: 1,
+                    PropertyRestrictionType.MIN_COUNT: 1,
+                }),
+        }
+        pagename = PropertyClass(con=self._connection,
+                                graph=dm_name,
+                                property_class_iri=QName(f'{dm_name}:pageName'),
+                                attrs=attrs)
+
+        dm[QName(f'{dm_name}:Page')][QName(f'{dm_name}:pageName')] = pagename
+        self.assertEqual({
+            QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
+            QName(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
+            QName(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY),
+            QName(f'{dm_name}:Page'): ResourceClassChange(None, Action.MODIFY)
+        }, dm.changeset)
+
