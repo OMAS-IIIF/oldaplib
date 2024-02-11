@@ -168,6 +168,7 @@ class ResourceClass(Model, Notify):
                     value._internal = self._owlclass_iri  # we need to access the private variable here
                     value._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
+        self.notify()
 
     def __delitem__(self, key: Union[ResourceClassAttribute, QName]) -> None:
         if type(key) not in {ResourceClassAttribute, QName}:
@@ -184,6 +185,7 @@ class ResourceClass(Model, Notify):
             else:
                 self._prop_changeset[key] = ResourceClassPropertyChange(self._prop_changeset[key].old_value, Action.DELETE, False)
             del self._properties[key]
+        self.notify()
 
     @property
     def owl_class_iri(self) -> QName:
@@ -243,6 +245,7 @@ class ResourceClass(Model, Notify):
             self._attr_changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
         elif isinstance(what, QName):
             self._prop_changeset[what] = ResourceClassPropertyChange(None, Action.MODIFY, True)
+        self.notify()
 
     @property
     def in_use(self) -> bool:

@@ -43,9 +43,11 @@ class Notify:
 
     def notify(self) -> None:
         """
-        Used to call the callback when an item is beeing modified
+        Used to call the callback when an item is being modified
         :return: None
         """
         if self._notifier is not None:
+            print("???????????>>>>>", self._notifier, self._data)
             self._notifier(self._data)
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!¨")
 

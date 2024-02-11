@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from pprint import pprint
@@ -54,6 +55,7 @@ class DataModel(Model):
         if resclasses is not None:
             for r in resclasses:
                 self.__resclasses[r.owl_class_iri] = r
+        self.__propclasses_changeset = {}
         self.__resclasses_changeset = {}
 
     def __getitem__(self, key: QName) -> Union[PropertyClass, ResourceClass]:
@@ -69,25 +71,38 @@ class DataModel(Model):
             if self.__propclasses.get(key) is None:
                 self.__propclasses_changeset[key] = PropertyClassChange(None, Action.CREATE)
             else:
-                # here a deepcopy of current value to old value....
-                self.__propclasses_changeset[key] = PropertyClassChange(None, Action.MODIFY)
+                old_value = deepcopy(self.__propclasses[key])
+                self.__propclasses_changeset[key] = PropertyClassChange(old_value, Action.MODIFY)
             self.__propclasses[key] = value
         elif isinstance(value, ResourceClass):
+            if self.__resclasses.get(key) is None:
+                self.__resclasses_changeset[key] = ResourceClassChange(None, Action.CREATE)
+            else:
+                old_value = deepcopy(self.__resclasses[key])
+                self.__resclasses_changeset[key] = ResourceClassChange(old_value, Action.MODIFY)
             self.__resclasses[key] = value
         else:
             raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass (is "{type(value)}")')
 
+    def __delitem__(self, key: QName) -> None:
+        if key in self.__propclasses:
+            self.__propclasses_changeset[key] = PropertyClassChange(self.__propclasses[key], Action.DELETE)
+            del self.__propclasses[key]
+        elif key in self.__resclasses:
+            self.__resclasses_changeset[key] = ResourceClassChange(self.__resclasses[key], Action.DELETE)
+            del self.__resclasses[key]
+        else:
+            raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
+
     def get_propclasses(self) -> List[QName]:
         return [x for x in self.__propclasses]
-
-    def get_propclass(self, propclass_iri: QName) -> Union[PropertyClass, None]:
-        return self.__propclasses.get(propclass_iri)
 
     def get_resclasses(self) -> List[QName]:
         return [x for x in self.__resclasses]
 
-    def get_resclass(self, resclass_iri: QName) -> Union[ResourceClass, None]:
-        return self.__resclasses.get(resclass_iri)
+    @property
+    def changeset(self) -> Dict[QName, PropertyClassChange | ResourceClassChange]:
+        return self.__resclasses_changeset | self.__propclasses_changeset
 
     def changeset_clear(self) -> None:
         for prop, change in self.__propclasses_changeset.items():
@@ -99,7 +114,7 @@ class DataModel(Model):
                 self.__resclasses[res].changeset_clear()
         self.__resclasses_changeset = {}
 
-    def __notifier(self, what: QName) -> None:
+    def notifier(self, what: QName) -> None:
         if what in self.__resclasses:
             self.__resclasses[what].update()
         elif what in self.__resclasses:
@@ -165,7 +180,7 @@ class DataModel(Model):
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
             propclass = PropertyClass.read(con, graph, QName(propclassiri))
-            propclass.set_notifier(cls.__notifier, propclass.property_class_iri)
+            propclass.set_notifier(cls.notifier, propclass.property_class_iri)
             propclasses.append(propclass)
         #
         # now get all resources defined in the data model
@@ -185,7 +200,7 @@ class DataModel(Model):
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
             resclass = ResourceClass.read(con, graph, QName(resclassiri))
-            resclass.set_notifier(cls.__notifier, QName(resclass.owl_class_iri))
+            resclass.set_notifier(cls.notifier, QName(resclass.owl_class_iri))
             resclasses.append(resclass)
         return cls(graph=graph, con=con, propclasses=propclasses, resclasses=resclasses)
 
@@ -251,5 +266,9 @@ class DataModel(Model):
         except OmasError as err:
             self._con.transaction_abort()
             raise
+
+    def update(self):
+        pass
+
 
 
