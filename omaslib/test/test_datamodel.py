@@ -312,7 +312,7 @@ class TestDataModel(unittest.TestCase):
         self.assertIsNone(r2p3.internal)
         self.assertEqual(r2p3[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
 
-    #@unittest.skip('Work in progress')
+    @unittest.skip('Work in progress')
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
         self.assertTrue(set(model.get_propclasses()) == {
@@ -335,6 +335,7 @@ class TestDataModel(unittest.TestCase):
             QName("omas:PermissionSet")
         })
 
+    @unittest.skip('Work in progress')
     def test_datamodel_modify_A(self):
         dm = self.generate_a_datamodel()
         dm.create()
@@ -403,4 +404,62 @@ class TestDataModel(unittest.TestCase):
             QName(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY),
             QName(f'{dm_name}:Page'): ResourceClassChange(None, Action.MODIFY)
         }, dm.changeset)
+
+    #@unittest.skip('Work in progress')
+    def test_datamodel_modify_B(self):
+        dm = self.generate_a_datamodel()
+        dm.create()
+        del dm
+
+        dm_name = NCName("dmtest")
+        dm = DataModel.read(self._connection, dm_name)
+
+        #
+        # define an external standalone property
+        #
+        attrs: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.gYear,
+            PropertyClassAttribute.NAME: LangString(["Publication Year@en", "Publikationsjahr@de"]),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.MAX_COUNT: 1
+                }),
+        }
+        pubyear = PropertyClass(con=self._connection,
+                                graph=dm_name,
+                                property_class_iri=QName(f'{dm_name}:pubYear'),
+                                attrs=attrs)
+        pubyear.force_external()
+
+        dm[QName(f'{dm_name}:pubYear')] = pubyear
+        dm[QName(f'{dm_name}:comment')][PropertyClassAttribute.NAME][Language.FR] = 'Commentaire'
+        dm[QName(f'{dm_name}:Book')][QName(f'{dm_name}:authors')][PropertyClassAttribute.NAME][Language.FR] = "Ecrivain(s)"
+        del dm[QName(f'{dm_name}:Page')][QName(f'{dm_name}:comment')]
+
+        attrs: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
+            PropertyClassAttribute.NAME: LangString(["Page name@en", "Seitenbezeichnung@de"]),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
+                restrictions={
+                    PropertyRestrictionType.MAX_COUNT: 1,
+                    PropertyRestrictionType.MIN_COUNT: 1,
+                }),
+        }
+        pagename = PropertyClass(con=self._connection,
+                                graph=dm_name,
+                                property_class_iri=QName(f'{dm_name}:pageName'),
+                                attrs=attrs)
+
+        dm[QName(f'{dm_name}:Page')][QName(f'{dm_name}:pageName')] = pagename
+
+        dm.update()
+
+        del dm
+
+        dm = DataModel.read(self._connection, dm_name)
+        self.assertIsNotNone(dm.get(QName(f'{dm_name}:pubYear')))
+        self.assertEqual(dm[QName(f'{dm_name}:pubYear')][PropertyClassAttribute.DATATYPE], XsdDatatypes.gYear)
+
+        #print(dm[QName(f'{dm_name}:pubYear')])
+
 

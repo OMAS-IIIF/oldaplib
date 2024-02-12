@@ -273,7 +273,22 @@ class DataModel(Model):
             raise
 
     def update(self):
-        pass
+        for qname, change in self.__propclasses_changeset.items():
+            match(change.action):
+                case Action.CREATE:
+                    self.__propclasses[qname].create()
+                case Action.MODIFY:
+                    self.__propclasses[qname].update()
+                case Action.DELETE:
+                    self.__propclasses[qname].delete()
+        for qname, change in self.__resclasses_changeset.items():
+            match (change.action):
+                case Action.CREATE:
+                    self.__resclasses[qname].create()
+                case Action.MODIFY:
+                    self.__resclasses[qname].update()
+                case Action.DELETE:
+                    self.__resclasses[qname].delete()
 
 
 
