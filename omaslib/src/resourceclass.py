@@ -630,7 +630,6 @@ class ResourceClass(Model, Notify):
             f.write(self.create_owl(timestamp=timestamp))
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
-
     def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._attr_changeset and not self._prop_changeset:
             return ''

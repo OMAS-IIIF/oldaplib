@@ -9,6 +9,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName, AnyIRI, Action
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasError, OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor
+from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import lprint
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass
@@ -27,10 +28,7 @@ class PropertyClassChange:
 class DataModel(Model):
     __graph: NCName
     __context: Context
-    __creator: Optional[AnyIRI]
-    __created: Optional[datetime]
-    __contributor: Optional[AnyIRI]
-    __modified: Optional[datetime]
+    __version: SemanticVersion
     __propclasses: Dict[QName, PropertyClass | None]
     __resclasses: Dict[QName, ResourceClass | None]
     __resclasses_changeset: Dict[QName, ResourceClassChange]
@@ -42,9 +40,7 @@ class DataModel(Model):
                  propclasses: Optional[List[PropertyClass]] = None,
                  resclasses: Optional[List[ResourceClass]] = None) -> None:
         super().__init__(con)
-        self.__creator = None
-        self.__created = None
-        self.__contributor = None
+        self.__version = SemanticVersion()
 
         self.__graph = graph
         self.__propclasses = {}
@@ -140,37 +136,31 @@ class DataModel(Model):
         #
         query = cls.__context.sparql_context
         query += f"""
-        SELECT ?creator ?created ?contributor ?modified
+        SELECT ?version
         FROM {cls.__graph}:shacl
         WHERE {{
-           {cls.__graph}:shapes dcterms:creator ?creator .
-           {cls.__graph}:shapes dcterms:created ?created .
-           {cls.__graph}:shapes dcterms:contributor ?contributor .
-           {cls.__graph}:shapes dcterms:modified ?modified .
+            {cls.__graph}:shapes dcterms:hasVersion ?version .
         }}
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
-        cls.__created = res[0]['created']
-        cls.__creator = res[0]['creator']
-        cls.__modified = res[0]['modified']
-        cls.__contributor = res[0]['contributor']
+        cls.__version = SemanticVersion.fromString(res[0]['version'])
         #
         # now we read the OWL ontology metadata
         #
         query = cls.__context.sparql_context
         query += f"""
-        SELECT ?creator ?created
+        SELECT ?version
         FROM {cls.__graph}:onto
         WHERE {{
-           {cls.__graph}:ontology dcterms:creator ?creator .
-           {cls.__graph}:ontology dcterms:created ?created .
-           {cls.__graph}:ontology dcterms:contributor ?contributor .
-           {cls.__graph}:ontology dcterms:modified ?modified .
+            {cls.__graph}:ontology owl:versionInfo ?version .
         }}
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
+        version = SemanticVersion.fromString(res[0]['version'])
+        if version != cls.__version:
+            raise OmasErrorInconsistency(f'Versionnumber of SHACL ({cls.__version}) and OWL ({version}) do not match')
         #
         # now get the QNames of all standalone properties within the data model
         #
@@ -189,7 +179,6 @@ class DataModel(Model):
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
             propclass = PropertyClass.read(con, graph, QName(propclassiri))
-            #propclass.set_notifier(cls.notifier, propclass.property_class_iri)
             propclasses.append(propclass)
         #
         # now get all resources defined in the data model
@@ -209,7 +198,6 @@ class DataModel(Model):
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
             resclass = ResourceClass.read(con, graph, QName(resclassiri))
-            #resclass.set_notifier(cls.notifier, QName(resclass.owl_class_iri))
             resclasses.append(resclass)
         instance = cls(graph=graph, con=con, propclasses=propclasses, resclasses=resclasses)
         for qname in instance.get_propclasses():
@@ -228,10 +216,7 @@ class DataModel(Model):
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:creator <{self._con.userIri}> ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.userIri}> ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:hasVersion {repr(self.__version)} .\n'
         sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
@@ -250,10 +235,7 @@ class DataModel(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:onto {{\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:creator <{self._con.userIri}> ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:contributor <{self._con.userIri}> ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {repr(self.__version)} .\n'
         sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
@@ -273,10 +255,6 @@ class DataModel(Model):
             for resiri, resclass in self.__resclasses.items():
                 resclass.set_creation_metadata(timestamp=timestamp)
             self._con.transaction_commit()
-            self.__creator = self._con.userIri
-            self.__created = timestamp
-            self.__contributor = self._con.userIri
-            self.__modified = timestamp
         except OmasError as err:
             self._con.transaction_abort()
             raise
