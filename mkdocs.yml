@@ -16,6 +16,7 @@ nav:
       - Property attribute class: python_docstrings/propertyclassattr.md
       - UserDataclass class: python_docstrings/userdataclass.md
       - User class: python_docstrings/user.md
+      - Inproject class: python_docstrings/in_project.md
 
 theme: readthedocs
 

@@ -1,3 +1,9 @@
+"""
+# InProject Class
+
+The InProject class is a helper class that is used to record the per-project administrative permissions for
+a particular user. It's not meant to be used without the context of a user, that is as a _property_ of a User.
+"""
 from copy import deepcopy
 from typing import Dict, Callable, Set, Self, ItemsView, KeysView
 
@@ -12,12 +18,31 @@ import json
 @strict
 @serializer
 class InProjectType:
+    """
+    Implements the administrative permission a user has for the projects the user is associated with.
+    """
     __data: Dict[str, ObservableSet[AdminPermission]]
     __on_change: Callable[[str, ObservableSet[AdminPermission] | None], None]
 
     def __init__(self,
                  data: Dict[str | QName, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
                  on_change: Callable[[str, ObservableSet[AdminPermission] | None], None] = None) -> None:
+        """
+        Constructor of the class. The class acts like a dictionary and allows the access to the permission
+        set for a project using the QName of the project as the key: ```perms = t.in_project[QName('ex:proj')]```.
+        It supports the getting, setting and deleting a permission set.
+        In addition the following methods are implemented:
+
+        - _get()_: gets the permission set or returns `None`if it doesn't exist for the given project'
+        - _copy()_: Creates a deep copy of the given instance
+        - _==_: Check for equality of 2 instances
+        - _!=_: Check for inequality of 2 instances
+
+        :param data: A dictionary with the QName of the project as key and the set of permissions as value
+        :type data: Dict[str | QName, Set[AdminPermission] | ObservableSet[AdminPermission]] | None
+        :param on_change: A callable that is called whenever the instance has been changed
+        :type on_change: Callable[[str, ObservableSet[AdminPermission] | None], None]
+        """
         if data is not None:
             self.__data = {str(key): ObservableSet(val, on_change=self.__on_set_changed, on_change_data=str(key)) for key, val in data.items()}
         else:

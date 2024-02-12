@@ -25,45 +25,48 @@ class Project(Model):
     __created: Optional[datetime]
     __contributor: Optional[AnyIRI]
     __modified: Optional[datetime]
-    _projectIri: QName | None
-    _namespaceIri: NamespaceIRI | None
-    _projectShortName: NCName
-    _projectName: LangString
-    _projectDescription: LangString | None
-    _projectStart: date
-    _projectEnd: date | None
+    __label: Optional[str] = None
+    __description: Optional[LangString | str] = None
+    __projectShortName: NCName
+    __namespaceIri: NamespaceIRI | None
+    __projectStart: Optional[date]
+    __projectEnd: Optional[date]
+    __projectIri: AnyIRI | None
+
+
 
     def __init__(self,
                  con: Connection,
-                 short_name: NCName,
-                 namespace_iri: NamespaceIRI,
-                 name: Optional[LangString |str] = None,
-                 description: Optional[LangString | str] = None,
-                 start: Optional[date] = None,
-                 end: Optional[date] = None):
+                 namespaceIri: NamespaceIRI | QName,
+                 label: Optional[LangString | str],
+                 description: Optional[LangString | str],
+                 projectShortName: NCName,
+                 projectStart: Optional[date] = None,
+                 projectEnd: Optional[date] = None):
         super().__init__(con)
         self.__creator = con.userIri
         self.__created = None
         self.__contributor = con.userIri
         self.__modified = None
-        self._namespaceIri = namespace_iri
-        if not isinstance(short_name, NCName):
-            raise OmasErrorValue(f'Project ID {short_name} is not a NCName')
-        self._project = short_name
-        if name is not None:
-            self._projectName = name if isinstance(name, LangString) else LangString(name)
+
+        if namespaceIri and isinstance(namespaceIri, NamespaceIRI):
+            self.__namespaceIri = namespaceIri
         else:
-            self._projectName = LangString()
-        if description is not None:
-            self._projectDescription = description if description is isinstance(description, LangString) else LangString(description)
+            raise OmasErrorValue(f'Invalid namespace iri: {namespaceIri}')
+
+        self.__label = label if isinstance(label, LangString) else LangString(label)
+        if not isinstance(projectShortName, NCName):
+            raise OmasErrorValue(f'Project ID {projectShortName} is not a NCName')
+        self.__projectShortName = projectShortName
+        self.__description = description if description is isinstance(description, LangString) else LangString(description)
+        if projectStart and isinstance(projectStart, date):
+            self.__projectStart = projectStart
         else:
-            self._projectDescription = LangString()
-        if start and isinstance(start, date):
-            self._projectStart = start
+            self.__projectStart = datetime.now().date()
+        if projectEnd and isinstance(projectEnd, date):
+            self.__projectEnd = projectEnd
         else:
-            start = datetime.now().date()
-        if end and isinstance(end, date):
-            self._projectStart = end
+            self.__projectEnd = None
 
     @property
     def projectIri(self) -> QName:
