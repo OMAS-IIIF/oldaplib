@@ -94,6 +94,15 @@ class DataModel(Model):
         else:
             raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
 
+    def get(self, key: QName) -> PropertyClass | ResourceClass | None:
+        if key in self.__propclasses:
+            return self.__propclasses[key]
+        elif key in self.__resclasses:
+            return self.__resclasses[key]
+        else:
+            return None
+
+
     def get_propclasses(self) -> List[QName]:
         return [x for x in self.__propclasses]
 

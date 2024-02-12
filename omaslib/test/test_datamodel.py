@@ -459,7 +459,10 @@ class TestDataModel(unittest.TestCase):
         dm = DataModel.read(self._connection, dm_name)
         self.assertIsNotNone(dm.get(QName(f'{dm_name}:pubYear')))
         self.assertEqual(dm[QName(f'{dm_name}:pubYear')][PropertyClassAttribute.DATATYPE], XsdDatatypes.gYear)
-
+        self.assertEqual(dm[QName(f'{dm_name}:pubYear')][PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 1)
+        self.assertEqual(dm[QName(f'{dm_name}:comment')][PropertyClassAttribute.NAME][Language.FR], 'Commentaire')
+        self.assertEqual(dm[QName(f'{dm_name}:Book')][QName(f'{dm_name}:authors')][PropertyClassAttribute.NAME][Language.FR], "Ecrivain(s)")
+        self.assertIsNotNone(dm[QName(f'{dm_name}:Page')][QName(f'{dm_name}:pageName')])
         #print(dm[QName(f'{dm_name}:pubYear')])
 
 
