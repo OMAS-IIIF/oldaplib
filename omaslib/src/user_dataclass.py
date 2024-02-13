@@ -185,7 +185,7 @@ class UserDataclass:
     #
     # these are the methods for the getter, setter and deleter
     #
-    def __get_value(self: Self, self2: Self, field: UserFields) -> UserFieldTypes:
+    def __get_value(self: Self, self2: Self, field: UserFields) -> UserFieldTypes | None:
         return self.__fields.get(field)
 
     def __set_value(self: Self, self2: Self, value: UserFieldTypes, field: UserFields) -> None:

@@ -415,7 +415,7 @@ class AnyIRI:
         Returns the string representation of the AnyIRI
         :return: String representation of the AnyIRI
         """
-        return self._value
+        return f'{self._value}'
 
     def __eq__(self, other: Any) -> bool:
         """

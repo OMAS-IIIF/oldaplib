@@ -222,6 +222,9 @@ class LangString(Notify):
              resstr += f'"{self._langstring[Language.XX]}"'
         return resstr
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def _as_dict(self) -> dict:
         return {
             'langstring': [f'"{val}@{lang.value.lower()}"' for lang, val in self._langstring.items()],

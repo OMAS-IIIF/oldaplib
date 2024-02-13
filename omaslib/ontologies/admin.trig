@@ -64,6 +64,7 @@
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        :projectShortName: "system"^^xsd:NCName ;
         :namespaceIri "http://omas.org/base#"^^xsd:anyURI ;
         rdfs:label "System"@en, "System"@de, "Système"@fr, "Systema"@it ;
         rdfs:description "Project for system administration"@en ;
@@ -74,6 +75,7 @@
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        :projectShortName: "hyha"^^xsd:NCName ;
         :namespaceIri "http://hyperhamlet.unibas.ch/"^^xsd:anyURI ;
         rdfs:label "HyperHamlet"@en, "HyperHamlet"@de, "HyperHamlet"@fr, "HyperHamlet"@it ;
         rdfs:description "Reception of Hamlet"@en ;

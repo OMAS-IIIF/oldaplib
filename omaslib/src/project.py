@@ -1,4 +1,8 @@
 import json
+import uuid
+from dataclasses import dataclass
+from enum import unique, Enum
+from functools import partial
 from pprint import pprint
 
 from elementpath.datatypes import AnyURI
@@ -8,39 +12,63 @@ from urllib.parse import quote_plus
 from datetime import date, datetime
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI
+from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 from connection import Connection, SparqlResultFormat
 from model import Model
 from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
 
+ProjectFieldTypes = AnyIRI | NCName | LangString | NamespaceIRI | date | None
 
+@dataclass
+class ProjectFieldChange:
+    """
+    A dataclass used to represent the changes made to a field.
+    """
+    old_value: ProjectFieldTypes
+    action: Action
+
+@unique
+class ProjectFields(Enum):
+    PROJECT_IRI = 'omas:projectIri'
+    PROJECT_SHORTNAME = 'omas:projectShortName'
+    LABEL = 'rdfs:label'
+    DESCRIPTION = 'rdfs:description'
+    NAMESPACE_IRI = 'omas:namespaceIri'
+    PROJECT_START = 'omas:projectStart'
+    PROJECT_END = 'omas:projectEnd'
 
 @strict
 class Project(Model):
-    __creator: Optional[AnyIRI]
-    __created: Optional[datetime]
-    __contributor: Optional[AnyIRI]
-    __modified: Optional[datetime]
-    __label: Optional[str] = None
-    __description: Optional[LangString | str] = None
-    __projectShortName: NCName
-    __namespaceIri: NamespaceIRI | None
-    __projectStart: Optional[date]
-    __projectEnd: Optional[date]
-    __projectIri: AnyIRI | None
+    __datatypes = {
+        ProjectFields.PROJECT_IRI: AnyIRI,
+        ProjectFields.PROJECT_SHORTNAME: NCName,
+        ProjectFields.LABEL: LangString,
+        ProjectFields.DESCRIPTION: LangString,
+        ProjectFields.NAMESPACE_IRI: NamespaceIRI,
+        ProjectFields.PROJECT_START: date,
+        ProjectFields.PROJECT_END: date,
+    }
 
+    __creator: AnyIRI | None
+    __created: datetime | None
+    __contributor: AnyIRI | None
+    __modified: datetime | None
 
+    __fields: Dict[ProjectFields, ProjectFieldTypes]
 
-    def __init__(self,
+    __change_set: Dict[ProjectFields, ProjectFieldChange]
+
+    def __init__(self, *,
                  con: Connection,
+                 projectIri: Optional[AnyIRI] = None,
+                 projectShortName: NCName | str,
                  namespaceIri: NamespaceIRI | QName,
                  label: Optional[LangString | str],
                  description: Optional[LangString | str],
-                 projectShortName: NCName,
                  projectStart: Optional[date] = None,
                  projectEnd: Optional[date] = None):
         super().__init__(con)
@@ -48,94 +76,223 @@ class Project(Model):
         self.__created = None
         self.__contributor = con.userIri
         self.__modified = None
+        self.__fields = {}
+
+        if projectIri:
+            if isinstance(projectIri, AnyIRI):
+                self.__fields[ProjectFields.PROJECT_IRI] = projectIri
+            else:
+                raise OmasErrorValue(f'projectIri {projectIri} must be an instance of AnyIRI, not {type(projectIri)}')
+        else:
+            self.__fields[ProjectFields.PROJECT_IRI] = AnyIRI(uuid.uuid4().urn)
+
+        self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, NCName) else NCName(projectShortName)
 
         if namespaceIri and isinstance(namespaceIri, NamespaceIRI):
-            self.__namespaceIri = namespaceIri
+            self.__fields[ProjectFields.NAMESPACE_IRI] = namespaceIri
         else:
             raise OmasErrorValue(f'Invalid namespace iri: {namespaceIri}')
 
-        self.__label = label if isinstance(label, LangString) else LangString(label)
-        if not isinstance(projectShortName, NCName):
-            raise OmasErrorValue(f'Project ID {projectShortName} is not a NCName')
-        self.__projectShortName = projectShortName
-        self.__description = description if description is isinstance(description, LangString) else LangString(description)
+        self.__fields[ProjectFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
+        self.__fields[ProjectFields.DESCRIPTION] = description if description is isinstance(description, LangString) else LangString(description)
+        self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, NCName) else NCName(projectShortName)
         if projectStart and isinstance(projectStart, date):
-            self.__projectStart = projectStart
+            self.__fields[ProjectFields.PROJECT_START] = projectStart
         else:
-            self.__projectStart = datetime.now().date()
+            self.__fields[ProjectFields.PROJECT_START] = datetime.now().date()
         if projectEnd and isinstance(projectEnd, date):
-            self.__projectEnd = projectEnd
-        else:
-            self.__projectEnd = None
+            self.__fields[ProjectFields.PROJECT_END] = projectEnd
 
-    @property
-    def projectIri(self) -> QName:
-        return self._projectIri
+        for field in ProjectFields:
+            prefix, name = field.value.split(':')
+            setattr(Project, name, property(
+                partial(self.__get_value, field=field),
+                partial(self.__set_value, field=field),
+                partial(self.__del_value, field=field)))
+        self.__change_set = {}
 
-    @projectIri.setter
-    def projectIri(self, qName: QName):
-        if self._projectIri is None:
-            self._projectIri = qName
+
+    def __get_value(self: Self, self2: Self, field: ProjectFields) -> ProjectFieldTypes | None:
+        return self.__fields.get(field)
+
+    def __set_value(self: Self, self2: Self, value: ProjectFieldTypes, field: ProjectFields) -> None:
+        if field == ProjectFields.PROJECT_IRI and self.__fields.get(ProjectFields.PROJECT_IRI) is not None:
+            OmasErrorAlreadyExists(f'A project IRI already has been assigned: "{repr(self.__fields.get(ProjectFields.PROJECT_IRI))}".')
+        self.__change_setter(field, value)
+
+    def __del_value(self: Self, self2: Self, field: ProjectFields) -> None:
+        del self.__fields[field]
+
+    #
+    # this private method handles the setting of a field. Whenever a field is being
+    # set or modified, this method is called. It also puts the original value and the
+    # action into the changeset.
+    #
+    def __change_setter(self, field: ProjectFields, value: ProjectFieldTypes) -> None:
+        if self.__fields[field] == value:
+            return
+        if field == ProjectFields.PROJECT_IRI or field == ProjectFields.NAMESPACE_IRI:
+            raise OmasErrorAlreadyExists(f'Field {field.value} is immutable.')
+        if self.__fields[field] is None:
+            if self.__change_set.get(field) is None:
+                self.__change_set[field] = ProjectFieldChange(None, Action.CREATE)
         else:
-            raise OmasErrorValue(f'')
+            if value is None:
+                if self.__change_set.get(field) is None:
+                    self.__change_set[field] = ProjectFieldChange(self.__fields[field], Action.DELETE)
+            else:
+                if self.__change_set.get(field) is None:
+                    self.__change_set[field] = ProjectFieldChange(self.__fields[field], Action.REPLACE)
+        if value is None:
+            del self.__fields[field]
+        else:
+            self.__fields[field] = self.__datatypes[field](value)
+
 
     def __str__(self) -> str:
-        return (f'Project "{self._projectName}":\n  iri: {self._projectIri}\n'
-                f'  namespace: {self._namespaceIri}\n  name: {self._projectName}\n'
-                f'  description: {self._projectDescription}\n  start: {self._projectStart.isoformat()}\n')
+        return "TODO: implement __str__() method"  # TODO: implement!
+
+    @property
+    def creator(self) -> AnyIRI | None:
+        return self.__creator
+
+    @property
+    def created(self) -> datetime | None:
+        return self.__created
+
+    @property
+    def contributor(self) -> AnyIRI | None:
+        return self.__contributor
+
+    @property
+    def modified(self) -> datetime | None:
+        return self.__modified
+
+    @property
+    def changeset(self) -> Dict[ProjectFields, ProjectFieldChange]:
+        """
+        Return the changeset, that is dicst with information about all properties that have benn changed.
+        :return: A dictionary of all changes
+        """
+        return self.__change_set
+
+    def clear_changeset(self):
+        """
+        Clear the changeset.
+        :return:
+        """
+        self.__change_set = {}
 
     @classmethod
-    def read(cls, con: Connection, id: NCName) -> Self:
+    def read(cls, con: Connection, projectIri: AnyIRI | QName) -> Self:
         context = Context(name=con.context_name)
+        if isinstance(projectIri, QName):
+            projectIri = context.qname2iri(projectIri)
         query = context.sparql_context
         query += f"""
-            SELECT omas:{id} ?prop ?val
+            SELECT ?prop ?val
             FROM omas:admin
             WHERE {{
-                 ?project ?prop ?val
+                {repr(projectIri)} ?prop ?val
             }}
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context, jsonobj)
-        project_iri = None
-        project_id = None
-        namespace_iri = None
-        project_name = LangString()
-        project_description = LangString()
-        project_start = None
-        project_end = None
+        projectShortName = None
+        namespaceIri = None
+        label = LangString()
+        description = LangString()
+        projectStart = None
+        projectEnd = None
         for r in res:
-            if r['prop'] == QName('omas:projectId'):
-                project_id = r['val']
             if r['prop'] == QName('omas:namespaceIri'):
-                namespace_iri = NamespaceIRI(r['val'])
-            elif r['prop'] == QName('omas:projectName'):
-                project_name.add(str(r['val']))
-            elif r['prop'] == QName('omas:projectDescription'):
-                project_description.add(str(r['val']))
+                namespaceIri = NamespaceIRI(r['val'])
+            elif r['prop'] == QName('omas:projectShortName'):
+                projectShortName = r['val']
+            elif r['prop'] == QName('rdfs:label'):
+                label.add(str(r['val']))
+            elif r['prop'] == QName('rdfs:description'):
+                description.add(str(r['val']))
             elif r['prop'] == QName('omas:projectStart'):
-                project_start = r['val']
+                projectStart = r['val']
             elif r['prop'] == QName('omas:projectEnd'):
-                project_end = r['val']
+                projectEnd = r['val']
 
         return cls(con=con,
-                   short_name=project_id,
-                   namespace_iri=namespace_iri,
-                   name=project_name,
-                   description=project_description,
-                   start=project_start,
-                   end=project_end)
+                   projectIri=projectIri,
+                   projectShortName=projectShortName,
+                   label=label,
+                   namespaceIri=namespaceIri,
+                   description=description,
+                   projectStart=projectStart,
+                   projectEnd=projectEnd)
+
+    @staticmethod
+    def search(self, con: Connection, label: str):
+        sparql = """
+        
+        """
+        pass
 
     def create(self, indent: int = 0, indent_inc: int = 4):
         timestamp = datetime.now()
-        blank = ''
+        indent: int = 0
+        indent_inc: int = 4
+        if self._con is None:
+            raise OmasError("Cannot create: no connection")
+
         context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
+
+        sparql1 = context.sparql_context
+        sparql1 += f"""
+        SELECT ?project
+        FROM omas:admin
+        WHERE {{
+            ?user a omas:Project .
+            FILTER(?project = {repr(self.__projectIri)})
+        }}
+        """
+
+        blank = ''
+        sparql2 = context.sparql_context
+        sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+        sparql2 += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+        sparql2 += f'{blank:{(indent + 2) * indent_inc}}{repr(self.projectIri)} a omas:Project ;\n'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator <{self._con.userIri}>'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectShortName {self.projectShortName} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:label {repr(self.label)} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:description {repr(self.description)} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:namespaceIri "{str(self.namespaceIri)}"^^xsd:anyURI ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectStart "{self.projectStart.isoformat()}"^^xsd:date ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectEnd "{self.projectEnd.isoformat()}"^^xsd:date .\n'
+        sparql2 += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql2 += f'{blank:{indent * indent_inc}}}}\n'
+
+        self._con.transaction_start()
+        try:
+            jsonobj = self._con.transaction_query(sparql1)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        if len(res) > 0:
+            self._con.transaction_abort()
+            raise OmasErrorAlreadyExists(f'A Project with a projectIri "{self.projectIri}" already exists')
+
+        try:
+            self._con.transaction_update(sparql2)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        try:
+            self._con.transaction_commit()
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+
 
 if __name__ == "__main__":
     con = Connection(server='http://localhost:7200',
@@ -143,8 +300,8 @@ if __name__ == "__main__":
                      userId="rosenth",
                      credentials="RioGrande",
                      context_name="DEFAULT")
-    project = Project.read(con, NCName("system"))
+    project = Project.read(con, QName("omas:SystemProject"))
     print(str(project))
 
-    hyha = Project.read(con, NCName("hyha"))
+    hyha = Project.read(con, QName("omas:HyperHamlet"))
     print(str(hyha))
