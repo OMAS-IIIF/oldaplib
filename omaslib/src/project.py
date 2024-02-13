@@ -64,6 +64,10 @@ class Project(Model):
 
     def __init__(self, *,
                  con: Connection,
+                 creator: Optional[AnyIRI] = None,
+                 created: Optional[datetime] = None,
+                 contributor: Optional[AnyIRI] = None,
+                 modified: Optional[datetime] = None,
                  projectIri: Optional[AnyIRI] = None,
                  projectShortName: NCName | str,
                  namespaceIri: NamespaceIRI | QName,
@@ -72,10 +76,10 @@ class Project(Model):
                  projectStart: Optional[date] = None,
                  projectEnd: Optional[date] = None):
         super().__init__(con)
-        self.__creator = con.userIri
-        self.__created = None
-        self.__contributor = con.userIri
-        self.__modified = None
+        self.__creator = creator if creator is not None else con.userIri
+        self.__created = created
+        self.__contributor = contributor if contributor is not None else con.userIri
+        self.__modified = modified
         self.__fields = {}
 
         if projectIri:
@@ -150,7 +154,16 @@ class Project(Model):
 
 
     def __str__(self) -> str:
-        return "TODO: implement __str__() method"  # TODO: implement!
+        res = f'Project: {self.__fields[ProjectFields.PROJECT_IRI]}\n'\
+              f'  Creation: {self.__created.isoformat()} by {self.__creator}\n'\
+              f'  Modified: {self.__modified.isoformat()} by {self.__contributor}\n'\
+              f'  Label: {self.__fields[ProjectFields.LABEL]}\n'\
+              f'  Description: {self.__fields[ProjectFields.DESCRIPTION]}\n'\
+              f'  Namespace IRI: {self.__fields[ProjectFields.NAMESPACE_IRI]}\n'\
+              f'  Project start: {self.__fields[ProjectFields.PROJECT_START].isoformat()}\n'
+        if self.__fields.get(ProjectFields.PROJECT_END) is not None:
+            res += f'  Project end: {self.__fields[ProjectFields.PROJECT_END].isoformat()}\n'
+        return res
 
     @property
     def creator(self) -> AnyIRI | None:
@@ -197,7 +210,12 @@ class Project(Model):
             }}
         """
         jsonobj = con.query(query)
+        pprint(jsonobj)
         res = QueryProcessor(context, jsonobj)
+        creator = None
+        created = None
+        contributor = None
+        modified = None
         projectShortName = None
         namespaceIri = None
         label = LangString()
@@ -205,20 +223,32 @@ class Project(Model):
         projectStart = None
         projectEnd = None
         for r in res:
-            if r['prop'] == QName('omas:namespaceIri'):
-                namespaceIri = NamespaceIRI(r['val'])
-            elif r['prop'] == QName('omas:projectShortName'):
-                projectShortName = r['val']
-            elif r['prop'] == QName('rdfs:label'):
-                label.add(str(r['val']))
-            elif r['prop'] == QName('rdfs:description'):
-                description.add(str(r['val']))
-            elif r['prop'] == QName('omas:projectStart'):
-                projectStart = r['val']
-            elif r['prop'] == QName('omas:projectEnd'):
-                projectEnd = r['val']
-
+            match str(r.get('prop')):
+                case 'dcterms:creator':
+                    creator = r['val']
+                case 'dcterms:created':
+                    created = r['val']
+                case 'dcterms:contributor':
+                    contributor = r['val']
+                case 'dcterms:modified':
+                    modified = r['val']
+                case 'omas:namespaceIri':
+                    namespaceIri = NamespaceIRI(r['val'])
+                case 'omas:projectShortName':
+                    projectShortName = r['val']
+                case 'rdfs:label':
+                    label.add(str(r['val']))
+                case 'rdfs:description':
+                    description.add(str(r['val']))
+                case 'omas:projectStart':
+                    projectStart = r['val']
+                case 'omas:projectEnd':
+                    projectEnd = r['val']
         return cls(con=con,
+                   creator=creator,
+                   created=created,
+                   contributor=contributor,
+                   modified=modified,
                    projectIri=projectIri,
                    projectShortName=projectShortName,
                    label=label,
@@ -228,11 +258,37 @@ class Project(Model):
                    projectEnd=projectEnd)
 
     @staticmethod
-    def search(self, con: Connection, label: str):
-        sparql = """
-        
-        """
-        pass
+    def search(*,
+               con: Connection,
+               label: Optional[str] = None,
+               description: Optional[str] = None) -> List[AnyIRI | QName]:
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        sparql += 'SELECT DISTINCT ?project\n'
+        sparql += 'FROM omas:admin\n'
+        sparql += 'WHERE {\n'
+        sparql += '   ?project a omas:Project .\n'
+        if label is not None:
+            sparql += '   ?project rdfs:label ?label .\n'
+            sparql += f'   FILTER(CONTAINS(STR(?label), "{label}"))\n'
+        if description is not None:
+            sparql += '   ?project rdfs:description ?description .\n'
+            sparql += f'   FILTER(CONTAINS(STR(?description), "{description}"))\n'
+        sparql += '}\n'
+        # sparql += f"""
+        # SELECT DISTINCT ?project
+        # FROM omas:admin
+        # WHERE {{
+        #     ?project rdfs:label ?label
+        #     FILTER(STRSTARTS(?label, "{label}"))
+        # }}
+        # """
+        jsonobj = con.query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        projects = []
+        for r in res:
+            projects.append(r['project'])
+        return projects
 
     def create(self, indent: int = 0, indent_inc: int = 4):
         timestamp = datetime.now()
@@ -305,3 +361,15 @@ if __name__ == "__main__":
 
     hyha = Project.read(con, QName("omas:HyperHamlet"))
     print(str(hyha))
+
+    swissbritnet = Project.read(con, AnyIRI('http://www.salsah.org/version/2.0/SwissBritNet'))
+    print(swissbritnet)
+
+    p = Project.search(con=con)
+    print(p)
+    print("=================")
+    p = Project.search(con=con, label="Hamlet")
+    print(p)
+    p = Project.search(con=con, description="Britain")
+    print(p)
+

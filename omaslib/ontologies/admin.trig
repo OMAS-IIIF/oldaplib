@@ -1,3 +1,4 @@
+@prefix http: <http://www.w3.org/2011/http#> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix imas: <https://sparql.crssnky.xyz/imasrdf/URIs/imas-schema.ttl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -64,7 +65,7 @@
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        :projectShortName: "system"^^xsd:NCName ;
+        :projectShortName "system"^^xsd:NCName ;
         :namespaceIri "http://omas.org/base#"^^xsd:anyURI ;
         rdfs:label "System"@en, "System"@de, "Système"@fr, "Systema"@it ;
         rdfs:description "Project for system administration"@en ;
@@ -75,11 +76,23 @@
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        :projectShortName: "hyha"^^xsd:NCName ;
+        :projectShortName "hyha"^^xsd:NCName ;
         :namespaceIri "http://hyperhamlet.unibas.ch/"^^xsd:anyURI ;
         rdfs:label "HyperHamlet"@en, "HyperHamlet"@de, "HyperHamlet"@fr, "HyperHamlet"@it ;
         rdfs:description "Reception of Hamlet"@en ;
         :projectStart "2024-01-01"^^xsd:date .
+
+    <http://www.salsah.org/version/2.0/SwissBritNet> a :Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        :projectShortName "britnet"^^xsd:NCName ;
+        :namespaceIri "http://www.salsah.org/version/2.0/SwissBritNet#"^^xsd:anyURI ;
+        rdfs:label "SwissBritNet" ;
+        rdfs:description "Elite network between Switzerland and Great Britain" ;
+        :projectStart "2023-07-01"^^xsd:date .
+
 
     #==================================================================
     # Define default permission sets here
