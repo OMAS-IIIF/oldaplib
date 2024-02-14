@@ -199,11 +199,11 @@ class TestDataModel(unittest.TestCase):
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
         self.assertTrue(set(model.get_propclasses()) == {
-            QName("omas:comment"),
+            #QName("omas:comment"),
             QName("omas:test"),
             QName("dcterms:creator"),
             QName("rdfs:label"),
-            QName("rdfs:description"),
+            QName("rdfs:comment"),
             QName("dcterms:created"),
             QName("dcterms:contributor"),
             QName("dcterms:modified")

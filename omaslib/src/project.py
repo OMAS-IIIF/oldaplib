@@ -36,7 +36,7 @@ class ProjectFields(Enum):
     PROJECT_IRI = 'omas:projectIri'
     PROJECT_SHORTNAME = 'omas:projectShortName'
     LABEL = 'rdfs:label'
-    DESCRIPTION = 'rdfs:description'
+    COMMENT = 'rdfs:comment'
     NAMESPACE_IRI = 'omas:namespaceIri'
     PROJECT_START = 'omas:projectStart'
     PROJECT_END = 'omas:projectEnd'
@@ -47,7 +47,7 @@ class Project(Model):
         ProjectFields.PROJECT_IRI: AnyIRI,
         ProjectFields.PROJECT_SHORTNAME: NCName,
         ProjectFields.LABEL: LangString,
-        ProjectFields.DESCRIPTION: LangString,
+        ProjectFields.COMMENT: LangString,
         ProjectFields.NAMESPACE_IRI: NamespaceIRI,
         ProjectFields.PROJECT_START: date,
         ProjectFields.PROJECT_END: date,
@@ -72,7 +72,7 @@ class Project(Model):
                  projectShortName: NCName | str,
                  namespaceIri: NamespaceIRI | QName,
                  label: Optional[LangString | str],
-                 description: Optional[LangString | str],
+                 comment: Optional[LangString | str],
                  projectStart: Optional[date] = None,
                  projectEnd: Optional[date] = None):
         super().__init__(con)
@@ -98,7 +98,7 @@ class Project(Model):
             raise OmasErrorValue(f'Invalid namespace iri: {namespaceIri}')
 
         self.__fields[ProjectFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
-        self.__fields[ProjectFields.DESCRIPTION] = description if description is isinstance(description, LangString) else LangString(description)
+        self.__fields[ProjectFields.COMMENT] = comment if comment is isinstance(comment, LangString) else LangString(comment)
         self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, NCName) else NCName(projectShortName)
         if projectStart and isinstance(projectStart, date):
             self.__fields[ProjectFields.PROJECT_START] = projectStart
@@ -158,7 +158,7 @@ class Project(Model):
               f'  Creation: {self.__created.isoformat()} by {self.__creator}\n'\
               f'  Modified: {self.__modified.isoformat()} by {self.__contributor}\n'\
               f'  Label: {self.__fields[ProjectFields.LABEL]}\n'\
-              f'  Description: {self.__fields[ProjectFields.DESCRIPTION]}\n'\
+              f'  Comment: {self.__fields[ProjectFields.COMMENT]}\n'\
               f'  Namespace IRI: {self.__fields[ProjectFields.NAMESPACE_IRI]}\n'\
               f'  Project start: {self.__fields[ProjectFields.PROJECT_START].isoformat()}\n'
         if self.__fields.get(ProjectFields.PROJECT_END) is not None:
@@ -219,7 +219,7 @@ class Project(Model):
         projectShortName = None
         namespaceIri = None
         label = LangString()
-        description = LangString()
+        comment = LangString()
         projectStart = None
         projectEnd = None
         for r in res:
@@ -238,8 +238,8 @@ class Project(Model):
                     projectShortName = r['val']
                 case 'rdfs:label':
                     label.add(str(r['val']))
-                case 'rdfs:description':
-                    description.add(str(r['val']))
+                case 'rdfs:comment':
+                    comment.add(str(r['val']))
                 case 'omas:projectStart':
                     projectStart = r['val']
                 case 'omas:projectEnd':
@@ -253,7 +253,7 @@ class Project(Model):
                    projectShortName=projectShortName,
                    label=label,
                    namespaceIri=namespaceIri,
-                   description=description,
+                   comment=comment,
                    projectStart=projectStart,
                    projectEnd=projectEnd)
 
@@ -261,7 +261,7 @@ class Project(Model):
     def search(*,
                con: Connection,
                label: Optional[str] = None,
-               description: Optional[str] = None) -> List[AnyIRI | QName]:
+               comment: Optional[str] = None) -> List[AnyIRI | QName]:
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?project\n'
@@ -271,9 +271,9 @@ class Project(Model):
         if label is not None:
             sparql += '   ?project rdfs:label ?label .\n'
             sparql += f'   FILTER(CONTAINS(STR(?label), "{label}"))\n'
-        if description is not None:
-            sparql += '   ?project rdfs:description ?description .\n'
-            sparql += f'   FILTER(CONTAINS(STR(?description), "{description}"))\n'
+        if comment is not None:
+            sparql += '   ?project rdfs:comment ?comment .\n'
+            sparql += f'   FILTER(CONTAINS(STR(?comment), "{comment}"))\n'
         sparql += '}\n'
         # sparql += f"""
         # SELECT DISTINCT ?project
@@ -320,7 +320,7 @@ class Project(Model):
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectShortName {self.projectShortName} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:label {repr(self.label)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:description {repr(self.description)} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:comment {repr(self.comment)} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:namespaceIri "{str(self.namespaceIri)}"^^xsd:anyURI ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectStart "{self.projectStart.isoformat()}"^^xsd:date ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectEnd "{self.projectEnd.isoformat()}"^^xsd:date .\n'
@@ -370,6 +370,6 @@ if __name__ == "__main__":
     print("=================")
     p = Project.search(con=con, label="Hamlet")
     print(p)
-    p = Project.search(con=con, description="Britain")
+    p = Project.search(con=con, comment="Britain")
     print(p)
 

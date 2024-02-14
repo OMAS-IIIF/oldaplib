@@ -30,7 +30,7 @@ rdfs:label a owl:DatatypeProperty ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:range xsd:string .
 
-rdfs:description a owl:DatatypeProperty ;
+rdfs:comment a owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -342,7 +342,7 @@ omas:AdminPermission rdf:type owl:Class ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
-            owl:onProperty rdfs:description ;
+            owl:onProperty rdfs:comment ;
             owl:onDatatype xsd:string ;
             owl:minCardinality 1
         ] .
@@ -367,7 +367,7 @@ omas:DataPermission rdf:type owl:Class ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
-            owl:onProperty rdfs:description ;
+            owl:onProperty rdfs:comment ;
             owl:onDatatype xsd:string ;
             owl:minCardinality 1
         ] .
@@ -427,7 +427,7 @@ omas:DataPermission rdf:type owl:Class ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty rdfs:description ;
+            owl:onProperty rdfs:comment ;
             owl:onDataProperty xsd:string ;
             owl:minCardinality 1 ;
         ] .
@@ -474,7 +474,7 @@ omas:DataPermission rdf:type owl:Class ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty rdfs:description ;
+            owl:onProperty rdfs:comment ;
             owl:onDataProperty xsd:string ;
             owl:minCardinality 1 ;
         ],

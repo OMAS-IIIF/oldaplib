@@ -63,8 +63,8 @@
 
     #
     # Define SHACl for OLDAPLIB's use rdf:description
-    :descriptionShape a sh:PropertyShape ;
-        sh:path rdfs:description ;
+    :commentShape a sh:PropertyShape ;
+        sh:path rdfs:comment ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
@@ -183,7 +183,7 @@
                 sh:path rdf:type ;
             ] ;
         sh:property :labelShape ;
-        sh:property :descriptionShape .
+        sh:property :commentShape .
 
     :DataPermissionShape a sh:NodeShape, :DataPermission ;
         sh:targetClass :DataPermission ;
@@ -199,7 +199,7 @@
                 sh:path rdf:type ;
             ] ;
         sh:property :labelShape ;
-        sh:property :descriptionShape .
+        sh:property :commentShape .
 
     #
     # SHACL to define a permission sets. For each resource, there are RDF-triples which define the
@@ -230,7 +230,10 @@
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:maxCount 1 ;
+                sh:minCount 1 ;
                 sh:class :DataPermission ;
+                sh:in (:DATA_RESTRICTED :DATA_VIEW :DATA_EXTEND :DATA_UPDATE :DATA_DELETE :DATA_PERMISSIONS) ;
                 sh:name "Data permission"@en,
                             "Data permission"@de,
                             "Data permission"@fr,
@@ -240,7 +243,7 @@
                                    "Type d'autorisation pour accéder à une ressource"@fr,
                                    "Tipo di autorizzazione per accedere a una risorsa"@it ;
             ] ;
-        sh:proeprty
+        sh:property
             [
                 sh:path :definedByProject ;
                 dcterms:hasVersion "1.0.0" ;
@@ -258,7 +261,7 @@
                                    "Il set di permessi è definito dal progetto"@it ;
            ] ;
         sh:property :labelShape ;
-        sh:property :descriptionShape .
+        sh:property :commentShape .
 
     #
     # SHACl definition for project descriptions. Projects are important definitions because the define the namespaces
@@ -283,7 +286,7 @@
         sh:property :contributorShape ;
         sh:property :modifiedShape ;
         sh:property :labelShape ;
-        sh:property :descriptionShape ;
+        sh:property :commentShape ;
         sh:property
             [
                 sh:path :projectShortName ;
