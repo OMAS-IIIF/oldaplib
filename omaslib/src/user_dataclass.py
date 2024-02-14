@@ -67,6 +67,16 @@ class UserFieldChange:
 class UserFields(Enum):
     """
     Enumeration that defined the data fields (properties)
+
+    - _UserFields.USER_IRI_ (RDF: 'omas:userIri')
+    - _UserFields.USER_ID_ (RDF: 'omas:userId')
+    - _UserFields.FAMILY_NAME_ (RDF: 'foaf:familyName=
+    - _UserFields.GIVEN_NAME_ (RDF: 'foaf:givenName')
+    - _UserFields.CREDENTIALS_ (RDF: 'omas:credentials')
+    - _UserFields.ACTIVE_ (RDF: 'omas:active')
+    - _UserFields.IN_PROJECT_ (RDF: 'omas:inProject')
+    - _UserFields.HAS_PERMISSIONS_ (RDF: 'omas:hasPermissions')
+
     """
     USER_IRI = 'omas:userIri'
     USER_ID = 'omas:userId'
@@ -87,7 +97,34 @@ class UserDataclass:
     does not need the connection instance. The class internally represents the properties of the
     given user in a hidden dict. The properties however can be accessed directly as if the class
     itself is a dict or using "virtual" properties which are implemented as dynamically created
-    getter, setter and deleter methods. The class implements the following methods:
+    getter, setter and deleter methods.
+
+    The User class inherits the following properties from the UserDataclass class:
+
+    - _userIri_: IRI of the user, cannot be changed (RDF property `omas:userIri`)
+    - _userId_: User ID as NCName (RDF property `omas:)
+    - _familyName_: Family name as str (RDF property `foaf:familyName`)
+    - _givenName_: Given name or first name as str(RDF property `foaf:givenName`)
+    - _credentials_: Credential (password) (RDF property `omas:credentials`)
+    - _active_: Is the user active as bool? (RDF property `omas:active`)
+    - _inProject_: Membership to projects and administrative permissions for this project (RDF property `omas:inProject)
+    - _hsPermission_: Permissions for data as sets of QNames (RDF property `omas:hasPermissions`)
+
+    These properties can be accessed as normal python class properties or using the dictionary syntax. The keys
+    are defined in the [UserFields](/python_docstrings/userdataclass/#omaslib.src.user_dataclass.UserFields) Enum class.
+    Example for access as property:
+    ```python
+    user.familyName = 'Rosenthaler'
+    givenname = user.givenName
+    del user.givenName
+    ```
+    Example for access as dictionary:
+    ```python
+    user[UserFields.FAMILY_NAME] = 'Rosenthaler'
+    givenname = user[UserFields.GIVEN_NAME]
+    del user[UserFields.GIVEN_NAME]
+    ```
+    The class implements the following methods:
 
     - *UserDataclass(...)*: Constructor method for the class
     - *str()*: String representation of the class for printing

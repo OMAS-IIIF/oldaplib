@@ -9,7 +9,42 @@ This module implements the Python representation of an OLDAP user. It offers met
 - update
 - delete
 
-a user from the triple store.
+a user from the triple store. The User class inherits from
+[UserDataclass](/python_docstrings/userdataclass/#omaslib.src.user_dataclass.UserFields). UserDataclass
+provides the inner workings for the User, but without database access. This separation is necessary
+for bootstrapping the connection to the triple store.
+
+The UserDataclass class is serializable as JSON as follows:
+```python
+jsonstr = json.dumps(userdata, default=serializer.encoder_default)
+user = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+```
+
+The User class inherits the following properties from the UserDataclass class:
+
+- _userIri_: IRI of the user, cannot be changed (RDF property `omas:userIri`)
+- _userId_: User ID as NCName (RDF property `omas:)
+- _familyName_: Family name as str (RDF property `foaf:familyName`)
+- _givenName_: Given name or first name as str(RDF property `foaf:givenName`)
+- _credentials_: Credential (password) (RDF property `omas:credentials`)
+- _active_: Is the user active as bool? (RDF property `omas:active`)
+- _inProject_: Membership to projects and administrative permissions for this project (RDF property `omas:inProject)
+- _hsPermission_: Permissions for data as sets of QNames (RDF property `omas:hasPermissions`)
+
+These properties can be accessed as normal python class properties or using the dictionary syntax. The keys
+are defined in the [UserFields](/python_docstrings/userdataclass/#omaslib.src.user_dataclass.UserFields) Enum class.
+Example for access as property:
+```python
+user.familyName = 'Rosenthaler'
+givenname = user.givenName
+del user.givenName
+```
+Example for access as dictionary:
+```python
+user[UserFields.FAMILY_NAME] = 'Rosenthaler'
+givenname = user[UserFields.GIVEN_NAME]
+del user[UserFields.GIVEN_NAME]
+```
 
 ## Create a user
 
@@ -53,12 +88,12 @@ The `userId` must be known and passed either as string or NCName.
 
 ## Searching for a user in the database
 
-OLDAP allows to search for users within the database. The method [search()](/python_docstrings/user/#omaslib.src.user.User.search())
-performs a search:
+OLDAP allows to search for users within the database. The method [search()](/python_docstrings/user/#omaslib.src.user.User.search)
+performs a search. The string given must match in total with the entry in the database. The method accepts also
+several arguments which are combined by a logical AND.
 
 ```python
 users = User.search(con=self._connection,userId="fornaro")
-self.assertEqual(["https://orcid.org/0000-0003-1485-4923"], users)
 
 users = User.search(con=self._connection, familyName="Rosenthaler")
 
@@ -70,7 +105,38 @@ users = User.search(con=self._connection, inProject=AnyIRI("http://www.salsah.or
 
 users = User.search(con=self._connection, userId="GAGA")
 ```
+
+## Updating a User
+
+Several properties of a user can be changed using the [update()](/python_docstrings/user/#omaslib.src.user.User.update) method. In a first step, the properties
+of a user instance are changed, then the `update()` method writes the changes to the triple store.
+
+The following example exemplifies the procedure:
+
+```python
+    user2 = User.read(con=self._connection, userId="edison")  # read the user from the triple store
+    user2.userId = "aedison"  # change the userId
+    user2.familyName = "Edison et al."  # change the familyName
+    user2.givenName = "Thomas"  # change the givenName
+    user2.hasPermissions.add(QName('omas:GenericRestricted'))  # add a permission set
+    user2.hasPermissions.add(QName('omas:HyperHamletMember'))  # add a permission set
+    user2.hasPermissions.remove(QName('omas:GenericView'))  # remove a permission set
+    user2.inProject[QName('omas:SystemProject')] = {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES}
+    user2.inProject[QName('omas:HyperHamlet')].remove(AdminPermission.ADMIN_USERS)
+    user2.update()
+```
+
+## Deleting a User
+
+The method [delete()](/python_docstrings/user/#omaslib.src.user.User.delete) deletes the given user from
+the database:
+
+```python
+user3 = User.read(con=self._connection, userId="aedison")
+user3.delete()
+```
 """
+
 import json
 import uuid
 from datetime import datetime
@@ -90,7 +156,7 @@ from omaslib.src.model import Model
 from omaslib.src.user_dataclass import UserDataclass
 
 
-@serializer
+#@serializer
 class User(Model, UserDataclass):
     """
     The OLDAP user class is based on the [UserDataclass](/python_docstrings/userdataclass#UserDataclass). It implements together with the UserDataclass
