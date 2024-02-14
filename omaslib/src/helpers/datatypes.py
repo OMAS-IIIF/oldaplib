@@ -28,10 +28,11 @@ from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 @serializer
 class NCName:
     """
-    Implements a NCName according to the XML datatyping).
+    Implements a NCName according to the XML datatyping.
 
-    NCName is according to the XML datatype a "unqualified name". This class implements the
-    following operations/methods:
+    NCName is according to the XML datatype an "unqualified name". See the
+    [W3C documentation](https://www.w3.org/TR/xmlschema-2/#NCName).
+    This class implements the following operations/methods:
 
     - *Constructor*: NCName(string), NCName(NCName)
     - *+*: NCName + string
@@ -134,7 +135,7 @@ class NCName:
 @serializer
 class QName:
     """
-    Implements a XSD qualified name (xs:QName)
+    Implements a XSD qualified name (xs:QName) See [W3C documentation](https://www.w3.org/TR/xmlschema-2/#QName).
 
     A QName consists of a prefix (itelf a NCName) and a fragment (also itself a NCName) seperatet
     by a colon (":").
@@ -339,7 +340,7 @@ class BNode:
 @serializer
 class AnyIRI:
     """
-    Represents a generic IRI
+    Represents a generic IRI (corresonds to the XML datatype [AnyURI](https://www.w3.org/TR/xmlschema-2/#QName).
     This class is used to represent a generic IRI. This class has the following methods:
 
     - *Constructor()*: Constructor which initializes a AnyIRI instance
@@ -504,6 +505,15 @@ class Action(Enum):
     def _as_dict(self) -> Dict[str, str]:
         return {__class__: self.__class__.__name__, 'value': self.value}
 
+
+class StringLiteral(str):
+    """
+    A string literal is a subclass of str that implements a repr() function that includes the '"'.
+    """
+    def __repr__(self):
+        return f'"{self}"'
+
+
 if __name__ == "__main__":
     #print(NCName("orcid") + "0000-0003-1681-4036")
 
@@ -516,9 +526,3 @@ if __name__ == "__main__":
     print(gugus)
 
 
-class StringLiteral(str):
-    """
-    A string literal is a supclass of str that implements a repr() function that includes the '"'.
-    """
-    def __repr__(self):
-        return f'"{self}"'

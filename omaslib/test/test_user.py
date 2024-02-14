@@ -74,6 +74,28 @@ class TestUser(unittest.TestCase):
             user = User.read(con=self._connection, userId="nosuchuser")
         self.assertEqual(str(ex.exception), 'User "nosuchuser" not found.')
 
+    def test_search_user(self):
+        users = User.search(con=self._connection,userId="fornaro")
+        self.assertEqual(["https://orcid.org/0000-0003-1485-4923"], users)
+
+        users = User.search(con=self._connection, familyName="Rosenthaler")
+        self.assertEqual(["https://orcid.org/0000-0003-1681-4036"], users)
+
+        users = User.search(con=self._connection, givenName="John")
+        self.assertEqual(["urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b"], users)
+
+        users = User.search(con=self._connection, inProject=QName("omas:HyperHamlet"))
+        self.assertEqual(["https://orcid.org/0000-0003-1681-4036",
+                          "https://orcid.org/0000-0003-1485-4923"], users)
+
+        users = User.search(con=self._connection, inProject=AnyIRI("http://www.salsah.org/version/2.0/SwissBritNet"))
+        self.assertEqual(["urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b"], users)
+
+        users = User.search(con=self._connection, userId="GAGA")
+        self.assertEqual([], users)
+
+
+
     #@unittest.skip('Work in progress')
     def test_create_user(self):
         user = User(con=self._connection,

@@ -309,7 +309,7 @@ class UserDataclass:
     def modified(self, value: datetime) -> None:
         self.__modified = value
 
-    def add_project_permission(self, project: QName, permission: AdminPermission | None) -> None:
+    def add_project_permission(self, project: QName | AnyIRI | str, permission: AdminPermission | None) -> None:
         """
         Adds a new administraive permission to the user. If the user is not yet member of the project, he
         will automatically become a member.
@@ -329,7 +329,7 @@ class UserDataclass:
                 self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.MODIFY)
             self.__fields[UserFields.IN_PROJECT][str(project)].add(permission)
 
-    def remove_project_permission(self, project: QName, permission: AdminPermission | None) -> None:
+    def remove_project_permission(self, project: QName | AnyIRI | str, permission: AdminPermission | None) -> None:
         """
         Remove the given Permission from the user (for the given project)
 

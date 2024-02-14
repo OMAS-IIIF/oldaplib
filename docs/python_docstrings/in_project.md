@@ -1,1 +1,1 @@
-::: omaslib.src.helpers.in_project
+::: omaslib.src.in_project

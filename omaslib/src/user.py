@@ -5,15 +5,77 @@ This module implements the Python representation of an OLDAP user. It offers met
 
 - create
 - read
+- search
 - update
 - delete
 
 a user from the triple store.
+
+## Create a user
+
+A user is created using the method [create()](/python_docstrings/user/#omaslib.src.user.User.create) as follows:
+
+```python
+user = User(con=self._connection,
+            userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
+            userId=NCName("edison"),
+            family_name="Edison",
+            given_name="Thomas A.",
+            credentials="Lightbulb&Phonograph",
+            inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                                 AdminPermission.ADMIN_RESOURCES,
+                                                                 AdminPermission.ADMIN_CREATE}}),
+            hasPermissions={QName('omas:GenericView')})
+user.create()
+```
+
+- __userIri__ is an optional parameter that allows to give the user a unique IRI. If possible, the
+  [ORCID](https://orcid.org) ID should be given. If this parameter is omitted, OLDAP generates a unique IRI from the URN
+  namespace for the user.
+- __userId__ must be an [NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName)
+- __credentials__ is a password that is converted to a bcrypt hash
+- __inProject__ is a dictionary with the keys being the projects that the user is a member of. The values are
+  sets of administrative privileges as defined in [AdminPermissions](/python_docstrings/permissions#AdminPermissions)
+
+Please note that the class constructor does *not* create the user in the triple store. In order to create
+the user in the database, `<User>.create()`has to be called.
+
+## Reading a user from the database
+
+In order to read all user data from the triple store, the method [read()](/python_docstrings/user/#omaslib.src.user.User.read) is used as
+follows:
+
+```python
+user = User.read(con=self._connection, userId="rosenth")
+```
+
+The `userId` must be known and passed either as string or NCName.
+
+## Searching for a user in the database
+
+OLDAP allows to search for users within the database. The method [search()](/python_docstrings/user/#omaslib.src.user.User.search())
+performs a search:
+
+```python
+users = User.search(con=self._connection,userId="fornaro")
+self.assertEqual(["https://orcid.org/0000-0003-1485-4923"], users)
+
+users = User.search(con=self._connection, familyName="Rosenthaler")
+
+users = User.search(con=self._connection, givenName="John")
+
+users = User.search(con=self._connection, inProject=QName("omas:HyperHamlet"))
+
+users = User.search(con=self._connection, inProject=AnyIRI("http://www.salsah.org/version/2.0/SwissBritNet"))
+
+users = User.search(con=self._connection, userId="GAGA")
+```
 """
 import json
 import uuid
 from datetime import datetime
-from typing import List, Self, Dict, Set
+from pprint import pprint
+from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
@@ -31,8 +93,8 @@ from omaslib.src.user_dataclass import UserDataclass
 @serializer
 class User(Model, UserDataclass):
     """
-    The OLDAP user class is based on the [UserDataclass](/userdataclass#UserDataclass). It implements together with the UserDataclass
-    all the methods ot manage OLDAP users.
+    The OLDAP user class is based on the [UserDataclass](/python_docstrings/userdataclass#UserDataclass). It implements together with the UserDataclass
+    all the methods ot manage OLDAP users. I also uses the [InProject](/python_docstrings/in_project) class.
     """
     def __init__(self, *,
                  con: Connection | None = None,
@@ -237,6 +299,63 @@ class User(Model, UserDataclass):
         instance._create_from_queryresult(res)
         return instance
 
+    @staticmethod
+    def search(*, con: Connection,
+               userId: Optional[NCName | str] = None,
+               familyName: Optional[str] = None,
+               givenName: Optional[str] = None,
+               inProject: Optional[AnyIRI | QName | str] = None) -> List[AnyIRI]:
+        """
+        Search for a user in the database. The user can be found by the
+
+        - userId
+        - familyName
+        - givenName
+        - inProject
+
+        In each case, the full string is compared. If more than one parameter is given, they are
+        combined by a logical AND operation. That is, all parameters have to fit.
+        :param con: Connection instance
+        :type con: Connection
+        :param userId: The userId of the user to be searched for in the database
+        :type userId: NCName | str
+        :param familyName: The family name of the user to be searched for in the database
+        :type familyName: str
+        :param givenName: The givenname of the user to be searched for in the database
+        :type givenName: str
+        :param inProject: The project the user is member of
+        :type inProject: AnyIRI | QName | str
+        :return: List of users
+        :rtype: List[AnyIRI]
+        """
+        if userId and not isinstance(userId, NCName):
+            userId = NCName(userId)
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        sparql += 'SELECT DISTINCT ?user\n'
+        sparql += 'FROM omas:admin\n'
+        sparql += 'WHERE {\n'
+        sparql += '   ?user a omas:User .\n'
+        if userId is not None:
+            sparql += '   ?user omas:userId ?user_id .\n'
+            sparql += f'   FILTER(STR(?user_id) = "{userId}")\n'
+        if familyName is not None:
+            sparql += '   ?user foaf:familyName ?family_name .\n'
+            sparql += f'   FILTER(STR(?family_name) = "{familyName}")\n'
+        if givenName is not None:
+            sparql += '   ?user foaf:givenName ?given_name .\n'
+            sparql += f'   FILTER(STR(?given_name) = "{givenName}")\n'
+        if inProject is not None:
+            sparql += '   ?user omas:inProject ?project .\n'
+            sparql += f'   FILTER(?project = {repr(inProject)})\n'
+        sparql += '}\n'
+        jsonobj = con.query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        users = []
+        for r in res:
+            users.append(r['user'])
+        return users
+
     def delete(self) -> None:
         """
         Delete the given user from the triple store
@@ -264,7 +383,8 @@ class User(Model, UserDataclass):
 
     def update(self) -> None:
         """
-        Update an existing user from the triple store
+        Update an existing user in the triple store. This method writes all changes that have made to the
+        user instance to the database.
         :return: None
         :raises OmasErrorUpdateFailed: Updating user failed because user has been changed through race condition
         :raises OmasValueError: A PermissionSet is not existing

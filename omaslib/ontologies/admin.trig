@@ -125,20 +125,8 @@
         :defineByProject :HyperHamlet .
 
     #==================================================================
-    # Define default permission sets here
+    # Define some users
     #
-    <https://orcid.org/0000-0003-1681-4036> a omas:User ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        :userId "rosenth"^^xsd:NCName ;
-        foaf:familyName "Rosenthaler" ;
-        foaf:givenName "Lukas" ;
-        :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
-        :inProject :SystemProject, :HyperHamlet ;
-        :isActive true .
-
     <https://orcid.org/0000-0003-1681-4036> a omas:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -155,7 +143,22 @@
     <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_OLDAP .
     <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
 
-        <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> a omas:User ;
+    <https://orcid.org/0000-0003-1485-4923> a omas:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        :userId "fornaro"^^xsd:NCName ;
+        foaf:familyName "Fornaro" ;
+        foaf:givenName "Peter R." ;
+        :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
+        :inProject :HyperHamlet ;
+        :hasPermissions :GenericRestricted, :GenericView ;
+        :isActive true .
+
+    <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
+
+    <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> a omas:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -164,6 +167,7 @@
         foaf:familyName "Doe" ;
         foaf:givenName "John" ;
         :credentials "*" ;
+        :inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
         :hasPermissions :GenericRestricted ;
         :isActive true .
 

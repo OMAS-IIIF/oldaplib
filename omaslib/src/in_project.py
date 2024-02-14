@@ -9,7 +9,7 @@ from typing import Dict, Callable, Set, Self, ItemsView, KeysView
 
 from pystrict import strict
 
-from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.datatypes import QName, AnyIRI
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.helpers.serializer import serializer
@@ -25,7 +25,7 @@ class InProjectType:
     __on_change: Callable[[str, ObservableSet[AdminPermission] | None], None]
 
     def __init__(self,
-                 data: Dict[str | QName, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
+                 data: Dict[str | QName | AnyIRI, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
                  on_change: Callable[[str, ObservableSet[AdminPermission] | None], None] = None) -> None:
         """
         Constructor of the class. The class acts like a dictionary and allows the access to the permission
@@ -53,10 +53,10 @@ class InProjectType:
         if self.__on_change is not None:
             self.__on_change(str(key), oldset) ## Action.MODIFY
 
-    def __getitem__(self, key: QName | str) -> ObservableSet[AdminPermission]:
+    def __getitem__(self, key: QName | str | AnyIRI) -> ObservableSet[AdminPermission]:
         return self.__data[str(key)]
 
-    def __setitem__(self, key: QName | str, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
+    def __setitem__(self, key: QName | str | AnyIRI, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
         if self.__data.get(str(key)) is None:
             if self.__on_change is not None:
                 self.__on_change(str(key), None) ## Action.CREATE: Create a new inProject connection to a new project and add permissions
@@ -65,7 +65,7 @@ class InProjectType:
                 self.__on_change(str(key), self.__data[str(key)].copy())  ## Action.REPLACE Replace all the permission of the given connection to a project
         self.__data[key] = ObservableSet(value, on_change=self.__on_set_changed)
 
-    def __delitem__(self, key: QName | str) -> None:
+    def __delitem__(self, key: QName | str | AnyIRI) -> None:
         if self.__data.get(str(key)) is not None:
             if self.__on_change is not None:
                 self.__on_change(str(key), self.__data[str(key)].copy())  ## Action.DELETE
