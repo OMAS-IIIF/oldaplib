@@ -124,5 +124,43 @@ class PermissionSet(Model):
             self.__fields[field] = self.__datatypes[field](value)
 
     def __str__(self) -> str:
-        res = 'PermissionSet: '
+        res = f'PermissionSet: {self.__fields[PermissionSetFields.PERMISSION_SET_IRI]}\n'\
+              f'  Creation: {self.__created.isoformat()} by {self.__creator}\n'\
+              f'  Modified: {self.__modified.isoformat()} by {self.__contributor}\n' \
+              f'  Label: {self.__fields[PermissionSetFields.LABEL]}\n' \
+              f'  Comment: {self.__fields[PermissionSetFields.COMMENT]}\n'\
+              f'  Permission {self.__fields[PermissionSetFields.GIVES_PERMISSION]}\n'\
+              f'  For project: {self.__fields[PermissionSetFields.GIVES_PERMISSION]}\n'
+        return res
+
+    @property
+    def creator(self) -> AnyIRI | None:
+        return self.__creator
+
+    @property
+    def created(self) -> datetime | None:
+        return self.__created
+
+    @property
+    def contributor(self) -> AnyIRI | None:
+        return self.__contributor
+
+    @property
+    def modified(self) -> datetime | None:
+        return self.__modified
+
+    @property
+    def changeset(self) -> Dict[PermissionSetFields, PermissionSetFieldChange]:
+        """
+        Return the changeset, that is dicst with information about all properties that have benn changed.
+        :return: A dictionary of all changes
+        """
+        return self.__change_set
+
+    def clear_changeset(self) -> None:
+        """
+        Clear the changeset.
+        :return: None
+        """
+        self.__change_set = {}
 

@@ -17,7 +17,7 @@ import json
 
 @strict
 @serializer
-class InProjectType:
+class InProjectClass:
     """
     Implements the administrative permission a user has for the projects the user is associated with.
     """
@@ -80,7 +80,7 @@ class InProjectType:
     def copy(self) -> Self:
         data_copy = deepcopy(self.__data)
         on_change_copy = self.__on_change
-        return InProjectType(data_copy, on_change_copy)
+        return InProjectClass(data_copy, on_change_copy)
 
     def __eq__(self, other: Self) -> bool:
         return self.__data == other.__data
@@ -102,8 +102,8 @@ class InProjectType:
 
 
 if __name__ == '__main__':
-    in_proj = InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                         AdminPermission.ADMIN_RESOURCES,
-                                                         AdminPermission.ADMIN_CREATE}})
+    in_proj = InProjectClass({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                          AdminPermission.ADMIN_RESOURCES,
+                                                          AdminPermission.ADMIN_CREATE}})
     jsonstr = json.dumps(in_proj, default=serializer.encoder_default)
     in_proj2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)

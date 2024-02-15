@@ -151,7 +151,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
-    OmasErrorValue
+    OmasErrorValue, OmasErrorNoPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.serializer import serializer
@@ -178,7 +178,7 @@ class User(Model, UserDataclass):
                  given_name: str | None = None,
                  credentials: str | None = None,
                  active: bool | None = None,
-                 inProject: Dict[QName, Set[AdminPermission]] | None = None,
+                 inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[QName] | None = None):
         """
         Constructor for the User class
@@ -235,6 +235,16 @@ class User(Model, UserDataclass):
         :raises OmasValueError: PermissionSet is not existing
         :raises OmasError: Internal error
         """
+
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        for proj in self.inProject.keys():
+            if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
+                raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
+
         indent: int = 0
         indent_inc: int = 4
         if self._con is None:

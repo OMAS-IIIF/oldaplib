@@ -50,3 +50,7 @@ class OmasErrorUpdateFailed(OmasError):
     Updating failed for some reason
     """
     pass
+
+@strict
+class OmasErrorNoPermission(OmasError):
+    pass

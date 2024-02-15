@@ -46,12 +46,12 @@ from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
-from omaslib.src.in_project import InProjectType
+from omaslib.src.in_project import InProjectClass
 
 # InProjectType = Dict[str, ObservableSet[AdminPermission]]
 
 
-UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectType | datetime | bool | None
+UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectClass | datetime | bool | None
 
 
 @dataclass
@@ -182,9 +182,9 @@ class UserDataclass:
         """
         self.__fields = {}
         if inProject:
-            inProjectTmp = InProjectType(inProject, self.__inProject_cb)
+            inProjectTmp = InProjectClass(inProject, self.__inProject_cb)
         else:
-            inProjectTmp = InProjectType()
+            inProjectTmp = InProjectClass()
         if not isinstance(hasPermissions, ObservableSet):
             hasPermissions = ObservableSet(hasPermissions, on_change=self.__hasPermission_cb)
         if credentials is not None:
@@ -302,12 +302,12 @@ class UserDataclass:
         if value is None:
             del self.__fields[field]
             if field == UserFields.IN_PROJECT:
-                self.__fields[field] = InProjectType(on_change=self.__inProject_cb)
+                self.__fields[field] = InProjectClass(on_change=self.__inProject_cb)
             elif field == UserFields.HAS_PERMISSIONS:
                 self.__fields[field] = ObservableSet(on_change=self.__hasPermission_cb)
         else:
             if field == UserFields.IN_PROJECT:
-                self.__fields[field] = InProjectType(value, on_change=self.__inProject_cb)
+                self.__fields[field] = InProjectClass(value, on_change=self.__inProject_cb)
             elif field == UserFields.HAS_PERMISSIONS:
                 self.__fields[field] = ObservableSet(value, on_change=self.__hasPermission_cb)
             else:
@@ -469,7 +469,7 @@ class UserDataclass:
                         #    self.__fields[UserFields.IN_PROJECT][str(r['proj'])] = ObservableSet()
                         # self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
         if in_project:
-            self.__fields[UserFields.IN_PROJECT] = InProjectType(in_project, on_change=self.__inProject_cb)
+            self.__fields[UserFields.IN_PROJECT] = InProjectClass(in_project, on_change=self.__inProject_cb)
         if not isinstance(self.__modified, datetime):
             raise Exception(f"Modified field is {type(self.__modified)} and not datetime!!!!")
         self.clear_changeset()

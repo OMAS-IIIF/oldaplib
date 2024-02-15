@@ -4,10 +4,10 @@ from time import sleep
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
-from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorValue
+from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNoPermission
 from omaslib.src.helpers.permissions import AdminPermission
 from omaslib.src.user import User
-from omaslib.src.in_project import InProjectType
+from omaslib.src.in_project import InProjectClass
 
 
 class TestUser(unittest.TestCase):
@@ -48,7 +48,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.userId, NCName("testuser"))
         self.assertEqual(user.familyName, "Test")
         self.assertEqual(user.givenName, "Test")
-        self.assertEqual(user.inProject, InProjectType({QName("omas:HyperHamlet"): {
+        self.assertEqual(user.inProject, InProjectClass({QName("omas:HyperHamlet"): {
                 AdminPermission.ADMIN_USERS,
                 AdminPermission.ADMIN_RESOURCES,
                 AdminPermission.ADMIN_CREATE
@@ -62,7 +62,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.userIri, "https://orcid.org/0000-0003-1681-4036")
         self.assertEqual(user.familyName, "Rosenthaler")
         self.assertEqual(user.givenName, "Lukas")
-        self.assertEqual(user.inProject, InProjectType({
+        self.assertEqual(user.inProject, InProjectClass({
                 QName("omas:SystemProject"): {AdminPermission.ADMIN_OLDAP},
                 QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
         }))
@@ -104,9 +104,9 @@ class TestUser(unittest.TestCase):
                     family_name="Coyote",
                     given_name="Wiley E.",
                     credentials="Super-Genius",
-                    inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                                         AdminPermission.ADMIN_RESOURCES,
-                                                                         AdminPermission.ADMIN_CREATE}}),
+                    inProject=InProjectClass({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                                          AdminPermission.ADMIN_RESOURCES,
+                                                                          AdminPermission.ADMIN_CREATE}}),
                     hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="coyote")
@@ -145,6 +145,18 @@ class TestUser(unittest.TestCase):
                      hasPermissions={QName('omas:GenericView'), QName('omas:Gaga')})
         with self.assertRaises(OmasErrorValue) as ex:
             user4.create()
+
+        user5 = User(con=self._connection,
+                     userId=NCName("brown"),
+                     family_name="Dock",
+                     given_name="Donald",
+                     credentials="Entenhausen@for&Ever",
+                     inProject={AnyIRI('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_CREATE}},
+                     hasPermissions={QName('omas:GenericView'), QName('omas:Gaga')})
+        with self.assertRaises(OmasErrorNoPermission) as ex:
+            user5.create()
+        self.assertEqual(str(ex.exception), 'No permission to create user in project http://www.salsah.org/version/2.0/SwissBritNet.')
+
 
     #@unittest.skip('Work in progress')
     def test_delete_user(self):
@@ -195,9 +207,9 @@ class TestUser(unittest.TestCase):
         with self.assertRaises(OmasErrorValue) as ex:
             user3.update()
             self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
-        self.assertEqual(InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES,
-                                                                    AdminPermission.ADMIN_CREATE},
-                                        QName('omas:SystemProject'): {AdminPermission.ADMIN_USERS,
+        self.assertEqual(InProjectClass({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES,
+                                                                     AdminPermission.ADMIN_CREATE},
+                                         QName('omas:SystemProject'): {AdminPermission.ADMIN_USERS,
                                                                       AdminPermission.ADMIN_RESOURCES}}), user3.inProject)
         user3.delete()
 

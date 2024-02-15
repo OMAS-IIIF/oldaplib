@@ -189,10 +189,10 @@ class Project(Model):
         """
         return self.__change_set
 
-    def clear_changeset(self):
+    def clear_changeset(self) -> None:
         """
         Clear the changeset.
-        :return:
+        :return: None
         """
         self.__change_set = {}
 
