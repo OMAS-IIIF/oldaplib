@@ -92,7 +92,6 @@ class PermissionSet(Model):
                 partial(self.__del_value, field=field)))
         self.__change_set = {}
 
-
     def __get_value(self: Self, self2: Self, field: PermissionSetFields) -> PermissionSetFieldTypes | None:
         return self.__fields.get(field)
 
@@ -103,4 +102,27 @@ class PermissionSet(Model):
 
     def __del_value(self: Self, self2: Self, field: PermissionSetFields) -> None:
         del self.__fields[field]
+
+    def __change_setter(self, field: PermissionSetFields, value: PermissionSetFieldTypes) -> None:
+        if self.__fields[field] == value:
+            return
+        if field == PermissionSetFields.PERMISSION_SET_IRI:
+            raise OmasErrorAlreadyExists(f'Field {field.value} is immutable.')
+        if self.__fields[field] is None:
+            if self.__change_set.get(field) is None:
+                self.__change_set[field] = PermissionSetFieldChange(None, Action.CREATE)
+        else:
+            if value is None:
+                if self.__change_set.get(field) is None:
+                    self.__change_set[field] = PermissionSetFieldChange(self.__fields[field], Action.DELETE)
+            else:
+                if self.__change_set.get(field) is None:
+                    self.__change_set[field] = PermissionSetFieldChange(self.__fields[field], Action.REPLACE)
+        if value is None:
+            del self.__fields[field]
+        else:
+            self.__fields[field] = self.__datatypes[field](value)
+
+    def __str__(self) -> str:
+        res = 'PermissionSet: '
 

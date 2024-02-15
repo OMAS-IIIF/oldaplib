@@ -60,9 +60,9 @@ user = User(con=self._connection,
             family_name="Edison",
             given_name="Thomas A.",
             credentials="Lightbulb&Phonograph",
-            inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                                 AdminPermission.ADMIN_RESOURCES,
-                                                                 AdminPermission.ADMIN_CREATE}}),
+            inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                   AdminPermission.ADMIN_RESOURCES,
+                                                   AdminPermission.ADMIN_CREATE}},
             hasPermissions={QName('omas:GenericView')})
 user.create()
 ```
@@ -74,6 +74,7 @@ user.create()
 - __credentials__ is a password that is converted to a bcrypt hash
 - __inProject__ is a dictionary with the keys being the projects that the user is a member of. The values are
   sets of administrative privileges as defined in [AdminPermissions](/python_docstrings/permissions#AdminPermissions)
+- __hasPermissions__ are links to PermissionSet's that define the access permissions for resources.
 
 Please note that the class constructor does *not* create the user in the triple store. In order to create
 the user in the database, `<User>.create()`has to be called.

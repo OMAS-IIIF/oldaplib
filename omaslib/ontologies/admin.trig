@@ -120,7 +120,7 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
-        :givesPermission :DATA_RESTRICTED, :DATA_VIEW ;
+        :givesPermission :DATA_VIEW ;
         :defineByProject :SystemProject .
 
     :HyperHamletMember a :PermissionSet ;
@@ -129,7 +129,7 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
-        :givesPermission :DATA_RESTRICTED, :DATA_VIEW, :DATA_EXTEND, :DATA_UPDATE ;
+        :givesPermission :DATA_UPDATE ;
         :defineByProject :HyperHamlet .
 
     #==================================================================

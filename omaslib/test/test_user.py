@@ -127,9 +127,9 @@ class TestUser(unittest.TestCase):
                      family_name="Brown",
                      given_name="Emmett",
                      credentials="Time-Machine@1985",
-                     inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                                          AdminPermission.ADMIN_RESOURCES,
-                                                                          AdminPermission.ADMIN_CREATE}}),
+                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                            AdminPermission.ADMIN_RESOURCES,
+                                                            AdminPermission.ADMIN_CREATE}},
                      hasPermissions={QName('omas:GenericView')})
         with self.assertRaises(OmasErrorAlreadyExists) as ex:
             user3.create()
@@ -139,9 +139,9 @@ class TestUser(unittest.TestCase):
                      family_name="Dock",
                      given_name="Donald",
                      credentials="Entenhausen@for&Ever",
-                     inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                                          AdminPermission.ADMIN_RESOURCES,
-                                                                          AdminPermission.ADMIN_CREATE}}),
+                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                            AdminPermission.ADMIN_RESOURCES,
+                                                            AdminPermission.ADMIN_CREATE}},
                      hasPermissions={QName('omas:GenericView'), QName('omas:Gaga')})
         with self.assertRaises(OmasErrorValue) as ex:
             user4.create()
@@ -154,9 +154,9 @@ class TestUser(unittest.TestCase):
                     family_name="Edison",
                     given_name="Thomas A.",
                     credentials="Lightbulb&Phonograph",
-                    inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                                         AdminPermission.ADMIN_RESOURCES,
-                                                                         AdminPermission.ADMIN_CREATE}}),
+                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                           AdminPermission.ADMIN_RESOURCES,
+                                                           AdminPermission.ADMIN_CREATE}},
                     hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
@@ -174,9 +174,9 @@ class TestUser(unittest.TestCase):
                     family_name="Edison",
                     given_name="Thomas A.",
                     credentials="Lightbulb&Phonograph",
-                    inProject=InProjectType({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                                         AdminPermission.ADMIN_RESOURCES,
-                                                                         AdminPermission.ADMIN_CREATE}}),
+                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                           AdminPermission.ADMIN_RESOURCES,
+                                                           AdminPermission.ADMIN_CREATE}},
                     hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
