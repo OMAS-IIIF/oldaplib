@@ -33,7 +33,7 @@ class ProjectFieldChange:
 
 @unique
 class ProjectFields(Enum):
-    PROJECT_IRI = 'omas:projectIri'
+    PROJECT_IRI = 'omas:projectIri'  # virtual property, no equivalent in RDF
     PROJECT_SHORTNAME = 'omas:projectShortName'
     LABEL = 'rdfs:label'
     COMMENT = 'rdfs:comment'
@@ -98,7 +98,7 @@ class Project(Model):
             raise OmasErrorValue(f'Invalid namespace iri: {namespaceIri}')
 
         self.__fields[ProjectFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
-        self.__fields[ProjectFields.COMMENT] = comment if comment is isinstance(comment, LangString) else LangString(comment)
+        self.__fields[ProjectFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
         self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, NCName) else NCName(projectShortName)
         if projectStart and isinstance(projectStart, date):
             self.__fields[ProjectFields.PROJECT_START] = projectStart

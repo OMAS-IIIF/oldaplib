@@ -1,13 +1,16 @@
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, unique
-from typing import Dict, Optional
+from functools import partial
+from typing import Dict, Optional, Self
 
 from pystrict import strict
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.datatypes import QName, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists
 from omaslib.src.model import Model
 
 PermissionSetFieldTypes = AnyIRI | QName | LangString | None
@@ -23,6 +26,7 @@ class PermissionSetFieldChange:
 
 @unique
 class PermissionSetFields(Enum):
+    PERMISSION_SET_IRI = 'omas:permissionSetIri'  # virtual property, no equivalent in RDF
     LABEL = 'rdfs:label'
     COMMENT = 'rdfs:comment'
     GIVES_PERMISSION = 'omas:givesPermission'
@@ -53,14 +57,50 @@ class PermissionSet(Model):
                  created: Optional[datetime] = None,
                  contributor: Optional[AnyIRI] = None,
                  modified: Optional[datetime] = None,
+                 permissionSetIri: Optional[AnyIRI] = None,
                  label: Optional[LangString | str],
                  comment: Optional[LangString | str],
-                 givesPermission: Optional[QName],
-                 definedByProject: Optional[AnyIRI] = None):
+                 givesPermission: QName | str,
+                 definedByProject: AnyIRI | QName | str):
         super().__init__(con)
         self.__creator = creator if creator is not None else con.userIri
         self.__created = created
         self.__contributor = contributor if contributor is not None else con.userIri
         self.__modified = modified
         self.__fields = {}
+
+        if permissionSetIri:
+            if isinstance(permissionSetIri, AnyIRI):
+                self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = permissionSetIri
+            else:
+                raise OmasErrorValue(f'permissionSetIri {permissionSetIri} must be an instance of AnyIRI, not {type(permissionSetIri)}')
+        else:
+            self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = AnyIRI(uuid.uuid4().urn)
+
+        if label:
+            self.__fields[PermissionSetFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
+        if comment:
+            self.__fields[PermissionSetFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
+        self.__fields[PermissionSetFields.GIVES_PERMISSION] = givesPermission if isinstance(givesPermission, QName) else QName(givesPermission)
+        self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = definedByProject
+
+        for field in PermissionSetFields:
+            prefix, name = field.value.split(':')
+            setattr(PermissionSet, name, property(
+                partial(self.__get_value, field=field),
+                partial(self.__set_value, field=field),
+                partial(self.__del_value, field=field)))
+        self.__change_set = {}
+
+
+    def __get_value(self: Self, self2: Self, field: PermissionSetFields) -> PermissionSetFieldTypes | None:
+        return self.__fields.get(field)
+
+    def __set_value(self: Self, self2: Self, value: PermissionSetFieldTypes, field: PermissionSetFields) -> None:
+        if field == PermissionSetFields.PERMISSION_SET_IRI and self.__fields.get(PermissionSetFields.PERMISSION_SET_IRI) is not None:
+            OmasErrorAlreadyExists(f'A project IRI already has been assigned: "{repr(self.__fields.get(PermissionSetFields.PERMISSION_SET_IRI))}".')
+        self.__change_setter(field, value)
+
+    def __del_value(self: Self, self2: Self, field: PermissionSetFields) -> None:
+        del self.__fields[field]
 

@@ -124,6 +124,18 @@ skos:alternativeLabel rdf:type owl:DatatypeProperty ;
 ###  http://www.w3.org/2004/02/skos/core#note
 skos:note rdf:type owl:DatatypeProperty .
 
+###############################################################################
+# Properties that are used by the :DataPermission class
+###############################################################################
+
+:permissionValue rdf:type owl:DatatypeProperty ;
+    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+    dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+    rdfs:domain :DataPermission ;
+    rdfs:range xsd:int .
+
 
 ###############################################################################
 # Properties that are used by the :Thing class
@@ -370,6 +382,13 @@ omas:DataPermission rdf:type owl:Class ;
             owl:onProperty rdfs:comment ;
             owl:onDatatype xsd:string ;
             owl:minCardinality 1
+        ] ;
+    rdfs:subClassOf
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty omas:permissionValue ;
+            owl:onDatatype xsd:int ;
+            owl:cardinality 1
         ] .
 
 

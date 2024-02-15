@@ -12,9 +12,12 @@ This module implements the Python representation of an OLDAP user. It offers met
 a user from the triple store. The User class inherits from
 [UserDataclass](/python_docstrings/userdataclass/#omaslib.src.user_dataclass.UserFields). UserDataclass
 provides the inner workings for the User, but without database access. This separation is necessary
-for bootstrapping the connection to the triple store.
+for bootstrapping the connection to the triple store. The [Connection](/python_docstrings/connection) class obviously
+has not yet an established connection instance. Therefore, it as to connect to the triple store using basic method,
+but still must get authorization based on the supplied userId and credentials. Internally it stores the user's
+information including all permissions within the access token that is returned by the first connection (aka login).
 
-The UserDataclass class is serializable as JSON as follows:
+The UserDataclass class is serializable as JSON as follows (using the @serializer decorator):
 ```python
 jsonstr = json.dumps(userdata, default=serializer.encoder_default)
 user = json.loads(jsonstr, object_hook=serializer.decoder_hook)
@@ -23,7 +26,7 @@ user = json.loads(jsonstr, object_hook=serializer.decoder_hook)
 The User class inherits the following properties from the UserDataclass class:
 
 - _userIri_: IRI of the user, cannot be changed (RDF property `omas:userIri`)
-- _userId_: User ID as NCName (RDF property `omas:)
+- _userId_: User ID as NCName (RDF property `omas:userId`)
 - _familyName_: Family name as str (RDF property `foaf:familyName`)
 - _givenName_: Given name or first name as str(RDF property `foaf:givenName`)
 - _credentials_: Credential (password) (RDF property `omas:credentials`)
