@@ -34,10 +34,11 @@ setter and deleter methods.
 from dataclasses import dataclass
 from datetime import datetime
 from enum import unique, Enum
-from functools import partial
+from functools import partial, partialmethod
 from typing import Dict, Self, Set, Tuple, Any
 
 import bcrypt
+from pip._internal.network.auth import Credentials
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, StringLiteral
@@ -51,7 +52,7 @@ from omaslib.src.in_project import InProjectClass
 # InProjectType = Dict[str, ObservableSet[AdminPermission]]
 
 
-UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectClass | datetime | bool | None
+UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectClass | datetime | str | bool | None
 
 
 @dataclass
@@ -211,21 +212,22 @@ class UserDataclass:
         # - user[UserFields.USER_ID]
         # - user.userId
         #
-        for field in UserFields:
-            prefix, name = field.value.split(':')
-            setattr(UserDataclass, name, property(
-                partial(self.__get_value, field=field),
-                partial(self.__set_value, field=field),
-                partial(self.__del_value, field=field)))
+        # for field in UserFields:
+        #     prefix, name = field.value.split(':')
+        #     setattr(UserDataclass, name, property(
+        #         partial(self.__get_value, field=field),
+        #         partial(self.__set_value, field=field),
+        #         partial(self.__del_value, field=field)))
         self.clear_changeset()
+
 
     #
     # these are the methods for the getter, setter and deleter
     #
-    def __get_value(self: Self, self2: Self, field: UserFields) -> UserFieldTypes | None:
+    def __get_value(self, field: UserFields) -> UserFieldTypes | None:
         return self.__fields.get(field)
 
-    def __set_value(self: Self, self2: Self, value: UserFieldTypes, field: UserFields) -> None:
+    def __set_value(self: Self, value: UserFieldTypes, field: UserFields) -> None:
         if field == UserFields.CREDENTIALS:
             salt = bcrypt.gensalt()
             value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
@@ -233,8 +235,100 @@ class UserDataclass:
             OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{repr(self.__fields.get(UserFields.USER_IRI))}".')
         self.__change_setter(field, value)
 
-    def __del_value(self: Self, self2: Self, field: UserFields) -> None:
+    def __del_value(self: Self, field: UserFields) -> None:
         del self.__fields[field]
+
+    @property
+    def userIri(self) -> AnyIRI:
+        return self.__get_value(UserFields.USER_IRI)
+
+    @userIri.setter
+    def userIri(self, value: AnyIRI) -> None:
+        self.__set_value(value, UserFields.USER_IRI)
+
+    @userIri.deleter
+    def userIri(self) -> None:
+        self.__del_value(UserFields.USER_IRI)
+
+    @property
+    def userId(self) -> NCName:
+        return self.__get_value(UserFields.USER_ID)
+
+    @userId.setter
+    def userId(self, value: NCName) -> None:
+        self.__set_value(value, UserFields.USER_ID)
+
+    @userId.deleter
+    def userId(self) -> None:
+        self.__del_value(UserFields.USER_ID)
+
+    @property
+    def familyName(self) -> str:
+        return self.__get_value(UserFields.FAMILY_NAME)
+
+    @familyName.setter
+    def familyName(self, value: str) -> None:
+        self.__set_value(value, UserFields.FAMILY_NAME)
+
+    @familyName.deleter
+    def familyName(self) -> None:
+        self.__del_value(UserFields.FAMILY_NAME)
+
+    @property
+    def givenName(self) -> str:
+        return self.__get_value(UserFields.GIVEN_NAME)
+
+    @givenName.setter
+    def givenName(self, value: str) -> None:
+        self.__set_value(value, UserFields.GIVEN_NAME)
+
+    @givenName.deleter
+    def givenName(self) -> None:
+        self.__del_value(UserFields.GIVEN_NAME)
+
+    @property
+    def credentials(self) -> str:
+        return self.__get_value(UserFields.CREDENTIALS)
+
+    @credentials.setter
+    def credentials(self, value: str) -> None:
+        self.__set_value(value, UserFields.CREDENTIALS)
+
+    @credentials.deleter
+    def credentials(self) -> None:
+        self.__del_value(UserFields.CREDENTIALS)
+
+    @property
+    def active(self) -> bool:
+        return self.__get_value(UserFields.ACTIVE)
+
+    @active.setter
+    def active(self, value: bool) -> None:
+        self.__set_value(value, UserFields.ACTIVE)
+
+    @active.deleter
+    def active(self) -> None:
+        self.__del_value(UserFields.ACTIVE)
+
+    @property
+    def inProject(self) -> InProjectClass:
+        return self.__get_value(UserFields.IN_PROJECT)
+
+    @inProject.setter
+    def inProject(self, value: InProjectClass) -> None:
+        return self.__set_value(value, UserFields.IN_PROJECT)
+
+    @property
+    def hasPermissions(self) -> ObservableSet[QName]:
+        return self.__get_value(UserFields.HAS_PERMISSIONS)
+
+    @hasPermissions.setter
+    def hasPermissions(self, value: ObservableSet[QName]) -> None:
+        self.__set_value(value, UserFields.HAS_PERMISSIONS)
+
+    @hasPermissions.deleter
+    def hasPermissions(self) -> None:
+        self.__del_value(UserFields.HAS_PERMISSIONS)
 
     def __str__(self) -> str:
         """

@@ -157,7 +157,7 @@ from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.helpers.tools import lprint
 from omaslib.src.model import Model
-from omaslib.src.user_dataclass import UserDataclass
+from omaslib.src.user_dataclass import UserDataclass, UserFields
 
 
 #@serializer
@@ -234,6 +234,7 @@ class User(Model, UserDataclass):
         :raises OmasErrorAlreadyExists: User already exists
         :raises OmasValueError: PermissionSet is not existing
         :raises OmasError: Internal error
+        :raises  OmasErrorNoPermission: No permission to create user for given project(s)
         """
 
         #
@@ -241,9 +242,14 @@ class User(Model, UserDataclass):
         # the given project!
         #
         actor = self._con.userdata
-        for proj in self.inProject.keys():
-            if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
-                raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
+        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            is_root = True
+        if not is_root:
+            for proj in self.inProject.keys():
+                if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
+                    raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
 
         indent: int = 0
         indent_inc: int = 4
@@ -470,6 +476,22 @@ class User(Model, UserDataclass):
         :raises OmasValueError: A PermissionSet is not existing
         :raises OmasError: An internal error occurred
         """
+
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        sysperms = actor.inProject.get('omas:SystemProject')
+        print("\n===>", actor.inProject)
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP.value in sysperms:
+            is_root = True
+        if not is_root:
+            for proj in self.inProject.keys():
+                if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
+                    raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
+
         timestamp = datetime.now()
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
