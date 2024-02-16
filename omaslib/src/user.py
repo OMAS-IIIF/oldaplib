@@ -248,6 +248,8 @@ class User(Model, UserDataclass):
             is_root = True
         if not is_root:
             for proj in self.inProject.keys():
+                if actor.inProject.get(proj) is None:
+                    raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
                 if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
                     raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
 
@@ -305,12 +307,12 @@ class User(Model, UserDataclass):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:credentials "{self.credentials}"'
         star = ''
         if self.inProject:
-            project = [str(p) for p in self.inProject.keys()]
+            project = [repr(p) for p in self.inProject.keys()]
             rdfstr = ", ".join(project)
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:inProject {rdfstr}'
-            for p in project:
+            for p in self.inProject.keys():
                 for admin_p in self.inProject[p]:
-                    star += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {p}>> omas:hasAdminPermission {admin_p.value} .\n'
+                    star += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {repr(p)}>> omas:hasAdminPermission {admin_p.value} .\n'
         if self.hasPermissions:
             rdfstr = ", ".join([ str(x) for x in self.hasPermissions])
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:hasPermissions {rdfstr}'
@@ -318,6 +320,8 @@ class User(Model, UserDataclass):
         sparql += star
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
+
+        #lprint(sparql)
 
         self._con.transaction_start()
         try:
@@ -482,13 +486,14 @@ class User(Model, UserDataclass):
         # the given project!
         #
         actor = self._con.userdata
-        sysperms = actor.inProject.get('omas:SystemProject')
-        print("\n===>", actor.inProject)
+        sysperms = actor.inProject.get(QName('omas:SystemProject'))
         is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP.value in sysperms:
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
         if not is_root:
             for proj in self.inProject.keys():
+                if actor.inProject.get(proj) is None:
+                    raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
                 if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
                     raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
 

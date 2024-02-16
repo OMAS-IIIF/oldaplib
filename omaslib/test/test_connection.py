@@ -9,7 +9,7 @@ from rdflib import URIRef
 
 from omaslib.src.connection import Connection, SparqlResultFormat
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode, AnyIRI
+from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode, AnyIRI, NCName
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.query_processor import QueryProcessor, OmasStringLiteral
 from omaslib.src.helpers.semantic_version import SemanticVersion
@@ -74,7 +74,7 @@ class TestBasicConnection(unittest.TestCase):
                          repo="omas",
                          token=token,
                          context_name="DEFAULT")
-        self.assertEqual(con.userid, "rosenth")
+        self.assertEqual(con.userid, NCName("rosenth"))
         self.assertEqual(con.userIri, AnyIRI("https://orcid.org/0000-0003-1681-4036"))
 
         with self.assertRaises(OmasError) as ex:

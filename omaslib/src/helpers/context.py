@@ -209,7 +209,7 @@ class Context(metaclass=ContextSingleton):
                 return QName(prefix, fragment)
         return None
 
-    def qname2iri(self, qname: QName | str) -> str:
+    def qname2iri(self, qname: QName | str) -> NamespaceIRI:
         """
         Convert a QName into a IRI string.
 
@@ -218,7 +218,7 @@ class Context(metaclass=ContextSingleton):
         """
         if not isinstance(qname, QName):
             qname = QName(qname)
-        return self._context[qname.prefix] + qname.fragment
+        return self._context[NCName(qname.prefix)] + qname.fragment
 
 
     @property

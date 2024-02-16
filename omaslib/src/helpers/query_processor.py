@@ -63,7 +63,7 @@ class OmasStringLiteral:
         return self.__lang
 
 
-RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | OmasStringLiteral
+RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OmasStringLiteral
 RowType = Dict[str, RowElementType]
 
 
@@ -97,7 +97,7 @@ class QueryProcessor:
                         row[name] = OmasStringLiteral(valobj["value"], valobj.get("xml:lang"))
                     else:
                         dt = context.iri2qname(dt)
-                        match dt:
+                        match str(dt):
                             case 'xsd:NCName':
                                 row[name] = NCName(valobj["value"])
                             case 'xsd:string':
@@ -105,6 +105,8 @@ class QueryProcessor:
                             case 'xsd:boolean':
                                 row[name] = True if valobj["value"] == 'true' else False
                             case 'xsd:integer':
+                                row[name] = int(valobj["value"])
+                            case 'xsd:int':
                                 row[name] = int(valobj["value"])
                             case 'xsd:float':
                                 row[name] = float(valobj["value"])

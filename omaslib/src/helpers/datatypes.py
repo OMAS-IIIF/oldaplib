@@ -23,7 +23,6 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 
 
-
 @strict
 @serializer
 class NCName:
@@ -108,7 +107,9 @@ class NCName:
         :param other: The other NCName/str to compare
         :return: True of False
         """
-        return self._value == str(other)
+        if isinstance(other, str):
+            return self._value == other
+        return isinstance(other, NCName) and self._value == other._value
 
     def __ne__(self, other: Any) -> bool:
         """
@@ -116,7 +117,9 @@ class NCName:
         :param other: The other NCName/str to compare
         :return: True of False
         """
-        return self._value != str(other)
+        if not isinstance(other, NCName):
+            return False
+        return self._value != other._value
 
     def __hash__(self) -> int:
         """
@@ -214,7 +217,9 @@ class QName:
         :param other: Another QName/str to compare with
         :return: True of False
         """
-        return self._value == str(other)
+        if isinstance(other, str):
+            return self._value == other
+        return isinstance(other, QName) and self._value == other._value
 
     def __ne__(self, other: Any):
         """
@@ -222,7 +227,9 @@ class QName:
         :param other: Another QName/str to compare with
         :return: True of False
         """
-        return self._value != str(other)
+        if not isinstance(other, QName):
+            return False
+        return self._value != other._value
 
     def __hash__(self):
         """
@@ -302,7 +309,7 @@ class BNode:
         :param other: Another BNode to compare with
         :return: True of False
         """
-        return self.__value == str(other)
+        return isinstance(other, BNode) and self.__value == other.__value
 
     def __ne__(self, other: Any) -> bool:
         """
@@ -424,7 +431,9 @@ class AnyIRI:
         :param other: A string/AnyIRI to be compared
         :return: True or False
         """
-        return self._value == str(other)
+        if isinstance(other, str):
+            return self._value == other
+        return isinstance(other, AnyIRI) and self._value == other._value
 
     def __ne__(self, other: Any) -> bool:
         """
@@ -480,10 +489,10 @@ class NamespaceIRI(AnyIRI):
         if not self._append_allowed:
             raise OmasErrorValue("NamespaceIRI must end with '/' or '#'!")
 
-    # def _as_dict(self) -> Dict[str, str]:
-    #     return {
-    #         'value': self._value
-    #     }
+    def _as_dict(self) -> Dict[str, str]:
+        return {
+            'value': self._value
+        }
 
 
 @unique

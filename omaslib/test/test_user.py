@@ -13,6 +13,7 @@ from omaslib.src.in_project import InProjectClass
 class TestUser(unittest.TestCase):
     _context: Context
     _connection: Connection
+    _unpriv: Connection
 
     @classmethod
     def setUp(cls):
@@ -24,6 +25,12 @@ class TestUser(unittest.TestCase):
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
+        cls._unpriv = Connection(server='http://localhost:7200',
+                                 repo="omas",
+                                 userId="fornaro",
+                                 credentials="RioGrande",
+                                 context_name="DEFAULT")
+
         user = User(con=cls._connection, userId=NCName("coyote"))
         user.delete()
         #cls._connection.clear_graph(QName('omas:admin'), login_required=False)
@@ -59,7 +66,7 @@ class TestUser(unittest.TestCase):
     def test_read_user(self):
         user = User.read(con=self._connection, userId="rosenth")
         self.assertEqual(user.userId, NCName("rosenth"))
-        self.assertEqual(user.userIri, "https://orcid.org/0000-0003-1681-4036")
+        self.assertEqual(user.userIri, AnyIRI("https://orcid.org/0000-0003-1681-4036"))
         self.assertEqual(user.familyName, "Rosenthaler")
         self.assertEqual(user.givenName, "Lukas")
         self.assertEqual(user.inProject, InProjectClass({
@@ -76,20 +83,20 @@ class TestUser(unittest.TestCase):
 
     def test_search_user(self):
         users = User.search(con=self._connection,userId="fornaro")
-        self.assertEqual(["https://orcid.org/0000-0003-1485-4923"], users)
+        self.assertEqual([AnyIRI("https://orcid.org/0000-0003-1485-4923")], users)
 
         users = User.search(con=self._connection, familyName="Rosenthaler")
-        self.assertEqual(["https://orcid.org/0000-0003-1681-4036"], users)
+        self.assertEqual([AnyIRI("https://orcid.org/0000-0003-1681-4036")], users)
 
         users = User.search(con=self._connection, givenName="John")
-        self.assertEqual(["urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b"], users)
+        self.assertEqual([AnyIRI("urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b")], users)
 
         users = User.search(con=self._connection, inProject=QName("omas:HyperHamlet"))
-        self.assertEqual(["https://orcid.org/0000-0003-1681-4036",
-                          "https://orcid.org/0000-0003-1485-4923"], users)
+        self.assertEqual([AnyIRI("https://orcid.org/0000-0003-1681-4036"),
+                          AnyIRI("https://orcid.org/0000-0003-1485-4923")], users)
 
         users = User.search(con=self._connection, inProject=AnyIRI("http://www.salsah.org/version/2.0/SwissBritNet"))
-        self.assertEqual(["urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b"], users)
+        self.assertEqual([AnyIRI("urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b")], users)
 
         users = User.search(con=self._connection, userId="GAGA")
         self.assertEqual([], users)
@@ -104,9 +111,9 @@ class TestUser(unittest.TestCase):
                     family_name="Coyote",
                     given_name="Wiley E.",
                     credentials="Super-Genius",
-                    inProject=InProjectClass({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                                          AdminPermission.ADMIN_RESOURCES,
-                                                                          AdminPermission.ADMIN_CREATE}}),
+                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                           AdminPermission.ADMIN_RESOURCES,
+                                                           AdminPermission.ADMIN_CREATE}},
                     hasPermissions={QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="coyote")
@@ -146,13 +153,13 @@ class TestUser(unittest.TestCase):
         with self.assertRaises(OmasErrorValue) as ex:
             user4.create()
 
-        user5 = User(con=self._connection,
+        user5 = User(con=self._unpriv,
                      userId=NCName("brown"),
                      family_name="Dock",
                      given_name="Donald",
                      credentials="Entenhausen@for&Ever",
                      inProject={AnyIRI('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_CREATE}},
-                     hasPermissions={QName('omas:GenericView'), QName('omas:Gaga')})
+                     hasPermissions={QName('omas:GenericView')})
         with self.assertRaises(OmasErrorNoPermission) as ex:
             user5.create()
         self.assertEqual(str(ex.exception), 'No permission to create user in project http://www.salsah.org/version/2.0/SwissBritNet.')
@@ -202,7 +209,7 @@ class TestUser(unittest.TestCase):
         user2.inProject[QName('omas:HyperHamlet')].remove(AdminPermission.ADMIN_USERS)
         user2.update()
         user3 = User.read(con=self._connection, userId="aedison")
-        self.assertEqual({'omas:GenericRestricted', 'omas:HyperHamletMember'}, user3.hasPermissions)
+        self.assertEqual({QName('omas:GenericRestricted'), QName('omas:HyperHamletMember')}, user3.hasPermissions)
         user3.hasPermissions.add(QName('omas:DoesNotExist'))
         with self.assertRaises(OmasErrorValue) as ex:
             user3.update()
