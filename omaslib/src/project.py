@@ -5,21 +5,17 @@ from enum import unique, Enum
 from functools import partial
 from pprint import pprint
 
-from elementpath.datatypes import AnyURI
 from pystrict import strict
 from typing import List, Set, Dict, Tuple, Optional, Any, Union, Self
-from urllib.parse import quote_plus
 from datetime import date, datetime
 
+from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
-from connection import Connection, SparqlResultFormat
-from model import Model
-from rdflib import Graph, ConjunctiveGraph, Namespace, URIRef, Literal
+from omaslib.src.model import Model
 
 ProjectFieldTypes = AnyIRI | NCName | LangString | NamespaceIRI | date | None
 
@@ -107,24 +103,27 @@ class Project(Model):
         if projectEnd and isinstance(projectEnd, date):
             self.__fields[ProjectFields.PROJECT_END] = projectEnd
 
+        #
+        # create all the attributes of the class according to the ProjectFields dfinition
+        #
         for field in ProjectFields:
             prefix, name = field.value.split(':')
             setattr(Project, name, property(
-                partial(self.__get_value, field=field),
-                partial(self.__set_value, field=field),
-                partial(self.__del_value, field=field)))
+                partial(Project.__get_value, field=field),
+                partial(Project.__set_value, field=field),
+                partial(Project.__del_value, field=field)))
         self.__change_set = {}
 
 
-    def __get_value(self: Self, self2: Self, field: ProjectFields) -> ProjectFieldTypes | None:
+    def __get_value(self: Self, field: ProjectFields) -> ProjectFieldTypes | None:
         return self.__fields.get(field)
 
-    def __set_value(self: Self, self2: Self, value: ProjectFieldTypes, field: ProjectFields) -> None:
+    def __set_value(self: Self, value: ProjectFieldTypes, field: ProjectFields) -> None:
         if field == ProjectFields.PROJECT_IRI and self.__fields.get(ProjectFields.PROJECT_IRI) is not None:
             OmasErrorAlreadyExists(f'A project IRI already has been assigned: "{repr(self.__fields.get(ProjectFields.PROJECT_IRI))}".')
         self.__change_setter(field, value)
 
-    def __del_value(self: Self, self2: Self, field: ProjectFields) -> None:
+    def __del_value(self: Self, field: ProjectFields) -> None:
         del self.__fields[field]
 
     #
@@ -210,7 +209,6 @@ class Project(Model):
             }}
         """
         jsonobj = con.query(query)
-        pprint(jsonobj)
         res = QueryProcessor(context, jsonobj)
         creator = None
         created = None
