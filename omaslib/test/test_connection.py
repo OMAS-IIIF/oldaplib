@@ -5,9 +5,8 @@ from pprint import pprint
 from time import sleep
 from typing import List
 
-from rdflib import URIRef
-
-from omaslib.src.connection import Connection, SparqlResultFormat
+from omaslib.src.connection import Connection
+from omaslib.src.sparql_result_format import SparqlResultFormat
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode, AnyIRI, NCName
 from omaslib.src.helpers.omaserror import OmasError
@@ -117,33 +116,6 @@ class TestBasicConnection(unittest.TestCase):
         self.maxDiff = None
         self.assertDictEqual(res, expected)
 
-    def test_rdflib_query(self):
-        query = self._context.sparql_context
-        query += """
-        SELECT ?s ?p ?o
-        FROM test:shacl
-        WHERE {
-    		?s rdf:type ?p .
-            ?s sh:path ?o .
-        }
-        """
-        p = URIRef(str(self._context.qname2iri('sh:PropertyShape')))
-        res = self._connection.rdflib_query(query, {'p': p})
-        self.assertEqual(len(res), 3)
-        s0 = {
-            URIRef('http://omas.org/test#commentShape'),
-            URIRef('http://omas.org/test#testShape'),
-            URIRef('http://omas.org/test#enumShape'),
-        }
-        s2 = {
-            URIRef('http://omas.org/test#comment'),
-            URIRef('http://omas.org/test#test'),
-            URIRef('http://omas.org/test#enum'),
-        }
-        for r in res:
-            self.assertIn(r[0], s0)
-            self.assertIn(r[2], s2)
-
     #@unittest.skip('Work in progress')
     def test_json_query(self):
         expected = {
@@ -195,10 +167,11 @@ class TestBasicConnection(unittest.TestCase):
         self._connection.update_query(query1)
         qq1 = self._context.sparql_context
         qq1 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?o}"
-        res = self._connection.rdflib_query(qq1)
+        jsonres = self._connection.query(qq1)
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 1)
         for r in res:
-            self.assertEqual(str(r[0]), "GAGA")
+            self.assertEqual(str(r['o']), "GAGA")
         query2 = self._context.sparql_context
         query2 += """
         DELETE {
@@ -219,10 +192,11 @@ class TestBasicConnection(unittest.TestCase):
         self._connection.update_query(query2)
         qq2 = self._context.sparql_context
         qq2 += "SELECT ?o FROM test:shacl WHERE {test:gaga rdfs:label ?o}"
-        res = self._connection.rdflib_query(qq2)
+        jsonres = self._connection.query(qq2)
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 1)
         for r in res:
-            self.assertEqual(str(r[0]), "GUGUS")
+            self.assertEqual(str(r['o']), "GUGUS")
 
     def test_transaction(self):
         query = self._context.sparql_context
@@ -308,10 +282,11 @@ class TestBasicConnection(unittest.TestCase):
         self._connection.transaction_abort()
         qq3 = self._context.sparql_context
         qq3 += "SELECT ?o FROM test:shacl WHERE {test:waseliwas rdfs:label ?o}"
-        res = self._connection.rdflib_query(qq2)
+        jsonres = self._connection.query(qq2)
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 1)
         for r in res:
-            self.assertEqual(str(r[0]), "WASELIWAS ISCH DAS DENN AU?")
+            self.assertEqual(str(r['o']), "WASELIWAS ISCH DAS DENN AU?")
 
 
 if __name__ == '__main__':

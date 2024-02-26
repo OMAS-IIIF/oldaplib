@@ -147,7 +147,6 @@ from datetime import datetime
 from pprint import pprint
 from typing import List, Self, Dict, Set, Optional
 
-from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
@@ -156,6 +155,7 @@ from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.helpers.tools import lprint
+from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.user_dataclass import UserDataclass, UserFields
 
@@ -167,7 +167,7 @@ class User(Model, UserDataclass):
     all the methods ot manage OLDAP users. I also uses the [InProject](/python_docstrings/in_project) class.
     """
     def __init__(self, *,
-                 con: Connection | None = None,
+                 con: IConnection | None = None,
                  creator: AnyIRI | None = None,
                  created: datetime | None = None,
                  contributor: AnyIRI | None = None,
@@ -182,8 +182,8 @@ class User(Model, UserDataclass):
                  hasPermissions: Set[QName] | None = None):
         """
         Constructor for the User class
-        :param con: Connection instance
-        :type con: Connection | None
+        :param con: IConnection instance
+        :type con: IConnection | None
         :param creator: AnyIRI of the creator
         :type creator: AnyIRI | None
         :param created: DateTime of the creation of the user
@@ -206,7 +206,7 @@ class User(Model, UserDataclass):
         :type active: bool
         :param inProject: Membership and admin permissions the user has in the given projects
         :type inProject: InProjectType
-        :param hasPermissions: Connection to permission sets
+        :param hasPermissions: IConnection to permission sets
         :type hasPermissions: PermissionSet
         """
         if userIri is None:
@@ -367,11 +367,11 @@ class User(Model, UserDataclass):
 
 
     @classmethod
-    def read(cls, con: Connection, userId: NCName | str) -> Self:
+    def read(cls, con: IConnection, userId: NCName | str) -> Self:
         """
         Reads a User instance from the data in the triple store
-        :param con: Connection instance
-        :type con: Connection
+        :param con: IConnection instance
+        :type con: IConnection
         :param userId: The userId of the user to be read
         :type userId: NCName | str
         :return: Self
@@ -390,7 +390,7 @@ class User(Model, UserDataclass):
         return instance
 
     @staticmethod
-    def search(*, con: Connection,
+    def search(*, con: IConnection,
                userId: Optional[NCName | str] = None,
                familyName: Optional[str] = None,
                givenName: Optional[str] = None,
@@ -405,8 +405,8 @@ class User(Model, UserDataclass):
 
         In each case, the full string is compared. If more than one parameter is given, they are
         combined by a logical AND operation. That is, all parameters have to fit.
-        :param con: Connection instance
-        :type con: Connection
+        :param con: IConnection instance
+        :type con: IConnection
         :param userId: The userId of the user to be searched for in the database
         :type userId: NCName | str
         :param familyName: The family name of the user to be searched for in the database
@@ -537,27 +537,28 @@ class User(Model, UserDataclass):
 
 
 if __name__ == '__main__':
-    con = Connection(server='http://localhost:7200',
-                     repo="omas",
-                     userId="rosenth",
-                     credentials="RioGrande",
-                     context_name="DEFAULT")
-
-    user = User.read(con, 'rosenth')
-    print(user)
-    user2 = User(con=con,
-                 userId=NCName("testuser"),
-                 family_name="Test",
-                 given_name="Test",
-                 credentials="Ein@geheimes&Passw0rt",
-                 inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
-                                                         AdminPermission.ADMIN_RESOURCES,
-                                                         AdminPermission.ADMIN_CREATE]},
-                 hasPermissions=[QName('omas:GenericView')])
-    print(user2)
-    user2.create()
-    user3 = User.read(con, 'testuser')
-    print(user3)
+    pass
+    # con = Connection(server='http://localhost:7200',
+    #                  repo="omas",
+    #                  userId="rosenth",
+    #                  credentials="RioGrande",
+    #                  context_name="DEFAULT")
+    #
+    # user = User.read(con, 'rosenth')
+    # print(user)
+    # user2 = User(con=con,
+    #              userId=NCName("testuser"),
+    #              family_name="Test",
+    #              given_name="Test",
+    #              credentials="Ein@geheimes&Passw0rt",
+    #              inProject={QName('omas:HyperHamlet'): [AdminPermission.ADMIN_USERS,
+    #                                                      AdminPermission.ADMIN_RESOURCES,
+    #                                                      AdminPermission.ADMIN_CREATE]},
+    #              hasPermissions=[QName('omas:GenericView')])
+    # print(user2)
+    # user2.create()
+    # user3 = User.read(con, 'testuser')
+    # print(user3)
     #jsonstr = json.dumps(user2, default=serializer.encoder_default, indent=4)
     #print(jsonstr)
     #user3 = json.loads(jsonstr, object_hook=serializer.decoder_hook)

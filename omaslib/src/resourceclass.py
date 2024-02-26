@@ -4,7 +4,6 @@ from pprint import pprint
 from typing import Union, Optional, List, Dict, Callable
 from pystrict import strict
 
-from omaslib.src.connection import Connection
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed
 from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
@@ -16,6 +15,7 @@ from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.datatypes import QName, Action, AnyIRI, NCName, BNode
 from omaslib.src.helpers.langstring import Language, LangString
 from omaslib.src.helpers.context import Context
+from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass, Attributes
 from omaslib.src.propertyrestrictions import PropertyRestrictions
@@ -64,7 +64,7 @@ class ResourceClass(Model, Notify):
     }
 
     def __init__(self, *,
-                 con: Connection,
+                 con: IConnection,
                  graph: NCName,
                  owlclass_iri: Optional[QName] = None,
                  attrs: Optional[ResourceClassAttributesContainer] = None,
@@ -269,7 +269,7 @@ class ResourceClass(Model, Notify):
                 return False
 
     @staticmethod
-    def __query_shacl(con: Connection, graph: NCName, owl_class_iri: QName) -> Attributes:
+    def __query_shacl(con: IConnection, graph: NCName, owl_class_iri: QName) -> Attributes:
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
@@ -341,13 +341,13 @@ class ResourceClass(Model, Notify):
         self.__from_triplestore = True
 
     @staticmethod
-    def __query_resource_props(con: Connection, graph: NCName, owlclass_iri: QName) -> List[Union[PropertyClass, QName]]:
+    def __query_resource_props(con: IConnection, graph: NCName, owlclass_iri: QName) -> List[Union[PropertyClass, QName]]:
         """
         This method queries and returns a list of properties defined in a sh:NodeShape. The properties may be
         given "inline" as BNode or may be a reference to an external sh:PropertyShape. These external shapes will be
         read when the ResourceClass is constructed (see __init__() of ResourceClass).
 
-        :param con: Connection instance
+        :param con: IConnection instance
         :param graph: Name of the graph
         :param owlclass_iri: The QName of the OWL class defining the resource. The "Shape" ending will be added
         :return: List of PropertyClasses/QNames
@@ -457,7 +457,7 @@ class ResourceClass(Model, Notify):
             self._properties[prop[0]].prop.read_owl()
 
     @classmethod
-    def read(cls, con: Connection, graph: NCName, owl_class_iri: QName) -> 'ResourceClass':
+    def read(cls, con: IConnection, graph: NCName, owl_class_iri: QName) -> 'ResourceClass':
         attributes = ResourceClass.__query_shacl(con, graph=graph, owl_class_iri=owl_class_iri)
         properties: List[Union[PropertyClass, QName]] = ResourceClass.__query_resource_props(con=con, graph=graph, owlclass_iri=owl_class_iri)
         resclass = cls(con=con, graph=graph, owlclass_iri=owl_class_iri, properties=properties)
@@ -899,9 +899,10 @@ class ResourceClass(Model, Notify):
 
 
 if __name__ == '__main__':
-    con = Connection('http://localhost:7200', 'omas')
-    omas_project = ResourceClass(con, QName('omas:Project'))
-    omas_project.read()
+    pass
+    # con = Connection('http://localhost:7200', 'omas')
+    # omas_project = ResourceClass(con, QName('omas:Project'))
+    # omas_project.read()
     #print(omas_project)
     #print(omas_project.create(as_string=True))
     #exit(0)
@@ -909,8 +910,8 @@ if __name__ == '__main__':
     #omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
     #omas_project.closed = False
     #omas_project.subclass_of = QName('omas:Object')
-    omas_project[QName('omas:projectEnd')].name = LangString({Language.DE: "Projektende"})
-    print(omas_project.update())
+    # omas_project[QName('omas:projectEnd')].name = LangString({Language.DE: "Projektende"})
+    # print(omas_project.update())
     # omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
     # omas_project2.read()
     # print(omas_project2)
@@ -924,50 +925,50 @@ if __name__ == '__main__':
     #print(omas_project)
     #omas_project.create()
     #exit(-1)
-    pdict = {
-        QName('omas:commentstr'):
-        PropertyClass(con=con,
-                      property_class_iri=QName('omas:commentstr'),
-                      datatype=XsdDatatypes.string,
-                      exclusive_for_class=QName('omas:OmasComment'),
-                      restrictions=PropertyRestrictions(
-                          min_count=1,
-                          language_in={Language.DE, Language.EN},
-                          unique_lang=True
-                      ),
-                      name=LangString({Language.EN: "Comment"}),
-                      description=LangString({Language.EN: "A comment to anything"}),
-                      order=1),
-        QName('omas:creator'):
-        PropertyClass(con=con,
-                      property_class_iri=QName('omas:creator'),
-                      to_node_iri=QName('omas:User'),
-                      restrictions=PropertyRestrictions(
-                          min_count=1,
-                          max_count=1
-                      ),
-                      order=2),
-        QName('omas:createdAt'):
-        PropertyClass(con=con,
-                      property_class_iri=QName('omas:createdAt'),
-                      datatype=XsdDatatypes.dateTime,
-                      restrictions=PropertyRestrictions(
-                          min_count=1,
-                          max_count=1
-                      ),
-                      order=3)
-    }
-    comment_class = ResourceClass(
-        con=con,
-        owlclass_iri=QName('omas:OmasComment'),
-        subclass_of=QName('omas:OmasUser'),
-        label=LangString({Language.EN: 'Omas Comment', Language.DE: 'Omas Kommentar'}),
-        comment=LangString({Language.EN: 'A class to comment something...'}),
-        properties=pdict,
-        closed=True
-    )
-    comment_class.create()
-    comment_class = None
-    comment_class2 = ResourceClass(con=con, owlclass_iri=QName('omas:OmasComment'))
-    comment_class2.read()
-    print(comment_class2)
+    # pdict = {
+    #     QName('omas:commentstr'):
+    #     PropertyClass(con=con,
+    #                   property_class_iri=QName('omas:commentstr'),
+    #                   datatype=XsdDatatypes.string,
+    #                   exclusive_for_class=QName('omas:OmasComment'),
+    #                   restrictions=PropertyRestrictions(
+    #                       min_count=1,
+    #                       language_in={Language.DE, Language.EN},
+    #                       unique_lang=True
+    #                   ),
+    #                   name=LangString({Language.EN: "Comment"}),
+    #                   description=LangString({Language.EN: "A comment to anything"}),
+    #                   order=1),
+    #     QName('omas:creator'):
+    #     PropertyClass(con=con,
+    #                   property_class_iri=QName('omas:creator'),
+    #                   to_node_iri=QName('omas:User'),
+    #                   restrictions=PropertyRestrictions(
+    #                       min_count=1,
+    #                       max_count=1
+    #                   ),
+    #                   order=2),
+    #     QName('omas:createdAt'):
+    #     PropertyClass(con=con,
+    #                   property_class_iri=QName('omas:createdAt'),
+    #                   datatype=XsdDatatypes.dateTime,
+    #                   restrictions=PropertyRestrictions(
+    #                       min_count=1,
+    #                       max_count=1
+    #                   ),
+    #                   order=3)
+    # }
+    # comment_class = ResourceClass(
+    #     con=con,
+    #     owlclass_iri=QName('omas:OmasComment'),
+    #     subclass_of=QName('omas:OmasUser'),
+    #     label=LangString({Language.EN: 'Omas Comment', Language.DE: 'Omas Kommentar'}),
+    #     comment=LangString({Language.EN: 'A class to comment something...'}),
+    #     properties=pdict,
+    #     closed=True
+    # )
+    # comment_class.create()
+    # comment_class = None
+    # comment_class2 = ResourceClass(con=con, owlclass_iri=QName('omas:OmasComment'))
+    # comment_class2.read()
+    # print(comment_class2)

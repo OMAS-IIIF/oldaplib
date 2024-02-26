@@ -1,26 +1,23 @@
 import json
-from pprint import pprint
 
 import bcrypt
 import jwt
 import requests
-from enum import Enum, unique
 
 from jwt import InvalidTokenError
 from pystrict import strict
 from typing import Dict, Optional, Any, Mapping
 from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
-from rdflib.query import Result
-from rdflib.term import Identifier
 from pathlib import Path
-#from urllib.parse import quote_plus, urlencode
 
-from omaslib.src.helpers.datatypes import QName, AnyIRI, NCName
+from omaslib.src.helpers.datatypes import QName
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
+from omaslib.src.iconnection import IConnection
+from omaslib.src.sparql_result_format import SparqlResultFormat
 from omaslib.src.user_dataclass import UserDataclass
 
 #
@@ -51,24 +48,9 @@ jwt_format = {
 }
 token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIkMmIkMTIkaldDSloucWRYRTlNU0NQZFVjMHk0Ljlzd1dZSmNnTFpuMGVQdFJUdS83VThxSC9PWFhrQjIiLCJleHAiOiIyMDI0LTExLTA0VDEyOjAwOjAwKzAwOjAwIiwiaWF0IjoiMjAyNC0wMS0xOVQyMzo0MTozMS45NTI5MTkiLCJpc3MiOiJodHRwOi8vb2xkYXAub3JnIn0.Vsc2qamfyeTW6Xz5l2Wca-mFnA5PcLuOoWPVEo__4Z4"
 
-@unique
-class SparqlResultFormat(Enum):
-    """
-    Enumeration of formats that may be returned by the triple store (if the specific store supports these)
-    """
-    XML ="application/sparql-results+xml"
-    JSON = "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8" # Accept: application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8
-    TURTLE = "text/turtle"
-    N3 = "text/rdf+n3"
-    NQUADS = "text/x-nquads"
-    JSONLD = "application/ld+json"
-    TRIX = "application/trix"
-    TRIG = "application/x-trig"
-    TEXT = "text/plain"
-
 
 @strict
-class Connection:
+class Connection(IConnection):
     """
     Class that implements the connection to an external triple store for omaslib.
 
@@ -106,13 +88,13 @@ class Connection:
     _server: str
     _repo: str
     _userId: str
-    __userdata: UserDataclass
-    _context_name: str
+    #_userdata: UserDataclass  ## IConnection
+    #_context_name: str  ## IConnection
     _store: SPARQLUpdateStore
     _query_url: str
     _update_url: str
     _transaction_url: Optional[str]
-    __token: str | None
+    #_token: str | None
     jwtkey: str = "You have to change this!!! +D&RWG+"
     _switcher = {
         SparqlResultFormat.XML: lambda a: a.text,
@@ -141,21 +123,20 @@ class Connection:
         :param context_name: A name of the Context to be used (see ~Context). If no such context exists,
             a new context of this name is created
         """
+        super().__init__(context_name=context_name)
         self._server = server
         self._repo = repo
-        self._context_name = context_name
         self._query_url = f'{self._server}/repositories/{self._repo}'
         self._update_url = f'{self._server}/repositories/{self._repo}/statements'
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
-        self._transaction_url = None
         context = Context(name=context_name)
         if token is not None:
             try:
                 payload = jwt.decode(jwt=token, key=Connection.jwtkey, algorithms="HS256")
             except InvalidTokenError:
                 raise OmasError("Wrong credentials")
-            self.__userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
-            self.__token = token
+            self._userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
+            self._token = token
             return
         if userId is None or credentials is None:
             raise OmasError("Wrong credentials")
@@ -174,20 +155,20 @@ class Connection:
             raise OmasError(res.status_code, res.text)
         res = QueryProcessor(context=context, query_result=jsonobj)
 
-        self.__userdata = UserDataclass()
-        self.__userdata._create_from_queryresult(queryresult=res)
-        hashed = str(self.__userdata.credentials).encode('utf-8')
+        self._userdata = UserDataclass()
+        self._userdata._create_from_queryresult(queryresult=res)
+        hashed = str(self._userdata.credentials).encode('utf-8')
         if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
             raise OmasError("Wrong credentials")
 
         expiration = datetime.now() + timedelta(days=1)
         payload = {
-            "userdata": json.dumps(self.__userdata, default=serializer.encoder_default),
+            "userdata": json.dumps(self._userdata, default=serializer.encoder_default),
             "exp": expiration.timestamp(),
             "iat": int(datetime.now().timestamp()),
             "iss": "http://oldap.org"
         }
-        self.__token = jwt.encode(
+        self._token = jwt.encode(
             payload=payload,
             key=Connection.jwtkey,
             algorithm="HS256")
@@ -202,70 +183,14 @@ class Connection:
         """Getter for repository name"""
         return self._repo
 
-    @property
-    def userdata(self) -> UserDataclass:
-        return self.__userdata
-
-    @property
-    def userid(self) -> NCName:
-        return self.__userdata.userId
-
-    @property
-    def userIri(self) -> AnyIRI:
-        return self.__userdata.userIri
-
-    @property
-    def login(self) -> bool:
-        return self._userIri is not None
-
-    @property
-    def context_name(self) -> str:
-        """Getter for the context name"""
-        return self._context_name
-
-    @property
-    def token(self) -> str:
-        return self.__token
-
-    def readUser(self, context: Context, userId: NCName | str) -> None:
-        sparql = context.sparql_context
-        sparql += f"""
-        SELECT ?user ?prop ?val ?proj ?rval
-        FROM omas:admin
-        WHERE {{
-            {{
-                ?user a omas:User .
-                ?user omas:userId "{userId}"^^xsd:NCName .
-                ?user ?prop ?val .
-            }} UNION {{
-                <<?user omas:userInProject ?proj>> omas:hasPermission ?rval .
-            }}
-        }}
+    def clear_graph(self, graph_iri: QName) -> None:
         """
-        success = False
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
-        }
-        data = {
-            'query': sparql,
-        }
-        request_result = requests.post(url=self._query_url, headers=headers, data=data)
-        if request_result.status_code == 200:
-            jsonobj = request_result.json()
-        else:
-            raise OmasError(request_result.status_code, request_result.text)
-        res = QueryProcessor(context=context, query_result=jsonobj)
-
-
-    def clear_graph(self, graph_iri: QName, login_required = True) -> None:
-        """
-        This method clears (deletes) the given RDF graph. May raise an ~herlper.OmasError.
+        This method clears (deletes) the given RDF graph. May raise an OmasError.
 
         :param graph_iri: RDF graph name as QName. The prefix must be defined in the context!
         :return: None
         """
-        if not self.__userdata and login_required:
+        if not self._userdata:
             raise OmasError("No login")
         context = Context(name=self._context_name)
         headers = {
@@ -297,7 +222,7 @@ class Connection:
         if not req.ok:
             raise OmasError(req.text)
 
-    def upload_turtle(self, filename: str, graphname: Optional[str] = None, login_required = True) -> None:
+    def upload_turtle(self, filename: str, graphname: Optional[str] = None) -> None:
         """
         Upload a turtle- or trig-file to the given repository. This method returns immediately after sending the
         command to upload the given file to the triplestore. The import process may take a while!
@@ -306,7 +231,7 @@ class Connection:
         :param graphname: Optional name of the RDF-graph where the data should be imported in.
         :return: None
         """
-        if not self.__userdata and login_required:
+        if not self._userdata:
             raise OmasError("No login")
         with open(filename, encoding="utf-8") as f:
             content = f.read()
@@ -362,7 +287,7 @@ class Connection:
         :param format: The format desired (see ~SparqlResultFormat)
         :return: Query results or an error message (as text)
         """
-        if not self.__userdata:
+        if not self._userdata:
             raise OmasError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -385,7 +310,7 @@ class Connection:
         :param query: SPARQL UPDATE query as string
         :return:
         """
-        if not self.__userdata:
+        if not self._userdata:
             raise OmasError("No login")
         headers = {
             "Accept": "*/*"
@@ -395,8 +320,8 @@ class Connection:
         if not res.ok:
             raise OmasError(f'Update query failed. Reason: "{res.text}"')
 
-    def transaction_start(self):
-        if not self.__userdata:
+    def transaction_start(self) -> None:
+        if not self._userdata:
             raise OmasError("No login")
         headers = {
             "Accept": "*/*"
@@ -407,8 +332,8 @@ class Connection:
             raise OmasError('GraphDB start of transaction failed')
         self._transaction_url = res.headers['location']
 
-    def transaction_query(self, query: str, result_format: SparqlResultFormat = SparqlResultFormat.JSON):
-        if not self.__userdata:
+    def transaction_query(self, query: str, result_format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
+        if not self._userdata:
             raise OmasError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -422,7 +347,7 @@ class Connection:
         return Connection._switcher[result_format](res)
 
     def transaction_update(self, query: str) -> None:
-        if not self.__userdata:
+        if not self._userdata:
             raise OmasError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -435,7 +360,7 @@ class Connection:
             raise OmasError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
 
     def transaction_commit(self) -> None:
-        if not self.__userdata:
+        if not self._userdata:
             raise OmasError("No login")
         headers = {
             "Accept": "*/*"
@@ -448,7 +373,7 @@ class Connection:
         self._transaction_url = None
 
     def transaction_abort(self) -> None:
-        if not self.__userdata:
+        if not self._userdata:
             raise OmasError("No login")
         headers = {
             "Accept": "*/*"
@@ -465,18 +390,18 @@ class Connection:
 
 
 
-    def rdflib_query(self, query: str,
-                     bindings: Optional[Mapping[str, Identifier]] = None) -> Result:
-        """
-        Send a SPARQL query to a triple store using the Python rdflib interface.
-
-        :param query: SPARQL query string
-        :param bindings: Bindings to variables
-        :return: a RDFLib Result instance
-        """
-        if not self.__userdata:
-            raise OmasError("No login")
-        return self._store.query(query, initBindings=bindings)
+    # def rdflib_query(self, query: str,
+    #                  bindings: Optional[Mapping[str, Identifier]] = None) -> Result:
+    #     """
+    #     Send a SPARQL query to a triple store using the Python rdflib interface.
+    #
+    #     :param query: SPARQL query string
+    #     :param bindings: Bindings to variables
+    #     :return: a RDFLib Result instance
+    #     """
+    #     if not self._userdata:
+    #         raise OmasError("No login")
+    #     return self._store.query(query, initBindings=bindings)
 
 
 if __name__ == "__main__":

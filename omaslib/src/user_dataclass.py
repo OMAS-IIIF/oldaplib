@@ -607,6 +607,7 @@ class UserDataclass:
 
 
 if __name__ == "__main__":
+    gaga = UserDataclass()
     user_dataclass = UserDataclass(
         userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
         userId=NCName("edison"),

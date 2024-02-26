@@ -4,13 +4,13 @@ from datetime import datetime
 from pprint import pprint
 from typing import Dict, List, Optional, Union
 
-from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName, AnyIRI, Action
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasError, OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import lprint
+from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass
 from omaslib.src.resourceclass import ResourceClass
@@ -35,7 +35,7 @@ class DataModel(Model):
     __propclasses_changeset: Dict[QName, PropertyClassChange]
 
     def __init__(self, *,
-                 con: Connection,
+                 con: IConnection,
                  graph: NCName,
                  propclasses: Optional[List[PropertyClass]] = None,
                  resclasses: Optional[List[ResourceClass]] = None) -> None:
@@ -128,7 +128,7 @@ class DataModel(Model):
             raise OmasErrorInconsistency(f'No resclass or property "{what}" in datamodel.')
 
     @classmethod
-    def read(cls, con: Connection, graph: NCName):
+    def read(cls, con: IConnection, graph: NCName):
         cls.__graph = graph
         cls.__context = Context(name=con.context_name)
         #

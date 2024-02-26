@@ -6,17 +6,17 @@ from pystrict import strict
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound
-from omaslib.src.connection import Connection
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.tools import lprint
+from omaslib.src.iconnection import IConnection
 
 
 @strict
 class Model:
-    _con: Connection
+    _con: IConnection
     _changed: Set[str]
 
-    def __init__(self, connection: Connection) -> None:
+    def __init__(self, connection: IConnection) -> None:
         # if not isinstance(connection, Connection):
         #     raise OmasError('"con"-parameter must be an instance of Connection')
         # if type(connection) != Connection:

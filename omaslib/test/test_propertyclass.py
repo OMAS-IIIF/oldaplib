@@ -9,6 +9,7 @@ from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action, NCName, A
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
+from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.tools import lprint
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassAttributesContainer, PropertyClassAttributeChange
@@ -343,15 +344,20 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.UNIQUE_LANG))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.LANGUAGE_IN))
         self.assertIsNone(p2[PropertyClassAttribute.RESTRICTIONS].get(PropertyRestrictionType.IN))
-        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
+        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
+        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
+        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
+        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "A" . ?s ?p ?o}')
+        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "A" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
 
 
@@ -383,15 +389,20 @@ class TestPropertyClass(unittest.TestCase):
         p2.delete()
         sparql = self._context.sparql_context
         sparql += 'SELECT ?p ?o WHERE { test:testDeleteIt ?p ?o }'
-        res = self._connection.rdflib_query(sparql)
+        jsonres = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
+        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
+        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
+        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        res = self._connection.rdflib_query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
+        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
 
     def test_write_trig(self):

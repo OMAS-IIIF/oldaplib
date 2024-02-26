@@ -9,12 +9,12 @@ from pystrict import strict
 from typing import List, Set, Dict, Tuple, Optional, Any, Union, Self
 from datetime import date, datetime
 
-from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists
 from omaslib.src.helpers.query_processor import QueryProcessor
+from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 
 ProjectFieldTypes = AnyIRI | NCName | LangString | NamespaceIRI | date | None
@@ -59,7 +59,7 @@ class Project(Model):
     __change_set: Dict[ProjectFields, ProjectFieldChange]
 
     def __init__(self, *,
-                 con: Connection,
+                 con: IConnection,
                  creator: Optional[AnyIRI] = None,
                  created: Optional[datetime] = None,
                  contributor: Optional[AnyIRI] = None,
@@ -196,7 +196,7 @@ class Project(Model):
         self.__change_set = {}
 
     @classmethod
-    def read(cls, con: Connection, projectIri: AnyIRI | QName) -> Self:
+    def read(cls, con: IConnection, projectIri: AnyIRI | QName) -> Self:
         context = Context(name=con.context_name)
         if isinstance(projectIri, QName):
             projectIri = context.qname2iri(projectIri)
@@ -257,7 +257,7 @@ class Project(Model):
 
     @staticmethod
     def search(*,
-               con: Connection,
+               con: IConnection,
                label: Optional[str] = None,
                comment: Optional[str] = None) -> List[AnyIRI | QName]:
         context = Context(name=con.context_name)
@@ -349,25 +349,26 @@ class Project(Model):
 
 
 if __name__ == "__main__":
-    con = Connection(server='http://localhost:7200',
-                     repo="omas",
-                     userId="rosenth",
-                     credentials="RioGrande",
-                     context_name="DEFAULT")
-    project = Project.read(con, QName("omas:SystemProject"))
-    print(str(project))
-
-    hyha = Project.read(con, QName("omas:HyperHamlet"))
-    print(str(hyha))
-
-    swissbritnet = Project.read(con, AnyIRI('http://www.salsah.org/version/2.0/SwissBritNet'))
-    print(swissbritnet)
-
-    p = Project.search(con=con)
-    print(p)
-    print("=================")
-    p = Project.search(con=con, label="Hamlet")
-    print(p)
-    p = Project.search(con=con, comment="Britain")
-    print(p)
+    pass
+    # con = Connection(server='http://localhost:7200',
+    #                  repo="omas",
+    #                  userId="rosenth",
+    #                  credentials="RioGrande",
+    #                  context_name="DEFAULT")
+    # project = Project.read(con, QName("omas:SystemProject"))
+    # print(str(project))
+    #
+    # hyha = Project.read(con, QName("omas:HyperHamlet"))
+    # print(str(hyha))
+    #
+    # swissbritnet = Project.read(con, AnyIRI('http://www.salsah.org/version/2.0/SwissBritNet'))
+    # print(swissbritnet)
+    #
+    # p = Project.search(con=con)
+    # print(p)
+    # print("=================")
+    # p = Project.search(con=con, label="Hamlet")
+    # print(p)
+    # p = Project.search(con=con, comment="Britain")
+    # print(p)
 

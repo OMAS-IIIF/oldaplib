@@ -52,7 +52,8 @@ def check_prop_empty(con: Connection, context: Context, graph: Graph, res: str, 
             OPTIONAL {{ ?v ?pp ?oo }}
         }}
         """
-    res = con.rdflib_query(sparql)
+    jsonres = con.query(sparql)
+    res = QueryProcessor(context, jsonres)
     return len(res) == 0
 
 def check_res_empty(con: Connection, context: Context, graph: Graph, res: str) -> bool:
@@ -67,7 +68,8 @@ def check_res_empty(con: Connection, context: Context, graph: Graph, res: str) -
         OPTIONAL {{ ?v ?pp ?oo }}
     }}
     """
-    res = con.rdflib_query(sparql)
+    jsonres = con.query(sparql)
+    res = QueryProcessor(context, jsonres)
     return len(res) == 0
 
 

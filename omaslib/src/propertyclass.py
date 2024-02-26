@@ -11,7 +11,6 @@ from typing import Union, Set, Optional, Any, Tuple, Dict, Callable, List, Self
 
 from pystrict import strict
 
-from omaslib.src.connection import Connection
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, AnyIRI, Action, NCName, BNode
@@ -23,6 +22,7 @@ from omaslib.src.helpers.query_processor import RowType, OmasStringLiteral, Quer
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import lprint, RdfModifyItem, RdfModifyProp
 from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
+from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
 
@@ -92,7 +92,7 @@ class PropertyClass(Model, Notify):
     }
 
     def __init__(self, *,
-                 con: Connection,
+                 con: IConnection,
                  graph: NCName,
                  property_class_iri: Optional[QName] = None,
                  attrs: Optional[PropertyClassAttributesContainer] = None,
@@ -104,7 +104,7 @@ class PropertyClass(Model, Notify):
         necessary to perform the CRUD (Create, Read, Update and Delete) operations in both the SHACL and
         OWL representations.
 
-        :param con: A valid Connection instance
+        :param con: A valid IConnection instance
         :param graph: The name of the named graph the information is stored in
         :param property_class_iri: The QName of the property (as used in OWL)
         :param attrs: A PropertyClassAttributesContainer containing all the attributes
@@ -309,11 +309,12 @@ class PropertyClass(Model, Notify):
             ?rinstances {self._property_class_iri} ?value
         }} LIMIT 2
         """
-        res = self._con.rdflib_query(query)
+        jsonres = self._con.query(query)
+        res = QueryProcessor(jsonres)
         if len(res) != 1:
             raise OmasError('Internal Error in "propertyClass.in_use"')
         for r in res:
-            if int(r.nresinstances) > 0:
+            if r['nresinstances'] > 0:
                 return True
             else:
                 return False
@@ -345,7 +346,7 @@ class PropertyClass(Model, Notify):
             attributes[attriri].add(r['oo'])
 
     @staticmethod
-    def __query_shacl(con: Connection, graph: NCName, property_class_iri: QName) -> Attributes:
+    def __query_shacl(con: IConnection, graph: NCName, property_class_iri: QName) -> Attributes:
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
@@ -493,7 +494,7 @@ class PropertyClass(Model, Notify):
                     f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
 
     @classmethod
-    def read(cls, con: Connection, graph: NCName, property_class_iri: QName) -> Self:
+    def read(cls, con: IConnection, graph: NCName, property_class_iri: QName) -> Self:
         property = cls(con=con, graph=graph, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
@@ -992,11 +993,12 @@ class PropertyClass(Model, Notify):
 
 
 if __name__ == '__main__':
-    con = Connection('http://localhost:7200', 'omas')
-    pclass1 = PropertyClass(con=con, graph=NCName('omas'), property_class_iri=QName('omas:comment'))
-    pclass1.read()
-    print(pclass1)
-
-    pclass2 = PropertyClass(con=con, graph=NCName('omas'), property_class_iri=QName('omas:test'))
-    pclass2.read()
-    print(pclass2)
+    pass
+    # con = Connection('http://localhost:7200', 'omas')
+    # pclass1 = PropertyClass(con=con, graph=NCName('omas'), property_class_iri=QName('omas:comment'))
+    # pclass1.read()
+    # print(pclass1)
+    #
+    # pclass2 = PropertyClass(con=con, graph=NCName('omas'), property_class_iri=QName('omas:test'))
+    # pclass2.read()
+    # print(pclass2)
