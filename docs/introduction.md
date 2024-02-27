@@ -109,6 +109,9 @@ Now let's have an simple (oversimplyfied) example how to express information abo
 <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#givenName> "Lukas"^^xsd:string .
 <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#familyName> "Rosenthaler"^^xsd:string .
 <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#livesIn> <http://www.geonames.org/2661810/allschwil.html> .
+
+<http://www.geonames.org/2661810/allschwil.html> <http://example.org/predicates#locName> "Allschwil"^^xsd:string .
+<http://www.geonames.org/2661810/allschwil.html> <http://example.org/predicates#locKind> "Gemeinde"^^xsd:string .
 ```
 
 
