@@ -25,6 +25,96 @@ are specific to a given project. Each datamodel is stroed in 2 distinct named gr
 
 OMASLIB has the following prerequisites:
 
+## The Resource Description Frame (RDF) and OLDAP
+
+### What is RDF? (and RDFS, and OWL ?)
+
+RDF is a way proposed be Tim Berners Lee to digitally represent information about real world objects or concepts.
+It's also called *Linked Data* because it's main purpose is to represent such objects and their connections to each
+other. Some standardized extensions like *RDF Schema* (RDFS) and the *Web Ontology Language* (OWL) allow to express
+*concepts* about objects such as declaring that the *concept* "car" has 4 wheels and a steering wheel, and that it has
+some kind of motor and can be driven from place A to B.
+
+The smallest unit of information is a *statement* or *triple* which basically has the form
+```subject - predicate - object```.
+In order to uniquely identify the 3 parts,
+[Uniform Resource Identifier](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier) (URI) or *IRI's* (which are
+URI's but allowing all international characters). The syntax of a URI/IRI is as follows:
+```
+scheme ":" ["//" authority] path ["?" query] ["#" fragment]
+```
+where
+
+- _scheme_: denotes the scheme, e.g. `http`, `https`, `urn`, `ftp` (not used by RDF!), etc.
+- _authority_: a unique name, usually in the form of a DNS name, e.g. `dhlab.unibas.ch`.
+- _path_: The path can have different forms depending on the scheme:
+  - _http(s)_: A typical path for a resource on the internet, e.g. `/a/b/c` or `/xxx/yyy/z/`. That is, it may
+    end with a `/`-character or not (see below for further explanation when to use a trailing `/`)
+  - _urn_: There is no _authority_. The path has parts separated be colons `:`.
+- _query_: Usually *not used* within RDF
+- _fragment_: an ID or name that consists only of characters, numbers and the `_`. It must start with a character
+  or `_`. Such names are called _NCName_'s and will have there own datatype within OLDAP.
+
+Examples:
+- `https://www.example.com:123/forum/questions#top`
+- `http://myproject.important.com/`
+- `https://nowhere.edu`
+- `http://does.not.exit.mil/secrets/`
+- `urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b`
+
+We are using the [TRIG](https://en.wikipedia.org/wiki/TriG_(syntax))-format to represent RDF triples. For more
+information about this serialization format see also the
+[W3C-article](https://www.w3.org/TR/2023/WD-rdf12-trig-20231104/).
+
+The TRIG-format requires, that URI's are enclosed in `<`, `>` brackets. For a RDF statement/triple, the following rules
+apply:
+
+#### Subject
+
+A subject als **always** represented as URI. If several statements apply to the _same_ subject, the _same_ URI must be
+used. Thus, the subject-URI uniquely identifies a real world instance of an object or conecpt. The URI *may*
+resolve – if entered to a webbrowser – to a web page describing the object/concept. But this resolution is absolutely
+not required!
+
+#### Predicate
+
+The predicate describes a property of the subject. In order to use predicates in a consistent way, predicates are also
+identified by URI's. The predicate must be used in a consistent manner. Usually the exatct meaning of the predicates is
+defined in accompanying documents or – even - better directly within the data using RDF-Schema or OWL which define tools
+for this purpose.  
+
+It is important to note that a given predicate may expect either a _literal value_ or the _URI_ of another subject
+as _object_ (see below). Thus, predicates that point to another subject describe some form a _relation_
+between 2 subjects!
+
+#### Subject
+
+The Subject may come either as _literal value_, e.g. a number or a string, or it may be a _URI_ which identifies
+another subject.
+
+In RDF, literal values do have a _datatype_ which conforms to the datatypes defined by
+[XML Schema](https://www.w3.org/TR/xmlschema-2/). The reason is that originally RDF as expressed as XML (RML/RDF).
+However, XML/RDF is difficult and contra-intuitive and has been replaced by simple serialization formats such as
+_turtle_ or _TRIG_ (our preferred way).
+
+The datatype is added to the value as `^^xml-scheme-datatype`, e.g. `"This is a string"^^xsd:string` or
+`"2024-02-26"^^xsd:date`. Please note that `xsd` is a _prefix_. Prefixes are discussed further below.
+
+### Putting things together...
+Now let's have an simple (oversimplyfied) example how to express information about things in RDF:
+
+```trig
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#givenName> "Lukas"^^xsd:string .
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#familyName> "Rosenthaler"^^xsd:string .
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#livesIn> <http://www.geonames.org/2661810/allschwil.html> .
+```
+
+
+
+
 ## Named Graphs in OMASLIB
 OMASLIB relies on the systematic use of **named graphs** which are used to separate the different areas and projects.
 
