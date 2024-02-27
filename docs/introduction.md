@@ -104,8 +104,7 @@ The datatype is added to the value as `^^xml-scheme-datatype`, e.g. `"This is a 
 Now let's have an simple (oversimplyfied) example how to express information about things in RDF:
 
 ```trig
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#givenName> "Lukas"^^xsd:string .
 <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#familyName> "Rosenthaler"^^xsd:string .
