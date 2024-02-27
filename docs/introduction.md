@@ -27,7 +27,7 @@ OMASLIB has the following prerequisites:
 
 ## The Resource Description Frame (RDF) and OLDAP
 
-### What is RDF? (and RDFS, and OWL ?)
+### What is RDF? (and RDFS, and OWL)
 
 RDF is a way proposed be Tim Berners Lee to digitally represent information about real world objects or concepts.
 It's also called *Linked Data* because it's main purpose is to represent such objects and their connections to each
@@ -36,10 +36,14 @@ other. Some standardized extensions like *RDF Schema* (RDFS) and the *Web Ontolo
 some kind of motor and can be driven from place A to B.
 
 The smallest unit of information is a *statement* or *triple* which basically has the form
-```subject - predicate - object```.
+
+```
+subject predicate object .
+```
+
 In order to uniquely identify the 3 parts,
 [Uniform Resource Identifier](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier) (URI) or *IRI's* (which are
-URI's but allowing all international characters). The syntax of a URI/IRI is as follows:
+URI's but allowing international characters). The syntax of a URI/IRI is as follows:
 ```
 scheme ":" ["//" authority] path ["?" query] ["#" fragment]
 ```
@@ -48,14 +52,17 @@ where
 - _scheme_: denotes the scheme, e.g. `http`, `https`, `urn`, `ftp` (not used by RDF!), etc.
 - _authority_: a unique name, usually in the form of a DNS name, e.g. `dhlab.unibas.ch`.
 - _path_: The path can have different forms depending on the scheme:
-  - _http(s)_: A typical path for a resource on the internet, e.g. `/a/b/c` or `/xxx/yyy/z/`. That is, it may
+    - _http(s)_: A typical path for a resource on the internet, e.g. `/a/b/c` or `/xxx/yyy/z/`. That is, it may
     end with a `/`-character or not (see below for further explanation when to use a trailing `/`)
-  - _urn_: There is no _authority_. The path has parts separated be colons `:`.
+      - _urn_: There is no _authority_. The path has parts separated be colons `:`.
 - _query_: Usually *not used* within RDF
-- _fragment_: an ID or name that consists only of characters, numbers and the `_`. It must start with a character
-  or `_`. Such names are called _NCName_'s and will have there own datatype within OLDAP.
+- _fragment_: an ID or name that consists only of characters, digits and the `_`, `-`. `.`-characters.
+  It must start with a character or `_`. Such names are called
+  [NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html)'s and will have there own Python datatype
+  within OLDAP ([NCName](/python_docstrings/datatypes#NCName)).
 
 Examples:
+
 - `https://www.example.com:123/forum/questions#top`
 - `http://myproject.important.com/`
 - `https://nowhere.edu`
@@ -66,7 +73,7 @@ We are using the [TRIG](https://en.wikipedia.org/wiki/TriG_(syntax))-format to r
 information about this serialization format see also the
 [W3C-article](https://www.w3.org/TR/2023/WD-rdf12-trig-20231104/).
 
-The TRIG-format requires, that URI's are enclosed in `<`, `>` brackets. For a RDF statement/triple, the following rules
+The TRIG-format requires URI's to be enclosed in `<`, `>` brackets. For a RDF statement/triple, the following rules
 apply:
 
 #### Subject
@@ -106,16 +113,288 @@ Now let's have an simple (oversimplyfied) example how to express information abo
 ```trig
 @PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#givenName> "Lukas"^^xsd:string .
-<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#familyName> "Rosenthaler"^^xsd:string .
-<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/predicates#livesIn> <http://www.geonames.org/2661810/allschwil.html> .
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/datamodel#givenName> "Lukas"^^xsd:string .
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/datamodel#familyName> "Rosenthaler"^^xsd:string .
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/datamodel#livesIn> <http://www.geonames.org/2661810/allschwil.html> .
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/datamodel#worksIn> <http://www.geonames.org/2661604/basel.html> .
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/datamodel#worksIn> <http://www.geonames.org/2657976/windisch.html> .
 
-<http://www.geonames.org/2661810/allschwil.html> <http://example.org/predicates#locName> "Allschwil"^^xsd:string .
-<http://www.geonames.org/2661810/allschwil.html> <http://example.org/predicates#locKind> "Gemeinde"^^xsd:string .
+<http://example.org/datamodel#Allschwil> <http://example.org/datamodel#geonameUrl> "http://www.geonames.org/2661810/allschwil.html"^^xsd:anyURI .
+<http://example.org/datamodel#Allschwil> <http://example.org/datamodel#locName> "Allschwil"^^xsd:string .
+<http://example.org/datamodel#Allschwil> <http://example.org/datamodel#locKind> "Gemeinde"^^xsd:string .
+
+<http://example.org/datamodel#Basel> <http://example.org/datamodel#geonameUrl> "http://www.geonames.org/2661604/basel.html"^^xsd:anyURI .
+<http://example.org/datamodel#Basel> <http://example.org/datamodel#locName> "Basel"^^xsd:string .
+<http://example.org/datamodel#Basel> <http://example.org/datamodel#locKind> "Stadt"^^xsd:string .
+
+<http://example.org/datamodel#Windisch> <http://example.org/datamodel#geonameUrl> "http://www.geonames.org/2657976/windisch.html"^^xsd:anyURI .
+<http://example.org/datamodel#Windisch> <http://example.org/datamodel#locName> "Windisch"^^xsd:string .
+<http://example.org/datamodel#Windisch> <http://example.org/datamodel#locKind> "Gemeinde"^^xsd:string .
+```
+The above example is the (very verbose) way to express the following things:  
+
+The subject "`<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b>`"
+
+- is something that has a `<http://example.org/datamodel#givenName>` with a value "Lukas"
+- is something that has a `<http://example.org/datamodel#familyName>` with a value "Rosenthaler"
+- has a connection to `<http://example.org/datamodel#Allschwil>` named `<http://example.org/predicates#livesIn>`
+- has connections to `<http://example.org/datamodel#Basel>` and `<http://example.org/datamodel#Windisch>`
+  named `<http://example.org/datamodel#worksIn>`
+- etc.
+
+*It is important to note that each statement must be terminated by a `.`!*
+
+The TRIG-Format now allows some syntactic sugar to make above statements a bit simpler:
+```trig
+@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> <http://example.org/datamodel#givenName> "Lukas"^^xsd:string ;
+                                                <http://example.org/datamodel#familyName> "Rosenthaler"^^xsd:string ;
+                                                <http://example.org/datamodel#livesIn> <http://example.org/datamodel#Allschwil> ;
+                                                <http://example.org/datamodel#worksIn> <http://example.org/datamodel#Basel>, <http://example.org/datamodel#Windisch> .
+
+<http://example.org/datamodel#Allschwil> <http://example.org/datamodel#geonameUrl> "http://www.geonames.org/2661810/allschwil.html"^^xsd:anyURI ;
+                                         <http://example.org/datamodel#locName> "Allschwil"^^xsd:string ;
+                                         <http://example.org/datamodel#locKind> "Gemeinde"^^xsd:string .
+
+<http://example.org/datamodel#Basel> <http://example.org/datamodel#geonameUrl> "http://www.geonames.org/2661604/basel.html"^^xsd:anyURI ;
+                                     <http://example.org/datamodel#locName> "Basel"^^xsd:string ;
+                                     <http://example.org/datamodel#locKind> "Stadt"^^xsd:string .
+
+<http://example.org/datamodel#Windisch> <http://example.org/datamodel#geonameUrl> "http://www.geonames.org/2657976/windisch.html"^^xsd:anyURI ;
+                                        <http://example.org/datamodel#locName> "Windisch"^^xsd:string ;
+                                        <http://example.org/datamodel#locKind> "Gemeinde"^^xsd:string .
+```
+The `;` indicates that the next statement is for the same subject, the `,` indicates, that the next object attached to
+the same subject-predicate combination. Still, this notation is not easy to read/write for humans.
+
+Fortunately, the
+TRIG format has some tools to simplify these stemenents drastically and make them easy to read/write:
+
+#### Prefixes, Namespaces and QNames
+
+Usually, URI's are named in as systematic ways. Related "things" may share a commen "base"-URI. In our example above
+we find that most predicates start with `http://example.org/predicates#` (*Note the `#` at the end!*). These common
+parts may be defined as _prefix_, a kind of shortcuts. The prefix must be a XML
+[NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html), that is
+again a string that contains only characters, digits, the `_`, `-`, `.` and start with a character or "_". (See
+[NCName](/python_docstrings/datatypes#NCName) for Python class). Such a Prefix defines a `namespace`. Often related
+definitions of subjects and predicates share a common preofx. They are said to be in the same Namespace. With this
+knowledge, out example may further be simplified:
+
+```trig
+@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
+@PREFIX ex:  <http://example.org/datamodel#> .
+
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> ex:givenName "Lukas"^^xsd:string ;
+                                                ex:familyName "Rosenthaler"^^xsd:string ;
+                                                ex:livesIn ex:Allschwil ;
+                                                ex:worksIn ex:Basel, ex:Windisch .
+
+ex:Allschwil ex:geonameURL "http://www.geonames.org/2661810/allschwil.html"^^xsd:anyURI ;
+             ex:locName "Allschwil"^^xsd:string ;
+             ex:locKind "Gemeinde"^^xsd:string .
+
+ex:Basel ex:geonameURL "http://www.geonames.org/2661604/basel.html"^^xsd:anyURI ;
+         ex:locName "Basel"^^xsd:string ;
+         ex:locKind "Stadt"^^xsd:string .
+
+ex:Windisch ex:geonameURL "http://www.geonames.org/2657976/windisch.html"^^xsd:anyURI ;
+            ex:locName "Windisch"^^xsd:string ;
+            ex:locKind "Gemeinde"^^xsd:string .
 ```
 
+As you will notice in the example above, the URI's in the form `<....>` have been replaced by an expression
+`prefix:fragment` without the `<`, `>` brackets, a so called *qualified name* or *QName*.
 
+*Important notes*:
 
+- Above notation with *QName*'s can be used for subjects, predicates and objects!.
+- For the URN-based URI's, there is no QName equivalent, since the URN-path is built using the `:` character!*
+
+Both the *prefix* and the *fragment* are *NCName*. Also,  _QName_ has a Python representation
+[QName](/python_docstrings/datatypes#QName)). As we understand now, the `xsd:string` to indicate the datatype is
+also a *QName* –– therefore we need to use the prefix definition `@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .`
+
+#### Ontologies and Namespaces
+
+An RDF ontology is a formal description of a given knowledge domain, using RDF. It defines the meaning and the
+relations (**semantics**). In order to do so, specific subjects and predicates have been defined which baer a
+pre-defined meaning. Most ontologies rely on RDF-Schema and (partially) OWL. The prefixes/namespaces used are:
+
+```trig
+@PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@PREFIX owl: <http://www.w3.org/2002/07/owl#> .
+```
+
+It beyond the scope of this introduction to completeley descibe RDF-based ontologies, but let's have a brief look on
+how an ontology is created in RDF/RDFS/OWL.
+Let's assume – as in the example above – that we would like to define an Ontology about persons where we would like to
+know the names, where he/she lives and works. The Namespace should be `http://my.org/ontology#`. We decide here,
+to use the fragment indicator a s separator (we could instead choose to use `/` which is basically equivalent). Thus,
+we use the prefix `@PREFIX mo: <http://my.org/ontology#> .`
+First we define a new *class* of subjects, called *Person*:
+
+`mo:Person rdf:type owl:Class .`
+
+This allows us to express with `ex:DDuck rdf:type mo:Person .` that the subject `ex:DDuck` represents a person. Now
+let's define a few predicates for Person:
+
+```trig
+@PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@PREFIX owl: <http://www.w3.org/2002/07/owl#> .
+@PREFIX mo:  <http://my.org/ontology#> .
+
+# define subject mo:Person
+mo:Person rdf:type owl:Class .
+
+# define subject mo:Location
+mo:Location rdf:type owl:Class .
+
+# define data properties (point to literals)
+mo:familyName rdf:type owl:DatatypeProperty .
+mo:givenName rdf:type owl:DatatypeProperty .
+
+mo:geonameURL rdf:type owl:DatatypeProperty .
+mo:locName rdf:type owl:DatatypeProperty .
+mo:locKind rdf:type owl:DatatypeProperty .
+
+# define object properties (point to other subject)
+mo:livesIn rdf:type owl:ObjectProperty .
+mo:worksIn rdf:type owl:ObjectProperty .
+```
+
+With these definitions, we have a minimal characterization and we can define the data:
+
+```trig
+@PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@PREFIX owl: <http://www.w3.org/2002/07/owl#> .
+@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
+@PREFIX mo:  <http://my.org/ontology#> .
+@PREFIX ex:  <http://example.org/datamodel#> .
+
+<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> rdf:type mo:Person ;
+                                                mo:givenName "Lukas"^^xsd:string ;
+                                                mo:familyName "Rosenthaler"^^xsd:string ;
+                                                mo:livesIn mo:Allschwil ;
+                                                mo:worksIn mo:Basel, mo:Windisch .
+
+mo:Allschwil rdf:type mo:Location ;
+             mo:geonameURL "http://www.geonames.org/2661810/allschwil.html"^^xsd:anyURI ;
+             mo:locName "Allschwil"^^xsd:string ;
+             mo:locKind "Gemeinde"^^xsd:string .
+
+mo:Basel rdf:type mo:Location ;
+         mo:geonameURL "http://www.geonames.org/2661604/basel.html"^^xsd:anyURI ;
+         mo:locName "Basel"^^xsd:string ;
+         mo:locKind "Stadt"^^xsd:string .
+
+mo:Windisch rdf:type mo:Location ;
+            mo:geonameURL "http://www.geonames.org/2657976/windisch.html"^^xsd:anyURI ;
+            mo:locName "Windisch"^^xsd:string ;
+            mo:locKind "Gemeinde"^^xsd:string .
+```
+Using additional RDF/RDFS/OWL properties we can even add more semantic information to the ontology:
+
+```trig
+@PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@PREFIX owl: <http://www.w3.org/2002/07/owl#> .
+@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
+@PREFIX mo:  <http://my.org/ontology#> .
+
+# define subject mo:Person
+mo:Person rdf:type owl:Class ;
+          rdfs:label "Person" ;
+          rdfs:comment "A human being..." .
+
+# define subject mo:Location
+mo:Location rdf:type owl:Class ;
+            rdfs:label "Location" ;
+            rdfs:comment "A geographical location with a name" .
+
+# define data properties (point to literals)
+mo:familyName rdf:type owl:DatatypeProperty ;
+              rdfs:label "Family name" ;
+              rdfs:comment "The famile name, last name etc." ;
+              rdfs:domain mo:Person ;
+              rdfs:range xsd:string .
+
+mo:givenName rdf:type owl:DatatypeProperty ;
+             rdfs:labal "Given name" ;
+             rdfs:comment "The given name for the person (frist name)" ;
+             rdfs:domain mo:Person ;
+             rdfs:range xsd:string .
+
+mo:geonameURL rdf:type owl:DatatypeProperty ;
+              rdfs:label "Geoname URL" ;
+              rdfs:comment "URL for the location on http://geonames.org" ;
+              rdfs:domain mo:Location ;
+              rdfs:range xsd:anyIRI .
+                          
+
+mo:locName rdf:type owl:DatatypeProperty ;
+           rdfs:label "Location name" ;
+           rdfs:comment "Name of the location" ;
+           rdfs:domain mo:Location ;
+           rdfs:range xsd:string .
+
+mo:locKind rdf:type owl:DatatypeProperty .
+
+# define object properties (point to other subject)
+mo:livesIn rdf:type owl:ObjectProperty ;
+           rdfs:label "Lives in" ;
+           rdfs:comment "The location the person lives in" ;
+           rdfs:domain mo:Person ;
+           rdfs:range mo:Location .
+
+mo:worksIn rdf:type owl:ObjectProperty ;
+           rdfs:label "Works in" ;
+           rdfs:comment "The location the person works in" ;
+           rdfs:domain mo:Person ;
+           rdfs:range mo:Location .
+```
+
+This Ontology gives quite a lot of semantic information about the relation between `mo:person`, `mo:Location` and the
+data predicates that point to literal values. We have been using additional RDFS predicates:
+
+- `rdfs:label`: The human readable "name" this element has. Should be displayed instead of the URI if the data is
+  is prepared for human reading.
+- `rdfs:comment`: A description/comment string that describes the purpose/semantics of the given element for humans.
+- `rdfs:domain`: The subject class a predicate is used for. E.g. `mo:worksIn rdfs:domain mo:Person` tells the query
+  system of the triple store that the subject is a `mo:Person`.
+- `rdfs:range`: The object of the predicate has a certain data type or points to a certain subject class.
+
+It's important to note that `rdfs:domain` and `rdfs:range` are **not restrictions**! The just let the query engine
+know if it encounters a certain predicate what's on the left and right side of it. If a predicate is beeing used
+incorrectly the query engine may make wrong assumptions. Example:
+
+```trig
+...
+ 
+wrong:Book rdf:type owl:Class .
+wrong:Page rdf:type owl:Class .
+
+wrong:inBook rdf:type owl:ObjectProperty ;
+             rdfs:domain wrong:Page ;
+             rdfs:range wrong:Book .
+
+wrong:comment rdf:type owl:DatatypeProperty ;
+              rdf:domain wrong:Book ;
+              rdfs:range xsd:string .
+
+#
+# ...and now the BIG BIG error
+#
+ex:titlepage rdf:type wrong:Page ;
+             wrong:comment "Title page with beautiful illustration" .
+```
+
+The query engine knows that the subject of `wrong:comment` is a book. Therefore it registers that `ex:titlepage` is
+also a `wrong:Book`. A query for all books will result erroneously return also `wrong:titlepage`!
 
 ## Named Graphs in OMASLIB
 OMASLIB relies on the systematic use of **named graphs** which are used to separate the different areas and projects.
