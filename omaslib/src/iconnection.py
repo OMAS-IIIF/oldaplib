@@ -5,7 +5,7 @@ from pystrict import strict
 
 from omaslib.src.helpers.context import DEFAULT_CONTEXT
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName
-from omaslib.src.sparql_result_format import SparqlResultFormat
+from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.user_dataclass import UserDataclass
 
 

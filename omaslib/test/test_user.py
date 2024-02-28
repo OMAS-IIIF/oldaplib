@@ -1,11 +1,10 @@
 import unittest
-from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
+from omaslib.src.helpers.datatypes import QName, NCName, AnyIRI
 from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNoPermission
-from omaslib.src.helpers.permissions import AdminPermission
+from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.user import User
 from omaslib.src.in_project import InProjectClass
 

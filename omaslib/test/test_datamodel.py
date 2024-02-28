@@ -1,16 +1,14 @@
 import unittest
-from pprint import pprint
-from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.datamodel import DataModel, PropertyClassChange, ResourceClassChange
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, Action
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.language import Language
-from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
-from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
-from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
+from omaslib.src.enums.language import Language
+from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
+from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
+from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType
 from omaslib.src.resourceclass import ResourceClass

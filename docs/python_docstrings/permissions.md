@@ -1,1 +1,1 @@
-::: omaslib.src.helpers.permissions
+::: omaslib.src.enums.permissions

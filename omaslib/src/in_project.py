@@ -11,7 +11,7 @@ from pystrict import strict
 
 from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI
 from omaslib.src.helpers.observable_set import ObservableSet
-from omaslib.src.helpers.permissions import AdminPermission
+from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import OmasStringLiteral
 from omaslib.src.helpers.serializer import serializer
 import json

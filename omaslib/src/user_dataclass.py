@@ -43,7 +43,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, StringLiteral
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
-from omaslib.src.helpers.permissions import AdminPermission
+from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.in_project import InProjectClass

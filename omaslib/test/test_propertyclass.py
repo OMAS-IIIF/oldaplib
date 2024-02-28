@@ -1,20 +1,18 @@
 import unittest
 from datetime import datetime
-from pprint import pprint
 from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action, NCName, AnyIRI
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.language import Language
+from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helpers.tools import lprint
-from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
+from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassAttributesContainer, PropertyClassAttributeChange
-from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
-from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions, RestrictionContainer
+from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
+from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
 
 
 class TestPropertyClass(unittest.TestCase):

@@ -1,15 +1,13 @@
 from dataclasses import dataclass
 import unittest
 from datetime import datetime
-from pprint import pprint
-from typing import Dict, Tuple, Union
+from typing import Dict, Union
 from copy import deepcopy
-from rdflib import Graph, Namespace, ConjunctiveGraph
-from rdflib.namespace import NamespaceManager
+from rdflib import ConjunctiveGraph
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, Action, NCName
-from omaslib.src.helpers.language import Language
+from omaslib.src.enums.language import Language
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType, PropertyRestrictionChange
 
 @dataclass

@@ -20,7 +20,7 @@ from pystrict import strict
 
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
-from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
+from omaslib.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
 
 
 @strict

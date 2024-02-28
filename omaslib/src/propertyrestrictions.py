@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, unique
-from typing import Dict, Union, Set, Optional, Tuple, Callable, Any
+from typing import Dict, Union, Set, Optional, Callable
 
 from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.datatypes import QName, Action, NCName
-from omaslib.src.helpers.language import Language
+from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 
 
 @unique

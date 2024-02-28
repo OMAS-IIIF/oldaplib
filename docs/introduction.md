@@ -37,19 +37,19 @@ some kind of motor and can be driven from place A to B.
 
 The smallest unit of information is a *statement* or *triple* which basically has the form
 
-```
+```text
 subject predicate object .
 ```
 
 In order to uniquely identify the 3 parts,
 [Uniform Resource Identifier](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier) (URI) or *IRI's* (which are
 URI's but allowing international characters). The syntax of a URI/IRI is as follows:
-```
+```text
 scheme ":" ["//" authority] path ["?" query] ["#" fragment]
 ```
 where
 
-- _scheme_: denotes the scheme, e.g. `http`, `https`, `urn`, `ftp` (not used by RDF!), etc.
+- _scheme_: denotes the scheme, e.g. `http`, `https`, `urn`, `ftp` (ftp not used by RDF!), etc.
 - _authority_: a unique name, usually in the form of a DNS name, e.g. `dhlab.unibas.ch`.
 - _path_: The path can have different forms depending on the scheme:
     - _http(s)_: A typical path for a resource on the internet, e.g. `/a/b/c` or `/xxx/yyy/z/`. That is, it may
@@ -79,7 +79,7 @@ apply:
 #### Subject
 
 A subject als **always** represented as URI. If several statements apply to the _same_ subject, the _same_ URI must be
-used. Thus, the subject-URI uniquely identifies a real world instance of an object or conecpt. The URI *may*
+used. Thus, the subject-URI uniquely identifies a real world instance of an object or concept. The URI *may*
 resolve – if entered to a webbrowser – to a web page describing the object/concept. But this resolution is absolutely
 not required!
 
@@ -165,7 +165,7 @@ The TRIG-Format now allows some syntactic sugar to make above statements a bit s
                                         <http://example.org/datamodel#locName> "Windisch"^^xsd:string ;
                                         <http://example.org/datamodel#locKind> "Gemeinde"^^xsd:string .
 ```
-The `;` indicates that the next statement is for the same subject, the `,` indicates, that the next object attached to
+The `;` indicates that the next statement is for the same subject, the `,` indicates, that the next object is attached to
 the same subject-predicate combination. Still, this notation is not easy to read/write for humans.
 
 Fortunately, the
@@ -177,9 +177,9 @@ Usually, URI's are named in as systematic ways. Related "things" may share a com
 we find that most predicates start with `http://example.org/predicates#` (*Note the `#` at the end!*). These common
 parts may be defined as _prefix_, a kind of shortcuts. The prefix must be a XML
 [NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html), that is
-again a string that contains only characters, digits, the `_`, `-`, `.` and start with a character or "_". (See
-[NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName) for Python class). Such a Prefix defines a `namespace`. Often related
-definitions of subjects and predicates share a common preofx. They are said to be in the same Namespace. With this
+again a string that contains only letters, digits, the `_`, `-`, `.` and start with a letter or "_". (See
+[NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName) for Python class). Such a *prefix* defines a `namespace`. Often related
+definitions of subjects and predicates share a common prefix. They are said to be in the same Namespace. With this
 knowledge, out example may further be simplified:
 
 ```trig
@@ -210,7 +210,7 @@ As you will notice in the example above, the URI's in the form `<....>` have bee
 *Important notes*:
 
 - Above notation with *QName*'s can be used for subjects, predicates and objects!.
-- For the URN-based URI's, there is no QName equivalent, since the URN-path is built using the `:` character!*
+- For the URN-based URI's, there is no QName equivalent, since the URN-path is built using the `:` character!
 
 Both the *prefix* and the *fragment* are *NCName*. Also,  _QName_ has a Python representation
 [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName)). As we understand now, the `xsd:string` to indicate the datatype is
@@ -239,7 +239,7 @@ First we define a new *class* of subjects, called *Person*:
 `mo:Person rdf:type owl:Class .`
 
 This allows us to express with `ex:DDuck rdf:type mo:Person .` that the subject `ex:DDuck` represents a person. Now
-let's define a few predicates for Person:
+let's define a few predicates for Person – or in other words a minimal ontology:
 
 ```trig
 @PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -404,8 +404,7 @@ GraphDB assignes all triples to the default graph if no named graphs are indicat
 named graphs see:
 
 - [Wikipedia](https://en.wikipedia.org/wiki/Named_graph)
-- [leveUp](https://levelup.gitconnected.com/working-with-rdf-database-named-graphs-a5ddab447e91) (specific for GraphDB
-  and Stardog triple stores)
+- [levelUp](https://levelup.gitconnected.com/working-with-rdf-database-named-graphs-a5ddab447e91) (specific for GraphDB and Stardog triple stores)
 
 OMASLIB relies on the systematic use of **named graphs** which are used to separate the different areas and projects.
 
@@ -433,14 +432,15 @@ datasets or sources need to be represented and managed within a single triple st
 
 The Python class *Context* manages the prefixes that are used in TRIG/SPARQL statements. It also contains methods
 to convert *AnyIRI*'s to *QNames* and vice versa. A Context simulates a *Dict* where the *prefixes* are the *keys* and
-the full *NamespaceIRI*'s are the *values*. It is iterable.
+the full *NamespaceIRI*'s are the *values*. It is iterable. The keys must be *NCName*s and the values of the dict
+must be *NamespaceIRI*s.
 
 Context are created with a freely selectable name. **A Context with a given name is a persistent singleton!**
 It implements the following methods (a complete documentation from the python doc strings can found at
 [Context](/python_docstrings/context)):
 
 - `Context(name: str)`: Constructs (or returns) a Context singleton with the given name.
-- ` ns = context[NCName("prefix")]`: Returns the associated *NamespaceIRI*. Throws an `OmasError` if the Key does not exist.
+- ` ns = context[NCName("prefix")]`: Returns the associated *NamespaceIRI*. Throws an `OmasError` if the key does not exist.
 - `context[NCName("prefix")] = ns`: Adds (or replaces) the prefix/namespace pair to the "Dict".
 - `del context[NCName("prefix")]`: Deletes the given prefix/namespace pair. Throws an `OmasError` if the Key does not exist.
 - `context.items()`: Used for iteration. Returns iterator, e.g. `for prefix, nsiri in context.items()`.
@@ -479,12 +479,28 @@ jsonres = connection.query(sparql)
 # below will return the same context. "my_ns" is already defined for context2!
 context2 = Context("MyOwnContext")
 ```
+In above example, the sparql string that is being sent to the query will be as follows:
+```sparql
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX xml: <http://www.w3.org/XML/1998/namespace#>
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX omas: <http://omas.org/base#>
+PREFIX my_ns: <http://my.own.project.org/my_ns/>
+SELECT ?s WHERE { ?s rdf:type my_ns:Catalogue }
+```
 
 ### NCName
 
-As we learned, a *NCName* is a string that contains only characters, digits, the `_`, `-`, `.` and starts with a
-character. In order to enforce and validate such strings, the *NCName* class is used. Throws an `OmasErrorValue` if the
-string does not conform to the XML scxhema for QName.It has the following methods
+As we learned, a *NCName* is a string that contains only letters, digits, the `_`, `-`, `.` and starts with a
+letter. In order to enforce and validate such strings, the *NCName* class is used. Throws an `OmasErrorValue` if the
+string does not conform to the XML schema for QName.It has the following methods
 (not complete - full documentation from docstrings [NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName)):
 
 - `NCName(value: Self | str)`: The Constructor takes a NCName or a str as parameter. It validates the string to
@@ -492,7 +508,7 @@ string does not conform to the XML scxhema for QName.It has the following method
 - `str(a_ncname)`: Returns the string representation of the NCName as str.
 -  `repr(a_ncname)`: Returns the RDF representation including datatype as string that can directly inserted into a
   TRIG file or SPARQL query. Example:  
-  `x = NCName("a_ncname42); rdf = repr(x)  # -> "a_ncname"^^xsd:NCName`
+  `x = NCName("a_ncname42"); rdf = repr(x)  # -> "a_ncname"^^xsd:NCName`
 - Supports comparison operations `==`, `!=` and the `hash()`. Thus, a NCName may be used as key in a Dict.
 - It implements the serializer-protocol for conversion to/from JSON (*Note*: If a Dict uses NCName, the resulting
   Dict cannot be serialized. The JSON methods require thge key to be a real str!).
@@ -586,7 +602,7 @@ my_ns = Namespace("http://this.does.not.work.ch/no_no")
 
 ### StringLiteral
 
-The *StringLiteral* class is a subclass of the Python standard class *str*. It implements only one special method(not
+The *StringLiteral* class is a subclass of the Python standard class *str*. It implements only one special method (not
 complete - full documentation from docstrings [StringLiteral](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.StringLiteral)):
 
 - `StringLiteral(value: str)`: Constructur. Just calls the str constructor
@@ -609,15 +625,40 @@ sparql = f'INSERT DATA {{ my_ns:Engine my_ns:isType {repr(s)} }}'
 In RDF, strings may have a language tag applied to indicate which language a string is. Many predicates that point to
 a string value thus are inherent multi-lingual. En example using *rdfs:label*:
 
-```TRIG
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+```trig
 ns:Engine rdf:type owl:Class ;
-    rdfs:label "Engine"@en, "Lokomotive"@de, 
-
+          rdfs:label "Engine"@en, "Lokomotive"@de, "Locomotive"@fr, "Locomotiva"@it .
 ```
+The Python class *LangString* is used to work with these multi-lingual strings. LangString supports all ISO
+languages that are described in the Enum class [Language](/python_docstrings/language). A LangString instance
+acts like a *Dict* aand allows the language specific string being access using the `[key]` syntax where the key
+is either a 2-letter ISO short for the language or – preferred – an element of the Language enum, e.g. `Language.DE`.
+LangString has the following methods (not complete - full documentation from
+docstrings [StringLiteral](/python_docstrings/langstring)):
 
+- `LangString(langstring: Optional[str | List[str] | Dict[str, str] | Dict[Language, str]])`: Constructor
+  - `LangString("Engine@en")`: This variant takes a string that ends with `@` and a 2-letter ISO short for the language
+  - `LangString(["Engine@en", "Lokomotive@de"])`: This variant takes a list strings as parameter
+  - `LangString({"en": "engine, "de": "Lokomotive})`: This variants takes a Dict with 2-letter ISO shorts as key
+  - `LangString({Language.EN: "engine", Language.DE: "Lokomotive"})`: This variant takes the Language enum values as keys.
+    *This is the preferred way to construct a Language instance!*
+- `len(langstring)`: Returns the number of language dependent strings defined in the instance
+- `s = langstring[Language.DE]`: returns the string for the given language. The key may also be given as 2-letter ISO shortname.
+- `s = langstring.get(Language.DE)`: returns the string for the given language or None, if it does not exist.
+  Raises an *OmasError* if specified language string for the specified language does not exist.
+- `langstring[Language.FR] = "électrique"`: Assigns the given string to the specified language
+- `del langstring[Language.DE]`: Deletes the string for the given language
+- `str(langstring)`: returns the string as it would be used in a SPARQL or TRIG statment.
+- `repr(langstring)`: returns the string as it would be used in a SPARQL or TRIG statment.
+
+#### Example
+
+```python
+label = LangString({Language.DE: "Vorname", Language.FR: "Prénom", Language.EN: "First name"})
+
+sparql = f'INSERT DATA {{ my_ns:Boss rdfs:label {label} . }}'
+# --> INSERT DATA { my_ns:Boss rdfs:label "Vorname"@de, "Prénom"@fr, "First name"@en . }
+```
 
 ## Project Identifier
 

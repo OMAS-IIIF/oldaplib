@@ -141,10 +141,8 @@ user3.delete()
 ```
 """
 
-import json
 import uuid
 from datetime import datetime
-from pprint import pprint
 from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
@@ -152,12 +150,10 @@ from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
     OmasErrorValue, OmasErrorNoPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helpers.permissions import AdminPermission, DataPermission
-from omaslib.src.helpers.serializer import serializer
-from omaslib.src.helpers.tools import lprint
+from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
-from omaslib.src.user_dataclass import UserDataclass, UserFields
+from omaslib.src.user_dataclass import UserDataclass
 
 
 #@serializer

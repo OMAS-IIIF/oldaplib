@@ -1,17 +1,13 @@
-import json
 import unittest
 from datetime import datetime, timezone
-from pprint import pprint
 from time import sleep
-from typing import List
 
 from omaslib.src.connection import Connection
-from omaslib.src.sparql_result_format import SparqlResultFormat
+from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode, AnyIRI, NCName
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.helpers.query_processor import QueryProcessor, OmasStringLiteral
-from omaslib.src.helpers.semantic_version import SemanticVersion
+from omaslib.src.helpers.query_processor import QueryProcessor
 
 
 #sys.path.append("/Users/rosenth/ProgDev/OMAS/omaslib/omaslib")

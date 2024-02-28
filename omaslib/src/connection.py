@@ -6,7 +6,7 @@ import requests
 
 from jwt import InvalidTokenError
 from pystrict import strict
-from typing import Dict, Optional, Any, Mapping
+from typing import Dict, Optional, Any
 from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
@@ -17,7 +17,7 @@ from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.iconnection import IConnection
-from omaslib.src.sparql_result_format import SparqlResultFormat
+from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.user_dataclass import UserDataclass
 
 #

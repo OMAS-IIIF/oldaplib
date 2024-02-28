@@ -1,1 +1,1 @@
-::: omaslib.src.helpers.propertyclassattr
+::: omaslib.src.enums.propertyclassattr

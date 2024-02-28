@@ -3,11 +3,9 @@
 :Copyright: © Lukas Rosenthaler (2023, 2024)
 """
 from dataclasses import dataclass
-from datetime import datetime, date, time
-from decimal import Decimal
+from datetime import datetime
 from enum import Enum, unique
-from pprint import pprint
-from typing import Union, Set, Optional, Any, Tuple, Dict, Callable, List, Self
+from typing import Set, Optional, Any, Dict, Callable, List, Self
 
 from pystrict import strict
 
@@ -15,13 +13,13 @@ from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, AnyIRI, Action, NCName, BNode
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.language import Language
+from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
-from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import RowType, OmasStringLiteral, QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.tools import lprint, RdfModifyItem, RdfModifyProp
-from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
+from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp
+from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions

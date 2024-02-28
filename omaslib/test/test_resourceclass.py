@@ -2,25 +2,22 @@ import unittest
 from datetime import datetime
 from enum import Enum
 from time import sleep
-from typing import Dict, List, Union
-
-from xmlschema import XsdType
+from typing import List, Union
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.language import Language
-from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists
-from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.enums.language import Language
+from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
+from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.tools import lprint
-from omaslib.src.helpers.xsd_datatypes import XsdDatatypes
+from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass, OwlPropertyType
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType
 from omaslib.src.resourceclass import ResourceClassAttributesContainer, ResourceClass
-from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
+from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 
 
 class Graph(Enum):

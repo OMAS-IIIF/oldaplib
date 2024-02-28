@@ -3,8 +3,8 @@ from typing import Callable, Optional, Union
 from pystrict import strict
 
 from omaslib.src.helpers.datatypes import QName
-from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
-from omaslib.src.helpers.resourceclassattr import ResourceClassAttribute
+from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
+from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 
 
 @strict

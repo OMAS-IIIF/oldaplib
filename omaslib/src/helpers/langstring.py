@@ -6,17 +6,15 @@ the Language class provides all necessary enumerations.
 """
 from dataclasses import dataclass
 from datetime import datetime
-from enum import unique, Enum
-from pprint import pprint
-from typing import Dict, List, Optional, Union, Set, Callable, Any, Self
+from typing import Dict, List, Optional, Callable, Self
 
 from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.datatypes import Action, QName, NCName
-from omaslib.src.helpers.language import Language
+from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.helpers.propertyclassattr import PropertyClassAttribute
+from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.serializer import serializer
 
 
@@ -231,7 +229,7 @@ class LangString(Notify):
             'priorities': [lang.value.lower() for lang in self._priorities]
         }
 
-    def get(self, lang: str | Language) -> str:
+    def get(self, lang: str | Language, default: str = None) -> str:
         """
         Return the language string or None, if it does not exist
         :param lang: Desired language
@@ -241,7 +239,7 @@ class LangString(Notify):
         """
         if isinstance(lang, str):
             lang = Language[lang.upper()]
-        return self._langstring.get(lang)
+        return self._langstring.get(lang, default)
 
     def __eq__(self, other: Self) -> bool:
         """
