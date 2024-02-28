@@ -11,8 +11,9 @@ from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
+from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.datatypes import QName
-from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNoPermission
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
@@ -191,7 +192,15 @@ class Connection(IConnection):
         :return: None
         """
         if not self._userdata:
-            raise OmasError("No login")
+            raise OmasErrorNoPermission("No permission")
+        actor = self._userdata
+        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            is_root = True
+        if not is_root:
+            raise OmasErrorNoPermission("No permission")
+
         context = Context(name=self._context_name)
         headers = {
             "Content-Type": "application/sparql-update",
@@ -210,8 +219,15 @@ class Connection(IConnection):
 
         :return: None
         """
-        if not self.userIri:
-            raise OmasError("No login")
+        if not self._userdata:
+            raise OmasErrorNoPermission("No permission")
+        actor = self._userdata
+        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            is_root = True
+        if not is_root:
+            raise OmasErrorNoPermission("No permission")
         headers = {
             "Accept": "application/json, text/plain, */*",
         }
@@ -232,7 +248,15 @@ class Connection(IConnection):
         :return: None
         """
         if not self._userdata:
-            raise OmasError("No login")
+            raise OmasErrorNoPermission("No permission")
+        actor = self._userdata
+        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            is_root = True
+        if not is_root:
+            raise OmasErrorNoPermission("No permission")
+
         with open(filename, encoding="utf-8") as f:
             content = f.read()
             ext = Path(filename).suffix
