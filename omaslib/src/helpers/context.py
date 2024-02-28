@@ -68,8 +68,7 @@ class Context(metaclass=ContextSingleton):
     _inverse: Dict[NamespaceIRI, NCName]
     _use: List[NCName]
 
-    def __init__(self,
-                 name: str):
+    def __init__(self, name: str):
         """
         Constructs a context with the given name. The following namespaces are defined by default:
 
@@ -181,7 +180,7 @@ class Context(metaclass=ContextSingleton):
 
     def use(self, *args: NCName | str) -> None:
         """
-        Add graoh names to the context
+        Add graph names to the context
         :param args: Parameter list of graph names
         :return: None
         """
@@ -194,7 +193,7 @@ class Context(metaclass=ContextSingleton):
         """
         return self._context.items()
 
-    def iri2qname(self, iri: str | AnyIRI) -> QName | None:
+    def iri2qname(self, iri: str | NamespaceIRI) -> QName | None:
         """
         Returns a QName
 
@@ -242,7 +241,7 @@ class Context(metaclass=ContextSingleton):
         return "\n".join(contextlist) + "\n"
 
     @classmethod
-    def in_use(cls, name) -> bool:
+    def in_use(cls, name: str) -> bool:
         """
         Method to test if context name is already in use
 

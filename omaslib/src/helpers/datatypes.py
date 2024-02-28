@@ -27,6 +27,8 @@ from omaslib.src.helpers.xsd_datatypes import XsdValidator, XsdDatatypes
 @serializer
 class NCName:
     """
+    # NCName
+
     Implements a NCName according to the XML datatyping.
 
     NCName is according to the XML datatype an "unqualified name". See the
@@ -138,6 +140,8 @@ class NCName:
 @serializer
 class QName:
     """
+    # QName
+
     Implements a XSD qualified name (xs:QName) See [W3C documentation](https://www.w3.org/TR/xmlschema-2/#QName).
 
     A QName consists of a prefix (itelf a NCName) and a fragment (also itself a NCName) seperatet
@@ -269,6 +273,8 @@ class QName:
 @serializer
 class BNode:
     """
+    # BNode
+
     Represents a blank node in the triple store. The class has the following methods:
 
     - *Constructor*: Initialize a blank node
@@ -347,6 +353,8 @@ class BNode:
 @serializer
 class AnyIRI:
     """
+    # AnyIRI
+
     Represents a generic IRI (corresonds to the XML datatype [AnyURI](https://www.w3.org/TR/xmlschema-2/#QName).
     This class is used to represent a generic IRI. This class has the following methods:
 
@@ -477,6 +485,8 @@ class AnyIRI:
 @serializer
 class NamespaceIRI(AnyIRI):
     """
+    # NamespaceIRI
+
     An IRI representing a namespace. A namespace is an IRI that ends with a fragment separates, that is a "#" or "/".
     It is a subclass of AnyIRI and checks in the constructor for the termination with a "#" or "/".
     """
@@ -499,6 +509,8 @@ class NamespaceIRI(AnyIRI):
 @serializer
 class Action(Enum):
     """
+    # Action
+
     An Enumeration of the Actions that are supported on PropertyClass and ResourceClass attributes/restrictions
 
     - `Action.CREATE` = 'create'
@@ -517,8 +529,11 @@ class Action(Enum):
 
 class StringLiteral(str):
     """
+    # StringLiteral
+
     A string literal is a subclass of str that implements a repr() function that includes the '"'.
     """
+
     def __repr__(self):
         return f'"{self}"'
 

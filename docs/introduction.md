@@ -59,7 +59,7 @@ where
 - _fragment_: an ID or name that consists only of characters, digits and the `_`, `-`. `.`-characters.
   It must start with a character or `_`. Such names are called
   [NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html)'s and will have there own Python datatype
-  within OLDAP ([NCName](/python_docstrings/datatypes#NCName)).
+  within OLDAP ([NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName)).
 
 Examples:
 
@@ -178,7 +178,7 @@ we find that most predicates start with `http://example.org/predicates#` (*Note 
 parts may be defined as _prefix_, a kind of shortcuts. The prefix must be a XML
 [NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html), that is
 again a string that contains only characters, digits, the `_`, `-`, `.` and start with a character or "_". (See
-[NCName](/python_docstrings/datatypes#NCName) for Python class). Such a Prefix defines a `namespace`. Often related
+[NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName) for Python class). Such a Prefix defines a `namespace`. Often related
 definitions of subjects and predicates share a common preofx. They are said to be in the same Namespace. With this
 knowledge, out example may further be simplified:
 
@@ -213,7 +213,7 @@ As you will notice in the example above, the URI's in the form `<....>` have bee
 - For the URN-based URI's, there is no QName equivalent, since the URN-path is built using the `:` character!*
 
 Both the *prefix* and the *fragment* are *NCName*. Also,  _QName_ has a Python representation
-[QName](/python_docstrings/datatypes#QName)). As we understand now, the `xsd:string` to indicate the datatype is
+[QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName)). As we understand now, the `xsd:string` to indicate the datatype is
 also a *QName* –– therefore we need to use the prefix definition `@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .`
 
 #### Ontologies and Namespaces
@@ -396,7 +396,17 @@ ex:titlepage rdf:type wrong:Page ;
 The query engine knows that the subject of `wrong:comment` is a book. Therefore it registers that `ex:titlepage` is
 also a `wrong:Book`. A query for all books will result erroneously return also `wrong:titlepage`!
 
-## Named Graphs in OMASLIB
+### Named Graphs in OMASLIB
+RDF allows to group statments into named entities called *named graphs*. Thus, using named graphs, a triple becomes in
+fact a quadruple, since it's associated with the graph name. The graph name can be used in queries. Usually there is
+a *default* named graph for all triples no assigned explicitely to a named graph. Some triple stores as Ontotext's
+GraphDB assignes all triples to the default graph if no named graphs are indicated. For more information about
+named graphs see:
+
+- [Wikipedia](https://en.wikipedia.org/wiki/Named_graph)
+- [leveUp](https://levelup.gitconnected.com/working-with-rdf-database-named-graphs-a5ddab447e91) (specific for GraphDB
+  and Stardog triple stores)
+
 OMASLIB relies on the systematic use of **named graphs** which are used to separate the different areas and projects.
 
 In triple stores, "named graphs" refer to a mechanism for organizing RDF (Resource Description Framework) data into
@@ -416,6 +426,183 @@ Key points about named graphs:
 
 Named graphs play a crucial role in organizing and structuring RDF data, especially in scenarios where multiple
 datasets or sources need to be represented and managed within a single triple store.
+
+## OLDAP Python classes to work with RDF
+
+### Context
+
+The Python class *Context* manages the prefixes that are used in TRIG/SPARQL statements. It also contains methods
+to convert *AnyIRI*'s to *QNames* and vice versa. A Context simulates a *Dict* where the *prefixes* are the *keys* and
+the full *NamespaceIRI*'s are the *values*. It is iterable.
+
+Context are created with a freely selectable name. **A Context with a given name is a persistent singleton!**
+It implements the following methods (a complete documentation from the python doc strings can found at
+[Context](/python_docstrings/context)):
+
+- `Context(name: str)`: Constructs (or returns) a Context singleton with the given name.
+- ` ns = context[NCName("prefix")]`: Returns the associated *NamespaceIRI*. Throws an `OmasError` if the Key does not exist.
+- `context[NCName("prefix")] = ns`: Adds (or replaces) the prefix/namespace pair to the "Dict".
+- `del context[NCName("prefix")]`: Deletes the given prefix/namespace pair. Throws an `OmasError` if the Key does not exist.
+- `context.items()`: Used for iteration. Returns iterator, e.g. `for prefix, nsiri in context.items()`.
+- `iri2qname(iri: str | NamespaceIRI) -> QName`: Converts a Namespace IRI into a QName.
+- `qname2iri(qname: QName | str) -> NamespaceIRI`: Converts a qname into a full NamespaceIRI.
+- `sparql_context() -> str`: Returns a multiline string with all the prefixes defines as it is used for SPARQL queries.
+- `turtle_context(self) -> str`: Returns a multiline string with all the prefixes defines as it is used for TRUTLE/TRIG statements.
+- `in_use(name: str) -> bool`: A classmethod to check if there is already a Context with the given name.
+
+The Context class implements automatically the following prefixes:
+
+- `rdf`: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+- `rdfs`: http://www.w3.org/2000/01/rdf-schema#
+- `owl`: http://www.w3.org/2002/07/owl#
+- `xsd`: http://www.w3.org/2001/XMLSchema#
+- `xml`: http://www.w3.org/XML/1998/namespace#
+- `sh`: http://www.w3.org/ns/shacl#
+- `skos`: http://www.w3.org/2004/02/skos/core#
+- `dc`: http://purl.org/dc/elements/1.1/
+- `dcterms`: http://purl.org/dc/terms/
+- `foaf`: http://xmlns.com/foaf/0.1/
+- `omas`: http://omas.org/base#
+
+#### Example
+
+```python
+context = Context("MyOwnContext")
+# Add my new namespace
+context[NCName("my_ns")] = NamespaceIRI("http://my.own.project.org/my_ns/")
+...
+sparql = context.sparql_context
+sparql += "SELECT ?s WHERE { ?s rdf:type my_ns:Catalogue }"
+jsonres = connection.query(sparql)
+...
+
+# below will return the same context. "my_ns" is already defined for context2!
+context2 = Context("MyOwnContext")
+```
+
+### NCName
+
+As we learned, a *NCName* is a string that contains only characters, digits, the `_`, `-`, `.` and starts with a
+character. In order to enforce and validate such strings, the *NCName* class is used. Throws an `OmasErrorValue` if the
+string does not conform to the XML scxhema for QName.It has the following methods
+(not complete - full documentation from docstrings [NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName)):
+
+- `NCName(value: Self | str)`: The Constructor takes a NCName or a str as parameter. It validates the string to
+  conform to the syntax of NCName's as defined by the XML Datatype schema.
+- `str(a_ncname)`: Returns the string representation of the NCName as str.
+-  `repr(a_ncname)`: Returns the RDF representation including datatype as string that can directly inserted into a
+  TRIG file or SPARQL query. Example:  
+  `x = NCName("a_ncname42); rdf = repr(x)  # -> "a_ncname"^^xsd:NCName`
+- Supports comparison operations `==`, `!=` and the `hash()`. Thus, a NCName may be used as key in a Dict.
+- It implements the serializer-protocol for conversion to/from JSON (*Note*: If a Dict uses NCName, the resulting
+  Dict cannot be serialized. The JSON methods require thge key to be a real str!).
+
+#### Example
+
+```python
+id = NCName("coyote")
+...
+sparql = f"INSERT DATA {{ my_ns:Hero my_ns:hasId {repr(id)} . }}"
+# --> INSERT DATA { my_ns:Hero my_ns:hasId "coyote"^^xsd:NCName . }
+```
+### QName
+
+A QName has the form `ncname_a:ncname_b` where the *ncname_a* is the *prefix* and the *ncname_b* is the fragment. The
+class QName has the following methods (full documentation from docstrings: [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName)).
+Throws an `OmasErrorValue` if the string does not conform to the XML scxhema for QName.
+
+- `QName(value: Self | str | NCName, fragment: Optional[str | NCName] = None)`: An instance can be constructed in
+   two ways:
+  - `QName("prefix:fragment")`: A string containing prefix and fragment separated by a color.
+  - `QName("prefix", "fragment")` or `QName(NCName("prefix"), NCName("fragment"))`: To strings or NCNames for prefix
+    and fragment
+- `str(qname)`: returns the string "prefix:fragment"
+- `repr(qname)`: returns the string "prefix:fragment"
+- Supports comparison operations `==`, `!=` and the `hash()`. Thus a QName may be used as key in a Dict.
+- It implements the serializer-protocol for conversion to/from JSON (*Note*: If a Dict uses NCName, the resulting
+  Dict cannot be serialized. The JSON methods requiure the key to be a real str!).
+- `prefix`: The property *prefix* returns the prefix as string (not NCName!): `p = qname.prefix  # --> "prefix"`
+- `fragment`: The property *fragment* returns the fragment as string (not NCName!): `f = qname.fragment  # --> "fragment"
+
+#### Example
+
+```python
+qn1 = QName("my_ns:hasName")
+
+ns = NCName("my_ns")
+fr = NCName("TragicHeroy")
+qn2 = QName(ns, fr)
+
+sparql = f'INSERT DATA {{ {qn2} {qn1} "Wiley E. Coyote" . }}'
+# Using the f-string, we don't need to use *str()* or *repr()* for QNames!
+```
+
+### AnyIRI
+
+This python class represents a XML Schema AnyURI IRI (Note: Python: Any**I**RI, XML: Any**U**RI !). The constructor
+validates the string to comform the XML AnyURI scheme. Methods (not complete - full documentation from
+docstrings [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI)):
+
+- `AnyIRI(value: Self | str)`: Takes an AnyIRI or a string and checks for conformance. Throws an `OmasErrorValue` if
+  the string does not conform.
+- `str(anyiri)`: returns the IRI as string
+- `repr(anyiri)`: returns the IRI string as used in TRIG/SPARQL, that is with enclosing `<`, `>`. E.g.
+  `x = AnyIRI("http://example.org/gaga/test/aua"); rdfstr = repr(x)  # --> <http://example.org/gaga/test/aua>`
+- `len(anyiri)`: Length of iri string
+- Supports comparison operations `==`, `!=` and the `hash()`. Thus a QName may be used as key in a Dict.
+- It implements the serializer-protocol for conversion to/from JSON (*Note*: If a Dict uses NCName, the resulting
+  Dict cannot be serialized. The JSON methods requiure the key to be a real str!).
+
+#### Example
+
+```python
+elephant_iri = AnyIRI("http://example.org/gaga/Elephant")
+
+sparql = f'INSERT DATA {{ my_ns:Animal my_ns:isA {repr(elephantIri)} .}}'
+# --> INSERT DATA { my_ns:Animal my_ns:isA <http://example.org/gaga/Elephant> .}
+
+# Will throw an OmasErrorValue:
+my_iri = AnyIRI("my.dns.com/gaga/test.html")
+```
+
+### NamespaceIRI
+
+This python class, which is a subclass of *AnyIRI* represents an IRI that stands for a namespace. That ist, the iri
+string must have a `#` or `/` as last character. The constructor validates the string to a NamespaceIRI. The methods
+are (not complete - full documentation from docstrings [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI)):
+
+- `NamespaceIRI(value: Self | str)`: Constructor. Throws an `OmasErrorValue` if the string does not conform.
+- Other methods see *AnyIRI* above.
+
+#### Example
+
+```python
+my_ns = NamespaceIri("http://my.example.com/examples#")
+context["my_ns"] = ns
+
+# Will throw an OmasErrorValue:
+my_ns = Namespace("http://this.does.not.work.ch/no_no")
+```
+
+### StringLiteral
+
+The *StringLiteral* class is a subclass of the Python standard class *str*. It implements only one special method(not
+complete - full documentation from docstrings [StringLiteral](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.StringLiteral)):
+
+- `StringLiteral(value: str)`: Constructur. Just calls the str constructor
+- `repr(strlit)`. Returns the string with encllosed `"` in order to be directly included into  TRIG/SPARQL statemenmts.
+  `sl = StringLiteral("gaga"); rdfstr = repr(sl) # --> "gaga"`.
+
+#### Example
+
+```python
+
+s = StringLiterall("EMD SD45")
+
+sparql = f'INSERT DATA {{ my_ns:Engine my_ns:isType {repr(s)} }}'
+# --> INSERT DATA { my_ns:Engine my_ns:isType "EMD SD45" }
+
+```
 
 ## Project Identifier
 
