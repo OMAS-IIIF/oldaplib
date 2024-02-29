@@ -12,7 +12,8 @@ from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, PropertyClassAttributesContainer, PropertyClassAttributeChange
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
-from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
+from omaslib.src.propertyrestrictions import PropertyRestrictions
+from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 
 
 class TestPropertyClass(unittest.TestCase):

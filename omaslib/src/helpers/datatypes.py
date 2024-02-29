@@ -537,6 +537,37 @@ class StringLiteral(str):
     def __repr__(self):
         return f'"{self}"'
 
+class EscapedString(str):
+    __escaped: bool
+
+    def __new__(cls, value: str) -> Self:
+        old_value = value
+        value = value.replace('\\', '\\\\')
+        value = value.replace("'", "\\'")
+        value = value.replace('"', '\\"')
+        value = value.replace('\n', '\\n').replace('\r', '\\r')
+        cls.__escaped = len(old_value) != len(value)
+        return str.__new__(cls, value)
+
+    @classmethod
+    def raw(cls, value: str) -> Self:
+        return str.__new__(cls, value)
+
+    def __repr__(self):
+        return f'"{self}"'
+
+    def unescape(self) -> str:
+        value = self.replace('\\\\', '\\')
+        value = value.replace("\\'", "'")
+        value = value.replace('\\"', '"')
+        value = value.replace('\\n', '\n').replace('\\r', '\r')
+        return value
+
+    @property
+    def escaped(self) -> bool:
+        return self.__escaped
+
+
 
 if __name__ == "__main__":
     #print(NCName("orcid") + "0000-0003-1681-4036")

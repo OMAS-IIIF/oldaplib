@@ -15,56 +15,59 @@
     #
     :ADMIN_OLDAP a :AdminPermission ;
         rdfs:label "ADMIN_OLDAP" ;
-        rdfs:description "Quasi 'root'-permissions, system administration" .
+        rdfs:comment "Quasi 'root'-permissions, system administration" .
 
     :ADMIN_USERS a :AdminPermission ;
         rdfs:label "ADMIN_USERS" ;
-        rdfs:description "add/modify/delete users." ;
-        :permissionValue 1 .
+        rdfs:comment "add/modify/delete users." .
+
+    :ADMIN_PERMISSION_SETS a :AdminPermission ;
+        rdfs:label "ADMIN_PERMISSION_SETS" ;
+        rdfs:comment "Add/change/remove permission sets" .
 
     :ADMIN_RESOURCES a :AdminPermission ;
         rdfs:label "ADMIN_RESOURCES" ;
-        rdfs:description "Override resource permissions to manipulate any resources within the given project (All CRUD-operations)." .
+        rdfs:comment "Override resource permissions to manipulate any resources within the given project (All CRUD-operations)." .
 
     :ADMIN_MODEL a :AdminPermission ;
         rdfs:label "ADMIN_MODEL" ;
-        rdfs:description "User has permission to modify the data model." .
+        rdfs:comment "User has permission to modify the data model." .
 
     :ADMIN_CREATE a :AdminPermission ;
         rdfs:label "ADMIN_CREATE" ;
-        rdfs:description "The user is allowed to add new resources." .
+        rdfs:comment "The user is allowed to add new resources." .
 
     #==================================================================
     # Define the data permissions here
     #
     :DATA_RESTRICTED a :DataPermission ;
         rdfs:label "DATA_RESTRICTED" ;
-        rdfs:description "Allows a restricted view of the resource." ;
+        rdfs:comment "Allows a restricted view of the resource." ;
         :permissionValue 1 .
 
     :DATA_VIEW a :DataPermission ;
         rdfs:label "DATA_VIEW" ;
-        rdfs:descriptions "Readonly access to a resource (full view)." ;
+        rdfs:comment "Readonly access to a resource (full view)." ;
         :permissionValue 2 .
 
     :DATA_EXTEND a :DataPermission ;
         rdfs:label "EXTEND" ;
-        rdfs:descriptions "Allows to extend the data (e.g. adding a comment or annotation or adding data to a filed that has a cardinality greater one)." ;
+        rdfs:comment "Allows to extend the data (e.g. adding a comment or annotation or adding data to a filed that has a cardinality greater one)." ;
         :permissionValue 3 .
 
     :DATA_UPDATE a :DataPermission ;
         rdfs:label "DATA_UPDATE" ;
-        rdfs:descriptions "Allows to modify or update an existing resource." ;
+        rdfs:comment "Allows to modify or update an existing resource." ;
         :permissionValue 4 .
 
     :DATA_DELETE a :DataPermission ;
         rdfs:label "DATA_DELETE" ;
-        rdfs:descriptions "Allows to completely remove a resource." ;
+        rdfs:comment "Allows to completely remove a resource." ;
         :permissionValue 5 .
 
     :DATA_PERMISSIONS a :DataPermission ;
         rdfs:label "DATA_PERMISSIONS" ;
-        rdfs:descriptions "Allows the user to change the assignments of groups and the ownership of a given resource." ;
+        rdfs:comment "Allows the user to change the assignments of groups and the ownership of a given resource." ;
         :permissionValue 6 .
 
 
@@ -112,7 +115,7 @@
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
         :givesPermission :DATA_RESTRICTED ;
-        :defineByProject :SystemProject .
+        :definedByProject :SystemProject .
 
     :GenericView a :PermissionSet ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -121,7 +124,7 @@
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
         :givesPermission :DATA_VIEW ;
-        :defineByProject :SystemProject .
+        :definedByProject :SystemProject .
 
     :HyperHamletMember a :PermissionSet ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -130,7 +133,7 @@
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
         :givesPermission :DATA_UPDATE ;
-        :defineByProject :HyperHamlet .
+        :definedByProject :HyperHamlet .
 
     #==================================================================
     # Define some users

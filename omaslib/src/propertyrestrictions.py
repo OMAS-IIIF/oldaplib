@@ -5,29 +5,13 @@ from typing import Dict, Union, Set, Optional, Callable
 
 from pystrict import strict
 
+from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.datatypes import QName, Action, NCName
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 
-
-@unique
-class PropertyRestrictionType(Enum):
-    MIN_COUNT = 'sh:minCount'  # used also for OWL ontology
-    MAX_COUNT = 'sh:maxCount'  # used also for OWL ontology
-    LANGUAGE_IN = 'sh:languageIn'
-    UNIQUE_LANG = 'sh:uniqueLang'
-    IN = 'sh:in'
-    MIN_LENGTH = 'sh:minLength'
-    MAX_LENGTH = 'sh:maxLength'
-    PATTERN = 'sh:pattern'
-    MIN_EXCLUSIVE = 'sh:minExclusive'
-    MIN_INCLUSIVE = 'sh:minInclusive'
-    MAX_EXCLUSIVE = 'sh:maxExclusive'
-    MAX_INCLUSIVE = 'sh:maxInclusive'
-    LESS_THAN = 'sh:lessThan'
-    LESS_THAN_OR_EQUALS = 'sh:lessThanOrEquals'
 
 @unique
 class Compare(Enum):

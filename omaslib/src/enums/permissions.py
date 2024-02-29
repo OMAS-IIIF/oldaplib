@@ -2,6 +2,7 @@
 This module implements the enumerations for the permissions.
 """
 from enum import Enum, unique
+from typing import Self
 
 from omaslib.src.helpers.datatypes import QName
 from omaslib.src.helpers.serializer import serializer
@@ -21,6 +22,7 @@ class AdminPermission(Enum):
     """
     ADMIN_OLDAP = 'omas:ADMIN_OLDAP'
     ADMIN_USERS = 'omas:ADMIN_USERS'
+    ADMIN_PERMISSION_SETS = 'omas:ADMIN_PERMISSION_SETS'
     ADMIN_RESOURCES = 'omas:ADMIN_RESOURCES'
     ADMIN_MODEL = 'omas:ADMIN_MODEL'
     ADMIN_CREATE = 'omas:ADMIN_CREATE'
@@ -48,4 +50,10 @@ class DataPermission(Enum):
     DATA_DELETE = 5
     DATA_PERMISSIONS = 6
 
+    @classmethod
+    def from_string(cls, permission_string: str) -> Self:
+        for member in cls:
+            if f'omas:{member.name}' == permission_string:
+                return member
+        raise ValueError(f'{permission_string} is not in DataPermission enum.')
 

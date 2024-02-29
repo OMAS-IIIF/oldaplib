@@ -40,7 +40,7 @@ from typing import Dict, Self, Set, Tuple, Any
 import bcrypt
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, StringLiteral
+from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, StringLiteral, EscapedString
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
 from omaslib.src.enums.permissions import AdminPermission
@@ -135,8 +135,8 @@ class UserDataclass:
     __datatypes = {
         UserFields.USER_IRI: AnyIRI,
         UserFields.USER_ID: NCName,
-        UserFields.FAMILY_NAME: str,
-        UserFields.GIVEN_NAME: str,
+        UserFields.FAMILY_NAME: EscapedString,
+        UserFields.GIVEN_NAME: EscapedString,
         UserFields.CREDENTIALS: str,
         UserFields.ACTIVE: bool,
         UserFields.IN_PROJECT: dict,

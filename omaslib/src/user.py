@@ -146,7 +146,7 @@ from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
+from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName, EscapedString
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
     OmasErrorValue, OmasErrorNoPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
@@ -170,8 +170,8 @@ class User(Model, UserDataclass):
                  modified: datetime | None = None,
                  userIri: AnyIRI | None = None,
                  userId: NCName | None = None,
-                 family_name: str | None = None,
-                 given_name: str | None = None,
+                 family_name: EscapedString | str | None = None,
+                 given_name: EscapedString | str | None = None,
                  credentials: str | None = None,
                  active: bool | None = None,
                  inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
@@ -222,7 +222,7 @@ class User(Model, UserDataclass):
                                inProject=inProject,
                                hasPermissions=hasPermissions)
 
-    def create(self) -> None:
+    def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Creates the given user in the triple store. Before the creation, the method checks if a
         user with the given userID or userIri already exists and raises an exception.
@@ -233,6 +233,8 @@ class User(Model, UserDataclass):
         :raises  OmasErrorNoPermission: No permission to create user for given project(s)
         """
 
+        if self._con is None:
+            raise OmasError("Cannot create: no connection")
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -249,10 +251,6 @@ class User(Model, UserDataclass):
                 if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
                     raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
 
-        indent: int = 0
-        indent_inc: int = 4
-        if self._con is None:
-            raise OmasError("Cannot create: no connection")
         if self.userIri is None:
             self.userIri = AnyIRI(uuid.uuid4().urn)
         context = Context(name=self._con.context_name)

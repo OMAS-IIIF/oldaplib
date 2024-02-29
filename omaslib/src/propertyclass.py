@@ -22,7 +22,8 @@ from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
-from omaslib.src.propertyrestrictions import PropertyRestrictionType, PropertyRestrictions
+from omaslib.src.propertyrestrictions import PropertyRestrictions
+from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 
 
 @unique

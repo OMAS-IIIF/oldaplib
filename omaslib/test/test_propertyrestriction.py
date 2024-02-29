@@ -8,7 +8,9 @@ from rdflib import ConjunctiveGraph
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, Action, NCName
 from omaslib.src.enums.language import Language
-from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType, PropertyRestrictionChange
+from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionChange
+from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
+
 
 @dataclass
 class ExpectationValue:

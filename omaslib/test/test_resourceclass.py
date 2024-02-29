@@ -15,7 +15,8 @@ from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass, OwlPropertyType
-from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionType
+from omaslib.src.propertyrestrictions import PropertyRestrictions
+from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.resourceclass import ResourceClassAttributesContainer, ResourceClass
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 
