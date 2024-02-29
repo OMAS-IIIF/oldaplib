@@ -10,7 +10,7 @@ from pystrict import strict
 from omaslib.src.connection import Connection
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI, Action
+from omaslib.src.helpers.datatypes import QName, AnyIRI, Action, StringLiteral
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
     OmasErrorInconsistency
@@ -327,9 +327,9 @@ class PermissionSet(Model):
                 case 'dcterms:modified':
                     modified = r['o']
                 case 'rdfs:label':
-                    label[r['o'].lang] = r['o'].value
+                    label.add(str(r['o']))
                 case 'rdfs:comment':
-                    comment[r['o'].lang] = r['o'].value
+                    comment.add(str(r['o']))
                 case 'omas:givesPermission':
                     givesPermission = DataPermission.from_string(str(r['o']))
                 case 'omas:definedByProject':

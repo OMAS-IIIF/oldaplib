@@ -7,7 +7,7 @@ from isodate import Duration
 from pystrict import strict
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName
+from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, StringLiteral
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.serializer import serializer
 
@@ -25,7 +25,7 @@ class OmasStringLiteral:
 
     def __str__(self) -> str:
         if self.__lang:
-            return f'{self.__value}@{self.__lang.name.lower()}'
+            return f'{StringLiteral.unescaping(self.__value)}@{self.__lang.name.lower()}'
         else:
             return self.__value
 

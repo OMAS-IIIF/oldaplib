@@ -40,7 +40,7 @@ from typing import Dict, Self, Set, Tuple, Any
 import bcrypt
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, StringLiteral, EscapedString
+from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, StringLiteral
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
 from omaslib.src.enums.permissions import AdminPermission
@@ -135,8 +135,8 @@ class UserDataclass:
     __datatypes = {
         UserFields.USER_IRI: AnyIRI,
         UserFields.USER_ID: NCName,
-        UserFields.FAMILY_NAME: EscapedString,
-        UserFields.GIVEN_NAME: EscapedString,
+        UserFields.FAMILY_NAME: StringLiteral,
+        UserFields.GIVEN_NAME: StringLiteral,
         UserFields.CREDENTIALS: str,
         UserFields.ACTIVE: bool,
         UserFields.IN_PROJECT: dict,
@@ -159,9 +159,9 @@ class UserDataclass:
                  modified: datetime | None = None,
                  userIri: AnyIRI | None = None,
                  userId: NCName | None = None,
-                 family_name: str | StringLiteral | None = None,
-                 given_name: str | StringLiteral | None = None,
-                 credentials: str | StringLiteral | None = None,
+                 family_name: str | None = None,
+                 given_name: str | None = None,
+                 credentials: str | None = None,
                  active: bool | None = None,
                  inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[QName] | None = None):
@@ -199,7 +199,7 @@ class UserDataclass:
         self.__fields[UserFields.USER_ID] = NCName(userId) if userId else None
         self.__fields[UserFields.FAMILY_NAME] = StringLiteral(family_name)
         self.__fields[UserFields.GIVEN_NAME] = StringLiteral(given_name)
-        self.__fields[UserFields.CREDENTIALS] = StringLiteral(credentials)
+        self.__fields[UserFields.CREDENTIALS] = credentials
         self.__fields[UserFields.ACTIVE] = bool(active)
         self.__fields[UserFields.IN_PROJECT] = inProjectTmp
         self.__fields[UserFields.HAS_PERMISSIONS] = hasPermissions
@@ -222,7 +222,10 @@ class UserDataclass:
     # these are the methods for the getter, setter and deleter
     #
     def __get_value(self: Self, field: UserFields) -> UserFieldTypes | None:
-        return self.__fields.get(field)
+        if self.__datatypes[field] == StringLiteral:
+            return str(self.__fields.get(field))
+        else:
+            return self.__fields.get(field)
 
     def __set_value(self: Self, value: UserFieldTypes, field: UserFields) -> None:
         if field == UserFields.CREDENTIALS:
@@ -447,11 +450,11 @@ class UserDataclass:
                 case 'omas:userId':
                     self.__fields[UserFields.USER_ID] = NCName(r['val'])
                 case 'foaf:familyName':
-                    self.__fields[UserFields.FAMILY_NAME] = StringLiteral(r['val'])
+                    self.__fields[UserFields.FAMILY_NAME] = StringLiteral.raw(r['val'])
                 case 'foaf:givenName':
-                    self.__fields[UserFields.GIVEN_NAME] = StringLiteral(r['val'])
+                    self.__fields[UserFields.GIVEN_NAME] = StringLiteral.raw(r['val'])
                 case 'omas:credentials':
-                    self.__fields[UserFields.CREDENTIALS] = StringLiteral(r['val'])
+                    self.__fields[UserFields.CREDENTIALS] = str(r['val'])
                 case 'omas:isActive':
                     self.__fields[UserFields.ACTIVE] = r['val']
                 case 'omas:inProject':

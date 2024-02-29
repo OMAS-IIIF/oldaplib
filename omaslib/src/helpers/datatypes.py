@@ -534,38 +534,41 @@ class StringLiteral(str):
     A string literal is a subclass of str that implements a repr() function that includes the '"'.
     """
 
-    def __repr__(self):
-        return f'"{self}"'
-
-class EscapedString(str):
-    __escaped: bool
-
-    def __new__(cls, value: str) -> Self:
-        old_value = value
-        value = value.replace('\\', '\\\\')
-        value = value.replace("'", "\\'")
-        value = value.replace('"', '\\"')
-        value = value.replace('\n', '\\n').replace('\r', '\\r')
-        cls.__escaped = len(old_value) != len(value)
-        return str.__new__(cls, value)
+    def __new__(cls, value: str | Any | None = None):
+        if value is None:
+            return None
+        if isinstance(value, StringLiteral):
+            return str.__new__(cls, str(value))
+        return str.__new__(cls, StringLiteral.escaping(value))
 
     @classmethod
     def raw(cls, value: str) -> Self:
         return str.__new__(cls, value)
 
-    def __repr__(self):
-        return f'"{self}"'
+    @staticmethod
+    def escaping(value: str) -> str:
+        value = value.replace('\\', '\\\\')
+        value = value.replace("'", "\\'")
+        value = value.replace('"', '\\"')
+        value = value.replace('\n', '\\n').replace('\r', '\\r')
+        return value
 
-    def unescape(self) -> str:
-        value = self.replace('\\\\', '\\')
+    @staticmethod
+    def unescaping(value: str) -> str:
+        value = value.replace('\\\\', '\\')
         value = value.replace("\\'", "'")
         value = value.replace('\\"', '"')
         value = value.replace('\\n', '\n').replace('\\r', '\r')
         return value
 
-    @property
-    def escaped(self) -> bool:
-        return self.__escaped
+    def __str__(self) -> str:
+        return StringLiteral.unescaping(self)
+
+    def __repr__(self):
+        return f'"{self}"'
+
+    def unescape(self) -> str:
+        return StringLiteral.unescaping(self)
 
 
 

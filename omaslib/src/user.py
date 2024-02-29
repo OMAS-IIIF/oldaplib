@@ -146,7 +146,7 @@ from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName, EscapedString
+from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName, StringLiteral
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
     OmasErrorValue, OmasErrorNoPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
@@ -170,8 +170,8 @@ class User(Model, UserDataclass):
                  modified: datetime | None = None,
                  userIri: AnyIRI | None = None,
                  userId: NCName | None = None,
-                 family_name: EscapedString | str | None = None,
-                 given_name: EscapedString | str | None = None,
+                 family_name: StringLiteral | str | None = None,
+                 given_name: StringLiteral | str | None = None,
                  credentials: str | None = None,
                  active: bool | None = None,
                  inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
