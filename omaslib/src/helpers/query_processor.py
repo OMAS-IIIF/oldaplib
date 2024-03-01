@@ -6,7 +6,7 @@ import isodate
 from isodate import Duration
 from pystrict import strict
 
-from omaslib.src.helper.oldap_string_literal import OldapStringLiteral
+from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName
 

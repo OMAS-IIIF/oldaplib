@@ -36,9 +36,9 @@ class Testproject(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        #cls._connection.clear_graph(QName('test:shacl'))
-        #cls._connection.clear_graph(QName('test:onto'))
-        pass
+        cls._connection.clear_graph(QName('omas:admin'), login_required=False)
+        cls._connection.upload_turtle("omaslib/ontologies/ontologies/admin.trig", login_required=False)
+        sleep(1)  # upload may take a while...
 
     def test_project_read(self):
         project = Project.read(con=self._connection, projectIri=QName("omas:SystemProject"))
@@ -57,6 +57,20 @@ class Testproject(unittest.TestCase):
                            "omas:HyperHamlet",
                            "http://www.salsah.org/version/2.0/SwissBritNet"], projects)
 
+    def test_project_create(self):
+        project = Project(con=self._connection,
+                          projectShortName="unittest",
+                          projectLabel=["unittest@en", "unittest@de"],
+                          projectIri="http://unitest.org/project/unittest",
+                          projectComment=["For testing@en", "Für Tests@de"],
+                          projectStart=date(2024, 1, 1),
+                          projectEnd=date(2025, 12, 31)
+                          )
+        project.create()
+        projectIri = project.projectIri
+        del project
+
+        project2 = Project.read(con=self._connection, projectIri=projectIri)
 
 if __name__ == '__main__':
     unittest.main()

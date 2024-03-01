@@ -445,8 +445,19 @@ class User(Model, UserDataclass):
         Delete the given user from the triple store
         :return: None
         """
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            is_root = True
+        if not is_root:
+            for proj in self.inProject.keys():
+                if actor.inProject.get(proj) is None:
+                    raise OmasErrorNoPermission(f'No permission to delete user in project {proj}.')
+                if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
+                    raise OmasErrorNoPermission(f'No permission to delete user in project {proj}.')
+
         context = Context(name=self._con.context_name)
-        blank = ''
         sparql = context.sparql_context
         sparql += f"""
         DELETE {{
@@ -487,9 +498,9 @@ class User(Model, UserDataclass):
         if not is_root:
             for proj in self.inProject.keys():
                 if actor.inProject.get(proj) is None:
-                    raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
+                    raise OmasErrorNoPermission(f'No permission to modify user in project {proj}.')
                 if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
-                    raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
+                    raise OmasErrorNoPermission(f'No permission to modify user in project {proj}.')
 
         timestamp = datetime.now()
         context = Context(name=self._con.context_name)

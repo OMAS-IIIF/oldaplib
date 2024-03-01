@@ -1,4 +1,5 @@
 import unittest
+from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
@@ -32,9 +33,9 @@ class TestUser(unittest.TestCase):
 
         user = User(con=cls._connection, userId=NCName("coyote"))
         user.delete()
-        #cls._connection.clear_graph(QName('omas:admin'), login_required=False)
-        #cls._connection.upload_turtle("omaslib/ontologies/ontologies/admin.trig", login_required=False)
-        #sleep(1)  # upload may take a while...
+        cls._connection.clear_graph(QName('omas:admin'))
+        cls._connection.upload_turtle("omaslib/ontologies/admin.trig")
+        sleep(1)  # upload may take a while...
 
 
     def tearDown(self):

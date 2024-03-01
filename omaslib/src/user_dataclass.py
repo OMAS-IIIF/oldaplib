@@ -45,7 +45,7 @@ from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helper.oldap_string_literal import OldapStringLiteral
+from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.in_project import InProjectClass
 

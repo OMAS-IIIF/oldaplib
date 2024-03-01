@@ -17,7 +17,7 @@ from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import RowType, QueryProcessor
-from omaslib.src.helper.oldap_string_literal import OldapStringLiteral
+from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes

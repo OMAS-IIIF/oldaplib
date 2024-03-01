@@ -1,5 +1,4 @@
 from typing import Optional, Self
-
 from pystrict import strict
 
 from omaslib.src.enums.language import Language
@@ -9,6 +8,33 @@ from omaslib.src.helpers.serializer import serializer
 @strict
 @serializer
 class OldapStringLiteral:
+    """
+    # OoldapStringLiteral class
+
+    This class implements the handling of a single RDF/TRIG string that may have a language tag. It is
+    serializable and manages the escaping/un-escaing of strings transfered to the triple store. This is
+    an important part of the security conecpt of OLDAP.
+
+    **No used-defined string may enter the triple store without being properly escaped to prevent
+    SPARQL-injection!**
+
+    The class implements the following methods:
+
+    - `escaping(value:str)`: A static method that escapes a string
+    - `unescaping(value:str)`: A static method that un-escapes a string
+    - `OldapStringLiteral(value: str, lang: Optional[str | Language] = None)`: Constructor with an optional
+      language. The Language can be given either as [Language](/python_docstrings/language) enum or as
+      2-letter ISO 639-1 language.
+    - `fromRdf(value:str)`: A static constructor method that is used to convert an RDF/TRIG based string. It
+      un-escapes the string retrieved from the triple store! This constructor is used by the
+      [QueryProcessor](/python_docstrings/query_processor) class.
+    - `str(oldapstringliteral)`: Returns a string with the langauge tag appended as `@ll`
+      (ll as the 2-letter ISO languages), e.g. `'dies ist deutsch@de'`
+    - `repr(oldapstringliteral)`: Returns a string with the langauge tag as it is beeiing used in TRIG/SPARQL
+      queries, e.g. `'"dies ist deutsch"@de'`
+    - `value`: Property returning the string value (without language tag)
+    - `lang`: Property returning the language tag
+    """
     __value: str
     __lang: Language | None
 

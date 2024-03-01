@@ -9,15 +9,16 @@ from pystrict import strict
 from typing import List, Set, Dict, Tuple, Optional, Any, Union, Self
 from datetime import date, datetime
 
+from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasErrorUpdateFailed
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 
-ProjectFieldTypes = AnyIRI | NCName | LangString | NamespaceIRI | date | None
+ProjectFieldTypes = AnyIRI | QName | NCName | LangString | NamespaceIRI | date | None
 
 @dataclass
 class ProjectFieldChange:
@@ -29,7 +30,10 @@ class ProjectFieldChange:
 
 @unique
 class ProjectFields(Enum):
-    PROJECT_IRI = 'omas:projectIri'  # virtual property, no equivalent in RDF
+    """
+    This enum class represents the fields used in the project model
+    """
+    PROJECT_IRI = 'omas:projectIri'  # virtual property, represents the RDF subject
     PROJECT_SHORTNAME = 'omas:projectShortName'
     LABEL = 'rdfs:label'
     COMMENT = 'rdfs:comment'
@@ -39,8 +43,60 @@ class ProjectFields(Enum):
 
 @strict
 class Project(Model):
+    """
+    # Project
+
+    This class implements the Project model. A Project is a distinct research space within Oldap
+    framework that offers dedicated space for data, its own data modeling and access control. A project
+    needs the following metadata:
+
+    - `projectIri`: The IRI that uniquely identifies this project. This can be an
+      [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) or
+      [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName).
+    - `projectShortName`: The short name of the project that must be a NCName
+    - `label`: A multilingual string with a human-readable label for the project (`rdfs:label`)
+    - `comment`: A multilingual description of the project (`rdfs:comment`)
+    - `namespaceIri`: The namespace that the project uses for its data and data model. Must be
+       a [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI).
+    - `projectStart`: The start date of the project.  Must be a Python `date` type.
+    - `projectEnd`: The optional end date of the project.Must be a Python `date` type.
+
+    The class provides the following methods:
+
+    - [Project(...)](/python_docstrings/project#omaslib.src.project.Project.__init__)): Constructor
+    - [read(...)](/python_docstrings/project#omaslib.src.project.Project.read):
+      Read project form triplestore and return a Project-instance
+    - [search(...)](/python_docstrings/project#omaslib.src.project.Project.search):
+      Search a Project in the triplestore
+    - [create(...)](/python_docstrings/project#omaslib.src.project.Project.create): Create a new project in the triplestore
+    - [update(...)](/python_docstrings/project#omaslib.src.project.Project.update):
+      Write changes to triplestore
+    - [delete(...)](/python_docstrings/project#omaslib.src.project.Project.update):
+      Delete a project in the triplestore
+
+    The class provides the following properties:
+
+    - `projectIri`: The project IRI [read only]
+    - `projectShortName`: The project short name. Must be a NCName [read/write]
+    - `projectLabel`: The projects label as multilingual LangString [read/write]
+    - `projectComment`: The projects comment/description as multilingual
+      [LangString](/python_docstrings/langstring) [read/write]
+    - `namespaceIri`: The namespace that the project uses for its data and data model. Must be
+      a [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI). [read only]
+    - `projectStart`: The start date of the project. Must be a Python `date` type [read/write]
+    - `projectEnd`: The end date of the project. Must be a Python `date` type [read/write]
+    - `creator`: The creator of the project. Must be a
+      [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) or
+      [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) [read only]
+    - `created`: The creation date of the project. Must be a Python `date` type [read only]
+    - `contributor`: The person which made the last changes to the project data. Must be a
+      [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) or
+      [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) [read only]
+    - `modified`: The modification date of the project. Must be a Python `date` type [read only]
+
+    """
     __datatypes = {
-        ProjectFields.PROJECT_IRI: AnyIRI,
+        ProjectFields.PROJECT_IRI: {AnyIRI, QName},
         ProjectFields.PROJECT_SHORTNAME: NCName,
         ProjectFields.LABEL: LangString,
         ProjectFields.COMMENT: LangString,
@@ -60,17 +116,45 @@ class Project(Model):
 
     def __init__(self, *,
                  con: IConnection,
-                 creator: Optional[AnyIRI] = None,
+                 creator: Optional[AnyIRI | QName] = None,
                  created: Optional[datetime] = None,
-                 contributor: Optional[AnyIRI] = None,
+                 contributor: Optional[AnyIRI | QName] = None,
                  modified: Optional[datetime] = None,
-                 projectIri: Optional[AnyIRI] = None,
+                 projectIri: Optional[AnyIRI | QName] = None,
                  projectShortName: NCName | str,
-                 namespaceIri: NamespaceIRI | QName,
+                 namespaceIri: NamespaceIRI,
                  label: Optional[LangString | str],
                  comment: Optional[LangString | str],
                  projectStart: Optional[date] = None,
                  projectEnd: Optional[date] = None):
+        """
+        Constructs a new Project
+        :param con: [Connection](/python_docstrings/iconnection) instance
+        :param creator: Creator of the project  [Optional, usually not set!]
+        :type creator: AnyIRI | None
+        :param created: Date the project was created  [Optional, usually not set!]
+        :type created: datetime | None
+        :param contributor: person that made the last change  [Optional, usually not set!]
+        :type contributor: AnyIRI
+        :param modified: Last date the project was modified  [Optional, usually not set!]
+        :type modified: date | None
+        :param projectIri: IRI to be used for the project. If no projectIRI is provied, the constrctor
+         will create an arbitrary IRI based on thr URN scheme and a UUID. [Optional].
+        :type projectIri: AnyIRI | QName
+        :param projectShortName: A short name for the project. Is used as prefix for named graphs that
+           are being used for the project.
+        :type projectShortName: NCname (strings are accepted only if conform to NCName syntax)
+        :param namespaceIri: The namespace for the project
+        :type namespaceIri: NamespaceIRI
+        :param label: Human-readable name for the project (multi-language) (`rdfs:label`)
+        :type label: LangString
+        :param comment: Description of the project (multi-language) (`rdfs:comment`)
+        :type comment: LangString
+        :param projectStart: Start date of the project
+        :type projectStart: Python date
+        :param projectEnd: End date of the project [Optional]
+        :type projectEnd: Python date
+        """
         super().__init__(con)
         self.__creator = creator if creator is not None else con.userIri
         self.__created = created
@@ -80,6 +164,8 @@ class Project(Model):
 
         if projectIri:
             if isinstance(projectIri, AnyIRI):
+                self.__fields[ProjectFields.PROJECT_IRI] = projectIri
+            elif isinstance(projectIri, QName):
                 self.__fields[ProjectFields.PROJECT_IRI] = projectIri
             else:
                 raise OmasErrorValue(f'projectIri {projectIri} must be an instance of AnyIRI, not {type(projectIri)}')
@@ -114,13 +200,10 @@ class Project(Model):
                 partial(Project.__del_value, field=field)))
         self.__change_set = {}
 
-
     def __get_value(self: Self, field: ProjectFields) -> ProjectFieldTypes | None:
         return self.__fields.get(field)
 
     def __set_value(self: Self, value: ProjectFieldTypes, field: ProjectFields) -> None:
-        if field == ProjectFields.PROJECT_IRI and self.__fields.get(ProjectFields.PROJECT_IRI) is not None:
-            OmasErrorAlreadyExists(f'A project IRI already has been assigned: "{repr(self.__fields.get(ProjectFields.PROJECT_IRI))}".')
         self.__change_setter(field, value)
 
     def __del_value(self: Self, field: ProjectFields) -> None:
@@ -197,6 +280,14 @@ class Project(Model):
 
     @classmethod
     def read(cls, con: IConnection, projectIri: AnyIRI | QName) -> Self:
+        """
+        Read the project from the triplestore and return an instance of the project
+        :param con: A valid Connection object
+        :type con: IConnection
+        :param projectIri: The IRI/QName of the project to be read
+        :type projectIri: AnyIRI | QName
+        :return: Project instance
+        """
         context = Context(name=con.context_name)
         if isinstance(projectIri, QName):
             projectIri = context.qname2iri(projectIri)
@@ -256,10 +347,22 @@ class Project(Model):
                    projectEnd=projectEnd)
 
     @staticmethod
-    def search(*,
-               con: IConnection,
+    def search(con: IConnection,
                label: Optional[str] = None,
                comment: Optional[str] = None) -> List[AnyIRI | QName]:
+        """
+        Search for a given project. If no label or comment is given, all existing projects are returned. If both
+        a search term for the label and comment are given, they will be combined by *AND*.
+        :param con: Valid Connection object
+        :type con: IConnection
+        :param label: A string to search for in the labels. The search will check if the label of a project
+        **contains** the string given here.
+        :type label: str
+        :param comment: A string to search for in the comments. The search will check if the comment of a project
+        **contains** the string given here
+        :type comment: str
+        :return: List of IRIs matching the search criteria (AnyIRI | QName)
+        """
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?project\n'
@@ -288,7 +391,29 @@ class Project(Model):
             projects.append(r['project'])
         return projects
 
-    def create(self, indent: int = 0, indent_inc: int = 4):
+    def create(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Create a new project in the triple store
+        :param indent: Start indent level for generated SPARQL (debugging)
+        :type indent: int
+        :param indent_inc: Indent increment
+        :type indent_inc: int
+        :return: None
+        :raises OmasErrorAlreadyExists: If a project with the projectIri already exists
+        :raises OmasError: All other errors
+        """
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            is_root = True
+        if not is_root:
+            raise OmasErrorNoPermission(f'No permission to create a new project.')
+
         timestamp = datetime.now()
         indent: int = 0
         indent_inc: int = 4
@@ -346,6 +471,92 @@ class Project(Model):
         except OmasError:
             self._con.transaction_abort()
             raise
+
+    def update(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Write all the modifications that were applied to the project instqnce to the triple store.
+        :param indent: Starting indent for SPARQL queries [Only used for debbugging purposes]
+        :type indent: int
+        :param indent_inc: Indent increment for SPARQL queries [Only used for debbugging purposes]
+        :type indent_inc: int
+        :return: None
+        :Raises: OmasErrorNoPermission: No permission for operation
+        :Raises: OmasErrorUpdateFailed: Update failed
+        :Raises: Omas Error: Other Internal error
+        """
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            is_root = True
+        if not is_root:
+            raise OmasErrorNoPermission(f'No permission to create a new project.')
+
+        timestamp = datetime.now()
+        context = Context(name=self._con.context_name)
+        blank = ''
+        sparql_list = []
+        for field, change in self.__change_set.items():
+            sparql = f'{blank:{indent * indent_inc}}# Project field "{field.value}" with action "{change.action.value}"\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(change.old_value)} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if change.action != Action.DELETE:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(self.__fields[field])} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.projectIri)} as ?project)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(change.old_value)} .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+        " ;\n".join(sparql_list)
+
+        try:
+            self._con.transaction_update(sparql)
+            self.set_modified_by_iri(QName('omas:admin'), self.projectIri, self.modified, timestamp)
+            modtime = self.get_modified_by_iri(QName('omas:admin'), self.userIri)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        if timestamp != modtime:
+            raise OmasErrorUpdateFailed("Update failed! Timestamp does not match")
+        try:
+            self._con.transaction_commit()
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        self.__modified = timestamp
+        self.__contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
+
+    def delete(self) -> None:
+        """
+        Delete the given user from the triplestore
+        :return: None
+        :raises OmasErrorNoPermission: No permission for operation
+        :raises OmasError: generic internal error
+        """
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            is_root = True
+        if not is_root:
+            raise OmasErrorNoPermission(f'No permission to delete project "{str(self.projectIri)}".')
+
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += f"""
+        DELETE WHERE {{
+            BIND({repr(self.projectIri)} as ?project)
+            ?project a omas:Project .
+            ?project ?prop ?val .
+        }} 
+        """
+        # TODO: use transaction for error handling
+        self._con.update_query(sparql)
 
 
 if __name__ == "__main__":

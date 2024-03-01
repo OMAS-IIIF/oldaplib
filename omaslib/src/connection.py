@@ -219,15 +219,15 @@ class Connection(IConnection):
 
         :return: None
         """
-        if not self._userdata:
-            raise OmasErrorNoPermission("No permission")
-        actor = self._userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
-        is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-            is_root = True
-        if not is_root:
-            raise OmasErrorNoPermission("No permission")
+        # if not self._userdata:
+        #     raise OmasErrorNoPermission("No permission")
+        # actor = self._userdata
+        # sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        # is_root: bool = False
+        # if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+        #     is_root = True
+        # if not is_root:
+        #     raise OmasErrorNoPermission("No permission")
         headers = {
             "Accept": "application/json, text/plain, */*",
         }
@@ -247,15 +247,15 @@ class Connection(IConnection):
         :param graphname: Optional name of the RDF-graph where the data should be imported in.
         :return: None
         """
-        if not self._userdata:
-            raise OmasErrorNoPermission("No permission")
-        actor = self._userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
-        is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-            is_root = True
-        if not is_root:
-            raise OmasErrorNoPermission("No permission")
+        # if not self._userdata:
+        #     raise OmasErrorNoPermission("No permission")
+        # actor = self._userdata
+        # sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        # is_root: bool = False
+        # if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+        #     is_root = True
+        # if not is_root:
+        #     raise OmasErrorNoPermission("No permission")
 
         with open(filename, encoding="utf-8") as f:
             content = f.read()
