@@ -10,7 +10,7 @@ from pystrict import strict
 from omaslib.src.connection import Connection
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI, Action, StringLiteral
+from omaslib.src.helpers.datatypes import QName, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
     OmasErrorInconsistency
@@ -238,9 +238,9 @@ class PermissionSet(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}} {repr(self.permissionSetIri)} a omas:PermissionSet'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator <{self._con.userIri}>'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {repr(self._con.userIri)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {repr(self._con.userIri)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment}'

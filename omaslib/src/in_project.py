@@ -12,7 +12,7 @@ from pystrict import strict
 from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.enums.permissions import AdminPermission
-from omaslib.src.helpers.query_processor import OmasStringLiteral
+from omaslib.src.helper.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.serializer import serializer
 import json
 
@@ -58,7 +58,7 @@ class InProjectClass:
                             case 'NamespaceIri':
                                 key = NamespaceIRI(k)
                             case 'OmasStringLiteral':
-                                key = OmasStringLiteral(k)
+                                key = OldapStringLiteral(k)
                 self.__data[key] = ObservableSet(value, on_change=self.__on_set_changed, on_change_data=key)
 
             #self.__data = {key: ObservableSet(val, on_change=self.__on_set_changed, on_change_data=key) for key, val in data.items()}

@@ -146,7 +146,7 @@ from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName, StringLiteral
+from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
     OmasErrorValue, OmasErrorNoPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
@@ -170,8 +170,8 @@ class User(Model, UserDataclass):
                  modified: datetime | None = None,
                  userIri: AnyIRI | None = None,
                  userId: NCName | None = None,
-                 family_name: StringLiteral | str | None = None,
-                 given_name: StringLiteral | str | None = None,
+                 familyName: str | None = None,
+                 givenName: str | None = None,
                  credentials: str | None = None,
                  active: bool | None = None,
                  inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
@@ -192,10 +192,10 @@ class User(Model, UserDataclass):
         :type userIri: AnyIRI | None
         :param userId: The UserId that the user types in at login
         :type userId: NCName | None
-        :param family_name: The foaf:familyName of the User to be created
-        :type family_name: str
-        :param given_name: The foaf:givenName of the User to be created
-        :type given_name: str
+        :param familyName: The foaf:familyName of the User to be created
+        :type familyName: str
+        :param givenName: The foaf:givenName of the User to be created
+        :type givenName: str
         :param credentials: The initial credentials (password) of the user to be created
         :type credentials: str
         :param active: True if the user is active, False otherwise
@@ -215,8 +215,8 @@ class User(Model, UserDataclass):
                                modified=modified,
                                userIri=userIri,
                                userId=userId,
-                               family_name=family_name,
-                               given_name=given_name,
+                               familyName=familyName,
+                               givenName=givenName,
                                credentials=credentials,
                                active=active,
                                inProject=inProject,
@@ -295,9 +295,9 @@ class User(Model, UserDataclass):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId "{self.userId}"^^xsd:NCName'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName "{self.familyName}"'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName "{self.givenName}"'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId {repr(self.userId)}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName {repr(self.familyName)}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName {repr(self.givenName)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:credentials "{self.credentials}"'
         star = ''
         if self.inProject:

@@ -40,18 +40,19 @@ from typing import Dict, Self, Set, Tuple, Any
 import bcrypt
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, StringLiteral
+from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
+from omaslib.src.helper.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.in_project import InProjectClass
 
 # InProjectType = Dict[str, ObservableSet[AdminPermission]]
 
 
-UserFieldTypes = StringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectClass | datetime | str | bool | None
+UserFieldTypes = OldapStringLiteral | AnyIRI | NCName | QName | ObservableSet[QName] | InProjectClass | datetime | str | bool | None
 
 
 @dataclass
@@ -135,8 +136,8 @@ class UserDataclass:
     __datatypes = {
         UserFields.USER_IRI: AnyIRI,
         UserFields.USER_ID: NCName,
-        UserFields.FAMILY_NAME: StringLiteral,
-        UserFields.GIVEN_NAME: StringLiteral,
+        UserFields.FAMILY_NAME: OldapStringLiteral,
+        UserFields.GIVEN_NAME: OldapStringLiteral,
         UserFields.CREDENTIALS: str,
         UserFields.ACTIVE: bool,
         UserFields.IN_PROJECT: dict,
@@ -159,8 +160,8 @@ class UserDataclass:
                  modified: datetime | None = None,
                  userIri: AnyIRI | None = None,
                  userId: NCName | None = None,
-                 family_name: str | None = None,
-                 given_name: str | None = None,
+                 familyName: str | None = None,
+                 givenName: str | None = None,
                  credentials: str | None = None,
                  active: bool | None = None,
                  inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
@@ -173,8 +174,8 @@ class UserDataclass:
         :param modified: datetime of the modification of this UserDataclass
         :param userIri: AnyIRI of the User to be used for this UserDataclass
         :param userId: A unique identifier for the user (NCName, must be unique)
-        :param family_name: The foaf:family name of the User
-        :param given_name: The foaf:givenname of the User
+        :param familyName: The foaf:family name of the User
+        :param givenName: The foaf:givenname of the User
         :param credentials: The password
         :param active: A boolean indicating if the user is active
         :param inProject: an InProjectType instance for the project permissions of the user
@@ -197,8 +198,8 @@ class UserDataclass:
         self.__modified = modified
         self.__fields[UserFields.USER_IRI] = AnyIRI(userIri) if userIri else None
         self.__fields[UserFields.USER_ID] = NCName(userId) if userId else None
-        self.__fields[UserFields.FAMILY_NAME] = StringLiteral(family_name)
-        self.__fields[UserFields.GIVEN_NAME] = StringLiteral(given_name)
+        self.__fields[UserFields.FAMILY_NAME] = OldapStringLiteral(familyName)
+        self.__fields[UserFields.GIVEN_NAME] = OldapStringLiteral(givenName)
         self.__fields[UserFields.CREDENTIALS] = credentials
         self.__fields[UserFields.ACTIVE] = bool(active)
         self.__fields[UserFields.IN_PROJECT] = inProjectTmp
@@ -222,7 +223,7 @@ class UserDataclass:
     # these are the methods for the getter, setter and deleter
     #
     def __get_value(self: Self, field: UserFields) -> UserFieldTypes | None:
-        if self.__datatypes[field] == StringLiteral:
+        if self.__datatypes[field] == OldapStringLiteral:
             return str(self.__fields.get(field))
         else:
             return self.__fields.get(field)
@@ -253,8 +254,8 @@ class UserDataclass:
             f'  Modified by: {self.__contributor}\n' \
             f'  Modified at: {self.__modified}\n' \
             f'  User id: {self.__fields[UserFields.USER_ID]}\n' \
-            f'  Family name: {self.__fields[UserFields.FAMILY_NAME]}\n' \
-            f'  Given name: {self.__fields[UserFields.GIVEN_NAME]}\n' \
+            f'  Family name: {str(self.__fields[UserFields.FAMILY_NAME])}\n' \
+            f'  Given name: {str(self.__fields[UserFields.GIVEN_NAME])}\n' \
             f'  Active: {self.__fields[UserFields.ACTIVE]}\n' \
             f'  In project: {admin_permissions}\n' \
             f'  Has permissions: {self.__fields[UserFields.HAS_PERMISSIONS]}\n'
@@ -264,6 +265,8 @@ class UserDataclass:
     # named properties. Here we implement the dict semantic
     #
     def __getitem__(self, item: UserFields) -> UserFieldTypes:
+        if isinstance(self.__fields.get(item), OldapStringLiteral):
+            return str(self.__fields[item])
         return self.__fields.get(item)
 
     def __setitem__(self, field: UserFields, value: UserFieldTypes) -> None:
@@ -276,11 +279,13 @@ class UserDataclass:
 
     def _as_dict(self) -> dict:
         return {
-            'userIri': repr(self.__fields.get(UserFields.USER_IRI)),
-            'userId': self.__fields[UserFields.USER_ID],
-            'active': self.__fields[UserFields.ACTIVE],
-            'hasPermissions': self.__fields[UserFields.HAS_PERMISSIONS],
-            'inProject': self.__fields[UserFields.IN_PROJECT]
+                'userIri': repr(self.__fields.get(UserFields.USER_IRI)),
+                'userId': self.__fields[UserFields.USER_ID],
+                'familyName': str(self.__fields[UserFields.FAMILY_NAME]),
+                'givenName': str(self.__fields[UserFields.GIVEN_NAME]),
+                'active': self.__fields[UserFields.ACTIVE],
+                'hasPermissions': self.__fields[UserFields.HAS_PERMISSIONS],
+                'inProject': self.__fields[UserFields.IN_PROJECT]
         }
 
     #
@@ -450,9 +455,9 @@ class UserDataclass:
                 case 'omas:userId':
                     self.__fields[UserFields.USER_ID] = NCName(r['val'])
                 case 'foaf:familyName':
-                    self.__fields[UserFields.FAMILY_NAME] = StringLiteral.raw(r['val'])
+                    self.__fields[UserFields.FAMILY_NAME] = r['val']
                 case 'foaf:givenName':
-                    self.__fields[UserFields.GIVEN_NAME] = StringLiteral.raw(r['val'])
+                    self.__fields[UserFields.GIVEN_NAME] = r['val']
                 case 'omas:credentials':
                     self.__fields[UserFields.CREDENTIALS] = str(r['val'])
                 case 'omas:isActive':
@@ -558,7 +563,7 @@ class UserDataclass:
                 for proj in addedprojs:
                     sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(self.userIri)} omas:inProject {proj} .\n'
                     for perm in self.__fields[UserFields.IN_PROJECT][proj]:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -570,7 +575,7 @@ class UserDataclass:
                 for proj in deletedprojs:
                     sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(self.userIri)} omas:inProject {proj} .\n'
                     for perm in self.__change_set[UserFields.IN_PROJECT].old_value[proj]:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -582,7 +587,7 @@ class UserDataclass:
                 for proj in changedprojs:
                     perms = self.__fields[UserFields.IN_PROJECT][proj] - self.__change_set[UserFields.IN_PROJECT].old_value[proj]
                     for perm in perms:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
                         doit = True
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -595,7 +600,7 @@ class UserDataclass:
                 for proj in changedprojs:
                     perms = self.__change_set[UserFields.IN_PROJECT].old_value[proj] - self.__fields[UserFields.IN_PROJECT][proj]
                     for perm in perms:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
                         doit = True
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -614,8 +619,8 @@ if __name__ == "__main__":
     user_dataclass = UserDataclass(
         userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
         userId=NCName("edison"),
-        family_name="Edison",
-        given_name="Thomas A.",
+        familyName="Edison",
+        givenName="Thomas A.",
         credentials="Lightbulb&Phonograph",
         inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                AdminPermission.ADMIN_RESOURCES,

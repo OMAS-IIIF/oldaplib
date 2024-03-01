@@ -70,7 +70,8 @@ class NCName:
         :return: A *new* NCName with string appended
         """
         if isinstance(other, str):
-            other = NCName(other)  # convert to NCName. Will raise OmasValueError if string does not conform to NCName form
+            other = NCName(
+                other)  # convert to NCName. Will raise OmasValueError if string does not conform to NCName form
         if isinstance(other, NCName):
             return NCName(self._value + str(other))
         else:
@@ -82,7 +83,8 @@ class NCName:
         :param other: string to append to the NCName
         :return: Self        """
         if isinstance(other, str):
-            other = NCName(other)  # convert to NCName. Will raise OmasValueError if string does not conform to NCName form
+            other = NCName(
+                other)  # convert to NCName. Will raise OmasValueError if string does not conform to NCName form
         if isinstance(other, NCName):
             self._value += str(other)
             return self
@@ -132,7 +134,7 @@ class NCName:
 
     def _as_dict(self) -> Dict[str, str]:
         return {
-            'value': self._value
+                'value': self._value
         }
 
 
@@ -244,7 +246,7 @@ class QName:
 
     def _as_dict(self):
         return {
-            'value': self._value
+                'value': self._value
         }
 
     def as_rdf(self) -> str:
@@ -336,7 +338,7 @@ class BNode:
     def _as_dict(self):
         """used for json serialization using serializer"""
         return {
-            'value': self.__value
+                'value': self.__value
         }
 
     @property
@@ -467,7 +469,7 @@ class AnyIRI:
 
     def _as_dict(self) -> Dict[str, str]:
         return {
-            'value': self._value
+                'value': self._value
         }
 
     def as_rdf(self) -> str:
@@ -490,6 +492,7 @@ class NamespaceIRI(AnyIRI):
     An IRI representing a namespace. A namespace is an IRI that ends with a fragment separates, that is a "#" or "/".
     It is a subclass of AnyIRI and checks in the constructor for the termination with a "#" or "/".
     """
+
     def __init__(self, value: Self | str):
         """
         Constructor for the NamespaceIRI
@@ -501,7 +504,7 @@ class NamespaceIRI(AnyIRI):
 
     def _as_dict(self) -> Dict[str, str]:
         return {
-            'value': self._value
+                'value': self._value
         }
 
 
@@ -527,53 +530,8 @@ class Action(Enum):
         return {__class__: self.__class__.__name__, 'value': self.value}
 
 
-class StringLiteral(str):
-    """
-    # StringLiteral
-
-    A string literal is a subclass of str that implements a repr() function that includes the '"'.
-    """
-
-    def __new__(cls, value: str | Any | None = None):
-        if value is None:
-            return None
-        if isinstance(value, StringLiteral):
-            return str.__new__(cls, str(value))
-        return str.__new__(cls, StringLiteral.escaping(value))
-
-    @classmethod
-    def raw(cls, value: str) -> Self:
-        return str.__new__(cls, value)
-
-    @staticmethod
-    def escaping(value: str) -> str:
-        value = value.replace('\\', '\\\\')
-        value = value.replace("'", "\\'")
-        value = value.replace('"', '\\"')
-        value = value.replace('\n', '\\n').replace('\r', '\\r')
-        return value
-
-    @staticmethod
-    def unescaping(value: str) -> str:
-        value = value.replace('\\\\', '\\')
-        value = value.replace("\\'", "'")
-        value = value.replace('\\"', '"')
-        value = value.replace('\\n', '\n').replace('\\r', '\r')
-        return value
-
-    def __str__(self) -> str:
-        return StringLiteral.unescaping(self)
-
-    def __repr__(self):
-        return f'"{self}"'
-
-    def unescape(self) -> str:
-        return StringLiteral.unescaping(self)
-
-
-
 if __name__ == "__main__":
-    #print(NCName("orcid") + "0000-0003-1681-4036")
+    # print(NCName("orcid") + "0000-0003-1681-4036")
 
     AnyIRI('urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b')
 
@@ -583,4 +541,10 @@ if __name__ == "__main__":
     gugus = json.loads(json_repr, object_hook=serializer.decoder_hook)
     print(gugus)
 
-
+    gugus = {
+            'token': Token('gaga')
+    }
+    aaa = Token('GUGSU')
+    print(repr(aaa))
+    jsonstr = json.dumps(gugus, default=serializer.encoder_default)
+    print(jsonstr)

@@ -16,7 +16,8 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
-from omaslib.src.helpers.query_processor import RowType, OmasStringLiteral, QueryProcessor
+from omaslib.src.helpers.query_processor import RowType, QueryProcessor
+from omaslib.src.helper.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
@@ -325,7 +326,7 @@ class PropertyClass(Model, Notify):
             if attributes.get(attriri) is None:
                 attributes[attriri] = []
             attributes[attriri].append(r['value'])
-        elif isinstance(r['value'], OmasStringLiteral):
+        elif isinstance(r['value'], OldapStringLiteral):
             if attributes.get(attriri) is None:
                 attributes[attriri] = []
             attributes[attriri].append(str(r['value']))

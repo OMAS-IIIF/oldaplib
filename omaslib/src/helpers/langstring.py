@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Callable, Self
 from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
-from omaslib.src.helpers.datatypes import Action, QName, NCName, StringLiteral
+from omaslib.src.helpers.datatypes import Action, QName, NCName
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
@@ -92,7 +92,7 @@ class LangString(Notify):
             if langstring[-3] == "@":
                 tmpls: str = langstring[-2:].upper()
                 try:
-                    self._langstring = {Language[tmpls]: StringLiteral.escaping(langstring[:-3])}
+                    self._langstring = {Language[tmpls]: langstring[:-3]}
                 except KeyError as er:
                     raise OmasError(f'Language in string "{langstring}" is invalid')
             else:
@@ -103,7 +103,7 @@ class LangString(Notify):
                 if lstr[-3] == "@":
                     tmpls: str = lstr[-2:].upper()
                     try:
-                        self._langstring[Language[tmpls]] = StringLiteral.escaping(lstr[:-3])
+                        self._langstring[Language[tmpls]] = lstr[:-3]
                     except KeyError as er:
                         raise OmasError(f'Language in string "{lstr}" is invalid')
                 else:
@@ -117,7 +117,7 @@ class LangString(Notify):
                     self._langstring[lang] = value
                 else:
                     try:
-                        self._langstring[Language[lang.upper()]] = StringLiteral.escaping(value)
+                        self._langstring[Language[lang.upper()]] = value
                     except KeyError as er:
                         raise OmasError(f'Language "{lang}" is invalid')
         if priorities is not None:
@@ -145,11 +145,11 @@ class LangString(Notify):
                 raise OmasError(f'Language "{lang}" is invalid')
         s = self._langstring.get(lang)
         if s:
-            return StringLiteral.unescaping(s)
+            return s
         else:
             for ll in self._priorities:
                 if self._langstring.get(ll) is not None:
-                    return StringLiteral.unescaping(self._langstring[ll])
+                    return self._langstring[ll]
             return '--no string--'
 
     def __setitem__(self, lang: Language | str, value: str) -> None:
@@ -163,7 +163,7 @@ class LangString(Notify):
             if self._changeset.get(lang) is None:  # only the first change is recorded
                 self._changeset[lang] = LangStringChange(self._langstring.get(lang),
                                                          Action.REPLACE if self._langstring.get(lang) else Action.CREATE)
-            self._langstring[lang] = StringLiteral.escaping(value)
+            self._langstring[lang] = value
             self.notify()
         elif isinstance(lang, str):
             try:
@@ -171,7 +171,7 @@ class LangString(Notify):
                 if self._changeset.get(lobj) is None:  # only the first change is recorded
                     self._changeset[lobj] = LangStringChange(self._langstring.get(lobj),
                                                              Action.REPLACE if self._langstring.get(lobj) else Action.CREATE)
-                self._langstring[lobj] = StringLiteral.escaping(value)
+                self._langstring[lobj] = value
                 self.notify()
             except (KeyError, ValueError) as err:
                 raise OmasError(f'Language "{lang}" is invalid')
@@ -239,7 +239,7 @@ class LangString(Notify):
         """
         if isinstance(lang, str):
             lang = Language[lang.upper()]
-        return StringLiteral.unescaping(self._langstring.get(lang, default))
+        return self._langstring.get(lang, default)
 
     def __eq__(self, other: Self) -> bool:
         """
@@ -292,7 +292,7 @@ class LangString(Notify):
         """
         return self._langstring
 
-    def add(self, langs: str | List[str] | Dict[str, str] | Dict[Language, str], raw: bool = False) -> None:
+    def add(self, langs: str | List[str] | Dict[str, str] | Dict[Language, str]) -> None:
         """
         Add one or several new languages to a lang string. The method accepts several forms:
         * ``mylstr.add("a new string@en")``
@@ -317,13 +317,13 @@ class LangString(Notify):
                     self._changeset[lobj] = LangStringChange(self._langstring.get(lobj),
                                                              Action.REPLACE if self._langstring.get(lobj) is not None else Action.CREATE)
 
-                self._langstring[lobj] = langs[:-3] if raw else StringLiteral.escaping(langs[:-3])
+                self._langstring[lobj] = langs[:-3]
                 self.notify()
             else:
                 if self._changeset.get(Language.XX) is None:  # only the first change is recorded
                     self._changeset[Language.XX] = LangStringChange(self._langstring.get(Language.XX),
                                                                     Action.REPLACE if self._langstring.get(Language.XX) is not None else Action.CREATE)
-                self._langstring[Language.XX] = langs if raw else StringLiteral.escaping(langs)
+                self._langstring[Language.XX] = langs
             self.notify()
         elif isinstance(langs, List):
             for lang in langs:
@@ -337,14 +337,14 @@ class LangString(Notify):
                     if self._changeset.get(lobj) is None:  # only the first change is recorded
                         self._changeset[lobj] = LangStringChange(self._langstring.get(lobj),
                                                                  Action.REPLACE if self._langstring.get(lobj) is not None else Action.CREATE)
-                    self._langstring[lobj] = lang[:-3] if raw else StringLiteral.escaping(lang[:-3])
+                    self._langstring[lobj] = lang[:-3]
                     self.notify()
                 else:
                     lobj = Language.XX
                     if self._changeset.get(lobj) is None:  # only the first change is recorded
                         self._changeset[lobj] = LangStringChange(self._langstring.get(lobj),
                                                                  Action.REPLACE if self._langstring.get(lobj) is not None else Action.CREATE)
-                    self._langstring[lobj] = lang if raw else StringLiteral.escaping(lang)
+                    self._langstring[lobj] = lang
             self.notify()
         elif isinstance(langs, Dict):
             for lang, value in langs.items():
@@ -359,7 +359,7 @@ class LangString(Notify):
                 if self._changeset.get(lobj) is None:  # only the first change is recorded
                     self._changeset[lobj] = LangStringChange(self._langstring.get(lobj),
                                                              Action.REPLACE if self._langstring.get(lobj) is not None else Action.CREATE)
-                self._langstring[lobj] = value if raw else StringLiteral.escaping(value)
+                self._langstring[lobj] = value
             self.notify()
         else:
             raise OmasError(f'Invalid data type for langs')

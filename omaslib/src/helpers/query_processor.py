@@ -1,76 +1,22 @@
 from dataclasses import dataclass
 from datetime import datetime, time, date, timedelta
-from typing import List, Dict, Optional, Self
+from typing import List, Dict
 
 import isodate
 from isodate import Duration
 from pystrict import strict
 
+from omaslib.src.helper.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, StringLiteral
-from omaslib.src.enums.language import Language
-from omaslib.src.helpers.serializer import serializer
+from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName
 
-
-@dataclass
-@strict
-@serializer
-class OmasStringLiteral:
-    __value: str
-    __lang: Language | None
-
-    def __init__(self, value: str, lang: Optional[str] = None):
-        self.__value = value
-        self.__lang = Language[lang.upper()] if lang else None
-
-    def __str__(self) -> str:
-        if self.__lang:
-            return f'{StringLiteral.unescaping(self.__value)}@{self.__lang.name.lower()}'
-        else:
-            return self.__value
-
-    def __repr__(self) -> str:
-        if self.__lang:
-            return f'"{self.__value}"@{self.__lang.name.lower()}'
-        else:
-            return f'"self.__value"'
-
-    def __eq__(self, other: str | Self) -> bool:
-        if isinstance(other, OmasStringLiteral):
-            return self.__value == other.__value and self.__lang == other.__lang
-        elif isinstance(other, str):
-            return self.__value == other
-
-    def __hash__(self) -> int:
-        if self.__lang:
-            return hash(self.__value + '@' + self.__lang.value)
-        else:
-            return hash(self.__value)
-
-    def _as_dict(self) -> dict:
-        return {
-            "value": self.__value,
-            "lang": self.__lang
-        }
-
-
-    @property
-    def value(self) -> str:
-        return self.__value
-
-    @property
-    def lang(self) -> Language | None:
-        return self.__lang
-
-
-RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OmasStringLiteral
+RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OldapStringLiteral
 RowType = Dict[str, RowElementType]
 
 
 @dataclass
 @strict
 class QueryProcessor:
-
     __names: List[str]
     __context: Context
     __rows: List[Dict[str, RowElementType]]
@@ -87,21 +33,21 @@ class QueryProcessor:
                 if valobj["type"] == "uri":
                     row[name] = context.iri2qname(valobj["value"])
                     if row[name] is None:
-                         row[name] = AnyIRI(valobj["value"])
+                        row[name] = AnyIRI(valobj["value"])
 
                 elif valobj["type"] == "bnode":
                     row[name] = BNode(valobj["value"])
                 elif valobj["type"] == "literal":
                     dt = valobj.get("datatype")
                     if dt is None:
-                        row[name] = OmasStringLiteral(valobj["value"], valobj.get("xml:lang"))
+                        row[name] = OldapStringLiteral.fromRdf(valobj["value"], valobj.get("xml:lang"))
                     else:
                         dt = context.iri2qname(dt)
                         match str(dt):
                             case 'xsd:NCName':
                                 row[name] = NCName(valobj["value"])
                             case 'xsd:string':
-                                row[name] = OmasStringLiteral(valobj["value"], valobj.get("xml:lang"))
+                                row[name] = OldapStringLiteral.fromRdf(valobj["value"], valobj.get("xml:lang"))
                             case 'xsd:boolean':
                                 row[name] = True if valobj["value"] == 'true' else False
                             case 'xsd:integer':
@@ -150,8 +96,3 @@ class QueryProcessor:
     @property
     def names(self) -> List[str]:
         return list(self.__names)
-
-
-
-
-

@@ -42,14 +42,14 @@ class TestUser(unittest.TestCase):
 
     def test_constructor(self):
         user = User(con=self._connection,
-                     userId=NCName("testuser"),
-                     family_name="Test",
-                     given_name="Test",
-                     credentials="Ein@geheimes&Passw0rt",
-                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                    userId=NCName("testuser"),
+                    familyName="Test",
+                    givenName="Test",
+                    credentials="Ein@geheimes&Passw0rt",
+                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                              AdminPermission.ADMIN_RESOURCES,
                                                              AdminPermission.ADMIN_CREATE}},
-                     hasPermissions={QName('omas:GenericView')})
+                    hasPermissions={QName('omas:GenericView')})
 
         self.assertEqual(user.userId, NCName("testuser"))
         self.assertEqual(user.familyName, "Test")
@@ -107,8 +107,8 @@ class TestUser(unittest.TestCase):
         user = User(con=self._connection,
                     userIri=AnyIRI("https://orcid.org/0000-0003-3478-9313"),
                     userId=NCName("coyote"),
-                    family_name="Coyote",
-                    given_name="Wiley E.",
+                    familyName="Coyote",
+                    givenName="Wiley E.",
                     credentials="Super-Genius",
                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                            AdminPermission.ADMIN_RESOURCES,
@@ -130,8 +130,8 @@ class TestUser(unittest.TestCase):
         user3 = User(con=self._connection,
                      userIri=AnyIRI("https://orcid.org/0000-0003-3478-9313"),
                      userId=NCName("brown"),
-                     family_name="Brown",
-                     given_name="Emmett",
+                     familyName="Brown",
+                     givenName="Emmett",
                      credentials="Time-Machine@1985",
                      inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                             AdminPermission.ADMIN_RESOURCES,
@@ -142,8 +142,8 @@ class TestUser(unittest.TestCase):
         self.assertEqual(str(ex.exception), 'A user with a user IRI "https://orcid.org/0000-0003-3478-9313" already exists')
         user4 = User(con=self._connection,
                      userId=NCName("brown"),
-                     family_name="Dock",
-                     given_name="Donald",
+                     familyName="Dock",
+                     givenName="Donald",
                      credentials="Entenhausen@for&Ever",
                      inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                             AdminPermission.ADMIN_RESOURCES,
@@ -154,8 +154,8 @@ class TestUser(unittest.TestCase):
 
         user5 = User(con=self._unpriv,
                      userId=NCName("brown"),
-                     family_name="Dock",
-                     given_name="Donald",
+                     familyName="Dock",
+                     givenName="Donald",
                      credentials="Entenhausen@for&Ever",
                      inProject={AnyIRI('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_CREATE}},
                      hasPermissions={QName('omas:GenericView')})
@@ -169,8 +169,8 @@ class TestUser(unittest.TestCase):
         user = User(con=self._connection,
                     userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
                     userId=NCName("edison"),
-                    family_name="Edison",
-                    given_name="Thomas A.",
+                    familyName="Edison",
+                    givenName="Thomas A.",
                     credentials="Lightbulb&Phonograph",
                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                            AdminPermission.ADMIN_RESOURCES,
@@ -189,8 +189,8 @@ class TestUser(unittest.TestCase):
         user = User(con=self._connection,
                     userIri=AnyIRI("https://orcid.org/0000-0002-9991-2055"),
                     userId=NCName("edison"),
-                    family_name="Edison",
-                    given_name="Thomas A.",
+                    familyName="Edison",
+                    givenName="Thomas A.",
                     credentials="Lightbulb&Phonograph",
                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                            AdminPermission.ADMIN_RESOURCES,
