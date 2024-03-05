@@ -1,26 +1,27 @@
-# Introduction ot OMASLIB
+# Knowledge foundation to OMASLIB
 
 OMASLIB implements several Python Classes which can be used to build a consistent, project specific data model in RDF,
 usually implemented in a triplestore. The following terms are important:
 
-- *Project* a project is any number of RDF statements that are associated with a certain topic/organisation
-  that is called *Project* within OLDAP. *Users" (see below) may be member of one or more projects.  
+- ***Project***: A project is defined as a collection of RDF statements that are associated with a certain topic/organisation
+  that is called *Project* within OLDAP. *Users* (see below) may be member of one or more projects.  
   For each project, all data related RDF statements are collected in a *Named Graph* in the triple store.
-- *User* is person that is registered as user. It gets access by providing its credentials (currently a
-  password, but this may change in the future) on login. All Users have associated permissions which
-  are connected to the association with a project. These permissions called *administrative permissions*.
-- *Resources* are used to store data. All Resources are subclasses of `omas:Thing` which implements some
+- ***User***: A user is a person who is registered with the system as a user. They gain access by providing their credentials
+  (currently a password, though this may change in the future) upon login. Each user is granted specific permissions based on 
+  their association with a project. These permissions, known as *administrative permissions*, define what actions a user is 
+  authorized to perform within the system.
+- ***Resources*** are used to store data. All Resources are subclasses of `omas:Thing` which implements some
   basic properties like creator, creation date etc. (see below).
-- *PermissionSet* is an entity that connects the resources to the user. A permission set holds the
+- ***PermissionSet*** is an entity that connects the resources to the user. A permission set holds the
   "DataPermissions" that define the access to the resource.
 
 Data modeling relies on the notion of *property* and *resource* following the RDF standards.
 
-- *Resource* is the digital equivalent to a real world object or an abstract thing like an event, a location
+- ***Resource*** is the digital equivalent to a real world object or an abstract thing like an event, a location
   etc. A Resource may have *properties* that define the properties of the subject.
-- *Property* is a predicate defining some data associated with the resource.
+- ***Property*** is a predicate defining some data associated with the resource.
 
-In a datamodel, resources and properties are pre-defined and form the data model or *ontology* . Datamodels
+In a datamodel, resources and properties are pre-defined and form the data model or *ontology*. Datamodels
 are specific to a given project. Each datamodel is stroed in 2 distinct named graphs.
 
 OMASLIB has the following prerequisites:
@@ -29,21 +30,21 @@ OMASLIB has the following prerequisites:
 
 ### What is RDF? (and RDFS, and OWL)
 
-RDF is a way proposed be Tim Berners Lee to digitally represent information about real world objects or concepts.
+RDF was proposed by Tim Berners Lee and is a way to digitally represent information about real world objects or concepts.
 It's also called *Linked Data* because it's main purpose is to represent such objects and their connections to each
 other. Some standardized extensions like *RDF Schema* (RDFS) and the *Web Ontology Language* (OWL) allow to express
-*concepts* about objects such as declaring that the *concept* "car" has 4 wheels and a steering wheel, and that it has
-some kind of motor and can be driven from place A to B.
+*concepts* about objects such as declaring that the *concept* "car" has 4 wheels, a steering wheel, that it has
+some kind of motor and that it can be driven from place A to B.
 
 The smallest unit of information is a *statement* or *triple* which basically has the form
 
 ```text
-subject predicate object .
+subject - predicate - object .
 ```
 
 In order to uniquely identify the 3 parts,
 [Uniform Resource Identifier](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier) (URI) or *IRI's* (which are
-URI's but allowing international characters). The syntax of a URI/IRI is as follows:
+URI's but allowing international characters) are used. The syntax of a URI/IRI is as follows:
 ```text
 scheme ":" ["//" authority] path ["?" query] ["#" fragment]
 ```
@@ -78,7 +79,7 @@ apply:
 
 #### Subject
 
-A subject als **always** represented as URI. If several statements apply to the _same_ subject, the _same_ URI must be
+A subject is **always** represented as URI. If several statements apply to the _same_ subject, the _same_ URI must be
 used. Thus, the subject-URI uniquely identifies a real world instance of an object or concept. The URI *may*
 resolve – if entered to a webbrowser – to a web page describing the object/concept. But this resolution is absolutely
 not required!
@@ -87,8 +88,8 @@ not required!
 
 The predicate describes a property of the subject. In order to use predicates in a consistent way, predicates are also
 identified by URI's. The predicate must be used in a consistent manner. Usually the exatct meaning of the predicates is
-defined in accompanying documents or – even - better directly within the data using RDF-Schema or OWL which define tools
-for this purpose.  
+defined in accompanying documents or – even – better directly within the data using RDF-Schema or OWL which define tools
+for this purpose. NOTE: DIESEN SATZ VERSTEHE ICH NICHT. WAS DEFINIERT FèR WAS TOOLS?
 
 It is important to note that a given predicate may expect either a _literal value_ or the _URI_ of another subject
 as _object_ (see below). Thus, predicates that point to another subject describe some form a _relation_
@@ -108,7 +109,7 @@ The datatype is added to the value as `^^xml-scheme-datatype`, e.g. `"This is a 
 `"2024-02-26"^^xsd:date`. Please note that `xsd` is a _prefix_. Prefixes are discussed further below.
 
 ### Putting things together...
-Now let's have an simple (oversimplyfied) example how to express information about things in RDF:
+Now let's have a simple (oversimplyfied) example how to express information about things in RDF:
 
 ```trig
 @PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -169,15 +170,15 @@ The `;` indicates that the next statement is for the same subject, the `,` indic
 the same subject-predicate combination. Still, this notation is not easy to read/write for humans.
 
 Fortunately, the
-TRIG format has some tools to simplify these stemenents drastically and make them easy to read/write:
+TRIG format has some tools to simplify these statements drastically and make them easy to read/write:
 
 #### Prefixes, Namespaces and QNames
 
-Usually, URI's are named in as systematic ways. Related "things" may share a commen "base"-URI. In our example above
+Usually, URI's are named in a systematic way. Related "things" may share a commen "base"-URI. In our example above
 we find that most predicates start with `http://example.org/predicates#` (*Note the `#` at the end!*). These common
-parts may be defined as _prefix_, a kind of shortcuts. The prefix must be a XML
+parts may be defined as ***prefix***, a kind of shortcuts. The prefix must be a XML
 [NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html), that is
-again a string that contains only letters, digits, the `_`, `-`, `.` and start with a letter or "_". (See
+again a string that contains only letters, digits, the `_`, `-`, `.` signs and start with a letter or "_". (See
 [NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName) for Python class). Such a *prefix* defines a `namespace`. Often related
 definitions of subjects and predicates share a common prefix. They are said to be in the same Namespace. With this
 knowledge, out example may further be simplified:
@@ -209,18 +210,18 @@ As you will notice in the example above, the URI's in the form `<....>` have bee
 
 *Important notes*:
 
-- Above notation with *QName*'s can be used for subjects, predicates and objects!.
-- For the URN-based URI's, there is no QName equivalent, since the URN-path is built using the `:` character!
+- Above notation with *QName*'s can be used for subjects, predicates and objects.
+- For the URN-based URI's, there is no QName equivalent, since the URN-path is built using the `:` character.
 
 Both the *prefix* and the *fragment* are *NCName*. Also,  _QName_ has a Python representation
-[QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName)). As we understand now, the `xsd:string` to indicate the datatype is
+[QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName). As we understand now, the `xsd:string` to indicate the datatype is
 also a *QName* –– therefore we need to use the prefix definition `@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .`
 
 #### Ontologies and Namespaces
 
 An RDF ontology is a formal description of a given knowledge domain, using RDF. It defines the meaning and the
-relations (**semantics**). In order to do so, specific subjects and predicates have been defined which baer a
-pre-defined meaning. Most ontologies rely on RDF-Schema and (partially) OWL. The prefixes/namespaces used are:
+relations (**semantics**) of and between objects. In order to do so, specific subjects and predicates have been defined which baer a
+pre-defined meaning. Most ontologies rely on RDF-Schema and (partially) OWL. The prefixes/namespaces NOTE: OMAS USES? used are:
 
 ```trig
 @PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -228,11 +229,13 @@ pre-defined meaning. Most ontologies rely on RDF-Schema and (partially) OWL. The
 @PREFIX owl: <http://www.w3.org/2002/07/owl#> .
 ```
 
-It beyond the scope of this introduction to completeley descibe RDF-based ontologies, but let's have a brief look on
+It is beyond the scope of this introduction to completeley descibe RDF-based ontologies, but let's have a brief look on
 how an ontology is created in RDF/RDFS/OWL.
-Let's assume – as in the example above – that we would like to define an Ontology about persons where we would like to
-know the names, where he/she lives and works. The Namespace should be `http://my.org/ontology#`. We decide here,
-to use the fragment indicator a s separator (we could instead choose to use `/` which is basically equivalent). Thus,
+
+Let's assume – as in the example above – that we want to define an Ontology about persons where we would like to
+know the names, where he/she lives and works. The Namespace should be `http://my.org/ontology#`. NOTE: WHY SHOULD THE NAMESPACE 
+BE THAT? DO WE JUST CHOOSE THAT? We decide here,
+to use the fragment indicator as separator (we could instead choose to use `/` which is basically equivalent). Thus,
 we use the prefix `@PREFIX mo: <http://my.org/ontology#> .`
 First we define a new *class* of subjects, called *Person*:
 
@@ -361,15 +364,15 @@ mo:worksIn rdf:type owl:ObjectProperty ;
 This Ontology gives quite a lot of semantic information about the relation between `mo:person`, `mo:Location` and the
 data predicates that point to literal values. We have been using additional RDFS predicates:
 
-- `rdfs:label`: The human readable "name" this element has. Should be displayed instead of the URI if the data is
-  is prepared for human reading.
+- `rdfs:label`: The human readable "name" of the given element. It should be displayed instead of the URI if the data
+  is intended for human reading.
 - `rdfs:comment`: A description/comment string that describes the purpose/semantics of the given element for humans.
 - `rdfs:domain`: The subject class a predicate is used for. E.g. `mo:worksIn rdfs:domain mo:Person` tells the query
   system of the triple store that the subject is a `mo:Person`.
-- `rdfs:range`: The object of the predicate has a certain data type or points to a certain subject class.
+- `rdfs:range`: The object of the predicate has a certain data type or points to a certain subject class. NOTE: UND WAS BEDEUTET DENN JETZT GENAU DAS :RANGE? VIELLEICHT: RANGE DENOTES THAT ...
 
-It's important to note that `rdfs:domain` and `rdfs:range` are **not restrictions**! The just let the query engine
-know if it encounters a certain predicate what's on the left and right side of it. If a predicate is beeing used
+It's important to note that `rdfs:domain` and `rdfs:range` are **not restrictions**! They just let the query engine
+know if it encounters a certain predicate what's on the left and right side of it. NOTE: DIESEN SATZ/TEIL VERSTEHE ICH NICHT If a predicate is beeing used
 incorrectly the query engine may make wrong assumptions. Example:
 
 ```trig
@@ -393,26 +396,26 @@ ex:titlepage rdf:type wrong:Page ;
              wrong:comment "Title page with beautiful illustration" .
 ```
 
-The query engine knows that the subject of `wrong:comment` is a book. Therefore it registers that `ex:titlepage` is
-also a `wrong:Book`. A query for all books will result erroneously return also `wrong:titlepage`!
+The query engine knows that the subject of `wrong:comment` is a book. Therefore, it realises that `ex:titlepage` is
+also a `wrong:Book`. A query for all books will erroneously return also `wrong:titlepage`! NOTE: IST DIES WIRKLICH SO?
 
 ### Named Graphs in OMASLIB
 RDF allows to group statments into named entities called *named graphs*. Thus, using named graphs, a triple becomes in
-fact a quadruple, since it's associated with the graph name. The graph name can be used in queries. Usually there is
-a *default* named graph for all triples no assigned explicitely to a named graph. Some triple stores as Ontotext's
-GraphDB assignes all triples to the default graph if no named graphs are indicated. For more information about
+fact a quadruple, since, in addition to the subject, predicate and object, it's associated with a graph name as well. The graph name can be used in queries. Usually there is
+a *default* named graph for all triples that is not assigned explicitely to a named graph. Some triple store as Ontotext's
+GraphDB assignes all triples to the default graph if no named graphs are indicated. NOTE: DIESEN SATZ VERSTEHE ICH NICHT For more information about
 named graphs see:
 
-- [Wikipedia](https://en.wikipedia.org/wiki/Named_graph)
+- [Named Graphs - Wikipedia](https://en.wikipedia.org/wiki/Named_graph)
 - [levelUp](https://levelup.gitconnected.com/working-with-rdf-database-named-graphs-a5ddab447e91) (specific for GraphDB and Stardog triple stores)
 
-OMASLIB relies on the systematic use of **named graphs** which are used to separate the different areas and projects.
+`OMASLIB relies on the systematic use of **named graphs** which are used to separate the different areas and projects.`
 
 In triple stores, "named graphs" refer to a mechanism for organizing RDF (Resource Description Framework) data into
 separate and distinct graph contexts. Each named graph is identified by a unique name or identifier, and it contains a
 collection of RDF triples. 
 
-Key points about named graphs:
+Key points about named graphs are:
 
 - **Isolation:** Named graphs provide a way to isolate and partition RDF data, making it easier to manage and query
   specific subsets of data within a triple store.
@@ -430,12 +433,12 @@ datasets or sources need to be represented and managed within a single triple st
 
 ### Context
 
-The Python class *Context* manages the prefixes that are used in TRIG/SPARQL statements. It also contains methods
-to convert *AnyIRI*'s to *QNames* and vice versa. A Context simulates a *Dict* where the *prefixes* are the *keys* and
-the full *NamespaceIRI*'s are the *values*. It is iterable. The keys must be *NCName*s and the values of the dict
+The Python class ***Context*** manages the prefixes that are used in TRIG/SPARQL statements. It also contains methods
+to convert *AnyIRI*'s to *QNames* and vice versa. A Context simulates a [*Dict*](https://www.w3schools.com/python/python_dictionaries.asp) where the *prefixes* are the *keys* and
+the full *NamespaceIRI*'s are the *values*. Context are iterable. The keys must be *NCName*s and the values of the dict
 must be *NamespaceIRI*s.
 
-Context are created with a freely selectable name. **A Context with a given name is a persistent singleton!**
+Context are created with a freely selectable name. **A Context with a given name is a persistent [singleton](https://en.wikipedia.org/wiki/Singleton_pattern)!**
 It implements the following methods (a complete documentation from the python doc strings can found at
 [Context](/python_docstrings/context)):
 
@@ -498,9 +501,9 @@ SELECT ?s WHERE { ?s rdf:type my_ns:Catalogue }
 
 ### NCName
 
-As we learned, a *NCName* is a string that contains only letters, digits, the `_`, `-`, `.` and starts with a
-letter. In order to enforce and validate such strings, the *NCName* class is used. Throws an `OmasErrorValue` if the
-string does not conform to the XML schema for QName.It has the following methods
+As we learned, a *NCName* is a string that contains only letters, digits, the `_`, `-`, `.` symbols and starts with a
+letter. In order to enforce and validate such strings, the *NCName* class is used. It throws an `OmasErrorValue` if the
+string does not conform to the XML schema for QName. It has the following methods
 (not complete - full documentation from docstrings [NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName)):
 
 - `NCName(value: Self | str)`: The Constructor takes a NCName or a str as parameter. It validates the string to
@@ -525,17 +528,18 @@ sparql = f"INSERT DATA {{ my_ns:Hero my_ns:hasId {repr(id)} . }}"
 
 A QName has the form `ncname_a:ncname_b` where the *ncname_a* is the *prefix* and the *ncname_b* is the fragment. The
 class QName has the following methods (full documentation from docstrings: [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName)).
-Throws an `OmasErrorValue` if the string does not conform to the XML scxhema for QName.
+It throws an `OmasErrorValue` if the string does not conform to the XML scxhema for QName. The following usages are possible:
 
-- `QName(value: Self | str | NCName, fragment: Optional[str | NCName] = None)`: An instance can be constructed in
+- `QName(value: Self | str | NCName, fragment: Optional[str | NCName] = None)`: Creates an instance of QName. 
+   An instance can be constructed in
    two ways:
   - `QName("prefix:fragment")`: A string containing prefix and fragment separated by a color.
   - `QName("prefix", "fragment")` or `QName(NCName("prefix"), NCName("fragment"))`: To strings or NCNames for prefix
     and fragment
 - `str(qname)`: returns the string "prefix:fragment"
 - `repr(qname)`: returns the string "prefix:fragment"
-- Supports comparison operations `==`, `!=` and the `hash()`. Thus a QName may be used as key in a Dict.
-- It implements the serializer-protocol for conversion to/from JSON (*Note*: If a Dict uses NCName, the resulting
+- QName supports the comparison operations `==`, `!=` and the `hash()`. Thus, a QName may be used as key in a Dict.
+- It implements the serializer-protocol for conversion to/from JSON (***Note***: If a Dict uses NCName, the resulting
   Dict cannot be serialized. The JSON methods requiure the key to be a real str!).
 - `prefix`: The property *prefix* returns the prefix as string (not NCName!): `p = qname.prefix  # --> "prefix"`
 - `fragment`: The property *fragment* returns the fragment as string (not NCName!): `f = qname.fragment  # --> "fragment"
@@ -555,7 +559,7 @@ sparql = f'INSERT DATA {{ {qn2} {qn1} "Wiley E. Coyote" . }}'
 
 ### AnyIRI
 
-This python class represents a XML Schema AnyURI IRI (Note: Python: Any**I**RI, XML: Any**U**RI !). The constructor
+This python class represents a XML Schema AnyURI IRI (Note -- not to be confused: Python: Any**I**RI, XML: Any**U**RI !). The constructor
 validates the string to comform the XML AnyURI scheme. Methods (not complete - full documentation from
 docstrings [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI)):
 
@@ -564,9 +568,9 @@ docstrings [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.A
 - `str(anyiri)`: returns the IRI as string
 - `repr(anyiri)`: returns the IRI string as used in TRIG/SPARQL, that is with enclosing `<`, `>`. E.g.
   `x = AnyIRI("http://example.org/gaga/test/aua"); rdfstr = repr(x)  # --> <http://example.org/gaga/test/aua>`
-- `len(anyiri)`: Length of iri string
-- Supports comparison operations `==`, `!=` and the `hash()`. Thus a QName may be used as key in a Dict.
-- It implements the serializer-protocol for conversion to/from JSON (*Note*: If a Dict uses NCName, the resulting
+- `len(anyiri)`: returns the length of iri string
+- AnyIri supports the comparison operations `==`, `!=` and the `hash()`. Thus, a AnyIri may be used as key in a Dict.
+- It implements the serializer-protocol for conversion to/from JSON (***Note***: If a Dict uses NCName, the resulting
   Dict cannot be serialized. The JSON methods requiure the key to be a real str!).
 
 #### Example
@@ -583,7 +587,7 @@ my_iri = AnyIRI("my.dns.com/gaga/test.html")
 
 ### NamespaceIRI
 
-This python class, which is a subclass of *AnyIRI* represents an IRI that stands for a namespace. That ist, the iri
+This python class, which is a subclass of *AnyIRI* represents an IRI that stands for a namespace NOTE: HIER NOCH LINK ZU "WAS IST EIN NAMESPACE"?. That is, the iri
 string must have a `#` or `/` as last character. The constructor validates the string to a NamespaceIRI. The methods
 are (not complete - full documentation from docstrings [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI)):
 
@@ -622,16 +626,16 @@ sparql = f'INSERT DATA {{ my_ns:Engine my_ns:isType {repr(s)} }}'
 
 ### LangString: language dependent strings
 
-In RDF, strings may have a language tag applied to indicate which language a string is. Many predicates that point to
-a string value thus are inherent multi-lingual. En example using *rdfs:label*:
+In RDF, strings may have a language tag applied to indicate in which language it is written. Many predicates that point to
+a string value thus are inherent multi-lingual. An example using *rdfs:label*:
 
 ```trig
 ns:Engine rdf:type owl:Class ;
           rdfs:label "Engine"@en, "Lokomotive"@de, "Locomotive"@fr, "Locomotiva"@it .
 ```
-The Python class *LangString* is used to work with these multi-lingual strings. LangString supports all ISO
-languages that are described in the Enum class [Language](/python_docstrings/language). A LangString instance
-acts like a *Dict* aand allows the language specific string being access using the `[key]` syntax where the key
+The Python class *LangString* is used to work with these multi-lingual strings. LangString supports all [ISO languages](https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes) 
+that are described in the Enum class [Language](/python_docstrings/language). A LangString instance
+acts like a *Dict* and allows the language specific string to be accessed using the `[key]` syntax where the key
 is either a 2-letter ISO short for the language or – preferred – an element of the Language enum, e.g. `Language.DE`.
 LangString has the following methods (not complete - full documentation from
 docstrings [StringLiteral](/python_docstrings/langstring)):
@@ -643,13 +647,13 @@ docstrings [StringLiteral](/python_docstrings/langstring)):
   - `LangString({Language.EN: "engine", Language.DE: "Lokomotive"})`: This variant takes the Language enum values as keys.
     *This is the preferred way to construct a Language instance!*
 - `len(langstring)`: Returns the number of language dependent strings defined in the instance
-- `s = langstring[Language.DE]`: returns the string for the given language. The key may also be given as 2-letter ISO shortname.
-- `s = langstring.get(Language.DE)`: returns the string for the given language or None, if it does not exist.
-  Raises an *OmasError* if specified language string for the specified language does not exist.
+- `s = langstring[Language.DE]`: Returns the string for the given language. The key may also be given as 2-letter ISO shortname.
+- `s = langstring.get(Language.DE)`: Returns the string for the given language or `None`, if it does not exist.
+  Raises an `OmasError` if specified language string for the specified language does not exist.
 - `langstring[Language.FR] = "électrique"`: Assigns the given string to the specified language
 - `del langstring[Language.DE]`: Deletes the string for the given language
-- `str(langstring)`: returns the string as it would be used in a SPARQL or TRIG statment.
-- `repr(langstring)`: returns the string as it would be used in a SPARQL or TRIG statment.
+- `str(langstring)`: Returns the string as it would be used in a SPARQL or TRIG statment.
+- `repr(langstring)`: Returns the string as it would be used in a SPARQL or TRIG statment.
 
 #### Example
 
@@ -662,15 +666,15 @@ sparql = f'INSERT DATA {{ my_ns:Boss rdfs:label {label} . }}'
 
 ## Project Identifier
 
-At the base of the graph structure there is the unique IRI that each project must have. The IRI must conform to
-the syntax of a Namespace IRI, that is an IRI that either ends with a "#" or "/" character. In addition, a **prefix** for
-this project-IRI must be defined and consistently being used. E.g. the following prefix declaration could be used:
+At the base of the graph structure there is a projectspecific, unique IRI that each project must have. The IRI must conform to
+the syntax of a Namespace IRI. It must either end with a "#" or "/" character. In addition, a **prefix** for
+that project-IRI must be defined and consistently used. E.g. the following prefix declaration could be used:
 ```turtle
 
 @prefix myproject: <http://www.myorgranisation.edu/myproject#> .
 ```
 
-It is to note that the system itself uses the prefix identifier **omas** which **must not be used**!
+It is to note that the system itself uses the prefix identifier **omas** which *must **_not_** be used*!
 
 For each project, there are 3 different graphs (assuming *projpre* as project prefix):
 
@@ -680,11 +684,14 @@ For each project, there are 3 different graphs (assuming *projpre* as project pr
 
 OMASLIB primarily deals with the first two, that is the SHACL and OWL declaration and allows to build and maintain a
 consistent representation of a data model. Within the data model, resource class and properties which must follow
-certain project-defined constraints are defined.
+certain project-defined constraints are defined. NOTE: DIESER SATZ MACHT IRGENDWIE KEINEN SINN
 
 ## Properties (predicates)
 
-Predicates or properties can be defined in to different flavours. Usually the private properties are preferred and
+NOTE: ZUERST VIELLEICHT: WAS IST EINE PROPERTY? ODER STEHT DAS SCHON OBEN? WENN JA -> REFERENZ DADRAUF? ODER: WISO KOMMT HIER GENAU PROPERTIES?
+PROPERTIES ARE IMPORTENT BECAUSE OF ...
+
+Predicates or properties can be defined NOTE: BE DISTINGUISHED? in to different flavours. Usually the private properties are preferred and
 standalone properties should only be used if this results in significant advantages for the data model. Each property
 is defined with a set of rules, e.g. the data type, the cardinality (e.g. how many times the property may be used on
 one specific resource instance). Other restrictions may be defined as a range of values, or in case of a property that
@@ -724,4 +731,8 @@ in context of the SHACL shape definitions. OMASLIB does add this automatically a
 deal with the "...Shape"-IRI's directly.
 
 **IMPORTRANT:** All methods of OMASLIB expect the IRI's to be given *without* the "Shape"-Extension!
+
+NOTE: TEXT IST SEHR GUT ABER NOCH EIN BISSCHEN UNSTRUKTURIERT. MIR FEHLT NOCH ETWAS DER ROTE FADEN... GRAD AM SCHLUSS
+HAT MAN ETWAS DAS GEFÜHL ES IST EINFACH EIN NAMENSAPPENDIX... ZUSÄTZLICH WÄRE EIN SCHLUSSKALITEL/SCHLUSSWORT SICHER NOCH GUT
+ -- EVENTUELL KANN MAN DA NOCH WEITERE REFERENZEN AUFFÜHREN ODER NOCHMALS DIE WICHTIGSTEN REFERENZEN ZUSAMMENFASSEN.
 
