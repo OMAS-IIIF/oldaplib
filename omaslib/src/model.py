@@ -70,7 +70,6 @@ class Model:
         }}
         WHERE {{
             BIND({repr(iri)} as ?res)
-            ?res a omas:User .
             ?res dcterms:modified "{old_timestamp.isoformat()}"^^xsd:dateTime .
             ?res dcterms:contributor ?contributor .
         }}

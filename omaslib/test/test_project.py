@@ -3,8 +3,9 @@ from datetime import date
 from time import sleep
 
 from omaslib.src.connection import Connection
+from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName
+from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.project import Project
 
@@ -36,8 +37,8 @@ class Testproject(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls._connection.clear_graph(QName('omas:admin'), login_required=False)
-        cls._connection.upload_turtle("omaslib/ontologies/ontologies/admin.trig", login_required=False)
+        cls._connection.clear_graph(QName('omas:admin'))
+        cls._connection.upload_turtle("omaslib/ontologies/admin.trig")
         sleep(1)  # upload may take a while...
 
     def test_project_read(self):
@@ -51,18 +52,17 @@ class Testproject(unittest.TestCase):
         self.assertEqual(LangString(["Project for system administration@en"]), project.comment)
         self.assertEqual(date.fromisoformat("2024-01-01"), project.projectStart)
 
+    #@unittest.skip('Work in progress')
     def test_project_search(self):
-        projects = Project.search(con=self._connection)
-        self.assertEqual( ["omas:SystemProject",
-                           "omas:HyperHamlet",
-                           "http://www.salsah.org/version/2.0/SwissBritNet"], projects)
+        projects = Project.search(con=self._connection, label="HyperHamlet")
+        self.assertEqual(["omas:HyperHamlet"], projects)
 
     def test_project_create(self):
         project = Project(con=self._connection,
                           projectShortName="unittest",
-                          projectLabel=["unittest@en", "unittest@de"],
-                          projectIri="http://unitest.org/project/unittest",
-                          projectComment=["For testing@en", "Für Tests@de"],
+                          label=LangString(["unittest@en", "unittest@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittest#"),
+                          comment=LangString(["For testing@en", "Für Tests@de"]),
                           projectStart=date(2024, 1, 1),
                           projectEnd=date(2025, 12, 31)
                           )
@@ -71,6 +71,33 @@ class Testproject(unittest.TestCase):
         del project
 
         project2 = Project.read(con=self._connection, projectIri=projectIri)
+        self.assertEqual("unittest", project2.projectShortName)
+        self.assertEqual(LangString(["unittest@en", "unittest@de"]), project2.label)
+        self.assertEqual(LangString(["For testing@en", "Für Tests@de"]), project2.comment)
+        self.assertEqual(date(2024, 1, 1), project2.projectStart)
+        self.assertEqual(date(2025, 12, 31), project2.projectEnd)
+
+    def test_project_modify(self):
+        project = Project(con=self._connection,
+                          projectShortName="updatetest",
+                          label=LangString(["updatetest@en", "updatetest@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/updatetest#"),
+                          comment=LangString(["For testing@en", "Für Tests@de"]),
+                          projectStart=date(2024, 1, 1),
+                          projectEnd=date(2025, 12, 31)
+                          )
+        project.create()
+
+        projectIri = project.projectIri
+        del project
+
+        project = Project.read(con=self._connection, projectIri=projectIri)
+        project.comment[Language.FR] = "Pour les tests"
+        project.comment[Language.DE] = "FÜR DAS TESTEN"
+        project.label = LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"])
+        project.update()
+        self.assertEqual(project.comment, LangString(["For testing@en", "FÜR DAS TESTEN@de", "Pour les tests@fr"]))
+        self.assertEqual(project.label, LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"]))
 
 if __name__ == '__main__':
     unittest.main()

@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Callable, Self
 from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
-from omaslib.src.helpers.datatypes import Action, QName, NCName
+from omaslib.src.helpers.datatypes import Action, QName, NCName, AnyIRI
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
@@ -394,11 +394,100 @@ class LangString(Notify):
         """
         self._changeset = {}
 
+    def create(self, *,
+               graph: QName,
+               subject: QName | AnyIRI,
+               field: QName,
+               indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql_list = []
+        sparql = ''
+        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(subject)} {repr(field)} {repr(self)} .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        return sparql
+
+    def delete(self, *,
+               graph: QName,
+               subject: QName | AnyIRI,
+               field: QName,
+               indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql_list = []
+        sparql = ''
+        sparql += f'{blank:{indent * indent_inc}}DELETE WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(subject)} {repr(field)} ?o .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        return sparql
+
+    def update(self, *,
+               graph: QName,
+               subject: QName | AnyIRI,
+               subjectvar: str,
+               field: QName,
+               indent: int = 0, indent_inc: int = 4) -> List[str]:
+        blank = ''
+        sparql_list = []
+        for lang, change in self._changeset.items():
+            if change.action != Action.CREATE:
+                sparql = f'{blank:{indent * indent_inc}}DELETE DATA {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+                tmpstr = f'"{change.old_value}"'
+                if lang != Language.XX:
+                    tmpstr += "@" + lang.name.lower()
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(subject)} {repr(field)} {tmpstr} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}'
+                sparql += f'{blank:{indent * indent_inc}}}}'
+                sparql_list.append(sparql)
+            if change.action != Action.DELETE:
+                sparql = f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+                langstr = f'"{self._langstring[lang]}"'
+                if lang != Language.XX:
+                    langstr += "@" + lang.name.lower()
+                sparql += f'{blank:{(indent + 1) * indent_inc}}{repr(subject)} {repr(field)} {langstr} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                sparql_list.append(sparql)
+
+            # sparql = ''
+            # sparql += f'{blank:{indent * indent_inc}}WITH {graph}\n'
+            # if change.action != Action.CREATE:
+            #     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+            #     tmpstr = f'"{change.old_value}"'
+            #     if lang != Language.XX:
+            #         tmpstr += "@" + lang.name.lower()
+            #     sparql += f'{blank:{(indent + 1) * indent_inc}}{subjectvar} {repr(field)} {tmpstr} .\n'
+            #     sparql += f'{blank:{indent * indent_inc}}}}\n'
+            #
+            # if change.action != Action.DELETE:
+            #     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+            #     langstr = f'"{self._langstring[lang]}"'
+            #     if lang != Language.XX:
+            #         langstr += "@" + lang.name.lower()
+            #     sparql += f'{blank:{(indent + 1) * indent_inc}}{subjectvar} {repr(field)} {langstr} .\n'
+            #     sparql += f'{blank:{indent * indent_inc}}}}\n'
+            #
+            # sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            # sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(subject)} as {subjectvar}) .\n'
+            # if change.action != Action.CREATE:
+            #     tmpstr = f'"{change.old_value}"'
+            #     if lang != Language.XX:
+            #         tmpstr += "@" + lang.name.lower()
+            #     sparql += f'{blank:{(indent + 1) * indent_inc}}{subjectvar} {repr(field)} {tmpstr} .\n'
+            # sparql += f'{blank:{indent * indent_inc}}}}'
+            # sparql_list.append(sparql)
+        return sparql_list
+
     def update_shacl(self, *,
                      graph: NCName,
                      owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
-                     attr: QName,
+                     attr: PropertyClassAttribute,
                      modified: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         """
@@ -421,14 +510,17 @@ class LangString(Notify):
         :rtype: str
         """
 
-        blank = ' '
+        blank = ''
         sparql_list = []
         for lang, change in self._changeset.items():
             sparql = f'# LangString: Process "{lang.name}" with Action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {change.old_value} .\n'
+                tmpstr = f'"{change.old_value}"'
+                if lang != Language.XX:
+                    tmpstr += "@" + lang.name.lower()
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             if change.action != Action.DELETE:
@@ -446,7 +538,10 @@ class LangString(Notify):
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
             if change.action != Action.CREATE:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {change.old_value} .\n'
+                tmpstr = f'"{change.old_value}"'
+                if lang != Language.XX:
+                    tmpstr += "@" + lang.name.lower()
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
@@ -481,7 +576,7 @@ class LangString(Notify):
         :return: Piece of SPARQL code that deletes the Language String from the SHACL definition
         :rtype: str
         """
-        blank = ' '
+        blank = ''
         sparql = f'#\n# Deleting the complete LangString data for {prop_iri} {attr}\n#\n'
         sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{'

@@ -31,8 +31,8 @@ class TestUser(unittest.TestCase):
                                  credentials="RioGrande",
                                  context_name="DEFAULT")
 
-        user = User(con=cls._connection, userId=NCName("coyote"))
-        user.delete()
+        #user = User(con=cls._connection, userId=NCName("coyote"))
+        #user.delete()
         cls._connection.clear_graph(QName('omas:admin'))
         cls._connection.upload_turtle("omaslib/ontologies/admin.trig")
         sleep(1)  # upload may take a while...

@@ -13,8 +13,9 @@ from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasErrorUpdateFailed
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasErrorUpdateFailed, OmasErrorImmutable
 from omaslib.src.helpers.query_processor import QueryProcessor
+from omaslib.src.helpers.tools import lprint
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 
@@ -180,7 +181,9 @@ class Project(Model):
             raise OmasErrorValue(f'Invalid namespace iri: {namespaceIri}')
 
         self.__fields[ProjectFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
+        self.__fields[ProjectFields.LABEL].set_notifier(self.notifier, QName(ProjectFields.LABEL.value))
         self.__fields[ProjectFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
+        self.__fields[ProjectFields.COMMENT].set_notifier(self.notifier, QName(ProjectFields.COMMENT.value))
         self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, NCName) else NCName(projectShortName)
         if projectStart and isinstance(projectStart, date):
             self.__fields[ProjectFields.PROJECT_START] = projectStart
@@ -217,8 +220,8 @@ class Project(Model):
     def __change_setter(self, field: ProjectFields, value: ProjectFieldTypes) -> None:
         if self.__fields[field] == value:
             return
-        if field == ProjectFields.PROJECT_IRI or field == ProjectFields.NAMESPACE_IRI:
-            raise OmasErrorAlreadyExists(f'Field {field.value} is immutable.')
+        if field == ProjectFields.PROJECT_IRI or field == ProjectFields.NAMESPACE_IRI or field == ProjectFields.PROJECT_SHORTNAME:
+            raise OmasErrorImmutable(f'Field {field.value} is immutable.')
         if self.__fields[field] is None:
             if self.__change_set.get(field) is None:
                 self.__change_set[field] = ProjectFieldChange(None, Action.CREATE)
@@ -233,7 +236,6 @@ class Project(Model):
             del self.__fields[field]
         else:
             self.__fields[field] = self.__datatypes[field](value)
-
 
     def __str__(self) -> str:
         res = f'Project: {self.__fields[ProjectFields.PROJECT_IRI]}\n'\
@@ -277,6 +279,11 @@ class Project(Model):
         :return: None
         """
         self.__change_set = {}
+
+    def notifier(self, fieldname: QName):
+        field = ProjectFields(fieldname)
+        self.__change_set[field] = ProjectFieldChange(self.__fields[field], Action.MODIFY)
+        pass
 
     @classmethod
     def read(cls, con: IConnection, projectIri: AnyIRI | QName) -> Self:
@@ -333,6 +340,10 @@ class Project(Model):
                     projectStart = r['val']
                 case 'omas:projectEnd':
                     projectEnd = r['val']
+        label.changeset_clear()
+        label.set_notifier(cls.notifier, QName(ProjectFields.LABEL.value))
+        comment.changeset_clear()
+        comment.set_notifier(cls.notifier, QName(ProjectFields.COMMENT.value))
         return cls(con=con,
                    creator=creator,
                    created=created,
@@ -428,7 +439,7 @@ class Project(Model):
         FROM omas:admin
         WHERE {{
             ?user a omas:Project .
-            FILTER(?project = {repr(self.__projectIri)})
+            FILTER(?project = {repr(self.projectIri)})
         }}
         """
 
@@ -437,11 +448,11 @@ class Project(Model):
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql2 += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
         sparql2 += f'{blank:{(indent + 2) * indent_inc}}{repr(self.projectIri)} a omas:Project ;\n'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator <{self._con.userIri}>'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectShortName {self.projectShortName} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {repr(self._con.userIri)} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {repr(self._con.userIri)} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectShortName {repr(self.projectShortName)} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:label {repr(self.label)} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:comment {repr(self.comment)} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:namespaceIri "{str(self.namespaceIri)}"^^xsd:anyURI ;\n'
@@ -497,6 +508,23 @@ class Project(Model):
         blank = ''
         sparql_list = []
         for field, change in self.__change_set.items():
+            if field == ProjectFields.LABEL or field == ProjectFields.COMMENT:
+                if change.action == Action.MODIFY:
+                    sparql_list.extend(self.__fields[field].update(graph=QName('omas:admin'),
+                                                                   subject=self.projectIri,
+                                                                   subjectvar='?project',
+                                                                   field=QName(field.value)))
+                if change.action == Action.DELETE or change.action == Action.REPLACE:
+                    sparql = self.__fields[field].delete(graph=QName('omas:admin'),
+                                                         subject=self.projectIri,
+                                                         field=QName(field.value))
+                    sparql_list.append(sparql)
+                if change.action == Action.CREATE or change.action == Action.REPLACE:
+                    sparql = self.__fields[field].create(graph=QName('omas:admin'),
+                                                         subject=self.projectIri,
+                                                         field=QName(field.value))
+                    sparql_list.append(sparql)
+                continue
             sparql = f'{blank:{indent * indent_inc}}# Project field "{field.value}" with action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
             if change.action != Action.CREATE:
@@ -512,16 +540,20 @@ class Project(Model):
             sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(change.old_value)} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
-        " ;\n".join(sparql_list)
-
+        sparql = context.sparql_context
+        sparql += " ;\n".join(sparql_list)
+        #return
+        self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(QName('omas:admin'), self.projectIri, self.modified, timestamp)
-            modtime = self.get_modified_by_iri(QName('omas:admin'), self.userIri)
+            modtime = self.get_modified_by_iri(QName('omas:admin'), self.projectIri)
         except OmasError:
             self._con.transaction_abort()
             raise
         if timestamp != modtime:
+            print("\ntttttttttttt>>", timestamp, modtime)
+            self._con.transaction_abort()
             raise OmasErrorUpdateFailed("Update failed! Timestamp does not match")
         try:
             self._con.transaction_commit()

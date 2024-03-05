@@ -54,3 +54,7 @@ class OmasErrorUpdateFailed(OmasError):
 @strict
 class OmasErrorNoPermission(OmasError):
     pass
+
+@strict
+class OmasErrorImmutable(OmasError):
+    pass

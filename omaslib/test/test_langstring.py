@@ -1,6 +1,8 @@
 import unittest
+from datetime import datetime
 
-from omaslib.src.helpers.datatypes import Action
+from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
+from omaslib.src.helpers.datatypes import Action, QName, NCName
 from omaslib.src.helpers.langstring import LangString, LangStringChange
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
@@ -186,6 +188,75 @@ class TestLangstring(unittest.TestCase):
         ls1.undo()
         self.assertEqual(str(ls1), '"english"@en, "deutsch"@de')
 
+    def test_langstring_update(self):
+        ls1 = LangString(["english@en", "deutsch@de"])
+        ls1.add({Language.FR: "français", Language.XX: "undefined"})
+        del ls1[Language.EN]
+        qlist = ls1.update(graph=QName("omas:test"),
+                           subject=QName("omas:subj"),
+                           subjectvar="?subj",
+                           field=QName("omas:prop"))
+        qstr = " ;\n".join(qlist)
+        expected = """WITH omas:test
+INSERT {
+    ?subj omas:prop "français"@fr .
+}
+WHERE {
+    BIND(omas:subj as ?subj) .
+} ;
+WITH omas:test
+INSERT {
+    ?subj omas:prop "undefined" .
+}
+WHERE {
+    BIND(omas:subj as ?subj) .
+} ;
+WITH omas:test
+DELETE {
+    ?subj omas:prop "english"@en .
+}
+WHERE {
+    ?subj omas:prop "english"@en .
+    BIND(omas:subj as ?subj) .
+}"""
+        self.assertEqual(qstr, expected)
+
+        sstr = ls1.update_shacl(graph=NCName("test"),
+                                prop_iri=QName('omas:prop'),
+                                attr=PropertyClassAttribute.NAME,
+                                modified=datetime.fromisoformat("2023-11-04T12:00:00Z"))
+        expected = """# LangString: Process "FR" with Action "create"
+WITH test:shacl
+INSERT {
+    ?prop sh:name "français"@fr .
+}
+WHERE {
+    BIND(omas:propShape as ?prop) .
+    ?prop dcterms:modified ?modified .
+    FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
+};
+# LangString: Process "XX" with Action "create"
+WITH test:shacl
+INSERT {
+    ?prop sh:name "undefined" .
+}
+WHERE {
+    BIND(omas:propShape as ?prop) .
+    ?prop dcterms:modified ?modified .
+    FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
+};
+# LangString: Process "EN" with Action "delete"
+WITH test:shacl
+DELETE {
+    ?prop sh:name "english"@en .
+}
+WHERE {
+    BIND(omas:propShape as ?prop) .
+    ?prop sh:name "english"@en .
+    ?prop dcterms:modified ?modified .
+    FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
+}"""
+        self.assertEqual(sstr, expected)
 
 
 
