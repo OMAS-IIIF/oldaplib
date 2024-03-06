@@ -105,6 +105,15 @@ class Project(Model):
         ProjectFields.PROJECT_START: date,
         ProjectFields.PROJECT_END: date,
     }
+    __repr = {
+        ProjectFields.PROJECT_IRI: lambda x : repr(x),
+        ProjectFields.PROJECT_SHORTNAME: lambda x : repr(x),
+        ProjectFields.LABEL: lambda x : repr(x),
+        ProjectFields.COMMENT: lambda x : repr(x),
+        ProjectFields.NAMESPACE_IRI: lambda x : repr(x),
+        ProjectFields.PROJECT_START: lambda x : x.isoformat(),
+        ProjectFields.PROJECT_END: lambda x : x.isoformat(),
+    }
 
     __creator: AnyIRI | None
     __created: datetime | None
@@ -235,8 +244,10 @@ class Project(Model):
         if value is None:
             del self.__fields[field]
         else:
-            self.__fields[field] = self.__datatypes[field](value)
-
+            if not isinstance(value, self.__datatypes[field]):
+                self.__fields[field] = self.__datatypes[field](value)
+            else:
+                self.__fields[field] = value
     def __str__(self) -> str:
         res = f'Project: {self.__fields[ProjectFields.PROJECT_IRI]}\n'\
               f'  Creation: {self.__created.isoformat()} by {self.__creator}\n'\
@@ -542,6 +553,7 @@ class Project(Model):
             sparql_list.append(sparql)
         sparql = context.sparql_context
         sparql += " ;\n".join(sparql_list)
+        lprint(sparql)
         #return
         self._con.transaction_start()
         try:
@@ -552,7 +564,6 @@ class Project(Model):
             self._con.transaction_abort()
             raise
         if timestamp != modtime:
-            print("\ntttttttttttt>>", timestamp, modtime)
             self._con.transaction_abort()
             raise OmasErrorUpdateFailed("Update failed! Timestamp does not match")
         try:

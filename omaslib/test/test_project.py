@@ -95,6 +95,7 @@ class Testproject(unittest.TestCase):
         project.comment[Language.FR] = "Pour les tests"
         project.comment[Language.DE] = "FÜR DAS TESTEN"
         project.label = LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"])
+        project.projectEnd = date(2026, 6, 30)
         project.update()
         self.assertEqual(project.comment, LangString(["For testing@en", "FÜR DAS TESTEN@de", "Pour les tests@fr"]))
         self.assertEqual(project.label, LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"]))
