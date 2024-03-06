@@ -87,9 +87,28 @@ not required!
 #### Predicate
 
 The predicate describes a property of the subject. In order to use predicates in a consistent way, predicates are also
-identified by URI's. The predicate must be used in a consistent manner. Usually the exatct meaning of the predicates is
-defined in accompanying documents or – even – better directly within the data using RDF-Schema or OWL which define tools
-for this purpose. NOTE: DIESEN SATZ VERSTEHE ICH NICHT. WAS DEFINIERT FèR WAS TOOLS?
+identified by URI's. The predicate must be used in a consistent manner. Usually the exact meaning of the predicates is
+defined in accompanying documents or – even – better directly within the data using RDF-Schema. RDF-Schema has two
+predefined properties, `rdfs:label` and `rdfs:comment` for documentation purposes.
+
+- `rdfs:label`: The human understandable *name* given to something (a subject, property etc.). RDF language tags may
+  be used to indicate the name in different languages
+- `rdfs:comment`: A comment or description of the meaning of the subject, predicate etc. Here also, language tags
+  may be used.
+
+Example:
+
+```trig
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+mydata:Person a owl:class ;
+    rdfs:label "Person"@en, "Person"@de, "Personne"@fr, "Persona"@it ;
+    rdfs:comment "A Human being that can be identified uniquely, e.g. by a VIAF id or other norm data"@en,
+        "Ein Mensch, der eindeutig identifizierbar ist, z.B. durch eine VIAF Id oder andere Normdaten"@de :
+    ...
+```
 
 It is important to note that a given predicate may expect either a _literal value_ or the _URI_ of another subject
 as _object_ (see below). Thus, predicates that point to another subject describe some form a _relation_
@@ -367,11 +386,20 @@ data predicates that point to literal values. We have been using additional RDFS
 - `rdfs:label`: The human readable "name" of the given element. It should be displayed instead of the URI if the data
   is intended for human reading.
 - `rdfs:comment`: A description/comment string that describes the purpose/semantics of the given element for humans.
-- `rdfs:domain`: The subject class a predicate is used for. E.g. `mo:worksIn rdfs:domain mo:Person` tells the query
-  system of the triple store that the subject is a `mo:Person`.
-- `rdfs:range`: The object of the predicate has a certain data type or points to a certain subject class. NOTE: UND WAS BEDEUTET DENN JETZT GENAU DAS :RANGE? VIELLEICHT: RANGE DENOTES THAT ...
+- `rdfs:domain`: The rdfs:domain of a property specifies the class of the subject in a triple that uses the property.
+  In simpler terms, it tells you what type of thing (or "entity") can possess or be described by the property in
+  question. If a property is stated to have a certain rdfs:domain, then any resource that has that property is
+  automatically assumed to be a member of the specified class.  
+  Example: If we have a property hasOwner, and we declare that its rdfs:domain is Vehicle, this means that anything
+  that "has an owner" is considered to be a Vehicle. So, if we know that Car123 hasOwner John, we can infer that Car123
+  is a Vehicle.
+- `rdfs:range`: The *range* denotes the "right side" of a predicate, that is the type of the object. For literal values,
+  the *range* denotes usually the data type, e.g. `ex:my_predicate rdfs:range xsd:int` defines that *ex:my_predicate*
+  must point to a literal which must be an integer number. For predicates that point to another subject, *rdfs:range*
+  indicates the subject class it should point to, e.g. `ex:my_link_predicate rdfs:range ex:Painting`. This would
+  indicate that *ex:my_link_predicate* points to a subject of the class *ex:Painting*.
 
-It's important to note that `rdfs:domain` and `rdfs:range` are **not restrictions**! They just let the query engine
+It's important to note that `rdfs:domain` and `rdfs:range` are **not restrictions**! They just let the SPARQL query engine
 know if it encounters a certain predicate what's on the left and right side of it. NOTE: DIESEN SATZ/TEIL VERSTEHE ICH NICHT If a predicate is beeing used
 incorrectly the query engine may make wrong assumptions. Example:
 

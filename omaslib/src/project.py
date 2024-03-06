@@ -106,13 +106,13 @@ class Project(Model):
         ProjectFields.PROJECT_END: date,
     }
     __repr = {
-        ProjectFields.PROJECT_IRI: lambda x : repr(x),
-        ProjectFields.PROJECT_SHORTNAME: lambda x : repr(x),
-        ProjectFields.LABEL: lambda x : repr(x),
-        ProjectFields.COMMENT: lambda x : repr(x),
-        ProjectFields.NAMESPACE_IRI: lambda x : repr(x),
-        ProjectFields.PROJECT_START: lambda x : x.isoformat(),
-        ProjectFields.PROJECT_END: lambda x : x.isoformat(),
+        ProjectFields.PROJECT_IRI: lambda x: repr(x),
+        ProjectFields.PROJECT_SHORTNAME: lambda x: repr(x),
+        ProjectFields.LABEL: lambda x: repr(x),
+        ProjectFields.COMMENT: lambda x: repr(x),
+        ProjectFields.NAMESPACE_IRI: lambda x: repr(x),
+        ProjectFields.PROJECT_START: lambda x: f'"{x.isoformat()}"^^xsd:date',
+        ProjectFields.PROJECT_END: lambda x: f'"{x.isoformat()}"^^xsd:date',
     }
 
     __creator: AnyIRI | None
@@ -540,21 +540,20 @@ class Project(Model):
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(change.old_value)} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__repr[field](change.old_value)} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(self.__fields[field])} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__repr[field](self.__fields[field])} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.projectIri)} as ?project)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(change.old_value)} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__repr[field](change.old_value)} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = context.sparql_context
         sparql += " ;\n".join(sparql_list)
-        lprint(sparql)
-        #return
+
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)

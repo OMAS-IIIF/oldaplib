@@ -99,6 +99,18 @@ class Testproject(unittest.TestCase):
         project.update()
         self.assertEqual(project.comment, LangString(["For testing@en", "FÜR DAS TESTEN@de", "Pour les tests@fr"]))
         self.assertEqual(project.label, LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"]))
+        self.assertEqual(project.projectEnd, date(2026, 6, 30))
+
+    def test_project_delete(self):
+        project = Project(con=self._connection,
+                          projectShortName="deletetest",
+                          label=LangString(["deletetest@en", "deletetest@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/deletetest#"),
+                          comment=LangString(["For deleting@en", "Für Löschung@de"]),
+                          projectStart=date(2024, 1, 1),
+                          projectEnd=date(2025, 12, 31)
+                          )
+        project.create()
 
 if __name__ == '__main__':
     unittest.main()

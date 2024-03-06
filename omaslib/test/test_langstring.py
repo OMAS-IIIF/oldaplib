@@ -197,28 +197,24 @@ class TestLangstring(unittest.TestCase):
                            subjectvar="?subj",
                            field=QName("omas:prop"))
         qstr = " ;\n".join(qlist)
-        expected = """WITH omas:test
-INSERT {
-    ?subj omas:prop "français"@fr .
+        expected = """INSERT DATA {
+    GRAPH omas:test {
+    omas:subj omas:prop "français"@fr .
+    }
 }
-WHERE {
-    BIND(omas:subj as ?subj) .
-} ;
-WITH omas:test
-INSERT {
-    ?subj omas:prop "undefined" .
+ ;
+INSERT DATA {
+    GRAPH omas:test {
+    omas:subj omas:prop "undefined" .
+    }
 }
-WHERE {
-    BIND(omas:subj as ?subj) .
-} ;
-WITH omas:test
-DELETE {
-    ?subj omas:prop "english"@en .
+ ;
+DELETE DATA {
+    GRAPH omas:test {
+        omas:subj omas:prop "english"@en .
+    }
 }
-WHERE {
-    ?subj omas:prop "english"@en .
-    BIND(omas:subj as ?subj) .
-}"""
+"""
         self.assertEqual(qstr, expected)
 
         sstr = ls1.update_shacl(graph=NCName("test"),

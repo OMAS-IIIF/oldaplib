@@ -440,8 +440,8 @@ class LangString(Notify):
                 if lang != Language.XX:
                     tmpstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(subject)} {repr(field)} {tmpstr} .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}}}'
-                sparql += f'{blank:{indent * indent_inc}}}}'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
             if change.action != Action.DELETE:
                 sparql = f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
