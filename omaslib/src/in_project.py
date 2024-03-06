@@ -13,6 +13,7 @@ from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
+from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 import json
 
@@ -98,9 +99,13 @@ class InProjectClass:
         return InProjectClass(data_copy, on_change_copy)
 
     def __eq__(self, other: Self) -> bool:
+        if not isinstance(other, InProjectClass):
+            raise OmasErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
         return self.__data == other.__data
 
     def __ne__(self, other: Self) -> bool:
+        if not isinstance(other, InProjectClass):
+            raise OmasErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
         return self.__data != other.__data
 
     def get(self, key: AnyIRI | QName) -> ObservableSet[AdminPermission] | None:
