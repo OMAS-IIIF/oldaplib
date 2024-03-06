@@ -1,6 +1,6 @@
-# Knowledge foundation to OMASLIB
+# Knowledge Foundation for OMASLIB
 
-OMASLIB implements several Python Classes which can be used to build a consistent, project specific data model in RDF,
+OLDAP implements several Python Classes which can be used to build a consistent, project specific data model in RDF,
 usually implemented in a triplestore. The following terms are important:
 
 - ***Project***: A project is defined as a collection of RDF statements that are associated with a certain topic/organisation
@@ -193,13 +193,14 @@ TRIG format has some tools to simplify these statements drastically and make the
 
 #### Prefixes, Namespaces and QNames
 
+<a name="namespace"></a>
 Usually, URI's are named in a systematic way. Related "things" may share a commen "base"-URI. In our example above
 we find that most predicates start with `http://example.org/predicates#` (*Note the `#` at the end!*). These common
 parts may be defined as ***prefix***, a kind of shortcuts. The prefix must be a XML
 [NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html), that is
 again a string that contains only letters, digits, the `_`, `-`, `.` signs and start with a letter or "_". (See
 [NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName) for Python class). Such a *prefix* defines a `namespace`. Often related
-definitions of subjects and predicates share a common prefix. They are said to be in the same Namespace. With this
+definitions of subjects and predicates share a common prefix. They are said to be in the same **Namespace**. With this
 knowledge, out example may further be simplified:
 
 ```trig
@@ -240,7 +241,7 @@ also a *QName* –– therefore we need to use the prefix definition `@PREFIX xs
 
 An RDF ontology is a formal description of a given knowledge domain, using RDF. It defines the meaning and the
 relations (**semantics**) of and between objects. In order to do so, specific subjects and predicates have been defined which baer a
-pre-defined meaning. Most ontologies rely on RDF-Schema and (partially) OWL. The prefixes/namespaces NOTE: OMAS USES? used are:
+pre-defined meaning. Most ontologies rely on RDF-Schema and (partially) OWL. The prefixes/namespaces used by RDF-Schema and OWL are:
 
 ```trig
 @PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -252,8 +253,8 @@ It is beyond the scope of this introduction to completeley descibe RDF-based ont
 how an ontology is created in RDF/RDFS/OWL.
 
 Let's assume – as in the example above – that we want to define an Ontology about persons where we would like to
-know the names, where he/she lives and works. The Namespace should be `http://my.org/ontology#`. NOTE: WHY SHOULD THE NAMESPACE 
-BE THAT? DO WE JUST CHOOSE THAT? We decide here,
+know the names, where he/she lives and works. The Namespace we choose is `http://my.org/ontology#` (we are free to use
+an arbitrary IRI as namespace – however it should be unique and must end with `#` or `/`).  We decide here,
 to use the fragment indicator as separator (we could instead choose to use `/` which is basically equivalent). Thus,
 we use the prefix `@PREFIX mo: <http://my.org/ontology#> .`
 First we define a new *class* of subjects, called *Person*:
@@ -390,18 +391,15 @@ data predicates that point to literal values. We have been using additional RDFS
   In simpler terms, it tells you what type of thing (or "entity") can possess or be described by the property in
   question. If a property is stated to have a certain rdfs:domain, then any resource that has that property is
   automatically assumed to be a member of the specified class.  
-  Example: If we have a property hasOwner, and we declare that its rdfs:domain is Vehicle, this means that anything
-  that "has an owner" is considered to be a Vehicle. So, if we know that Car123 hasOwner John, we can infer that Car123
+  Example: If we have a property `:hasOwner`, and we declare that its rdfs:domain is `:Vehicle`, this means that anything
+  that "has an owner" is considered to be a Vehicle. So, if we know that `:Car123 :hasOwner "John"`, we can infer that `:Car123`
   is a Vehicle.
-- `rdfs:range`: The *range* denotes the "right side" of a predicate, that is the type of the object. For literal values,
+- `rdfs:range`: The *range* denotes the "right side" of a predicate, that is the type of the *object*. For literal values,
   the *range* denotes usually the data type, e.g. `ex:my_predicate rdfs:range xsd:int` defines that *ex:my_predicate*
-  must point to a literal which must be an integer number. For predicates that point to another subject, *rdfs:range*
-  indicates the subject class it should point to, e.g. `ex:my_link_predicate rdfs:range ex:Painting`. This would
-  indicate that *ex:my_link_predicate* points to a subject of the class *ex:Painting*.
-
-It's important to note that `rdfs:domain` and `rdfs:range` are **not restrictions**! They just let the SPARQL query engine
-know if it encounters a certain predicate what's on the left and right side of it. NOTE: DIESEN SATZ/TEIL VERSTEHE ICH NICHT If a predicate is beeing used
-incorrectly the query engine may make wrong assumptions. Example:
+  points to a literal which is an integer number. For predicates that point to another subject, *rdfs:range*
+  indicates the subject class it should point to, e.g. the statement `ex:hasPainted rdfs:range ex:Painting`. This would
+  indicate that *ex:hasPainted* points to a subject of the class *ex:Painting*. Thus, the query engine
+  will infer from the statement `ex:davinci ex:hasPainted ex:MonaLisa` that `ex:MonaLisa` is a painting.
 
 ```trig
 ...
@@ -425,17 +423,53 @@ ex:titlepage rdf:type wrong:Page ;
 ```
 
 The query engine knows that the subject of `wrong:comment` is a book. Therefore, it realises that `ex:titlepage` is
-also a `wrong:Book`. A query for all books will erroneously return also `wrong:titlepage`! NOTE: IST DIES WIRKLICH SO?
+also a `wrong:Book`. A query for all books will erroneously return also `wrong:titlepage`!
 
 ### Named Graphs in OMASLIB
-RDF allows to group statments into named entities called *named graphs*. Thus, using named graphs, a triple becomes in
-fact a quadruple, since, in addition to the subject, predicate and object, it's associated with a graph name as well. The graph name can be used in queries. Usually there is
-a *default* named graph for all triples that is not assigned explicitely to a named graph. Some triple store as Ontotext's
-GraphDB assignes all triples to the default graph if no named graphs are indicated. NOTE: DIESEN SATZ VERSTEHE ICH NICHT For more information about
+RDF allows to group statements into named entities called *named graphs*. Thus, using named graphs, a triple becomes in
+fact a quadruple, since, in addition to the subject, predicate and object, it's associated with a graph name as well.
+The graph name can be used in queries. Usually there is
+a *default* named graph for all triples that is not assigned explicitely to a named graph. Some triple store such as Ontotext's
+GraphDB assigns all triples to the default graph if no graph name is given at creation indicated. For more information about
 named graphs see:
 
 - [Named Graphs - Wikipedia](https://en.wikipedia.org/wiki/Named_graph)
 - [levelUp](https://levelup.gitconnected.com/working-with-rdf-database-named-graphs-a5ddab447e91) (specific for GraphDB and Stardog triple stores)
+
+For example, the following triples will be in the default graph, since no specific graph name is given:
+```trig
+@PREFIX ex: <http://example.org/ex#> .
+ex:davinci a ex:Painter ;
+           ex:hasPainted ex:MonaLisa, ex:LastSupper .
+```
+The equivalent SPARQL insert statement would look as follows:
+```sparql
+PREFIX ex: <http://example.org/ex#>
+INSERT DATA {
+    ex:davinci a ex:Painter ;
+             ex:hasPainted ex:MonaLisa, ex:LastSupper . 
+}
+```
+However, if we want to put these triples into a graph names `<http://example.org/ex#data>` (or using a
+prefix for a "short" graph name `ex:data`), the statements will be:
+```trig
+@PREFIX ex: <http://example.org/ex#> .
+ex:data {
+    ex:davinci a ex:Painter ;
+               ex:hasPainted ex:MonaLisa, ex:LastSupper .
+
+}
+```
+The equivalent SPARQL insert statement would look as follows:
+```sparql
+PREFIX ex: <http://example.org/ex#>
+INSERT DATA {
+    GRAPH ex:data {
+        ex:davinci a ex:Painter ;
+            ex:hasPainted ex:MonaLisa, ex:LastSupper .
+    }
+}
+```
 
 `OMASLIB relies on the systematic use of **named graphs** which are used to separate the different areas and projects.`
 
@@ -542,7 +576,7 @@ string does not conform to the XML schema for QName. It has the following method
   `x = NCName("a_ncname42"); rdf = repr(x)  # -> "a_ncname"^^xsd:NCName`
 - Supports comparison operations `==`, `!=` and the `hash()`. Thus, a NCName may be used as key in a Dict.
 - It implements the serializer-protocol for conversion to/from JSON (*Note*: If a Dict uses NCName, the resulting
-  Dict cannot be serialized. The JSON methods require thge key to be a real str!).
+  Dict cannot be serialized. The JSON methods require the key to be a real str!).
 
 #### Example
 
@@ -615,7 +649,7 @@ my_iri = AnyIRI("my.dns.com/gaga/test.html")
 
 ### NamespaceIRI
 
-This python class, which is a subclass of *AnyIRI* represents an IRI that stands for a namespace NOTE: HIER NOCH LINK ZU "WAS IST EIN NAMESPACE"?. That is, the iri
+This python class, which is a subclass of *AnyIRI* represents an IRI that stands for a [namespace](namespace). That is, the iri
 string must have a `#` or `/` as last character. The constructor validates the string to a NamespaceIRI. The methods
 are (not complete - full documentation from docstrings [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI)):
 
@@ -691,76 +725,3 @@ label = LangString({Language.DE: "Vorname", Language.FR: "Prénom", Language.EN:
 sparql = f'INSERT DATA {{ my_ns:Boss rdfs:label {label} . }}'
 # --> INSERT DATA { my_ns:Boss rdfs:label "Vorname"@de, "Prénom"@fr, "First name"@en . }
 ```
-
-## Project Identifier
-
-At the base of the graph structure there is a projectspecific, unique IRI that each project must have. The IRI must conform to
-the syntax of a Namespace IRI. It must either end with a "#" or "/" character. In addition, a **prefix** for
-that project-IRI must be defined and consistently used. E.g. the following prefix declaration could be used:
-```turtle
-
-@prefix myproject: <http://www.myorgranisation.edu/myproject#> .
-```
-
-It is to note that the system itself uses the prefix identifier **omas** which *must **_not_** be used*!
-
-For each project, there are 3 different graphs (assuming *projpre* as project prefix):
-
-* `projpre:shacl`: This graph contains all the SHACl declarations
-* `projpre:onto`: This graph contains all the OWL declaration
-* `projpre:data`. This graphs contains the actual data
-
-OMASLIB primarily deals with the first two, that is the SHACL and OWL declaration and allows to build and maintain a
-consistent representation of a data model. Within the data model, resource class and properties which must follow
-certain project-defined constraints are defined. NOTE: DIESER SATZ MACHT IRGENDWIE KEINEN SINN
-
-## Properties (predicates)
-
-NOTE: ZUERST VIELLEICHT: WAS IST EINE PROPERTY? ODER STEHT DAS SCHON OBEN? WENN JA -> REFERENZ DADRAUF? ODER: WISO KOMMT HIER GENAU PROPERTIES?
-PROPERTIES ARE IMPORTENT BECAUSE OF ...
-
-Predicates or properties can be defined NOTE: BE DISTINGUISHED? in to different flavours. Usually the private properties are preferred and
-standalone properties should only be used if this results in significant advantages for the data model. Each property
-is defined with a set of rules, e.g. the data type, the cardinality (e.g. how many times the property may be used on
-one specific resource instance). Other restrictions may be defined as a range of values, or in case of a property that
-has als target another resource, the resource class must be indicated it must point to.
-
-### Private Properties
-A private property is used (and defined) only in the context of a given resource class. For example, the properties
-`myproj:firstName` and `myproj:lastName`, will and should be used only within the context of a resource class
-`myproj:Person`. Since these properties are bound to a certain resource class, we can add additional information, e.g.
-the order in which the properties should be displayed in an application. In addition, the property can be used for
-reasoning. The statement ```myproj:xy myproj:firstName "Charlie Brown"```, implies to the reasoner that *myproj:xy"
-is a *myproj:Person*. However, relying on such implicit information ca be challenging and difficult and should be
-avoided if possible.
-
-### Standalone Properties
-Standalone properties are defined without an explicit relation to a specific resource class and therefor can be
-reused in different resource classes. Let's assume a property `myproj:comment` is a standalone property. It could be
-used to add a comment to different resource classes.
-
-## Resource Classes
-Resource classes represent classes of "real world" things (which may be abstract things such as en "event"). A
-Resource Class has a unique IRI and a set of rules that define which properties an instance must or may have.
-
-## Data Model
-A data model encompasses all definitions of property and resource classes that are defined for a specific project.
-A data model as well as its constituents (properties, resources) can be created, read, updated and deleted
-(CRUD-Operation) using the methods of the Python classes of OMASLIB. 
-
-# Data Modelling using OMAS
-An OMAS data modell consists of a series of declarations confirming to the SHACL standard within the
-`<project-prefix>:shacl` named graph and corresponding declarations in OWL in the `<project-prefix>:onto` named
-graph.
-
-## Naming conventions
-In oder to create unique IRI's, OMASLIB adds the string "Shape" to the IRI's of properties and resources if used
-in context of the SHACL shape definitions. OMASLIB does add this automatically and the user should not be required to
-deal with the "...Shape"-IRI's directly.
-
-**IMPORTRANT:** All methods of OMASLIB expect the IRI's to be given *without* the "Shape"-Extension!
-
-NOTE: TEXT IST SEHR GUT ABER NOCH EIN BISSCHEN UNSTRUKTURIERT. MIR FEHLT NOCH ETWAS DER ROTE FADEN... GRAD AM SCHLUSS
-HAT MAN ETWAS DAS GEFÜHL ES IST EINFACH EIN NAMENSAPPENDIX... ZUSÄTZLICH WÄRE EIN SCHLUSSKALITEL/SCHLUSSWORT SICHER NOCH GUT
- -- EVENTUELL KANN MAN DA NOCH WEITERE REFERENZEN AUFFÜHREN ODER NOCHMALS DIE WICHTIGSTEN REFERENZEN ZUSAMMENFASSEN.
-

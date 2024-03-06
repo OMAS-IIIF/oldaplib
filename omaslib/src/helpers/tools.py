@@ -1,14 +1,22 @@
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List, Tuple, Union
 
-from omaslib.src.helpers.datatypes import Action, QName, NCName
+from omaslib.src.helpers.datatypes import Action, QName, NCName, AnyIRI
 
 
 def lprint(text: str):
     lines = text.split('\n')
     for i, line in enumerate(lines, start=1):
         print(f"{i}: {line}")
+
+
+def str2qname_anyiri(s: str) -> QName | AnyIRI:
+    try:
+        return QName(s)
+    except:
+        return AnyIRI(s)
 
 
 @dataclass

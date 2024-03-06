@@ -15,6 +15,7 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
     OmasErrorInconsistency
 from omaslib.src.helpers.query_processor import QueryProcessor
+from omaslib.src.helpers.tools import str2qname_anyiri
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 
@@ -80,14 +81,9 @@ class PermissionSet(Model):
                 self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = permissionSetIri
             elif isinstance(permissionSetIri, str):
                 try:
-                    self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = QName(permissionSetIri)
+                    self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = str2qname_anyiri(permissionSetIri)
                 except:
-                    try:
-                        self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = AnyIRI(permissionSetIri)
-                    except:
-                        raise OmasErrorValue(
-                            f'permissionSetIri {permissionSetIri} must be an convertible to AnyIRI or QName: {permissionSetIri} ({type(permissionSetIri)}) does not work.')
-
+                    raise OmasErrorValue(f'permissionSetIri {permissionSetIri} must be an convertible to AnyIRI or QName: {permissionSetIri} ({type(permissionSetIri)}) does not work.')
             else:
                 raise OmasErrorValue(f'permissionSetIri {permissionSetIri} must be an instance of AnyIRI, QName or str, not {type(permissionSetIri)}.')
         else:
@@ -103,12 +99,9 @@ class PermissionSet(Model):
             self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = definedByProject
         elif isinstance(definedByProject, str):
             try:
-                self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = QName(definedByProject)
-            except:
-                try:
-                    self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = AnyIRI(definedByProject)
-                except:
-                    raise OmasErrorValue(f'definedByProject {definedByProject} must be an instance of AnyIRI, QName or str, not {type(definedByProject)}.')
+                self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = str(definedByProject)
+            except Exception as e:
+                raise OmasErrorValue(f'definedByProject {definedByProject} must be an instance of AnyIRI, QName or str, not {type(definedByProject)}.')
 
         for field in PermissionSetFields:
             prefix, name = field.value.split(':')
@@ -278,13 +271,9 @@ class PermissionSet(Model):
             pass
         elif isinstance(permissionSetIri, str):
             try:
-                permissionSetIri = QName(permissionSetIri)
+                permissionSetIri = str2qname_anyiri(permissionSetIri)
             except:
-                try:
-                    permissionSetIri = AnyIRI(permissionSetIri)
-                except:
-                    raise OmasErrorValue(
-                        f'permissionSetIri {permissionSetIri} must be an convertible to AnyIRI or QName: {permissionSetIri} ({type(permissionSetIri)}) does not work.')
+                raise OmasErrorValue(f'permissionSetIri {permissionSetIri} must be an convertible to AnyIRI or QName: {permissionSetIri} ({type(permissionSetIri)}) does not work.')
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f"""
@@ -310,12 +299,9 @@ class PermissionSet(Model):
         for r in res:
             if not permissionSetIri:
                 try:
-                    permissionSetIri = QName(r['permset'])
-                except:
-                    try:
-                        permissionSetIri = AnyIRI(r['permset'])
-                    except:
-                        raise OmasErrorInconsistency(f'Invalid project identifier "{r['o']}".')
+                    permissionSetIri = str2qname_anyiri(r['permset'])
+                except Exception as e:
+                    raise OmasErrorInconsistency(f'Invalid project identifier "{r['o']}".')
 
             match str(r['p']):
                 case 'dcterms:creator':
@@ -334,12 +320,9 @@ class PermissionSet(Model):
                     givesPermission = DataPermission.from_string(str(r['o']))
                 case 'omas:definedByProject':
                     try:
-                        definedByProject = QName(str(r['o']))
+                        definedByProject = str2qname_anyiri(str(r['o']))
                     except:
-                        try:
-                            definedByProject = AnyIRI(str(r['o']))
-                        except:
-                            raise OmasErrorInconsistency(f'Invalid project identifier "{r['o']}".')
+                        raise OmasErrorInconsistency(f'Invalid project identifier "{r['o']}".')
         return cls(con=con,
                    permissionSetIri=permissionSetIri,
                    creator=creator,
