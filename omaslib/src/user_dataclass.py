@@ -561,9 +561,9 @@ class UserDataclass:
                 sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
                 for proj in addedprojs:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(self.userIri)} omas:inProject {proj} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(self.userIri)} omas:inProject {repr(proj)} .\n'
                     for perm in self.__fields[UserFields.IN_PROJECT][proj]:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {repr(proj)}>> omas:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -573,9 +573,9 @@ class UserDataclass:
                 sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
                 for proj in deletedprojs:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(self.userIri)} omas:inProject {proj} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(self.userIri)} omas:inProject {repr(proj)} .\n'
                     for perm in self.__change_set[UserFields.IN_PROJECT].old_value[proj]:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {repr(proj)}>> omas:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -587,7 +587,7 @@ class UserDataclass:
                 for proj in changedprojs:
                     perms = self.__fields[UserFields.IN_PROJECT][proj] - self.__change_set[UserFields.IN_PROJECT].old_value[proj]
                     for perm in perms:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {repr(proj)}>> omas:hasAdminPermission {perm.value} .\n'
                         doit = True
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -600,7 +600,7 @@ class UserDataclass:
                 for proj in changedprojs:
                     perms = self.__change_set[UserFields.IN_PROJECT].old_value[proj] - self.__fields[UserFields.IN_PROJECT][proj]
                     for perm in perms:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {proj}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{repr(self.userIri)} omas:inProject {repr(proj)}>> omas:hasAdminPermission {perm.value} .\n'
                         doit = True
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'

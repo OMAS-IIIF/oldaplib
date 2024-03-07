@@ -218,7 +218,11 @@ class TestUser(unittest.TestCase):
                                                                      AdminPermission.ADMIN_CREATE},
                                          QName('omas:SystemProject'): {AdminPermission.ADMIN_USERS,
                                                                       AdminPermission.ADMIN_RESOURCES}}), user3.inProject)
-        user3.delete()
+        del user3
+        user4 = User.read(con=self._connection, userId="aedison")
+        user4.inProject = InProjectClass({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS}})
+        user4.update()
+        del user4
 
 
 if __name__ == '__main__':
