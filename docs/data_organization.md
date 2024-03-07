@@ -71,9 +71,10 @@ For each project, **3** *named graphs* will be used:
   projects data
 - `projectShortName:data`: This graphs contains al the projects data
 
-## System Project
 
-The *System Project* is a special project that is required for OLDAP to implement authentication,
+### System Project
+
+The *System Project* (IRI: `omas:SystemProject`) is a special project that is required for OLDAP to implement authentication,
 user management and access control. It contains all the necessary data models and data for this purpose, again
 in specific named graphs. It uses the following `http://omas.org/base#` as *namespaceIri* and `omas` as
 *projectShortName*. The following named graphs are used:
@@ -87,59 +88,68 @@ in specific named graphs. It uses the following `http://omas.org/base#` as *name
 triple store! This could lead to a non-working system and/or massive data loss!**
 
 ## User
-A *User* is an actor that has access to the OLDAP platform. 
+A *User* is an actor that has access to the OLDAP platform. It may be a *member* of one or more *projects* with some
+administrative associated with this connection. In addition, a user is associated with *permission sets* which control
+the access permission to the data. For a more thorough discussion of the permission control concept see the chapter
+[OLDAP Permission Concept](/permission_concept)
 
-**more to come here**
+A User is defined with the following properties:
 
-# Data Modeling
+- `userIri`: A unique IRI describing the User. It is highly recommended to use the [ORCID](https://orcid.org)-Id as
+  *userIri*. If a user doesn't have an ORCID, the *userIri* can me omitted and OLDAP will assign a UUID based URN.
+- `userID`: The *userId* is a NCName that is used as shortname or nickname. It must also must be unique (which is
+  enforced by OLDAP – it does not allow a user to be added with as *userId* already in use). The userId is used
+  to identify the user at login etc.
+- `familyName`: The family name as defined by the [FOAF](http://xmlns.com/foaf/spec/) ontology. This property is
+  for descriptive use only.
+- `givenName`: The given name (or "firstname") of the person, also according to the [FOAF](http://xmlns.com/foaf/spec/)
+  ontology. This property is for descriptive use only.
+- `credentials`: The password of the user to login. Internally the password is stored as a hash value. Thus, the plain
+  text of the password is never stored within OLDAP for security reasons.
+- `active`: This is a boolean value that is `True` if the user is active, `False` otherwise. This property allows
+  to temporarily prevent a user accessing the OLDAP platform.
+- `inProject`: This property defines the project(s) a user is member of and which permissions he has for this project.
+  The following permissions are availabe:
+    - `ADMIN_OLDAP`: only used for the `omas:SystemProject`. If a user is member of the *system project* and has this
+    permission, he has full control of the OLDAP platform (*"super user"*).
+    - `ADMIN_USERS`: The user may manage the users of the project this permission is associated with (add/modify/delete
+      users and the permissions).
+    - `ADMIN_PERMISSION_SETS`: Modify the permission sets for data access for this user.
+    - `ADMIN_RESOURCES`: Change permissions amd ownership of data items ("*resources*).
+    - `ADMIN_MODEL`: Extend or change the data model for the given project.
+    - `ADMIN_CREATE`: Create now data items ("resources") in the context of the given project.
+- `hasPermissions`: Define the *Permission Sets* a user is associated with. For more information about the role of
+  *permission sets* see the chapter [Permission Concept](/permission_concept). The *permission sets* are items defined
+  in the `omas:admin` graph and can be added/modified/deleted by a user that has the `ADMIN_PERMISSION_SETS` permission
+  for the given project.  
 
-## Properties (predicates)
+  For a detailed description of the format of this field please see the description of the [User class](/user).
 
-NOTE: ZUERST VIELLEICHT: WAS IST EINE PROPERTY? ODER STEHT DAS SCHON OBEN? WENN JA -> REFERENZ DADRAUF? ODER: WISO KOMMT HIER GENAU PROPERTIES?
-PROPERTIES ARE IMPORTENT BECAUSE OF ...
+## Permission Set
 
-Predicates or properties can be defined NOTE: BE DISTINGUISHED? in to different flavours. Usually the private properties are preferred and
-standalone properties should only be used if this results in significant advantages for the data model. Each property
-is defined with a set of rules, e.g. the data type, the cardinality (e.g. how many times the property may be used on
-one specific resource instance). Other restrictions may be defined as a range of values, or in case of a property that
-has als target another resource, the resource class must be indicated it must point to.
+A *permission set* is the link between the user and a data item that defines how a user is allowed to access a specific
+data item. A permission set is an item that is defined withing the `omas:admin`-graph and has the class
+`omas:PermissionSet`. User with the appropriate administrative permission may add/modify/delete permisson sets.
+The permission sets are both associated with data items/resources and user (see [Permission Concept](/permission_concept))
+The following permissions are defined:
 
-### Private Properties
-A private property is used (and defined) only in the context of a given resource class. For example, the properties
-`myproj:firstName` and `myproj:lastName`, will and should be used only within the context of a resource class
-`myproj:Person`. Since these properties are bound to a certain resource class, we can add additional information, e.g.
-the order in which the properties should be displayed in an application. In addition, the property can be used for
-reasoning. The statement ```myproj:xy myproj:firstName "Charlie Brown"```, implies to the reasoner that *myproj:xy"
-is a *myproj:Person*. However, relying on such implicit information ca be challenging and difficult and should be
-avoided if possible.
+- `DATA_RESTRICTED`: Allows restricted access to the data item. The meaning of "*restricted*" must be defined by the
+  project context. For an image resource, it may restrict the maximal resolution or impose a watermark on the image. For
+  a data only resource it may render certain fields/properties hidden.
+- `DATA_VIEW`: Allow full, unrestricted view of the data item/resource. However, the item may not be changed/deleted in
+  any way.
+- `DATA_EXTEND`: The resource is allowed to be *extend* (adding information such as a comment or annotation etc.),
+  but may not otherwise be modifed.
+- `DATA_UPDATE`: The resource may be changed, but be deleted.
+- `DATA_DELETE`: The resouirce may be deleted (there is still the restriction that the resource must not
+  be referenced by another resource in order to be deleted).
+- `DATA_PERMISSIONS`: The permissions of the data item/resource may be changed
 
-### Standalone Properties
-Standalone properties are defined without an explicit relation to a specific resource class and therefor can be
-reused in different resource classes. Let's assume a property `myproj:comment` is a standalone property. It could be
-used to add a comment to different resource classes.
+**NOTE (A)**: *The data permissions are ordered in a hierarchy. This is `DATA_EXTEND` automatically includes `DATA_VIEW`
+and `DATA_RESTRICTED` etc. Thus, `DATA_PERMISSIONS` encompasses all other permissions too.*  
 
-## Resource Classes
-Resource classes represent classes of "real world" things (which may be abstract things such as en "event"). A
-Resource Class has a unique IRI and a set of rules that define which properties an instance must or may have.
+**NOTE (B)**: *The owner of a data item/resource -- that is the user that created the item -- always has all permissions
+even if there are no explicit permissions associated.*  
 
-## Data Model
-A data model encompasses all definitions of property and resource classes that are defined for a specific project.
-A data model as well as its constituents (properties, resources) can be created, read, updated and deleted
-(CRUD-Operation) using the methods of the Python classes of OMASLIB. 
-
-# Data Modelling using OMAS
-An OMAS data modell consists of a series of declarations confirming to the SHACL standard within the
-`<project-prefix>:shacl` named graph and corresponding declarations in OWL in the `<project-prefix>:onto` named
-graph.
-
-## Naming conventions
-In oder to create unique IRI's, OMASLIB adds the string "Shape" to the IRI's of properties and resources if used
-in context of the SHACL shape definitions. OMASLIB does add this automatically and the user should not be required to
-deal with the "...Shape"-IRI's directly.
-
-**IMPORTRANT:** All methods of OMASLIB expect the IRI's to be given *without* the "Shape"-Extension!
-
-NOTE: TEXT IST SEHR GUT ABER NOCH EIN BISSCHEN UNSTRUKTURIERT. MIR FEHLT NOCH ETWAS DER ROTE FADEN... GRAD AM SCHLUSS
-HAT MAN ETWAS DAS GEFÜHL ES IST EINFACH EIN NAMENSAPPENDIX... ZUSÄTZLICH WÄRE EIN SCHLUSSKALITEL/SCHLUSSWORT SICHER NOCH GUT
- -- EVENTUELL KANN MAN DA NOCH WEITERE REFERENZEN AUFFÜHREN ODER NOCHMALS DIE WICHTIGSTEN REFERENZEN ZUSAMMENFASSEN.
-
+**NOTE (C)**: *A user associated with the *System project* having there the `ADMIN_OLDAP` privilege also has full
+access to all resources.
