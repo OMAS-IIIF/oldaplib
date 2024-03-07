@@ -9,9 +9,10 @@ There are two kinds of permissions that have to be defined to OLDAP users:
 ## Administrative permissions
 
 - `ADMIN_OLDAP`: Quasi "root"-permissions, system administration
-- `ADMIN_RESOURCES`: _Override_ resource permissions to manipulate
-  any resources within the given project (All CRUD-operations)
 - `ADMIN_USERS`: add/modify/delete users.
+- `ADMIN_PERMISSION_SETS`: add/modify/delete permission sets
+- `ADMIN_RESOURCES`: _Override_ resource permissions to manipulate any resources within the given project
+  (All CRUD-operations)
 - `ADMIN_MODEL`: User has permission to modify the data model.
 - `ADMIN_CREATE`: The user is allowed to _add_ new resources.
 

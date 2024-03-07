@@ -6,6 +6,7 @@ nav:
   - Knowledge Foundation for OLDAP: knowledge_base.md
   - Data Organization: data_organization.md
   - Permission Concept: permission_concept.md
+  - Data Modeling: data_modeling.md
   - PropertyClass: propertyclass.md
   - Python Documentation:
       - Admin classes:
