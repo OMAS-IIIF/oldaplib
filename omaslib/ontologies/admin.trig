@@ -164,7 +164,7 @@
         foaf:givenName "Peter R." ;
         :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
         :inProject :HyperHamlet ;
-        :hasPermissions :GenericRestricted, :GenericView ;
+        :hasPermissions :GenericView ;
         :isActive true .
 
     <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
@@ -181,6 +181,19 @@
         :inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
         :hasPermissions :GenericRestricted ;
         :isActive true .
+
+    <https://orcid.org/0000-0001-9277-3921> a omas:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        :userId "bugsbunny"^^xsd:NCName ;
+        foaf:familyName "Bunny" ;
+        foaf:givenName "Bugs" ;
+        :credentials "$2b$12$YK2g0KFvkelCZwCcE38UguIE/3aMPjO4XIX.9FJgYJoz2m.5sDlZK" ; # "DuffyDuck"
+        :inProject :HyperHamlet ;
+        :hasPermissions :GenericView ;
+        :isActive false .
 
 }
 

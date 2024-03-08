@@ -13,7 +13,8 @@ from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI, Action
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasErrorUpdateFailed, OmasErrorImmutable
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, \
+    OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.tools import lprint
 from omaslib.src.iconnection import IConnection
@@ -319,6 +320,8 @@ class Project(Model):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context, jsonobj)
+        if len(res) == 0:
+            raise OmasErrorNotFound(f'Project with IRI "{projectIri}" not found.')
         creator = None
         created = None
         contributor = None
@@ -384,6 +387,7 @@ class Project(Model):
         **contains** the string given here
         :type comment: str
         :return: List of IRIs matching the search criteria (AnyIRI | QName)
+        :raises OmasErrorNotFound: If the project does not exist
         """
         context = Context(name=con.context_name)
         sparql = context.sparql_context
@@ -408,6 +412,8 @@ class Project(Model):
         # """
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
+        if len(res) == 0:
+            raise OmasErrorNotFound('Project not found.')
         projects = []
         for r in res:
             projects.append(r['project'])
@@ -588,13 +594,15 @@ class Project(Model):
         if not is_root:
             raise OmasErrorNoPermission(f'No permission to delete project "{str(self.projectIri)}".')
 
+        #
+        # TODO: Check if project as any datamodel and/or data. Decline the deletion if this is the case
+        #
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            BIND({repr(self.projectIri)} as ?project)
-            ?project a omas:Project .
-            ?project ?prop ?val .
+            {repr(self.projectIri)} a omas:Project .
+            {repr(self.projectIri)} ?prop ?val .
         }} 
         """
         # TODO: use transaction for error handling

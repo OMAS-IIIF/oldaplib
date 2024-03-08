@@ -66,6 +66,16 @@ class TestBasicConnection(unittest.TestCase):
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Given user not found!")
 
+    def test_inactive_user(self):
+        with self.assertRaises(OmasError) as ex:
+            con = Connection(server='http://localhost:7200',
+                             repo="omas",
+                             userId="bugsbunny",
+                             credentials="DuffyDuck",
+                             context_name="DEFAULT")
+        self.assertEqual(str(ex.exception), "Wrong credentials")
+
+
     def test_token(self):
         Connection.jwtkey = "This is a very special secret, yeah!"
         con = Connection(server='http://localhost:7200',

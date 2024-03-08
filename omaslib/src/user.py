@@ -457,6 +457,11 @@ class User(Model, UserDataclass):
                 if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
                     raise OmasErrorNoPermission(f'No permission to delete user in project {proj}.')
 
+        #
+        # TODO: Test, if the User is referenced as Owner of data etc. If so, raise an error. The User should then
+        # be set inactive by setting the flag "active" to False!
+        #
+
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""

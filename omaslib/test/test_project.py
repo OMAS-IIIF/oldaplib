@@ -7,6 +7,7 @@ from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
 from omaslib.src.helpers.langstring import LangString
+from omaslib.src.helpers.omaserror import OmasErrorNotFound
 from omaslib.src.project import Project
 
 
@@ -111,6 +112,15 @@ class Testproject(unittest.TestCase):
                           projectEnd=date(2025, 12, 31)
                           )
         project.create()
+        projectIri = project.projectIri
+        del project
+
+        project = Project.read(con=self._connection, projectIri=projectIri)
+        project.delete()
+        del project
+
+        with self.assertRaises(OmasErrorNotFound) as ex:
+            project = Project.read(con=self._connection, projectIri=projectIri)
 
 if __name__ == '__main__':
     unittest.main()

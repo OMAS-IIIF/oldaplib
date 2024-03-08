@@ -93,7 +93,8 @@ class TestUser(unittest.TestCase):
 
         users = User.search(con=self._connection, inProject=QName("omas:HyperHamlet"))
         self.assertEqual([AnyIRI("https://orcid.org/0000-0003-1681-4036"),
-                          AnyIRI("https://orcid.org/0000-0003-1485-4923")], users)
+                          AnyIRI("https://orcid.org/0000-0003-1485-4923"),
+                          AnyIRI("https://orcid.org/0000-0001-9277-3921")], users)
 
         users = User.search(con=self._connection, inProject=AnyIRI("http://www.salsah.org/version/2.0/SwissBritNet"))
         self.assertEqual([AnyIRI("urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b")], users)
