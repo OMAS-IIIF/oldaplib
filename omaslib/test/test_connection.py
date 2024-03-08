@@ -6,7 +6,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode, AnyIRI, NCName
-from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
 
 
@@ -56,6 +56,15 @@ class TestBasicConnection(unittest.TestCase):
                              credentials="XXX",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
+
+    def test_unknown_user(self):
+        with self.assertRaises(OmasErrorNotFound) as ex:
+            con = Connection(server='http://localhost:7200',
+                             repo="omas",
+                             userId="XXX",
+                             credentials="RioGrande",
+                             context_name="DEFAULT")
+        self.assertEqual(str(ex.exception), "Given user not found!")
 
     def test_token(self):
         Connection.jwtkey = "This is a very special secret, yeah!"

@@ -42,7 +42,7 @@ import bcrypt
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action
 from omaslib.src.helpers.observable_set import ObservableSet
-from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
+from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNotFound
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
@@ -439,8 +439,11 @@ class UserDataclass:
         :param queryresult:
         :type queryresult: QueryProcessor
         :return: None
+        :raises OmasErrorNotFound: Given user not found!
         """
         in_project: Dict[str, Set[AdminPermission]] | None = None
+        if len(queryresult) == 0:
+            raise OmasErrorNotFound("Given user not found!")
         for r in queryresult:
             match str(r.get('prop')):
                 case 'dcterms:creator':
@@ -478,7 +481,7 @@ class UserDataclass:
         if in_project:
             self.__fields[UserFields.IN_PROJECT] = InProjectClass(in_project, on_change=self.__inProject_cb)
         if not isinstance(self.__modified, datetime):
-            raise Exception(f"Modified field is {type(self.__modified)} and not datetime!!!!")
+            raise OmasErrorValue(f"Modified field is {type(self.__modified)} and not datetime!!!!")
         self.clear_changeset()
 
     def _sparql_update(self, indent: int = 0, indent_inc: int = 4) -> Tuple[str | None, int, str]:
