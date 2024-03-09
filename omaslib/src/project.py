@@ -413,7 +413,7 @@ class Project(Model):
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OmasErrorNotFound('Project not found.')
+            raise OmasErrorNotFound('No matching Pprojects not found.')
         projects = []
         for r in res:
             projects.append(r['project'])

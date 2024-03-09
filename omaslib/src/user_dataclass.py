@@ -421,11 +421,11 @@ class UserDataclass:
         WHERE {{
             {{
                 ?user a omas:User .
-                ?user omas:userId "{userId}"^^xsd:NCName .
+                ?user omas:userId {repr(userId)} .
                 ?user ?prop ?val .
             }} UNION {{
                 ?user a omas:User .
-                ?user omas:userId "{userId}"^^xsd:NCName .
+                ?user omas:userId {repr(userId)} .
                 <<?user omas:inProject ?proj>> omas:hasAdminPermission ?rval
             }}
         }}

@@ -58,6 +58,10 @@ class Testproject(unittest.TestCase):
         projects = Project.search(con=self._connection, label="HyperHamlet")
         self.assertEqual(["omas:HyperHamlet"], projects)
 
+    def test_project_search_fail(self):
+        with self.assertRaises(OmasErrorNotFound) as ex:
+            projects = Project.search(con=self._connection, label="NoExisting")
+
     def test_project_create(self):
         project = Project(con=self._connection,
                           projectShortName="unittest",

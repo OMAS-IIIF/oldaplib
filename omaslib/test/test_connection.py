@@ -49,6 +49,7 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(con.repo, 'omas')
         self.assertEqual(con.context_name, 'DEFAULT')
 
+    def test_basic_connection_wrong_credentials(self):
         with self.assertRaises(OmasError) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
@@ -57,7 +58,7 @@ class TestBasicConnection(unittest.TestCase):
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
-    def test_unknown_user(self):
+    def test_basic_connection_unknown_user(self):
         with self.assertRaises(OmasErrorNotFound) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
@@ -75,6 +76,23 @@ class TestBasicConnection(unittest.TestCase):
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
+    def test_basic_connection_injection_userid(self):
+        with self.assertRaises(OmasError) as ex:
+            con = Connection(server='http://localhost:7200',
+                             repo="omas",
+                             userId="rosenth \". #\n; SELECT * {?s ?p ?o}",
+                             credentials="RioGrande",
+                             context_name="DEFAULT")
+        self.assertEqual(str(ex.exception), 'Invalid string "rosenth ". #\n; SELECT * {?s ?p ?o}" for NCName')
+
+    def test_basic_connection_injection_credentials(self):
+        with self.assertRaises(OmasError) as ex:
+            con = Connection(server='http://localhost:7200',
+                             repo="omas",
+                             userId="rosenth",
+                             credentials="RioGrande \". #\n; SELECT * {?s ?p ?o};",
+                             context_name="DEFAULT")
+        self.assertEqual(str(ex.exception), 'Wrong credentials')
 
     def test_token(self):
         Connection.jwtkey = "This is a very special secret, yeah!"

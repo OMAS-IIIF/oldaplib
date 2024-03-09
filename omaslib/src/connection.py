@@ -12,7 +12,7 @@ from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
 from omaslib.src.enums.permissions import AdminPermission
-from omaslib.src.helpers.datatypes import QName
+from omaslib.src.helpers.datatypes import QName, NCName
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNoPermission
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.helpers.query_processor import QueryProcessor
@@ -112,7 +112,7 @@ class Connection(IConnection):
     def __init__(self, *,
                  server: str,
                  repo: str,
-                 userId: Optional[str] = None,
+                 userId: Optional[str | NCName] = None,
                  credentials: Optional[str] = None,
                  token: Optional[str] = None,
                  context_name: Optional[str] = DEFAULT_CONTEXT) -> None:
@@ -139,6 +139,8 @@ class Connection(IConnection):
             self._userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
             self._token = token
             return
+        if not isinstance(userId, NCName):
+            userId = NCName(userId)
         if userId is None or credentials is None:
             raise OmasError("Wrong credentials")
         sparql = UserDataclass.sparql_query(context=context, userId=userId)

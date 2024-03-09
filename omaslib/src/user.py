@@ -147,10 +147,12 @@ from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
+from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
     OmasErrorValue, OmasErrorNoPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.enums.permissions import AdminPermission
+from omaslib.src.helpers.tools import lprint, str2qname_anyiri
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.user_dataclass import UserDataclass
@@ -274,8 +276,20 @@ class User(Model, UserDataclass):
         }}
         """
 
-        ptest = context.sparql_context
-        ptest += f"""
+        projs = [repr(x) for x in self.inProject.keys()]
+        projslist= ", ".join(projs)
+        proj_test = context.sparql_context
+        proj_test += f"""
+        SELECT ?project
+        FROM omas:admin
+        WHERE {{
+            ?project a omas:Project .
+            FILTER(?project IN ({projslist}))
+        }}
+        """
+
+        pset_test = context.sparql_context
+        pset_test += f"""
         SELECT ?permissionset
         FROM omas:admin
         WHERE {{
@@ -339,7 +353,17 @@ class User(Model, UserDataclass):
             raise OmasErrorAlreadyExists(f'A user with a user IRI "{self.userIri}" already exists')
 
         try:
-            jsonobj = self._con.transaction_query(ptest)
+            jsonobj = self._con.transaction_query(proj_test)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != len(projs):
+            self._con.transaction_abort()
+            raise OmasErrorValue("One of the projects is not existing!")
+
+        try:
+            jsonobj = self._con.transaction_query(pset_test)
         except OmasError:
             self._con.transaction_abort()
             raise
@@ -414,6 +438,10 @@ class User(Model, UserDataclass):
         """
         if userId and not isinstance(userId, NCName):
             userId = NCName(userId)
+        familyName = OldapStringLiteral(familyName) if familyName else None
+        givenName = OldapStringLiteral(givenName) if givenName else None
+        if not isinstance(inProject, AnyIRI) and not isinstance(inProject, QName):
+            inProject = str2qname_anyiri(inProject) if inProject else None
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?user\n'
@@ -422,13 +450,13 @@ class User(Model, UserDataclass):
         sparql += '   ?user a omas:User .\n'
         if userId is not None:
             sparql += '   ?user omas:userId ?user_id .\n'
-            sparql += f'   FILTER(STR(?user_id) = "{userId}")\n'
+            sparql += f'   FILTER(?user_id = {repr(userId)})\n'
         if familyName is not None:
             sparql += '   ?user foaf:familyName ?family_name .\n'
-            sparql += f'   FILTER(STR(?family_name) = "{familyName}")\n'
+            sparql += f'   FILTER(STR(?family_name) = {repr(familyName)})\n'
         if givenName is not None:
             sparql += '   ?user foaf:givenName ?given_name .\n'
-            sparql += f'   FILTER(STR(?given_name) = "{givenName}")\n'
+            sparql += f'   FILTER(STR(?given_name) = {repr(givenName)})\n'
         if inProject is not None:
             sparql += '   ?user omas:inProject ?project .\n'
             sparql += f'   FILTER(?project = {repr(inProject)})\n'

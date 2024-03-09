@@ -93,7 +93,7 @@ class OldapStringLiteral:
         :return: OldapStringLiteral instance
         :rtype: OldapStringLiteral
         """
-        value = OldapStringLiteral.escaping(value)
+        value = OldapStringLiteral.unescaping(value)
         return cls(value, lang)
 
     def __str__(self) -> str:
@@ -116,7 +116,7 @@ class OldapStringLiteral:
         if self.__lang:
             return f'"{OldapStringLiteral.escaping(self.__value)}"@{self.__lang.name.lower()}'
         else:
-            return f'"{self.__value}"'
+            return f'"{OldapStringLiteral.escaping(self.__value)}"'
 
     def __eq__(self, other: str | Self) -> bool:
         """
