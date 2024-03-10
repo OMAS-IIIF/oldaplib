@@ -74,7 +74,7 @@ class UserFields(Enum):
     - _UserFields.FAMILY_NAME_ (RDF: 'foaf:familyName=
     - _UserFields.GIVEN_NAME_ (RDF: 'foaf:givenName')
     - _UserFields.CREDENTIALS_ (RDF: 'omas:credentials')
-    - _UserFields.ACTIVE_ (RDF: 'omas:active')
+    - _UserFields.ACTIVE_ (RDF: 'omas:isActive')
     - _UserFields.IN_PROJECT_ (RDF: 'omas:inProject')
     - _UserFields.HAS_PERMISSIONS_ (RDF: 'omas:hasPermissions')
 
@@ -84,7 +84,7 @@ class UserFields(Enum):
     FAMILY_NAME = 'foaf:familyName'
     GIVEN_NAME = 'foaf:givenName'
     CREDENTIALS = 'omas:credentials'
-    ACTIVE = 'omas:active'
+    ACTIVE = 'omas:isActive'
     IN_PROJECT = 'omas:inProject'
     HAS_PERMISSIONS = 'omas:hasPermissions'
 
@@ -107,7 +107,7 @@ class UserDataclass:
     - _familyName_: Family name as str (RDF property `foaf:familyName`)
     - _givenName_: Given name or first name as str(RDF property `foaf:givenName`)
     - _credentials_: Credential (password) (RDF property `omas:credentials`)
-    - _active_: Is the user active as bool? (RDF property `omas:active`)
+    - _active_: Is the user isActive as bool? (RDF property `omas:isActive`)
     - _inProject_: Membership to projects and administrative permissions for this project (RDF property `omas:inProject)
     - _hsPermission_: Permissions for data as sets of QNames (RDF property `omas:hasPermissions`)
 
@@ -163,7 +163,7 @@ class UserDataclass:
                  familyName: str | None = None,
                  givenName: str | None = None,
                  credentials: str | None = None,
-                 active: bool | None = None,
+                 isActive: bool | None = None,
                  inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[QName] | None = None):
         """
@@ -177,7 +177,7 @@ class UserDataclass:
         :param familyName: The foaf:family name of the User
         :param givenName: The foaf:givenname of the User
         :param credentials: The password
-        :param active: A boolean indicating if the user is active
+        :param isActive: A boolean indicating if the user is active
         :param inProject: an InProjectType instance for the project permissions of the user
         :param hasPermissions: Set of Administrative Permissions for the user
         """
@@ -201,7 +201,7 @@ class UserDataclass:
         self.__fields[UserFields.FAMILY_NAME] = OldapStringLiteral(familyName)
         self.__fields[UserFields.GIVEN_NAME] = OldapStringLiteral(givenName)
         self.__fields[UserFields.CREDENTIALS] = credentials
-        self.__fields[UserFields.ACTIVE] = bool(active)
+        self.__fields[UserFields.ACTIVE] = bool(isActive)
         self.__fields[UserFields.IN_PROJECT] = inProjectTmp
         self.__fields[UserFields.HAS_PERMISSIONS] = hasPermissions
         self.__change_set = {}

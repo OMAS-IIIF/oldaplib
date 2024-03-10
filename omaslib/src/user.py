@@ -30,7 +30,7 @@ The User class inherits the following properties from the UserDataclass class:
 - _familyName_: Family name as str (RDF property `foaf:familyName`)
 - _givenName_: Given name or first name as str(RDF property `foaf:givenName`)
 - _credentials_: Credential (password) (RDF property `omas:credentials`)
-- _active_: Is the user active as bool? (RDF property `omas:active`)
+- _isActive_: Is the user active as bool? (RDF property `omas:isActive`)
 - _inProject_: Membership to projects and administrative permissions for this project (RDF property `omas:inProject)
 - _hsPermission_: Permissions for data as sets of QNames (RDF property `omas:hasPermissions`)
 
@@ -175,7 +175,7 @@ class User(Model, UserDataclass):
                  familyName: str | None = None,
                  givenName: str | None = None,
                  credentials: str | None = None,
-                 active: bool | None = None,
+                 isActive: bool | None = None,
                  inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[QName] | None = None):
         """
@@ -200,8 +200,8 @@ class User(Model, UserDataclass):
         :type givenName: str
         :param credentials: The initial credentials (password) of the user to be created
         :type credentials: str
-        :param active: True if the user is active, False otherwise
-        :type active: bool
+        :param isActive: True if the user is active, False otherwise
+        :type isActive: bool
         :param inProject: Membership and admin permissions the user has in the given projects
         :type inProject: InProjectType
         :param hasPermissions: IConnection to permission sets
@@ -220,7 +220,7 @@ class User(Model, UserDataclass):
                                familyName=familyName,
                                givenName=givenName,
                                credentials=credentials,
-                               active=active,
+                               isActive=isActive,
                                inProject=inProject,
                                hasPermissions=hasPermissions)
 
@@ -313,6 +313,8 @@ class User(Model, UserDataclass):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName {repr(self.familyName)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName {repr(self.givenName)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:credentials "{self.credentials}"'
+        activeval = "true" if self.isActive else "false"
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:isActive {activeval}'
         star = ''
         if self.inProject:
             project = [repr(p) for p in self.inProject.keys()]
@@ -487,7 +489,7 @@ class User(Model, UserDataclass):
 
         #
         # TODO: Test, if the User is referenced as Owner of data etc. If so, raise an error. The User should then
-        # be set inactive by setting the flag "active" to False!
+        # be set inactive by setting the flag "isActive" to False!
         #
 
         context = Context(name=self._con.context_name)

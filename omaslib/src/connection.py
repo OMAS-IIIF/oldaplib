@@ -160,7 +160,7 @@ class Connection(IConnection):
 
         self._userdata = UserDataclass()
         self._userdata._create_from_queryresult(queryresult=res)
-        if not self._userdata.active:
+        if not self._userdata.isActive:
             raise OmasError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
         hashed = str(self._userdata.credentials).encode('utf-8')
         if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
