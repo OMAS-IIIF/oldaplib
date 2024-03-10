@@ -125,7 +125,8 @@ class TestUser(unittest.TestCase):
                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                            AdminPermission.ADMIN_RESOURCES,
                                                            AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    hasPermissions={QName('omas:GenericView')},
+                    isActive=True)
         user.create()
         user2 = User.read(con=self._connection, userId="coyote")
         self.assertEqual(user2.userId, user.userId)
@@ -134,6 +135,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user2.givenName, user.givenName)
         self.assertEqual(user2.inProject, user.inProject)
         self.assertEqual(user2.hasPermissions, user.hasPermissions)
+        self.assertTrue(user2.isActive)
 
     def test_create_user_no_useriri(self):
         user = User(con=self._connection,
@@ -144,9 +146,13 @@ class TestUser(unittest.TestCase):
                     inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                            AdminPermission.ADMIN_RESOURCES,
                                                            AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    hasPermissions={QName('omas:GenericView')},
+                    isActive=False)
         user.create()
+        del user
+        user = User.read(con=self._connection, userId=NCName("sylvester"))
         self.assertTrue(str(user.userIri).startswith("urn:uuid:"))
+        self.assertFalse(user.isActive)
 
     def test_create_user_duplicate_userid(self):
         user = User(con=self._connection,

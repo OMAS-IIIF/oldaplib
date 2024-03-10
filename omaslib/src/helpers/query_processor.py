@@ -44,30 +44,46 @@ class QueryProcessor:
                     else:
                         dt = context.iri2qname(dt)
                         match str(dt):
-                            case 'xsd:NCName':
-                                row[name] = NCName(valobj["value"])
                             case 'xsd:string':
                                 row[name] = OldapStringLiteral.fromRdf(valobj["value"], valobj.get("xml:lang"))
                             case 'xsd:boolean':
                                 row[name] = True if valobj["value"] == 'true' else False
-                            case 'xsd:integer':
-                                row[name] = int(valobj["value"])
-                            case 'xsd:int':
-                                row[name] = int(valobj["value"])
+                            case 'xsd:decimal':
+                                row[name] = float(valobj["value"])
                             case 'xsd:float':
                                 row[name] = float(valobj["value"])
                             case 'xsd:double':
                                 row[name] = float(valobj["value"])
-                            case 'xsd:decimal':
-                                row[name] = float(valobj["value"])
+                            case 'xsd:duration':
+                                row[name] = isodate.parse_duration(valobj["value"])
+                            case 'xsd:dateTime':
+                                row[name] = datetime.fromisoformat(valobj["value"])
+                            case 'xsd:dateTimeStamp':
+                                row[name] = datetime.fromisoformat(valobj["value"])
+                            case 'xsd:time':
+                                row[name] = time.fromisoformat(valobj["value"])
+                            case 'xsd:date':
+                                row[name] = date.fromisoformat(valobj["value"])
+                            case 'xsd:NCName':
+                                row[name] = NCName(valobj["value"])
+                            case 'xsd:integer':
+                                row[name] = int(valobj["value"])
+                            case 'xsd:int':
+                                row[name] = int(valobj["value"])
+                            case 'xsd:nonPositiveInteger':
+                                row[name] = int(valobj["value"])
+                            case 'xsd:negativeInteger':
+                                row[name] = int(valobj["value"])
+                            case 'xsd:long':
+                                row[name] = int(valobj["value"])
+                            case 'xsd:short':
+                                row[name] = int(valobj["value"])
                             case 'xsd:dateTime':
                                 row[name] = datetime.fromisoformat(valobj["value"])
                             case 'xsd:time':
                                 row[name] = time.fromisoformat(valobj["value"])
                             case 'xsd:date':
                                 row[name] = date.fromisoformat(valobj["value"])
-                            case 'xsd:duration':
-                                row[name] = isodate.parse_duration(valobj["value"])
                             case _:
                                 row[name] = str(valobj["value"])
             self.__rows.append(row)

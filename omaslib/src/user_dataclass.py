@@ -283,7 +283,7 @@ class UserDataclass:
                 'userId': self.__fields[UserFields.USER_ID],
                 'familyName': str(self.__fields[UserFields.FAMILY_NAME]),
                 'givenName': str(self.__fields[UserFields.GIVEN_NAME]),
-                'active': self.__fields[UserFields.ACTIVE],
+                'isActive': self.__fields[UserFields.ACTIVE],
                 'hasPermissions': self.__fields[UserFields.HAS_PERMISSIONS],
                 'inProject': self.__fields[UserFields.IN_PROJECT]
         }

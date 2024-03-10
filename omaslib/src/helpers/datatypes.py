@@ -14,14 +14,45 @@ These classes perform consistency checks to guarantee that the data is consisten
 for the given XML datatypes. They should be used instead of simple string representations wherever possible
 """
 import json
+import re
 from enum import Enum, unique
-from typing import Any, Self, Optional, Dict
+from typing import Any, Self, Optional, Dict, Tuple
 from pystrict import strict
 
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
 
+@strict
+@serializer
+class gYearMonth:
+    __year: int
+    __month: int
+    __tz: Tuple[int, int] | None
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, gYearMonth):
+            self.__year = value.__year
+            self.__month = value.__month
+            self.__tz = value.__tz
+        else:
+            if not XsdValidator.validate(XsdDatatypes.gYearMonth, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for gYearMonth')
+            # or: re.match("[+-]?[0-9]{4}-[0-9]{2}(([+-][0-9]{2}:[0-9]{2})|Z)?", string)
+            res = re.split("([+-]?[0-9]{4})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
+            if len(res) != 9:
+                raise OmasErrorValue(f'Invalid string "{value}" for gYearMonth.')
+            self.__year = int(res[1])
+            self.__month = int(res[2])
+            if res[3] == 'Z':
+                self.__tz = (0, 0)
+            elif res[3] is not None:
+                self.__tz = (int(res[5]), int(res[6]))
+
+    def __str__(self):
+        s =  f'{self.__year:04}-{self.__month}:02'
+        if self.__tz is not None:
+            pass
 
 @strict
 @serializer
@@ -533,6 +564,9 @@ class Action(Enum):
 if __name__ == "__main__":
     # print(NCName("orcid") + "0000-0003-1681-4036")
 
+    g1 = gYearMonth("2022-05")
+    g2 = gYearMonth("-2022-05+03:00")
+
     AnyIRI('urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b')
 
     gaga = Action.REPLACE
@@ -541,10 +575,3 @@ if __name__ == "__main__":
     gugus = json.loads(json_repr, object_hook=serializer.decoder_hook)
     print(gugus)
 
-    gugus = {
-            'token': Token('gaga')
-    }
-    aaa = Token('GUGSU')
-    print(repr(aaa))
-    jsonstr = json.dumps(gugus, default=serializer.encoder_default)
-    print(jsonstr)
