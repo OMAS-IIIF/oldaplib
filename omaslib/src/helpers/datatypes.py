@@ -17,18 +17,27 @@ import json
 import re
 from enum import Enum, unique
 from typing import Any, Self, Optional, Dict, Tuple
+from urllib.parse import urlparse
+
 from pystrict import strict
+from validators import url
 
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
 
+
+class Xsd:
+    pass
+
+
 @strict
 @serializer
-class gYearMonth:
+class gYearMonth(Xsd):
     __year: int
     __month: int
     __tz: Tuple[int, int] | None
+    __zulu: bool
 
     def __init__(self, value: Self | str):
         if isinstance(value, gYearMonth):
@@ -37,22 +46,404 @@ class gYearMonth:
             self.__tz = value.__tz
         else:
             if not XsdValidator.validate(XsdDatatypes.gYearMonth, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for gYearMonth')
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth')
             # or: re.match("[+-]?[0-9]{4}-[0-9]{2}(([+-][0-9]{2}:[0-9]{2})|Z)?", string)
             res = re.split("([+-]?[0-9]{4})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
             if len(res) != 9:
-                raise OmasErrorValue(f'Invalid string "{value}" for gYearMonth.')
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth.')
             self.__year = int(res[1])
             self.__month = int(res[2])
             if res[3] == 'Z':
                 self.__tz = (0, 0)
+                self.__zulu = True
             elif res[3] is not None:
                 self.__tz = (int(res[5]), int(res[6]))
+                self.__zulu = False
+            else:
+                self.__tz = None
+        if self.__month < 1 or self.__month > 12:
+            raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth.')
 
     def __str__(self):
-        s =  f'{self.__year:04}-{self.__month}:02'
+        ff = '05' if self.__year < 0 else '04'
+        s = f'{self.__year:{ff}}-{self.__month:02}'
         if self.__tz is not None:
-            pass
+            if self.__zulu:
+                s += 'Z'
+            else:
+                s += f'{self.__tz[0]:0=+3}:{self.__tz[1]:02}'
+        return s
+
+    def __repr__(self):
+        return f'"{str(self)}"^^gYearMonth'
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': str(self)}
+
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, gYearMonth):
+            other = gYearMonth(other)
+        if self.__year != other.__year:
+            return False
+        if self.__month != other.__month:
+            return False
+        if self.__tz != other.__tz:
+            return False
+        return True
+
+
+@strict
+@serializer
+class gYear(Xsd):
+    __year: int
+    __tz: Tuple[int, int] | None
+    __zulu: bool
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, gYear):
+            self.__year = value.__year
+            self.__tz = value.__tz
+        else:
+            if not XsdValidator.validate(XsdDatatypes.gYear, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
+            # or: re.match("[+-]?[0-9]{4}-[0-9]{2}(([+-][0-9]{2}:[0-9]{2})|Z)?", string)
+            res = re.split("([+-]?[0-9]{4})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
+            if len(res) != 8:
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
+            self.__year = int(res[1])
+            if res[2] == 'Z':
+                self.__tz = (0, 0)
+                self.__zulu = True
+            elif res[2] is not None:
+                self.__tz = (int(res[4]), int(res[5]))
+                self.__zulu = False
+            else:
+                self.__tz = None
+
+    def __str__(self):
+        ff = '05' if self.__year < 0 else '04'
+        s = f'{self.__year:{ff}}'
+        if self.__tz is not None:
+            if self.__zulu:
+                s += 'Z'
+            else:
+                s += f'{self.__tz[0]:0=+3}:{self.__tz[1]:02}'
+        return s
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:gYear'
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': str(self)}
+
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, gYear):
+            other = gYear(other)
+        if self.__year != other.__year:
+            return False
+        if self.__tz != other.__tz:
+            return False
+        return True
+
+
+@strict
+@serializer
+class gMonthDay(Xsd):
+    __month: int
+    __day: int
+    __tz: Tuple[int, int] | None
+    __zulu: bool
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, gMonthDay):
+            self.__month = value.__month
+            self.__day = value.__day
+            self.__tz = value.__tz
+        else:
+            if not XsdValidator.validate(XsdDatatypes.gMonthDay, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonthDay')
+            res = re.split("--([0-9]{2})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
+            if len(res) != 9:
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonthDay.')
+            self.__month = int(res[1])
+            self.__day = int(res[2])
+            if res[3] == 'Z':
+                self.__tz = (0, 0)
+                self.__zulu = True
+            elif res[3] is not None:
+                self.__tz = (int(res[5]), int(res[6]))
+                self.__zulu = False
+            else:
+                self.__tz = None
+        if self.__month < 1 or self.__month > 12 or self.__day < 1 or self.__day > 31:
+            raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonthDay.')
+
+    def __str__(self):
+        s = f'--{self.__month:02}-{self.__day:02}'
+        if self.__tz is not None:
+            if self.__zulu:
+                s += 'Z'
+            else:
+                s += f'{self.__tz[0]:0=+3}:{self.__tz[1]:02}'
+        return s
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:gMonthDay'
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': str(self)}
+
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, gMonthDay):
+            other = gMonthDay(other)
+        if self.__month != other.__month:
+            return False
+        if self.__day != other.__day:
+            return False
+        if self.__tz != other.__tz:
+            return False
+        return True
+
+@strict
+@serializer
+class gDay(Xsd):
+    __day: int
+    __tz: Tuple[int, int] | None
+    __zulu: bool
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, gDay):
+            self.__day = value.__day
+            self.__tz = value.__tz
+        else:
+            if not XsdValidator.validate(XsdDatatypes.gDay, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gDay')
+            res = re.split("---([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
+            if len(res) != 8:
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gDay.')
+            self.__day = int(res[1])
+            if res[2] == 'Z':
+                self.__tz = (0, 0)
+                self.__zulu = True
+            elif res[2] is not None:
+                self.__tz = (int(res[4]), int(res[5]))
+                self.__zulu = False
+            else:
+                self.__tz = None
+        if self.__day < 1 or self.__day > 31:
+            raise OmasErrorValue(f'Invalid string "{value}" for xsd:gDay.')
+
+    def __str__(self):
+        s = f'---{self.__day:02}'
+        if self.__tz is not None:
+            if self.__zulu:
+                s += 'Z'
+            else:
+                s += f'{self.__tz[0]:0=+3}:{self.__tz[1]:02}'
+        return s
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:gDay'
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': str(self)}
+
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, gDay):
+            other = gDay(other)
+        if self.__day != other.__day:
+            return False
+        if self.__tz != other.__tz:
+            return False
+        return True
+
+
+@strict
+@serializer
+class gMonth(Xsd):
+    __month: int
+    __tz: Tuple[int, int] | None
+    __zulu: bool
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, gMonth):
+            self.__month = value.__month
+            self.__tz = value.__tz
+        else:
+            if not XsdValidator.validate(XsdDatatypes.gMonth, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonth.')
+            res = re.split("--([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
+            if len(res) != 8:
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonth.')
+            self.__month = int(res[1])
+            if res[2] == 'Z':
+                self.__tz = (0, 0)
+                self.__zulu = True
+            elif res[2] is not None:
+                self.__tz = (int(res[4]), int(res[5]))
+                self.__zulu = False
+            else:
+                self.__tz = None
+        if self.__month < 1 or self.__month > 12:
+            raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonth.')
+
+    def __str__(self):
+        s = f'--{self.__month:02}'
+        if self.__tz is not None:
+            if self.__zulu:
+                s += 'Z'
+            else:
+                s += f'{self.__tz[0]:0=+3}:{self.__tz[1]:02}'
+        return s
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:gMonth'
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': str(self)}
+
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, gMonth):
+            other = gMonth(other)
+        if self.__month != other.__month:
+            return False
+        if self.__tz != other.__tz:
+            return False
+        return True
+
+
+@strict
+@serializer
+class hexBinary(Xsd):
+    __value: str
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, hexBinary):
+            self.__value = value.__value
+        else:
+            if not XsdValidator.validate(XsdDatatypes.hexBinary, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
+            self.__value = value
+
+    def __str__(self):
+        return self.__value
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:hexBinary'
+
+    def __hash__(self):
+        return hash(self.__value)
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': self.__value}
+
+    def __eq__(self, other):
+        return self.__value == other.__value
+
+
+@strict
+@serializer
+class base64Binary(Xsd):
+    __value: str
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, base64Binary):
+            self.__value = value.__value
+        else:
+            if not XsdValidator.validate(XsdDatatypes.base64Binary, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
+            self.__value = value
+
+    def __str__(self):
+        return self.__value
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:base64Binary'
+
+    def __hash__(self):
+        return hash(self.__value)
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': self.__value}
+
+    def __eq__(self, other):
+        return self.__value == other.__value
+
+@strict
+@serializer
+class anyURI(Xsd):
+    __value: str
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, anyURI):
+            self.__value = value.__value
+        else:
+            if not XsdValidator.validate(XsdDatatypes.anyURI, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+
+            if not url(value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+            self.__value = value
+
+    def __str__(self):
+        return self.__value
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:anyURI'
+
+    def __hash__(self):
+        return hash(self.__value)
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': self.__value}
+
+    def __eq__(self, other):
+        return self.__value == other.__value
+
+
+@strict
+@serializer
+class normalizedString(Xsd):
+    __value: str
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, normalizedString):
+            self.__value = value.__value
+        else:
+            if not XsdValidator.validate(XsdDatatypes.normalizedString, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
+            self.__value = value
+
+    def __str__(self):
+        return self.__value
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:normalizedString'
+
+    def __hash__(self):
+        return hash(self.__value)
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': self.__value}
+
+    def __eq__(self, other):
+        return self.__value == other.__value
+
 
 @strict
 @serializer
@@ -165,7 +556,7 @@ class NCName:
 
     def _as_dict(self) -> Dict[str, str]:
         return {
-                'value': self._value
+            'value': self._value
         }
 
 
@@ -277,7 +668,7 @@ class QName:
 
     def _as_dict(self):
         return {
-                'value': self._value
+            'value': self._value
         }
 
     def as_rdf(self) -> str:
@@ -369,7 +760,7 @@ class BNode:
     def _as_dict(self):
         """used for json serialization using serializer"""
         return {
-                'value': self.__value
+            'value': self.__value
         }
 
     @property
@@ -500,7 +891,7 @@ class AnyIRI:
 
     def _as_dict(self) -> Dict[str, str]:
         return {
-                'value': self._value
+            'value': self._value
         }
 
     def as_rdf(self) -> str:
@@ -535,7 +926,7 @@ class NamespaceIRI(AnyIRI):
 
     def _as_dict(self) -> Dict[str, str]:
         return {
-                'value': self._value
+            'value': self._value
         }
 
 
@@ -574,4 +965,3 @@ if __name__ == "__main__":
     print(json_repr)
     gugus = json.loads(json_repr, object_hook=serializer.decoder_hook)
     print(gugus)
-
