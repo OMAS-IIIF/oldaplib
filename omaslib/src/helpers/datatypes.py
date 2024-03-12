@@ -34,14 +34,14 @@ class Xsd:
 
 @strict
 @serializer
-class gYearMonth(Xsd):
+class Xsd_gYearMonth(Xsd):
     __year: int
     __month: int
     __tz: Tuple[int, int] | None
     __zulu: bool
 
     def __init__(self, value: Self | str):
-        if isinstance(value, gYearMonth):
+        if isinstance(value, Xsd_gYearMonth):
             self.__year = value.__year
             self.__month = value.__month
             self.__tz = value.__tz
@@ -85,8 +85,8 @@ class gYearMonth(Xsd):
         return {'value': str(self)}
 
     def __eq__(self, other: Self | str):
-        if not isinstance(other, gYearMonth):
-            other = gYearMonth(other)
+        if not isinstance(other, Xsd_gYearMonth):
+            other = Xsd_gYearMonth(other)
         if self.__year != other.__year:
             return False
         if self.__month != other.__month:
@@ -98,13 +98,13 @@ class gYearMonth(Xsd):
 
 @strict
 @serializer
-class gYear(Xsd):
+class Xsd_gYear(Xsd):
     __year: int
     __tz: Tuple[int, int] | None
     __zulu: bool
 
     def __init__(self, value: Self | str):
-        if isinstance(value, gYear):
+        if isinstance(value, Xsd_gYear):
             self.__year = value.__year
             self.__tz = value.__tz
         else:
@@ -144,8 +144,8 @@ class gYear(Xsd):
         return {'value': str(self)}
 
     def __eq__(self, other: Self | str):
-        if not isinstance(other, gYear):
-            other = gYear(other)
+        if not isinstance(other, Xsd_gYear):
+            other = Xsd_gYear(other)
         if self.__year != other.__year:
             return False
         if self.__tz != other.__tz:
@@ -155,14 +155,14 @@ class gYear(Xsd):
 
 @strict
 @serializer
-class gMonthDay(Xsd):
+class Xsd_gMonthDay(Xsd):
     __month: int
     __day: int
     __tz: Tuple[int, int] | None
     __zulu: bool
 
     def __init__(self, value: Self | str):
-        if isinstance(value, gMonthDay):
+        if isinstance(value, Xsd_gMonthDay):
             self.__month = value.__month
             self.__day = value.__day
             self.__tz = value.__tz
@@ -204,8 +204,8 @@ class gMonthDay(Xsd):
         return {'value': str(self)}
 
     def __eq__(self, other: Self | str):
-        if not isinstance(other, gMonthDay):
-            other = gMonthDay(other)
+        if not isinstance(other, Xsd_gMonthDay):
+            other = Xsd_gMonthDay(other)
         if self.__month != other.__month:
             return False
         if self.__day != other.__day:
@@ -216,13 +216,13 @@ class gMonthDay(Xsd):
 
 @strict
 @serializer
-class gDay(Xsd):
+class Xsd_gDay(Xsd):
     __day: int
     __tz: Tuple[int, int] | None
     __zulu: bool
 
     def __init__(self, value: Self | str):
-        if isinstance(value, gDay):
+        if isinstance(value, Xsd_gDay):
             self.__day = value.__day
             self.__tz = value.__tz
         else:
@@ -262,8 +262,8 @@ class gDay(Xsd):
         return {'value': str(self)}
 
     def __eq__(self, other: Self | str):
-        if not isinstance(other, gDay):
-            other = gDay(other)
+        if not isinstance(other, Xsd_gDay):
+            other = Xsd_gDay(other)
         if self.__day != other.__day:
             return False
         if self.__tz != other.__tz:
@@ -273,13 +273,13 @@ class gDay(Xsd):
 
 @strict
 @serializer
-class gMonth(Xsd):
+class Xsd_gMonth(Xsd):
     __month: int
     __tz: Tuple[int, int] | None
     __zulu: bool
 
     def __init__(self, value: Self | str):
-        if isinstance(value, gMonth):
+        if isinstance(value, Xsd_gMonth):
             self.__month = value.__month
             self.__tz = value.__tz
         else:
@@ -319,8 +319,8 @@ class gMonth(Xsd):
         return {'value': str(self)}
 
     def __eq__(self, other: Self | str):
-        if not isinstance(other, gMonth):
-            other = gMonth(other)
+        if not isinstance(other, Xsd_gMonth):
+            other = Xsd_gMonth(other)
         if self.__month != other.__month:
             return False
         if self.__tz != other.__tz:
@@ -330,11 +330,11 @@ class gMonth(Xsd):
 
 @strict
 @serializer
-class hexBinary(Xsd):
+class Xsd_hexBinary(Xsd):
     __value: str
 
     def __init__(self, value: Self | str):
-        if isinstance(value, hexBinary):
+        if isinstance(value, Xsd_hexBinary):
             self.__value = value.__value
         else:
             if not XsdValidator.validate(XsdDatatypes.hexBinary, value):
@@ -359,11 +359,11 @@ class hexBinary(Xsd):
 
 @strict
 @serializer
-class base64Binary(Xsd):
+class Xsd_base64Binary(Xsd):
     __value: str
 
     def __init__(self, value: Self | str):
-        if isinstance(value, base64Binary):
+        if isinstance(value, Xsd_base64Binary):
             self.__value = value.__value
         else:
             if not XsdValidator.validate(XsdDatatypes.base64Binary, value):
@@ -387,11 +387,11 @@ class base64Binary(Xsd):
 
 @strict
 @serializer
-class anyURI(Xsd):
+class Xsd_anyURI(Xsd):
     __value: str
 
     def __init__(self, value: Self | str):
-        if isinstance(value, anyURI):
+        if isinstance(value, Xsd_anyURI):
             self.__value = value.__value
         else:
             if not XsdValidator.validate(XsdDatatypes.anyURI, value):
@@ -419,14 +419,16 @@ class anyURI(Xsd):
 
 @strict
 @serializer
-class normalizedString(Xsd):
+class Xsd_normalizedString(Xsd):
     __value: str
 
     def __init__(self, value: Self | str):
-        if isinstance(value, normalizedString):
+        if isinstance(value, Xsd_normalizedString):
             self.__value = value.__value
         else:
             if not XsdValidator.validate(XsdDatatypes.normalizedString, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
+            if re.match("^[^\r\n\t]*$", value) is None:
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
             self.__value = value
 
@@ -448,8 +450,87 @@ class normalizedString(Xsd):
         return {'value': self.__value}
 
     def __eq__(self, other: Self | str):
-        if not isinstance(other, normalizedString):
-            other = normalizedString(other)
+        if not isinstance(other, Xsd_normalizedString):
+            other = Xsd_normalizedString(other)
+        return self.__value == other.__value
+
+
+@strict
+@serializer
+class Xsd_token(Xsd):
+    __value: str
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, Xsd_token):
+            self.__value = value.__value
+        else:
+            if not XsdValidator.validate(XsdDatatypes.token, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
+            if not re.match("^[^\s]+(\s[^\s]+)*$", value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
+            if re.match(".*[\n\r\t].*", value) is not None:
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
+            self.__value = value
+
+    @classmethod
+    def fromRdf(cls, value: str) -> Self:
+        value = OldapStringLiteral.unescaping(value)
+        return cls(value)
+
+    def __str__(self):
+        return self.__value
+
+    def __repr__(self):
+        return f'"{OldapStringLiteral.escaping(str(self))}"^^xsd:token'
+
+    def __hash__(self):
+        return hash(self.__value)
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': self.__value}
+
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, Xsd_token):
+            other = Xsd_token(other)
+        return self.__value == other.__value
+
+
+@strict
+@serializer
+class Xsd_language(Xsd):
+    __value: str
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, Xsd_token):
+            self.__value = value.__value
+        else:
+            if not XsdValidator.validate(XsdDatatypes.language, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
+            # if not re.match("^[^\s]+(\s[^\s]+)*$", value):
+            #     raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
+            # if re.match(".*[\n\r\t].*", value) is not None:
+            #     raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
+            self.__value = value
+
+    @classmethod
+    def fromRdf(cls, value: str) -> Self:
+        return cls(value)
+
+    def __str__(self):
+        return self.__value
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:language'
+
+    def __hash__(self):
+        return hash(self.__value)
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': self.__value}
+
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, Xsd_language):
+            other = Xsd_language(other)
         return self.__value == other.__value
 
 
@@ -963,8 +1044,8 @@ class Action(Enum):
 if __name__ == "__main__":
     # print(NCName("orcid") + "0000-0003-1681-4036")
 
-    g1 = gYearMonth("2022-05")
-    g2 = gYearMonth("-2022-05+03:00")
+    g1 = Xsd_gYearMonth("2022-05")
+    g2 = Xsd_gYearMonth("-2022-05+03:00")
 
     AnyIRI('urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b')
 

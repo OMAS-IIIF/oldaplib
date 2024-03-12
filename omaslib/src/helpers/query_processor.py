@@ -8,7 +8,7 @@ from pystrict import strict
 
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, gYearMonth, gYear, Xsd, gDay, gMonth, hexBinary, base64Binary, anyURI, normalizedString
+from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, Xsd_gMonth, Xsd_hexBinary, Xsd_base64Binary, Xsd_anyURI, Xsd_normalizedString
 
 RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OldapStringLiteral | Xsd
 RowType = Dict[str, RowElementType]
@@ -64,23 +64,23 @@ class QueryProcessor:
                             case 'xsd:date':
                                 row[name] = date.fromisoformat(valobj["value"])
                             case 'xsd:gYearMonth':
-                                row[name] = gYearMonth(valobj["value"])
+                                row[name] = Xsd_gYearMonth(valobj["value"])
                             case 'xsd:gYear':
-                                row[name] = gYear(valobj["value"])
+                                row[name] = Xsd_gYear(valobj["value"])
                             case 'xsd:gDay':
-                                row[name] = gDay(valobj["value"])
+                                row[name] = Xsd_gDay(valobj["value"])
                             case 'xsd:gMonth':
-                                row[name] = gMonth(valobj["value"])
+                                row[name] = Xsd_gMonth(valobj["value"])
                             case 'xsd:hexBinary':
-                                row[name] = hexBinary(valobj["value"])
+                                row[name] = Xsd_hexBinary(valobj["value"])
                             case 'xsd:base64Binary':
-                                row[name] = base64Binary(valobj["value"])
+                                row[name] = Xsd_base64Binary(valobj["value"])
                             case 'xsd:anyURI':
-                                row[name] = anyURI(valobj["value"])
+                                row[name] = Xsd_anyURI(valobj["value"])
                             case 'xsd:QName':
                                 row[name] = QName(valobj["value"])
                             case 'xsd:normalizedString':
-                                row[name] = normalizedString.fromRdf(valobj["value"])
+                                row[name] = Xsd_normalizedString.fromRdf(valobj["value"])
                             case 'xsd:NCName':
                                 row[name] = NCName(valobj["value"])
                             case 'xsd:integer':

@@ -2,163 +2,165 @@ import json
 import unittest
 from base64 import b64encode
 
-from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI, NCName, gYearMonth, gYear, hexBinary, gMonthDay, gDay, gMonth, base64Binary, anyURI, \
-    normalizedString
+from omaslib.src.connection import token
+from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd_hexBinary, \
+    Xsd_gMonthDay, Xsd_gDay, Xsd_gMonth, Xsd_base64Binary, Xsd_anyURI, \
+    Xsd_normalizedString, Xsd_token, Xsd_language
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 
 
 class TestQname(unittest.TestCase):
 
-    def test_gYearMonth(self):
-        val = gYearMonth("2020-03")
+    def test_xsd_gYearMonth(self):
+        val = Xsd_gYearMonth("2020-03")
         self.assertEqual(str(val), "2020-03")
         self.assertEqual(repr(val), '"2020-03"^^gYearMonth')
 
-        val = gYearMonth("1800-03Z")
+        val = Xsd_gYearMonth("1800-03Z")
         self.assertEqual(str(val), "1800-03Z")
         self.assertEqual(repr(val), '"1800-03Z"^^gYearMonth')
 
-        val = gYearMonth("1800-03-02:00")
+        val = Xsd_gYearMonth("1800-03-02:00")
         self.assertEqual(str(val), "1800-03-02:00")
         self.assertEqual(repr(val), '"1800-03-02:00"^^gYearMonth')
 
-        val = gYearMonth("-0003-03+02:00")
+        val = Xsd_gYearMonth("-0003-03+02:00")
         self.assertEqual(str(val), "-0003-03+02:00")
         self.assertEqual(repr(val), '"-0003-03+02:00"^^gYearMonth')
         self.assertTrue(val == "-0003-03+02:00")
 
-        val = gYearMonth("1800-03-02:00")
+        val = Xsd_gYearMonth("1800-03-02:00")
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
         with self.assertRaises(OmasErrorValue):
-            val = gYearMonth("2023-13Z")
+            val = Xsd_gYearMonth("2023-13Z")
 
         with self.assertRaises(OmasErrorValue):
-            val = gYearMonth("2023-00Z")
+            val = Xsd_gYearMonth("2023-00Z")
 
         with self.assertRaises(OmasErrorValue):
-            val = gYearMonth("2000Z")
+            val = Xsd_gYearMonth("2000Z")
 
         with self.assertRaises(OmasErrorValue):
-            val = gYearMonth("2000-04\"\n SELECT * {?s ?p ?o } #")
+            val = Xsd_gYearMonth("2000-04\"\n SELECT * {?s ?p ?o } #")
 
-    def test_gYear(self):
-        val = gYear("2020")
+    def test_xsd_gYear(self):
+        val = Xsd_gYear("2020")
         self.assertEqual(str(val), "2020")
         self.assertEqual(repr(val), '"2020"^^xsd:gYear')
 
-        val = gYear("1800Z")
+        val = Xsd_gYear("1800Z")
         self.assertEqual(str(val), "1800Z")
         self.assertEqual(repr(val), '"1800Z"^^xsd:gYear')
 
-        val = gYear("1800-02:00")
+        val = Xsd_gYear("1800-02:00")
         self.assertEqual(str(val), "1800-02:00")
         self.assertEqual(repr(val), '"1800-02:00"^^xsd:gYear')
 
-        val = gYear("-0003+02:00")
+        val = Xsd_gYear("-0003+02:00")
         self.assertEqual(str(val), "-0003+02:00")
         self.assertEqual(repr(val), '"-0003+02:00"^^xsd:gYear')
         self.assertTrue(val == "-0003+02:00")
 
-        val = gYear("1800-02:00")
+        val = Xsd_gYear("1800-02:00")
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-    def test_gMonthDay(self):
-        val = gMonthDay("--02-21")
+    def test_xsd_gMonthDay(self):
+        val = Xsd_gMonthDay("--02-21")
         self.assertEqual(str(val), "--02-21")
         self.assertEqual(repr(val), '"--02-21"^^xsd:gMonthDay')
 
-        val = gMonthDay("--02-21+12:00")
+        val = Xsd_gMonthDay("--02-21+12:00")
         self.assertEqual(str(val), "--02-21+12:00")
         self.assertEqual(repr(val), '"--02-21+12:00"^^xsd:gMonthDay')
 
-        val = gMonthDay("--02-21Z")
+        val = Xsd_gMonthDay("--02-21Z")
         self.assertEqual(str(val), "--02-21Z")
         self.assertEqual(repr(val), '"--02-21Z"^^xsd:gMonthDay')
         self.assertTrue(val == "--02-21Z")
 
-        val = gMonthDay("--02-21Z")
+        val = Xsd_gMonthDay("--02-21Z")
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
         with self.assertRaises(OmasErrorValue):
-            val = gMonthDay("--02-32Z")
+            val = Xsd_gMonthDay("--02-32Z")
 
         with self.assertRaises(OmasErrorValue):
-            val = gMonthDay("--13-20")
+            val = Xsd_gMonthDay("--13-20")
 
         with self.assertRaises(OmasErrorValue):
-            val = gMonthDay("-13-20")
+            val = Xsd_gMonthDay("-13-20")
 
-        val = gMonthDay("--02-21Z")
+        val = Xsd_gMonthDay("--02-21Z")
         self.assertTrue(val == "--02-21Z")
 
-    def test_gDay(self):
-        val = gDay("---01")
+    def test_xsd_gDay(self):
+        val = Xsd_gDay("---01")
         self.assertEqual(str(val), "---01")
         self.assertEqual(repr(val), '"---01"^^xsd:gDay')
 
-        val = gDay("---01Z")
+        val = Xsd_gDay("---01Z")
         self.assertEqual(str(val), "---01Z")
         self.assertEqual(repr(val), '"---01Z"^^xsd:gDay')
 
-        val = gDay("---01+01:00")
+        val = Xsd_gDay("---01+01:00")
         self.assertEqual(str(val), "---01+01:00")
         self.assertEqual(repr(val), '"---01+01:00"^^xsd:gDay')
 
-        val = gDay("---21Z")
+        val = Xsd_gDay("---21Z")
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
         with self.assertRaises(OmasErrorValue):
-            val = gDay("--01+01:00")
+            val = Xsd_gDay("--01+01:00")
 
         with self.assertRaises(OmasErrorValue):
-            val = gDay("--01-")
+            val = Xsd_gDay("--01-")
 
         with self.assertRaises(OmasErrorValue):
-            val = gDay("---01+01:0")
+            val = Xsd_gDay("---01+01:0")
 
-    def test_gMonth(self):
-        val = gMonth("--10")
+    def test_xsd_gMonth(self):
+        val = Xsd_gMonth("--10")
         self.assertEqual(str(val), "--10")
         self.assertEqual(repr(val), '"--10"^^xsd:gMonth')
 
-        val = gMonth("--05Z")
+        val = Xsd_gMonth("--05Z")
         self.assertEqual(str(val), "--05Z")
         self.assertEqual(repr(val), '"--05Z"^^xsd:gMonth')
 
-        val = gMonth("--01+01:00")
+        val = Xsd_gMonth("--01+01:00")
         self.assertEqual(str(val), "--01+01:00")
         self.assertEqual(repr(val), '"--01+01:00"^^xsd:gMonth')
 
-        val = gMonth("--12Z")
+        val = Xsd_gMonth("--12Z")
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
         with self.assertRaises(OmasErrorValue):
-            val = gMonth("---01+01:00")
+            val = Xsd_gMonth("---01+01:00")
 
         with self.assertRaises(OmasErrorValue):
-            val = gMonth("--01-")
+            val = Xsd_gMonth("--01-")
 
         with self.assertRaises(OmasErrorValue):
-            val = gMonth("--01+01:0")
+            val = Xsd_gMonth("--01+01:0")
 
         with self.assertRaises(OmasErrorValue):
-            val = gMonth("--13Z")
+            val = Xsd_gMonth("--13Z")
 
 
-    def test_hexBinary(self):
-        val = hexBinary("1fab17fa")
+    def test_xsd_hexBinary(self):
+        val = Xsd_hexBinary("1fab17fa")
         self.assertEqual(str(val), "1fab17fa")
         self.assertEqual(repr(val), '"1fab17fa"^^xsd:hexBinary')
 
@@ -168,13 +170,13 @@ class TestQname(unittest.TestCase):
 
 
         with self.assertRaises(OmasErrorValue):
-            val = hexBinary("1fab17fg")
+            val = Xsd_hexBinary("1fab17fg")
 
-    def test_base64Binary(self):
+    def test_xsd_base64Binary(self):
         data = b'Hello, World!12'
         base62string = b64encode(data)
 
-        val = base64Binary(base62string.decode('utf-8'))
+        val = Xsd_base64Binary(base62string.decode('utf-8'))
         self.assertEqual(str(val), base62string.decode('utf-8'))
         self.assertEqual(repr(val), f'"{base62string.decode('utf-8')}"^^xsd:base64Binary')
 
@@ -183,14 +185,14 @@ class TestQname(unittest.TestCase):
         self.assertEqual(val, val2)
 
         with self.assertRaises(OmasErrorValue):
-            val = base64Binary("Was\nIst denn das$$\n\n")
+            val = Xsd_base64Binary("Was\nIst denn das$$\n\n")
 
-    def test_anyURI(self):
-        val = anyURI("http://example.com")
+    def test_xsd_anyURI(self):
+        val = Xsd_anyURI("http://example.com")
         self.assertEqual(str(val), "http://example.com")
         self.assertEqual(repr(val), '"http://example.com"^^xsd:anyURI')
 
-        val = anyURI("http://example.com/gugus/nowas#anchor1")
+        val = Xsd_anyURI("http://example.com/gugus/nowas#anchor1")
         self.assertEqual(str(val), "http://example.com/gugus/nowas#anchor1")
         self.assertEqual(repr(val), '"http://example.com/gugus/nowas#anchor1"^^xsd:anyURI')
 
@@ -200,16 +202,43 @@ class TestQname(unittest.TestCase):
 
 
         with self.assertRaises(OmasErrorValue) as ex:
-            val = anyURI("http://example.com/gugus/ test.dat")
+            val = Xsd_anyURI("http://example.com/gugus/ test.dat")
 
-    def test_normalizedString(self):
-        val = normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen")
+    def test_xsd_normalizedString(self):
+        val = Xsd_normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen")
         self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen\" und anderen Dingen")
         self.assertEqual(repr(val), '"Dies ist ein string mit $onderzeichen\\" und anderen Dingen"^^xsd:normalizedString')
 
-        val = normalizedString.fromRdf('Dies ist ein string mit $onderzeichen\\" und anderen Dingen')
+        val = Xsd_normalizedString.fromRdf('Dies ist ein string mit $onderzeichen\\" und anderen Dingen')
         self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen\" und anderen Dingen")
         self.assertEqual(repr(val), '"Dies ist ein string mit $onderzeichen\\" und anderen Dingen"^^xsd:normalizedString')
+
+        val = Xsd_normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen")
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+    def test_xsd_token(self):
+        val = Xsd_token("Dies ist ein string mit $onderzeichen und anderen Dingen")
+        self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen und anderen Dingen")
+        self.assertEqual(repr(val), '"Dies ist ein string mit $onderzeichen und anderen Dingen"^^xsd:token')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_token("Dies ist ein string mit $onderzeichen\"\nund anderen Dingen")
+
+    def test_xsd_language(self):
+        val = Xsd_language("de")
+        self.assertEqual(str(val), "de")
+        self.assertEqual(repr(val), '"de"^^xsd:language')
+
+        val = Xsd_language("xxx")
+        self.assertEqual(str(val), "xxx")
+        self.assertEqual(repr(val), '"xxx"^^xsd:language')
+
 
     def test_qname(self):
         qn = QName('prefix:name')
