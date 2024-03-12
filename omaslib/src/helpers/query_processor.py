@@ -8,7 +8,7 @@ from pystrict import strict
 
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, gYearMonth, gYear, Xsd, gDay, gMonth, hexBinary, base64Binary, anyURI
+from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, gYearMonth, gYear, Xsd, gDay, gMonth, hexBinary, base64Binary, anyURI, normalizedString
 
 RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OldapStringLiteral | Xsd
 RowType = Dict[str, RowElementType]
@@ -79,6 +79,8 @@ class QueryProcessor:
                                 row[name] = anyURI(valobj["value"])
                             case 'xsd:QName':
                                 row[name] = QName(valobj["value"])
+                            case 'xsd:normalizedString':
+                                row[name] = normalizedString.fromRdf(valobj["value"])
                             case 'xsd:NCName':
                                 row[name] = NCName(valobj["value"])
                             case 'xsd:integer':

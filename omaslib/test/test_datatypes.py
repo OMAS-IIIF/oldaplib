@@ -2,7 +2,8 @@ import json
 import unittest
 from base64 import b64encode
 
-from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI, NCName, gYearMonth, gYear, hexBinary, gMonthDay, gDay, gMonth, base64Binary, anyURI
+from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI, NCName, gYearMonth, gYear, hexBinary, gMonthDay, gDay, gMonth, base64Binary, anyURI, \
+    normalizedString
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 
@@ -202,7 +203,13 @@ class TestQname(unittest.TestCase):
             val = anyURI("http://example.com/gugus/ test.dat")
 
     def test_normalizedString(self):
-        pass
+        val = normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen")
+        self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen\" und anderen Dingen")
+        self.assertEqual(repr(val), '"Dies ist ein string mit $onderzeichen\\" und anderen Dingen"^^xsd:normalizedString')
+
+        val = normalizedString.fromRdf('Dies ist ein string mit $onderzeichen\\" und anderen Dingen')
+        self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen\" und anderen Dingen")
+        self.assertEqual(repr(val), '"Dies ist ein string mit $onderzeichen\\" und anderen Dingen"^^xsd:normalizedString')
 
     def test_qname(self):
         qn = QName('prefix:name')

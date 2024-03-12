@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 from pystrict import strict
 from validators import url
 
+from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
@@ -429,11 +430,16 @@ class normalizedString(Xsd):
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
             self.__value = value
 
+    @classmethod
+    def fromRdf(cls, value: str) -> Self:
+        value = OldapStringLiteral.unescaping(value)
+        return cls(value)
+
     def __str__(self):
         return self.__value
 
     def __repr__(self):
-        return f'"{str(self)}"^^xsd:normalizedString'
+        return f'"{OldapStringLiteral.escaping(str(self))}"^^xsd:normalizedString'
 
     def __hash__(self):
         return hash(self.__value)
@@ -441,7 +447,9 @@ class normalizedString(Xsd):
     def _as_dict(self) -> Dict[str, str]:
         return {'value': self.__value}
 
-    def __eq__(self, other):
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, normalizedString):
+            other = normalizedString(other)
         return self.__value == other.__value
 
 
