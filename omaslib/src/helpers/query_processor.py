@@ -8,7 +8,8 @@ from pystrict import strict
 
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, Xsd_gMonth, Xsd_hexBinary, Xsd_base64Binary, Xsd_anyURI, Xsd_normalizedString
+from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, Xsd_gMonth, Xsd_hexBinary, Xsd_base64Binary, \
+    Xsd_anyURI, Xsd_normalizedString, Xsd_token, Xsd_language
 
 RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OldapStringLiteral | Xsd
 RowType = Dict[str, RowElementType]
@@ -64,25 +65,29 @@ class QueryProcessor:
                             case 'xsd:date':
                                 row[name] = date.fromisoformat(valobj["value"])
                             case 'xsd:gYearMonth':
-                                row[name] = Xsd_gYearMonth(valobj["value"])
+                                row[name] = Xsd_gYearMonth.fromRdf(valobj["value"])
                             case 'xsd:gYear':
-                                row[name] = Xsd_gYear(valobj["value"])
+                                row[name] = Xsd_gYear.fromRdf(valobj["value"])
                             case 'xsd:gDay':
-                                row[name] = Xsd_gDay(valobj["value"])
+                                row[name] = Xsd_gDay.fromRdf(valobj["value"])
                             case 'xsd:gMonth':
-                                row[name] = Xsd_gMonth(valobj["value"])
+                                row[name] = Xsd_gMonth.fromRdf(valobj["value"])
                             case 'xsd:hexBinary':
-                                row[name] = Xsd_hexBinary(valobj["value"])
+                                row[name] = Xsd_hexBinary.fromRdf(valobj["value"])
                             case 'xsd:base64Binary':
-                                row[name] = Xsd_base64Binary(valobj["value"])
+                                row[name] = Xsd_base64Binary.fromRdf(valobj["value"])
                             case 'xsd:anyURI':
-                                row[name] = Xsd_anyURI(valobj["value"])
+                                row[name] = Xsd_anyURI.fromRdf(valobj["value"])
                             case 'xsd:QName':
                                 row[name] = QName(valobj["value"])
                             case 'xsd:normalizedString':
                                 row[name] = Xsd_normalizedString.fromRdf(valobj["value"])
+                            case 'xsd:token:':
+                                row[name] = Xsd_token.fromRdf(valobj["value"])
+                            case 'xsd:language':
+                                row[name] = Xsd_language.fromRdf(valobj["value"])
                             case 'xsd:NCName':
-                                row[name] = NCName(valobj["value"])
+                                row[name] = NCName.fromRdf(valobj["value"])
                             case 'xsd:integer':
                                 row[name] = int(valobj["value"])
                             case 'xsd:int':

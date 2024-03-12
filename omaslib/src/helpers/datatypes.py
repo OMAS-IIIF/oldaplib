@@ -15,6 +15,7 @@ for the given XML datatypes. They should be used instead of simple string repres
 """
 import json
 import re
+from abc import ABC, abstractmethod
 from enum import Enum, unique
 from typing import Any, Self, Optional, Dict, Tuple
 from urllib.parse import urlparse
@@ -28,8 +29,29 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
 
 
-class Xsd:
-    pass
+class Xsd(ABC):
+
+    @abstractmethod
+    def __init__(self, value: Self | str):
+        pass
+
+    @abstractmethod
+    def __str__(self) -> str:
+        pass
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        pass
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    @classmethod
+    def fromRdf(cls, value: str) -> Self:
+        return cls(value)
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': str(self)}
 
 
 @strict
@@ -76,13 +98,7 @@ class Xsd_gYearMonth(Xsd):
         return s
 
     def __repr__(self):
-        return f'"{str(self)}"^^gYearMonth'
-
-    def __hash__(self):
-        return hash(str(self))
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': str(self)}
+        return f'"{str(self)}"^^xsd:gYearMonth'
 
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_gYearMonth):
@@ -94,6 +110,9 @@ class Xsd_gYearMonth(Xsd):
         if self.__tz != other.__tz:
             return False
         return True
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 
 @strict
@@ -137,12 +156,6 @@ class Xsd_gYear(Xsd):
     def __repr__(self):
         return f'"{str(self)}"^^xsd:gYear'
 
-    def __hash__(self):
-        return hash(str(self))
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': str(self)}
-
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_gYear):
             other = Xsd_gYear(other)
@@ -151,6 +164,9 @@ class Xsd_gYear(Xsd):
         if self.__tz != other.__tz:
             return False
         return True
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 
 @strict
@@ -197,12 +213,6 @@ class Xsd_gMonthDay(Xsd):
     def __repr__(self):
         return f'"{str(self)}"^^xsd:gMonthDay'
 
-    def __hash__(self):
-        return hash(str(self))
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': str(self)}
-
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_gMonthDay):
             other = Xsd_gMonthDay(other)
@@ -213,6 +223,9 @@ class Xsd_gMonthDay(Xsd):
         if self.__tz != other.__tz:
             return False
         return True
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 @strict
 @serializer
@@ -255,12 +268,6 @@ class Xsd_gDay(Xsd):
     def __repr__(self):
         return f'"{str(self)}"^^xsd:gDay'
 
-    def __hash__(self):
-        return hash(str(self))
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': str(self)}
-
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_gDay):
             other = Xsd_gDay(other)
@@ -270,6 +277,8 @@ class Xsd_gDay(Xsd):
             return False
         return True
 
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 @strict
 @serializer
@@ -312,12 +321,6 @@ class Xsd_gMonth(Xsd):
     def __repr__(self):
         return f'"{str(self)}"^^xsd:gMonth'
 
-    def __hash__(self):
-        return hash(str(self))
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': str(self)}
-
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_gMonth):
             other = Xsd_gMonth(other)
@@ -327,6 +330,8 @@ class Xsd_gMonth(Xsd):
             return False
         return True
 
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 @strict
 @serializer
@@ -347,15 +352,11 @@ class Xsd_hexBinary(Xsd):
     def __repr__(self):
         return f'"{str(self)}"^^xsd:hexBinary'
 
-    def __hash__(self):
-        return hash(self.__value)
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': self.__value}
-
     def __eq__(self, other):
         return self.__value == other.__value
 
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 @strict
 @serializer
@@ -376,14 +377,11 @@ class Xsd_base64Binary(Xsd):
     def __repr__(self):
         return f'"{str(self)}"^^xsd:base64Binary'
 
-    def __hash__(self):
-        return hash(self.__value)
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': self.__value}
-
     def __eq__(self, other):
         return self.__value == other.__value
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 @strict
 @serializer
@@ -407,14 +405,11 @@ class Xsd_anyURI(Xsd):
     def __repr__(self):
         return f'"{str(self)}"^^xsd:anyURI'
 
-    def __hash__(self):
-        return hash(self.__value)
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': self.__value}
-
     def __eq__(self, other):
         return self.__value == other.__value
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 
 @strict
@@ -443,16 +438,13 @@ class Xsd_normalizedString(Xsd):
     def __repr__(self):
         return f'"{OldapStringLiteral.escaping(str(self))}"^^xsd:normalizedString'
 
-    def __hash__(self):
-        return hash(self.__value)
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': self.__value}
-
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_normalizedString):
             other = Xsd_normalizedString(other)
         return self.__value == other.__value
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 
 @strict
@@ -466,7 +458,7 @@ class Xsd_token(Xsd):
         else:
             if not XsdValidator.validate(XsdDatatypes.token, value):
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
-            if not re.match("^[^\s]+(\s[^\s]+)*$", value):
+            if not re.match("^[^\\s]+(\\s[^\\s]+)*$", value):
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
             if re.match(".*[\n\r\t].*", value) is not None:
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
@@ -483,16 +475,13 @@ class Xsd_token(Xsd):
     def __repr__(self):
         return f'"{OldapStringLiteral.escaping(str(self))}"^^xsd:token'
 
-    def __hash__(self):
-        return hash(self.__value)
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': self.__value}
-
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_token):
             other = Xsd_token(other)
         return self.__value == other.__value
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 
 @strict
@@ -501,20 +490,16 @@ class Xsd_language(Xsd):
     __value: str
 
     def __init__(self, value: Self | str):
-        if isinstance(value, Xsd_token):
+        if isinstance(value, Xsd_language):
             self.__value = value.__value
         else:
             if not XsdValidator.validate(XsdDatatypes.language, value):
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
-            # if not re.match("^[^\s]+(\s[^\s]+)*$", value):
-            #     raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
+            if not re.match('^[a-zA-Z]{2}(-[a-zA-Z]{2})?$', value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
             # if re.match(".*[\n\r\t].*", value) is not None:
             #     raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
             self.__value = value
-
-    @classmethod
-    def fromRdf(cls, value: str) -> Self:
-        return cls(value)
 
     def __str__(self):
         return self.__value
@@ -522,21 +507,52 @@ class Xsd_language(Xsd):
     def __repr__(self):
         return f'"{str(self)}"^^xsd:language'
 
-    def __hash__(self):
-        return hash(self.__value)
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {'value': self.__value}
-
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_language):
             other = Xsd_language(other)
         return self.__value == other.__value
 
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 @strict
 @serializer
-class NCName:
+class Xsd_name(Xsd):
+    __value: str
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, Xsd_name):
+            self.__value = value.__value
+        else:
+            if not XsdValidator.validate(XsdDatatypes.name_, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:name.')
+            if not re.match("^[a-zA-Z_][\\w.\\-:_]*$", value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:name.')
+            self.__value = value
+
+    @classmethod
+    def fromRdf(cls, value: str) -> Self:
+        value = OldapStringLiteral.unescaping(value)
+        return cls(value)
+
+    def __str__(self):
+        return self.__value
+
+    def __repr__(self):
+        return f'"{OldapStringLiteral.escaping(str(self))}"^^xsd:name'
+
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, Xsd_name):
+            other = Xsd_name(other)
+        return self.__value == other.__value
+
+    def __hash__(self) -> int:
+        return super().__hash__()
+
+
+@strict
+@serializer
+class NCName(Xsd):
     """
     # NCName
 
@@ -558,7 +574,7 @@ class NCName:
     - *fragment()*: Get the suffix of the NCName
 
     """
-    _value: str
+    __value: str
 
     def __init__(self, value: Self | str):
         """
@@ -567,11 +583,11 @@ class NCName:
         :type value: NCName | str
         """
         if isinstance(value, NCName):
-            self._value = str(value)
+            self.__value = str(value)
         else:
             if not XsdValidator.validate(XsdDatatypes.NCName, value):
                 raise OmasErrorValue(f'Invalid string "{value}" for NCName')
-            self._value = value
+            self.__value = value
 
     def __add__(self, other: Self | str) -> Self:
         """
@@ -584,7 +600,7 @@ class NCName:
             other = NCName(
                 other)  # convert to NCName. Will raise OmasValueError if string does not conform to NCName form
         if isinstance(other, NCName):
-            return NCName(self._value + str(other))
+            return NCName(self.__value + str(other))
         else:
             raise OmasErrorValue("Can only add a string or a NCName to a NCName")
 
@@ -597,7 +613,7 @@ class NCName:
             other = NCName(
                 other)  # convert to NCName. Will raise OmasValueError if string does not conform to NCName form
         if isinstance(other, NCName):
-            self._value += str(other)
+            self.__value += str(other)
             return self
         else:
             raise OmasErrorValue("Can only add a string to NCName")
@@ -607,14 +623,14 @@ class NCName:
         Return the representation string
         :return: Python representation of the instance
         """
-        return f'"{self._value}"^^xsd:NCName'
+        return f'"{self.__value}"^^xsd:NCName'
 
     def __str__(self) -> str:
         """
         Return the value as string
         :return: Value as string
         """
-        return self._value
+        return self.__value
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -623,8 +639,8 @@ class NCName:
         :return: True of False
         """
         if isinstance(other, str):
-            return self._value == other
-        return isinstance(other, NCName) and self._value == other._value
+            return self.__value == other
+        return isinstance(other, NCName) and self.__value == other.__value
 
     def __ne__(self, other: Any) -> bool:
         """
@@ -634,24 +650,65 @@ class NCName:
         """
         if not isinstance(other, NCName):
             return False
-        return self._value != other._value
+        return self.__value != other.__value
 
     def __hash__(self) -> int:
-        """
-        Return the hash of the NCName
-        :return: hash of the NCName
-        """
-        return self._value.__hash__()
-
-    def _as_dict(self) -> Dict[str, str]:
-        return {
-            'value': self._value
-        }
+        return super().__hash__()
 
 
 @strict
 @serializer
-class QName:
+class Xsd_NMTOKEN(Xsd):
+    __value: str
+
+    def __init__(self, value: Self | str):
+        if isinstance(value, Xsd_NMTOKEN):
+            self.__value = value.__value
+        else:
+            if not XsdValidator.validate(XsdDatatypes.NMTOKEN, value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
+            if not re.match("^[a-zA-Z_:.][a-zA-Z0-9_.:-]*$", value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
+            self.__value = value
+
+    @classmethod
+    def fromRdf(cls, value: str) -> Self:
+        return cls(value)
+
+    def __str__(self):
+        return self.__value
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:NMTOKEN'
+
+    def __eq__(self, other: Self | str):
+        if not isinstance(other, Xsd_NMTOKEN):
+            other = Xsd_NMTOKEN(other)
+        return self.__value == other.__value
+
+    def __hash__(self) -> int:
+        return super().__hash__()
+
+
+@strict
+@serializer
+class Xsd_ID(NCName):
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:ID'
+
+
+@strict
+@serializer
+class Xsd_IDREF(NCName):
+
+    def __repr__(self):
+        return f'"{str(self)}"^^xsd:IDREF'
+
+
+@strict
+@serializer
+class QName(Xsd):
     """
     # QName
 
@@ -748,20 +805,8 @@ class QName:
             return False
         return self._value != other._value
 
-    def __hash__(self):
-        """
-        Return the hast value of the QName
-        :return: Hash of the QName
-        """
-        return self._value.__hash__()
-
-    def _as_dict(self):
-        return {
-            'value': self._value
-        }
-
-    def as_rdf(self) -> str:
-        return self._value
+    def __hash__(self) -> int:
+        return super().__hash__()
 
     @property
     def prefix(self) -> str:
