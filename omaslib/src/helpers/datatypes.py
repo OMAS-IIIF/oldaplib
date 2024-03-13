@@ -227,6 +227,7 @@ class Xsd_gMonthDay(Xsd):
     def __hash__(self) -> int:
         return super().__hash__()
 
+
 @strict
 @serializer
 class Xsd_gDay(Xsd):
@@ -706,6 +707,7 @@ class Xsd_IDREF(NCName):
         return f'"{str(self)}"^^xsd:IDREF'
 
 
+
 @strict
 @serializer
 class QName(Xsd):
@@ -825,6 +827,133 @@ class QName(Xsd):
         """
         parts = self._value.split(':')
         return parts[1]
+
+
+@strict
+@serializer
+class Xsd_integer(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> Self:
+        try:
+            return int.__new__(cls, value)
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:integer'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_nonPositiveInteger(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp > 0:
+                raise OmasErrorValue('Value must be "0" or negative.')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:nonPositiveInteger'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_negativeInteger(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if not tmp < 0:
+                raise OmasErrorValue('Value must negative.')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:negativeInteger'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_int(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp < -2_147_483_648 or tmp > 2_147_483_647:
+                raise OmasErrorValue('Value must be in the range of [-2_147_483_648 - 2_147_483_647].')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:int'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_long(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp < -9223372036854775808 or tmp > 9223372036854775807:
+                raise OmasErrorValue('Value must be in the range of [-9223372036854775808 - 9223372036854775807].')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:long'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
 
 
 @strict

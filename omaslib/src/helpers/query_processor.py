@@ -8,8 +8,10 @@ from pystrict import strict
 
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, Xsd_gMonth, Xsd_hexBinary, Xsd_base64Binary, \
-    Xsd_anyURI, Xsd_normalizedString, Xsd_token, Xsd_language
+from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, \
+    Xsd_gMonth, Xsd_hexBinary, Xsd_base64Binary, \
+    Xsd_anyURI, Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_integer, Xsd_nonPositiveInteger, Xsd_negativeInteger, \
+    Xsd_int, Xsd_long
 
 RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OldapStringLiteral | Xsd
 RowType = Dict[str, RowElementType]
@@ -89,15 +91,15 @@ class QueryProcessor:
                             case 'xsd:NCName':
                                 row[name] = NCName.fromRdf(valobj["value"])
                             case 'xsd:integer':
-                                row[name] = int(valobj["value"])
+                                row[name] = Xsd_integer.fromRdf(valobj["value"])
                             case 'xsd:int':
-                                row[name] = int(valobj["value"])
+                                row[name] = Xsd_int.fromRdf(valobj["value"])
                             case 'xsd:nonPositiveInteger':
-                                row[name] = int(valobj["value"])
+                                row[name] = Xsd_nonPositiveInteger.fromRdf(valobj["value"])
                             case 'xsd:negativeInteger':
-                                row[name] = int(valobj["value"])
+                                row[name] = Xsd_negativeInteger.fromRdf(valobj["value"])
                             case 'xsd:long':
-                                row[name] = int(valobj["value"])
+                                row[name] = Xsd_long.fromRdf(valobj["value"])
                             case 'xsd:short':
                                 row[name] = int(valobj["value"])
                             case 'xsd:dateTime':
