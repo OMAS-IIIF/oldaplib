@@ -14,12 +14,16 @@ These classes perform consistency checks to guarantee that the data is consisten
 for the given XML datatypes. They should be used instead of simple string representations wherever possible
 """
 import json
+import math
 import re
 from abc import ABC, abstractmethod
+from datetime import timedelta
 from enum import Enum, unique
 from typing import Any, Self, Optional, Dict, Tuple
 from urllib.parse import urlparse
 
+import isodate
+from isodate import ISO8601Error
 from pystrict import strict
 from validators import url
 
@@ -52,6 +56,149 @@ class Xsd(ABC):
 
     def _as_dict(self) -> Dict[str, str]:
         return {'value': str(self)}
+
+
+@strict
+@serializer
+class Xsd_decimal(Xsd, float):
+
+    def __init__(self, value: float | str):
+        super().__init__(value)
+
+    def __new__(cls, value: float | str) -> float:
+        if isinstance(value, str):
+            if not re.match("^[+-]?[0-9]*\\.?[0-9]*$", value):
+                raise OmasErrorValue(f'"{value}" is not a xsd:decimal.')
+        try:
+            return float.__new__(cls, value)
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(float(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(float(self))}"^^xsd:decimal'
+
+    def _as_dict(self) -> dict:
+        return {'value': float(self)}
+
+
+@strict
+@serializer
+class Xsd_float(Xsd, float):
+
+    def __init__(self, value: float | str):
+        super().__init__(value)
+
+    def __new__(cls, value: float | str) -> float:
+        if isinstance(value, str):
+            if not re.match("^([-+]?(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?|[Nn]a[Nn]|[-+]?(inf|INF))$", value):
+                raise OmasErrorValue(f'"{value}" is not a xsd:float.')
+        try:
+            return float.__new__(cls, value)
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        if math.isnan(self):
+            return 'NaN'
+        elif math.isinf(self):
+            if self < 0.0:
+                return '-INF'
+            else:
+                return 'INF'
+        else:
+            return str(float(self))
+
+    def __repr__(self) -> str:
+        if math.isnan(self):
+            return '"NaN"^^xsd:float'
+        elif math.isinf(self):
+            if self < 0.0:
+                return '"-INF"^^xsd:float'
+            else:
+                return '"INF"^^xsd:float'
+        else:
+            return f'"{self}"^^xsd:float'
+
+    def _as_dict(self) -> dict:
+        return {'value': float(self)}
+
+
+@strict
+@serializer
+class Xsd_double(Xsd, float):
+
+    def __init__(self, value: float | str):
+        super().__init__(value)
+
+    def __new__(cls, value: float | str) -> float:
+        if isinstance(value, str):
+            if not re.match("^([-+]?(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?|[Nn]a[Nn]|[-+]?(inf|INF))$", value):
+                raise OmasErrorValue(f'"{value}" is not a xsd:float.')
+        try:
+            return float.__new__(cls, value)
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        if math.isnan(self):
+            return 'NaN'
+        elif math.isinf(self):
+            if self < 0.0:
+                return '-INF'
+            else:
+                return 'INF'
+        else:
+            return str(float(self))
+
+    def __repr__(self) -> str:
+        if math.isnan(self):
+            return '"NaN"^^xsd:double'
+        elif math.isinf(self):
+            if self < 0.0:
+                return '"-INF"^^xsd:double'
+            else:
+                return '"INF"^^xsd:double'
+        else:
+            return f'"{self}"^^xsd:double'
+
+    def _as_dict(self) -> dict:
+        return {'value': float(self)}
+
+
+@strict
+@serializer
+class Xsd_duration(Xsd):
+    __value: timedelta
+
+    def __init__(self, value: timedelta | str):
+        if isinstance(value, timedelta):
+            self.__value = value
+        else:
+            try:
+                self.__value = isodate.parse_duration(value)
+            except ISO8601Error as err:
+                raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return isodate.duration_isoformat(self.__value)
+
+    def __repr__(self) -> str:
+        return f'"{isodate.duration_isoformat(self.__value)}"^^xsd:duration'
+
+    def __eq__(self, other: Self | str):
+        if isinstance(other, str):
+            other = isodate.parse_duration(other)
+        return self.__value == other.__value
+
+    def _as_dict(self) -> dict:
+        return {'value': isodate.duration_isoformat(self.__value)}
+
+    @property
+    def value(self) -> timedelta:
+        return self.__value
 
 
 @strict
@@ -958,6 +1105,214 @@ class Xsd_long(Xsd, int):
 
 @strict
 @serializer
+class Xsd_short(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp < -32768 or tmp > 32767:
+                raise OmasErrorValue('Value must be in the range of [-32768 - 32767].')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:short'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_byte(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp < -128 or tmp > 127:
+                raise OmasErrorValue('Value must be in the range of [-128 - 127].')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:byte'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_nonNegativeInteger(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp < 0:
+                raise OmasErrorValue('Value must be "0" or positive.')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:nonNegativeInteger'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_unsignedLong(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp < 0 or tmp > 18446744073709551615:
+                raise OmasErrorValue('Value must be in the range of [0 - 18446744073709551615].')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:unsignedLong'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_unsignedInt(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp < 0 or tmp > 4294967295:
+                raise OmasErrorValue('Value must be in the range of [0 - 4294967295].')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:unsignedInt'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_unsignedShort(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp < 0 or tmp > 65535:
+                raise OmasErrorValue('Value must be in the range of [0 - 65535].')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:unsignedShort'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_unsignedByte(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if tmp < 0 or tmp > 255:
+                raise OmasErrorValue('Value must be in the range of [0 - 255].')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:unsignedByte'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
+class Xsd_positiveInteger(Xsd, int):
+
+    def __init__(self, value: int | str):
+        super().__init__(value)
+
+    def __new__(cls, value: int | str) -> int:
+        try:
+            tmp = int.__new__(cls, value)
+            if not tmp > 0:
+                raise OmasErrorValue('Value must be greater 0.')
+            return tmp
+        except ValueError as err:
+            raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return str(int(self))
+
+    def __repr__(self) -> str:
+        return f'"{str(int(self))}"^^xsd:positiveInteger'
+
+    def _as_dict(self) -> dict:
+        return {'value': int(self)}
+
+
+@strict
+@serializer
 class BNode:
     """
     # BNode
@@ -1228,3 +1583,9 @@ if __name__ == "__main__":
     print(json_repr)
     gugus = json.loads(json_repr, object_hook=serializer.decoder_hook)
     print(gugus)
+
+    val = Xsd_float("NaN")
+    print("----->", repr(val))
+
+    val = Xsd_duration('PT2M10S')
+    print(str(val))

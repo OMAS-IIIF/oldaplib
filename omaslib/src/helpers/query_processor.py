@@ -11,7 +11,8 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, \
     Xsd_gMonth, Xsd_hexBinary, Xsd_base64Binary, \
     Xsd_anyURI, Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_integer, Xsd_nonPositiveInteger, Xsd_negativeInteger, \
-    Xsd_int, Xsd_long
+    Xsd_int, Xsd_long, Xsd_short, Xsd_byte, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, Xsd_unsignedShort, Xsd_unsignedByte, Xsd_positiveInteger, \
+    Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration
 
 RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OldapStringLiteral | Xsd
 RowType = Dict[str, RowElementType]
@@ -51,13 +52,13 @@ class QueryProcessor:
                             case 'xsd:boolean':
                                 row[name] = True if valobj["value"] == 'true' else False
                             case 'xsd:decimal':
-                                row[name] = float(valobj["value"])
+                                row[name] = Xsd_decimal.fromRdf(valobj["value"])
                             case 'xsd:float':
-                                row[name] = float(valobj["value"])
+                                row[name] = Xsd_float.fromRdf(valobj["value"])
                             case 'xsd:double':
-                                row[name] = float(valobj["value"])
+                                row[name] = Xsd_double.fromRdf(valobj["value"])
                             case 'xsd:duration':
-                                row[name] = isodate.parse_duration(valobj["value"])
+                                row[name] = Xsd_duration.fromRdf(valobj["value"])
                             case 'xsd:dateTime':
                                 row[name] = datetime.fromisoformat(valobj["value"])
                             case 'xsd:dateTimeStamp':
@@ -101,7 +102,21 @@ class QueryProcessor:
                             case 'xsd:long':
                                 row[name] = Xsd_long.fromRdf(valobj["value"])
                             case 'xsd:short':
-                                row[name] = int(valobj["value"])
+                                row[name] = Xsd_short.fromRdf(valobj["value"])
+                            case 'xsd:byte':
+                                row[name] = Xsd_byte.fromRdf(valobj["value"])
+                            case 'xsd:nonNegativeInteger':
+                                row[name] = Xsd_nonNegativeInteger(valobj["value"])
+                            case 'xsd:unsignedLong':
+                                row[name] = Xsd_unsignedLong(valobj["value"])
+                            case 'xsd:unsignedInt':
+                                row[name] = Xsd_unsignedInt(valobj["value"])
+                            case 'xsd:unsignedShort':
+                                row[name] = Xsd_unsignedShort(valobj["value"])
+                            case 'xsd:unsignedByte':
+                                row[name] = Xsd_unsignedByte(valobj["value"])
+                            case 'xsd:positiveInteger':
+                                row[name] = Xsd_positiveInteger(valobj["value"])
                             case 'xsd:dateTime':
                                 row[name] = datetime.fromisoformat(valobj["value"])
                             case 'xsd:time':
