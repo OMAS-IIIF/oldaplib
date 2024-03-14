@@ -17,7 +17,7 @@ import json
 import math
 import re
 from abc import ABC, abstractmethod
-from datetime import timedelta, datetime, time
+from datetime import timedelta, datetime, time, date
 from enum import Enum, unique
 from typing import Any, Self, Optional, Dict, Tuple
 from urllib.parse import urlparse
@@ -56,6 +56,31 @@ class Xsd(ABC):
 
     def _as_dict(self) -> Dict[str, str]:
         return {'value': str(self)}
+
+
+@strict
+@serializer
+class Xsd_string(Xsd, str):
+
+    def __init__(self, value: Self | str):
+        super().__init__(value)
+
+    def __new__(cls, value: Self | str) -> str:
+        return str.__new__(cls, value)
+
+    def __str__(self) -> str:
+        return str.__str__(self)
+
+    def __repr__(self) -> str:
+        return f'"{OldapStringLiteral.escaping(str.__str__(self))}"^^xsd:string'
+
+    @classmethod
+    def fromRdf(cls, value: str) -> Self:
+        return cls(OldapStringLiteral.unescaping(value))
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': str(self)}
+
 
 
 @strict
@@ -284,6 +309,8 @@ class Xsd_time(Xsd):
         if isinstance(value, time):
             self.__value = value
         else:
+            if re.match(r'^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$', value) is None:
+                raise OmasErrorValue(f'{value} wrong format for xsd:time.')
             try:
                 self.__value = time.fromisoformat(value)
             except ValueError as err:
@@ -297,6 +324,44 @@ class Xsd_time(Xsd):
 
     def __eq__(self, other: Self | str):
         if isinstance(other, str):
+            if re.match(
+                    r'^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$', other) is None:
+                raise OmasErrorValue(f'{other} wrong format for xsd:time.')
+            other = time.fromisoformat(other)
+        return self.__value == other.__value
+
+    def _as_dict(self) -> dict:
+        return {'value': self.__value.isoformat()}
+
+    @property
+    def value(self) -> time:
+        return self.__value
+
+class Xsd_date(Xsd):
+    __value: date
+
+    def __init__(self, value: time | str):
+        if isinstance(value, time):
+            self.__value = value
+        else:
+            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', value) is None:
+                raise OmasErrorValue(f'{value} wrong format for xsd:date.')
+            try:
+                self.__value = date.fromisoformat(value)
+            except ValueError as err:
+                raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return self.__value.isoformat()
+
+    def __repr__(self) -> str:
+        return f'"{self.__value.isoformat()}"^^xsd:date'
+
+    def __eq__(self, other: Self | str):
+        if isinstance(other, str):
+            if re.match(
+                    r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', other) is None:
+                raise OmasErrorValue(f'{other} wrong format for xsd:date.')
             other = time.fromisoformat(other)
         return self.__value == other.__value
 
@@ -1679,6 +1744,11 @@ class Action(Enum):
 
 if __name__ == "__main__":
     # print(NCName("orcid") + "0000-0003-1681-4036")
+
+    val = Xsd_string("waseliwas ist denn das")
+    print(str(val))
+    print(repr(val))
+    print(val + '--------')
 
     g1 = Xsd_gYearMonth("2022-05")
     g2 = Xsd_gYearMonth("-2022-05+03:00")

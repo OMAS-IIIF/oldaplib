@@ -10,7 +10,8 @@ from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI, NCName, X
     Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_NMTOKEN, Xsd, Xsd_ID, Xsd_IDREF, Xsd_integer, \
     Xsd_nonPositiveInteger, Xsd_int, Xsd_long, Xsd_short, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, \
     Xsd_unsignedShort, Xsd_unsignedByte, \
-    Xsd_positiveInteger, Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp
+    Xsd_positiveInteger, Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp, Xsd_time, \
+    Xsd_string
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor, RowElementType
 from omaslib.src.helpers.serializer import serializer
@@ -66,6 +67,21 @@ class TestXsdTypes(unittest.TestCase):
             test:{name} test:prop ?value
         }}
         """
+
+    def test_xsd_string(self):
+        val = Xsd_string("Waseliwas\nsoll denn das\" sein?")
+        self.assertEqual(val, "Waseliwas\nsoll denn das\" sein?")
+        self.assertEqual(str(val), "Waseliwas\nsoll denn das\" sein?")
+        self.assertEqual(repr(val), '"Waseliwas\\nsoll denn das\\\" sein?"^^xsd:string')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(NCName("Xsd_string"), val)
+        valx = self.get_triple(NCName("Xsd_string"))
+        self.assertEqual(val, valx)
+
 
     def test_xsd_decimal(self):
         val = Xsd_decimal(3.141592653589793)
@@ -209,7 +225,7 @@ class TestXsdTypes(unittest.TestCase):
         with self.assertRaises(OmasErrorValue):
             val = Xsd_duration('P1M2Y')
 
-    def test_xsd_datetime(self):
+    def test_xsd_dateTime(self):
         val = Xsd_dateTime('2001-10-26T21:32:52')
         self.assertTrue(str(val), '2001-10-26T21:32:52')
         self.assertTrue(repr(val), '"2001-10-26T21:32:52"^^xsd:dateTime')
@@ -250,7 +266,7 @@ class TestXsdTypes(unittest.TestCase):
         with self.assertRaises(OmasErrorValue):
             val = Xsd_dateTime('01-10-26T21:32')
 
-    def test_xsd_datetimeStamp(self):
+    def test_xsd_dateTimeStamp(self):
         val = Xsd_dateTimeStamp('2001-10-26T21:32:52Z')
         self.assertTrue(str(val), '2001-10-26T21:32:52Z')
         self.assertTrue(repr(val), '"2001-10-26T21:32:52Z"^^xsd:dateTimeStamp')
@@ -290,6 +306,46 @@ class TestXsdTypes(unittest.TestCase):
         with self.assertRaises(OmasErrorValue):
             val = Xsd_dateTime('01-10-26T21:32')
 
+    def test_xsd_time(self):
+        val = Xsd_time('21:32:52+02:00')
+        self.assertEqual(str(val), '21:32:52+02:00')
+        self.assertEqual(repr(val), '"21:32:52+02:00"^^xsd:time')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(NCName("Xsd_time"), val)
+        valx = self.get_triple(NCName("Xsd_time"))
+        self.assertEqual(val, valx)
+
+        val = Xsd_time('19:32:52Z')
+        self.assertEqual(str(val), '19:32:52+00:00')
+        self.assertEqual(repr(val), '"19:32:52+00:00"^^xsd:time')
+
+        val = Xsd_time('19:32:52+00:00')
+        self.assertEqual(str(val), '19:32:52+00:00')
+        self.assertEqual(repr(val), '"19:32:52+00:00"^^xsd:time')
+
+        val = Xsd_time('21:32:52')
+        self.assertEqual(str(val), '21:32:52')
+        self.assertEqual(repr(val), '"21:32:52"^^xsd:time')
+
+        val = Xsd_time('21:32:52.12679')
+        self.assertEqual(str(val), '21:32:52.126790')
+        self.assertEqual(repr(val), '"21:32:52.126790"^^xsd:time')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_time('21:32')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_time('25:25:10')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_time('-10:00:00')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_time('1:20:10')
 
     def test_xsd_gYearMonth(self):
         val = Xsd_gYearMonth("2020-03")

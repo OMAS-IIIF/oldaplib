@@ -13,7 +13,7 @@ from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, Xsd_gYea
     Xsd_anyURI, Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_integer, Xsd_nonPositiveInteger, Xsd_negativeInteger, \
     Xsd_int, Xsd_long, Xsd_short, Xsd_byte, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, \
     Xsd_unsignedShort, Xsd_unsignedByte, Xsd_positiveInteger, \
-    Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp, Xsd_time
+    Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp, Xsd_time, Xsd_date, Xsd_string
 
 RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OldapStringLiteral | Xsd
 RowType = Dict[str, RowElementType]
@@ -49,7 +49,7 @@ class QueryProcessor:
                         dt = context.iri2qname(dt)
                         match str(dt):
                             case 'xsd:string':
-                                row[name] = OldapStringLiteral.fromRdf(valobj["value"], valobj.get("xml:lang"))
+                                row[name] = Xsd_string.fromRdf.fromRdf(valobj["value"])
                             case 'xsd:boolean':
                                 row[name] = True if valobj["value"] == 'true' else False
                             case 'xsd:decimal':
@@ -67,7 +67,7 @@ class QueryProcessor:
                             case 'xsd:time':
                                 row[name] = Xsd_time.fromRdf(valobj["value"])
                             case 'xsd:date':
-                                row[name] = date.fromisoformat(valobj["value"])
+                                row[name] = Xsd_date.fromRdf(valobj["value"])
                             case 'xsd:gYearMonth':
                                 row[name] = Xsd_gYearMonth.fromRdf(valobj["value"])
                             case 'xsd:gYear':
@@ -120,10 +120,6 @@ class QueryProcessor:
                                 row[name] = Xsd_positiveInteger(valobj["value"])
                             case 'xsd:dateTime':
                                 row[name] = datetime.fromisoformat(valobj["value"])
-                            case 'xsd:time':
-                                row[name] = time.fromisoformat(valobj["value"])
-                            case 'xsd:date':
-                                row[name] = date.fromisoformat(valobj["value"])
                             case _:
                                 row[name] = str(valobj["value"])
             self.__rows.append(row)
