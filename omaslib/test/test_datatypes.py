@@ -8,8 +8,9 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd_hexBinary, \
     Xsd_gMonthDay, Xsd_gDay, Xsd_gMonth, Xsd_base64Binary, Xsd_anyURI, \
     Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_NMTOKEN, Xsd, Xsd_ID, Xsd_IDREF, Xsd_integer, \
-    Xsd_nonPositiveInteger, Xsd_int, Xsd_long, Xsd_short, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, Xsd_unsignedShort, Xsd_unsignedByte, \
-    Xsd_positiveInteger, Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration
+    Xsd_nonPositiveInteger, Xsd_int, Xsd_long, Xsd_short, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, \
+    Xsd_unsignedShort, Xsd_unsignedByte, \
+    Xsd_positiveInteger, Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor, RowElementType
 from omaslib.src.helpers.serializer import serializer
@@ -207,6 +208,87 @@ class TestXsdTypes(unittest.TestCase):
 
         with self.assertRaises(OmasErrorValue):
             val = Xsd_duration('P1M2Y')
+
+    def test_xsd_datetime(self):
+        val = Xsd_dateTime('2001-10-26T21:32:52')
+        self.assertTrue(str(val), '2001-10-26T21:32:52')
+        self.assertTrue(repr(val), '"2001-10-26T21:32:52"^^xsd:dateTime')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(NCName("Xsd_dateTime"), val)
+        valx = self.get_triple(NCName("Xsd_dateTime"))
+        self.assertEqual(val, valx)
+
+        val = Xsd_dateTime('2001-10-26T21:32:52+02:00')
+        self.assertTrue(str(val), '2001-10-26T21:32:52+02:00')
+        self.assertTrue(repr(val), '"2001-10-26T21:32:52+02:00"^^xsd:dateTime')
+
+        val = Xsd_dateTime('2001-10-26T19:32:52Z')
+        self.assertTrue(str(val), '2001-10-26T19:32:52Z')
+        self.assertTrue(repr(val), '"2001-10-26T19:32:52Z"^^xsd:dateTime')
+
+        val = Xsd_dateTime('2001-10-26T19:32:52+00:00')
+        self.assertTrue(str(val), '2001-10-26T19:32:52+00:00')
+        self.assertTrue(repr(val), '"2001-10-26T19:32:52+00:00"^^xsd:dateTime')
+
+        val = Xsd_dateTime('2001-10-26T21:32:52.12679')
+        self.assertTrue(str(val), '2001-10-26T21:32:52.12679')
+        self.assertTrue(repr(val), '"2001-10-26T21:32:52.12679"^^xsd:dateTime')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_dateTime('2001-10-26')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_dateTime('2001-10-26T21:32')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_dateTime('2001-10-26T25:32:52+02:00')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_dateTime('01-10-26T21:32')
+
+    def test_xsd_datetimeStamp(self):
+        val = Xsd_dateTimeStamp('2001-10-26T21:32:52Z')
+        self.assertTrue(str(val), '2001-10-26T21:32:52Z')
+        self.assertTrue(repr(val), '"2001-10-26T21:32:52Z"^^xsd:dateTimeStamp')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(NCName("Xsd_dateTimeStamp"), val)
+        valx = self.get_triple(NCName("Xsd_dateTimeStamp"))
+        self.assertEqual(val, valx)
+
+        val = Xsd_dateTimeStamp('2001-10-26T21:32:52+02:00')
+        self.assertTrue(str(val), '2001-10-26T21:32:52+02:00')
+        self.assertTrue(repr(val), '"2001-10-26T21:32:52+02:00"^^xsd:dateTimeStamp')
+
+        val = Xsd_dateTimeStamp('2001-10-26T19:32:52Z')
+        self.assertTrue(str(val), '2001-10-26T19:32:52Z')
+        self.assertTrue(repr(val), '"2001-10-26T19:32:52Z"^^xsd:dateTimeStamp')
+
+        val = Xsd_dateTimeStamp('2001-10-26T19:32:52+00:00')
+        self.assertTrue(str(val), '2001-10-26T19:32:52+00:00')
+        self.assertTrue(repr(val), '"2001-10-26T19:32:52+00:00"^^xsd:dateTimeStamp')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_dateTimeStamp('2001-10-26T21:32:52.12679')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_dateTime('2001-10-26')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_dateTime('2001-10-26T21:32')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_dateTime('2001-10-26T25:32:52+02:00')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_dateTime('01-10-26T21:32')
 
 
     def test_xsd_gYearMonth(self):

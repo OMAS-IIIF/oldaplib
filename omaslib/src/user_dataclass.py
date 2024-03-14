@@ -40,7 +40,7 @@ from typing import Dict, Self, Set, Tuple, Any
 import bcrypt
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action
+from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, Xsd_dateTime
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNotFound
 from omaslib.src.enums.permissions import AdminPermission
@@ -480,7 +480,7 @@ class UserDataclass:
                         # self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
         if in_project:
             self.__fields[UserFields.IN_PROJECT] = InProjectClass(in_project, on_change=self.__inProject_cb)
-        if not isinstance(self.__modified, datetime):
+        if not isinstance(self.__modified, Xsd_dateTime):
             raise OmasErrorValue(f"Modified field is {type(self.__modified)} and not datetime!!!!")
         self.clear_changeset()
 

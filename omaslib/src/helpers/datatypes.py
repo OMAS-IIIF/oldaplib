@@ -17,7 +17,7 @@ import json
 import math
 import re
 from abc import ABC, abstractmethod
-from datetime import timedelta
+from datetime import timedelta, datetime, time
 from enum import Enum, unique
 from typing import Any, Self, Optional, Dict, Tuple
 from urllib.parse import urlparse
@@ -198,6 +198,113 @@ class Xsd_duration(Xsd):
 
     @property
     def value(self) -> timedelta:
+        return self.__value
+
+
+@strict
+@serializer
+class Xsd_dateTime(Xsd):
+    __value: datetime
+
+    def __init__(self, value: datetime | str):
+        if isinstance(value, datetime):
+            self.__value = value
+        else:
+            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$', value) is None:
+                raise OmasErrorValue(f'DateTime "{value}" not a valid ISO 8601.')
+            try:
+                self.__value = datetime.fromisoformat(value)
+            except ValueError as err:
+                raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return self.__value.isoformat()
+
+    def __repr__(self) -> str:
+        return f'"{self.__value.isoformat()}"^^xsd:dateTime'
+
+    def __eq__(self, other: Self | str):
+        if isinstance(other, str):
+            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$', other) is None:
+                raise OmasErrorValue(f'DateTime "{other}" not a valid ISO 8601.')
+            other = datetime.fromisoformat(other)
+        return self.__value == other.__value
+
+    def _as_dict(self) -> dict:
+        return {'value': self.__value.isoformat()}
+
+    @property
+    def value(self) -> datetime:
+        return self.__value
+
+
+@strict
+@serializer
+class Xsd_dateTimeStamp(Xsd):
+    __value: datetime
+
+    def __init__(self, value: datetime | str):
+        if isinstance(value, datetime):
+            self.__value = value
+        else:
+            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$', value) is None:
+                raise OmasErrorValue(f'DateTimeStamp "{value}" not a valid ISO 8601.')
+            try:
+                self.__value = datetime.fromisoformat(value)
+            except ValueError as err:
+                raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return self.__value.isoformat()
+
+    def __repr__(self) -> str:
+        return f'"{self.__value.isoformat()}"^^xsd:dateTimeStamp'
+
+    def __eq__(self, other: Self | str):
+        if isinstance(other, str):
+            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$', value) is None:
+                raise OmasErrorValue(f'DateTimeStamp "{other}" not a valid ISO 8601.')
+            other = datetime.fromisoformat(other)
+        return self.__value == other.__value
+
+    def _as_dict(self) -> dict:
+        return {'value': self.__value.isoformat()}
+
+    @property
+    def value(self) -> datetime:
+        return self.__value
+
+
+@strict
+@serializer
+class Xsd_time(Xsd):
+    __value: time
+
+    def __init__(self, value: time | str):
+        if isinstance(value, time):
+            self.__value = value
+        else:
+            try:
+                self.__value = time.fromisoformat(value)
+            except ValueError as err:
+                raise OmasErrorValue(str(err))
+
+    def __str__(self) -> str:
+        return self.__value.isoformat()
+
+    def __repr__(self) -> str:
+        return f'"{self.__value.isoformat()}"^^xsd:time'
+
+    def __eq__(self, other: Self | str):
+        if isinstance(other, str):
+            other = time.fromisoformat(other)
+        return self.__value == other.__value
+
+    def _as_dict(self) -> dict:
+        return {'value': self.__value.isoformat()}
+
+    @property
+    def value(self) -> time:
         return self.__value
 
 

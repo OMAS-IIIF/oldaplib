@@ -11,8 +11,9 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, \
     Xsd_gMonth, Xsd_hexBinary, Xsd_base64Binary, \
     Xsd_anyURI, Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_integer, Xsd_nonPositiveInteger, Xsd_negativeInteger, \
-    Xsd_int, Xsd_long, Xsd_short, Xsd_byte, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, Xsd_unsignedShort, Xsd_unsignedByte, Xsd_positiveInteger, \
-    Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration
+    Xsd_int, Xsd_long, Xsd_short, Xsd_byte, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, \
+    Xsd_unsignedShort, Xsd_unsignedByte, Xsd_positiveInteger, \
+    Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp, Xsd_time
 
 RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OldapStringLiteral | Xsd
 RowType = Dict[str, RowElementType]
@@ -60,11 +61,11 @@ class QueryProcessor:
                             case 'xsd:duration':
                                 row[name] = Xsd_duration.fromRdf(valobj["value"])
                             case 'xsd:dateTime':
-                                row[name] = datetime.fromisoformat(valobj["value"])
+                                row[name] = Xsd_dateTime.fromRdf(valobj["value"])
                             case 'xsd:dateTimeStamp':
-                                row[name] = datetime.fromisoformat(valobj["value"])
+                                row[name] = Xsd_dateTimeStamp.fromRdf(valobj["value"])
                             case 'xsd:time':
-                                row[name] = time.fromisoformat(valobj["value"])
+                                row[name] = Xsd_time.fromRdf(valobj["value"])
                             case 'xsd:date':
                                 row[name] = date.fromisoformat(valobj["value"])
                             case 'xsd:gYearMonth':
