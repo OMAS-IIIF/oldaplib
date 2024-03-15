@@ -74,6 +74,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(str(val), "Waseliwas\nsoll denn das\" sein?")
         self.assertEqual(repr(val), '"Waseliwas\\nsoll denn das\\\" sein?"^^xsd:string')
 
+        valc = Xsd_string(val)
+        self.assertEqual(val, valc)
+
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
@@ -88,6 +91,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(val, 3.141592653589793)
         self.assertEqual(str(val), '3.141592653589793')
         self.assertEqual(repr(val), '"3.141592653589793"^^xsd:decimal')
+
+        valc = Xsd_decimal(val)
+        self.assertEqual(val, valc)
 
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
@@ -108,6 +114,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(val, 6.62607015e-34)
         self.assertEqual(str(val), '6.62607015e-34')
         self.assertEqual(repr(val), '"6.62607015e-34"^^xsd:float')
+
+        valc = Xsd_float(val)
+        self.assertEqual(val, valc)
 
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
@@ -162,6 +171,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(str(val), '6.62607015e-34')
         self.assertEqual(repr(val), '"6.62607015e-34"^^xsd:double')
 
+        valc = Xsd_double(val)
+        self.assertEqual(val, valc)
+
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
@@ -214,6 +226,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertTrue(str(val), 'PT2M10S')
         self.assertTrue(repr(val), '"PT2M10S"^^xsd:duration')
 
+        valc = Xsd_duration(val)
+        self.assertEqual(val, valc)
+
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
@@ -229,6 +244,9 @@ class TestXsdTypes(unittest.TestCase):
         val = Xsd_dateTime('2001-10-26T21:32:52')
         self.assertTrue(str(val), '2001-10-26T21:32:52')
         self.assertTrue(repr(val), '"2001-10-26T21:32:52"^^xsd:dateTime')
+
+        valc = Xsd_dateTime(val)
+        self.assertEqual(val, valc)
 
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
@@ -271,6 +289,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertTrue(str(val), '2001-10-26T21:32:52Z')
         self.assertTrue(repr(val), '"2001-10-26T21:32:52Z"^^xsd:dateTimeStamp')
 
+        valc = Xsd_dateTimeStamp(val)
+        self.assertEqual(val, valc)
+
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
@@ -310,6 +331,9 @@ class TestXsdTypes(unittest.TestCase):
         val = Xsd_time('21:32:52+02:00')
         self.assertEqual(str(val), '21:32:52+02:00')
         self.assertEqual(repr(val), '"21:32:52+02:00"^^xsd:time')
+
+        valc = Xsd_time(val)
+        self.assertEqual(val, valc)
 
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
@@ -352,6 +376,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(str(val), "2020-03")
         self.assertEqual(repr(val), '"2020-03"^^xsd:gYearMonth')
 
+        valc = Xsd_gYearMonth(val)
+        self.assertEqual(val, valc)
+
         val = Xsd_gYearMonth("1800-03Z")
         self.assertEqual(str(val), "1800-03Z")
         self.assertEqual(repr(val), '"1800-03Z"^^xsd:gYearMonth')
@@ -391,6 +418,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(str(val), "2020")
         self.assertEqual(repr(val), '"2020"^^xsd:gYear')
 
+        valc = Xsd_gYear(val)
+        self.assertEqual(val, valc)
+
         val = Xsd_gYear("1800Z")
         self.assertEqual(str(val), "1800Z")
         self.assertEqual(repr(val), '"1800Z"^^xsd:gYear')
@@ -417,6 +447,9 @@ class TestXsdTypes(unittest.TestCase):
         val = Xsd_gMonthDay("--02-21")
         self.assertEqual(str(val), "--02-21")
         self.assertEqual(repr(val), '"--02-21"^^xsd:gMonthDay')
+
+        valc = Xsd_gMonthDay(val)
+        self.assertEqual(val, valc)
 
         val = Xsd_gMonthDay("--02-21+12:00")
         self.assertEqual(str(val), "--02-21+12:00")
@@ -453,6 +486,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(str(val), "---01")
         self.assertEqual(repr(val), '"---01"^^xsd:gDay')
 
+        valc = Xsd_gDay(val)
+        self.assertEqual(val, valc)
+
         val = Xsd_gDay("---01Z")
         self.assertEqual(str(val), "---01Z")
         self.assertEqual(repr(val), '"---01Z"^^xsd:gDay')
@@ -483,6 +519,9 @@ class TestXsdTypes(unittest.TestCase):
         val = Xsd_gMonth("--10")
         self.assertEqual(str(val), "--10")
         self.assertEqual(repr(val), '"--10"^^xsd:gMonth')
+
+        valc = Xsd_gMonth(val)
+        self.assertEqual(val, valc)
 
         val = Xsd_gMonth("--05Z")
         self.assertEqual(str(val), "--05Z")
@@ -519,6 +558,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(str(val), "1fab17fa")
         self.assertEqual(repr(val), '"1fab17fa"^^xsd:hexBinary')
 
+        valc = Xsd_hexBinary(val)
+        self.assertEqual(val, valc)
+
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
@@ -538,6 +580,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(str(val), base62string.decode('utf-8'))
         self.assertEqual(repr(val), f'"{base62string.decode('utf-8')}"^^xsd:base64Binary')
 
+        valc = Xsd_base64Binary(val)
+        self.assertEqual(val, valc)
+
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
@@ -553,6 +598,9 @@ class TestXsdTypes(unittest.TestCase):
         val = Xsd_anyURI("http://example.com")
         self.assertEqual(str(val), "http://example.com")
         self.assertEqual(repr(val), '"http://example.com"^^xsd:anyURI')
+
+        valc = Xsd_anyURI(val)
+        self.assertEqual(val, valc)
 
         val = Xsd_anyURI("http://example.com/gugus/nowas#anchor1")
         self.assertEqual(str(val), "http://example.com/gugus/nowas#anchor1")
@@ -574,6 +622,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen\" und anderen Dingen")
         self.assertEqual(repr(val), '"Dies ist ein string mit $onderzeichen\\" und anderen Dingen"^^xsd:normalizedString')
 
+        valc = Xsd_normalizedString(val)
+        self.assertEqual(val, valc)
+
         val = Xsd_normalizedString.fromRdf('Dies ist ein string mit $onderzeichen\\" und anderen Dingen')
         self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen\" und anderen Dingen")
         self.assertEqual(repr(val), '"Dies ist ein string mit $onderzeichen\\" und anderen Dingen"^^xsd:normalizedString')
@@ -592,6 +643,9 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen und anderen Dingen")
         self.assertEqual(repr(val), '"Dies ist ein string mit $onderzeichen und anderen Dingen"^^xsd:token')
 
+        valc = Xsd_token(val)
+        self.assertEqual(val, valc)
+
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
@@ -607,6 +661,9 @@ class TestXsdTypes(unittest.TestCase):
         val = Xsd_language("de")
         self.assertEqual(str(val), "de")
         self.assertEqual(repr(val), '"de"^^xsd:language')
+
+        valc = Xsd_language(val)
+        self.assertEqual(val, valc)
 
         val = Xsd_language("de-CH")
         self.assertEqual(str(val), "de-CH")

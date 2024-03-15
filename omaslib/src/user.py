@@ -146,7 +146,7 @@ from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName
+from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName, Xsd_dateTime, Xsd_string
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
     OmasErrorValue, OmasErrorNoPermission
@@ -158,22 +158,23 @@ from omaslib.src.model import Model
 from omaslib.src.user_dataclass import UserDataclass
 
 
-#@serializer
+# @serializer
 class User(Model, UserDataclass):
     """
     The OLDAP user class is based on the [UserDataclass](/python_docstrings/userdataclass#UserDataclass). It implements together with the UserDataclass
     all the methods ot manage OLDAP users. I also uses the [InProject](/python_docstrings/in_project) class.
     """
+
     def __init__(self, *,
                  con: IConnection | None = None,
                  creator: AnyIRI | None = None,
-                 created: datetime | None = None,
+                 created: Xsd_dateTime | None = None,
                  contributor: AnyIRI | None = None,
-                 modified: datetime | None = None,
+                 modified: Xsd_dateTime | None = None,
                  userIri: AnyIRI | None = None,
                  userId: NCName | None = None,
-                 familyName: str | None = None,
-                 givenName: str | None = None,
+                 familyName: Xsd_string | None = None,
+                 givenName: Xsd_string | None = None,
                  credentials: str | None = None,
                  isActive: bool | None = None,
                  inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
@@ -262,7 +263,7 @@ class User(Model, UserDataclass):
         FROM omas:admin
         WHERE {{
             ?user a omas:User .
-            ?user omas:userId "{self.userId}"^^xsd:NCName .         
+            ?user omas:userId {repr(self.userId)} .         
         }}
         """
 
@@ -277,7 +278,7 @@ class User(Model, UserDataclass):
         """
 
         projs = [repr(x) for x in self.inProject.keys()]
-        projslist= ", ".join(projs)
+        projslist = ", ".join(projs)
         proj_test = context.sparql_context
         proj_test += f"""
         SELECT ?project
@@ -298,7 +299,7 @@ class User(Model, UserDataclass):
         }}
         """
 
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime.now()
         blank = ''
         sparql = context.sparql_context
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
@@ -306,9 +307,9 @@ class User(Model, UserDataclass):
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}<{self.userIri}> a omas:User'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator <{self._con.userIri}>'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {repr(timestamp)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {repr(timestamp)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId {repr(self.userId)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName {repr(self.familyName)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName {repr(self.givenName)}'
@@ -324,14 +325,14 @@ class User(Model, UserDataclass):
                 for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
                     star += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {repr(p)}>> omas:hasAdminPermission {admin_p.value} .\n'
         if self.hasPermissions:
-            rdfstr = ", ".join([ str(x) for x in self.hasPermissions])
+            rdfstr = ", ".join([str(x) for x in self.hasPermissions])
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:hasPermissions {rdfstr}'
         sparql += " .\n\n"
         sparql += star
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
-        #lprint(sparql)
+        lprint(sparql)
 
         self._con.transaction_start()
         try:
@@ -343,7 +344,7 @@ class User(Model, UserDataclass):
         if len(res) > 0:
             self._con.transaction_abort()
             raise OmasErrorAlreadyExists(f'A user with a user ID "{self.userId}" already exists')
-        
+
         try:
             jsonobj = self._con.transaction_query(sparql2)
         except OmasError:
@@ -385,7 +386,6 @@ class User(Model, UserDataclass):
             self._con.transaction_abort()
             raise
 
-
     @classmethod
     def read(cls, con: IConnection, userId: NCName | str) -> Self:
         """
@@ -412,8 +412,8 @@ class User(Model, UserDataclass):
     @staticmethod
     def search(*, con: IConnection,
                userId: Optional[NCName | str] = None,
-               familyName: Optional[str] = None,
-               givenName: Optional[str] = None,
+               familyName: Optional[str | Xsd_string] = None,
+               givenName: Optional[str | Xsd_string] = None,
                inProject: Optional[AnyIRI | QName | str] = None) -> List[AnyIRI]:
         """
         Search for a user in the database. The user can be found by the
@@ -440,8 +440,8 @@ class User(Model, UserDataclass):
         """
         if userId and not isinstance(userId, NCName):
             userId = NCName(userId)
-        familyName = OldapStringLiteral(familyName) if familyName else None
-        givenName = OldapStringLiteral(givenName) if givenName else None
+        familyName = Xsd_string(familyName) if familyName else None
+        givenName = Xsd_string(givenName) if givenName else None
         if not isinstance(inProject, AnyIRI) and not isinstance(inProject, QName):
             inProject = str2qname_anyiri(inProject) if inProject else None
         context = Context(name=con.context_name)
@@ -500,11 +500,11 @@ class User(Model, UserDataclass):
         }}
         WHERE {{
             ?user a omas:User .
-            ?user omas:userId "{self.userId}"^^xsd:NCName .
+            ?user omas:userId {repr(self.userId)} .
         }} ;
         DELETE WHERE {{
             ?user a omas:User .
-            ?user omas:userId "{self.userId}"^^xsd:NCName .
+            ?user omas:userId {repr(self.userId)} .
             ?user ?prop ?val .
         }} 
         """
@@ -537,7 +537,7 @@ class User(Model, UserDataclass):
                 if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
                     raise OmasErrorNoPermission(f'No permission to modify user in project {proj}.')
 
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         ptest, ptest_len, tmpsparql = self._sparql_update()
@@ -550,7 +550,8 @@ class User(Model, UserDataclass):
             raise
         if modtime != self.modified:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed(f'Modifying user "{self.userId}" failed because of changed modification time: {modtime}')
+            raise OmasErrorUpdateFailed(
+                f'Modifying user "{self.userId}" failed because of changed modification time: {modtime}')
         if ptest and ptest_len > 0:
             ptest_sparql = context.sparql_context
             ptest_sparql += ptest
@@ -599,7 +600,7 @@ if __name__ == '__main__':
     # user2.create()
     # user3 = User.read(con, 'testuser')
     # print(user3)
-    #jsonstr = json.dumps(user2, default=serializer.encoder_default, indent=4)
-    #print(jsonstr)
-    #user3 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-    #print(user3)
+    # jsonstr = json.dumps(user2, default=serializer.encoder_default, indent=4)
+    # print(jsonstr)
+    # user3 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+    # print(user3)

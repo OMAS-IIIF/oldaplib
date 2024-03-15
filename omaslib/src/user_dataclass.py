@@ -40,7 +40,7 @@ from typing import Dict, Self, Set, Tuple, Any
 import bcrypt
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, Xsd_dateTime
+from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName, Action, Xsd_dateTime, Xsd_string
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNotFound
 from omaslib.src.enums.permissions import AdminPermission
@@ -136,8 +136,8 @@ class UserDataclass:
     __datatypes = {
         UserFields.USER_IRI: AnyIRI,
         UserFields.USER_ID: NCName,
-        UserFields.FAMILY_NAME: OldapStringLiteral,
-        UserFields.GIVEN_NAME: OldapStringLiteral,
+        UserFields.FAMILY_NAME: Xsd_string,
+        UserFields.GIVEN_NAME: Xsd_string,
         UserFields.CREDENTIALS: str,
         UserFields.ACTIVE: bool,
         UserFields.IN_PROJECT: dict,
@@ -155,13 +155,13 @@ class UserDataclass:
 
     def __init__(self, *,
                  creator: AnyIRI | None = None,
-                 created: datetime | None = None,
+                 created: Xsd_dateTime | None = None,
                  contributor: AnyIRI | None = None,
-                 modified: datetime | None = None,
+                 modified: Xsd_dateTime | None = None,
                  userIri: AnyIRI | None = None,
                  userId: NCName | None = None,
-                 familyName: str | None = None,
-                 givenName: str | None = None,
+                 familyName: Xsd_string | str | None = None,
+                 givenName: Xsd_string | str | None = None,
                  credentials: str | None = None,
                  isActive: bool | None = None,
                  inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
@@ -198,8 +198,8 @@ class UserDataclass:
         self.__modified = modified
         self.__fields[UserFields.USER_IRI] = AnyIRI(userIri) if userIri else None
         self.__fields[UserFields.USER_ID] = NCName(userId) if userId else None
-        self.__fields[UserFields.FAMILY_NAME] = OldapStringLiteral(familyName)
-        self.__fields[UserFields.GIVEN_NAME] = OldapStringLiteral(givenName)
+        self.__fields[UserFields.FAMILY_NAME] = Xsd_string(familyName)
+        self.__fields[UserFields.GIVEN_NAME] = Xsd_string(givenName)
         self.__fields[UserFields.CREDENTIALS] = credentials
         self.__fields[UserFields.ACTIVE] = bool(isActive)
         self.__fields[UserFields.IN_PROJECT] = inProjectTmp
@@ -281,8 +281,8 @@ class UserDataclass:
         return {
                 'userIri': repr(self.__fields.get(UserFields.USER_IRI)),
                 'userId': self.__fields[UserFields.USER_ID],
-                'familyName': str(self.__fields[UserFields.FAMILY_NAME]),
-                'givenName': str(self.__fields[UserFields.GIVEN_NAME]),
+                'familyName': self.__fields[UserFields.FAMILY_NAME],
+                'givenName': self.__fields[UserFields.GIVEN_NAME],
                 'isActive': self.__fields[UserFields.ACTIVE],
                 'hasPermissions': self.__fields[UserFields.HAS_PERMISSIONS],
                 'inProject': self.__fields[UserFields.IN_PROJECT]
@@ -338,7 +338,7 @@ class UserDataclass:
         return self.__creator
 
     @property
-    def created(self) -> datetime | None:
+    def created(self) -> Xsd_dateTime | None:
         return self.__created
 
     @property
@@ -346,11 +346,11 @@ class UserDataclass:
         return self.__contributor
 
     @property
-    def modified(self) -> datetime | None:
+    def modified(self) -> Xsd_dateTime | None:
         return self.__modified
 
     @modified.setter
-    def modified(self, value: datetime) -> None:
+    def modified(self, value: Xsd_dateTime) -> None:
         self.__modified = value
 
     def add_project_permission(self, project: QName | AnyIRI | str, permission: AdminPermission | None) -> None:
@@ -456,7 +456,7 @@ class UserDataclass:
                 case 'dcterms:modified':
                     self.__modified = r['val']
                 case 'omas:userId':
-                    self.__fields[UserFields.USER_ID] = NCName(r['val'])
+                    self.__fields[UserFields.USER_ID] = r['val']
                 case 'foaf:familyName':
                     self.__fields[UserFields.FAMILY_NAME] = r['val']
                 case 'foaf:givenName':

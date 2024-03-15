@@ -82,7 +82,6 @@ class Xsd_string(Xsd, str):
         return {'value': str(self)}
 
 
-
 @strict
 @serializer
 class Xsd_decimal(Xsd, float):
@@ -198,8 +197,10 @@ class Xsd_double(Xsd, float):
 class Xsd_duration(Xsd):
     __value: timedelta
 
-    def __init__(self, value: timedelta | str):
-        if isinstance(value, timedelta):
+    def __init__(self, value: timedelta | Self | str):
+        if isinstance(value, Xsd_duration):
+            self.__value = value.__value
+        elif isinstance(value, timedelta):
             self.__value = value
         else:
             try:
@@ -231,11 +232,15 @@ class Xsd_duration(Xsd):
 class Xsd_dateTime(Xsd):
     __value: datetime
 
-    def __init__(self, value: datetime | str):
-        if isinstance(value, datetime):
+    def __init__(self, value: datetime | Self | str):
+        if isinstance(value, Xsd_dateTime):
+            self.__value = value.__value
+        elif isinstance(value, datetime):
             self.__value = value
         else:
-            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$', value) is None:
+            if re.match(
+                    r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
+                    value) is None:
                 raise OmasErrorValue(f'DateTime "{value}" not a valid ISO 8601.')
             try:
                 self.__value = datetime.fromisoformat(value)
@@ -250,7 +255,9 @@ class Xsd_dateTime(Xsd):
 
     def __eq__(self, other: Self | str):
         if isinstance(other, str):
-            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$', other) is None:
+            if re.match(
+                    r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
+                    other) is None:
                 raise OmasErrorValue(f'DateTime "{other}" not a valid ISO 8601.')
             other = datetime.fromisoformat(other)
         return self.__value == other.__value
@@ -262,17 +269,25 @@ class Xsd_dateTime(Xsd):
     def value(self) -> datetime:
         return self.__value
 
+    @classmethod
+    def now(cls) -> Self:
+        return cls(datetime.now())
+
 
 @strict
 @serializer
 class Xsd_dateTimeStamp(Xsd):
     __value: datetime
 
-    def __init__(self, value: datetime | str):
-        if isinstance(value, datetime):
+    def __init__(self, value: datetime | Self | str):
+        if isinstance(value, Xsd_dateTimeStamp):
+            self.__value = value.__value
+        elif isinstance(value, datetime):
             self.__value = value
         else:
-            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$', value) is None:
+            if re.match(
+                    r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$',
+                    value) is None:
                 raise OmasErrorValue(f'DateTimeStamp "{value}" not a valid ISO 8601.')
             try:
                 self.__value = datetime.fromisoformat(value)
@@ -287,7 +302,9 @@ class Xsd_dateTimeStamp(Xsd):
 
     def __eq__(self, other: Self | str):
         if isinstance(other, str):
-            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$', value) is None:
+            if re.match(
+                    r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$',
+                    value) is None:
                 raise OmasErrorValue(f'DateTimeStamp "{other}" not a valid ISO 8601.')
             other = datetime.fromisoformat(other)
         return self.__value == other.__value
@@ -305,11 +322,15 @@ class Xsd_dateTimeStamp(Xsd):
 class Xsd_time(Xsd):
     __value: time
 
-    def __init__(self, value: time | str):
-        if isinstance(value, time):
+    def __init__(self, value: time | Self | str):
+        if isinstance(value, Xsd_time):
+            self.__value = value.__value
+        elif isinstance(value, time):
             self.__value = value
         else:
-            if re.match(r'^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$', value) is None:
+            if re.match(
+                    r'^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
+                    value) is None:
                 raise OmasErrorValue(f'{value} wrong format for xsd:time.')
             try:
                 self.__value = time.fromisoformat(value)
@@ -325,7 +346,8 @@ class Xsd_time(Xsd):
     def __eq__(self, other: Self | str):
         if isinstance(other, str):
             if re.match(
-                    r'^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$', other) is None:
+                    r'^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
+                    other) is None:
                 raise OmasErrorValue(f'{other} wrong format for xsd:time.')
             other = time.fromisoformat(other)
         return self.__value == other.__value
@@ -337,11 +359,14 @@ class Xsd_time(Xsd):
     def value(self) -> time:
         return self.__value
 
+
 class Xsd_date(Xsd):
     __value: date
 
-    def __init__(self, value: time | str):
-        if isinstance(value, time):
+    def __init__(self, value: time | Self | str):
+        if isinstance(value, Xsd_date):
+            self.__value = value.__value
+        elif isinstance(value, time):
             self.__value = value
         else:
             if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', value) is None:
@@ -600,6 +625,7 @@ class Xsd_gDay(Xsd):
     def __hash__(self) -> int:
         return super().__hash__()
 
+
 @strict
 @serializer
 class Xsd_gMonth(Xsd):
@@ -653,6 +679,7 @@ class Xsd_gMonth(Xsd):
     def __hash__(self) -> int:
         return super().__hash__()
 
+
 @strict
 @serializer
 class Xsd_hexBinary(Xsd):
@@ -678,6 +705,7 @@ class Xsd_hexBinary(Xsd):
     def __hash__(self) -> int:
         return super().__hash__()
 
+
 @strict
 @serializer
 class Xsd_base64Binary(Xsd):
@@ -702,6 +730,7 @@ class Xsd_base64Binary(Xsd):
 
     def __hash__(self) -> int:
         return super().__hash__()
+
 
 @strict
 @serializer
@@ -834,6 +863,7 @@ class Xsd_language(Xsd):
 
     def __hash__(self) -> int:
         return super().__hash__()
+
 
 @strict
 @serializer
@@ -1024,7 +1054,6 @@ class Xsd_IDREF(NCName):
 
     def __repr__(self):
         return f'"{str(self)}"^^xsd:IDREF'
-
 
 
 @strict
@@ -1550,7 +1579,7 @@ class BNode:
     def _as_dict(self):
         """used for json serialization using serializer"""
         return {
-            'value': self.__value
+                'value': self.__value
         }
 
     @property
@@ -1681,7 +1710,7 @@ class AnyIRI:
 
     def _as_dict(self) -> Dict[str, str]:
         return {
-            'value': self._value
+                'value': self._value
         }
 
     def as_rdf(self) -> str:
@@ -1716,7 +1745,7 @@ class NamespaceIRI(AnyIRI):
 
     def _as_dict(self) -> Dict[str, str]:
         return {
-            'value': self._value
+                'value': self._value
         }
 
 

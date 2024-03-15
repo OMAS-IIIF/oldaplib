@@ -4,7 +4,7 @@ from typing import List, Set, Dict, Tuple, Optional, Any, Union
 from pystrict import strict
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI
+from omaslib.src.helpers.datatypes import QName, AnyIRI, Xsd_dateTime
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.tools import lprint
@@ -30,7 +30,7 @@ class Model:
         else:
             return False
 
-    def get_modified_by_iri(self, graph: QName, iri: AnyIRI) -> datetime:
+    def get_modified_by_iri(self, graph: QName, iri: AnyIRI) -> Xsd_dateTime:
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""
@@ -54,23 +54,23 @@ class Model:
     def set_modified_by_iri(self,
                             graph: QName,
                             iri: AnyIRI,
-                            old_timestamp: datetime,
-                            timestamp: datetime) -> None:
+                            old_timestamp: Xsd_dateTime,
+                            timestamp: Xsd_dateTime) -> None:
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""
         WITH {graph}
         DELETE {{
-            ?res dcterms:modified "{old_timestamp.isoformat()}"^^xsd:dateTime .
+            ?res dcterms:modified {repr(old_timestamp)} .
             ?res dcterms:contributor ?contributor .
         }}
         INSERT {{
-            ?res dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime .
+            ?res dcterms:modified {repr(timestamp)} .
             ?res dcterms:contributor {repr(self._con.userIri)} .
         }}
         WHERE {{
             BIND({repr(iri)} as ?res)
-            ?res dcterms:modified "{old_timestamp.isoformat()}"^^xsd:dateTime .
+            ?res dcterms:modified {repr(old_timestamp)} .
             ?res dcterms:contributor ?contributor .
         }}
         """

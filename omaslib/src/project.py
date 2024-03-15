@@ -11,7 +11,7 @@ from datetime import date, datetime
 
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI, Action
+from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI, Action, Xsd_dateTime, Xsd_date
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, \
     OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound
@@ -112,14 +112,14 @@ class Project(Model):
         ProjectFields.LABEL: lambda x: repr(x),
         ProjectFields.COMMENT: lambda x: repr(x),
         ProjectFields.NAMESPACE_IRI: lambda x: repr(x),
-        ProjectFields.PROJECT_START: lambda x: f'"{x.isoformat()}"^^xsd:date',
-        ProjectFields.PROJECT_END: lambda x: f'"{x.isoformat()}"^^xsd:date',
+        ProjectFields.PROJECT_START: lambda x: repr(x),
+        ProjectFields.PROJECT_END: lambda x: repr(x),
     }
 
     __creator: AnyIRI | None
-    __created: datetime | None
+    __created: Xsd_dateTime | None
     __contributor: AnyIRI | None
-    __modified: datetime | None
+    __modified: Xsd_dateTime | None
 
     __fields: Dict[ProjectFields, ProjectFieldTypes]
 
@@ -128,16 +128,16 @@ class Project(Model):
     def __init__(self, *,
                  con: IConnection,
                  creator: Optional[AnyIRI | QName] = None,
-                 created: Optional[datetime] = None,
+                 created: Optional[Xsd_dateTime] = None,
                  contributor: Optional[AnyIRI | QName] = None,
-                 modified: Optional[datetime] = None,
+                 modified: Optional[Xsd_dateTime] = None,
                  projectIri: Optional[AnyIRI | QName] = None,
                  projectShortName: NCName | str,
                  namespaceIri: NamespaceIRI,
                  label: Optional[LangString | str],
                  comment: Optional[LangString | str],
-                 projectStart: Optional[date] = None,
-                 projectEnd: Optional[date] = None):
+                 projectStart: Optional[Xsd_date] = None,
+                 projectEnd: Optional[Xsd_date] = None):
         """
         Constructs a new Project
         :param con: [Connection](/python_docstrings/iconnection) instance
@@ -168,8 +168,12 @@ class Project(Model):
         """
         super().__init__(con)
         self.__creator = creator if creator is not None else con.userIri
+        if not isinstance(created, Xsd_dateTime):
+            raise OmasErrorValue(f'Created must be "Xsd_dateTime", not "{type(created)}".')
         self.__created = created
         self.__contributor = contributor if contributor is not None else con.userIri
+        if not isinstance(modified, Xsd_dateTime):
+            raise OmasErrorValue(f'Modified must be "Xsd_dateTime", not "{type(modified)}".')
         self.__modified = modified
         self.__fields = {}
 
