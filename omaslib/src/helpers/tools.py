@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List, Tuple, Union
 
-from omaslib.src.helpers.datatypes import Action, QName, NCName, AnyIRI
+from omaslib.src.helpers.datatypes import Action, QName, NCName, Xsd_anyURI
 
 
 def lprint(text: str):
@@ -12,11 +12,11 @@ def lprint(text: str):
         print(f"{i}: {line}")
 
 
-def str2qname_anyiri(s: str) -> QName | AnyIRI:
+def str2qname_anyiri(s: str) -> QName | Xsd_anyURI:
     try:
         return QName(s)
     except:
-        return AnyIRI(s)
+        return Xsd_anyURI(s)
 
 
 @dataclass

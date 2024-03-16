@@ -5,7 +5,7 @@ from rdflib import Graph
 from rdflib.namespace import NamespaceManager
 
 from omaslib.src.helpers.context import Context, ContextSingleton
-from omaslib.src.helpers.datatypes import NamespaceIRI, AnyIRI, QName
+from omaslib.src.helpers.datatypes import NamespaceIRI, Xsd_anyURI, QName
 from omaslib.src.helpers.omaserror import OmasError
 
 
@@ -49,11 +49,11 @@ class TestContext(unittest.TestCase):
 
     def test_context_iri2qname(self):
         context = Context(name="iri2qname")
-        qn = context.iri2qname(AnyIRI('http://www.w3.org/2000/01/rdf-schema#label'))
+        qn = context.iri2qname(Xsd_anyURI('http://www.w3.org/2000/01/rdf-schema#label'))
         self.assertEqual(qn, 'rdfs:label')
-        qn = context.iri2qname(AnyIRI('http://www.w3.org/2004/02/skos/core#node'))
+        qn = context.iri2qname(Xsd_anyURI('http://www.w3.org/2004/02/skos/core#node'))
         self.assertEqual(qn, 'skos:node')
-        qn = context.iri2qname(AnyIRI('http://www.gaga.org#label'))
+        qn = context.iri2qname(Xsd_anyURI('http://www.gaga.org#label'))
         self.assertIsNone(qn)
         with self.assertRaises(OmasError) as ex:
             qn = context.iri2qname('waseliwas/soll')

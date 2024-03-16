@@ -12,7 +12,7 @@ from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import RdfModifyRes, RdfModifyItem
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
-from omaslib.src.helpers.datatypes import QName, Action, AnyIRI, NCName, BNode
+from omaslib.src.helpers.datatypes import QName, Action, Xsd_anyURI, NCName, BNode
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.context import Context
 from omaslib.src.iconnection import IConnection
@@ -48,9 +48,9 @@ class ResourceClass(Model, Notify):
     _properties: Dict[QName, PropertyClass]
     _attr_changeset: Dict[ResourceClassAttribute, ResourceClassAttributeChange]
     _prop_changeset: Dict[QName, ResourceClassPropertyChange]
-    __creator: Optional[AnyIRI]
+    __creator: Optional[Xsd_anyURI]
     __created: Optional[datetime]
-    __contributor: Optional[AnyIRI]
+    __contributor: Optional[Xsd_anyURI]
     __modified: Optional[datetime]
     __version: SemanticVersion
     __from_triplestore: bool
@@ -195,7 +195,7 @@ class ResourceClass(Model, Notify):
         return self.__version
 
     @property
-    def creator(self) -> Optional[AnyIRI]:
+    def creator(self) -> Optional[Xsd_anyURI]:
         return self.__creator
 
     @property
@@ -203,7 +203,7 @@ class ResourceClass(Model, Notify):
         return self.__created
 
     @property
-    def contributor(self) -> Optional[AnyIRI]:
+    def contributor(self) -> Optional[Xsd_anyURI]:
         return self.__contributor
 
     @property

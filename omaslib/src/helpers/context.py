@@ -14,7 +14,7 @@ from pystrict import strict
 from rdflib import Graph
 from rdflib.namespace import NamespaceManager, Namespace
 
-from omaslib.src.helpers.datatypes import NCName, AnyIRI, NamespaceIRI, QName
+from omaslib.src.helpers.datatypes import NCName, Xsd_anyURI, NamespaceIRI, QName
 from omaslib.src.helpers.omaserror import OmasError
 
 DEFAULT_CONTEXT = "OMAS_DEFAULT_CONTEXT"
@@ -200,8 +200,8 @@ class Context(metaclass=ContextSingleton):
         :param iri: A valid iri (NamespaceIRI or string)
         :return: QName or None
         """
-        if not isinstance(iri, AnyIRI):
-            iri = AnyIRI(iri)
+        if not isinstance(iri, Xsd_anyURI):
+            iri = Xsd_anyURI(iri)
         for prefix, trunk in self._context.items():
             if str(iri).startswith(str(trunk)):
                 fragment = str(iri)[len(trunk):]

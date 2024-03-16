@@ -5,7 +5,7 @@ from time import sleep
 from omaslib.src.connection import Connection
 from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode, AnyIRI, NCName
+from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode, Xsd_anyURI, NCName, Xsd_boolean, Xsd_dateTime
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
 
@@ -107,7 +107,7 @@ class TestBasicConnection(unittest.TestCase):
                          token=token,
                          context_name="DEFAULT")
         self.assertEqual(con.userid, NCName("rosenth"))
-        self.assertEqual(con.userIri, AnyIRI("https://orcid.org/0000-0003-1681-4036"))
+        self.assertEqual(con.userIri, Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"))
 
         with self.assertRaises(OmasError) as ex:
             con = Connection(server='http://localhost:7200',
@@ -156,13 +156,13 @@ class TestBasicConnection(unittest.TestCase):
             QName("rdfs:comment"): "Resource for testing...",
             QName("rdfs:label"): {"My Resource@en", "Meine Ressource@de",  "Ma Resource@fr"},
             QName("sh:property"): QName("test:testShape"),
-            QName("sh:closed"): True,
+            QName("sh:closed"): Xsd_boolean(True),
             QName("sh:targetClass"): QName("test:testMyRes"),
             QName("dcterms:hasVersion"): '1.0.0',
-            QName("dcterms:creator"): AnyIRI("https://orcid.org/0000-0003-1681-4036"),
-            QName("dcterms:created"): datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc),
-            QName("dcterms:contributor"):  AnyIRI("https://orcid.org/0000-0003-1681-4036"),
-            QName("dcterms:modified"): datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)
+            QName("dcterms:creator"): Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
+            QName("dcterms:created"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)),
+            QName("dcterms:contributor"):  Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
+            QName("dcterms:modified"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc))
         }
         query = self._context.sparql_context
         query += """

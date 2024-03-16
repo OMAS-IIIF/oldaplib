@@ -11,7 +11,7 @@ from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI, Action, NCName, BNode
+from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, Action, NCName, BNode
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
@@ -33,7 +33,7 @@ class OwlPropertyType(Enum):
     OwlObjectProperty = 'owl:ObjectProperty'
 
 
-PropTypes = QName | AnyIRI | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | int | float | None
+PropTypes = QName | Xsd_anyURI | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | int | float | None
 PropertyClassAttributesContainer = Dict[PropertyClassAttribute, PropTypes]
 Attributes = Dict[QName, List[Any] | Set[Any]]
 
@@ -73,9 +73,9 @@ class PropertyClass(Model, Notify):
     # The following attributes of this class cannot be set explicitely by the used
     # They are automatically managed by the OMAS system
     #
-    __creator: Optional[AnyIRI]
+    __creator: Optional[Xsd_anyURI]
     __created: Optional[datetime]
-    __contributor: Optional[AnyIRI]
+    __contributor: Optional[Xsd_anyURI]
     __modified: Optional[datetime]
     __version: SemanticVersion
     __from_triplestore: bool
@@ -83,7 +83,7 @@ class PropertyClass(Model, Notify):
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
         PropertyClassAttribute.SUBPROPERTY_OF: {QName},
         PropertyClassAttribute.PROPERTY_TYPE: {OwlPropertyType},
-        PropertyClassAttribute.TO_NODE_IRI: {QName, AnyIRI},
+        PropertyClassAttribute.TO_NODE_IRI: {QName, Xsd_anyURI},
         PropertyClassAttribute.DATATYPE: {XsdDatatypes},
         PropertyClassAttribute.RESTRICTIONS: {PropertyRestrictions},
         PropertyClassAttribute.NAME: {LangString},
@@ -220,7 +220,7 @@ class PropertyClass(Model, Notify):
         return self.__version
 
     @property
-    def creator(self) -> Optional[AnyIRI]:
+    def creator(self) -> Optional[Xsd_anyURI]:
         return self.__creator
 
     @property
@@ -228,7 +228,7 @@ class PropertyClass(Model, Notify):
         return self.__created
 
     @property
-    def contributor(self) -> Optional[AnyIRI]:
+    def contributor(self) -> Optional[Xsd_anyURI]:
         return self.__contributor
 
     @property
@@ -401,7 +401,7 @@ class PropertyClass(Model, Notify):
                 pass  # TODO: Process property group correctly.... (at Moment only omas:SystemPropGroup)
             elif key in propkeys:
                 attr = PropertyClassAttribute(key)
-                if {QName, AnyIRI} == self.__datatypes[attr]:
+                if {QName, Xsd_anyURI} == self.__datatypes[attr]:
                     self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
                 elif {XsdDatatypes} == self.__datatypes[attr]:
                     self._attributes[attr] = XsdDatatypes(str(val[0]))

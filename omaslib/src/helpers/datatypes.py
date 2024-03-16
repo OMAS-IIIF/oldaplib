@@ -20,7 +20,6 @@ from abc import ABC, abstractmethod
 from datetime import timedelta, datetime, time, date
 from enum import Enum, unique
 from typing import Any, Self, Optional, Dict, Tuple
-from urllib.parse import urlparse
 
 import isodate
 from isodate import ISO8601Error
@@ -57,6 +56,43 @@ class Xsd(ABC):
     def _as_dict(self) -> Dict[str, str]:
         return {'value': str(self)}
 
+@strict
+@serializer
+class Xsd_boolean(Xsd):
+    __value: bool
+
+    def __init__(self, value: Any):
+        if isinstance(value, str):
+            if value.lower() in ('yes', 'true', 't', 'y', '1'):
+                self.__value = True
+            elif value.lower() in ('no', 'false', 'f', 'n', '0'):
+                self.__value = False
+            else:
+                raise OmasErrorValue('No valid string for boolean value.')
+        else:
+            self.__value = bool(value)
+
+    def __str__(self) -> str:
+        return str(self.__value)
+
+    def __repr__(self) -> str:
+        return f'"{str(self.__value)}"^^xsd:boolean'
+
+    def __bool__(self) -> bool:
+        return self.__value
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Xsd_boolean):
+            other = Xsd_boolean(other)
+        return self.__value == other.__value
+
+    @classmethod
+    def fromRdf(cls, value: str) -> Self:
+        return cls(value)
+
+    def _as_dict(self) -> Dict[str, str]:
+        return {'value': str(self.__value)}
+
 
 @strict
 @serializer
@@ -65,7 +101,7 @@ class Xsd_string(Xsd, str):
     def __init__(self, value: Self | str):
         super().__init__(value)
 
-    def __new__(cls, value: Self | str) -> str:
+    def __new__(cls, value: str) -> str:
         return str.__new__(cls, value)
 
     def __str__(self) -> str:
@@ -303,8 +339,7 @@ class Xsd_dateTimeStamp(Xsd):
     def __eq__(self, other: Self | str):
         if isinstance(other, str):
             if re.match(
-                    r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$',
-                    value) is None:
+                    r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])$', other) is None:
                 raise OmasErrorValue(f'DateTimeStamp "{other}" not a valid ISO 8601.')
             other = datetime.fromisoformat(other)
         return self.__value == other.__value
@@ -360,14 +395,22 @@ class Xsd_time(Xsd):
         return self.__value
 
 
+@strict
+@serializer
 class Xsd_date(Xsd):
     __value: date
 
-    def __init__(self, value: time | Self | str):
+    def __init__(self, value: date | Self | str | int, month: Optional[int] = None, day: Optional[int] = None):
         if isinstance(value, Xsd_date):
             self.__value = value.__value
-        elif isinstance(value, time):
+        elif isinstance(value, date):
             self.__value = value
+        elif isinstance(value, int) and isinstance(month, int) and isinstance(day, int):
+            if month < 1 or month > 12:
+                raise OmasErrorValue(f'({value}, {month}, {day}) wrong format for xsd:date.')
+            if day < 1 or day > 31:
+                raise OmasErrorValue(f'({value}, {month}, {day}) wrong format for xsd:date.')
+            self.__value = date(value, month, day)
         else:
             if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', value) is None:
                 raise OmasErrorValue(f'{value} wrong format for xsd:date.')
@@ -394,8 +437,12 @@ class Xsd_date(Xsd):
         return {'value': self.__value.isoformat()}
 
     @property
-    def value(self) -> time:
+    def value(self) -> date:
         return self.__value
+
+    @classmethod
+    def now(cls):
+        return cls(datetime.now().date())
 
 
 @strict
@@ -732,33 +779,33 @@ class Xsd_base64Binary(Xsd):
         return super().__hash__()
 
 
-@strict
-@serializer
-class Xsd_anyURI(Xsd):
-    __value: str
-
-    def __init__(self, value: Self | str):
-        if isinstance(value, Xsd_anyURI):
-            self.__value = value.__value
-        else:
-            if not XsdValidator.validate(XsdDatatypes.anyURI, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
-
-            if not url(value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
-            self.__value = value
-
-    def __str__(self):
-        return self.__value
-
-    def __repr__(self):
-        return f'"{str(self)}"^^xsd:anyURI'
-
-    def __eq__(self, other):
-        return self.__value == other.__value
-
-    def __hash__(self) -> int:
-        return super().__hash__()
+# @strict
+# @serializer
+# class Xsd_anyURI(Xsd):
+#     __value: str
+#
+#     def __init__(self, value: Self | str):
+#         if isinstance(value, Xsd_anyURI):
+#             self.__value = value.__value
+#         else:
+#             if not XsdValidator.validate(XsdDatatypes.anyURI, value):
+#                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+#
+#             if not url(value):
+#                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+#             self.__value = value
+#
+#     def __str__(self):
+#         return self.__value
+#
+#     def __repr__(self):
+#         return f'"{str(self)}"^^xsd:anyURI'
+#
+#     def __eq__(self, other):
+#         return self.__value == other.__value
+#
+#     def __hash__(self) -> int:
+#         return super().__hash__()
 
 
 @strict
@@ -1135,6 +1182,9 @@ class QName(Xsd):
         """
         return self._value
 
+    def resUri(self) -> str:
+        return self._value
+
     def __eq__(self, other: Any):
         """
         Test for equality of two QNames
@@ -1184,7 +1234,7 @@ class Xsd_integer(Xsd, int):
     def __init__(self, value: int | str):
         super().__init__(value)
 
-    def __new__(cls, value: int | str) -> Self:
+    def __new__(cls, value: int | str):
         try:
             return int.__new__(cls, value)
         except ValueError as err:
@@ -1594,7 +1644,7 @@ class BNode:
 
 @strict
 @serializer
-class AnyIRI:
+class Xsd_anyURI(Xsd):
     """
     # AnyIRI
 
@@ -1620,15 +1670,21 @@ class AnyIRI:
         """
         Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI
         :param value: A string or another AnyIRI instance
-        :type value: AnyIRI | str
+        :type value: Xsd_anyURI | str
         """
-        if isinstance(value, AnyIRI):
+        if isinstance(value, Xsd_anyURI):
             self._value = str(value)
         else:
             if isinstance(value, str):
                 value = value.replace("<", "").replace(">", "")
             if not XsdValidator.validate(XsdDatatypes.anyURI, value):
                 raise OmasErrorValue(f'Invalid string "{value}" for anyIRI')
+            if value.startswith("urn:"):
+                if not re.match(r'^urn:[a-z0-9][a-z0-9-]{0,31}:[^\s]+', value):
+                    raise OmasErrorValue(f'Invalud URN format for "{value}".')
+            else:
+                if not url(value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
             self._value = value
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 
@@ -1638,13 +1694,13 @@ class AnyIRI:
         :param other: A string/NCName to be appended to the AnyIRI
         :type other: NCName | str
         :return: A new AnyIRI
-        :rtype: AnyIRI
+        :rtype: Xsd_anyURI
         """
         if isinstance(other, str):
             other = NCName(other)
-            return AnyIRI(self._value + str(other))
+            return Xsd_anyURI(self._value + str(other))
         if isinstance(other, NCName):
-            return AnyIRI(self._value + str(other))
+            return Xsd_anyURI(self._value + str(other))
         else:
             return OmasErrorValue(f'Cannot add "{other}" to AnyIRI')
 
@@ -1667,7 +1723,7 @@ class AnyIRI:
         Returns the Python representation of the AnyIRI
         :return: Python representation of the AnyIRI
         """
-        return f'<{self._value}>'
+        return f'"{self._value}"^^xsd:anyURI'
 
     def __str__(self) -> str:
         """
@@ -1684,7 +1740,7 @@ class AnyIRI:
         """
         if isinstance(other, str):
             return self._value == other
-        return isinstance(other, AnyIRI) and self._value == other._value
+        return isinstance(other, Xsd_anyURI) and self._value == other._value
 
     def __ne__(self, other: Any) -> bool:
         """
@@ -1710,10 +1766,10 @@ class AnyIRI:
 
     def _as_dict(self) -> Dict[str, str]:
         return {
-                'value': self._value
+                'value': str(self._value)
         }
 
-    def as_rdf(self) -> str:
+    def resUri(self) -> str:
         return f'<{self._value}>'
 
     @property
@@ -1726,7 +1782,7 @@ class AnyIRI:
 
 
 @serializer
-class NamespaceIRI(AnyIRI):
+class NamespaceIRI(Xsd_anyURI):
     """
     # NamespaceIRI
 
@@ -1782,7 +1838,7 @@ if __name__ == "__main__":
     g1 = Xsd_gYearMonth("2022-05")
     g2 = Xsd_gYearMonth("-2022-05+03:00")
 
-    AnyIRI('urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b')
+    Xsd_anyURI('urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b')
 
     gaga = Action.REPLACE
     json_repr = json.dumps(gaga, default=serializer.encoder_default)

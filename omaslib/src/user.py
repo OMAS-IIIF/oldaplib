@@ -146,7 +146,7 @@ from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import AnyIRI, QName, NCName, Xsd_dateTime, Xsd_string
+from omaslib.src.helpers.datatypes import Xsd_anyURI, QName, NCName, Xsd_dateTime, Xsd_string
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
     OmasErrorValue, OmasErrorNoPermission
@@ -167,24 +167,24 @@ class User(Model, UserDataclass):
 
     def __init__(self, *,
                  con: IConnection | None = None,
-                 creator: AnyIRI | None = None,
+                 creator: Xsd_anyURI | None = None,
                  created: Xsd_dateTime | None = None,
-                 contributor: AnyIRI | None = None,
+                 contributor: Xsd_anyURI | None = None,
                  modified: Xsd_dateTime | None = None,
-                 userIri: AnyIRI | None = None,
+                 userIri: Xsd_anyURI | None = None,
                  userId: NCName | None = None,
                  familyName: Xsd_string | None = None,
                  givenName: Xsd_string | None = None,
                  credentials: str | None = None,
                  isActive: bool | None = None,
-                 inProject: Dict[QName | AnyIRI, Set[AdminPermission]] | None = None,
+                 inProject: Dict[QName | Xsd_anyURI, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[QName] | None = None):
         """
         Constructor for the User class
         :param con: IConnection instance
         :type con: IConnection | None
         :param creator: AnyIRI of the creator
-        :type creator: AnyIRI | None
+        :type creator: Xsd_anyURI | None
         :param created: DateTime of the creation of the user
         :type created: datetime | None
         :param contributor: AnyIRI of the user that changed the given User instance
@@ -209,7 +209,7 @@ class User(Model, UserDataclass):
         :type hasPermissions: PermissionSet
         """
         if userIri is None:
-            userIri = AnyIRI(uuid.uuid4().urn)
+            userIri = Xsd_anyURI(uuid.uuid4().urn)
         Model.__init__(self, connection=con)
         UserDataclass.__init__(self,
                                creator=creator,
@@ -255,7 +255,7 @@ class User(Model, UserDataclass):
                     raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
 
         if self.userIri is None:
-            self.userIri = AnyIRI(uuid.uuid4().urn)
+            self.userIri = Xsd_anyURI(uuid.uuid4().urn)
         context = Context(name=self._con.context_name)
         sparql1 = context.sparql_context
         sparql1 += f"""
@@ -277,7 +277,7 @@ class User(Model, UserDataclass):
         }}
         """
 
-        projs = [repr(x) for x in self.inProject.keys()]
+        projs = [x.resUri() for x in self.inProject.keys()]
         projslist = ", ".join(projs)
         proj_test = context.sparql_context
         proj_test += f"""
@@ -305,10 +305,10 @@ class User(Model, UserDataclass):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}}<{self.userIri}> a omas:User'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator <{self._con.userIri}>'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.resUri()} a omas:User'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.resUri()}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {repr(timestamp)}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.resUri()}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {repr(timestamp)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId {repr(self.userId)}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName {repr(self.familyName)}'
@@ -318,12 +318,12 @@ class User(Model, UserDataclass):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:isActive {activeval}'
         star = ''
         if self.inProject:
-            project = [repr(p) for p in self.inProject.keys()]
+            project = [p.resUri() for p in self.inProject.keys()]
             rdfstr = ", ".join(project)
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:inProject {rdfstr}'
             for p in self.inProject.keys():
                 for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
-                    star += f'{blank:{(indent + 2) * indent_inc}}<<<{self.userIri}> omas:inProject {repr(p)}>> omas:hasAdminPermission {admin_p.value} .\n'
+                    star += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.resUri()} omas:inProject {repr(p)}>> omas:hasAdminPermission {admin_p.value} .\n'
         if self.hasPermissions:
             rdfstr = ", ".join([str(x) for x in self.hasPermissions])
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:hasPermissions {rdfstr}'
@@ -331,8 +331,6 @@ class User(Model, UserDataclass):
         sparql += star
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-
-        lprint(sparql)
 
         self._con.transaction_start()
         try:
@@ -378,6 +376,8 @@ class User(Model, UserDataclass):
         try:
             self._con.transaction_update(sparql)
         except OmasError:
+            print("\n=========\n", sparql)
+            print(self.inProject)
             self._con.transaction_abort()
             raise
         try:
@@ -414,7 +414,7 @@ class User(Model, UserDataclass):
                userId: Optional[NCName | str] = None,
                familyName: Optional[str | Xsd_string] = None,
                givenName: Optional[str | Xsd_string] = None,
-               inProject: Optional[AnyIRI | QName | str] = None) -> List[AnyIRI]:
+               inProject: Optional[Xsd_anyURI | QName | str] = None) -> List[Xsd_anyURI]:
         """
         Search for a user in the database. The user can be found by the
 
@@ -434,7 +434,7 @@ class User(Model, UserDataclass):
         :param givenName: The givenname of the user to be searched for in the database
         :type givenName: str
         :param inProject: The project the user is member of
-        :type inProject: AnyIRI | QName | str
+        :type inProject: Xsd_anyURI | QName | str
         :return: List of users
         :rtype: List[AnyIRI]
         """
@@ -442,7 +442,7 @@ class User(Model, UserDataclass):
             userId = NCName(userId)
         familyName = Xsd_string(familyName) if familyName else None
         givenName = Xsd_string(givenName) if givenName else None
-        if not isinstance(inProject, AnyIRI) and not isinstance(inProject, QName):
+        if not isinstance(inProject, Xsd_anyURI) and not isinstance(inProject, QName):
             inProject = str2qname_anyiri(inProject) if inProject else None
         context = Context(name=con.context_name)
         sparql = context.sparql_context
@@ -461,7 +461,7 @@ class User(Model, UserDataclass):
             sparql += f'   FILTER(STR(?given_name) = {repr(givenName)})\n'
         if inProject is not None:
             sparql += '   ?user omas:inProject ?project .\n'
-            sparql += f'   FILTER(?project = {repr(inProject)})\n'
+            sparql += f'   FILTER(?project = {inProject.resUri()})\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)

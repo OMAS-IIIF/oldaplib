@@ -5,7 +5,7 @@ from pprint import pprint
 from typing import Dict, List, Optional, Union
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, QName, AnyIRI, Action
+from omaslib.src.helpers.datatypes import NCName, QName, Xsd_anyURI, Action
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasError, OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion

@@ -5,7 +5,7 @@ from time import sleep
 from omaslib.src.connection import Connection
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, AnyIRI
+from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, Xsd_anyURI, Xsd_date
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorNotFound
 from omaslib.src.project import Project
@@ -68,8 +68,8 @@ class Testproject(unittest.TestCase):
                           label=LangString(["unittest@en", "unittest@de"]),
                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest#"),
                           comment=LangString(["For testing@en", "Für Tests@de"]),
-                          projectStart=date(2024, 1, 1),
-                          projectEnd=date(2025, 12, 31)
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
                           )
         project.create()
         projectIri = project.projectIri
@@ -79,8 +79,8 @@ class Testproject(unittest.TestCase):
         self.assertEqual("unittest", project2.projectShortName)
         self.assertEqual(LangString(["unittest@en", "unittest@de"]), project2.label)
         self.assertEqual(LangString(["For testing@en", "Für Tests@de"]), project2.comment)
-        self.assertEqual(date(2024, 1, 1), project2.projectStart)
-        self.assertEqual(date(2025, 12, 31), project2.projectEnd)
+        self.assertEqual(Xsd_date(2024, 1, 1), project2.projectStart)
+        self.assertEqual(Xsd_date(2025, 12, 31), project2.projectEnd)
 
     def test_project_modify(self):
         project = Project(con=self._connection,
@@ -88,8 +88,8 @@ class Testproject(unittest.TestCase):
                           label=LangString(["updatetest@en", "updatetest@de"]),
                           namespaceIri=NamespaceIRI("http://unitest.org/project/updatetest#"),
                           comment=LangString(["For testing@en", "Für Tests@de"]),
-                          projectStart=date(2024, 1, 1),
-                          projectEnd=date(2025, 12, 31)
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
                           )
         project.create()
 
@@ -100,11 +100,11 @@ class Testproject(unittest.TestCase):
         project.comment[Language.FR] = "Pour les tests"
         project.comment[Language.DE] = "FÜR DAS TESTEN"
         project.label = LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"])
-        project.projectEnd = date(2026, 6, 30)
+        project.projectEnd = Xsd_date(date(2026, 6, 30))
         project.update()
         self.assertEqual(project.comment, LangString(["For testing@en", "FÜR DAS TESTEN@de", "Pour les tests@fr"]))
         self.assertEqual(project.label, LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"]))
-        self.assertEqual(project.projectEnd, date(2026, 6, 30))
+        self.assertEqual(project.projectEnd, Xsd_date(2026, 6, 30))
 
     def test_project_delete(self):
         project = Project(con=self._connection,
@@ -112,8 +112,8 @@ class Testproject(unittest.TestCase):
                           label=LangString(["deletetest@en", "deletetest@de"]),
                           namespaceIri=NamespaceIRI("http://unitest.org/project/deletetest#"),
                           comment=LangString(["For deleting@en", "Für Löschung@de"]),
-                          projectStart=date(2024, 1, 1),
-                          projectEnd=date(2025, 12, 31)
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
                           )
         project.create()
         projectIri = project.projectIri

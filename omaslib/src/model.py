@@ -4,7 +4,7 @@ from typing import List, Set, Dict, Tuple, Optional, Any, Union
 from pystrict import strict
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI, Xsd_dateTime
+from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, Xsd_dateTime
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.tools import lprint
@@ -30,14 +30,14 @@ class Model:
         else:
             return False
 
-    def get_modified_by_iri(self, graph: QName, iri: AnyIRI) -> Xsd_dateTime:
+    def get_modified_by_iri(self, graph: QName, iri: Xsd_anyURI | QName) -> Xsd_dateTime:
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?modified
         FROM {graph}
         WHERE {{
-            {repr(iri)} dcterms:modified ?modified
+            {iri.resUri()} dcterms:modified ?modified
         }}
         """
         jsonobj = None
@@ -53,7 +53,7 @@ class Model:
 
     def set_modified_by_iri(self,
                             graph: QName,
-                            iri: AnyIRI,
+                            iri: Xsd_anyURI | QName,
                             old_timestamp: Xsd_dateTime,
                             timestamp: Xsd_dateTime) -> None:
         context = Context(name=self._con.context_name)
@@ -69,7 +69,7 @@ class Model:
             ?res dcterms:contributor {repr(self._con.userIri)} .
         }}
         WHERE {{
-            BIND({repr(iri)} as ?res)
+            BIND({iri.resUri()} as ?res)
             ?res dcterms:modified {repr(old_timestamp)} .
             ?res dcterms:contributor ?contributor .
         }}

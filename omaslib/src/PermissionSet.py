@@ -10,7 +10,7 @@ from pystrict import strict
 from omaslib.src.connection import Connection
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI, Action
+from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, Action
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
     OmasErrorInconsistency
@@ -28,7 +28,7 @@ class PermissionSetFields(Enum):
     DEFINED_BY_PROJECT = 'omas:definedByProject'
 
 
-PermissionSetFieldTypes = AnyIRI | QName | LangString | DataPermission | None
+PermissionSetFieldTypes = Xsd_anyURI | QName | LangString | DataPermission | None
 
 @dataclass
 class PermissionSetFieldChange:
@@ -42,16 +42,16 @@ class PermissionSetFieldChange:
 @strict
 class PermissionSet(Model):
     __datatypes = {
-        PermissionSetFields.PERMISSION_SET_IRI: {QName, AnyIRI},
+        PermissionSetFields.PERMISSION_SET_IRI: {QName, Xsd_anyURI},
         PermissionSetFields.LABEL: LangString,
         PermissionSetFields.COMMENT: LangString,
         PermissionSetFields.GIVES_PERMISSION: DataPermission,
-        PermissionSetFields.DEFINED_BY_PROJECT: {QName, AnyIRI}
+        PermissionSetFields.DEFINED_BY_PROJECT: {QName, Xsd_anyURI}
     }
 
-    __creator: AnyIRI | None
+    __creator: Xsd_anyURI | None
     __created: datetime | None
-    __contributor: AnyIRI | None
+    __contributor: Xsd_anyURI | None
     __modified: datetime | None
 
     __fields: Dict[PermissionSetFields, PermissionSetFieldTypes]
@@ -60,15 +60,15 @@ class PermissionSet(Model):
 
     def __init__(self, *,
                  con: Connection,
-                 creator: Optional[AnyIRI] = None,
+                 creator: Optional[Xsd_anyURI] = None,
                  created: Optional[datetime] = None,
-                 contributor: Optional[AnyIRI] = None,
+                 contributor: Optional[Xsd_anyURI] = None,
                  modified: Optional[datetime] = None,
-                 permissionSetIri: Optional[AnyIRI | QName] = None,
+                 permissionSetIri: Optional[Xsd_anyURI | QName] = None,
                  label: Optional[LangString | str],
                  comment: Optional[LangString | str],
                  givesPermission: DataPermission,
-                 definedByProject: AnyIRI | QName | str):
+                 definedByProject: Xsd_anyURI | QName | str):
         super().__init__(con)
         self.__creator = creator if creator is not None else con.userIri
         self.__created = created
@@ -77,7 +77,7 @@ class PermissionSet(Model):
         self.__fields = {}
 
         if permissionSetIri:
-            if isinstance(permissionSetIri, AnyIRI) or isinstance(permissionSetIri, QName):
+            if isinstance(permissionSetIri, Xsd_anyURI) or isinstance(permissionSetIri, QName):
                 self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = permissionSetIri
             elif isinstance(permissionSetIri, str):
                 try:
@@ -87,7 +87,7 @@ class PermissionSet(Model):
             else:
                 raise OmasErrorValue(f'permissionSetIri {permissionSetIri} must be an instance of AnyIRI, QName or str, not {type(permissionSetIri)}.')
         else:
-            self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = AnyIRI(uuid.uuid4().urn)
+            self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = Xsd_anyURI(uuid.uuid4().urn)
 
         if label:
             self.__fields[PermissionSetFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
@@ -95,7 +95,7 @@ class PermissionSet(Model):
             self.__fields[PermissionSetFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
         self.__fields[PermissionSetFields.GIVES_PERMISSION] = givesPermission
 
-        if isinstance(definedByProject, QName) or isinstance(definedByProject, AnyIRI):
+        if isinstance(definedByProject, QName) or isinstance(definedByProject, Xsd_anyURI):
             self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = definedByProject
         elif isinstance(definedByProject, str):
             try:
@@ -163,7 +163,7 @@ class PermissionSet(Model):
         return res
 
     @property
-    def creator(self) -> AnyIRI | None:
+    def creator(self) -> Xsd_anyURI | None:
         return self.__creator
 
     @property
@@ -171,7 +171,7 @@ class PermissionSet(Model):
         return self.__created
 
     @property
-    def contributor(self) -> AnyIRI | None:
+    def contributor(self) -> Xsd_anyURI | None:
         return self.__contributor
 
     @property
@@ -266,8 +266,8 @@ class PermissionSet(Model):
             raise
 
     @classmethod
-    def read(cls, con: IConnection, permissionSetIri: QName | AnyIRI | str) -> Self:
-        if isinstance(permissionSetIri, AnyIRI) or isinstance(permissionSetIri, QName):
+    def read(cls, con: IConnection, permissionSetIri: QName | Xsd_anyURI | str) -> Self:
+        if isinstance(permissionSetIri, Xsd_anyURI) or isinstance(permissionSetIri, QName):
             pass
         elif isinstance(permissionSetIri, str):
             try:
@@ -287,15 +287,15 @@ class PermissionSet(Model):
         """
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        permissionSetIri: QName | AnyIRI | None = None
-        creator: QName | AnyIRI | None = None
+        permissionSetIri: QName | Xsd_anyURI | None = None
+        creator: QName | Xsd_anyURI | None = None
         created: datetime | None = None
-        contributor: QName | AnyIRI | None = None
+        contributor: QName | Xsd_anyURI | None = None
         modified: datetime | None = None
         label: LangString = LangString()
         comment: LangString = LangString()
         givesPermission: DataPermission | None = None
-        definedByProject: QName | AnyIRI | None = None
+        definedByProject: QName | Xsd_anyURI | None = None
         for r in res:
             if not permissionSetIri:
                 try:

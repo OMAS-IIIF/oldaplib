@@ -9,7 +9,7 @@ from typing import Dict, Callable, Set, Self, ItemsView, KeysView
 
 from pystrict import strict
 
-from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI
+from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, NamespaceIRI
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
@@ -23,12 +23,12 @@ class InProjectClass:
     """
     Implements the administrative permission a user has for the projects the user is associated with.
     """
-    __data: Dict[QName | AnyIRI, ObservableSet[AdminPermission]]
-    __on_change: Callable[[QName | AnyIRI, ObservableSet[AdminPermission] | None], None]
+    __data: Dict[QName | Xsd_anyURI, ObservableSet[AdminPermission]]
+    __on_change: Callable[[QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None]
 
     def __init__(self,
-                 data: Dict[QName | AnyIRI, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
-                 on_change: Callable[[QName | AnyIRI, ObservableSet[AdminPermission] | None], None] = None) -> None:
+                 data: Dict[QName | Xsd_anyURI, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
+                 on_change: Callable[[QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None] = None) -> None:
         """
         Constructor of the class. The class acts like a dictionary and allows the access to the permission
         set for a project using the QName of the project as the key: ```perms = t.in_project[QName('ex:proj')]```.
@@ -55,7 +55,7 @@ class InProjectClass:
                             case 'QName':
                                 key = QName(k)
                             case 'AnyIRI':
-                                key = AnyIRI(k)
+                                key = Xsd_anyURI(k)
                             case 'NamespaceIri':
                                 key = NamespaceIRI(k)
                             case 'OmasStringLiteral':
@@ -69,10 +69,10 @@ class InProjectClass:
         if self.__on_change is not None:
             self.__on_change(key, oldset) ## Action.MODIFY
 
-    def __getitem__(self, key: QName | AnyIRI) -> ObservableSet[AdminPermission]:
+    def __getitem__(self, key: QName | Xsd_anyURI) -> ObservableSet[AdminPermission]:
         return self.__data[key]
 
-    def __setitem__(self, key: QName | AnyIRI, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
+    def __setitem__(self, key: QName | Xsd_anyURI, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
         if self.__data.get(key) is None:
             if self.__on_change is not None:
                 self.__on_change(key, None) ## Action.CREATE: Create a new inProject connection to a new project and add permissions
@@ -81,7 +81,7 @@ class InProjectClass:
                 self.__on_change(key, self.__data[key].copy())  ## Action.REPLACE Replace all the permission of the given connection to a project
         self.__data[key] = ObservableSet(value, on_change=self.__on_set_changed)
 
-    def __delitem__(self, key: QName | AnyIRI) -> None:
+    def __delitem__(self, key: QName | Xsd_anyURI) -> None:
         if self.__data.get(key) is not None:
             if self.__on_change is not None:
                 self.__on_change(key, self.__data[key].copy())  ## Action.DELETE
@@ -92,6 +92,9 @@ class InProjectClass:
         for k, v in self.__data.items():
             s += f'{k} ({type(k)}): {v}\n'
         return s
+
+    def __bool__(self) -> bool:
+        return bool(self.__data)
 
     def copy(self) -> Self:
         data_copy = deepcopy(self.__data)
@@ -108,10 +111,10 @@ class InProjectClass:
             raise OmasErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
         return self.__data != other.__data
 
-    def get(self, key: AnyIRI | QName) -> ObservableSet[AdminPermission] | None:
+    def get(self, key: Xsd_anyURI | QName) -> ObservableSet[AdminPermission] | None:
         return self.__data.get(key)
 
-    def items(self) -> ItemsView[AnyIRI | QName, ObservableSet[AdminPermission]]:
+    def items(self) -> ItemsView[Xsd_anyURI | QName, ObservableSet[AdminPermission]]:
         return self.__data.items()
 
     def keys(self) -> KeysView:

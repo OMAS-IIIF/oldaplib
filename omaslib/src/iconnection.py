@@ -4,7 +4,7 @@ from typing import Optional, Any, Dict
 from pystrict import strict
 
 from omaslib.src.helpers.context import DEFAULT_CONTEXT
-from omaslib.src.helpers.datatypes import NCName, AnyIRI, QName
+from omaslib.src.helpers.datatypes import NCName, Xsd_anyURI, QName
 from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.user_dataclass import UserDataclass
 
@@ -32,7 +32,7 @@ class IConnection(ABC):
         return self._userdata.userId
 
     @property
-    def userIri(self) -> AnyIRI:
+    def userIri(self) -> Xsd_anyURI:
         return self._userdata.userIri
 
     @property

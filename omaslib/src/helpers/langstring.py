@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Callable, Self
 from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
-from omaslib.src.helpers.datatypes import Action, QName, NCName, AnyIRI
+from omaslib.src.helpers.datatypes import Action, QName, NCName, Xsd_anyURI
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
@@ -396,7 +396,7 @@ class LangString(Notify):
 
     def create(self, *,
                graph: QName,
-               subject: QName | AnyIRI,
+               subject: QName | Xsd_anyURI,
                field: QName,
                indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -411,7 +411,7 @@ class LangString(Notify):
 
     def delete(self, *,
                graph: QName,
-               subject: QName | AnyIRI,
+               subject: QName | Xsd_anyURI,
                field: QName,
                indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -426,7 +426,7 @@ class LangString(Notify):
 
     def update(self, *,
                graph: QName,
-               subject: QName | AnyIRI,
+               subject: QName | Xsd_anyURI,
                subjectvar: str,
                field: QName,
                indent: int = 0, indent_inc: int = 4) -> List[str]:

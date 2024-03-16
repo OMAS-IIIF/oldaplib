@@ -8,14 +8,14 @@ from pystrict import strict
 
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName, AnyIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, \
+from omaslib.src.helpers.datatypes import BNode, QName, Xsd_anyURI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, \
     Xsd_gMonth, Xsd_hexBinary, Xsd_base64Binary, \
     Xsd_anyURI, Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_integer, Xsd_nonPositiveInteger, Xsd_negativeInteger, \
     Xsd_int, Xsd_long, Xsd_short, Xsd_byte, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, \
     Xsd_unsignedShort, Xsd_unsignedByte, Xsd_positiveInteger, \
-    Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp, Xsd_time, Xsd_date, Xsd_string
+    Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp, Xsd_time, Xsd_date, Xsd_string, Xsd_boolean
 
-RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | AnyIRI | NCName | OldapStringLiteral | Xsd
+RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | Xsd_anyURI | NCName | OldapStringLiteral | Xsd
 RowType = Dict[str, RowElementType]
 
 
@@ -38,7 +38,7 @@ class QueryProcessor:
                 if valobj["type"] == "uri":
                     row[name] = context.iri2qname(valobj["value"])
                     if row[name] is None:
-                        row[name] = AnyIRI(valobj["value"])
+                        row[name] = Xsd_anyURI(valobj["value"])
                 elif valobj["type"] == "bnode":
                     row[name] = BNode(valobj["value"])
                 elif valobj["type"] == "literal":
@@ -49,9 +49,9 @@ class QueryProcessor:
                         dt = context.iri2qname(dt)
                         match str(dt):
                             case 'xsd:string':
-                                row[name] = Xsd_string.fromRdf.fromRdf(valobj["value"])
+                                row[name] = Xsd_string.fromRdf(valobj["value"])
                             case 'xsd:boolean':
-                                row[name] = True if valobj["value"] == 'true' else False
+                                row[name] = Xsd_boolean(valobj["value"])
                             case 'xsd:decimal':
                                 row[name] = Xsd_decimal.fromRdf(valobj["value"])
                             case 'xsd:float':

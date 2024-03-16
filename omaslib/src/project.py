@@ -11,7 +11,7 @@ from datetime import date, datetime
 
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, AnyIRI, Action, Xsd_dateTime, Xsd_date
+from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, Xsd_anyURI, Action, Xsd_dateTime, Xsd_date, Xsd
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, \
     OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound
@@ -20,7 +20,7 @@ from omaslib.src.helpers.tools import lprint
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 
-ProjectFieldTypes = AnyIRI | QName | NCName | LangString | NamespaceIRI | date | None
+ProjectFieldTypes = Xsd_anyURI | QName | NCName | LangString | NamespaceIRI | Xsd | None
 
 @dataclass
 class ProjectFieldChange:
@@ -98,27 +98,18 @@ class Project(Model):
 
     """
     __datatypes = {
-        ProjectFields.PROJECT_IRI: {AnyIRI, QName},
+        ProjectFields.PROJECT_IRI: {Xsd_anyURI, QName},
         ProjectFields.PROJECT_SHORTNAME: NCName,
         ProjectFields.LABEL: LangString,
         ProjectFields.COMMENT: LangString,
         ProjectFields.NAMESPACE_IRI: NamespaceIRI,
-        ProjectFields.PROJECT_START: date,
-        ProjectFields.PROJECT_END: date,
-    }
-    __repr = {
-        ProjectFields.PROJECT_IRI: lambda x: repr(x),
-        ProjectFields.PROJECT_SHORTNAME: lambda x: repr(x),
-        ProjectFields.LABEL: lambda x: repr(x),
-        ProjectFields.COMMENT: lambda x: repr(x),
-        ProjectFields.NAMESPACE_IRI: lambda x: repr(x),
-        ProjectFields.PROJECT_START: lambda x: repr(x),
-        ProjectFields.PROJECT_END: lambda x: repr(x),
+        ProjectFields.PROJECT_START: Xsd_date,
+        ProjectFields.PROJECT_END: Xsd_date,
     }
 
-    __creator: AnyIRI | None
+    __creator: Xsd_anyURI | None
     __created: Xsd_dateTime | None
-    __contributor: AnyIRI | None
+    __contributor: Xsd_anyURI | None
     __modified: Xsd_dateTime | None
 
     __fields: Dict[ProjectFields, ProjectFieldTypes]
@@ -127,11 +118,11 @@ class Project(Model):
 
     def __init__(self, *,
                  con: IConnection,
-                 creator: Optional[AnyIRI | QName] = None,
+                 creator: Optional[Xsd_anyURI | QName] = None,
                  created: Optional[Xsd_dateTime] = None,
-                 contributor: Optional[AnyIRI | QName] = None,
+                 contributor: Optional[Xsd_anyURI | QName] = None,
                  modified: Optional[Xsd_dateTime] = None,
-                 projectIri: Optional[AnyIRI | QName] = None,
+                 projectIri: Optional[Xsd_anyURI | QName] = None,
                  projectShortName: NCName | str,
                  namespaceIri: NamespaceIRI,
                  label: Optional[LangString | str],
@@ -142,11 +133,11 @@ class Project(Model):
         Constructs a new Project
         :param con: [Connection](/python_docstrings/iconnection) instance
         :param creator: Creator of the project  [Optional, usually not set!]
-        :type creator: AnyIRI | None
+        :type creator: Xsd_anyURI | None
         :param created: Date the project was created  [Optional, usually not set!]
         :type created: datetime | None
         :param contributor: person that made the last change  [Optional, usually not set!]
-        :type contributor: AnyIRI
+        :type contributor: Xsd_anyURI
         :param modified: Last date the project was modified  [Optional, usually not set!]
         :type modified: date | None
         :param projectIri: IRI to be used for the project. If no projectIRI is provied, the constrctor
@@ -168,24 +159,24 @@ class Project(Model):
         """
         super().__init__(con)
         self.__creator = creator if creator is not None else con.userIri
-        if not isinstance(created, Xsd_dateTime):
+        if created and not isinstance(created, Xsd_dateTime):
             raise OmasErrorValue(f'Created must be "Xsd_dateTime", not "{type(created)}".')
         self.__created = created
         self.__contributor = contributor if contributor is not None else con.userIri
-        if not isinstance(modified, Xsd_dateTime):
+        if modified and not isinstance(modified, Xsd_dateTime):
             raise OmasErrorValue(f'Modified must be "Xsd_dateTime", not "{type(modified)}".')
         self.__modified = modified
         self.__fields = {}
 
         if projectIri:
-            if isinstance(projectIri, AnyIRI):
+            if isinstance(projectIri, Xsd_anyURI):
                 self.__fields[ProjectFields.PROJECT_IRI] = projectIri
             elif isinstance(projectIri, QName):
                 self.__fields[ProjectFields.PROJECT_IRI] = projectIri
             else:
                 raise OmasErrorValue(f'projectIri {projectIri} must be an instance of AnyIRI, not {type(projectIri)}')
         else:
-            self.__fields[ProjectFields.PROJECT_IRI] = AnyIRI(uuid.uuid4().urn)
+            self.__fields[ProjectFields.PROJECT_IRI] = Xsd_anyURI(uuid.uuid4().urn)
 
         self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, NCName) else NCName(projectShortName)
 
@@ -199,11 +190,11 @@ class Project(Model):
         self.__fields[ProjectFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
         self.__fields[ProjectFields.COMMENT].set_notifier(self.notifier, QName(ProjectFields.COMMENT.value))
         self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, NCName) else NCName(projectShortName)
-        if projectStart and isinstance(projectStart, date):
+        if projectStart and isinstance(projectStart, Xsd_date):
             self.__fields[ProjectFields.PROJECT_START] = projectStart
         else:
-            self.__fields[ProjectFields.PROJECT_START] = datetime.now().date()
-        if projectEnd and isinstance(projectEnd, date):
+            self.__fields[ProjectFields.PROJECT_START] = Xsd_date.now()
+        if projectEnd and isinstance(projectEnd, Xsd_date):
             self.__fields[ProjectFields.PROJECT_END] = projectEnd
 
         #
@@ -255,30 +246,30 @@ class Project(Model):
                 self.__fields[field] = value
     def __str__(self) -> str:
         res = f'Project: {self.__fields[ProjectFields.PROJECT_IRI]}\n'\
-              f'  Creation: {self.__created.isoformat()} by {self.__creator}\n'\
-              f'  Modified: {self.__modified.isoformat()} by {self.__contributor}\n'\
+              f'  Creation: {self.__created} by {self.__creator}\n'\
+              f'  Modified: {self.__modified} by {self.__contributor}\n'\
               f'  Label: {self.__fields[ProjectFields.LABEL]}\n'\
               f'  Comment: {self.__fields[ProjectFields.COMMENT]}\n'\
               f'  Namespace IRI: {self.__fields[ProjectFields.NAMESPACE_IRI]}\n'\
-              f'  Project start: {self.__fields[ProjectFields.PROJECT_START].isoformat()}\n'
+              f'  Project start: {self.__fields[ProjectFields.PROJECT_START]}\n'
         if self.__fields.get(ProjectFields.PROJECT_END) is not None:
-            res += f'  Project end: {self.__fields[ProjectFields.PROJECT_END].isoformat()}\n'
+            res += f'  Project end: {self.__fields[ProjectFields.PROJECT_END]}\n'
         return res
 
     @property
-    def creator(self) -> AnyIRI | None:
+    def creator(self) -> Xsd_anyURI | None:
         return self.__creator
 
     @property
-    def created(self) -> datetime | None:
+    def created(self) -> Xsd_dateTime | None:
         return self.__created
 
     @property
-    def contributor(self) -> AnyIRI | None:
+    def contributor(self) -> Xsd_anyURI | None:
         return self.__contributor
 
     @property
-    def modified(self) -> datetime | None:
+    def modified(self) -> Xsd_dateTime | None:
         return self.__modified
 
     @property
@@ -302,13 +293,13 @@ class Project(Model):
         pass
 
     @classmethod
-    def read(cls, con: IConnection, projectIri: AnyIRI | QName) -> Self:
+    def read(cls, con: IConnection, projectIri: Xsd_anyURI | QName) -> Self:
         """
         Read the project from the triplestore and return an instance of the project
         :param con: A valid Connection object
         :type con: IConnection
         :param projectIri: The IRI/QName of the project to be read
-        :type projectIri: AnyIRI | QName
+        :type projectIri: Xsd_anyURI | QName
         :return: Project instance
         """
         context = Context(name=con.context_name)
@@ -319,7 +310,7 @@ class Project(Model):
             SELECT ?prop ?val
             FROM omas:admin
             WHERE {{
-                {repr(projectIri)} ?prop ?val
+                {projectIri.resUri()} ?prop ?val
             }}
         """
         jsonobj = con.query(query)
@@ -378,7 +369,7 @@ class Project(Model):
     @staticmethod
     def search(con: IConnection,
                label: Optional[str] = None,
-               comment: Optional[str] = None) -> List[AnyIRI | QName]:
+               comment: Optional[str] = None) -> List[Xsd_anyURI | QName]:
         """
         Search for a given project. If no label or comment is given, all existing projects are returned. If both
         a search term for the label and comment are given, they will be combined by *AND*.
@@ -446,7 +437,7 @@ class Project(Model):
         if not is_root:
             raise OmasErrorNoPermission(f'No permission to create a new project.')
 
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime.now()
         indent: int = 0
         indent_inc: int = 4
         if self._con is None:
@@ -459,8 +450,8 @@ class Project(Model):
         SELECT ?project
         FROM omas:admin
         WHERE {{
-            ?user a omas:Project .
-            FILTER(?project = {repr(self.projectIri)})
+            ?project a omas:Project .
+            FILTER(?project = {self.projectIri.resUri()})
         }}
         """
 
@@ -468,17 +459,17 @@ class Project(Model):
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql2 += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
-        sparql2 += f'{blank:{(indent + 2) * indent_inc}}{repr(self.projectIri)} a omas:Project ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {repr(self._con.userIri)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {repr(self._con.userIri)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
+        sparql2 += f'{blank:{(indent + 2) * indent_inc}}{self.projectIri.resUri()} a omas:Project ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.resUri()} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:created {repr(timestamp)} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.resUri()} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {repr(timestamp)} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectShortName {repr(self.projectShortName)} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:label {repr(self.label)} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:comment {repr(self.comment)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:namespaceIri "{str(self.namespaceIri)}"^^xsd:anyURI ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectStart "{self.projectStart.isoformat()}"^^xsd:date ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectEnd "{self.projectEnd.isoformat()}"^^xsd:date .\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:namespaceIri {repr(self.namespaceIri)} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectStart {repr(self.projectStart)} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectEnd {repr(self.projectEnd)} .\n'
         sparql2 += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -524,7 +515,7 @@ class Project(Model):
         if not is_root:
             raise OmasErrorNoPermission(f'No permission to create a new project.')
 
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
         blank = ''
         sparql_list = []
@@ -550,15 +541,15 @@ class Project(Model):
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__repr[field](change.old_value)} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(change.old_value)} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__repr[field](self.__fields[field])} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(self.__fields[field])} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(self.projectIri)} as ?project)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__repr[field](change.old_value)} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.projectIri.resUri()} as ?project)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(change.old_value)} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = context.sparql_context

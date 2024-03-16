@@ -5,13 +5,13 @@ from base64 import b64encode
 
 from omaslib.src.connection import token, Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, AnyIRI, NamespaceIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd_hexBinary, \
+from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, NamespaceIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd_hexBinary, \
     Xsd_gMonthDay, Xsd_gDay, Xsd_gMonth, Xsd_base64Binary, Xsd_anyURI, \
     Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_NMTOKEN, Xsd, Xsd_ID, Xsd_IDREF, Xsd_integer, \
     Xsd_nonPositiveInteger, Xsd_int, Xsd_long, Xsd_short, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, \
     Xsd_unsignedShort, Xsd_unsignedByte, \
     Xsd_positiveInteger, Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp, Xsd_time, \
-    Xsd_string
+    Xsd_string, Xsd_date, Xsd_boolean
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor, RowElementType
 from omaslib.src.helpers.serializer import serializer
@@ -67,6 +67,76 @@ class TestXsdTypes(unittest.TestCase):
             test:{name} test:prop ?value
         }}
         """
+
+    def test_xsd_boolean(self):
+        val = Xsd_boolean(True)
+        self.assertTrue(val)
+        self.assertEqual(str(val), "True")
+        self.assertEqual(repr(val), '"True"^^xsd:boolean')
+
+        valc = Xsd_boolean(val)
+        self.assertTrue(valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertTrue(val2)
+
+        self.create_triple(NCName("Xsd_booleanTrue"), val)
+        valx = self.get_triple(NCName("Xsd_booleanTrue"))
+        self.assertTrue(valx)
+
+        val = Xsd_boolean('True')
+        self.assertTrue(val)
+
+        val = Xsd_boolean('yes')
+        self.assertTrue(val)
+
+        val = Xsd_boolean('t')
+        self.assertTrue(val)
+
+        val = Xsd_boolean('y')
+        self.assertTrue(val)
+
+        val = Xsd_boolean('1')
+        self.assertTrue(val)
+
+        val = Xsd_boolean(1)
+        self.assertTrue(val)
+
+
+        val = Xsd_boolean(False)
+        self.assertFalse(val)
+        self.assertEqual(str(val), "False")
+        self.assertEqual(repr(val), '"False"^^xsd:boolean')
+
+        valc = Xsd_boolean(val)
+        self.assertFalse(valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertFalse(val2)
+
+        self.create_triple(NCName("Xsd_booleanFalse"), val)
+        valx = self.get_triple(NCName("Xsd_booleanFalse"))
+        self.assertFalse(valx)
+
+        val = Xsd_boolean('False')
+        self.assertFalse(val)
+
+        val = Xsd_boolean('no')
+        self.assertFalse(val)
+
+        val = Xsd_boolean('f')
+        self.assertFalse(val)
+
+        val = Xsd_boolean('n')
+        self.assertFalse(val)
+
+        val = Xsd_boolean('0')
+        self.assertFalse(val)
+
+        val = Xsd_boolean(0)
+        self.assertFalse(val)
 
     def test_xsd_string(self):
         val = Xsd_string("Waseliwas\nsoll denn das\" sein?")
@@ -370,6 +440,22 @@ class TestXsdTypes(unittest.TestCase):
 
         with self.assertRaises(OmasErrorValue):
             val = Xsd_time('1:20:10')
+
+    def test_xsd_date(self):
+        val = Xsd_date(2025, 12, 31)
+        self.assertEqual(str(val), '2025-12-31')
+        self.assertEqual(repr(val), '"2025-12-31"^^xsd:date')
+
+        valc = Xsd_date(val)
+        self.assertEqual(val, valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(NCName("Xsd_date"), val)
+        valx = self.get_triple(NCName("Xsd_date"))
+        self.assertEqual(val, valx)
 
     def test_xsd_gYearMonth(self):
         val = Xsd_gYearMonth("2020-03")
@@ -992,11 +1078,11 @@ class TestQname(unittest.TestCase):
 class TestAnyIRI(unittest.TestCase):
 
     def test_anyiri(self):
-        iri1 = AnyIRI('http://www.org/test')
+        iri1 = Xsd_anyURI('http://www.org/test')
         self.assertEqual(str(iri1), 'http://www.org/test')
         self.assertEqual(len(iri1), 19)
         self.assertFalse(iri1.append_allowed)
-        iri2 = AnyIRI('http://www.ch/tescht#')
+        iri2 = Xsd_anyURI('http://www.ch/tescht#')
         self.assertTrue(iri2.append_allowed)
         iri3 = iri2 + 'gaga'
         self.assertEqual(iri3, 'http://www.ch/tescht#gaga')
@@ -1005,7 +1091,7 @@ class TestAnyIRI(unittest.TestCase):
         self.assertTrue(iri2 == iri3)
         self.assertEqual(hash(iri2), hash(iri3))
         with self.assertRaises(OmasErrorValue) as ex:
-            noiri = AnyIRI('waseliwas')
+            noiri = Xsd_anyURI('waseliwas')
         self.assertEqual(str(ex.exception), 'Invalid string "waseliwas" for anyIRI')
 
     def test_namespace(self):
