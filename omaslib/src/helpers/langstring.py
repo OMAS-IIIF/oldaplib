@@ -404,7 +404,7 @@ class LangString(Notify):
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(subject)} {repr(field)} {repr(self)} .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri()} {repr(field)} {repr(self)} .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         return sparql
@@ -419,7 +419,7 @@ class LangString(Notify):
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}DELETE WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(subject)} {repr(field)} ?o .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri()} {repr(field)} ?o .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         return sparql
@@ -439,7 +439,7 @@ class LangString(Notify):
                 tmpstr = f'"{change.old_value}"'
                 if lang != Language.XX:
                     tmpstr += "@" + lang.name.lower()
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{repr(subject)} {repr(field)} {tmpstr} .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri()} {repr(field)} {tmpstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -449,7 +449,7 @@ class LangString(Notify):
                 langstr = f'"{self._langstring[lang]}"'
                 if lang != Language.XX:
                     langstr += "@" + lang.name.lower()
-                sparql += f'{blank:{(indent + 1) * indent_inc}}{repr(subject)} {repr(field)} {langstr} .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri()} {repr(field)} {langstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -543,7 +543,7 @@ class LangString(Notify):
                     tmpstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(modified)})\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)

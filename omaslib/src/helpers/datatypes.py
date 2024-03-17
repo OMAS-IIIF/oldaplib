@@ -73,7 +73,7 @@ class Xsd_boolean(Xsd):
             self.__value = bool(value)
 
     def __str__(self) -> str:
-        return str(self.__value)
+        return str(self.__value).lower()
 
     def __repr__(self) -> str:
         return f'"{str(self.__value)}"^^xsd:boolean'
@@ -289,7 +289,9 @@ class Xsd_dateTime(Xsd):
     def __repr__(self) -> str:
         return f'"{self.__value.isoformat()}"^^xsd:dateTime'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, str):
             if re.match(
                     r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
@@ -1681,7 +1683,7 @@ class Xsd_anyURI(Xsd):
                 raise OmasErrorValue(f'Invalid string "{value}" for anyIRI')
             if value.startswith("urn:"):
                 if not re.match(r'^urn:[a-z0-9][a-z0-9-]{0,31}:[^\s]+', value):
-                    raise OmasErrorValue(f'Invalud URN format for "{value}".')
+                    raise OmasErrorValue(f'Invalid URN format for "{value}".')
             else:
                 if not url(value):
                     raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')

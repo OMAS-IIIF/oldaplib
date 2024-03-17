@@ -4,7 +4,7 @@ from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action, NCName, Xsd_anyURI
+from omaslib.src.helpers.datatypes import NamespaceIRI, QName, Action, NCName, Xsd_anyURI, Xsd_boolean
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
@@ -128,7 +128,7 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
                 PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
-                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
                 PropertyRestrictionType.IN: {"http://www.test.org/comment1", "http://www.test.org/comment2"}
             }),
             PropertyClassAttribute.ORDER: 11
@@ -174,7 +174,7 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.NAME: LangString(["Annotations@en", "Annotationen@de"]),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
                 PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE},
-                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
                 PropertyRestrictionType.PATTERN: '*.',
                 PropertyRestrictionType.IN: {"http://www.test.org/comment1", "http://www.test.org/comment2", "http://www.test.org/comment3"}
             }),
@@ -263,7 +263,7 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
                 PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT},
-                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
                 PropertyRestrictionType.MAX_COUNT: 1,
                 PropertyRestrictionType.MIN_COUNT: 0
             }),
@@ -278,7 +278,7 @@ class TestPropertyClass(unittest.TestCase):
         p1.create()
         p1[PropertyClassAttribute.ORDER] = 12
         p1[PropertyClassAttribute.NAME][Language.DE] = 'Annotationen'
-        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = False
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = Xsd_boolean(False)
         p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN] = {"gaga", "is was"}
         p1[PropertyClassAttribute.DATATYPE] = XsdDatatypes.string
         self.assertEqual(p1.changeset, {
@@ -313,7 +313,7 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
                 PropertyRestrictionType.LANGUAGE_IN: {Language.ZU, Language.CY, Language.SV, Language.RM},
-                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
                 PropertyRestrictionType.MAX_COUNT: 1,
                 PropertyRestrictionType.MIN_COUNT: 0,
                 PropertyRestrictionType.IN: {'A', 'B', 'C'}
@@ -368,7 +368,7 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
                 PropertyRestrictionType.LANGUAGE_IN: {Language.ZU, Language.CY, Language.SV, Language.RM},
-                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
                 PropertyRestrictionType.MAX_COUNT: 1,
                 PropertyRestrictionType.MIN_COUNT: 0
             }),
@@ -412,7 +412,7 @@ class TestPropertyClass(unittest.TestCase):
             PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
             PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
                 PropertyRestrictionType.LANGUAGE_IN: {Language.ZU, Language.CY, Language.SV, Language.RM},
-                PropertyRestrictionType.UNIQUE_LANG: True,
+                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
                 PropertyRestrictionType.MAX_COUNT: 1,
                 PropertyRestrictionType.MIN_COUNT: 0
             }),

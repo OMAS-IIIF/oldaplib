@@ -11,7 +11,7 @@ from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, Action, NCName, BNode
+from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, Action, NCName, BNode, Xsd_dateTime
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
@@ -19,7 +19,7 @@ from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import RowType, QueryProcessor
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp
+from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp, lprint
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
@@ -74,9 +74,9 @@ class PropertyClass(Model, Notify):
     # They are automatically managed by the OMAS system
     #
     __creator: Optional[Xsd_anyURI]
-    __created: Optional[datetime]
+    __created: Optional[Xsd_dateTime]
     __contributor: Optional[Xsd_anyURI]
-    __modified: Optional[datetime]
+    __modified: Optional[Xsd_dateTime]
     __version: SemanticVersion
     __from_triplestore: bool
 
@@ -504,7 +504,7 @@ class PropertyClass(Model, Notify):
     def read_modified_shacl(self, *,
                             context: Context,
                             graph: NCName,
-                            indent: int = 0, indent_inc: int = 4) -> datetime | None:
+                            indent: int = 0, indent_inc: int = 4) -> Xsd_dateTime | None:
         blank = ''
         sparql = context.sparql_context
         owlclass_iri = self._internal
@@ -527,7 +527,7 @@ class PropertyClass(Model, Notify):
     def read_modified_owl(self, *,
                           context: Context,
                           graph: NCName,
-                          indent: int = 0, indent_inc: int = 4) -> datetime | None:
+                          indent: int = 0, indent_inc: int = 4) -> Xsd_dateTime | None:
         blank = ''
         sparql = context.sparql_context
         owlclass_iri = self._internal
@@ -555,10 +555,10 @@ class PropertyClass(Model, Notify):
         else:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.userIri}>'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.resUri()}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {repr(timestamp)}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {repr(timestamp)}'
         for prop, value in self._attributes.items():
             if prop == PropertyClassAttribute.PROPERTY_TYPE:
                 continue
@@ -587,7 +587,7 @@ class PropertyClass(Model, Notify):
 
     def create_owl_part1(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
+        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.resUri()} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
         if self._attributes.get(PropertyClassAttribute.SUBPROPERTY_OF):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF]}'
         if self._internal:
@@ -597,9 +597,9 @@ class PropertyClass(Model, Notify):
         elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.userIri}>'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {repr(timestamp)}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {repr(timestamp)}'
         sparql += ' .\n'
         return sparql
 
@@ -621,7 +621,7 @@ class PropertyClass(Model, Notify):
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
 
-    def set_creation_metadata(self, timestamp: datetime):
+    def set_creation_metadata(self, timestamp: Xsd_dateTime):
         self.__created = timestamp
         self.__creator = self._con.userIri
         self.__modified = timestamp
@@ -632,7 +632,7 @@ class PropertyClass(Model, Notify):
                indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
             raise OmasErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -654,13 +654,30 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         self.set_creation_metadata(timestamp)
 
-        self._con.transaction_start()
-        if self.read_modified_shacl(context=context, graph=self._graph) is not None:
+        try:
+            self._con.transaction_start()
+        except OmasError as err:
+            self._con.transaction_abort()
+            raise
+        try:
+            r = self.read_modified_shacl(context=context, graph=self._graph)
+        except OmasError as err:
+            self._con.transaction_abort()
+            raise
+        if r is not None:
             self._con.transaction_abort()
             raise OmasErrorAlreadyExists(f'Property "{self._property_class_iri}" already exists.')
-        self._con.transaction_update(sparql)
-        modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
-        modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+        try:
+            self._con.transaction_update(sparql)
+        except OmasError as err:
+            self._con.transaction_abort()
+            raise
+        try:
+            modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
+            modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+        except OmasError as err:
+            self._con.transaction_abort()
+            raise
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
         else:
@@ -687,7 +704,7 @@ class PropertyClass(Model, Notify):
 
     def update_shacl(self, *,
                      owlclass_iri: Optional[QName] = None,
-                     timestamp: datetime,
+                     timestamp: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
@@ -748,7 +765,7 @@ class PropertyClass(Model, Notify):
                                       graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:modified', f'"{self.__modified.isoformat()}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                      ele=RdfModifyItem('dcterms:modified', f'{repr(self.__modified)}', f'{repr(timestamp)}'),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -821,7 +838,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql_list.append(sparql)
 
@@ -831,12 +848,12 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified {repr(timestamp)}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql_list.append(sparql)
 
@@ -844,7 +861,7 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def update(self) -> None:
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime.now()
 
         blank = ''
         context = Context(name=self._con.context_name)
@@ -857,9 +874,23 @@ class PropertyClass(Model, Notify):
         sparql += " ;\n"
         sparql += self.update_owl(owlclass_iri=self._internal,
                                   timestamp=timestamp)
-        self._con.transaction_update(sparql)
-        modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
-        modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+        try:
+            self._con.transaction_update(sparql)
+        except OmasError as e:
+            self._con.transaction_abort()
+            raise
+        try:
+            modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
+        except OmasError as e:
+            self._con.transaction_abort()
+            raise
+        try:
+            modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+        except OmasError as e:
+            self._con.transaction_abort()
+            raise
+
+        print("\n=============>", modtime_shacl, modtime_owl)
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
             self.__modified = timestamp
@@ -901,7 +932,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
@@ -923,7 +954,7 @@ class PropertyClass(Model, Notify):
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
@@ -961,7 +992,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}BIND({self._property_class_iri} as ?propnode)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{self.__modified.isoformat()}"^^xsd:dateTime)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 

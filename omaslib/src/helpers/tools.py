@@ -135,7 +135,7 @@ class RdfModifyProp:
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} {ele.old_value} .\n'
         if ele.property != 'dcterms:modified':
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{last_modified.isoformat()}"^^xsd:dateTime)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(last_modified)})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 

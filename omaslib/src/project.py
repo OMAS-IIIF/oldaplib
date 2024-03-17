@@ -596,8 +596,8 @@ class Project(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {repr(self.projectIri)} a omas:Project .
-            {repr(self.projectIri)} ?prop ?val .
+            {self.projectIri.resUri()} a omas:Project .
+            {self.projectIri.resUri()} ?prop ?val .
         }} 
         """
         # TODO: use transaction for error handling

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum, unique
 from typing import Dict, Union, Set, Optional, Callable
 
@@ -7,7 +6,7 @@ from pystrict import strict
 
 from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.helpers.Notify import Notify
-from omaslib.src.helpers.datatypes import QName, Action, NCName
+from omaslib.src.helpers.datatypes import QName, Action, NCName, Xsd_dateTime, Xsd_boolean, Xsd_integer, Xsd_float
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
@@ -22,7 +21,7 @@ class Compare(Enum):
     XX = '__x__'
 
 
-RestrictionTypes = bool | int | float | str | Set[Language | str | int] | QName | None
+RestrictionTypes = Xsd_boolean | bool | int | float | str | Set[Language | str | int] | QName | None
 RestrictionContainer = Dict[PropertyRestrictionType, RestrictionTypes]
 
 
@@ -31,6 +30,8 @@ class PropertyRestrictionChange:
     old_value: RestrictionTypes
     action: Action
     test_in_use: bool
+
+
 
 
 @strict
@@ -73,18 +74,18 @@ class PropertyRestrictions(Notify):
     _notifier: Callable[[type], None] | None
 
     datatypes = {
-        PropertyRestrictionType.MIN_COUNT: {int},
-        PropertyRestrictionType.MAX_COUNT: {int},
+        PropertyRestrictionType.MIN_COUNT: {Xsd_integer},
+        PropertyRestrictionType.MAX_COUNT: {Xsd_integer},
         PropertyRestrictionType.LANGUAGE_IN: {set},
         PropertyRestrictionType.IN: {set},
-        PropertyRestrictionType.UNIQUE_LANG: {bool},
-        PropertyRestrictionType.MIN_LENGTH: {int},
-        PropertyRestrictionType.MAX_LENGTH: {int},
+        PropertyRestrictionType.UNIQUE_LANG: {Xsd_boolean},
+        PropertyRestrictionType.MIN_LENGTH: {Xsd_integer},
+        PropertyRestrictionType.MAX_LENGTH: {Xsd_integer},
         PropertyRestrictionType.PATTERN: {str},
-        PropertyRestrictionType.MIN_EXCLUSIVE: {int, float},
-        PropertyRestrictionType.MIN_INCLUSIVE: {int, float},
-        PropertyRestrictionType.MAX_EXCLUSIVE: {int, float},
-        PropertyRestrictionType.MAX_INCLUSIVE: {int, float},
+        PropertyRestrictionType.MIN_EXCLUSIVE: {Xsd_integer, Xsd_float},
+        PropertyRestrictionType.MIN_INCLUSIVE: {Xsd_integer, Xsd_float},
+        PropertyRestrictionType.MAX_EXCLUSIVE: {Xsd_integer, Xsd_float},
+        PropertyRestrictionType.MAX_INCLUSIVE: {Xsd_integer, Xsd_float},
         PropertyRestrictionType.LESS_THAN: {QName},
         PropertyRestrictionType.LESS_THAN_OR_EQUALS: {QName},
     }
@@ -118,6 +119,8 @@ class PropertyRestrictions(Notify):
         if restrictions is None:
             self._restrictions = {}
         else:
+            if restrictions.get(PropertyRestrictionType.UNIQUE_LANG) is not None:
+                restrictions[PropertyRestrictionType.UNIQUE_LANG] = Xsd_boolean(restrictions[PropertyRestrictionType.UNIQUE_LANG])
             for restriction, value in restrictions.items():
                 if type(restriction) != PropertyRestrictionType:
                     raise OmasError(
@@ -301,7 +304,7 @@ class PropertyRestrictions(Notify):
                      graph: NCName,
                      owlclass_iri: Optional[QName] = None,
                      prop_iri: QName,
-                     modified: datetime,
+                     modified: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
@@ -360,7 +363,7 @@ class PropertyRestrictions(Notify):
             if change.action != Action.CREATE:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(modified)})\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)
@@ -370,7 +373,7 @@ class PropertyRestrictions(Notify):
                    graph: NCName,
                    owlclass_iri: Optional[QName] = None,
                    prop_iri: QName,
-                   modified: datetime,
+                   modified: Xsd_dateTime,
                    indent: int = 0, indent_inc: int = 4) -> str:
         """
         Updates the OWL restriction classes for the cardinality
@@ -441,7 +444,7 @@ class PropertyRestrictions(Notify):
                 else:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{modified.isoformat()}"^^xsd:dateTime)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(modified)})\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
             minmax_done = True
         return sparql
