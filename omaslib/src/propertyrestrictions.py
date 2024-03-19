@@ -6,7 +6,16 @@ from pystrict import strict
 
 from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.helpers.Notify import Notify
-from omaslib.src.helpers.datatypes import QName, Action, NCName, Xsd_dateTime, Xsd_boolean, Xsd_integer, Xsd_float
+from omaslib.src.enums.action import Action
+from omaslib.src.dtypes.shacllanguagein import ShaclLanguageIn
+from omaslib.src.xsd.xsd_integer import Xsd_integer
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
+from omaslib.src.xsd.xsd_float import Xsd_float
+from omaslib.src.xsd.xsd_string import Xsd_string
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
+from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
@@ -21,7 +30,8 @@ class Compare(Enum):
     XX = '__x__'
 
 
-RestrictionTypes = Xsd_boolean | bool | int | float | str | Set[Language | str | int] | QName | None
+RestrictionTypes = Xsd | Set[Language | str | int] | Xsd_QName | None
+
 RestrictionContainer = Dict[PropertyRestrictionType, RestrictionTypes]
 
 
@@ -76,18 +86,18 @@ class PropertyRestrictions(Notify):
     datatypes = {
         PropertyRestrictionType.MIN_COUNT: {Xsd_integer},
         PropertyRestrictionType.MAX_COUNT: {Xsd_integer},
-        PropertyRestrictionType.LANGUAGE_IN: {set},
+        PropertyRestrictionType.LANGUAGE_IN: {ShaclLanguageIn},
         PropertyRestrictionType.IN: {set},
         PropertyRestrictionType.UNIQUE_LANG: {Xsd_boolean},
         PropertyRestrictionType.MIN_LENGTH: {Xsd_integer},
         PropertyRestrictionType.MAX_LENGTH: {Xsd_integer},
-        PropertyRestrictionType.PATTERN: {str},
+        PropertyRestrictionType.PATTERN: {Xsd_string},
         PropertyRestrictionType.MIN_EXCLUSIVE: {Xsd_integer, Xsd_float},
         PropertyRestrictionType.MIN_INCLUSIVE: {Xsd_integer, Xsd_float},
         PropertyRestrictionType.MAX_EXCLUSIVE: {Xsd_integer, Xsd_float},
         PropertyRestrictionType.MAX_INCLUSIVE: {Xsd_integer, Xsd_float},
-        PropertyRestrictionType.LESS_THAN: {QName},
-        PropertyRestrictionType.LESS_THAN_OR_EQUALS: {QName},
+        PropertyRestrictionType.LESS_THAN: {Xsd_QName},
+        PropertyRestrictionType.LESS_THAN_OR_EQUALS: {Xsd_QName},
     }
     compare = {
         PropertyRestrictionType.LANGUAGE_IN: Compare.XX,
@@ -151,12 +161,12 @@ class PropertyRestrictions(Notify):
     def __len__(self) -> int:
         return len(self._restrictions)
 
-    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[bool, int, float, str, Set[Union[Language, str, int]], QName]:
+    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[bool, int, float, str, Set[Union[Language, str, int]], Xsd_QName]:
         return self._restrictions[restriction_type]
 
     def __setitem__(self,
                     restriction_type: PropertyRestrictionType,
-                    value: Union[bool, int, float, str, Set[Language], QName]):
+                    value: Union[bool, int, float, str, Set[Language], Xsd_QName]):
         if type(restriction_type) != PropertyRestrictionType:
             raise OmasError(
                 f'Unsupported restriction "{restriction_type}"'
@@ -228,7 +238,7 @@ class PropertyRestrictions(Notify):
     def changeset_clear(self) -> None:
         self._changeset = {}
 
-    def get(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Language], QName, None]:
+    def get(self, restriction_type: PropertyRestrictionType) -> Union[int, float, str, Set[Language], Xsd_QName, None]:
         """
         Get the given restriction
         :param restriction_type: The restriction type
@@ -273,7 +283,7 @@ class PropertyRestrictions(Notify):
                 value = rval
             elif type(rval) is str:
                 value = f'"{rval}"'
-            elif type(rval) is QName:
+            elif type(rval) is Xsd_QName:
                 value = str(rval)
             else:
                 value = rval
@@ -301,9 +311,9 @@ class PropertyRestrictions(Notify):
         return sparql
 
     def update_shacl(self, *,
-                     graph: NCName,
-                     owlclass_iri: Optional[QName] = None,
-                     prop_iri: QName,
+                     graph: Xsd_NCName,
+                     owlclass_iri: Optional[Xsd_QName] = None,
+                     prop_iri: Xsd_QName,
                      modified: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -370,9 +380,9 @@ class PropertyRestrictions(Notify):
         return sparql
 
     def update_owl(self, *,
-                   graph: NCName,
-                   owlclass_iri: Optional[QName] = None,
-                   prop_iri: QName,
+                   graph: Xsd_NCName,
+                   owlclass_iri: Optional[Xsd_QName] = None,
+                   prop_iri: Xsd_QName,
                    modified: Xsd_dateTime,
                    indent: int = 0, indent_inc: int = 4) -> str:
         """
@@ -450,9 +460,9 @@ class PropertyRestrictions(Notify):
         return sparql
 
     def delete_shacl(self, *,
-                     graph: NCName,
-                     owlclass_iri: Optional[QName] = None,
-                     prop_iri: QName,
+                     graph: Xsd_NCName,
+                     owlclass_iri: Optional[Xsd_QName] = None,
+                     prop_iri: Xsd_QName,
                      restriction_type: PropertyRestrictionType,
                      indent: int = 0, indent_inc: int = 4) -> str:
         # TODO: Include into unittest!

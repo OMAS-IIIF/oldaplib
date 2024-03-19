@@ -4,7 +4,9 @@ from typing import List, Set, Dict, Tuple, Optional, Any, Union
 from pystrict import strict
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, Xsd_dateTime
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.tools import lprint
@@ -30,7 +32,7 @@ class Model:
         else:
             return False
 
-    def get_modified_by_iri(self, graph: QName, iri: Xsd_anyURI | QName) -> Xsd_dateTime:
+    def get_modified_by_iri(self, graph: Xsd_QName, iri: Xsd_anyURI | Xsd_QName) -> Xsd_dateTime:
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""
@@ -52,8 +54,8 @@ class Model:
             return r['modified']
 
     def set_modified_by_iri(self,
-                            graph: QName,
-                            iri: Xsd_anyURI | QName,
+                            graph: Xsd_QName,
+                            iri: Xsd_anyURI | Xsd_QName,
                             old_timestamp: Xsd_dateTime,
                             timestamp: Xsd_dateTime) -> None:
         context = Context(name=self._con.context_name)

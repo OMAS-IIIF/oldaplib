@@ -5,7 +5,13 @@ from time import sleep
 from omaslib.src.connection import Connection
 from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, NamespaceIRI, BNode, Xsd_anyURI, NCName, Xsd_boolean, Xsd_dateTime
+from omaslib.src.dtypes.bnode import BNode
+from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
 
@@ -27,8 +33,8 @@ class TestBasicConnection(unittest.TestCase):
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 
-        cls._connection.clear_graph(QName('test:shacl'))
-        cls._connection.clear_graph(QName('test:onto'))
+        cls._connection.clear_graph(Xsd_QName('test:shacl'))
+        cls._connection.clear_graph(Xsd_QName('test:onto'))
         cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
         sleep(1)  # upload may take a while...
 
@@ -106,7 +112,7 @@ class TestBasicConnection(unittest.TestCase):
                          repo="omas",
                          token=token,
                          context_name="DEFAULT")
-        self.assertEqual(con.userid, NCName("rosenth"))
+        self.assertEqual(con.userid, Xsd_NCName("rosenth"))
         self.assertEqual(con.userIri, Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"))
 
         with self.assertRaises(OmasError) as ex:
@@ -152,17 +158,17 @@ class TestBasicConnection(unittest.TestCase):
     #@unittest.skip('Work in progress')
     def test_json_query(self):
         expected = {
-            QName('rdf:type'): {QName('test:testMyRes'), QName('sh:NodeShape')},
-            QName("rdfs:comment"): "Resource for testing...",
-            QName("rdfs:label"): {"My Resource@en", "Meine Ressource@de",  "Ma Resource@fr"},
-            QName("sh:property"): QName("test:testShape"),
-            QName("sh:closed"): Xsd_boolean(True),
-            QName("sh:targetClass"): QName("test:testMyRes"),
-            QName("dcterms:hasVersion"): '1.0.0',
-            QName("dcterms:creator"): Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
-            QName("dcterms:created"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)),
-            QName("dcterms:contributor"):  Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
-            QName("dcterms:modified"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc))
+            Xsd_QName('rdf:type'): {Xsd_QName('test:testMyRes'), Xsd_QName('sh:NodeShape')},
+            Xsd_QName("rdfs:comment"): "Resource for testing...",
+            Xsd_QName("rdfs:label"): {"My Resource@en", "Meine Ressource@de", "Ma Resource@fr"},
+            Xsd_QName("sh:property"): Xsd_QName("test:testShape"),
+            Xsd_QName("sh:closed"): Xsd_boolean(True),
+            Xsd_QName("sh:targetClass"): Xsd_QName("test:testMyRes"),
+            Xsd_QName("dcterms:hasVersion"): '1.0.0',
+            Xsd_QName("dcterms:creator"): Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
+            Xsd_QName("dcterms:created"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)),
+            Xsd_QName("dcterms:contributor"):  Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
+            Xsd_QName("dcterms:modified"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc))
         }
         query = self._context.sparql_context
         query += """

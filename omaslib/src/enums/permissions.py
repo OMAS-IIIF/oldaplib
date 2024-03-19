@@ -4,7 +4,7 @@ This module implements the enumerations for the permissions.
 from enum import Enum, unique
 from typing import Self
 
-from omaslib.src.helpers.datatypes import QName
+from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.helpers.serializer import serializer
 
 

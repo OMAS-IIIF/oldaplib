@@ -2,20 +2,50 @@ from dataclasses import dataclass
 from datetime import datetime, time, date, timedelta
 from typing import List, Dict
 
-import isodate
 from isodate import Duration
 from pystrict import strict
 
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import BNode, QName, Xsd_anyURI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd, Xsd_gDay, \
-    Xsd_gMonth, Xsd_hexBinary, Xsd_base64Binary, \
-    Xsd_anyURI, Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_integer, Xsd_nonPositiveInteger, Xsd_negativeInteger, \
-    Xsd_int, Xsd_long, Xsd_short, Xsd_byte, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, \
-    Xsd_unsignedShort, Xsd_unsignedByte, Xsd_positiveInteger, \
-    Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp, Xsd_time, Xsd_date, Xsd_string, Xsd_boolean
+from omaslib.src.dtypes.bnode import BNode
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_positiveinteger import Xsd_positiveInteger
+from omaslib.src.xsd.xsd_unsignedbyte import Xsd_unsignedByte
+from omaslib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
+from omaslib.src.xsd.xsd_unsignedint import Xsd_unsignedInt
+from omaslib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
+from omaslib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
+from omaslib.src.xsd.xsd_byte import Xsd_byte
+from omaslib.src.xsd.xsd_short import Xsd_short
+from omaslib.src.xsd.xsd_long import Xsd_long
+from omaslib.src.xsd.xsd_int import Xsd_int
+from omaslib.src.xsd.xsd_negativeinteger import Xsd_negativeInteger
+from omaslib.src.xsd.xsd_nonpositiveinteger import Xsd_nonPositiveInteger
+from omaslib.src.xsd.xsd_integer import Xsd_integer
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_language import Xsd_language
+from omaslib.src.xsd.xsd_token import Xsd_token
+from omaslib.src.xsd.xsd_normalizedstring import Xsd_normalizedString
+from omaslib.src.xsd.xsd_base64binary import Xsd_base64Binary
+from omaslib.src.xsd.xsd_hexbinary import Xsd_hexBinary
+from omaslib.src.xsd.xsd_gmonth import Xsd_gMonth
+from omaslib.src.xsd.xsd_gday import Xsd_gDay
+from omaslib.src.xsd.xsd_gyear import Xsd_gYear
+from omaslib.src.xsd.xsd_gyearmonth import Xsd_gYearMonth
+from omaslib.src.xsd.xsd_date import Xsd_date
+from omaslib.src.xsd.xsd_time import Xsd_time
+from omaslib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
+from omaslib.src.xsd.xsd_duration import Xsd_duration
+from omaslib.src.xsd.xsd_double import Xsd_double
+from omaslib.src.xsd.xsd_float import Xsd_float
+from omaslib.src.xsd.xsd_decimal import Xsd_decimal
+from omaslib.src.xsd.xsd_string import Xsd_string
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
+from omaslib.src.xsd.xsd import Xsd
 
-RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | QName | BNode | Xsd_anyURI | NCName | OldapStringLiteral | Xsd
+RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | Xsd_QName | BNode | Xsd_anyURI | Xsd_NCName | OldapStringLiteral | Xsd
 RowType = Dict[str, RowElementType]
 
 
@@ -83,7 +113,7 @@ class QueryProcessor:
                             case 'xsd:anyURI':
                                 row[name] = Xsd_anyURI.fromRdf(valobj["value"])
                             case 'xsd:QName':
-                                row[name] = QName(valobj["value"])
+                                row[name] = Xsd_QName(valobj["value"])
                             case 'xsd:normalizedString':
                                 row[name] = Xsd_normalizedString.fromRdf(valobj["value"])
                             case 'xsd:token:':
@@ -91,7 +121,7 @@ class QueryProcessor:
                             case 'xsd:language':
                                 row[name] = Xsd_language.fromRdf(valobj["value"])
                             case 'xsd:NCName':
-                                row[name] = NCName.fromRdf(valobj["value"])
+                                row[name] = Xsd_NCName.fromRdf(valobj["value"])
                             case 'xsd:integer':
                                 row[name] = Xsd_integer.fromRdf(valobj["value"])
                             case 'xsd:int':

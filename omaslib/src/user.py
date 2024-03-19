@@ -146,7 +146,11 @@ from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import Xsd_anyURI, QName, NCName, Xsd_dateTime, Xsd_string
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
+from omaslib.src.xsd.xsd_string import Xsd_string
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
     OmasErrorValue, OmasErrorNoPermission
@@ -172,13 +176,13 @@ class User(Model, UserDataclass):
                  contributor: Xsd_anyURI | None = None,
                  modified: Xsd_dateTime | None = None,
                  userIri: Xsd_anyURI | None = None,
-                 userId: NCName | None = None,
+                 userId: Xsd_NCName | None = None,
                  familyName: Xsd_string | None = None,
                  givenName: Xsd_string | None = None,
                  credentials: str | None = None,
                  isActive: bool | None = None,
-                 inProject: Dict[QName | Xsd_anyURI, Set[AdminPermission]] | None = None,
-                 hasPermissions: Set[QName] | None = None):
+                 inProject: Dict[Xsd_QName | Xsd_anyURI, Set[AdminPermission]] | None = None,
+                 hasPermissions: Set[Xsd_QName] | None = None):
         """
         Constructor for the User class
         :param con: IConnection instance
@@ -194,7 +198,7 @@ class User(Model, UserDataclass):
         :param userIri: The IRI of the new user (e.g. the ORCID) If omitted, a unique urn: is created
         :type userIri: AnyIRI | None
         :param userId: The UserId that the user types in at login
-        :type userId: NCName | None
+        :type userId: Xsd_NCName | None
         :param familyName: The foaf:familyName of the User to be created
         :type familyName: str
         :param givenName: The foaf:givenName of the User to be created
@@ -243,7 +247,7 @@ class User(Model, UserDataclass):
         # the given project!
         #
         actor = self._con.userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -387,18 +391,18 @@ class User(Model, UserDataclass):
             raise
 
     @classmethod
-    def read(cls, con: IConnection, userId: NCName | str) -> Self:
+    def read(cls, con: IConnection, userId: Xsd_NCName | str) -> Self:
         """
         Reads a User instance from the data in the triple store
         :param con: IConnection instance
         :type con: IConnection
         :param userId: The userId of the user to be read
-        :type userId: NCName | str
+        :type userId: Xsd_NCName | str
         :return: Self
         :raises OmasErrorNotFound: Required user does ot exist
         """
         if isinstance(userId, str):
-            userId = NCName(userId)
+            userId = Xsd_NCName(userId)
 
         context = Context(name=con.context_name)
         jsonobj = con.query(cls.sparql_query(context, userId))
@@ -411,10 +415,10 @@ class User(Model, UserDataclass):
 
     @staticmethod
     def search(*, con: IConnection,
-               userId: Optional[NCName | str] = None,
+               userId: Optional[Xsd_NCName | str] = None,
                familyName: Optional[str | Xsd_string] = None,
                givenName: Optional[str | Xsd_string] = None,
-               inProject: Optional[Xsd_anyURI | QName | str] = None) -> List[Xsd_anyURI]:
+               inProject: Optional[Xsd_anyURI | Xsd_QName | str] = None) -> List[Xsd_anyURI]:
         """
         Search for a user in the database. The user can be found by the
 
@@ -428,21 +432,21 @@ class User(Model, UserDataclass):
         :param con: IConnection instance
         :type con: IConnection
         :param userId: The userId of the user to be searched for in the database
-        :type userId: NCName | str
+        :type userId: Xsd_NCName | str
         :param familyName: The family name of the user to be searched for in the database
         :type familyName: str
         :param givenName: The givenname of the user to be searched for in the database
         :type givenName: str
         :param inProject: The project the user is member of
-        :type inProject: Xsd_anyURI | QName | str
+        :type inProject: Xsd_anyURI | Xsd_QName | str
         :return: List of users
         :rtype: List[AnyIRI]
         """
-        if userId and not isinstance(userId, NCName):
-            userId = NCName(userId)
+        if userId and not isinstance(userId, Xsd_NCName):
+            userId = Xsd_NCName(userId)
         familyName = Xsd_string(familyName) if familyName else None
         givenName = Xsd_string(givenName) if givenName else None
-        if not isinstance(inProject, Xsd_anyURI) and not isinstance(inProject, QName):
+        if not isinstance(inProject, Xsd_anyURI) and not isinstance(inProject, Xsd_QName):
             inProject = str2qname_anyiri(inProject) if inProject else None
         context = Context(name=con.context_name)
         sparql = context.sparql_context
@@ -476,7 +480,7 @@ class User(Model, UserDataclass):
         :return: None
         """
         actor = self._con.userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -526,7 +530,7 @@ class User(Model, UserDataclass):
         # the given project!
         #
         actor = self._con.userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -544,7 +548,7 @@ class User(Model, UserDataclass):
         sparql += tmpsparql
         self._con.transaction_start()
         try:
-            modtime = self.get_modified_by_iri(QName('omas:admin'), self.userIri)
+            modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.userIri)
         except OmasError:
             self._con.transaction_abort()
             raise
@@ -562,8 +566,8 @@ class User(Model, UserDataclass):
                 raise OmasErrorValue("One of the permission sets is not existing!")
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(QName('omas:admin'), self.userIri, self.modified, timestamp)
-            modtime = self.get_modified_by_iri(QName('omas:admin'), self.userIri)
+            self.set_modified_by_iri(Xsd_QName('omas:admin'), self.userIri, self.modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.userIri)
         except OmasError:
             self._con.transaction_abort()
             raise

@@ -10,7 +10,9 @@ from pystrict import strict
 from omaslib.src.connection import Connection
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, Action
+from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
     OmasErrorInconsistency
@@ -28,7 +30,7 @@ class PermissionSetFields(Enum):
     DEFINED_BY_PROJECT = 'omas:definedByProject'
 
 
-PermissionSetFieldTypes = Xsd_anyURI | QName | LangString | DataPermission | None
+PermissionSetFieldTypes = Xsd_anyURI | Xsd_QName | LangString | DataPermission | None
 
 @dataclass
 class PermissionSetFieldChange:
@@ -42,11 +44,11 @@ class PermissionSetFieldChange:
 @strict
 class PermissionSet(Model):
     __datatypes = {
-        PermissionSetFields.PERMISSION_SET_IRI: {QName, Xsd_anyURI},
+        PermissionSetFields.PERMISSION_SET_IRI: {Xsd_QName, Xsd_anyURI},
         PermissionSetFields.LABEL: LangString,
         PermissionSetFields.COMMENT: LangString,
         PermissionSetFields.GIVES_PERMISSION: DataPermission,
-        PermissionSetFields.DEFINED_BY_PROJECT: {QName, Xsd_anyURI}
+        PermissionSetFields.DEFINED_BY_PROJECT: {Xsd_QName, Xsd_anyURI}
     }
 
     __creator: Xsd_anyURI | None
@@ -64,11 +66,11 @@ class PermissionSet(Model):
                  created: Optional[datetime] = None,
                  contributor: Optional[Xsd_anyURI] = None,
                  modified: Optional[datetime] = None,
-                 permissionSetIri: Optional[Xsd_anyURI | QName] = None,
+                 permissionSetIri: Optional[Xsd_anyURI | Xsd_QName] = None,
                  label: Optional[LangString | str],
                  comment: Optional[LangString | str],
                  givesPermission: DataPermission,
-                 definedByProject: Xsd_anyURI | QName | str):
+                 definedByProject: Xsd_anyURI | Xsd_QName | str):
         super().__init__(con)
         self.__creator = creator if creator is not None else con.userIri
         self.__created = created
@@ -77,7 +79,7 @@ class PermissionSet(Model):
         self.__fields = {}
 
         if permissionSetIri:
-            if isinstance(permissionSetIri, Xsd_anyURI) or isinstance(permissionSetIri, QName):
+            if isinstance(permissionSetIri, Xsd_anyURI) or isinstance(permissionSetIri, Xsd_QName):
                 self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = permissionSetIri
             elif isinstance(permissionSetIri, str):
                 try:
@@ -95,7 +97,7 @@ class PermissionSet(Model):
             self.__fields[PermissionSetFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
         self.__fields[PermissionSetFields.GIVES_PERMISSION] = givesPermission
 
-        if isinstance(definedByProject, QName) or isinstance(definedByProject, Xsd_anyURI):
+        if isinstance(definedByProject, Xsd_QName) or isinstance(definedByProject, Xsd_anyURI):
             self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = definedByProject
         elif isinstance(definedByProject, str):
             try:
@@ -198,7 +200,7 @@ class PermissionSet(Model):
             raise OmasError("Cannot create: no connection")
 
         actor = self._con.userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -266,8 +268,8 @@ class PermissionSet(Model):
             raise
 
     @classmethod
-    def read(cls, con: IConnection, permissionSetIri: QName | Xsd_anyURI | str) -> Self:
-        if isinstance(permissionSetIri, Xsd_anyURI) or isinstance(permissionSetIri, QName):
+    def read(cls, con: IConnection, permissionSetIri: Xsd_QName | Xsd_anyURI | str) -> Self:
+        if isinstance(permissionSetIri, Xsd_anyURI) or isinstance(permissionSetIri, Xsd_QName):
             pass
         elif isinstance(permissionSetIri, str):
             try:
@@ -287,15 +289,15 @@ class PermissionSet(Model):
         """
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        permissionSetIri: QName | Xsd_anyURI | None = None
-        creator: QName | Xsd_anyURI | None = None
+        permissionSetIri: Xsd_QName | Xsd_anyURI | None = None
+        creator: Xsd_QName | Xsd_anyURI | None = None
         created: datetime | None = None
-        contributor: QName | Xsd_anyURI | None = None
+        contributor: Xsd_QName | Xsd_anyURI | None = None
         modified: datetime | None = None
         label: LangString = LangString()
         comment: LangString = LangString()
         givesPermission: DataPermission | None = None
-        definedByProject: QName | Xsd_anyURI | None = None
+        definedByProject: Xsd_QName | Xsd_anyURI | None = None
         for r in res:
             if not permissionSetIri:
                 try:
@@ -341,5 +343,5 @@ if __name__ == '__main__':
                      userId="rosenth",
                      credentials="RioGrande",
                      context_name="DEFAULT")
-    ps = PermissionSet.read(con, QName('omas:GenericView'))
+    ps = PermissionSet.read(con, Xsd_QName('omas:GenericView'))
     print(str(ps))

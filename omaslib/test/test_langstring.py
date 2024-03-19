@@ -2,7 +2,9 @@ import unittest
 from datetime import datetime
 
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
-from omaslib.src.helpers.datatypes import Action, QName, NCName
+from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.langstring import LangString, LangStringChange
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
@@ -192,10 +194,10 @@ class TestLangstring(unittest.TestCase):
         ls1 = LangString(["english@en", "deutsch@de"])
         ls1.add({Language.FR: "français", Language.XX: "undefined"})
         del ls1[Language.EN]
-        qlist = ls1.update(graph=QName("omas:test"),
-                           subject=QName("omas:subj"),
+        qlist = ls1.update(graph=Xsd_QName("omas:test"),
+                           subject=Xsd_QName("omas:subj"),
                            subjectvar="?subj",
-                           field=QName("omas:prop"))
+                           field=Xsd_QName("omas:prop"))
         qstr = " ;\n".join(qlist)
         expected = """INSERT DATA {
     GRAPH omas:test {
@@ -217,8 +219,8 @@ DELETE DATA {
 """
         self.assertEqual(qstr, expected)
 
-        sstr = ls1.update_shacl(graph=NCName("test"),
-                                prop_iri=QName('omas:prop'),
+        sstr = ls1.update_shacl(graph=Xsd_NCName("test"),
+                                prop_iri=Xsd_QName('omas:prop'),
                                 attr=PropertyClassAttribute.NAME,
                                 modified=datetime.fromisoformat("2023-11-04T12:00:00Z"))
         expected = """# LangString: Process "FR" with Action "create"

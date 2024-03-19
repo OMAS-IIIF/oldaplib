@@ -12,7 +12,8 @@ from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
 from omaslib.src.enums.permissions import AdminPermission
-from omaslib.src.helpers.datatypes import QName, NCName
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNoPermission
 from omaslib.src.helpers.context import Context, DEFAULT_CONTEXT
 from omaslib.src.helpers.query_processor import QueryProcessor
@@ -112,7 +113,7 @@ class Connection(IConnection):
     def __init__(self, *,
                  server: str,
                  repo: str,
-                 userId: Optional[str | NCName] = None,
+                 userId: Optional[str | Xsd_NCName] = None,
                  credentials: Optional[str] = None,
                  token: Optional[str] = None,
                  context_name: Optional[str] = DEFAULT_CONTEXT) -> None:
@@ -139,8 +140,8 @@ class Connection(IConnection):
             self._userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
             self._token = token
             return
-        if not isinstance(userId, NCName):
-            userId = NCName(userId)
+        if not isinstance(userId, Xsd_NCName):
+            userId = Xsd_NCName(userId)
         if userId is None or credentials is None:
             raise OmasError("Wrong credentials")
         sparql = UserDataclass.sparql_query(context=context, userId=userId)
@@ -188,7 +189,7 @@ class Connection(IConnection):
         """Getter for repository name"""
         return self._repo
 
-    def clear_graph(self, graph_iri: QName) -> None:
+    def clear_graph(self, graph_iri: Xsd_QName) -> None:
         """
         This method clears (deletes) the given RDF graph. May raise an OmasError.
 
@@ -198,7 +199,7 @@ class Connection(IConnection):
         if not self._userdata:
             raise OmasErrorNoPermission("No permission")
         actor = self._userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True

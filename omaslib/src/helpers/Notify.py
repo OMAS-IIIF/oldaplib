@@ -2,7 +2,7 @@ from typing import Callable, Optional, Union
 
 from pystrict import strict
 
-from omaslib.src.helpers.datatypes import QName
+from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 
@@ -19,8 +19,8 @@ class Notify:
     _data: PropertyClassAttribute
 
     def __init__(self,
-                 notifier: Optional[Callable[[Union[PropertyClassAttribute, ResourceClassAttribute, QName]], None]],
-                 data: Union[PropertyClassAttribute, ResourceClassAttribute, QName, None] = None):
+                 notifier: Optional[Callable[[Union[PropertyClassAttribute, ResourceClassAttribute, Xsd_QName]], None]],
+                 data: Union[PropertyClassAttribute, ResourceClassAttribute, Xsd_QName, None] = None):
         """
         Constructor of the notifier. Usually, the notifier is only used a base class and not used directly.
         :param notifier: The callable that is to be called by the subclass when an item is beeing chaged
@@ -30,8 +30,8 @@ class Notify:
         self._data = data
 
     def set_notifier(self,
-                     notifier: Callable[[Union[PropertyClassAttribute, ResourceClassAttribute, QName]], None],
-                     data: Union[PropertyClassAttribute, ResourceClassAttribute, QName, None] = None) -> None:
+                     notifier: Callable[[Union[PropertyClassAttribute, ResourceClassAttribute, Xsd_QName]], None],
+                     data: Union[PropertyClassAttribute, ResourceClassAttribute, Xsd_QName, None] = None) -> None:
         """
         Sets the notifier callback function and the data it should return...
         :param notifier: A callable that is to be called by the subclass when an item changes

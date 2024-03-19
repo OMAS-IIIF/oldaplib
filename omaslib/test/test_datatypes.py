@@ -3,17 +3,52 @@ import math
 import unittest
 from base64 import b64encode
 
-from omaslib.src.connection import token, Connection
+from omaslib.src.connection import Connection
+from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, NamespaceIRI, NCName, Xsd_gYearMonth, Xsd_gYear, Xsd_hexBinary, \
-    Xsd_gMonthDay, Xsd_gDay, Xsd_gMonth, Xsd_base64Binary, Xsd_anyURI, \
-    Xsd_normalizedString, Xsd_token, Xsd_language, Xsd_NMTOKEN, Xsd, Xsd_ID, Xsd_IDREF, Xsd_integer, \
-    Xsd_nonPositiveInteger, Xsd_int, Xsd_long, Xsd_short, Xsd_nonNegativeInteger, Xsd_unsignedLong, Xsd_unsignedInt, \
-    Xsd_unsignedShort, Xsd_unsignedByte, \
-    Xsd_positiveInteger, Xsd_decimal, Xsd_float, Xsd_double, Xsd_duration, Xsd_dateTime, Xsd_dateTimeStamp, Xsd_time, \
-    Xsd_string, Xsd_date, Xsd_boolean
-from omaslib.src.helpers.omaserror import OmasErrorValue
-from omaslib.src.helpers.query_processor import QueryProcessor, RowElementType
+from omaslib.src.dtypes.shacllanguagein import ShaclLanguageIn
+from omaslib.src.dtypes.rdfset import RdfSet
+from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_positiveinteger import Xsd_positiveInteger
+from omaslib.src.xsd.xsd_unsignedbyte import Xsd_unsignedByte
+from omaslib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
+from omaslib.src.xsd.xsd_unsignedint import Xsd_unsignedInt
+from omaslib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
+from omaslib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
+from omaslib.src.xsd.xsd_short import Xsd_short
+from omaslib.src.xsd.xsd_long import Xsd_long
+from omaslib.src.xsd.xsd_int import Xsd_int
+from omaslib.src.xsd.xsd_nonpositiveinteger import Xsd_nonPositiveInteger
+from omaslib.src.xsd.xsd_integer import Xsd_integer
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_idref import Xsd_IDREF
+from omaslib.src.xsd.xsd_id import Xsd_ID
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_nmtoken import Xsd_NMTOKEN
+from omaslib.src.xsd.xsd_language import Xsd_language
+from omaslib.src.xsd.xsd_token import Xsd_token
+from omaslib.src.xsd.xsd_normalizedstring import Xsd_normalizedString
+from omaslib.src.xsd.xsd_base64binary import Xsd_base64Binary
+from omaslib.src.xsd.xsd_hexbinary import Xsd_hexBinary
+from omaslib.src.xsd.xsd_gmonth import Xsd_gMonth
+from omaslib.src.xsd.xsd_gday import Xsd_gDay
+from omaslib.src.xsd.xsd_gmonthday import Xsd_gMonthDay
+from omaslib.src.xsd.xsd_gyear import Xsd_gYear
+from omaslib.src.xsd.xsd_gyearmonth import Xsd_gYearMonth
+from omaslib.src.xsd.xsd_date import Xsd_date
+from omaslib.src.xsd.xsd_time import Xsd_time
+from omaslib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
+from omaslib.src.xsd.xsd_duration import Xsd_duration
+from omaslib.src.xsd.xsd_double import Xsd_double
+from omaslib.src.xsd.xsd_float import Xsd_float
+from omaslib.src.xsd.xsd_decimal import Xsd_decimal
+from omaslib.src.xsd.xsd_string import Xsd_string
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
+from omaslib.src.xsd.xsd import Xsd
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError
+from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
 
 
@@ -31,13 +66,13 @@ class TestXsdTypes(unittest.TestCase):
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
-        cls._connection.clear_graph(QName('test:test'))
+        cls._connection.clear_graph(Xsd_QName('test:test'))
 
     @classmethod
     def tearDownClass(cls):
         pass
 
-    def create_triple(self, name: NCName, value: Xsd):
+    def create_triple(self, name: Xsd_NCName, value: Xsd):
         sparql = self._context.sparql_context
         sparql += f"""
         INSERT DATA {{
@@ -47,7 +82,7 @@ class TestXsdTypes(unittest.TestCase):
         }}"""
         self._connection.update_query(sparql)
 
-    def get_triple(self, name: NCName) -> Xsd:
+    def get_triple(self, name: Xsd_NCName) -> Xsd:
         sparql = self._context.sparql_context
         sparql += f"""
         SELECT ?value
@@ -60,7 +95,7 @@ class TestXsdTypes(unittest.TestCase):
         res = QueryProcessor(context=self._context, query_result=result)
         return res[0]['value']
 
-    def delete_triple(self, name: NCName):
+    def delete_triple(self, name: Xsd_NCName):
         sparql = self._context.sparql_context
         sparql += f"""
         DELETE FROM test:test {{
@@ -71,8 +106,8 @@ class TestXsdTypes(unittest.TestCase):
     def test_xsd_boolean(self):
         val = Xsd_boolean(True)
         self.assertTrue(val)
-        self.assertEqual(str(val), "True")
-        self.assertEqual(repr(val), '"True"^^xsd:boolean')
+        self.assertEqual(str(val), "true")
+        self.assertEqual(repr(val), '"true"^^xsd:boolean')
 
         valc = Xsd_boolean(val)
         self.assertTrue(valc)
@@ -81,8 +116,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertTrue(val2)
 
-        self.create_triple(NCName("Xsd_booleanTrue"), val)
-        valx = self.get_triple(NCName("Xsd_booleanTrue"))
+        self.create_triple(Xsd_NCName("Xsd_booleanTrue"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_booleanTrue"))
         self.assertTrue(valx)
 
         val = Xsd_boolean('True')
@@ -106,8 +141,8 @@ class TestXsdTypes(unittest.TestCase):
 
         val = Xsd_boolean(False)
         self.assertFalse(val)
-        self.assertEqual(str(val), "False")
-        self.assertEqual(repr(val), '"False"^^xsd:boolean')
+        self.assertEqual(str(val), "false")
+        self.assertEqual(repr(val), '"false"^^xsd:boolean')
 
         valc = Xsd_boolean(val)
         self.assertFalse(valc)
@@ -116,8 +151,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertFalse(val2)
 
-        self.create_triple(NCName("Xsd_booleanFalse"), val)
-        valx = self.get_triple(NCName("Xsd_booleanFalse"))
+        self.create_triple(Xsd_NCName("Xsd_booleanFalse"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_booleanFalse"))
         self.assertFalse(valx)
 
         val = Xsd_boolean('False')
@@ -138,6 +173,9 @@ class TestXsdTypes(unittest.TestCase):
         val = Xsd_boolean(0)
         self.assertFalse(val)
 
+        with self.assertRaises(OmasError):
+            val = Xsd_boolean("True\";SELECT * { ?s ?p ?o}")
+
     def test_xsd_string(self):
         val = Xsd_string("Waseliwas\nsoll denn das\" sein?")
         self.assertEqual(val, "Waseliwas\nsoll denn das\" sein?")
@@ -151,8 +189,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_string"), val)
-        valx = self.get_triple(NCName("Xsd_string"))
+        self.create_triple(Xsd_NCName("Xsd_string"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_string"))
         self.assertEqual(val, valx)
 
 
@@ -169,8 +207,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_decimal"), val)
-        valx = self.get_triple(NCName("Xsd_decimal"))
+        self.create_triple(Xsd_NCName("Xsd_decimal"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_decimal"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -192,8 +230,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_float"), val)
-        valx = self.get_triple(NCName("Xsd_float"))
+        self.create_triple(Xsd_NCName("Xsd_float"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_float"))
         self.assertEqual(val, valx)
 
         val = Xsd_float('NaN')
@@ -203,8 +241,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertTrue(math.isnan(val2))
 
-        self.create_triple(NCName("Xsd_floatNaN"), val)
-        valx = self.get_triple(NCName("Xsd_floatNaN"))
+        self.create_triple(Xsd_NCName("Xsd_floatNaN"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_floatNaN"))
         self.assertTrue(math.isnan(valx))
 
         val = Xsd_float('inf')
@@ -214,15 +252,15 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertTrue(math.isinf(val2) and val2 > 0.0)
 
-        self.create_triple(NCName("Xsd_floatInf"), val)
-        valx = self.get_triple(NCName("Xsd_floatInf"))
+        self.create_triple(Xsd_NCName("Xsd_floatInf"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_floatInf"))
         self.assertTrue(math.isinf(valx) and valx > 0.0)
 
         val = Xsd_float('-inf')
         self.assertTrue(math.isinf(val) and val < 0.0)
 
-        self.create_triple(NCName("Xsd_float_Inf"), val)
-        valx = self.get_triple(NCName("Xsd_float_Inf"))
+        self.create_triple(Xsd_NCName("Xsd_float_Inf"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_float_Inf"))
         self.assertTrue(math.isinf(valx) and valx < 0.0)
 
         jsonstr = json.dumps(val, default=serializer.encoder_default)
@@ -248,8 +286,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_double"), val)
-        valx = self.get_triple(NCName("Xsd_double"))
+        self.create_triple(Xsd_NCName("Xsd_double"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_double"))
         self.assertEqual(val, valx)
 
         val = Xsd_double('NaN')
@@ -259,8 +297,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertTrue(math.isnan(val2))
 
-        self.create_triple(NCName("Xsd_doubleNaN"), val)
-        valx = self.get_triple(NCName("Xsd_doubleNaN"))
+        self.create_triple(Xsd_NCName("Xsd_doubleNaN"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_doubleNaN"))
         self.assertTrue(math.isnan(valx))
 
         val = Xsd_double('inf')
@@ -270,15 +308,15 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertTrue(math.isinf(val2) and val2 > 0.0)
 
-        self.create_triple(NCName("Xsd_doubleInf"), val)
-        valx = self.get_triple(NCName("Xsd_doubleInf"))
+        self.create_triple(Xsd_NCName("Xsd_doubleInf"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_doubleInf"))
         self.assertTrue(math.isinf(valx) and valx > 0.0)
 
         val = Xsd_double('-inf')
         self.assertTrue(math.isinf(val) and val < 0.0)
 
-        self.create_triple(NCName("Xsd_double_Inf"), val)
-        valx = self.get_triple(NCName("Xsd_double_Inf"))
+        self.create_triple(Xsd_NCName("Xsd_double_Inf"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_double_Inf"))
         self.assertTrue(math.isinf(valx) and valx < 0.0)
 
         jsonstr = json.dumps(val, default=serializer.encoder_default)
@@ -303,8 +341,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_duration"), val)
-        valx = self.get_triple(NCName("Xsd_duration"))
+        self.create_triple(Xsd_NCName("Xsd_duration"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_duration"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -322,8 +360,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_dateTime"), val)
-        valx = self.get_triple(NCName("Xsd_dateTime"))
+        self.create_triple(Xsd_NCName("Xsd_dateTime"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_dateTime"))
         self.assertEqual(val, valx)
 
         val = Xsd_dateTime('2001-10-26T21:32:52+02:00')
@@ -366,8 +404,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_dateTimeStamp"), val)
-        valx = self.get_triple(NCName("Xsd_dateTimeStamp"))
+        self.create_triple(Xsd_NCName("Xsd_dateTimeStamp"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_dateTimeStamp"))
         self.assertEqual(val, valx)
 
         val = Xsd_dateTimeStamp('2001-10-26T21:32:52+02:00')
@@ -409,8 +447,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_time"), val)
-        valx = self.get_triple(NCName("Xsd_time"))
+        self.create_triple(Xsd_NCName("Xsd_time"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_time"))
         self.assertEqual(val, valx)
 
         val = Xsd_time('19:32:52Z')
@@ -453,8 +491,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_date"), val)
-        valx = self.get_triple(NCName("Xsd_date"))
+        self.create_triple(Xsd_NCName("Xsd_date"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_date"))
         self.assertEqual(val, valx)
 
     def test_xsd_gYearMonth(self):
@@ -483,8 +521,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_gYearMonth"), val)
-        valx = self.get_triple(NCName("Xsd_gYearMonth"))
+        self.create_triple(Xsd_NCName("Xsd_gYearMonth"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_gYearMonth"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -525,8 +563,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_gYear"), val)
-        valx = self.get_triple(NCName("Xsd_gYear"))
+        self.create_triple(Xsd_NCName("Xsd_gYear"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_gYear"))
         self.assertEqual(val, valx)
 
     def test_xsd_gMonthDay(self):
@@ -551,8 +589,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_gMonthDay"), val)
-        valx = self.get_triple(NCName("Xsd_gMonthDay"))
+        self.create_triple(Xsd_NCName("Xsd_gMonthDay"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_gMonthDay"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -588,8 +626,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_gDay"), val)
-        valx = self.get_triple(NCName("Xsd_gDay"))
+        self.create_triple(Xsd_NCName("Xsd_gDay"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_gDay"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -622,8 +660,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_gMonth"), val)
-        valx = self.get_triple(NCName("Xsd_gMonth"))
+        self.create_triple(Xsd_NCName("Xsd_gMonth"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_gMonth"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -651,8 +689,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_hexBinary"), val)
-        valx = self.get_triple(NCName("Xsd_hexBinary"))
+        self.create_triple(Xsd_NCName("Xsd_hexBinary"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_hexBinary"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -673,8 +711,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_base64Binary"), val)
-        valx = self.get_triple(NCName("Xsd_base64Binary"))
+        self.create_triple(Xsd_NCName("Xsd_base64Binary"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_base64Binary"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -696,8 +734,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_anyURI"), val)
-        valx = self.get_triple(NCName("Xsd_anyURI"))
+        self.create_triple(Xsd_NCName("Xsd_anyURI"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_anyURI"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue) as ex:
@@ -720,8 +758,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_normalizedString"), val)
-        valx = self.get_triple(NCName("Xsd_normalizedString"))
+        self.create_triple(Xsd_NCName("Xsd_normalizedString"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_normalizedString"))
         self.assertEqual(val, valx)
 
     def test_xsd_token(self):
@@ -736,8 +774,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_token"), val)
-        valx = self.get_triple(NCName("Xsd_token"))
+        self.create_triple(Xsd_NCName("Xsd_token"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_token"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -759,8 +797,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_language"), val)
-        valx = self.get_triple(NCName("Xsd_language"))
+        self.create_triple(Xsd_NCName("Xsd_language"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_language"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -775,8 +813,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_NMTOKEN"), val)
-        valx = self.get_triple(NCName("Xsd_NMTOKEN"))
+        self.create_triple(Xsd_NCName("Xsd_NMTOKEN"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_NMTOKEN"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -791,8 +829,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_ID"), val)
-        valx = self.get_triple(NCName("Xsd_ID"))
+        self.create_triple(Xsd_NCName("Xsd_ID"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_ID"))
         self.assertEqual(val, valx)
 
     def test_xsd_IDREF(self):
@@ -804,8 +842,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_IDREF"), val)
-        valx = self.get_triple(NCName("Xsd_IDREF"))
+        self.create_triple(Xsd_NCName("Xsd_IDREF"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_IDREF"))
         self.assertEqual(val, valx)
 
     def test_xsd_integer(self):
@@ -818,8 +856,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_integer"), val)
-        valx = self.get_triple(NCName("Xsd_integer"))
+        self.create_triple(Xsd_NCName("Xsd_integer"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_integer"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -836,8 +874,8 @@ class TestXsdTypes(unittest.TestCase):
         self.assertEqual(val, val2)
 
 
-        self.create_triple(NCName("Xsd_nonPositiveInteger"), val)
-        valx = self.get_triple(NCName("Xsd_nonPositiveInteger"))
+        self.create_triple(Xsd_NCName("Xsd_nonPositiveInteger"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_nonPositiveInteger"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -856,8 +894,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_int"), val)
-        valx = self.get_triple(NCName("Xsd_int"))
+        self.create_triple(Xsd_NCName("Xsd_int"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_int"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -879,8 +917,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_long"), val)
-        valx = self.get_triple(NCName("Xsd_long"))
+        self.create_triple(Xsd_NCName("Xsd_long"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_long"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -902,8 +940,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_short"), val)
-        valx = self.get_triple(NCName("Xsd_short"))
+        self.create_triple(Xsd_NCName("Xsd_short"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_short"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -925,8 +963,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_nonNegativeInteger"), val)
-        valx = self.get_triple(NCName("Xsd_nonNegativeInteger"))
+        self.create_triple(Xsd_NCName("Xsd_nonNegativeInteger"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_nonNegativeInteger"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -945,8 +983,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_unsignedLong"), val)
-        valx = self.get_triple(NCName("Xsd_unsignedLong"))
+        self.create_triple(Xsd_NCName("Xsd_unsignedLong"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_unsignedLong"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -968,8 +1006,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_unsignedInt"), val)
-        valx = self.get_triple(NCName("Xsd_unsignedInt"))
+        self.create_triple(Xsd_NCName("Xsd_unsignedInt"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_unsignedInt"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -991,8 +1029,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_unsignedShort"), val)
-        valx = self.get_triple(NCName("Xsd_unsignedShort"))
+        self.create_triple(Xsd_NCName("Xsd_unsignedShort"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_unsignedShort"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -1014,8 +1052,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_unsignedByte"), val)
-        valx = self.get_triple(NCName("Xsd_unsignedByte"))
+        self.create_triple(Xsd_NCName("Xsd_unsignedByte"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_unsignedByte"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -1037,8 +1075,8 @@ class TestXsdTypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(NCName("Xsd_positiveInteger"), val)
-        valx = self.get_triple(NCName("Xsd_positiveInteger"))
+        self.create_triple(Xsd_NCName("Xsd_positiveInteger"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_positiveInteger"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
@@ -1051,14 +1089,14 @@ class TestXsdTypes(unittest.TestCase):
 class TestQname(unittest.TestCase):
 
     def test_qname(self):
-        qn = QName('prefix:name')
+        qn = Xsd_QName('prefix:name')
         self.assertEqual(qn.prefix, 'prefix')
         self.assertEqual(qn.fragment, 'name')
         self.assertEqual(str(qn), 'prefix:name')
         self.assertEqual(len(qn), 11)
         qn2 = qn + 'Shape'
         self.assertEqual(str(qn2), 'prefix:nameShape')
-        qn3 = QName('prefix', 'name')
+        qn3 = Xsd_QName('prefix', 'name')
         self.assertTrue(qn == qn3)
         self.assertEqual(hash(qn), hash(qn3))
         self.assertEqual(repr(qn3), "prefix:name")
@@ -1066,12 +1104,12 @@ class TestQname(unittest.TestCase):
         qn += 'Shape'
         self.assertEqual(str(qn), 'prefix:nameShape')
         with self.assertRaises(OmasErrorValue) as ex:
-            qn4 = QName('2gaga')
+            qn4 = Xsd_QName('2gaga')
         self.assertEqual(str(ex.exception), 'Invalid string "2gaga" for QName')
-        qn5 = QName('xml:double')
+        qn5 = Xsd_QName('xml:double')
         self.assertEqual(str(qn5), 'xml:double')
         with self.assertRaises(OmasErrorValue) as ex:
-            qn6 = QName('xml:2gaga')
+            qn6 = Xsd_QName('xml:2gaga')
         self.assertEqual(str(ex.exception), 'Invalid string "xml:2gaga" for QName. Error: Invalid string "2gaga" for NCName')
 
 
@@ -1107,7 +1145,7 @@ class TestAnyIRI(unittest.TestCase):
 class TestNCName(unittest.TestCase):
 
     def test_ncname(self):
-        ncn1 = NCName('AnId0')
+        ncn1 = Xsd_NCName('AnId0')
         self.assertEqual(str(ncn1), 'AnId0')
         self.assertEqual(repr(ncn1), '"AnId0"^^xsd:NCName')
         ncn1a = ncn1 + 'X'
@@ -1119,14 +1157,67 @@ class TestNCName(unittest.TestCase):
         self.assertEqual(hash(ncn1a), hash(ncn1b))
         self.assertFalse(ncn1a != ncn1b)
         with self.assertRaises(OmasErrorValue) as ex:
-            ncn2 = NCName('0AnId')
+            ncn2 = Xsd_NCName('0AnId')
         self.assertEqual(str(ex.exception), 'Invalid string "0AnId" for NCName')
         with self.assertRaises(OmasErrorValue) as ex:
-            ncn3 = NCName('An$Id')
+            ncn3 = Xsd_NCName('An$Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An$Id" for NCName')
         with self.assertRaises(OmasErrorValue) as ex:
-            ncn4 = NCName('An:Id')
+            ncn4 = Xsd_NCName('An:Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An:Id" for NCName')
         with self.assertRaises(OmasErrorValue) as ex:
-            ncn5 = NCName('An@Id')
+            ncn5 = Xsd_NCName('An@Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An@Id" for NCName')
+
+    def test_language_in(self):
+        li = ShaclLanguageIn({"en", "fr", "it"})
+        self.assertTrue(Language.EN in li)
+        self.assertTrue(Language.FR in li)
+        self.assertTrue(Language.IT in li)
+        self.assertFalse(Language.DE in li)
+        s = str(li)
+        s = s.strip('() ')
+        s = s.split(', ')
+        self.assertTrue('"en"' in s)
+        self.assertTrue('"fr"' in s)
+        self.assertTrue('"it"' in s)
+        s = repr(li)
+        s = s.strip('() ')
+        s = s.split(' ')
+        self.assertTrue('"fr"^^xsd:string' in s)
+        self.assertTrue('"en"^^xsd:string' in s)
+        self.assertTrue('"it"^^xsd:string' in s)
+
+        li = ShaclLanguageIn("en", "fr", "it")
+        self.assertTrue(Language.EN in li)
+        self.assertTrue(Language.FR in li)
+        self.assertTrue(Language.IT in li)
+        self.assertFalse(Language.DE in li)
+
+        li = ShaclLanguageIn(Language.EN, "fr", Language.IT)
+        self.assertTrue(Language.EN in li)
+        self.assertTrue(Language.FR in li)
+        self.assertTrue(Language.IT in li)
+        self.assertFalse(Language.DE in li)
+
+        li = ShaclLanguageIn([Language.EN, "fr", "it"])
+        self.assertTrue(Language.EN in li)
+        self.assertTrue(Language.FR in li)
+        self.assertTrue(Language.IT in li)
+        self.assertFalse(Language.DE in li)
+
+        with self.assertRaises(OmasErrorValue) as ex:
+            li = ShaclLanguageIn([Language.EN, "fr", "xyz"])
+
+    def test_rdf_set(self):
+        val = RdfSet(Xsd_string, {Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?")})
+        self.assertTrue(Xsd_string("was") in val)
+        self.assertTrue(Xsd_string("ist") in val)
+        self.assertTrue(Xsd_string("das?") in val)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+
+

@@ -9,7 +9,7 @@ from typing import List, Callable, Any, Iterable, Set, Self
 
 from pystrict import strict
 
-from omaslib.src.helpers.datatypes import Action
+from omaslib.src.enums.action import Action
 from omaslib.src.helpers.serializer import serializer
 
 

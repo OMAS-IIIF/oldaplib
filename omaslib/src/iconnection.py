@@ -4,7 +4,9 @@ from typing import Optional, Any, Dict
 from pystrict import strict
 
 from omaslib.src.helpers.context import DEFAULT_CONTEXT
-from omaslib.src.helpers.datatypes import NCName, Xsd_anyURI, QName
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.user_dataclass import UserDataclass
 
@@ -28,7 +30,7 @@ class IConnection(ABC):
         return self._userdata
 
     @property
-    def userid(self) -> NCName:
+    def userid(self) -> Xsd_NCName:
         return self._userdata.userId
 
     @property
@@ -49,7 +51,7 @@ class IConnection(ABC):
         return self._token
 
     @abstractmethod
-    def clear_graph(self, graph_iri: QName) -> None:
+    def clear_graph(self, graph_iri: Xsd_QName) -> None:
         pass
 
     @abstractmethod

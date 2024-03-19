@@ -3,7 +3,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List, Tuple, Union
 
-from omaslib.src.helpers.datatypes import Action, QName, NCName, Xsd_anyURI
+from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 
 
 def lprint(text: str):
@@ -12,9 +15,9 @@ def lprint(text: str):
         print(f"{i}: {line}")
 
 
-def str2qname_anyiri(s: str) -> QName | Xsd_anyURI:
+def str2qname_anyiri(s: str) -> Xsd_QName | Xsd_anyURI:
     try:
-        return QName(s)
+        return Xsd_QName(s)
     except:
         return Xsd_anyURI(s)
 
@@ -32,8 +35,8 @@ class RdfModifyRes:
     def __rdf_modify_property(cls, *,
                               shacl: bool,
                               action: Action,
-                              owlclass_iri: QName,
-                              graph: QName,
+                              owlclass_iri: Xsd_QName,
+                              graph: Xsd_QName,
                               ele: RdfModifyItem,
                               last_modified: datetime,
                               indent: int = 0, indent_inc: int = 4) -> str:
@@ -71,12 +74,12 @@ class RdfModifyRes:
     @classmethod
     def shacl(cls, *,
               action: Action,
-              graph: NCName,
-              owlclass_iri: QName,
+              graph: Xsd_NCName,
+              owlclass_iri: Xsd_QName,
               ele: RdfModifyItem,
               last_modified: datetime,
               indent: int = 0, indent_inc: int = 4):
-        graph = QName(str(graph) + ':shacl')
+        graph = Xsd_QName(str(graph) + ':shacl')
         return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
                                          graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
@@ -84,12 +87,12 @@ class RdfModifyRes:
     @classmethod
     def onto(cls, *,
              action: Action,
-             graph: NCName,
-             owlclass_iri: QName,
+             graph: Xsd_NCName,
+             owlclass_iri: Xsd_QName,
              ele: RdfModifyItem,
              last_modified: datetime,
              indent: int = 0, indent_inc: int = 4):
-        graph = QName(str(graph) + ':onto')
+        graph = Xsd_QName(str(graph) + ':onto')
         return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
                                          graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
@@ -101,9 +104,9 @@ class RdfModifyProp:
     def __rdf_modify_property(cls, *,
                               shacl: bool,
                               action: Action,
-                              owlclass_iri: Optional[QName] = None,
-                              pclass_iri: QName,
-                              graph: QName,
+                              owlclass_iri: Optional[Xsd_QName] = None,
+                              pclass_iri: Xsd_QName,
+                              graph: Xsd_QName,
                               ele: RdfModifyItem,
                               last_modified: datetime,
                               indent: int = 0, indent_inc: int = 4) -> str:
@@ -142,13 +145,13 @@ class RdfModifyProp:
     @classmethod
     def shacl(cls, *,
               action: Action,
-              graph: NCName,
-              owlclass_iri: Optional[QName] = None,
-              pclass_iri: QName,
+              graph: Xsd_NCName,
+              owlclass_iri: Optional[Xsd_QName] = None,
+              pclass_iri: Xsd_QName,
               ele: RdfModifyItem,
               last_modified: datetime,
               indent: int = 0, indent_inc: int = 4) -> str:
-        graph = QName(str(graph) + ':shacl')
+        graph = Xsd_QName(str(graph) + ':shacl')
         return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
                                          pclass_iri=pclass_iri, graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
@@ -156,13 +159,13 @@ class RdfModifyProp:
     @classmethod
     def onto(cls, *,
              action: Action,
-             graph: NCName,
-             owlclass_iri: Optional[QName] = None,
-             pclass_iri: QName,
+             graph: Xsd_NCName,
+             owlclass_iri: Optional[Xsd_QName] = None,
+             pclass_iri: Xsd_QName,
              ele: RdfModifyItem,
              last_modified: datetime,
              indent: int = 0, indent_inc: int = 4) -> str:
-        graph = QName(str(graph) + ':onto')
+        graph = Xsd_QName(str(graph) + ':onto')
         return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
                                          pclass_iri=pclass_iri, graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
@@ -171,7 +174,7 @@ class RdfModifyProp:
 class DataModelModtime:
 
     @classmethod
-    def __set_dm_modtime(cls, shacl: bool, graph: NCName, timestamp: datetime, contributor: str) -> str:
+    def __set_dm_modtime(cls, shacl: bool, graph: Xsd_NCName, timestamp: datetime, contributor: str) -> str:
         graphname = f"{graph}:shacl" if shacl else f"{graph}:onto"
         element = f"{graph}:shapes" if shacl else f"{graph}:ontology"
         return f"""
@@ -196,10 +199,10 @@ class DataModelModtime:
         """
 
     @classmethod
-    def set_dm_modtime_shacl(cls, graph: NCName, timestamp: datetime, contributor: str) -> str:
+    def set_dm_modtime_shacl(cls, graph: Xsd_NCName, timestamp: datetime, contributor: str) -> str:
         return cls.__set_dm_modtime(True, graph, timestamp, contributor)
 
     @classmethod
-    def set_dm_modtime_onto(cls, graph: NCName, timestamp: datetime, contributor: str) -> str:
+    def set_dm_modtime_onto(cls, graph: Xsd_NCName, timestamp: datetime, contributor: str) -> str:
         return cls.__set_dm_modtime(False, graph, timestamp, contributor)
 

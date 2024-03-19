@@ -1,26 +1,30 @@
-import json
 import uuid
 from dataclasses import dataclass
 from enum import unique, Enum
 from functools import partial
-from pprint import pprint
 
 from pystrict import strict
-from typing import List, Set, Dict, Tuple, Optional, Any, Union, Self
+from typing import List, Dict, Optional, Self
 from datetime import date, datetime
 
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, QName, NamespaceIRI, Xsd_anyURI, Action, Xsd_dateTime, Xsd_date, Xsd
+from omaslib.src.enums.action import Action
+from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_date import Xsd_date
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
+from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, \
     OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helpers.tools import lprint
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 
-ProjectFieldTypes = Xsd_anyURI | QName | NCName | LangString | NamespaceIRI | Xsd | None
+ProjectFieldTypes = Xsd_anyURI | Xsd_QName | Xsd_NCName | LangString | NamespaceIRI | Xsd | None
 
 @dataclass
 class ProjectFieldChange:
@@ -98,8 +102,8 @@ class Project(Model):
 
     """
     __datatypes = {
-        ProjectFields.PROJECT_IRI: {Xsd_anyURI, QName},
-        ProjectFields.PROJECT_SHORTNAME: NCName,
+        ProjectFields.PROJECT_IRI: {Xsd_anyURI, Xsd_QName},
+        ProjectFields.PROJECT_SHORTNAME: Xsd_NCName,
         ProjectFields.LABEL: LangString,
         ProjectFields.COMMENT: LangString,
         ProjectFields.NAMESPACE_IRI: NamespaceIRI,
@@ -118,12 +122,12 @@ class Project(Model):
 
     def __init__(self, *,
                  con: IConnection,
-                 creator: Optional[Xsd_anyURI | QName] = None,
+                 creator: Optional[Xsd_anyURI | Xsd_QName] = None,
                  created: Optional[Xsd_dateTime] = None,
-                 contributor: Optional[Xsd_anyURI | QName] = None,
+                 contributor: Optional[Xsd_anyURI | Xsd_QName] = None,
                  modified: Optional[Xsd_dateTime] = None,
-                 projectIri: Optional[Xsd_anyURI | QName] = None,
-                 projectShortName: NCName | str,
+                 projectIri: Optional[Xsd_anyURI | Xsd_QName] = None,
+                 projectShortName: Xsd_NCName | str,
                  namespaceIri: NamespaceIRI,
                  label: Optional[LangString | str],
                  comment: Optional[LangString | str],
@@ -142,7 +146,7 @@ class Project(Model):
         :type modified: date | None
         :param projectIri: IRI to be used for the project. If no projectIRI is provied, the constrctor
          will create an arbitrary IRI based on thr URN scheme and a UUID. [Optional].
-        :type projectIri: AnyIRI | QName
+        :type projectIri: AnyIRI | Xsd_QName
         :param projectShortName: A short name for the project. Is used as prefix for named graphs that
            are being used for the project.
         :type projectShortName: NCname (strings are accepted only if conform to NCName syntax)
@@ -171,14 +175,14 @@ class Project(Model):
         if projectIri:
             if isinstance(projectIri, Xsd_anyURI):
                 self.__fields[ProjectFields.PROJECT_IRI] = projectIri
-            elif isinstance(projectIri, QName):
+            elif isinstance(projectIri, Xsd_QName):
                 self.__fields[ProjectFields.PROJECT_IRI] = projectIri
             else:
                 raise OmasErrorValue(f'projectIri {projectIri} must be an instance of AnyIRI, not {type(projectIri)}')
         else:
             self.__fields[ProjectFields.PROJECT_IRI] = Xsd_anyURI(uuid.uuid4().urn)
 
-        self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, NCName) else NCName(projectShortName)
+        self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
 
         if namespaceIri and isinstance(namespaceIri, NamespaceIRI):
             self.__fields[ProjectFields.NAMESPACE_IRI] = namespaceIri
@@ -186,10 +190,10 @@ class Project(Model):
             raise OmasErrorValue(f'Invalid namespace iri: {namespaceIri}')
 
         self.__fields[ProjectFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
-        self.__fields[ProjectFields.LABEL].set_notifier(self.notifier, QName(ProjectFields.LABEL.value))
+        self.__fields[ProjectFields.LABEL].set_notifier(self.notifier, Xsd_QName(ProjectFields.LABEL.value))
         self.__fields[ProjectFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
-        self.__fields[ProjectFields.COMMENT].set_notifier(self.notifier, QName(ProjectFields.COMMENT.value))
-        self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, NCName) else NCName(projectShortName)
+        self.__fields[ProjectFields.COMMENT].set_notifier(self.notifier, Xsd_QName(ProjectFields.COMMENT.value))
+        self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
         if projectStart and isinstance(projectStart, Xsd_date):
             self.__fields[ProjectFields.PROJECT_START] = projectStart
         else:
@@ -287,23 +291,23 @@ class Project(Model):
         """
         self.__change_set = {}
 
-    def notifier(self, fieldname: QName):
+    def notifier(self, fieldname: Xsd_QName):
         field = ProjectFields(fieldname)
         self.__change_set[field] = ProjectFieldChange(self.__fields[field], Action.MODIFY)
         pass
 
     @classmethod
-    def read(cls, con: IConnection, projectIri: Xsd_anyURI | QName) -> Self:
+    def read(cls, con: IConnection, projectIri: Xsd_anyURI | Xsd_QName) -> Self:
         """
         Read the project from the triplestore and return an instance of the project
         :param con: A valid Connection object
         :type con: IConnection
         :param projectIri: The IRI/QName of the project to be read
-        :type projectIri: Xsd_anyURI | QName
+        :type projectIri: Xsd_anyURI | Xsd_QName
         :return: Project instance
         """
         context = Context(name=con.context_name)
-        if isinstance(projectIri, QName):
+        if isinstance(projectIri, Xsd_QName):
             projectIri = context.qname2iri(projectIri)
         query = context.sparql_context
         query += f"""
@@ -350,9 +354,9 @@ class Project(Model):
                 case 'omas:projectEnd':
                     projectEnd = r['val']
         label.changeset_clear()
-        label.set_notifier(cls.notifier, QName(ProjectFields.LABEL.value))
+        label.set_notifier(cls.notifier, Xsd_QName(ProjectFields.LABEL.value))
         comment.changeset_clear()
-        comment.set_notifier(cls.notifier, QName(ProjectFields.COMMENT.value))
+        comment.set_notifier(cls.notifier, Xsd_QName(ProjectFields.COMMENT.value))
         return cls(con=con,
                    creator=creator,
                    created=created,
@@ -369,7 +373,7 @@ class Project(Model):
     @staticmethod
     def search(con: IConnection,
                label: Optional[str] = None,
-               comment: Optional[str] = None) -> List[Xsd_anyURI | QName]:
+               comment: Optional[str] = None) -> List[Xsd_anyURI | Xsd_QName]:
         """
         Search for a given project. If no label or comment is given, all existing projects are returned. If both
         a search term for the label and comment are given, they will be combined by *AND*.
@@ -430,7 +434,7 @@ class Project(Model):
         # the given project!
         #
         actor = self._con.userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -508,7 +512,7 @@ class Project(Model):
         :Raises: Omas Error: Other Internal error
         """
         actor = self._con.userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -522,19 +526,19 @@ class Project(Model):
         for field, change in self.__change_set.items():
             if field == ProjectFields.LABEL or field == ProjectFields.COMMENT:
                 if change.action == Action.MODIFY:
-                    sparql_list.extend(self.__fields[field].update(graph=QName('omas:admin'),
+                    sparql_list.extend(self.__fields[field].update(graph=Xsd_QName('omas:admin'),
                                                                    subject=self.projectIri,
                                                                    subjectvar='?project',
-                                                                   field=QName(field.value)))
+                                                                   field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    sparql = self.__fields[field].delete(graph=QName('omas:admin'),
+                    sparql = self.__fields[field].delete(graph=Xsd_QName('omas:admin'),
                                                          subject=self.projectIri,
-                                                         field=QName(field.value))
+                                                         field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
-                    sparql = self.__fields[field].create(graph=QName('omas:admin'),
+                    sparql = self.__fields[field].create(graph=Xsd_QName('omas:admin'),
                                                          subject=self.projectIri,
-                                                         field=QName(field.value))
+                                                         field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 continue
             sparql = f'{blank:{indent * indent_inc}}# Project field "{field.value}" with action "{change.action.value}"\n'
@@ -558,8 +562,8 @@ class Project(Model):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(QName('omas:admin'), self.projectIri, self.modified, timestamp)
-            modtime = self.get_modified_by_iri(QName('omas:admin'), self.projectIri)
+            self.set_modified_by_iri(Xsd_QName('omas:admin'), self.projectIri, self.modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.projectIri)
         except OmasError:
             self._con.transaction_abort()
             raise
@@ -582,7 +586,7 @@ class Project(Model):
         :raises OmasError: generic internal error
         """
         actor = self._con.userdata
-        sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True

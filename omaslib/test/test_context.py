@@ -1,11 +1,9 @@
 import unittest
 
-import rdflib
-from rdflib import Graph
-from rdflib.namespace import NamespaceManager
-
-from omaslib.src.helpers.context import Context, ContextSingleton
-from omaslib.src.helpers.datatypes import NamespaceIRI, Xsd_anyURI, QName
+from omaslib.src.helpers.context import Context
+from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.helpers.omaserror import OmasError
 
 
@@ -61,14 +59,14 @@ class TestContext(unittest.TestCase):
 
     def test_context_qname2iri(self):
         context = Context(name='qname2iri')
-        self.assertEqual(context.qname2iri(QName('skos:gaga')), 'http://www.w3.org/2004/02/skos/core#gaga')
+        self.assertEqual(context.qname2iri(Xsd_QName('skos:gaga')), 'http://www.w3.org/2004/02/skos/core#gaga')
         with self.assertRaises(OmasError) as ex:
             qn = context.iri2qname('gaga')
         self.assertEqual(str(ex.exception), 'Invalid string "gaga" for anyIRI')
         with self.assertRaises(OmasError) as ex:
             qn = context.iri2qname('abc:def')
         self.assertEqual(str(ex.exception), 'Invalid string "abc:def" for anyIRI')
-        t = QName('xml:integer')
+        t = Xsd_QName('xml:integer')
         self.assertEqual(context.qname2iri(t), 'http://www.w3.org/XML/1998/namespace#integer')
 
     def test_context_sparql(self):

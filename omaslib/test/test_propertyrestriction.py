@@ -6,7 +6,9 @@ from copy import deepcopy
 from rdflib import ConjunctiveGraph
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, Action, NCName
+from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.enums.language import Language
 from omaslib.src.propertyrestrictions import PropertyRestrictions, PropertyRestrictionChange
 from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
@@ -14,7 +16,7 @@ from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 
 @dataclass
 class ExpectationValue:
-    value: [bool, int, float, str, QName, set]
+    value: [bool, int, float, str, Xsd_QName, set]
     done: bool
 
 
@@ -49,7 +51,7 @@ def check_turtle_expectation(turtle: str, expectation: TurtleExpectation, cl: un
 
         else:
             value = value.strip(" .")
-            tvalue: Union[bool, int, float, str, QName, None] = None
+            tvalue: Union[bool, int, float, str, Xsd_QName, None] = None
             if bool in PropertyRestrictions.datatypes[ptype] and tvalue is None:
                 tvalue = True if value == 'true' else False
             if int in PropertyRestrictions.datatypes[ptype] and tvalue is None:
@@ -61,8 +63,8 @@ def check_turtle_expectation(turtle: str, expectation: TurtleExpectation, cl: un
                 tvalue = float(value)
             if str in PropertyRestrictions.datatypes[ptype] and tvalue is None:
                 tvalue = value.strip('"')
-            if QName in PropertyRestrictions.datatypes[ptype] and tvalue is None:
-                tvalue = QName(value)
+            if Xsd_QName in PropertyRestrictions.datatypes[ptype] and tvalue is None:
+                tvalue = Xsd_QName(value)
             if tvalue is None:
                 tvalue = value
             if expectation[ptype].value == tvalue:
@@ -85,8 +87,8 @@ class TestPropertyRestriction(unittest.TestCase):
         PropertyRestrictionType.MAX_EXCLUSIVE: 6.5,
         PropertyRestrictionType.MAX_INCLUSIVE: 8,
         PropertyRestrictionType.PATTERN: '.*',
-        PropertyRestrictionType.LESS_THAN: QName('test:greater'),
-        PropertyRestrictionType.LESS_THAN_OR_EQUALS: QName('test:gaga')
+        PropertyRestrictionType.LESS_THAN: Xsd_QName('test:greater'),
+        PropertyRestrictionType.LESS_THAN_OR_EQUALS: Xsd_QName('test:gaga')
     }
 
     def test_restriction_constructor(self):
@@ -105,8 +107,8 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r2[PropertyRestrictionType.MIN_INCLUSIVE], 8)
         self.assertEqual(r2[PropertyRestrictionType.MAX_EXCLUSIVE], 6.5)
         self.assertEqual(r2[PropertyRestrictionType.MAX_INCLUSIVE], 8)
-        self.assertEqual(r2[PropertyRestrictionType.LESS_THAN], QName('test:greater'))
-        self.assertEqual(r2[PropertyRestrictionType.LESS_THAN_OR_EQUALS], QName('test:gaga'))
+        self.assertEqual(r2[PropertyRestrictionType.LESS_THAN], Xsd_QName('test:greater'))
+        self.assertEqual(r2[PropertyRestrictionType.LESS_THAN_OR_EQUALS], Xsd_QName('test:gaga'))
         s = str(r2)
 
     def test_restriction_setitem(self):
@@ -127,8 +129,8 @@ class TestPropertyRestriction(unittest.TestCase):
         r1[PropertyRestrictionType.MAX_INCLUSIVE] = 16
         r1[PropertyRestrictionType.MAX_EXCLUSIVE] = 18
         r1[PropertyRestrictionType.PATTERN] = '[a..zA..Z]'
-        r1[PropertyRestrictionType.LESS_THAN] = QName('gaga:gaga')
-        r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = QName('gugus:gugus')
+        r1[PropertyRestrictionType.LESS_THAN] = Xsd_QName('gaga:gaga')
+        r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = Xsd_QName('gugus:gugus')
         expected: Dict[PropertyRestrictionType, PropertyRestrictionChange] = {
             PropertyRestrictionType.LANGUAGE_IN:
                 PropertyRestrictionChange(test3_restriction[PropertyRestrictionType.LANGUAGE_IN], Action.REPLACE, True),
@@ -177,8 +179,8 @@ class TestPropertyRestriction(unittest.TestCase):
         r1[PropertyRestrictionType.MIN_INCLUSIVE] = 20
         r1[PropertyRestrictionType.MAX_EXCLUSIVE] = 25
         r1[PropertyRestrictionType.MAX_INCLUSIVE] = 25
-        r1[PropertyRestrictionType.LESS_THAN] = QName('test:waseliwas')
-        r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = QName('test:soso')
+        r1[PropertyRestrictionType.LESS_THAN] = Xsd_QName('test:waseliwas')
+        r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS] = Xsd_QName('test:soso')
         self.assertEqual(r1[PropertyRestrictionType.LANGUAGE_IN], {Language.EN, Language.DE})
         self.assertEqual(r1[PropertyRestrictionType.IN], {'X', 'Y'})
         self.assertFalse(r1[PropertyRestrictionType.UNIQUE_LANG])
@@ -191,8 +193,8 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r1[PropertyRestrictionType.MIN_INCLUSIVE], 20)
         self.assertEqual(r1[PropertyRestrictionType.MAX_EXCLUSIVE], 25)
         self.assertEqual(r1[PropertyRestrictionType.MAX_INCLUSIVE], 25)
-        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN], QName('test:waseliwas'))
-        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS], QName('test:soso'))
+        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN], Xsd_QName('test:waseliwas'))
+        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS], Xsd_QName('test:soso'))
 
         r1.undo(PropertyRestrictionType.LANGUAGE_IN)
         r1.undo(PropertyRestrictionType.IN)
@@ -222,8 +224,8 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r1[PropertyRestrictionType.MIN_INCLUSIVE], 8)
         self.assertEqual(r1[PropertyRestrictionType.MAX_EXCLUSIVE], 6.5)
         self.assertEqual(r1[PropertyRestrictionType.MAX_INCLUSIVE], 8)
-        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN], QName('test:greater'))
-        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS], QName('test:gaga'))
+        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN], Xsd_QName('test:greater'))
+        self.assertEqual(r1[PropertyRestrictionType.LESS_THAN_OR_EQUALS], Xsd_QName('test:gaga'))
 
     def test_restriction_update_shacl(self):
         context = Context(name='hihi')
@@ -253,7 +255,7 @@ class TestPropertyRestriction(unittest.TestCase):
         # now modify PropertyRestrictioninstance and test the modifications in the instance
         #
         del r1[PropertyRestrictionType.MAX_LENGTH]
-        r1[PropertyRestrictionType.LESS_THAN] = QName('test:mustbemore')
+        r1[PropertyRestrictionType.LESS_THAN] = Xsd_QName('test:mustbemore')
         r1[PropertyRestrictionType.LANGUAGE_IN] = {Language.EN, Language.DE, Language.FR, Language.IT, Language.ES}
         r1[PropertyRestrictionType.IN] = {'X', 'Y'}
         self.assertIsNone(r1.get(PropertyRestrictionType.MAX_LENGTH))
@@ -274,7 +276,7 @@ class TestPropertyRestriction(unittest.TestCase):
         # now apply the update to the rdflib triple store
         #
         querystr = context.sparql_context
-        querystr += r1.update_shacl(graph=NCName('test'), prop_iri=QName('test:test'), modified=modified)
+        querystr += r1.update_shacl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
         g1.update(querystr)
         expected: TurtleExpectation = {
             PropertyRestrictionType.UNIQUE_LANG: ExpectationValue(True, False),
@@ -289,8 +291,8 @@ class TestPropertyRestriction(unittest.TestCase):
             PropertyRestrictionType.MIN_INCLUSIVE: ExpectationValue(8, False),
             PropertyRestrictionType.MAX_EXCLUSIVE: ExpectationValue(6.5, False),
             PropertyRestrictionType.MAX_INCLUSIVE: ExpectationValue(8, False),
-            PropertyRestrictionType.LESS_THAN: ExpectationValue(QName('test:mustbemore'), False),
-            PropertyRestrictionType.LESS_THAN_OR_EQUALS: ExpectationValue(QName('test:gaga'), False),
+            PropertyRestrictionType.LESS_THAN: ExpectationValue(Xsd_QName('test:mustbemore'), False),
+            PropertyRestrictionType.LESS_THAN_OR_EQUALS: ExpectationValue(Xsd_QName('test:gaga'), False),
         }
         check_turtle_expectation(g1.serialize(format="n3"), expected, self)
 
@@ -329,7 +331,7 @@ class TestPropertyRestriction(unittest.TestCase):
         self.assertEqual(r1.changeset, expected)
 
         querystr = context.sparql_context
-        querystr += r1.update_owl(graph=NCName('test'), prop_iri=QName('test:test'), modified=modified)
+        querystr += r1.update_owl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
         g1.update(querystr)
         expected = context.sparql_context
         expected += f'''test:onto {{
@@ -348,7 +350,7 @@ class TestPropertyRestriction(unittest.TestCase):
 
         r1[PropertyRestrictionType.MIN_COUNT] = 0
         querystr = context.sparql_context
-        querystr += r1.update_owl(graph=NCName('test'), prop_iri=QName('test:test'), modified=modified)
+        querystr += r1.update_owl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
         g1.update(querystr)
         expected = context.sparql_context
         expected += f'''test:onto {{
@@ -388,8 +390,8 @@ class TestPropertyRestriction(unittest.TestCase):
             PropertyRestrictionType.MIN_INCLUSIVE: ExpectationValue(8, False),
             PropertyRestrictionType.MAX_EXCLUSIVE: ExpectationValue(6.5, False),
             PropertyRestrictionType.MAX_INCLUSIVE: ExpectationValue(8, False),
-            PropertyRestrictionType.LESS_THAN: ExpectationValue(QName('test:greater'), False),
-            PropertyRestrictionType.LESS_THAN_OR_EQUALS: ExpectationValue(QName('test:gaga'), False),
+            PropertyRestrictionType.LESS_THAN: ExpectationValue(Xsd_QName('test:greater'), False),
+            PropertyRestrictionType.LESS_THAN_OR_EQUALS: ExpectationValue(Xsd_QName('test:gaga'), False),
         }
         check_turtle_expectation(shacl, expected, self)
 

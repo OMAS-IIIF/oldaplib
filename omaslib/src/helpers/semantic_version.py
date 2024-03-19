@@ -17,7 +17,7 @@ class SemanticVersion:
         return f"{self.__major}.{self.__minor}.{self.__patch}"
 
     def __repr__(self) -> str:
-        return f'"{self.__major}.{self.__minor}.{self.__patch}"'
+        return f'"{self.__major}.{self.__minor}.{self.__patch}"^^string'
 
     def __eq__(self, other: Self) -> bool:
         return self.__major == other.__major and self.__minor == other.__minor and self.__patch == other.__patch

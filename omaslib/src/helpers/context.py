@@ -8,13 +8,14 @@ a metaclass). That is, each instantiation of Context with the same name will poi
 object. This means that the contex *name* uniquely identifies a context and all changes will be
 visible for all contexts with the same name.
 """
-from typing import Dict, Union, List
+from typing import Dict, List
 
 from pystrict import strict
-from rdflib import Graph
-from rdflib.namespace import NamespaceManager, Namespace
 
-from omaslib.src.helpers.datatypes import NCName, Xsd_anyURI, NamespaceIRI, QName
+from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.omaserror import OmasError
 
 DEFAULT_CONTEXT = "OMAS_DEFAULT_CONTEXT"
@@ -64,9 +65,9 @@ class Context(metaclass=ContextSingleton):
     - *turtle_context*: Property that return the context as turtle compatible string
     """
     _name: str
-    _context: Dict[NCName, NamespaceIRI]
-    _inverse: Dict[NamespaceIRI, NCName]
-    _use: List[NCName]
+    _context: Dict[Xsd_NCName, NamespaceIRI]
+    _inverse: Dict[NamespaceIRI, Xsd_NCName]
+    _use: List[Xsd_NCName]
 
     def __init__(self, name: str):
         """
@@ -90,48 +91,48 @@ class Context(metaclass=ContextSingleton):
         """
         self._name = name
         self._context = {
-            NCName('rdf'): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
-            NCName('rdfs'): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
-            NCName('owl'): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
-            NCName('xsd'): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
-            NCName('xml'): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
-            NCName('sh'): NamespaceIRI('http://www.w3.org/ns/shacl#'),
-            NCName('skos'): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
-            NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
-            NCName('dcterms'): NamespaceIRI('http://purl.org/dc/terms/'),
-            NCName('foaf'): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
-            NCName('omas'): NamespaceIRI('http://omas.org/base#')
+            Xsd_NCName('rdf'): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
+            Xsd_NCName('rdfs'): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
+            Xsd_NCName('owl'): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
+            Xsd_NCName('xsd'): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
+            Xsd_NCName('xml'): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
+            Xsd_NCName('sh'): NamespaceIRI('http://www.w3.org/ns/shacl#'),
+            Xsd_NCName('skos'): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
+            Xsd_NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
+            Xsd_NCName('dcterms'): NamespaceIRI('http://purl.org/dc/terms/'),
+            Xsd_NCName('foaf'): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
+            Xsd_NCName('omas'): NamespaceIRI('http://omas.org/base#')
         }
         self._inverse = {
-            NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): NCName('rdf'),
-            NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): NCName('rdfs'),
-            NamespaceIRI('http://www.w3.org/2002/07/owl#'): NCName('owl'),
-            NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): NCName('xsd'),
-            NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): NCName('xml'),
-            NamespaceIRI('http://www.w3.org/ns/shacl#'): NCName('sh'),
-            NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): NCName('skos'),
-            NamespaceIRI('http://purl.org/dc/elements/1.1/'): NCName('dc'),
-            NamespaceIRI('http://purl.org/dc/terms/'): NCName('dcterms'),
-            NamespaceIRI('http://xmlns.com/foaf/0.1/'): NCName('foaf'),
-            NamespaceIRI('http://omas.org/base#'): NCName('omas'),
+            NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf'),
+            NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs'),
+            NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl'),
+            NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd'),
+            NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml'),
+            NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh'),
+            NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos'),
+            NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc'),
+            NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms'),
+            NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf'),
+            NamespaceIRI('http://omas.org/base#'): Xsd_NCName('omas'),
         }
         self._use = []
 
-    def __getitem__(self, prefix: NCName | str) -> NamespaceIRI:
+    def __getitem__(self, prefix: Xsd_NCName | str) -> NamespaceIRI:
         """
         Access a context by prefix. The key may be a QName or a valid string
 
         :param prefix: A valid prefix (QName or string)
         :return: Associated NamespaceIRI
         """
-        if not isinstance(prefix, NCName):
-            prefix = NCName(prefix)
+        if not isinstance(prefix, Xsd_NCName):
+            prefix = Xsd_NCName(prefix)
         try:
             return self._context[prefix]
         except KeyError as err:
             raise OmasError(f'Unknown prefix "{prefix}"')
 
-    def __setitem__(self, prefix: NCName | str, iri: NamespaceIRI | str) -> None:
+    def __setitem__(self, prefix: Xsd_NCName | str, iri: NamespaceIRI | str) -> None:
         """
         Set a context. The prefix may be a QName or a valid string, the iri must be a NamespaceIRI (with a
         terminating "#" or "/").
@@ -140,14 +141,14 @@ class Context(metaclass=ContextSingleton):
         :param iri: A valid iri (NamespaceIRI or string)
         :return: None
         """
-        if not isinstance(prefix, NCName):
-            prefix = NCName(prefix)
+        if not isinstance(prefix, Xsd_NCName):
+            prefix = Xsd_NCName(prefix)
         if not isinstance(iri, NamespaceIRI):
             iri = NamespaceIRI(iri)
         self._context[prefix] = iri
         self._inverse[iri] = prefix
 
-    def __delitem__(self, prefix: NCName | str) -> None:
+    def __delitem__(self, prefix: Xsd_NCName | str) -> None:
         """
         Delete an item. The prefix must be a QName or a valid string
 
@@ -155,8 +156,8 @@ class Context(metaclass=ContextSingleton):
         :return: None
         """
         iri: NamespaceIRI
-        if not isinstance(prefix, NCName):
-            prefix = NCName(prefix)
+        if not isinstance(prefix, Xsd_NCName):
+            prefix = Xsd_NCName(prefix)
         try:
             iri = self._context[prefix]
         except KeyError:
@@ -171,21 +172,21 @@ class Context(metaclass=ContextSingleton):
         return self._context.__iter__()
 
     @property
-    def graphs(self) -> List[NCName]:
+    def graphs(self) -> List[Xsd_NCName]:
         """
         Returns the list of graphs to be used for this context
         :return:
         """
         return self._use
 
-    def use(self, *args: NCName | str) -> None:
+    def use(self, *args: Xsd_NCName | str) -> None:
         """
         Add graph names to the context
         :param args: Parameter list of graph names
         :return: None
         """
         for arg in args:
-            self._use.append(NCName(arg))
+            self._use.append(Xsd_NCName(arg))
 
     def items(self):
         """
@@ -193,7 +194,7 @@ class Context(metaclass=ContextSingleton):
         """
         return self._context.items()
 
-    def iri2qname(self, iri: str | NamespaceIRI) -> QName | None:
+    def iri2qname(self, iri: str | NamespaceIRI) -> Xsd_QName | None:
         """
         Returns a QName
 
@@ -205,19 +206,19 @@ class Context(metaclass=ContextSingleton):
         for prefix, trunk in self._context.items():
             if str(iri).startswith(str(trunk)):
                 fragment = str(iri)[len(trunk):]
-                return QName(prefix, fragment)
+                return Xsd_QName(prefix, fragment)
         return None
 
-    def qname2iri(self, qname: QName | str) -> NamespaceIRI:
+    def qname2iri(self, qname: Xsd_QName | str) -> NamespaceIRI:
         """
         Convert a QName into a IRI string.
 
         :param qname: Valid QName (Qname or str)
         :return: Full IRI as str
         """
-        if not isinstance(qname, QName):
-            qname = QName(qname)
-        return self._context[NCName(qname.prefix)] + qname.fragment
+        if not isinstance(qname, Xsd_QName):
+            qname = Xsd_QName(qname)
+        return self._context[Xsd_NCName(qname.prefix)] + qname.fragment
 
 
     @property

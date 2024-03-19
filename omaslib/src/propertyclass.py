@@ -11,7 +11,12 @@ from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, Xsd_anyURI, Action, NCName, BNode, Xsd_dateTime
+from omaslib.src.dtypes.bnode import BNode
+from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
@@ -33,9 +38,9 @@ class OwlPropertyType(Enum):
     OwlObjectProperty = 'owl:ObjectProperty'
 
 
-PropTypes = QName | Xsd_anyURI | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | int | float | None
+PropTypes = Xsd_QName | Xsd_anyURI | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | int | float | None
 PropertyClassAttributesContainer = Dict[PropertyClassAttribute, PropTypes]
-Attributes = Dict[QName, List[Any] | Set[Any]]
+Attributes = Dict[Xsd_QName, List[Any] | Set[Any]]
 
 
 @dataclass
@@ -61,9 +66,9 @@ class PropertyClass(Model, Notify):
     QName has to be used!
 
     """
-    _graph: NCName
-    _property_class_iri: QName | None
-    _internal: QName | None
+    _graph: Xsd_NCName
+    _property_class_iri: Xsd_QName | None
+    _internal: Xsd_QName | None
     _force_external: bool
     _attributes: PropertyClassAttributesContainer
     _changeset: Dict[PropertyClassAttribute, PropertyClassAttributeChange]
@@ -81,9 +86,9 @@ class PropertyClass(Model, Notify):
     __from_triplestore: bool
 
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
-        PropertyClassAttribute.SUBPROPERTY_OF: {QName},
+        PropertyClassAttribute.SUBPROPERTY_OF: {Xsd_QName},
         PropertyClassAttribute.PROPERTY_TYPE: {OwlPropertyType},
-        PropertyClassAttribute.TO_NODE_IRI: {QName, Xsd_anyURI},
+        PropertyClassAttribute.TO_NODE_IRI: {Xsd_QName, Xsd_anyURI},
         PropertyClassAttribute.DATATYPE: {XsdDatatypes},
         PropertyClassAttribute.RESTRICTIONS: {PropertyRestrictions},
         PropertyClassAttribute.NAME: {LangString},
@@ -93,8 +98,8 @@ class PropertyClass(Model, Notify):
 
     def __init__(self, *,
                  con: IConnection,
-                 graph: NCName,
-                 property_class_iri: Optional[QName] = None,
+                 graph: Xsd_NCName,
+                 property_class_iri: Optional[Xsd_QName] = None,
                  attrs: Optional[PropertyClassAttributesContainer] = None,
                  notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
                  notify_data: Optional[PropertyClassAttribute] = None):
@@ -212,7 +217,7 @@ class PropertyClass(Model, Notify):
             self.notify()
 
     @property
-    def property_class_iri(self) -> QName:
+    def property_class_iri(self) -> Xsd_QName:
         return self._property_class_iri
 
     @property
@@ -240,7 +245,7 @@ class PropertyClass(Model, Notify):
         return self._changeset
 
     @property
-    def internal(self) -> QName:
+    def internal(self) -> Xsd_QName:
         return self._internal
 
     def force_external(self):
@@ -322,7 +327,7 @@ class PropertyClass(Model, Notify):
     @staticmethod
     def process_triple(r: RowType, attributes: Attributes) -> None:
         attriri = r['attriri']
-        if isinstance(r['value'], QName):
+        if isinstance(r['value'], Xsd_QName):
             if attributes.get(attriri) is None:
                 attributes[attriri] = []
             attributes[attriri].append(r['value'])
@@ -346,7 +351,7 @@ class PropertyClass(Model, Notify):
             attributes[attriri].add(r['oo'])
 
     @staticmethod
-    def __query_shacl(con: IConnection, graph: NCName, property_class_iri: QName) -> Attributes:
+    def __query_shacl(con: IConnection, graph: Xsd_NCName, property_class_iri: Xsd_QName) -> Attributes:
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
@@ -378,7 +383,7 @@ class PropertyClass(Model, Notify):
         #
         # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
         #
-        propkeys = {QName(x.value) for x in PropertyClassAttribute}
+        propkeys = {Xsd_QName(x.value) for x in PropertyClassAttribute}
         for key, val in attributes.items():
             if key == 'rdf:type':
                 if val[0] == 'sh:PropertyShape':
@@ -401,7 +406,7 @@ class PropertyClass(Model, Notify):
                 pass  # TODO: Process property group correctly.... (at Moment only omas:SystemPropGroup)
             elif key in propkeys:
                 attr = PropertyClassAttribute(key)
-                if {QName, Xsd_anyURI} == self.__datatypes[attr]:
+                if {Xsd_QName, Xsd_anyURI} == self.__datatypes[attr]:
                     self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
                 elif {XsdDatatypes} == self.__datatypes[attr]:
                     self._attributes[attr] = XsdDatatypes(str(val[0]))
@@ -494,7 +499,7 @@ class PropertyClass(Model, Notify):
                     f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
 
     @classmethod
-    def read(cls, con: IConnection, graph: NCName, property_class_iri: QName) -> Self:
+    def read(cls, con: IConnection, graph: Xsd_NCName, property_class_iri: Xsd_QName) -> Self:
         property = cls(con=con, graph=graph, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
@@ -503,7 +508,7 @@ class PropertyClass(Model, Notify):
 
     def read_modified_shacl(self, *,
                             context: Context,
-                            graph: NCName,
+                            graph: Xsd_NCName,
                             indent: int = 0, indent_inc: int = 4) -> Xsd_dateTime | None:
         blank = ''
         sparql = context.sparql_context
@@ -526,7 +531,7 @@ class PropertyClass(Model, Notify):
 
     def read_modified_owl(self, *,
                           context: Context,
-                          graph: NCName,
+                          graph: Xsd_NCName,
                           indent: int = 0, indent_inc: int = 4) -> Xsd_dateTime | None:
         blank = ''
         sparql = context.sparql_context
@@ -546,7 +551,7 @@ class PropertyClass(Model, Notify):
 
     def property_node_shacl(self, *,
                             timestamp: datetime,
-                            bnode: Optional[QName] = None,
+                            bnode: Optional[Xsd_QName] = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{(indent + 1) * indent_inc}}# PropertyClass.property_node_shacl()'
@@ -571,7 +576,7 @@ class PropertyClass(Model, Notify):
 
     def create_shacl(self, *,
                      timestamp: datetime,
-                     owlclass_iri: Optional[QName] = None,
+                     owlclass_iri: Optional[Xsd_QName] = None,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'\n{blank:{indent * indent_inc}}# PropertyClass.create_shacl()'
@@ -579,7 +584,7 @@ class PropertyClass(Model, Notify):
             sparql += f'\n{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
             sparql += self.property_node_shacl(timestamp=timestamp, indent=indent, indent_inc=indent_inc)
         else:
-            bnode = QName('_:propnode')
+            bnode = Xsd_QName('_:propnode')
             sparql += f'\n{blank:{indent * indent_inc}}{owlclass_iri}Shape sh:property {bnode} .\n'
             sparql += self.property_node_shacl(timestamp=timestamp, bnode=bnode, indent=indent, indent_inc=indent_inc)
         sparql += ' .\n'
@@ -703,7 +708,7 @@ class PropertyClass(Model, Notify):
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
     def update_shacl(self, *,
-                     owlclass_iri: Optional[QName] = None,
+                     owlclass_iri: Optional[Xsd_QName] = None,
                      timestamp: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -773,7 +778,7 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def update_owl(self, *,
-                   owlclass_iri: Optional[QName] = None,
+                   owlclass_iri: Optional[Xsd_QName] = None,
                    timestamp: datetime,
                    indent: int = 0, indent_inc: int = 4) -> str:
         owl_propclass_attributes = {PropertyClassAttribute.SUBPROPERTY_OF,  # should be in OWL ontology
@@ -962,8 +967,8 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def delete_owl_subclass_str(self, *,
-                            owlclass_iri: QName,
-                            indent: int = 0, indent_inc: int = 4):
+                                owlclass_iri: Xsd_QName,
+                                indent: int = 0, indent_inc: int = 4):
         blank = ''
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'

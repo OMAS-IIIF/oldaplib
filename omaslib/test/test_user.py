@@ -3,7 +3,9 @@ from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import QName, NCName, Xsd_anyURI
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNoPermission, OmasError
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.user import User
@@ -32,7 +34,7 @@ class TestUser(unittest.TestCase):
 
         # user = User(con=cls._connection, userId=NCName("coyote"))
         # user.delete()
-        cls._connection.clear_graph(QName('omas:admin'))
+        cls._connection.clear_graph(Xsd_QName('omas:admin'))
         cls._connection.upload_turtle("omaslib/ontologies/admin.trig")
         sleep(1)  # upload may take a while...
 
@@ -41,37 +43,37 @@ class TestUser(unittest.TestCase):
 
     def test_constructor(self):
         user = User(con=self._connection,
-                    userId=NCName("testuser"),
+                    userId=Xsd_NCName("testuser"),
                     familyName="Test",
                     givenName="Test",
                     credentials="Ein@geheimes&Passw0rt",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                           AdminPermission.ADMIN_RESOURCES,
-                                                           AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
 
-        self.assertEqual(user.userId, NCName("testuser"))
+        self.assertEqual(user.userId, Xsd_NCName("testuser"))
         self.assertEqual(user.familyName, "Test")
         self.assertEqual(user.givenName, "Test")
-        self.assertEqual(user.inProject, InProjectClass({QName("omas:HyperHamlet"): {
+        self.assertEqual(user.inProject, InProjectClass({Xsd_QName("omas:HyperHamlet"): {
             AdminPermission.ADMIN_USERS,
             AdminPermission.ADMIN_RESOURCES,
             AdminPermission.ADMIN_CREATE
         }}))
-        self.assertEqual(user.hasPermissions, {QName('omas:GenericView')})
+        self.assertEqual(user.hasPermissions, {Xsd_QName('omas:GenericView')})
 
     # @unittest.skip('Work in progress')
     def test_read_user(self):
         user = User.read(con=self._connection, userId="rosenth")
-        self.assertEqual(user.userId, NCName("rosenth"))
+        self.assertEqual(user.userId, Xsd_NCName("rosenth"))
         self.assertEqual(user.userIri, Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"))
         self.assertEqual(user.familyName, "Rosenthaler")
         self.assertEqual(user.givenName, "Lukas")
         self.assertEqual(user.inProject, InProjectClass({
-            QName("omas:SystemProject"): {AdminPermission.ADMIN_OLDAP},
-            QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
+            Xsd_QName("omas:SystemProject"): {AdminPermission.ADMIN_OLDAP},
+            Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
         }))
-        self.assertEqual(user.hasPermissions, {QName("omas:GenericRestricted"), QName('omas:GenericView')})
+        self.assertEqual(user.hasPermissions, {Xsd_QName("omas:GenericRestricted"), Xsd_QName('omas:GenericView')})
 
     # @unittest.skip('Work in progress')
     def test_read_unknown_user(self):
@@ -90,7 +92,7 @@ class TestUser(unittest.TestCase):
         users = User.search(con=self._connection, givenName="John")
         self.assertEqual([Xsd_anyURI("urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b")], users)
 
-        users = User.search(con=self._connection, inProject=QName("omas:HyperHamlet"))
+        users = User.search(con=self._connection, inProject=Xsd_QName("omas:HyperHamlet"))
         self.assertEqual([Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
                           Xsd_anyURI("https://orcid.org/0000-0003-1485-4923"),
                           Xsd_anyURI("https://orcid.org/0000-0001-9277-3921")], users)
@@ -120,14 +122,14 @@ class TestUser(unittest.TestCase):
     def test_create_user(self):
         user = User(con=self._connection,
                     userIri=Xsd_anyURI("https://orcid.org/0000-0003-3478-9313"),
-                    userId=NCName("coyote"),
+                    userId=Xsd_NCName("coyote"),
                     familyName="Coyote",
                     givenName="Wiley E.",
                     credentials="Super-Genius",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                           AdminPermission.ADMIN_RESOURCES,
-                                                           AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')},
+                    inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')},
                     isActive=True)
         user.create()
         user2 = User.read(con=self._connection, userId="coyote")
@@ -142,65 +144,65 @@ class TestUser(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_create_user_no_admin_perms(self):
         user = User(con=self._connection,
-                    userId=NCName("birdy"),
+                    userId=Xsd_NCName("birdy"),
                     familyName="Birdy",
                     givenName="Tweetie",
                     credentials="Sylvester",
-                    inProject={QName('omas:HyperHamlet'): {}},
-                    hasPermissions={QName('omas:GenericView')},
+                    inProject={Xsd_QName('omas:HyperHamlet'): {}},
+                    hasPermissions={Xsd_QName('omas:GenericView')},
                     isActive=True)
         user.create()
         del user
-        user = User.read(con=self._connection, userId=NCName("birdy"))
+        user = User.read(con=self._connection, userId=Xsd_NCName("birdy"))
         self.assertEqual(user.familyName, "Birdy")
 
     # @unittest.skip('Work in progress')
     def test_create_user_no_in_project(self):
         user = User(con=self._connection,
-                    userId=NCName("yogi"),
+                    userId=Xsd_NCName("yogi"),
                     familyName="Baer",
                     givenName="Yogi",
                     credentials="BuBu",
-                    hasPermissions={QName('omas:GenericView')},
+                    hasPermissions={Xsd_QName('omas:GenericView')},
                     isActive=True)
         user.create()
         del user
-        user = User.read(con=self._connection, userId=NCName("yogi"))
+        user = User.read(con=self._connection, userId=Xsd_NCName("yogi"))
         self.assertEqual(user.familyName, "Baer")
 
     # @unittest.skip('Work in progress')
     def test_create_user_no_permset(self):
         user = User(con=self._connection,
                     userIri=Xsd_anyURI("https://orcid.org/0000-0003-3478-9313"),
-                    userId=NCName("speedy"),
+                    userId=Xsd_NCName("speedy"),
                     familyName="Ganzales",
                     givenName="Speedy",
                     credentials="fasterthanlight",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                           AdminPermission.ADMIN_RESOURCES,
-                                                           AdminPermission.ADMIN_CREATE}},
+                    inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
                     isActive=True)
         user.create()
         del user
-        user = User.read(con=self._connection, userId=NCName("speedy"))
+        user = User.read(con=self._connection, userId=Xsd_NCName("speedy"))
         self.assertEqual(user.familyName, "Ganzales")
 
 
     # @unittest.skip('Work in progress')
     def test_create_user_no_useriri(self):
         user = User(con=self._connection,
-                    userId=NCName("sylvester"),
+                    userId=Xsd_NCName("sylvester"),
                     familyName="Sylvester",
                     givenName="Cat",
                     credentials="Birdy",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                           AdminPermission.ADMIN_RESOURCES,
-                                                           AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')},
+                    inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')},
                     isActive=False)
         user.create()
         del user
-        user = User.read(con=self._connection, userId=NCName("sylvester"))
+        user = User.read(con=self._connection, userId=Xsd_NCName("sylvester"))
         self.assertTrue(str(user.userIri).startswith("urn:uuid:"))
         self.assertFalse(user.isActive)
 
@@ -208,14 +210,14 @@ class TestUser(unittest.TestCase):
     def test_create_user_duplicate_userid(self):
         user = User(con=self._connection,
                     userIri=Xsd_anyURI("https://orcid.org/0000-0003-3478-9314"),
-                    userId=NCName("fornaro"),
+                    userId=Xsd_NCName("fornaro"),
                     familyName="di Fornaro",
                     givenName="Petri",
                     credentials="Genius",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                           AdminPermission.ADMIN_RESOURCES,
-                                                           AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
         with self.assertRaises(OmasErrorAlreadyExists) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'A user with a user ID "fornaro" already exists')
@@ -224,14 +226,14 @@ class TestUser(unittest.TestCase):
     def test_create_user_duplicate_useriri(self):
         user = User(con=self._connection,
                     userIri=Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
-                    userId=NCName("brown"),
+                    userId=Xsd_NCName("brown"),
                     familyName="Brown",
                     givenName="Emmett",
                     credentials="Time-Machine@1985",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                           AdminPermission.ADMIN_RESOURCES,
-                                                           AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
         with self.assertRaises(OmasErrorAlreadyExists) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'A user with a user IRI "https://orcid.org/0000-0003-1681-4036" already exists')
@@ -239,14 +241,14 @@ class TestUser(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_create_user_invalid_project(self):
         user = User(con=self._connection,
-                    userId=NCName("donald"),
+                    userId=Xsd_NCName("donald"),
                     familyName="Duck",
                     givenName="Donald",
                     credentials="Entenhausen@for&Ever",
-                    inProject={QName('omas:NotExistingproject'): {AdminPermission.ADMIN_USERS,
-                                                                  AdminPermission.ADMIN_RESOURCES,
-                                                                  AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    inProject={Xsd_QName('omas:NotExistingproject'): {AdminPermission.ADMIN_USERS,
+                                                                      AdminPermission.ADMIN_RESOURCES,
+                                                                      AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
         with self.assertRaises(OmasErrorValue) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'One of the projects is not existing!')
@@ -254,14 +256,14 @@ class TestUser(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_create_user_invalid_permset(self):
         user = User(con=self._connection,
-                    userId=NCName("donald"),
+                    userId=Xsd_NCName("donald"),
                     familyName="Duck",
                     givenName="Donald",
                     credentials="Entenhausen@for&Ever",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                           AdminPermission.ADMIN_RESOURCES,
-                                                           AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView'), QName('omas:Gaga')})
+                    inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView'), Xsd_QName('omas:Gaga')})
         with self.assertRaises(OmasErrorValue) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
@@ -269,24 +271,24 @@ class TestUser(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_create_user_no_privilege(self):
         user = User(con=self._unpriv,
-                    userId=NCName("donald"),
+                    userId=Xsd_NCName("donald"),
                     familyName="Duck",
                     givenName="Donald",
                     credentials="Entenhausen@for&Ever",
                     inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    hasPermissions={Xsd_QName('omas:GenericView')})
         with self.assertRaises(OmasErrorNoPermission) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'No permission to create user in project http://www.salsah.org/version/2.0/SwissBritNet.')
 
     # @unittest.skip('Work in progress')
     def test_create_user_no_connection(self):
-        user = User(userId=NCName("brown"),
+        user = User(userId=Xsd_NCName("brown"),
                     familyName="Dock",
                     givenName="Donald",
                     credentials="Entenhausen@for&Ever",
                     inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    hasPermissions={Xsd_QName('omas:GenericView')})
         with self.assertRaises(OmasError) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'Cannot create: no connection')
@@ -295,14 +297,14 @@ class TestUser(unittest.TestCase):
     def test_delete_user(self):
         user = User(con=self._connection,
                     userIri=Xsd_anyURI("https://orcid.org/0000-0002-9991-2055"),
-                    userId=NCName("edison"),
+                    userId=Xsd_NCName("edison"),
                     familyName="Edison",
                     givenName="Thomas A.",
                     credentials="Lightbulb&Phonograph",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                           AdminPermission.ADMIN_RESOURCES,
-                                                           AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
         self.assertEqual(user2.userIri, user.userIri)
@@ -322,38 +324,38 @@ class TestUser(unittest.TestCase):
     def test_update_user(self):
         user = User(con=self._connection,
                     userIri=Xsd_anyURI("https://orcid.org/0000-0002-9991-2055"),
-                    userId=NCName("edison"),
+                    userId=Xsd_NCName("edison"),
                     familyName="Edison",
                     givenName="Thomas A.",
                     credentials="Lightbulb&Phonograph",
-                    inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                           AdminPermission.ADMIN_RESOURCES,
-                                                           AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={QName('omas:GenericView')})
+                    inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
         user2.userId = "aedison"
         user2.familyName = "Edison et al."
         user2.givenName = "Thomas"
-        user2.hasPermissions.add(QName('omas:GenericRestricted'))
-        user2.hasPermissions.add(QName('omas:HyperHamletMember'))
-        user2.hasPermissions.remove(QName('omas:GenericView'))
-        user2.inProject[QName('omas:SystemProject')] = {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES}
-        user2.inProject[QName('omas:HyperHamlet')].remove(AdminPermission.ADMIN_USERS)
+        user2.hasPermissions.add(Xsd_QName('omas:GenericRestricted'))
+        user2.hasPermissions.add(Xsd_QName('omas:HyperHamletMember'))
+        user2.hasPermissions.remove(Xsd_QName('omas:GenericView'))
+        user2.inProject[Xsd_QName('omas:SystemProject')] = {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES}
+        user2.inProject[Xsd_QName('omas:HyperHamlet')].remove(AdminPermission.ADMIN_USERS)
         user2.update()
         user3 = User.read(con=self._connection, userId="aedison")
-        self.assertEqual({QName('omas:GenericRestricted'), QName('omas:HyperHamletMember')}, user3.hasPermissions)
-        user3.hasPermissions.add(QName('omas:DoesNotExist'))
+        self.assertEqual({Xsd_QName('omas:GenericRestricted'), Xsd_QName('omas:HyperHamletMember')}, user3.hasPermissions)
+        user3.hasPermissions.add(Xsd_QName('omas:DoesNotExist'))
         with self.assertRaises(OmasErrorValue) as ex:
             user3.update()
             self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
-        self.assertEqual(InProjectClass({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES,
-                                                                     AdminPermission.ADMIN_CREATE},
-                                         QName('omas:SystemProject'): {AdminPermission.ADMIN_USERS,
-                                                                       AdminPermission.ADMIN_RESOURCES}}), user3.inProject)
+        self.assertEqual(InProjectClass({Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES,
+                                                                         AdminPermission.ADMIN_CREATE},
+                                         Xsd_QName('omas:SystemProject'): {AdminPermission.ADMIN_USERS,
+                                                                           AdminPermission.ADMIN_RESOURCES}}), user3.inProject)
         del user3
         user4 = User.read(con=self._connection, userId="aedison")
-        user4.inProject = InProjectClass({QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS}})
+        user4.inProject = InProjectClass({Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS}})
         user4.update()
         del user4
 

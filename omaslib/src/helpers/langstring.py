@@ -11,7 +11,10 @@ from typing import Dict, List, Optional, Callable, Self
 from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
-from omaslib.src.helpers.datatypes import Action, QName, NCName, Xsd_anyURI
+from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
@@ -224,6 +227,10 @@ class LangString(Notify):
         return self.__str__()
 
     def _as_dict(self) -> dict:
+        """
+        Return a dictionary used for JSONification of a LangString instance
+        :return: Dict that can be serialized
+        """
         return {
             'langstring': [f'"{val}@{lang.value.lower()}"' for lang, val in self._langstring.items()],
             'priorities': [lang.value.lower() for lang in self._priorities]
@@ -395,9 +402,9 @@ class LangString(Notify):
         self._changeset = {}
 
     def create(self, *,
-               graph: QName,
-               subject: QName | Xsd_anyURI,
-               field: QName,
+               graph: Xsd_QName,
+               subject: Xsd_QName | Xsd_anyURI,
+               field: Xsd_QName,
                indent: int = 0, indent_inc: int = 4):
         blank = ''
         sparql_list = []
@@ -410,9 +417,9 @@ class LangString(Notify):
         return sparql
 
     def delete(self, *,
-               graph: QName,
-               subject: QName | Xsd_anyURI,
-               field: QName,
+               graph: Xsd_QName,
+               subject: Xsd_QName | Xsd_anyURI,
+               field: Xsd_QName,
                indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
@@ -425,10 +432,10 @@ class LangString(Notify):
         return sparql
 
     def update(self, *,
-               graph: QName,
-               subject: QName | Xsd_anyURI,
+               graph: Xsd_QName,
+               subject: Xsd_QName | Xsd_anyURI,
                subjectvar: str,
-               field: QName,
+               field: Xsd_QName,
                indent: int = 0, indent_inc: int = 4) -> List[str]:
         blank = ''
         sparql_list = []
@@ -484,22 +491,22 @@ class LangString(Notify):
         return sparql_list
 
     def update_shacl(self, *,
-                     graph: NCName,
-                     owlclass_iri: Optional[QName] = None,
-                     prop_iri: QName,
+                     graph: Xsd_NCName,
+                     owlclass_iri: Optional[Xsd_QName] = None,
+                     prop_iri: Xsd_QName,
                      attr: PropertyClassAttribute,
                      modified: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         """
         Return the SPARQL code piece that updates a Language string SHACL part of the triple store.
         :param graph: SPARQL graph as described in the introduction to OMASLIB
-        :type graph: NCName
+        :type graph: Xsd_NCName
         :param owlclass_iri: The OWL class IRI of the associated ResourceClass. May be omitted for standalone properties
-        :type owlclass_iri: QName | None
+        :type owlclass_iri: Xsd_QName | None
         :param prop_iri: The property IRI of the associated PropertyClass
-        :type prop_iri: QName
+        :type prop_iri: Xsd_QName
         :param attr: The QName of the associated attribute
-        :type attr: QName
+        :type attr: Xsd_QName
         :param modified: timestamp that should be applied
         :type modified: datetime
         :param indent: The indent for the generated SPARQL code
@@ -550,23 +557,23 @@ class LangString(Notify):
         return sparql
 
     def delete_shacl(self, *,
-                     graph: NCName,
-                     owlclass_iri: Optional[QName] = None,
-                     prop_iri: QName,
-                     attr: QName,
+                     graph: Xsd_NCName,
+                     owlclass_iri: Optional[Xsd_QName] = None,
+                     prop_iri: Xsd_QName,
+                     attr: Xsd_QName,
                      modified: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         # TODO: Include into unit tests!
         """
         Return the SPARQL code piece that deletes an LanguageString
         :param graph: SPARQL graph as described in the introduction to OMASLIB
-        :type graph: NCName
+        :type graph: Xsd_NCName
         :param owlclass_iri: The OWL class IRI of the associated ResourceClass. May be omitted for standalone properties
         :type owlclass_iri: NCName or None
         :param prop_iri: The property IRI of the associated PropertyClass
-        :type prop_iri: QName
+        :type prop_iri: Xsd_QName
         :param attr: The QName of the associated attribute
-        :type attr: QName
+        :type attr: Xsd_QName
         :param modified: Modification date to apply
         :type modified: datetime
         :param indent: The indent for the generated SPARQL code

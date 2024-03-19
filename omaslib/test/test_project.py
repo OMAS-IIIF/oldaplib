@@ -5,7 +5,10 @@ from time import sleep
 from omaslib.src.connection import Connection
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NamespaceIRI, QName, NCName, Xsd_anyURI, Xsd_date
+from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_date import Xsd_date
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorNotFound
 from omaslib.src.project import Project
@@ -38,13 +41,13 @@ class Testproject(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls._connection.clear_graph(QName('omas:admin'))
+        cls._connection.clear_graph(Xsd_QName('omas:admin'))
         cls._connection.upload_turtle("omaslib/ontologies/admin.trig")
         sleep(1)  # upload may take a while...
 
     def test_project_read(self):
-        project = Project.read(con=self._connection, projectIri=QName("omas:SystemProject"))
-        self.assertEqual(NCName("system"), project.projectShortName)
+        project = Project.read(con=self._connection, projectIri=Xsd_QName("omas:SystemProject"))
+        self.assertEqual(Xsd_NCName("system"), project.projectShortName)
         self.assertEqual(LangString(["System@en",
                                      "System@de",
                                      "Système@fr",

@@ -5,7 +5,10 @@ from pprint import pprint
 from typing import Dict, List, Optional, Union
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, QName, Xsd_anyURI, Action
+from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasError, OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
@@ -26,17 +29,17 @@ class PropertyClassChange:
     action: Action
 
 class DataModel(Model):
-    __graph: NCName
+    __graph: Xsd_NCName
     __context: Context
     __version: SemanticVersion
-    __propclasses: Dict[QName, PropertyClass | None]
-    __resclasses: Dict[QName, ResourceClass | None]
-    __resclasses_changeset: Dict[QName, ResourceClassChange]
-    __propclasses_changeset: Dict[QName, PropertyClassChange]
+    __propclasses: Dict[Xsd_QName, PropertyClass | None]
+    __resclasses: Dict[Xsd_QName, ResourceClass | None]
+    __resclasses_changeset: Dict[Xsd_QName, ResourceClassChange]
+    __propclasses_changeset: Dict[Xsd_QName, PropertyClassChange]
 
     def __init__(self, *,
                  con: IConnection,
-                 graph: NCName,
+                 graph: Xsd_NCName,
                  propclasses: Optional[List[PropertyClass]] = None,
                  resclasses: Optional[List[ResourceClass]] = None) -> None:
         super().__init__(con)
@@ -54,7 +57,7 @@ class DataModel(Model):
         self.__propclasses_changeset = {}
         self.__resclasses_changeset = {}
 
-    def __getitem__(self, key: QName) -> Union[PropertyClass, ResourceClass]:
+    def __getitem__(self, key: Xsd_QName) -> Union[PropertyClass, ResourceClass]:
         if key in self.__resclasses:
             return self.__resclasses[key]
         if key in self.__propclasses:
@@ -62,7 +65,7 @@ class DataModel(Model):
         else:
             raise KeyError(key)
 
-    def __setitem__(self, key: QName, value: PropertyClass | ResourceClass) -> None:
+    def __setitem__(self, key: Xsd_QName, value: PropertyClass | ResourceClass) -> None:
         if isinstance(value, PropertyClass):
             if self.__propclasses.get(key) is None:
                 self.__propclasses_changeset[key] = PropertyClassChange(None, Action.CREATE)
@@ -80,7 +83,7 @@ class DataModel(Model):
         else:
             raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass (is "{type(value)}")')
 
-    def __delitem__(self, key: QName) -> None:
+    def __delitem__(self, key: Xsd_QName) -> None:
         if key in self.__propclasses:
             self.__propclasses_changeset[key] = PropertyClassChange(self.__propclasses[key], Action.DELETE)
             del self.__propclasses[key]
@@ -90,7 +93,7 @@ class DataModel(Model):
         else:
             raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
 
-    def get(self, key: QName) -> PropertyClass | ResourceClass | None:
+    def get(self, key: Xsd_QName) -> PropertyClass | ResourceClass | None:
         if key in self.__propclasses:
             return self.__propclasses[key]
         elif key in self.__resclasses:
@@ -99,14 +102,14 @@ class DataModel(Model):
             return None
 
 
-    def get_propclasses(self) -> List[QName]:
+    def get_propclasses(self) -> List[Xsd_QName]:
         return [x for x in self.__propclasses]
 
-    def get_resclasses(self) -> List[QName]:
+    def get_resclasses(self) -> List[Xsd_QName]:
         return [x for x in self.__resclasses]
 
     @property
-    def changeset(self) -> Dict[QName, PropertyClassChange | ResourceClassChange]:
+    def changeset(self) -> Dict[Xsd_QName, PropertyClassChange | ResourceClassChange]:
         return self.__resclasses_changeset | self.__propclasses_changeset
 
     def changeset_clear(self) -> None:
@@ -119,7 +122,7 @@ class DataModel(Model):
                 self.__resclasses[res].changeset_clear()
         self.__resclasses_changeset = {}
 
-    def notifier(self, what: QName) -> None:
+    def notifier(self, what: Xsd_QName) -> None:
         if what in self.__propclasses:
             self.__propclasses_changeset[what] = PropertyClassChange(None, Action.MODIFY)
         elif what in self.__resclasses:
@@ -128,7 +131,7 @@ class DataModel(Model):
             raise OmasErrorInconsistency(f'No resclass or property "{what}" in datamodel.')
 
     @classmethod
-    def read(cls, con: IConnection, graph: NCName):
+    def read(cls, con: IConnection, graph: Xsd_NCName):
         cls.__graph = graph
         cls.__context = Context(name=con.context_name)
         #
@@ -178,7 +181,7 @@ class DataModel(Model):
         for r in res:
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
-            propclass = PropertyClass.read(con, graph, QName(propclassiri))
+            propclass = PropertyClass.read(con, graph, Xsd_QName(propclassiri))
             propclasses.append(propclass)
         #
         # now get all resources defined in the data model
@@ -197,7 +200,7 @@ class DataModel(Model):
         for r in res:
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
-            resclass = ResourceClass.read(con, graph, QName(resclassiri))
+            resclass = ResourceClass.read(con, graph, Xsd_QName(resclassiri))
             resclasses.append(resclass)
         instance = cls(graph=graph, con=con, propclasses=propclasses, resclasses=resclasses)
         for qname in instance.get_propclasses():

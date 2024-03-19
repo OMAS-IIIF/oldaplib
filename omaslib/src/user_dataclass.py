@@ -40,7 +40,13 @@ from typing import Dict, Self, Set, Tuple, Any
 import bcrypt
 
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.datatypes import NCName, Xsd_anyURI, QName, Action, Xsd_dateTime, Xsd_string, Xsd
+from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
+from omaslib.src.xsd.xsd_string import Xsd_string
+from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNotFound
 from omaslib.src.enums.permissions import AdminPermission
@@ -53,7 +59,7 @@ from omaslib.src.in_project import InProjectClass
 # InProjectType = Dict[str, ObservableSet[AdminPermission]]
 
 
-UserFieldTypes = OldapStringLiteral | Xsd | ObservableSet[QName] | InProjectClass | str | bool | None
+UserFieldTypes = OldapStringLiteral | Xsd | ObservableSet[Xsd_QName] | InProjectClass | str | bool | None
 
 
 @dataclass
@@ -136,13 +142,13 @@ class UserDataclass:
     """
     __datatypes = {
         UserFields.USER_IRI: Xsd_anyURI,
-        UserFields.USER_ID: NCName,
+        UserFields.USER_ID: Xsd_NCName,
         UserFields.FAMILY_NAME: Xsd_string,
         UserFields.GIVEN_NAME: Xsd_string,
         UserFields.CREDENTIALS: str,
         UserFields.ACTIVE: bool,
         UserFields.IN_PROJECT: dict,
-        UserFields.HAS_PERMISSIONS: ObservableSet[QName]
+        UserFields.HAS_PERMISSIONS: ObservableSet[Xsd_QName]
     }
 
     __creator: Xsd_anyURI | None
@@ -160,13 +166,13 @@ class UserDataclass:
                  contributor: Xsd_anyURI | None = None,
                  modified: Xsd_dateTime | None = None,
                  userIri: Xsd_anyURI | None = None,
-                 userId: NCName | None = None,
+                 userId: Xsd_NCName | None = None,
                  familyName: Xsd_string | str | None = None,
                  givenName: Xsd_string | str | None = None,
                  credentials: str | None = None,
                  isActive: bool | None = None,
-                 inProject: Dict[QName | Xsd_anyURI, Set[AdminPermission]] | None = None,
-                 hasPermissions: Set[QName] | None = None):
+                 inProject: Dict[Xsd_QName | Xsd_anyURI, Set[AdminPermission]] | None = None,
+                 hasPermissions: Set[Xsd_QName] | None = None):
         """
         Constructs a new UserDataclass
         :param creator: AnyIRI of the creator of this UserDataclass
@@ -198,7 +204,7 @@ class UserDataclass:
         self.__contributor = Xsd_anyURI(contributor) if contributor else None
         self.__modified = Xsd_dateTime(modified) if modified else None
         self.__fields[UserFields.USER_IRI] = Xsd_anyURI(userIri) if userIri else None
-        self.__fields[UserFields.USER_ID] = NCName(userId) if userId else None
+        self.__fields[UserFields.USER_ID] = Xsd_NCName(userId) if userId else None
         self.__fields[UserFields.FAMILY_NAME] = Xsd_string(familyName) if familyName else None
         self.__fields[UserFields.GIVEN_NAME] = Xsd_string(givenName) if givenName else None
         self.__fields[UserFields.CREDENTIALS] = credentials if credentials else None
@@ -329,7 +335,7 @@ class UserDataclass:
         if self.__change_set.get(UserFields.HAS_PERMISSIONS) is None:
             self.__change_set[UserFields.HAS_PERMISSIONS] = UserFieldChange(oldset, Action.MODIFY)
 
-    def __inProject_cb(self, key: QName | Xsd_anyURI, old: ObservableSet[AdminPermission] | None = None) -> None:
+    def __inProject_cb(self, key: Xsd_QName | Xsd_anyURI, old: ObservableSet[AdminPermission] | None = None) -> None:
         if self.__change_set.get(UserFields.IN_PROJECT) is None:
             old = self.__fields[UserFields.IN_PROJECT].copy()
             self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(old, Action.MODIFY)
@@ -354,13 +360,13 @@ class UserDataclass:
     def modified(self, value: Xsd_dateTime) -> None:
         self.__modified = value
 
-    def add_project_permission(self, project: QName | Xsd_anyURI | str, permission: AdminPermission | None) -> None:
+    def add_project_permission(self, project: Xsd_QName | Xsd_anyURI | str, permission: AdminPermission | None) -> None:
         """
         Adds a new administraive permission to the user. If the user is not yet member of the project, he
         will automatically become a member.
 
         :param project: Name of the project to add the permission
-        :type project: QName
+        :type project: Xsd_QName
         :param permission: The admin permission to be added
         :type permission: AdminPermission | None
         :return: None
@@ -374,12 +380,12 @@ class UserDataclass:
                 self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.MODIFY)
             self.__fields[UserFields.IN_PROJECT][project].add(permission)
 
-    def remove_project_permission(self, project: QName | Xsd_anyURI | str, permission: AdminPermission | None) -> None:
+    def remove_project_permission(self, project: Xsd_QName | Xsd_anyURI | str, permission: AdminPermission | None) -> None:
         """
         Remove the given Permission from the user (for the given project)
 
         :param project: Name of the project
-        :type project: QName
+        :type project: Xsd_QName
         :param permission: The permission to be removed
         :type permission: AdminPermission | None
         :return:
@@ -406,13 +412,13 @@ class UserDataclass:
         self.__change_set = {}
 
     @staticmethod
-    def sparql_query(context: Context, userId: NCName) -> str:
+    def sparql_query(context: Context, userId: Xsd_NCName) -> str:
         """
         Return the SPARQL query that retrieves the given user from the triple store
         :param context: A `Context` instance
         :type context: Context
         :param userId: The user if
-        :type userId: NCName
+        :type userId: Xsd_NCName
         :return: SPARQL query
         """
         sparql = context.sparql_context
@@ -622,12 +628,12 @@ if __name__ == "__main__":
     gaga = UserDataclass()
     user_dataclass = UserDataclass(
         userIri=Xsd_anyURI("https://orcid.org/0000-0002-9991-2055"),
-        userId=NCName("edison"),
+        userId=Xsd_NCName("edison"),
         familyName="Edison",
         givenName="Thomas A.",
         credentials="Lightbulb&Phonograph",
-        inProject={QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                               AdminPermission.ADMIN_RESOURCES,
-                                               AdminPermission.ADMIN_CREATE}},
-        hasPermissions={QName('omas:GenericView')})
+        inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                   AdminPermission.ADMIN_RESOURCES,
+                                                   AdminPermission.ADMIN_CREATE}},
+        hasPermissions={Xsd_QName('omas:GenericView')})
     print(user_dataclass.userId)

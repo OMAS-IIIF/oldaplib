@@ -1,6 +1,6 @@
 from typing import Optional
 
-from omaslib.src.helpers.datatypes import QName
+from omaslib.src.xsd.xsd_qname import Xsd_QName
 
 
 class PropertyClassSingleton(type):
@@ -8,7 +8,7 @@ class PropertyClassSingleton(type):
     The idea for this class came from "https://stackoverflow.com/questions/3615565/python-get-constructor-to-return-an-existing-object-instead-of-a-new-one".
     This class is used to create a singleton of the class.
     """
-    def __call__(cls, *, property_class_iri: Optional[QName] = None, **kwargs):
+    def __call__(cls, *, property_class_iri: Optional[Xsd_QName] = None, **kwargs):
         key = f'{property_class_iri}'
         if key not in cls._cache:
             self = cls.__new__(cls, property_class_iri=property_class_iri, **kwargs)

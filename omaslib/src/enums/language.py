@@ -204,3 +204,6 @@ class Language(Enum):
     ZA = "Zhuang, Chuang"
     ZU = "Zulu"
     XX = "Undefined"
+
+if __name__ == "__main__":
+    print(Language["ZUR"])
