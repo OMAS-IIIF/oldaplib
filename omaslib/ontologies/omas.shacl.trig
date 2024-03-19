@@ -14,7 +14,7 @@
 
 :shacl {
 
-    :shapes dcterms:hasVersion "0.1.0" .
+    :shapes dcterms:hasVersion "0.1.0"^^xsd:string .
 #        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
 #        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
 #        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -49,7 +49,7 @@
     #
     :labelShape a sh:PropertyShape ;
         sh:path rdfs:label ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -65,7 +65,7 @@
     # Define SHACl for OLDAPLIB's use rdf:description
     :commentShape a sh:PropertyShape ;
         sh:path rdfs:comment ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -82,7 +82,7 @@
     #
     :commentShape a sh:PropertyShape ;
         sh:path :comment ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -97,7 +97,7 @@
     #
     :testShape a sh:PropertyShape ;
         sh:path :test ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -109,7 +109,7 @@
     #
     :creatorShape a sh:PropertyShape ;
         sh:path dcterms:creator ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -124,7 +124,7 @@
     #
     :createdShape a sh:PropertyShape ;
         sh:path dcterms:created ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -139,7 +139,7 @@
     #
     :contributorShape a sh:PropertyShape ;
         sh:path dcterms:contributor ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -154,7 +154,7 @@
     #
     :modifiedShape a sh:PropertyShape ;
         sh:path dcterms:modified ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -171,7 +171,7 @@
     #
     :AdminPermissionShape a sh:NodeShape, :AdminPermission ;
         sh:targetClass :AdminPermission ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -187,7 +187,7 @@
 
     :DataPermissionShape a sh:NodeShape, :DataPermission ;
         sh:targetClass :DataPermission ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -219,7 +219,7 @@
     #
     :PermissionSetShape a sh:NodeShape, :PermissionSet ;
         sh:targetClass :PermissionSet ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -237,7 +237,7 @@
         sh:property
             [
                 sh:path :givesPermission ;
-                dcterms:hasVersion "1.0.0" ;
+                dcterms:hasVersion "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -258,7 +258,7 @@
         sh:property
             [
                 sh:path :definedByProject ;
-                dcterms:hasVersion "1.0.0" ;
+                dcterms:hasVersion "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -281,7 +281,7 @@
     #
     :ProjectShape a sh:NodeShape, :Project ;
         sh:targetClass :Project ;
-        dcterms:hasVersion "1.0.0" ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -302,7 +302,7 @@
         sh:property
             [
                 sh:path :projectShortName ;
-                dcterms:hasVersion "1.0.0" ;
+                dcterms:hasVersion "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -317,7 +317,7 @@
         sh:property
             [
                 sh:path :namespaceIri ;
-                dcterms:hasVersion "1.0.0" ;
+                dcterms:hasVersion "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -332,7 +332,7 @@
         sh:property
             [
                 sh:path :projectStart ;
-                dcterms:hasVersion "1.0.0" ;
+                dcterms:hasVersion "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -347,7 +347,7 @@
         sh:property
             [
                 sh:path :projectEnd ;
-                dcterms:hasVersion "1.0.0" ;
+                dcterms:hasVersion "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -402,7 +402,7 @@
         sh:property
             [
                 sh:path foaf:familyName ;
-                dcterms:hasVersion "1.0.0" ;
+                dcterms:hasVersion "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -416,7 +416,7 @@
         sh:property
             [
                 sh:path foaf:givenName ;
-                dcterms:hasVersion "1.0.0" ;
+                dcterms:hasVersion "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
