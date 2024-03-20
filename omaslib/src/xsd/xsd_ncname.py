@@ -107,6 +107,7 @@ class Xsd_NCName(Xsd):
                 self.__value += str(other)
             except ValueError as err:
                 raise OmasErrorValue(str(err))
+        return self
 
     def __hash__(self) -> int:
         return hash(self.__value)
