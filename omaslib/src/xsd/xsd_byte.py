@@ -1,3 +1,5 @@
+from typing import Self
+
 from pystrict import strict
 
 from omaslib.src.helpers.omaserror import OmasErrorValue
@@ -25,10 +27,16 @@ class Xsd_byte(Xsd):
         return str(self.__value)
 
     def __repr__(self) -> str:
-        return f'"{str(self.__value)}"^^xsd:byte'
+        return f'Xsd_byte({str(self.__value)})'
 
     def __hash__(self) -> int:
         return hash(self.__value)
+
+    def __eq__(self, other: Self | int) -> bool:
+        if isinstance(other, Xsd_byte):
+            return self.__value == other.__value
+        else:
+            return self.__value == int(other)
 
     def __int__(self) -> int:
         return self.__value

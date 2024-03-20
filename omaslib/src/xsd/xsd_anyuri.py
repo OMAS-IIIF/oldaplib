@@ -8,7 +8,6 @@ from omaslib.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
-from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 
 
 @strict
@@ -62,7 +61,7 @@ class Xsd_anyURI(Xsd):
         Returns the Python representation of the AnyIRI
         :return: Python representation of the AnyIRI
         """
-        return f'"{self._value}"^^xsd:anyURI'
+        return f'Xsd_anyURI("{self._value}")'
 
     def __str__(self) -> str:
         """
@@ -110,6 +109,7 @@ class Xsd_anyURI(Xsd):
     def toRdf(self) -> str:
         return f'"{self._value}"^^xsd:anyURI'
 
+    @property
     def resUri(self) -> str:
         return f'<{self._value}>'
 

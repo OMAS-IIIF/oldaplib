@@ -23,7 +23,5 @@ class NamespaceIRI(Xsd_anyURI):
         if not self._append_allowed:
             raise OmasErrorValue("NamespaceIRI must end with '/' or '#'!")
 
-    def _as_dict(self) -> Dict[str, str]:
-        return {
-            'value': self._value
-        }
+    def __add__(self, other: str) -> Self:
+        return self.value + other

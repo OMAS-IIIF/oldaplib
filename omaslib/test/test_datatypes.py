@@ -6,7 +6,7 @@ from base64 import b64encode
 from omaslib.src.connection import Connection
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
-from omaslib.src.dtypes.shacllanguagein import ShaclLanguageIn
+from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -1170,7 +1170,7 @@ class TestNCName(unittest.TestCase):
         self.assertEqual(str(ex.exception), 'Invalid string "An@Id" for NCName')
 
     def test_language_in(self):
-        li = ShaclLanguageIn({"en", "fr", "it"})
+        li = LanguageIn({"en", "fr", "it"})
         self.assertTrue(Language.EN in li)
         self.assertTrue(Language.FR in li)
         self.assertTrue(Language.IT in li)
@@ -1188,26 +1188,26 @@ class TestNCName(unittest.TestCase):
         self.assertTrue('"en"^^xsd:string' in s)
         self.assertTrue('"it"^^xsd:string' in s)
 
-        li = ShaclLanguageIn("en", "fr", "it")
+        li = LanguageIn("en", "fr", "it")
         self.assertTrue(Language.EN in li)
         self.assertTrue(Language.FR in li)
         self.assertTrue(Language.IT in li)
         self.assertFalse(Language.DE in li)
 
-        li = ShaclLanguageIn(Language.EN, "fr", Language.IT)
+        li = LanguageIn(Language.EN, "fr", Language.IT)
         self.assertTrue(Language.EN in li)
         self.assertTrue(Language.FR in li)
         self.assertTrue(Language.IT in li)
         self.assertFalse(Language.DE in li)
 
-        li = ShaclLanguageIn([Language.EN, "fr", "it"])
+        li = LanguageIn([Language.EN, "fr", "it"])
         self.assertTrue(Language.EN in li)
         self.assertTrue(Language.FR in li)
         self.assertTrue(Language.IT in li)
         self.assertFalse(Language.DE in li)
 
         with self.assertRaises(OmasErrorValue) as ex:
-            li = ShaclLanguageIn([Language.EN, "fr", "xyz"])
+            li = LanguageIn([Language.EN, "fr", "xyz"])
 
     def test_rdf_set(self):
         val = RdfSet(Xsd_string, {Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?")})

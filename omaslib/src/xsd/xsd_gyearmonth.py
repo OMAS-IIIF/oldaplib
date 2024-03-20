@@ -26,6 +26,8 @@ class Xsd_gYearMonth(Xsd):
             if not XsdValidator.validate(XsdDatatypes.gYearMonth, value):
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth')
             # or: re.match("[+-]?[0-9]{4}-[0-9]{2}(([+-][0-9]{2}:[0-9]{2})|Z)?", string)
+            if not re.match("([+-]?[0-9]{4})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth.')
             res = re.split("([+-]?[0-9]{4})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
             if len(res) != 9:
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth.')
@@ -53,7 +55,7 @@ class Xsd_gYearMonth(Xsd):
         return s
 
     def __repr__(self):
-        return f'"{str(self)}"^^xsd:gYearMonth'
+        return f'Xsd_gYearMonth("{str(self)}")'
 
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_gYearMonth):

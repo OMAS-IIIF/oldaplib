@@ -40,7 +40,7 @@ class Xsd_NCName(Xsd):
         if isinstance(value, Xsd_NCName):
             self.__value = str(value)
         else:
-            if bool(re.match(r'^[A-Za-z_][A-Za-z0-9_.-]*$', value)):
+            if not bool(re.match(r'^[A-Za-z_][A-Za-z0-9_.-]*$', value)):
                 raise OmasErrorValue(f'Invalid string "{value}" for NCName')
             if not XsdValidator.validate(XsdDatatypes.NCName, value):
                 raise OmasErrorValue(f'Invalid string "{value}" for NCName')

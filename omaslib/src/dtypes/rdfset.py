@@ -1,4 +1,4 @@
-from typing import Set, List, Dict
+from typing import Set, List, Dict, Iterable
 
 from pystrict import strict
 
@@ -12,7 +12,7 @@ from omaslib.src.xsd.xsd import Xsd
 class RdfSet:
     __data: Set[Xsd]
 
-    def __init__(self, value: Set[Xsd] | List[Xsd]):
+    def __init__(self, value: Iterable[Xsd]):
         self.__data: Set[Xsd] = set()
         for val in value:
             if not isinstance(val, Xsd):
@@ -28,5 +28,16 @@ class RdfSet:
     def __contains__(self, val: Xsd) -> bool:
         return val in self.__data
 
-    def _as_dict(self) -> Dict[str, List[T]]:
+    @property
+    def value(self) -> Set[Xsd]:
+        return self.__data
+
+    def _as_dict(self) -> Dict[str, List[Xsd]]:
         return {'value': [x for x in self.__data]}
+
+    @property
+    def toRdf(self) -> str:
+        return f'({", ".join(map(lambda x: x.toRdf, self.__data))})'
+
+    def add(self, item: Xsd) -> None:
+        self.__data.add(item)

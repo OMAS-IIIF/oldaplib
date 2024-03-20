@@ -20,8 +20,8 @@ class Xsd(ABC):
     def fromRdf(cls, value: str) -> Self:
         return cls(value)
 
-    @abstractmethod
     @property
+    @abstractmethod
     def toRdf(self) -> str:
         pass
 

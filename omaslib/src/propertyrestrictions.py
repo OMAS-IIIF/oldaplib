@@ -7,7 +7,7 @@ from pystrict import strict
 from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.enums.action import Action
-from omaslib.src.dtypes.shacllanguagein import ShaclLanguageIn
+from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -86,7 +86,7 @@ class PropertyRestrictions(Notify):
     datatypes = {
         PropertyRestrictionType.MIN_COUNT: {Xsd_integer},
         PropertyRestrictionType.MAX_COUNT: {Xsd_integer},
-        PropertyRestrictionType.LANGUAGE_IN: {ShaclLanguageIn},
+        PropertyRestrictionType.LANGUAGE_IN: {LanguageIn},
         PropertyRestrictionType.IN: {set},
         PropertyRestrictionType.UNIQUE_LANG: {Xsd_boolean},
         PropertyRestrictionType.MIN_LENGTH: {Xsd_integer},

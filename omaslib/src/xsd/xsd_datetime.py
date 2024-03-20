@@ -33,7 +33,7 @@ class Xsd_dateTime(Xsd):
         return self.__value.isoformat()
 
     def __repr__(self) -> str:
-        return f'"{self.__value.isoformat()}"^^xsd:dateTime'
+        return f'Xsd_dateTime("{self.__value.isoformat()}")'
 
     def __eq__(self, other: Self | str | None) -> bool:
         if other is None:

@@ -16,14 +16,19 @@ class Xsd_gYear(Xsd):
     __tz: Tuple[int, int] | None
     __zulu: bool
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | int | str):
         if isinstance(value, Xsd_gYear):
             self.__year = value.__year
             self.__tz = value.__tz
+        elif isinstance(value, int):
+            self.__year = value
+            self.__tz = (0, 0)
+            self.__zulu = True
         else:
             if not XsdValidator.validate(XsdDatatypes.gYear, value):
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
-            # or: re.match("[+-]?[0-9]{4}-[0-9]{2}(([+-][0-9]{2}:[0-9]{2})|Z)?", string)
+            if not re.match("([+-]?[0-9]{4})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value):
+                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
             res = re.split("([+-]?[0-9]{4})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
             if len(res) != 8:
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
@@ -48,7 +53,7 @@ class Xsd_gYear(Xsd):
         return s
 
     def __repr__(self):
-        return f'"{str(self)}"^^xsd:gYear'
+        return f'Xsd_gYear("{str(self)}")'
 
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_gYear):

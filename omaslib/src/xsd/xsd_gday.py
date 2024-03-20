@@ -48,7 +48,7 @@ class Xsd_gDay(Xsd):
         return s
 
     def __repr__(self):
-        return f'"{str(self)}"^^xsd:gDay'
+        return f'Xsd_gDay("{str(self)}")'
 
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_gDay):

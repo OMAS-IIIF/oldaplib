@@ -33,7 +33,7 @@ class Xsd_dateTimeStamp(Xsd):
         return self.__value.isoformat()
 
     def __repr__(self) -> str:
-        return f'"{self.__value.isoformat()}"^^xsd:dateTimeStamp'
+        return f'Xsd_dateTimeSTamp("{self.__value.isoformat()}")'
 
     def __eq__(self, other: Self | str):
         if isinstance(other, str):

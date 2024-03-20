@@ -28,7 +28,7 @@ class Xsd_hexBinary(Xsd):
         return self.__value
 
     def __repr__(self):
-        return f'"{str(self)}"^^xsd:hexBinary'
+        return f'Xsd_hexBinary("{str(self)}")'
 
     def __eq__(self, other):
         return self.__value == other.__value
