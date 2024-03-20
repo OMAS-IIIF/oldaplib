@@ -9,7 +9,7 @@ from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 class Xsd_ID(Xsd_NCName):
 
     def __repr__(self):
-        return f'"{str(self)}"^^xsd:ID'
+        return f'Xsd_ID("{str(self)}")'
 
     @property
     def toRdf(self) -> str:

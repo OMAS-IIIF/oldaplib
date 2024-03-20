@@ -6,6 +6,7 @@ from datetime import date
 
 from omaslib.src.connection import Connection
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError
 from omaslib.src.helpers.query_processor import QueryProcessor
@@ -28,6 +29,13 @@ from omaslib.src.xsd.xsd_gmonthday import Xsd_gMonthDay
 from omaslib.src.xsd.xsd_gyear import Xsd_gYear
 from omaslib.src.xsd.xsd_gyearmonth import Xsd_gYearMonth
 from omaslib.src.xsd.xsd_hexbinary import Xsd_hexBinary
+from omaslib.src.xsd.xsd_id import Xsd_ID
+from omaslib.src.xsd.xsd_idref import Xsd_IDREF
+from omaslib.src.xsd.xsd_int import Xsd_int
+from omaslib.src.xsd.xsd_integer import Xsd_integer
+from omaslib.src.xsd.xsd_language import Xsd_language
+from omaslib.src.xsd.xsd_long import Xsd_long
+from omaslib.src.xsd.xsd_name import Xsd_name
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 
@@ -689,6 +697,231 @@ class TestXsdDatatypes(unittest.TestCase):
 
         with self.assertRaises(OmasErrorValue):
             val = Xsd_hexBinary("1fab17fg")
+
+    def test_xsd_ID(self):
+        val = Xsd_ID("anchor")
+        self.assertEqual(str(val), "anchor")
+        self.assertEqual(repr(val), 'Xsd_ID("anchor")')
+
+        valc = Xsd_ID(val)
+        self.assertEqual(val, valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_ID"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_ID"))
+        self.assertEqual(val, valx)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_ID("1fab17fg")
+
+    def test_xsd_IDREF(self):
+        val = Xsd_IDREF("anchor")
+        self.assertEqual(str(val), "anchor")
+        self.assertEqual(repr(val), 'Xsd_IDREF("anchor")')
+
+        valc = Xsd_IDREF(val)
+        self.assertEqual(val, valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_IDREF"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_IDREF"))
+        self.assertEqual(val, valx)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_IDREF("1fab17fg")
+
+    def test_xsd_int(self):
+        val = Xsd_int(505_801)
+        self.assertEqual(val, 505_801)
+        self.assertEqual(str(val), '505801')
+        self.assertEqual(repr(val), 'Xsd_int(505801)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_int"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_int"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_int(25) == Xsd_int(25))
+        self.assertTrue(Xsd_int(25) == 25)
+
+        self.assertTrue(Xsd_int(26) > Xsd_int(25))
+        self.assertTrue(Xsd_int(26) > 25)
+
+        self.assertTrue(Xsd_int(25) >= Xsd_int(25))
+        self.assertTrue(Xsd_int(25) >= 25)
+
+        self.assertTrue(Xsd_int(25) != Xsd_int(24))
+        self.assertTrue(Xsd_int(25) != 24)
+
+        self.assertTrue(Xsd_int(24) < Xsd_int(25))
+        self.assertTrue(Xsd_int(24) < 25)
+
+        self.assertTrue(Xsd_int(25) <= Xsd_int(25))
+        self.assertTrue(Xsd_int(24) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_int(2_147_483_648)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_int(-2_147_483_649)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_int("abcd")
+
+    def test_xsd_integer(self):
+        val = Xsd_integer(42)
+        self.assertEqual(val, 42)
+        self.assertEqual(str(val), '42')
+        self.assertEqual(repr(val), 'Xsd_integer(42)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_integer"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_integer"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_integer(25) == Xsd_integer(25))
+        self.assertTrue(Xsd_integer(25) == 25)
+
+        self.assertTrue(Xsd_integer(26) > Xsd_integer(25))
+        self.assertTrue(Xsd_integer(26) > 25)
+
+        self.assertTrue(Xsd_integer(25) >= Xsd_integer(25))
+        self.assertTrue(Xsd_integer(25) >= 25)
+
+        self.assertTrue(Xsd_integer(25) != Xsd_integer(24))
+        self.assertTrue(Xsd_integer(25) != 24)
+
+        self.assertTrue(Xsd_integer(24) < Xsd_integer(25))
+        self.assertTrue(Xsd_integer(24) < 25)
+
+        self.assertTrue(Xsd_integer(25) <= Xsd_integer(25))
+        self.assertTrue(Xsd_integer(24) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_integer("was ist 42")
+
+    def test_xsd_language(self):
+        val = Xsd_language("de")
+        self.assertEqual(str(val), "de")
+        self.assertEqual(repr(val), 'Xsd_language("de")')
+
+        valc = Xsd_language(val)
+        self.assertEqual(val, valc)
+
+        val = Xsd_language("de-CH")
+        self.assertEqual(str(val), "de-CH")
+        self.assertEqual(repr(val), 'Xsd_language("de-CH")')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_language"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_language"))
+        self.assertEqual(val, valx)
+
+        val = Xsd_language(Language.IT)
+        self.assertEqual(str(val), "it")
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_language("xxx")
+
+    def test_xsd_long(self):
+        val = Xsd_long(505_801)
+        self.assertEqual(val, 505_801)
+        self.assertEqual(str(val), '505801')
+        self.assertEqual(repr(val), 'Xsd_long(505801)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_long"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_long"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_long(25) == Xsd_long(25))
+        self.assertTrue(Xsd_long(25) == 25)
+
+        self.assertTrue(Xsd_long(26) > Xsd_long(25))
+        self.assertTrue(Xsd_long(26) > 25)
+
+        self.assertTrue(Xsd_long(25) >= Xsd_long(25))
+        self.assertTrue(Xsd_long(25) >= 25)
+
+        self.assertTrue(Xsd_long(25) != Xsd_long(24))
+        self.assertTrue(Xsd_long(25) != 24)
+
+        self.assertTrue(Xsd_long(24) < Xsd_long(25))
+        self.assertTrue(Xsd_long(24) < 25)
+
+        self.assertTrue(Xsd_long(25) <= Xsd_long(25))
+        self.assertTrue(Xsd_long(24) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_long(9223372036854775808)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_long(-9223372036854775809)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_long("abcd")
+
+    def test_xsd_name(self):
+        val = Xsd_name("dies:ist:ein_name12")
+        self.assertEqual(str(val), "dies:ist:ein_name12")
+        self.assertEqual(repr(val), 'Xsd_name("dies:ist:ein_name12")')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_name"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_name"))
+        self.assertEqual(val, valx)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_name("kühn,dreist")
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_name("01234:56789")
+
+    def test_ncname(self):
+        ncn1 = Xsd_NCName('AnId0')
+        self.assertEqual(str(ncn1), 'AnId0')
+        self.assertEqual(repr(ncn1), 'Xsd_NCName("AnId0")')
+        ncn1a = ncn1 + 'X'
+        self.assertEqual(str(ncn1a), 'AnId0X')
+        ncn1a += 'Y'
+        self.assertEqual(str(ncn1a), 'AnId0XY')
+        ncn1b = ncn1 + 'XY'
+        self.assertTrue(ncn1a == ncn1b)
+        self.assertEqual(hash(ncn1a), hash(ncn1b))
+        self.assertFalse(ncn1a != ncn1b)
+        with self.assertRaises(OmasErrorValue) as ex:
+            ncn2 = Xsd_NCName('0AnId')
+        self.assertEqual(str(ex.exception), 'Invalid string "0AnId" for NCName')
+        with self.assertRaises(OmasErrorValue) as ex:
+            ncn3 = Xsd_NCName('An$Id')
+        self.assertEqual(str(ex.exception), 'Invalid string "An$Id" for NCName')
+        with self.assertRaises(OmasErrorValue) as ex:
+            ncn4 = Xsd_NCName('An:Id')
+        self.assertEqual(str(ex.exception), 'Invalid string "An:Id" for NCName')
+        with self.assertRaises(OmasErrorValue) as ex:
+            ncn5 = Xsd_NCName('An@Id')
+        self.assertEqual(str(ex.exception), 'Invalid string "An@Id" for NCName')
 
 
 if __name__ == '__main__':

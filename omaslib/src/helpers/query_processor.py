@@ -9,6 +9,7 @@ from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.context import Context
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_name import Xsd_name
 from omaslib.src.xsd.xsd_positiveinteger import Xsd_positiveInteger
 from omaslib.src.xsd.xsd_unsignedbyte import Xsd_unsignedByte
 from omaslib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
@@ -120,6 +121,8 @@ class QueryProcessor:
                                 row[name] = Xsd_token.fromRdf(valobj["value"])
                             case 'xsd:language':
                                 row[name] = Xsd_language.fromRdf(valobj["value"])
+                            case 'xsd:name':
+                                row[name] = Xsd_name.fromRdf(valobj["value"])
                             case 'xsd:NCName':
                                 row[name] = Xsd_NCName.fromRdf(valobj["value"])
                             case 'xsd:integer':

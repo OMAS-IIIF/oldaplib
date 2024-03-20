@@ -19,8 +19,6 @@ class Xsd_name(Xsd):
         if isinstance(value, Xsd_name):
             self.__value = value.__value
         else:
-            if not XsdValidator.validate(XsdDatatypes.name_, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:name.')
             if not re.match("^[a-zA-Z_][\\w.\\-:_]*$", value):
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:name.')
             self.__value = value
@@ -34,12 +32,13 @@ class Xsd_name(Xsd):
         return self.__value
 
     def __repr__(self):
-        return f'"{OldapStringLiteral.escaping(self.__value)}"^^xsd:name'
+        return f'Xsd_name("{self.__value}")'
 
     def __eq__(self, other: Self | str):
-        if not isinstance(other, Xsd_name):
-            other = Xsd_name(other)
-        return self.__value == other.__value
+        if isinstance(other, Xsd_name):
+            return self.__value == other.__value
+        else:
+            return self.__value == other
 
     def __hash__(self) -> int:
         return hash(self.__value)

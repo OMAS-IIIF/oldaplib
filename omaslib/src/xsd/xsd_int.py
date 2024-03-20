@@ -1,3 +1,5 @@
+from typing import Self
+
 from pystrict import strict
 
 from omaslib.src.helpers.omaserror import OmasErrorValue
@@ -10,7 +12,9 @@ from omaslib.src.xsd.xsd import Xsd
 class Xsd_int(Xsd):
     __value: int
 
-    def __init__(self, value: int | str):
+    def __init__(self, value: Self | int | str):
+        if isinstance(value, Xsd_int):
+            self.__value = value.__value
         if isinstance(value, int):
             self.__value = value
         else:
@@ -25,13 +29,61 @@ class Xsd_int(Xsd):
         return str(self.__value)
 
     def __repr__(self) -> str:
-        return f'"{str(self.__value)}"^^xsd:int'
+        return f'Xsd_int({str(self.__value)})'
 
     def __hash__(self) -> int:
         return hash(self.__value)
 
     def __int__(self) -> int:
         return self.__value
+
+    def __eq__(self, other: Self | int) -> bool:
+        if isinstance(other, Xsd_int):
+            return self.__value == other.__value
+        elif isinstance(other, int):
+            return self.__value == other
+        else:
+            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+
+    def __ne__(self, other: Self | int) -> bool:
+        if isinstance(other, Xsd_int):
+            return self.__value != other.__value
+        elif isinstance(other, int):
+            return self.__value != other
+        else:
+            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+
+    def __gt__(self, other: Self | int) -> bool:
+        if isinstance(other, Xsd_int):
+            return self.__value > other.__value
+        elif isinstance(other, int):
+            return self.__value > other
+        else:
+            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+
+    def __ge__(self, other: Self | int) -> bool:
+        if isinstance(other, Xsd_int):
+            return self.__value >= other.__value
+        elif isinstance(other, int):
+            return self.__value >= other
+        else:
+            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+
+    def __lt__(self, other: Self | int) -> bool:
+        if isinstance(other, Xsd_int):
+            return self.__value < other.__value
+        elif isinstance(other, int):
+            return self.__value < other
+        else:
+            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+
+    def __le__(self, other: Self | int) -> bool:
+        if isinstance(other, Xsd_int):
+            return self.__value <= other.__value
+        elif isinstance(other, int):
+            return self.__value <= other
+        else:
+            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
 
     def _as_dict(self) -> dict:
         return {'value': self.__value}

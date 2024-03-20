@@ -51,7 +51,7 @@ class Xsd_NCName(Xsd):
         Return the representation string
         :return: Python representation of the instance
         """
-        return f'"{self.__value}"^^xsd:NCName'
+        return f'Xsd_NCName("{self.__value}")'
 
     def __str__(self) -> str:
         """
@@ -60,25 +60,53 @@ class Xsd_NCName(Xsd):
         """
         return self.__value
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: Self | str) -> bool:
         """
         Test two NCNames for equality
         :param other: The other NCName/str to compare
         :return: True of False
         """
-        if isinstance(other, str):
+        if isinstance(other, Xsd_NCName):
+            return self.__value == other.__value
+        elif isinstance(other, str):
             return self.__value == other
-        return isinstance(other, Xsd_NCName) and self.__value == other.__value
+        else:
+            raise OmasErrorValue(f'Cannot compare to {type(other)}')
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: Self | str) -> bool:
         """
         Test for non-equality
         :param other: The other NCName/str to compare
         :return: True of False
         """
-        if not isinstance(other, Xsd_NCName):
-            return False
-        return self.__value != other.__value
+        if isinstance(other, Xsd_NCName):
+            return self.__value != other.__value
+        elif isinstance(other, str):
+            return self.__value != other
+        else:
+            raise OmasErrorValue(f'Cannot compare to {type(other)}')
+
+    def __add__(self, other: Self | str) -> Self:
+        if isinstance(other, Xsd_NCName):
+            return Xsd_NCName(self.__value + other.__value)
+        elif isinstance(other, str):
+            return Xsd_NCName(self.__value + other)
+        else:
+            try:
+                return Xsd_NCName(self.__value + str(other))
+            except ValueError as err:
+                raise OmasErrorValue(str(err))
+
+    def __iadd__(self, other: Self | str) -> Self:
+        if isinstance(other, Xsd_NCName):
+            self.__value += other.__value
+        elif isinstance(other, str):
+            self.__value += other
+        else:
+            try:
+                self.__value += str(other)
+            except ValueError as err:
+                raise OmasErrorValue(str(err))
 
     def __hash__(self) -> int:
         return hash(self.__value)

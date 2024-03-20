@@ -43,4 +43,4 @@ class Xsd_unsignedShort(Xsd):
     @property
     def value(self) -> int:
         return self.__value
-    
+

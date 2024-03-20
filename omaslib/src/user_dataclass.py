@@ -428,11 +428,11 @@ class UserDataclass:
         WHERE {{
             {{
                 ?user a omas:User .
-                ?user omas:userId {repr(userId)} .
+                ?user omas:userId {userId.toRdf} .
                 ?user ?prop ?val .
             }} UNION {{
                 ?user a omas:User .
-                ?user omas:userId {repr(userId)} .
+                ?user omas:userId {userId.toRdf} .
                 <<?user omas:inProject ?proj>> omas:hasAdminPermission ?rval
             }}
         }}
