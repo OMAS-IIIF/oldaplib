@@ -34,7 +34,7 @@ class Xsd_normalizedString(Xsd):
         return self.__value
 
     def __repr__(self):
-        return f'"{OldapStringLiteral.escaping(str(self))}"^^xsd:normalizedString'
+        return f'{type(self).__name__}("{self.__value}")'
 
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_normalizedString):

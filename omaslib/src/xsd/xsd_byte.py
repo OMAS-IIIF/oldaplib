@@ -5,49 +5,14 @@ from pystrict import strict
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
+from omaslib.src.xsd.xsd_integer import Xsd_integer
 
 
 @strict
 @serializer
-class Xsd_byte(Xsd):
-    __value: int
+class Xsd_byte(Xsd_integer):
 
-    def __init__(self, value: int | str):
-        if isinstance(value, int):
-            self.__value = value
-        else:
-            try:
-                self.__value = int(value)
-            except ValueError as err:
-                raise OmasErrorValue(str(err))
-        if self.__value < -128 or self.__value > 127:
+    def __init__(self, value: Self | int | str):
+        super().__init__(value)
+        if self._value < -128 or self._value > 127:
             raise OmasErrorValue(f'Value must be between -128 and 127')
-
-    def __str__(self) -> str:
-        return str(self.__value)
-
-    def __repr__(self) -> str:
-        return f'Xsd_byte({str(self.__value)})'
-
-    def __hash__(self) -> int:
-        return hash(self.__value)
-
-    def __eq__(self, other: Self | int) -> bool:
-        if isinstance(other, Xsd_byte):
-            return self.__value == other.__value
-        else:
-            return self.__value == int(other)
-
-    def __int__(self) -> int:
-        return self.__value
-
-    def _as_dict(self) -> dict[str, int]:
-        return {'value': self.__value}
-
-    @property
-    def toRdf(self) -> str:
-        return f'"{str(self.__value)}"^^xsd:byte'
-
-    @property
-    def value(self) -> int:
-        return self.__value

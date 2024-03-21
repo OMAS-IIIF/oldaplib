@@ -28,12 +28,13 @@ class Xsd_NMTOKEN(Xsd):
         return self.__value
 
     def __repr__(self):
-        return f'"{str(self)}"^^xsd:NMTOKEN'
+        return f'Xsd_NMTOKEN("{str(self)}")'
 
     def __eq__(self, other: Self | str):
         if not isinstance(other, Xsd_NMTOKEN):
-            other = Xsd_NMTOKEN(other)
-        return self.__value == other.__value
+            return self.__value != other
+        else:
+            return self.__value == other.__value
 
     def __hash__(self) -> int:
         return hash(self.__value)

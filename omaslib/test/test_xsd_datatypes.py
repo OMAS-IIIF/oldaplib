@@ -6,6 +6,7 @@ from datetime import date
 
 from omaslib.src.connection import Connection
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError
@@ -37,7 +38,17 @@ from omaslib.src.xsd.xsd_language import Xsd_language
 from omaslib.src.xsd.xsd_long import Xsd_long
 from omaslib.src.xsd.xsd_name import Xsd_name
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_negativeinteger import Xsd_negativeInteger
+from omaslib.src.xsd.xsd_nmtoken import Xsd_NMTOKEN
+from omaslib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
+from omaslib.src.xsd.xsd_nonpositiveinteger import Xsd_nonPositiveInteger
+from omaslib.src.xsd.xsd_normalizedstring import Xsd_normalizedString
+from omaslib.src.xsd.xsd_positiveinteger import Xsd_positiveInteger
 from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_short import Xsd_short
+from omaslib.src.xsd.xsd_string import Xsd_string
+from omaslib.src.xsd.xsd_time import Xsd_time
+from omaslib.src.xsd.xsd_token import Xsd_token
 
 
 class OmasErrorValuer:
@@ -922,6 +933,343 @@ class TestXsdDatatypes(unittest.TestCase):
         with self.assertRaises(OmasErrorValue) as ex:
             ncn5 = Xsd_NCName('An@Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An@Id" for NCName')
+
+    def test_xsd_negativeInteger(self):
+        val = Xsd_negativeInteger(-202_203_204)
+        self.assertEqual(int(val), -202_203_204)
+        self.assertEqual(str(val), '-202203204')
+        self.assertEqual(repr(val), 'Xsd_negativeInteger(-202203204)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_negativeInteger"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_negativeInteger"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_negativeInteger(-25) == Xsd_negativeInteger(-25))
+        self.assertTrue(Xsd_negativeInteger(-25) == -25)
+
+        self.assertTrue(Xsd_negativeInteger(-24) > Xsd_negativeInteger(-25))
+        self.assertTrue(Xsd_negativeInteger(-24) > -25)
+
+        self.assertTrue(Xsd_negativeInteger(-25) >= Xsd_negativeInteger(-25))
+        self.assertTrue(Xsd_negativeInteger(-25) >= -25)
+
+        self.assertTrue(Xsd_negativeInteger(-25) != Xsd_negativeInteger(-24))
+        self.assertTrue(Xsd_negativeInteger(-25) != -24)
+
+        self.assertTrue(Xsd_negativeInteger(-25) < Xsd_negativeInteger(-24))
+        self.assertTrue(Xsd_negativeInteger(-25) < -24)
+
+        self.assertTrue(Xsd_negativeInteger(-25) <= Xsd_negativeInteger(-25))
+        self.assertTrue(Xsd_negativeInteger(-25) <= -25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_negativeInteger(5)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_negativeInteger("abcd<-")
+
+    def test_xsd_NMTOKEN(self):
+        val = Xsd_NMTOKEN(":ein.Test")
+        self.assertEqual(str(val), ":ein.Test")
+        self.assertEqual(repr(val), 'Xsd_NMTOKEN(":ein.Test")')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_NMTOKEN"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_NMTOKEN"))
+        self.assertEqual(val, valx)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_NMTOKEN("$EinTest;")
+
+    def test_xsd_nonNegativeInteger(self):
+        val = Xsd_nonNegativeInteger(202_203_204)
+        self.assertEqual(int(val), 202_203_204)
+        self.assertEqual(str(val), '202203204')
+        self.assertEqual(repr(val), 'Xsd_nonNegativeInteger(202203204)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_nonNegativeInteger"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_nonNegativeInteger"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_nonNegativeInteger(25) == Xsd_nonNegativeInteger(25))
+        self.assertTrue(Xsd_nonNegativeInteger(25) == 25)
+
+        self.assertTrue(Xsd_nonNegativeInteger(26) > Xsd_nonNegativeInteger(25))
+        self.assertTrue(Xsd_nonNegativeInteger(26) > 25)
+
+        self.assertTrue(Xsd_nonNegativeInteger(25) >= Xsd_nonNegativeInteger(25))
+        self.assertTrue(Xsd_nonNegativeInteger(25) >= 25)
+
+        self.assertTrue(Xsd_nonNegativeInteger(25) != Xsd_nonNegativeInteger(24))
+        self.assertTrue(Xsd_nonNegativeInteger(25) != 24)
+
+        self.assertTrue(Xsd_nonNegativeInteger(25) < Xsd_nonNegativeInteger(26))
+        self.assertTrue(Xsd_nonNegativeInteger(25) < 26)
+
+        self.assertTrue(Xsd_nonNegativeInteger(25) <= Xsd_nonNegativeInteger(25))
+        self.assertTrue(Xsd_nonNegativeInteger(25) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_nonNegativeInteger(-5)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_nonNegativeInteger("abcd")
+
+    def test_xsd_nonPositiveInteger(self):
+        val = Xsd_nonPositiveInteger(0)
+        self.assertEqual(int(val), 0)
+
+        val = Xsd_nonPositiveInteger(-22)
+        self.assertEqual(int(val), -22)
+        self.assertEqual(str(val), '-22')
+        self.assertEqual(repr(val), 'Xsd_nonPositiveInteger(-22)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_nonPositiveInteger"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_nonPositiveInteger"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_nonPositiveInteger(-25) == Xsd_nonPositiveInteger(-25))
+        self.assertTrue(Xsd_nonPositiveInteger(-25) == -25)
+
+        self.assertTrue(Xsd_nonPositiveInteger(-24) > Xsd_nonPositiveInteger(-25))
+        self.assertTrue(Xsd_nonPositiveInteger(-24) > -25)
+
+        self.assertTrue(Xsd_nonPositiveInteger(-25) >= Xsd_nonPositiveInteger(-25))
+        self.assertTrue(Xsd_nonPositiveInteger(-25) >= -25)
+
+        self.assertTrue(Xsd_nonPositiveInteger(-25) != Xsd_nonPositiveInteger(-24))
+        self.assertTrue(Xsd_nonPositiveInteger(-25) != -24)
+
+        self.assertTrue(Xsd_nonPositiveInteger(-25) < Xsd_nonPositiveInteger(-24))
+        self.assertTrue(Xsd_nonPositiveInteger(-25) < -24)
+
+        self.assertTrue(Xsd_nonPositiveInteger(-25) <= Xsd_nonPositiveInteger(-25))
+        self.assertTrue(Xsd_nonPositiveInteger(-25) <= -25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_nonPositiveInteger(1)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_nonPositiveInteger('minusfortytwo')
+
+    def test_xsd_normalizedString(self):
+        val = Xsd_normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen")
+        self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen\" und anderen Dingen")
+        self.assertEqual(repr(val), 'Xsd_normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen")')
+
+        valc = Xsd_normalizedString(val)
+        self.assertEqual(val, valc)
+
+        val = Xsd_normalizedString.fromRdf('Dies ist ein string mit $onderzeichen\\" und anderen Dingen')
+        self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen\" und anderen Dingen")
+        self.assertEqual(repr(val), 'Xsd_normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen")')
+
+        val = Xsd_normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen")
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_normalizedString"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_normalizedString"))
+        self.assertEqual(val, valx)
+
+    def test_xsd_positiveInteger(self):
+        val = Xsd_positiveInteger(202_303_404)
+        self.assertEqual(int(val), 202_303_404)
+        self.assertEqual(str(val), '202303404')
+        self.assertEqual(repr(val), 'Xsd_positiveInteger(202303404)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_positiveInteger"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_positiveInteger"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_positiveInteger(25) == Xsd_positiveInteger(25))
+        self.assertTrue(Xsd_positiveInteger(25) == 25)
+
+        self.assertTrue(Xsd_positiveInteger(26) > Xsd_positiveInteger(25))
+        self.assertTrue(Xsd_positiveInteger(26) > 25)
+
+        self.assertTrue(Xsd_positiveInteger(25) >= Xsd_positiveInteger(25))
+        self.assertTrue(Xsd_positiveInteger(25) >= 25)
+
+        self.assertTrue(Xsd_positiveInteger(25) != Xsd_positiveInteger(24))
+        self.assertTrue(Xsd_positiveInteger(25) != 24)
+
+        self.assertTrue(Xsd_positiveInteger(25) < Xsd_positiveInteger(26))
+        self.assertTrue(Xsd_positiveInteger(25) < 26)
+
+        self.assertTrue(Xsd_positiveInteger(25) <= Xsd_positiveInteger(25))
+        self.assertTrue(Xsd_positiveInteger(25) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_positiveInteger(0)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_positiveInteger("abcd")
+
+    def test_qname(self):
+        qn = Xsd_QName('prefix:name')
+        self.assertEqual(qn.prefix, 'prefix')
+        self.assertEqual(qn.fragment, 'name')
+        self.assertEqual(str(qn), 'prefix:name')
+        self.assertEqual(len(qn), 11)
+        qn2 = qn + 'Shape'
+        self.assertEqual(str(qn2), 'prefix:nameShape')
+        qn3 = Xsd_QName('prefix', 'name')
+        self.assertTrue(qn == qn3)
+        self.assertEqual(hash(qn), hash(qn3))
+        self.assertEqual(repr(qn3), 'Xsd_QName("prefix:name")')
+        self.assertTrue(qn != qn2)
+        qn += 'Shape'
+        self.assertEqual(str(qn), 'prefix:nameShape')
+        with self.assertRaises(OmasErrorValue) as ex:
+            qn4 = Xsd_QName('2gaga')
+        self.assertEqual(str(ex.exception), 'Invalid string "2gaga" for QName')
+        qn5 = Xsd_QName('xml:double')
+        self.assertEqual(str(qn5), 'xml:double')
+        with self.assertRaises(OmasErrorValue) as ex:
+            qn6 = Xsd_QName('xml:2gaga')
+        self.assertEqual(str(ex.exception), 'Invalid string "xml:2gaga" for QName. Error: Invalid string "2gaga" for NCName')
+
+    def test_xsd_short(self):
+        val = Xsd_short(-2024)
+        self.assertEqual(int(val), -2024)
+        self.assertEqual(str(val), '-2024')
+        self.assertEqual(repr(val), 'Xsd_short(-2024)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_short"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_short"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_positiveInteger(25) == Xsd_positiveInteger(25))
+        self.assertTrue(Xsd_positiveInteger(25) == 25)
+
+        self.assertTrue(Xsd_positiveInteger(26) > Xsd_positiveInteger(25))
+        self.assertTrue(Xsd_positiveInteger(26) > 25)
+
+        self.assertTrue(Xsd_positiveInteger(25) >= Xsd_positiveInteger(25))
+        self.assertTrue(Xsd_positiveInteger(25) >= 25)
+
+        self.assertTrue(Xsd_positiveInteger(25) != Xsd_positiveInteger(24))
+        self.assertTrue(Xsd_positiveInteger(25) != 24)
+
+        self.assertTrue(Xsd_positiveInteger(25) < Xsd_positiveInteger(26))
+        self.assertTrue(Xsd_positiveInteger(25) < 26)
+
+        self.assertTrue(Xsd_positiveInteger(25) <= Xsd_positiveInteger(25))
+        self.assertTrue(Xsd_positiveInteger(25) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_short(32768)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_short(-32769)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_short("abcd")
+
+    def test_xsd_string(self):
+        val = Xsd_string("Waseliwas\nsoll <denn> das\" sein?")
+        self.assertEqual(str(val), "Waseliwas\nsoll <denn> das\" sein?")
+        self.assertEqual(repr(val), 'Xsd_string("Waseliwas\nsoll <denn> das\" sein?")')
+        self.assertEqual(val.toRdf, '"Waseliwas\\nsoll <denn> das\\\" sein?"^^xsd:string')
+
+        valc = Xsd_string(val)
+        self.assertEqual(val, valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_string"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_string"))
+        self.assertEqual(val, valx)
+
+    def test_xsd_time(self):
+        val = Xsd_time('21:32:52+02:00')
+        self.assertEqual(str(val), '21:32:52+02:00')
+        self.assertEqual(repr(val), 'Xsd_time("21:32:52+02:00")')
+
+        valc = Xsd_time(val)
+        self.assertEqual(val, valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_time"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_time"))
+        self.assertEqual(val, valx)
+
+        val = Xsd_time('19:32:52Z')
+        self.assertEqual(str(val), '19:32:52+00:00')
+        self.assertEqual(repr(val), 'Xsd_time("19:32:52+00:00")')
+
+        val = Xsd_time('19:32:52+00:00')
+        self.assertEqual(str(val), '19:32:52+00:00')
+        self.assertEqual(repr(val), 'Xsd_time("19:32:52+00:00")')
+
+        val = Xsd_time('21:32:52')
+        self.assertEqual(str(val), '21:32:52')
+        self.assertEqual(repr(val), 'Xsd_time("21:32:52")')
+
+        val = Xsd_time('21:32:52.12679')
+        self.assertEqual(str(val), '21:32:52.126790')
+        self.assertEqual(repr(val), 'Xsd_time("21:32:52.126790")')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_time('21:32')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_time('25:25:10')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_time('-10:00:00')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_time('1:20:10')
+
+    def test_xsd_token(self):
+        val = Xsd_token("Dies ist ein string mit $onderzeichen und anderen Dingen")
+        self.assertEqual(str(val), "Dies ist ein string mit $onderzeichen und anderen Dingen")
+        self.assertEqual(repr(val), 'Xsd_token("Dies ist ein string mit $onderzeichen und anderen Dingen")')
+
+        valc = Xsd_token(val)
+        self.assertEqual(val, valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_token"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_token"))
+        self.assertEqual(val, valx)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_token("Dies ist ein string mit $onderzeichen\"\nund anderen Dingen")
 
 
 if __name__ == '__main__':

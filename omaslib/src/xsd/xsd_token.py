@@ -27,24 +27,27 @@ class Xsd_token(Xsd):
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
             self.__value = value
 
-    @classmethod
-    def fromRdf(cls, value: str) -> Self:
-        value = OldapStringLiteral.unescaping(value)
-        return cls(value)
-
     def __str__(self):
         return self.__value
 
     def __repr__(self):
-        return f'"{OldapStringLiteral.escaping(str(self))}"^^xsd:token'
+        return f'Xsd_token("{OldapStringLiteral.escaping(str(self))}")'
 
     def __eq__(self, other: Self | str):
-        if not isinstance(other, Xsd_token):
-            other = Xsd_token(other)
-        return self.__value == other.__value
+        if isinstance(other, Xsd_token):
+            return self.__value == other.__value
+        else:
+            return self.__value == str(other)
+
 
     def __hash__(self) -> int:
         return super().__hash__()
+
+    @classmethod
+    def fromRdf(cls, value: str) -> Self:
+        value = OldapStringLiteral.unescaping(value)
+        return cls(OldapStringLiteral.unescaping(value))
+
 
     def _as_dict(self) -> dict[str, str]:
         return {'value': self.__value}

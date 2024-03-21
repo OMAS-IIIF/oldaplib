@@ -33,7 +33,7 @@ class Xsd_time(Xsd):
         return self.__value.isoformat()
 
     def __repr__(self) -> str:
-        return f'"{self.__value.isoformat()}"^^xsd:time'
+        return f'Xsd_time("{self.__value.isoformat()}")'
 
     def __eq__(self, other: Self | str):
         if isinstance(other, str):

@@ -67,12 +67,28 @@ class Xsd_QName(Xsd):
         """
         return len(self._value)
 
+    def __add__(self, other: Xsd_NCName | str) -> Self:
+        if isinstance(other, Xsd_NCName):
+            return Xsd_QName(self._value + other.value)
+        else:
+            tmp = Xsd_NCName(other)
+            return Xsd_QName(self._value + tmp.value)
+
+    def __iadd__(self, other: Xsd_NCName | str) -> Self:
+        if isinstance(other, Xsd_NCName):
+            self._value += other.value
+        else:
+            tmp = Xsd_NCName(other)
+            self._value += tmp.value
+        return self
+
+
     def __repr__(self):
         """
         Return the Python representation of the QName
         :return: Python representation of the QName
         """
-        return self._value
+        return f'Xsd_QName("{self._value}")'
 
     def __str__(self):
         """

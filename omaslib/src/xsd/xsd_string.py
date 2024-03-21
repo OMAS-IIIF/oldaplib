@@ -21,8 +21,21 @@ class Xsd_string(Xsd):
     def __str__(self) -> str:
         return self.__value
 
+    def __eq__(self, other: Self | str) -> bool:
+        if isinstance(other, self.__class__):
+            return self.__value == other.__value
+        else:
+            return self.__value == str(other)
+
+    def __ne__(self, other: Self | str) -> bool:
+        if isinstance(other, self.__class__):
+            return self.__value != other.__value
+        else:
+            return self.__value != str(other)
+
+
     def __repr__(self) -> str:
-        return f'"{OldapStringLiteral.escaping(self.__value)}"^^xsd:string'
+        return f'Xsd_string("{self.__value}")'
 
     def __hash__(self) -> int:
         return hash(self.__value)
@@ -33,7 +46,7 @@ class Xsd_string(Xsd):
 
     @property
     def toRdf(self) -> str:
-        return f'"{OldapStringLiteral.escaping(str.__str__(self))}"^^xsd:string'
+        return f'"{OldapStringLiteral.escaping(str.__str__(self.__value))}"^^xsd:string'
 
     def _as_dict(self) -> Dict[str, str]:
         return {'value': self.__value}
