@@ -40,13 +40,14 @@ class Xsd_anyURI(Xsd):
         :param value: A string or another AnyIRI instance
         :type value: Xsd_anyURI | str
         """
+        super().__init__(value)
         if isinstance(value, Xsd_anyURI):
             self._value = str(value)
         else:
             if isinstance(value, str):
                 value = value.replace("<", "").replace(">", "")
             if not XsdValidator.validate(XsdDatatypes.anyURI, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for anyIRI')
+                raise OmasErrorValue(f'Invalid string "{value}" for anyURI')
             if value.startswith("urn:"):
                 if not re.match(r'^urn:[a-z0-9][a-z0-9-]{0,31}:[^\s]+', value):
                     raise OmasErrorValue(f'Invalid URN format for "{value}".')

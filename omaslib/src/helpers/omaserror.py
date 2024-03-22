@@ -21,6 +21,11 @@ class OmasErrorValue(OmasError):
 
 
 @strict
+class OmasErrorKey(OmasError):
+    pass
+
+
+@strict
 class OmasErrorNotFound(OmasError):
     """
     Raised when something was not found

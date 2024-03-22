@@ -55,9 +55,6 @@ from omaslib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
 from omaslib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 
 
-class OmasErrorValuer:
-    pass
-
 
 class TestXsdDatatypes(unittest.TestCase):
 
@@ -79,7 +76,9 @@ class TestXsdDatatypes(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
-    def create_triple(self, name: Xsd_NCName, value: Xsd):
+    def create_triple(self, name: Xsd_NCName | str, value: Xsd):
+        if not isinstance(value, Xsd_NCName):
+            name = Xsd_NCName(name)
         sparql = self._context.sparql_context
         sparql += f"""
         INSERT DATA {{
@@ -90,6 +89,8 @@ class TestXsdDatatypes(unittest.TestCase):
         self._connection.update_query(sparql)
 
     def get_triple(self, name: Xsd_NCName) -> Xsd:
+        if not isinstance(name, Xsd_NCName):
+            name = Xsd_NCName(name)
         sparql = self._context.sparql_context
         sparql += f"""
         SELECT ?value

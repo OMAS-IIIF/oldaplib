@@ -9,13 +9,11 @@ from typing import Dict, Callable, Set, Self, ItemsView, KeysView
 
 from pystrict import strict
 
-from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.enums.permissions import AdminPermission
-from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
-from omaslib.src.helpers.omaserror import OmasErrorValue
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorKey
 from omaslib.src.helpers.serializer import serializer
 import json
 
@@ -29,7 +27,7 @@ class InProjectClass:
     __on_change: Callable[[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None]
 
     def __init__(self,
-                 data: Dict[Xsd_QName | Xsd_anyURI, Set[AdminPermission] | ObservableSet[AdminPermission]] | None = None,
+                 data: Dict[Xsd_QName | Xsd_anyURI | str, set[AdminPermission | str] | ObservableSet[AdminPermission]] | None = None,
                  on_change: Callable[[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None] = None) -> None:
         """
         Constructor of the class. The class acts like a dictionary and allows the access to the permission
@@ -42,57 +40,85 @@ class InProjectClass:
         - _==_: Check for equality of 2 instances
         - _!=_: Check for inequality of 2 instances
 
-        :param data: A dictionary with the QName of the project as key and the set of permissions as value
+        :param data: A dictionary with the QName/anyURI of the project as key and the set of permissions as value
         :type data: Dict[str | Xsd_QName, Set[AdminPermission] | ObservableSet[AdminPermission]] | None
         :param on_change: A callable that is called whenever the instance has been changed
         :type on_change: Callable[[str, ObservableSet[AdminPermission] | None], None]
         """
         self.__data = {}
+        self.__on_change = on_change
         if data is not None:
             for key, value in data.items():
-                if isinstance(key, str):
-                    if '§' in key:
-                        t, k = key.split('§')
-                        match (t):
-                            case 'QName':
-                                key = Xsd_QName(k)
-                            case 'AnyIRI':
-                                key = Xsd_anyURI(k)
-                            case 'NamespaceIri':
-                                key = NamespaceIRI(k)
-                            case 'OmasStringLiteral':
-                                key = OldapStringLiteral(k)
-                self.__data[key] = ObservableSet(value, on_change=self.__on_set_changed, on_change_data=key)
+                key = self.__key(key)
+                self.__data[key] = self.__perms(key, value)
 
-            #self.__data = {key: ObservableSet(val, on_change=self.__on_set_changed, on_change_data=key) for key, val in data.items()}
-        self.__on_change = on_change
+
+    def __key(self, key: Xsd_QName | Xsd_anyURI | str) -> Xsd_QName | Xsd_anyURI:
+        if isinstance(key, str):
+            try:
+                key = Xsd_QName(key)
+            except OmasErrorValue:
+                key = Xsd_anyURI(key)
+        elif not isinstance(key, Xsd_QName) and not isinstance(key, Xsd_anyURI):
+            raise OmasErrorValue(f'{key} is not a valid XSD QName or XSD anyURI')
+        return key
+
+    def __perms(self,
+                key: Xsd_QName | Xsd_anyURI,
+                value: set[AdminPermission | str] | ObservableSet[AdminPermission]) -> ObservableSet[AdminPermission]:
+        perms = ObservableSet(on_change=self.__on_set_changed, on_change_data=key)
+        for permission in value:
+            if isinstance(permission, str):
+                try:
+                    if permission.find(':') >= 0:
+                        perms.add(AdminPermission(permission))
+                    else:
+                        perms.add(AdminPermission('omas:' + permission))
+                except ValueError as err:
+                    raise OmasErrorValue(str(err))
+            elif permission in AdminPermission:
+                perms.add(permission)
+            else:
+                raise OmasErrorValue(f'{permission} is not a valid AdminPermission')
+        return perms
 
     def __on_set_changed(self, oldset: ObservableSet[AdminPermission], key: Xsd_QName | str):
         if self.__on_change is not None:
             self.__on_change(key, oldset) ## Action.MODIFY
 
-    def __getitem__(self, key: Xsd_QName | Xsd_anyURI) -> ObservableSet[AdminPermission]:
-        return self.__data[key]
+    def __getitem__(self, key: Xsd_QName | Xsd_anyURI | str) -> ObservableSet[AdminPermission]:
+        key = self.__key(key)
+        try:
+            return self.__data[key]
+        except KeyError as err:
+            raise OmasErrorKey(str(err), key)
 
-    def __setitem__(self, key: Xsd_QName | Xsd_anyURI, value: ObservableSet[AdminPermission] | Set[AdminPermission]) -> None:
+    def __setitem__(self, key: Xsd_QName | Xsd_anyURI, value: set[AdminPermission | str] | ObservableSet[AdminPermission]) -> None:
+        key = self.__key(key)
         if self.__data.get(key) is None:
             if self.__on_change is not None:
                 self.__on_change(key, None) ## Action.CREATE: Create a new inProject connection to a new project and add permissions
         else:
             if self.__on_change is not None:
                 self.__on_change(key, self.__data[key].copy())  ## Action.REPLACE Replace all the permission of the given connection to a project
-        self.__data[key] = ObservableSet(value, on_change=self.__on_set_changed)
+        self.__data[key] = self.__perms(key, value)
 
-    def __delitem__(self, key: Xsd_QName | Xsd_anyURI) -> None:
+    def __delitem__(self, key: Xsd_QName | Xsd_anyURI | str) -> None:
+        key = self.__key(key)
         if self.__data.get(key) is not None:
             if self.__on_change is not None:
                 self.__on_change(key, self.__data[key].copy())  ## Action.DELETE
             del self.__data[key]
+        else:
+            raise OmasErrorKey(f'Can\'t delete key "{key}" – does not exist')
+
 
     def __str__(self) -> str:
-        s = '';
+        s = ''
         for k, v in self.__data.items():
-            s += f'{k} ({type(k)}): {v}\n'
+            l = [x.value for x in v]
+            l.sort()
+            s += f'{k} : {l}\n'
         return s
 
     def __bool__(self) -> bool:
@@ -123,7 +149,7 @@ class InProjectClass:
         return self.__data.keys()
 
     def _as_dict(self) -> dict:
-        tmp = {f'{key.__class__.__name__}§{str(key)}': value for key, value in self.__data.items()}
+        tmp = {f'{str(key)}': value for key, value in self.__data.items()}
         #return {'data': self.__data}
         return {'data': tmp}
 

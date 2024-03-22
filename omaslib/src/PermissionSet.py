@@ -223,7 +223,7 @@ class PermissionSet(Model):
         FROM omas:admin
         WHERE {{
             ?permset a omas:PermissionSet .
-            FILTER(?permset = {repr(self.permissionSetIri)})       
+            FILTER(?permset = {self.permissionSetIri.resUri})       
         }}
         """
 
@@ -232,10 +232,10 @@ class PermissionSet(Model):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}} {repr(self.permissionSetIri)} a omas:PermissionSet'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {repr(self._con.userIri)}'
+        sparql += f'{blank:{(indent + 2) * indent_inc}} {self.permissionSetIri.resUri} a omas:PermissionSet'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {repr(self._con.userIri)}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment}'

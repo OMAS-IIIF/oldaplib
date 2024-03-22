@@ -42,6 +42,7 @@ import bcrypt
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -145,8 +146,8 @@ class UserDataclass:
         UserFields.USER_ID: Xsd_NCName,
         UserFields.FAMILY_NAME: Xsd_string,
         UserFields.GIVEN_NAME: Xsd_string,
-        UserFields.CREDENTIALS: str,
-        UserFields.ACTIVE: bool,
+        UserFields.CREDENTIALS: Xsd_string,
+        UserFields.ACTIVE: Xsd_boolean,
         UserFields.IN_PROJECT: dict,
         UserFields.HAS_PERMISSIONS: ObservableSet[Xsd_QName]
     }
@@ -163,14 +164,14 @@ class UserDataclass:
     def __init__(self, *,
                  creator: Xsd_anyURI | str | None = None,
                  created: Xsd_dateTime | str | None = None,
-                 contributor: Xsd_anyURI | None = None,
-                 modified: Xsd_dateTime | None = None,
-                 userIri: Xsd_anyURI | None = None,
-                 userId: Xsd_NCName | None = None,
+                 contributor: Xsd_anyURI | str | None = None,
+                 modified: Xsd_dateTime | str | None = None,
+                 userIri: Xsd_anyURI | str | None = None,
+                 userId: Xsd_NCName | str | None = None,
                  familyName: Xsd_string | str | None = None,
                  givenName: Xsd_string | str | None = None,
-                 credentials: str | None = None,
-                 isActive: bool | None = None,
+                 credentials: Xsd_string | str | None = None,
+                 isActive: Xsd_boolean | bool | None = None,
                  inProject: Dict[Xsd_QName | Xsd_anyURI, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[Xsd_QName] | None = None):
         """
@@ -197,7 +198,7 @@ class UserDataclass:
             hasPermissions = ObservableSet(hasPermissions, on_change=self.__hasPermission_cb)
         if credentials is not None:
             salt = bcrypt.gensalt()
-            credentials = bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8')
+            credentials = Xsd_string(bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8'))
 
         self.__creator = Xsd_anyURI(creator) if creator else None
         self.__created = Xsd_dateTime(created) if created else None
@@ -207,8 +208,8 @@ class UserDataclass:
         self.__fields[UserFields.USER_ID] = Xsd_NCName(userId) if userId else None
         self.__fields[UserFields.FAMILY_NAME] = Xsd_string(familyName) if familyName else None
         self.__fields[UserFields.GIVEN_NAME] = Xsd_string(givenName) if givenName else None
-        self.__fields[UserFields.CREDENTIALS] = credentials if credentials else None
-        self.__fields[UserFields.ACTIVE] = bool(isActive) if isActive is not None else None
+        self.__fields[UserFields.CREDENTIALS] = Xsd_string(credentials) if credentials else None
+        self.__fields[UserFields.ACTIVE] = Xsd_boolean(isActive) if isActive is not None else None
         self.__fields[UserFields.IN_PROJECT] = inProjectTmp if inProjectTmp is not None else None
         self.__fields[UserFields.HAS_PERMISSIONS] = hasPermissions if hasPermissions is not None else None
         self.__change_set = {}

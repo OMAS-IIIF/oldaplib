@@ -21,6 +21,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.iconnection import IConnection
 from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.user_dataclass import UserDataclass
+from omaslib.src.xsd.xsd_string import Xsd_string
 
 #
 # For bootstrapping the whole tripel store, the following SPARQL has to be executed within the GraphDB
@@ -114,7 +115,7 @@ class Connection(IConnection):
                  server: str,
                  repo: str,
                  userId: Optional[str | Xsd_NCName] = None,
-                 credentials: Optional[str] = None,
+                 credentials: Optional[str | Xsd_string] = None,
                  token: Optional[str] = None,
                  context_name: Optional[str] = DEFAULT_CONTEXT) -> None:
         """

@@ -1,4 +1,4 @@
-from typing import Set, List, Dict, Iterable
+from typing import Set, List, Dict, Iterable, Iterator, Self
 
 from pystrict import strict
 
@@ -19,6 +19,14 @@ class RdfSet:
                 raise OmasErrorValue("Set elements must be of Subclasses of Xsd.")
             self.__data.add(val)
 
+    def __eq__(self, other: Self | Set[Xsd]) -> bool:
+        if isinstance(other, RdfSet):
+            return self.__data == other.__data
+        elif isinstance(other, set):
+            return self.__data == other
+        else:
+            raise OmasErrorValue(f"Comparison between RdfSet and {type(other)} not possible")
+
     def __str__(self) -> str:
         return '(' + ", ".join(map(str, self.__data)) + ')'
 
@@ -27,6 +35,19 @@ class RdfSet:
 
     def __contains__(self, val: Xsd) -> bool:
         return val in self.__data
+
+    def __iter__(self) -> Iterator[Xsd]:
+        return iter(self.__data)
+
+    def add(self, val: Xsd) -> None:
+        if not isinstance(val, Xsd):
+            raise OmasErrorValue(f'Cannot add type {type(val)} to RdfSet')
+        self.__data.add(val)
+
+    def discard(self, val: Xsd) -> None:
+        if not isinstance(val, Xsd):
+            raise OmasErrorValue(f'Cannot discard type {type(val)} to RdfSet')
+        self.__data.discard(val)
 
     @property
     def value(self) -> Set[Xsd]:

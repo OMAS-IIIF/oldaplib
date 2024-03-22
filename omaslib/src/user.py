@@ -147,6 +147,7 @@ from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -171,16 +172,16 @@ class User(Model, UserDataclass):
 
     def __init__(self, *,
                  con: IConnection | None = None,
-                 creator: Xsd_anyURI | None = None,
-                 created: Xsd_dateTime | None = None,
-                 contributor: Xsd_anyURI | None = None,
-                 modified: Xsd_dateTime | None = None,
-                 userIri: Xsd_anyURI | None = None,
-                 userId: Xsd_NCName | None = None,
-                 familyName: Xsd_string | None = None,
-                 givenName: Xsd_string | None = None,
-                 credentials: str | None = None,
-                 isActive: bool | None = None,
+                 creator: Xsd_anyURI | str | None = None,
+                 created: Xsd_dateTime | str | str | None = None,
+                 contributor: Xsd_anyURI | str | None = None,
+                 modified: Xsd_dateTime | str | None = None,
+                 userIri: Xsd_anyURI | str | None = None,
+                 userId: Xsd_NCName | str | None = None,
+                 familyName: Xsd_string | str | None = None,
+                 givenName: Xsd_string | str | None = None,
+                 credentials: Xsd_string | str | str | None = None,
+                 isActive: Xsd_boolean | bool | None = None,
                  inProject: Dict[Xsd_QName | Xsd_anyURI, Set[AdminPermission]] | None = None,
                  hasPermissions: Set[Xsd_QName] | None = None):
         """
@@ -267,7 +268,7 @@ class User(Model, UserDataclass):
         FROM omas:admin
         WHERE {{
             ?user a omas:User .
-            ?user omas:userId {repr(self.userId)} .         
+            ?user omas:userId {self.userId.toRdf} .         
         }}
         """
 

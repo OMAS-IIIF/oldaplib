@@ -12,5 +12,5 @@ class Xsd_unsignedShort(Xsd_integer):
 
     def __init__(self, value: int | str):
         super().__init__(value)
-        if self.__value < 0 or self.__value > 65535:
+        if self._value < 0 or self._value > 65535:
             raise OmasErrorValue('Value must be in the range of [0 - 65535].')

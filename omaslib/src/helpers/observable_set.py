@@ -65,6 +65,9 @@ class ObservableSet(Set):
             return ObservableSet(super().__sub__(other))
         return NotImplemented
 
+    def __eq__(self, other: Self) -> Self:
+        return set(self) == set(other)
+
     def update(self, items: Iterable):
         if self.__on_change is not None:
             self.__on_change(self.copy(), self.__on_change_data)

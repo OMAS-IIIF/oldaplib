@@ -1,20 +1,24 @@
+from typing import Iterator
+
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorValue
 
 
-class LanguageIn(set):
+class LanguageIn:
     """
     This class implements the SHACL sh:languageIn datatype. It completely validates the input.
     If the validations failes, an OmasErrorValue is raised.
     """
+    __data: set[Language]
 
     def __init__(self, *args):
         __data: set[Language]
+
         """
         Constructor for the LanguageIn
         :param args: Either the languages as 2-letter short strings, or a set of
         """
-        self.__data: set[Language] = set()
+        self.__data = set()
         try:
             if len(args) > 1:
                 for arg in args:
@@ -47,6 +51,28 @@ class LanguageIn(set):
     def __repr__(self):
         langlist = {f'"{x.name.lower()}"^^xsd:string' for x in self}
         return 'LanguageIn(' + ", ".join(langlist) + ')'
+
+    def __contains__(self, language: Language):
+        return language in self.__data
+
+    def __iter__(self) -> Iterator[Language]:
+        return iter(self.__data)
+
+    def add(self, language: Language | str):
+        if not isinstance(language, Language):
+            try:
+                language = Language[language.upper()]
+            except ValueError as err:
+                raise OmasErrorValue(str(err))
+        self.__data.add(language)
+
+    def discard(self, language: Language | str):
+        if not isinstance(language, Language):
+            try:
+                language = Language[language.upper()]
+            except ValueError as err:
+                raise OmasErrorValue(str(err))
+        self.__data.discard(language)
 
     @property
     def toRdf(self) -> str:
