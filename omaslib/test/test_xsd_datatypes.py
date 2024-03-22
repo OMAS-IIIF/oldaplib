@@ -49,6 +49,10 @@ from omaslib.src.xsd.xsd_short import Xsd_short
 from omaslib.src.xsd.xsd_string import Xsd_string
 from omaslib.src.xsd.xsd_time import Xsd_time
 from omaslib.src.xsd.xsd_token import Xsd_token
+from omaslib.src.xsd.xsd_unsignedbyte import Xsd_unsignedByte
+from omaslib.src.xsd.xsd_unsignedint import Xsd_unsignedInt
+from omaslib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
+from omaslib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 
 
 class OmasErrorValuer:
@@ -1270,6 +1274,170 @@ class TestXsdDatatypes(unittest.TestCase):
 
         with self.assertRaises(OmasErrorValue):
             val = Xsd_token("Dies ist ein string mit $onderzeichen\"\nund anderen Dingen")
+
+    def test_xsd_unsignedByte(self):
+        val = Xsd_unsignedByte(202)
+        self.assertEqual(int(val), 202)
+        self.assertEqual(str(val), '202')
+        self.assertEqual(repr(val), 'Xsd_unsignedByte(202)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_unsignedByte"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_unsignedByte"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_unsignedByte(25) == Xsd_unsignedByte(25))
+        self.assertTrue(Xsd_unsignedByte(25) == 25)
+
+        self.assertTrue(Xsd_unsignedByte(26) > Xsd_unsignedByte(25))
+        self.assertTrue(Xsd_unsignedByte(26) > 25)
+
+        self.assertTrue(Xsd_unsignedByte(25) >= Xsd_unsignedByte(25))
+        self.assertTrue(Xsd_unsignedByte(25) >= 25)
+
+        self.assertTrue(Xsd_unsignedByte(25) != Xsd_unsignedByte(24))
+        self.assertTrue(Xsd_unsignedByte(25) != 24)
+
+        self.assertTrue(Xsd_unsignedByte(25) < Xsd_unsignedByte(26))
+        self.assertTrue(Xsd_unsignedByte(25) < 26)
+
+        self.assertTrue(Xsd_unsignedByte(25) <= Xsd_unsignedByte(25))
+        self.assertTrue(Xsd_unsignedByte(25) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedByte(-1)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedByte(256)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedByte("abcd")
+
+    def test_xsd_unsignedInt(self):
+        val = Xsd_unsignedInt(20200)
+        self.assertEqual(int(val), 20200)
+        self.assertEqual(str(val), '20200')
+        self.assertEqual(repr(val), 'Xsd_unsignedInt(20200)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_unsignedInt"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_unsignedInt"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_unsignedInt(25) == Xsd_unsignedInt(25))
+        self.assertTrue(Xsd_unsignedInt(25) == 25)
+
+        self.assertTrue(Xsd_unsignedInt(26) > Xsd_unsignedInt(25))
+        self.assertTrue(Xsd_unsignedInt(26) > 25)
+
+        self.assertTrue(Xsd_unsignedInt(25) >= Xsd_unsignedInt(25))
+        self.assertTrue(Xsd_unsignedInt(25) >= 25)
+
+        self.assertTrue(Xsd_unsignedInt(25) != Xsd_unsignedInt(24))
+        self.assertTrue(Xsd_unsignedInt(25) != 24)
+
+        self.assertTrue(Xsd_unsignedInt(25) < Xsd_unsignedInt(26))
+        self.assertTrue(Xsd_unsignedInt(25) < 26)
+
+        self.assertTrue(Xsd_unsignedInt(25) <= Xsd_unsignedInt(25))
+        self.assertTrue(Xsd_unsignedInt(25) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedInt(-1)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedInt(4294967296)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedInt("abcd")
+
+    def test_xsd_unsignedLong(self):
+        val = Xsd_unsignedLong(202_203_204)
+        self.assertEqual(int(val), 202_203_204)
+        self.assertEqual(str(val), '202203204')
+        self.assertEqual(repr(val), 'Xsd_unsignedLong(202203204)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_unsignedLong"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_unsignedLong"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_unsignedLong(25) == Xsd_unsignedLong(25))
+        self.assertTrue(Xsd_unsignedLong(25) == 25)
+
+        self.assertTrue(Xsd_unsignedLong(26) > Xsd_unsignedLong(25))
+        self.assertTrue(Xsd_unsignedLong(26) > 25)
+
+        self.assertTrue(Xsd_unsignedLong(25) >= Xsd_unsignedLong(25))
+        self.assertTrue(Xsd_unsignedLong(25) >= 25)
+
+        self.assertTrue(Xsd_unsignedLong(25) != Xsd_unsignedLong(24))
+        self.assertTrue(Xsd_unsignedLong(25) != 24)
+
+        self.assertTrue(Xsd_unsignedLong(25) < Xsd_unsignedLong(26))
+        self.assertTrue(Xsd_unsignedLong(25) < 26)
+
+        self.assertTrue(Xsd_unsignedInt(25) <= Xsd_unsignedInt(25))
+        self.assertTrue(Xsd_unsignedInt(25) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedLong(-1)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedLong(18446744073709551616)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedLong("abcd")
+
+    def test_xsd_unsignedShort(self):
+        val = Xsd_unsignedShort(20200)
+        self.assertEqual(int(val), 20200)
+        self.assertEqual(str(val), '20200')
+        self.assertEqual(repr(val), 'Xsd_unsignedShort(20200)')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_unsignedShort"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_unsignedShort"))
+        self.assertEqual(val, valx)
+
+        self.assertTrue(Xsd_unsignedShort(25) == Xsd_unsignedShort(25))
+        self.assertTrue(Xsd_unsignedShort(25) == 25)
+
+        self.assertTrue(Xsd_unsignedShort(26) > Xsd_unsignedShort(25))
+        self.assertTrue(Xsd_unsignedShort(26) > 25)
+
+        self.assertTrue(Xsd_unsignedShort(25) >= Xsd_unsignedShort(25))
+        self.assertTrue(Xsd_unsignedShort(25) >= 25)
+
+        self.assertTrue(Xsd_unsignedShort(25) != Xsd_unsignedShort(24))
+        self.assertTrue(Xsd_unsignedShort(25) != 24)
+
+        self.assertTrue(Xsd_unsignedShort(25) < Xsd_unsignedShort(26))
+        self.assertTrue(Xsd_unsignedShort(25) < 26)
+
+        self.assertTrue(Xsd_unsignedShort(25) <= Xsd_unsignedShort(25))
+        self.assertTrue(Xsd_unsignedShort(25) <= 25)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedShort(-1)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedShort(65536)
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_unsignedShort("abcd")
 
 
 if __name__ == '__main__':
