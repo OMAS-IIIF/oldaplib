@@ -56,12 +56,12 @@ class Testproject(unittest.TestCase):
         self.assertEqual(LangString(["Project for system administration@en"]), project.comment)
         self.assertEqual(Xsd_date("2024-01-01"), project.projectStart)
 
-    @unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_project_search(self):
         projects = Project.search(con=self._connection, label="HyperHamlet")
         self.assertEqual(["omas:HyperHamlet"], projects)
 
-    @unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_project_search_fail(self):
         with self.assertRaises(OmasErrorNotFound) as ex:
             projects = Project.search(con=self._connection, label="NoExisting")
@@ -86,7 +86,7 @@ class Testproject(unittest.TestCase):
         self.assertEqual(Xsd_date(2024, 1, 1), project2.projectStart)
         self.assertEqual(Xsd_date(2025, 12, 31), project2.projectEnd)
 
-    @unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_project_modify(self):
         project = Project(con=self._connection,
                           projectShortName="updatetest",
@@ -111,7 +111,7 @@ class Testproject(unittest.TestCase):
         self.assertEqual(project.label, LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"]))
         self.assertEqual(project.projectEnd, Xsd_date(2026, 6, 30))
 
-    @unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_project_delete(self):
         project = Project(con=self._connection,
                           projectShortName="deletetest",

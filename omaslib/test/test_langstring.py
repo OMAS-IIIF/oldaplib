@@ -3,6 +3,7 @@ from datetime import datetime
 
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.langstring import LangString, LangStringChange
@@ -201,13 +202,13 @@ class TestLangstring(unittest.TestCase):
         qstr = " ;\n".join(qlist)
         expected = """INSERT DATA {
     GRAPH omas:test {
-    omas:subj omas:prop "français"@fr .
+        omas:subj omas:prop "français"@fr .
     }
 }
  ;
 INSERT DATA {
     GRAPH omas:test {
-    omas:subj omas:prop "undefined" .
+        omas:subj omas:prop "undefined" .
     }
 }
  ;
@@ -222,7 +223,7 @@ DELETE DATA {
         sstr = ls1.update_shacl(graph=Xsd_NCName("test"),
                                 prop_iri=Xsd_QName('omas:prop'),
                                 attr=PropertyClassAttribute.NAME,
-                                modified=datetime.fromisoformat("2023-11-04T12:00:00Z"))
+                                modified=Xsd_dateTime("2023-11-04T12:00:00Z"))
         expected = """# LangString: Process "FR" with Action "create"
 WITH test:shacl
 INSERT {

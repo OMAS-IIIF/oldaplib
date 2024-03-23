@@ -39,7 +39,7 @@ class ProjectFields(Enum):
     """
     This enum class represents the fields used in the project model
     """
-    PROJECT_IRI = 'omas:projectIri'  # virtual property, represents the RDF subject
+    PROJECT_IRI = 'omas:projectIri'  # virtual property, repents the RDF subject
     PROJECT_SHORTNAME = 'omas:projectShortName'
     LABEL = 'rdfs:label'
     COMMENT = 'rdfs:comment'
@@ -314,7 +314,7 @@ class Project(Model):
             SELECT ?prop ?val
             FROM omas:admin
             WHERE {{
-                {projectIri.resUri()} ?prop ?val
+                {projectIri.resUri} ?prop ?val
             }}
         """
         jsonobj = con.query(query)
@@ -455,7 +455,7 @@ class Project(Model):
         FROM omas:admin
         WHERE {{
             ?project a omas:Project .
-            FILTER(?project = {self.projectIri.resUri()})
+            FILTER(?project = {self.projectIri.resUri})
         }}
         """
 
@@ -463,17 +463,17 @@ class Project(Model):
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql2 += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
-        sparql2 += f'{blank:{(indent + 2) * indent_inc}}{self.projectIri.resUri()} a omas:Project ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.resUri()} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:created {repr(timestamp)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.resUri()} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {repr(timestamp)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectShortName {repr(self.projectShortName)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:label {repr(self.label)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:comment {repr(self.comment)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:namespaceIri {repr(self.namespaceIri)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectStart {repr(self.projectStart)} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectEnd {repr(self.projectEnd)} .\n'
+        sparql2 += f'{blank:{(indent + 2) * indent_inc}}{self.projectIri.resUri} a omas:Project ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.resUri} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.resUri} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectShortName {self.projectShortName.toRdf} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label.toRdf} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment.toRdf} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:namespaceIri {self.namespaceIri.toRdf} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectStart {self.projectStart.toRdf} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectEnd {self.projectEnd.toRdf} .\n'
         sparql2 += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -545,15 +545,15 @@ class Project(Model):
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(change.old_value)} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(self.__fields[field])} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__fields[field].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.projectIri.resUri()} as ?project)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {repr(change.old_value)} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.projectIri.resUri} as ?project)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = context.sparql_context
@@ -600,8 +600,8 @@ class Project(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.projectIri.resUri()} a omas:Project .
-            {self.projectIri.resUri()} ?prop ?val .
+            {self.projectIri.resUri} a omas:Project .
+            {self.projectIri.resUri} ?prop ?val .
         }} 
         """
         # TODO: use transaction for error handling

@@ -13,6 +13,7 @@ from pystrict import strict
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.enums.language import Language
@@ -226,6 +227,10 @@ class LangString(Notify):
     def __repr__(self) -> str:
         return self.__str__()
 
+    @property
+    def toRdf(self) -> str:
+        return self.__str__()
+
     def _as_dict(self) -> dict:
         """
         Return a dictionary used for JSONification of a LangString instance
@@ -411,7 +416,7 @@ class LangString(Notify):
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri()} {repr(field)} {repr(self)} .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri} {field.toRdf} {self.toRdf} .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         return sparql
@@ -426,7 +431,7 @@ class LangString(Notify):
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}DELETE WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri()} {repr(field)} ?o .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri} {field.toRdf} ?o .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         return sparql
@@ -446,7 +451,7 @@ class LangString(Notify):
                 tmpstr = f'"{change.old_value}"'
                 if lang != Language.XX:
                     tmpstr += "@" + lang.name.lower()
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri()} {repr(field)} {tmpstr} .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri} {field.toRdf} {tmpstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -456,7 +461,7 @@ class LangString(Notify):
                 langstr = f'"{self._langstring[lang]}"'
                 if lang != Language.XX:
                     langstr += "@" + lang.name.lower()
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri()} {repr(field)} {langstr} .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri} {field.toRdf} {langstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -495,7 +500,7 @@ class LangString(Notify):
                      owlclass_iri: Optional[Xsd_QName] = None,
                      prop_iri: Xsd_QName,
                      attr: PropertyClassAttribute,
-                     modified: datetime,
+                     modified: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         """
         Return the SPARQL code piece that updates a Language string SHACL part of the triple store.
@@ -550,7 +555,7 @@ class LangString(Notify):
                     tmpstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(modified)})\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)
