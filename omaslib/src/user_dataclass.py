@@ -190,6 +190,7 @@ class UserDataclass:
         :param hasPermissions: Set of Administrative Permissions for the user
         """
         self.__fields = {}
+        self.__change_set = {}
         if inProject:
             inProjectTmp = InProjectClass(inProject, self.__inProject_cb)
         else:
@@ -212,7 +213,6 @@ class UserDataclass:
         self.__fields[UserFields.ACTIVE] = Xsd_boolean(isActive) if isActive is not None else None
         self.__fields[UserFields.IN_PROJECT] = inProjectTmp if inProjectTmp is not None else None
         self.__fields[UserFields.HAS_PERMISSIONS] = hasPermissions if hasPermissions is not None else None
-        self.__change_set = {}
         #
         # here we dynamically generate class properties for the UserFields.
         # This we can access these properties either a Dict or as property
@@ -238,7 +238,7 @@ class UserDataclass:
             salt = bcrypt.gensalt()
             value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
         if field == UserFields.USER_IRI and self.__fields.get(UserFields.USER_IRI) is not None:
-            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{repr(self.__fields.get(UserFields.USER_IRI))}".')
+            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__fields.get(UserFields.USER_IRI)}".')
         self.__change_setter(field, value)
 
     def __del_value(self: Self, field: UserFields) -> None:
@@ -253,7 +253,7 @@ class UserDataclass:
         for proj, permissions in self.__fields[UserFields.IN_PROJECT].items():
             admin_permissions[str(proj)] = [str(x.value) for x in permissions]
         return \
-            f'Userdata for {repr(self.__fields[UserFields.USER_IRI])}:\n' \
+            f'Userdata for {self.__fields[UserFields.USER_IRI]}:\n' \
             f'  Creator: {self.__creator}\n' \
             f'  Created at: {self.__created}\n' \
             f'  Modified by: {self.__contributor}\n' \
@@ -279,7 +279,7 @@ class UserDataclass:
             salt = bcrypt.gensalt()
             value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
         if field == UserFields.USER_IRI and self.__fields.get(UserFields.USER_IRI) is not None:
-            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{repr(self.__fields.get(UserFields.USER_IRI))}".')
+            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__fields.get(UserFields.USER_IRI)}".')
         self.__change_setter(field, value)
 
     def _as_dict(self) -> dict:
@@ -335,7 +335,9 @@ class UserDataclass:
 
     def __inProject_cb(self, key: Xsd_QName | Xsd_anyURI, old: ObservableSet[AdminPermission] | None = None) -> None:
         if self.__change_set.get(UserFields.IN_PROJECT) is None:
-            old = self.__fields[UserFields.IN_PROJECT].copy()
+            old = None
+            if self.__fields.get(UserFields.IN_PROJECT) is not None:
+                old = self.__fields[UserFields.IN_PROJECT].copy()
             self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(old, Action.MODIFY)
 
     @property
@@ -466,7 +468,7 @@ class UserDataclass:
                 case 'foaf:givenName':
                     self.__fields[UserFields.GIVEN_NAME] = r['val']
                 case 'omas:credentials':
-                    self.__fields[UserFields.CREDENTIALS] = str(r['val'])
+                    self.__fields[UserFields.CREDENTIALS] = r['val']
                 case 'omas:isActive':
                     self.__fields[UserFields.ACTIVE] = r['val']
                 case 'omas:inProject':
@@ -509,15 +511,15 @@ class UserDataclass:
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {change.old_value.toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(self.__fields[field])} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {self.__fields[field].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.resUri} as ?user)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {repr(change.old_value)} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         if UserFields.HAS_PERMISSIONS in self.__change_set:
@@ -552,7 +554,7 @@ class UserDataclass:
                 FROM omas:admin
                 WHERE {{
                     ?permissionset a omas:PermissionSet .
-                    FILTER(?permissionset IN ({repr(added)}))
+                    FILTER(?permissionset IN ({added.toRdf}))
                 }}
                 """
                 ptest_len = len(added) if added else 0

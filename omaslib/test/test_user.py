@@ -10,6 +10,7 @@ from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExi
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.user import User
 from omaslib.src.in_project import InProjectClass
+from omaslib.src.xsd.xsd_string import Xsd_string
 
 
 class TestUser(unittest.TestCase):
@@ -67,8 +68,8 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="rosenth")
         self.assertEqual(user.userId, Xsd_NCName("rosenth"))
         self.assertEqual(user.userIri, Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"))
-        self.assertEqual(user.familyName, "Rosenthaler")
-        self.assertEqual(user.givenName, "Lukas")
+        self.assertEqual(user.familyName, Xsd_string("Rosenthaler"))
+        self.assertEqual(user.givenName, Xsd_string("Lukas"))
         self.assertEqual(user.inProject, InProjectClass({
             Xsd_QName("omas:SystemProject"): {AdminPermission.ADMIN_OLDAP},
             Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
@@ -116,7 +117,7 @@ class TestUser(unittest.TestCase):
 
         with self.assertRaises(OmasErrorValue) as ex:
             users = User.search(con=self._connection, inProject="omas:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")
-        self.assertEqual(str(ex.exception), 'Invalid string "omas:HyperHamlet".}\nSELECT * WHERE{?s ?p ?s})#" for anyIRI')
+        self.assertEqual(str(ex.exception), 'Invalid string "omas:HyperHamlet".}\nSELECT * WHERE{?s ?p ?s})#" for anyURI')
 
     # @unittest.skip('Work in progress')
     def test_create_user(self):

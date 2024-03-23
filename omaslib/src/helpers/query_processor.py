@@ -76,7 +76,10 @@ class QueryProcessor:
                 elif valobj["type"] == "literal":
                     dt = valobj.get("datatype")
                     if dt is None:
-                        row[name] = OldapStringLiteral.fromRdf(valobj["value"], valobj.get("xml:lang"))
+                        if valobj.get("xml:lang") is not None:
+                            row[name] = OldapStringLiteral.fromRdf(valobj["value"], valobj.get("xml:lang"))
+                        else:
+                            row[name] = Xsd_string.fromRdf(valobj["value"])
                     else:
                         dt = context.iri2qname(dt)
                         match str(dt):

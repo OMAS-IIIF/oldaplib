@@ -278,11 +278,11 @@ class User(Model, UserDataclass):
         FROM omas:admin
         WHERE {{
             ?user a omas:User .
-            FILTER(?user = <{self.userIri}>)
+            FILTER(?user = {self.userIri.resUri})
         }}
         """
 
-        projs = [x.resUri() for x in self.inProject.keys()]
+        projs = [x.resUri for x in self.inProject.keys()]
         projslist = ", ".join(projs)
         proj_test = context.sparql_context
         proj_test += f"""
@@ -294,13 +294,15 @@ class User(Model, UserDataclass):
         }}
         """
 
+        perms = [x.toRdf for x in self.hasPermissions]
+        perms = ", ".join(perms)
         pset_test = context.sparql_context
         pset_test += f"""
         SELECT ?permissionset
         FROM omas:admin
         WHERE {{
             ?permissionset a omas:PermissionSet .
-            FILTER(?permissionset IN ({repr(self.hasPermissions)}))
+            FILTER(?permissionset IN ({perms}))
         }}
         """
 
@@ -310,25 +312,25 @@ class User(Model, UserDataclass):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.resUri()} a omas:User'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.resUri()}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {repr(timestamp)}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.resUri()}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {repr(timestamp)}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId {repr(self.userId)}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName {repr(self.familyName)}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName {repr(self.givenName)}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:credentials "{self.credentials}"'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.resUri} a omas:User'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.resUri}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.resUri}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId {self.userId.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName {self.familyName.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName {self.givenName.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:credentials {self.credentials.toRdf}'
         activeval = "true" if self.isActive else "false"
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:isActive {activeval}'
         star = ''
         if self.inProject:
-            project = [p.resUri() for p in self.inProject.keys()]
+            project = [p.resUri for p in self.inProject.keys()]
             rdfstr = ", ".join(project)
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:inProject {rdfstr}'
             for p in self.inProject.keys():
                 for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
-                    star += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.resUri()} omas:inProject {repr(p)}>> omas:hasAdminPermission {admin_p.value} .\n'
+                    star += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.resUri} omas:inProject {p.toRdf}>> omas:hasAdminPermission {admin_p.value} .\n'
         if self.hasPermissions:
             rdfstr = ", ".join([str(x) for x in self.hasPermissions])
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:hasPermissions {rdfstr}'
@@ -381,8 +383,6 @@ class User(Model, UserDataclass):
         try:
             self._con.transaction_update(sparql)
         except OmasError:
-            print("\n=========\n", sparql)
-            print(self.inProject)
             self._con.transaction_abort()
             raise
         try:
@@ -457,16 +457,16 @@ class User(Model, UserDataclass):
         sparql += '   ?user a omas:User .\n'
         if userId is not None:
             sparql += '   ?user omas:userId ?user_id .\n'
-            sparql += f'   FILTER(?user_id = {repr(userId)})\n'
+            sparql += f'   FILTER(?user_id = {userId.toRdf})\n'
         if familyName is not None:
             sparql += '   ?user foaf:familyName ?family_name .\n'
-            sparql += f'   FILTER(STR(?family_name) = {repr(familyName)})\n'
+            sparql += f'   FILTER(STR(?family_name) = {familyName.toRdf})\n'
         if givenName is not None:
             sparql += '   ?user foaf:givenName ?given_name .\n'
-            sparql += f'   FILTER(STR(?given_name) = {repr(givenName)})\n'
+            sparql += f'   FILTER(STR(?given_name) = {givenName.toRdf})\n'
         if inProject is not None:
             sparql += '   ?user omas:inProject ?project .\n'
-            sparql += f'   FILTER(?project = {inProject.resUri()})\n'
+            sparql += f'   FILTER(?project = {inProject.resUri})\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
@@ -505,11 +505,11 @@ class User(Model, UserDataclass):
         }}
         WHERE {{
             ?user a omas:User .
-            ?user omas:userId {repr(self.userId)} .
+            ?user omas:userId {self.userId.toRdf} .
         }} ;
         DELETE WHERE {{
             ?user a omas:User .
-            ?user omas:userId {repr(self.userId)} .
+            ?user omas:userId {self.userId.toRdf} .
             ?user ?prop ?val .
         }} 
         """

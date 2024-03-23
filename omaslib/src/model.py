@@ -39,7 +39,7 @@ class Model:
         SELECT ?modified
         FROM {graph}
         WHERE {{
-            {iri.resUri()} dcterms:modified ?modified
+            {iri.resUri} dcterms:modified ?modified
         }}
         """
         jsonobj = None
@@ -49,7 +49,7 @@ class Model:
             jsonobj = self._con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
-            raise OmasErrorNotFound(f'No resource found with iri "{repr(iri)}".')
+            raise OmasErrorNotFound(f'No resource found with iri "{iri}".')
         for r in res:
             return r['modified']
 
@@ -63,16 +63,16 @@ class Model:
         sparql += f"""
         WITH {graph}
         DELETE {{
-            ?res dcterms:modified {repr(old_timestamp)} .
+            ?res dcterms:modified {old_timestamp.toRdf} .
             ?res dcterms:contributor ?contributor .
         }}
         INSERT {{
-            ?res dcterms:modified {repr(timestamp)} .
-            ?res dcterms:contributor {repr(self._con.userIri)} .
+            ?res dcterms:modified {timestamp.toRdf} .
+            ?res dcterms:contributor {self._con.userIri.resUri} .
         }}
         WHERE {{
-            BIND({iri.resUri()} as ?res)
-            ?res dcterms:modified {repr(old_timestamp)} .
+            BIND({iri.resUri} as ?res)
+            ?res dcterms:modified {old_timestamp.toRdf} .
             ?res dcterms:contributor ?contributor .
         }}
         """

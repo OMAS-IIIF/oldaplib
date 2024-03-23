@@ -116,11 +116,21 @@ class ObservableSet(Set):
     def copy(self) -> Self:
         return ObservableSet(super().copy(), on_change=self.__on_change)
 
+    @property
+    def toRdf(self) -> str:
+        l = [x.toRdf for x in self]
+        return ", ".join(l)
+
+
     def _as_dict(self):
         return {'setitems': list(self)}
 
     def asSet(self):
         return super().copy()
+
+    def on_change(self, func: Callable[[Self, Any], None], data: Any) -> None:
+        self.__on_change = func
+        self.__on_change_data = data
 
 
 if __name__ == '__main__':

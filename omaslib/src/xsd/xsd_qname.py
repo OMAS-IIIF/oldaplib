@@ -97,6 +97,7 @@ class Xsd_QName(Xsd):
         """
         return self._value
 
+    @property
     def resUri(self) -> str:
         return self._value
 

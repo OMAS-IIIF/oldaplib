@@ -24,7 +24,7 @@ class InProjectClass:
     Implements the administrative permission a user has for the projects the user is associated with.
     """
     __data: Dict[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission]]
-    __on_change: Callable[[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None]
+    __on_change: Callable[[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None] | None
 
     def __init__(self,
                  data: Dict[Xsd_QName | Xsd_anyURI | str, set[AdminPermission | str] | ObservableSet[AdminPermission]] | None = None,
@@ -46,11 +46,12 @@ class InProjectClass:
         :type on_change: Callable[[str, ObservableSet[AdminPermission] | None], None]
         """
         self.__data = {}
-        self.__on_change = on_change
+        self.__on_change = None
         if data is not None:
             for key, value in data.items():
                 key = self.__key(key)
                 self.__data[key] = self.__perms(key, value)
+        self.__on_change = on_change
 
 
     def __key(self, key: Xsd_QName | Xsd_anyURI | str) -> Xsd_QName | Xsd_anyURI:
@@ -125,9 +126,13 @@ class InProjectClass:
         return bool(self.__data)
 
     def copy(self) -> Self:
-        data_copy = deepcopy(self.__data)
-        on_change_copy = self.__on_change
-        return InProjectClass(data_copy, on_change_copy)
+        data_copy: dict[Xsd_QName | Xsd_anyURI | str, set[AdminPermission | str] | ObservableSet[AdminPermission]] = {}
+        tmp = self.__on_change
+        self.__on_change = None
+        for key, val in self.__data.items():
+            data_copy[key] = val
+        self.__on_change = tmp
+        return InProjectClass(data_copy, self.__on_change)
 
     def __eq__(self, other: Self) -> bool:
         if not isinstance(other, InProjectClass):
