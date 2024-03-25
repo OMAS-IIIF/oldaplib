@@ -40,7 +40,9 @@ class Xsd_double(Xsd):
         else:
             return f'Xsd_double({self.__value})'
 
-    def __eq__(self, other: Self | float) -> bool:
+    def __eq__(self, other: Self | float | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, float):
             return self.__value == other
         elif isinstance(other, Xsd_double):

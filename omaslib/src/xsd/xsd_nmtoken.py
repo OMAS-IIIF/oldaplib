@@ -30,7 +30,9 @@ class Xsd_NMTOKEN(Xsd):
     def __repr__(self):
         return f'Xsd_NMTOKEN("{str(self)}")'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if not isinstance(other, Xsd_NMTOKEN):
             return self.__value != other
         else:

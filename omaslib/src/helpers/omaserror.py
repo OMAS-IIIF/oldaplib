@@ -21,6 +21,14 @@ class OmasErrorValue(OmasError):
 
 
 @strict
+class OmasErrorType(OmasError):
+    """
+    Raised when an invalid value is passed/processed
+    """
+    pass
+
+
+@strict
 class OmasErrorKey(OmasError):
     pass
 

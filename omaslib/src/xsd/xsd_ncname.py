@@ -60,12 +60,14 @@ class Xsd_NCName(Xsd):
         """
         return self.__value
 
-    def __eq__(self, other: Self | str) -> bool:
+    def __eq__(self, other: Self | str | None) -> bool:
         """
         Test two NCNames for equality
         :param other: The other NCName/str to compare
         :return: True of False
         """
+        if other is None:
+            return False
         if isinstance(other, Xsd_NCName):
             return self.__value == other.__value
         elif isinstance(other, str):

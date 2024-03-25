@@ -19,7 +19,9 @@ class RdfSet:
                 raise OmasErrorValue("Set elements must be of Subclasses of Xsd.")
             self.__data.add(val)
 
-    def __eq__(self, other: Self | Set[Xsd]) -> bool:
+    def __eq__(self, other: Self | Set[Xsd] | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, RdfSet):
             return self.__data == other.__data
         elif isinstance(other, set):
@@ -58,7 +60,7 @@ class RdfSet:
 
     @property
     def toRdf(self) -> str:
-        return f'({", ".join(map(lambda x: x.toRdf, self.__data))})'
+        return f'({" ".join(map(lambda x: x.toRdf, self.__data))})'
 
     def add(self, item: Xsd) -> None:
         self.__data.add(item)

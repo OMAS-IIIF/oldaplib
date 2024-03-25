@@ -39,7 +39,9 @@ class Xsd_date(Xsd):
     def __repr__(self) -> str:
         return f'Xsd_date("{self.__value.isoformat()}")'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, str):
             if re.match(
                     r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', other) is None:

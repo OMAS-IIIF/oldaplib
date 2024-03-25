@@ -32,7 +32,9 @@ class Xsd_duration(Xsd):
     def __repr__(self) -> str:
         return f'"{isodate.duration_isoformat(self.__value)}"^^xsd:duration'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, str):
             other = isodate.parse_duration(other)
         return self.__value == other.__value

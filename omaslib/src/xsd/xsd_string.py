@@ -21,13 +21,17 @@ class Xsd_string(Xsd):
     def __str__(self) -> str:
         return self.__value
 
-    def __eq__(self, other: Self | str) -> bool:
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, self.__class__):
             return self.__value == other.__value
         else:
             return self.__value == str(other)
 
-    def __ne__(self, other: Self | str) -> bool:
+    def __ne__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return True
         if isinstance(other, self.__class__):
             return self.__value != other.__value
         else:

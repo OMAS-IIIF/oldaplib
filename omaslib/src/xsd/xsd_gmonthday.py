@@ -53,7 +53,9 @@ class Xsd_gMonthDay(Xsd):
     def __repr__(self):
         return f'Xsd_gMonthDay("{str(self)}")'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if not isinstance(other, Xsd_gMonthDay):
             other = Xsd_gMonthDay(other)
         if self.__month != other.__month:

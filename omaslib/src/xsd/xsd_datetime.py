@@ -14,8 +14,10 @@ from omaslib.src.xsd.xsd import Xsd
 class Xsd_dateTime(Xsd):
     __value: datetime
 
-    def __init__(self, value: datetime | Self | str):
-        if isinstance(value, Xsd_dateTime):
+    def __init__(self, value: datetime | Self | str | None = None):
+        if value is None:
+            self.__value = datetime.now()
+        elif isinstance(value, Xsd_dateTime):
             self.__value = value.__value
         elif isinstance(value, datetime):
             self.__value = value

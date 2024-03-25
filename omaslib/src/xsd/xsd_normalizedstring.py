@@ -36,7 +36,9 @@ class Xsd_normalizedString(Xsd):
     def __repr__(self):
         return f'{type(self).__name__}("{self.__value}")'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if not isinstance(other, Xsd_normalizedString):
             other = Xsd_normalizedString(other)
         return self.__value == other.__value

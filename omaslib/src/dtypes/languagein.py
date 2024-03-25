@@ -1,7 +1,7 @@
-from typing import Iterator
+from typing import Iterator, Self
 
 from omaslib.src.enums.language import Language
-from omaslib.src.helpers.omaserror import OmasErrorValue
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType
 
 
 class LanguageIn:
@@ -43,6 +43,36 @@ class LanguageIn:
                             self.__data.add(Language[arg.upper()])
         except KeyError:
             raise OmasErrorValue("Non valid language in set.")
+
+    def __eq__(self, other: Self | None) -> bool:
+        if other is None:
+            return False
+        return self.__data == other.__data
+
+    def __ne__(self, other: Self | None):
+        if other is None:
+            return False
+        return self.__data != other.__data
+
+    def __gt__(self, other: Self) -> bool:
+        if not isinstance(other, LanguageIn):
+            raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
+        return self.__data > other.__data
+
+    def __ge__(self, other: Self) -> bool:
+        if not isinstance(other, LanguageIn):
+            raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
+        return self.__data >= other.__data
+
+    def __lt__(self, other: Self) -> bool:
+        if not isinstance(other, LanguageIn):
+            raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
+        return self.__data < other.__data
+
+    def __le__(self, other: Self) -> bool:
+        if not isinstance(other, LanguageIn):
+            raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
+        return self.__data <= other.__data
 
     def __str__(self):
         langlist = {f'"{x.name.lower()}"' for x in self}

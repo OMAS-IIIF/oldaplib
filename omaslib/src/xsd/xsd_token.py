@@ -33,7 +33,9 @@ class Xsd_token(Xsd):
     def __repr__(self):
         return f'Xsd_token("{OldapStringLiteral.escaping(str(self))}")'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, Xsd_token):
             return self.__value == other.__value
         else:

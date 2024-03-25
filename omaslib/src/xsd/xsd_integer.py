@@ -35,7 +35,9 @@ class Xsd_integer(Xsd):
     def __int__(self) -> int:
         return self._value
 
-    def __eq__(self, other: Self | int) -> bool:
+    def __eq__(self, other: Self | int | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, Xsd_integer):
             return self._value == other._value
         elif isinstance(other, int):
@@ -44,6 +46,8 @@ class Xsd_integer(Xsd):
             raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
 
     def __ne__(self, other: Self | int) -> bool:
+        if other is None:
+            return True
         if isinstance(other, Xsd_integer):
             return self._value != other._value
         elif isinstance(other, int):

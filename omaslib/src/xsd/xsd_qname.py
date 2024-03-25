@@ -101,12 +101,14 @@ class Xsd_QName(Xsd):
     def resUri(self) -> str:
         return self._value
 
-    def __eq__(self, other: Any):
+    def __eq__(self, other: Any | None) -> bool:
         """
         Test for equality of two QNames
         :param other: Another QName/str to compare with
         :return: True of False
         """
+        if other is None:
+            return False
         if isinstance(other, str):
             return self._value == other
         return isinstance(other, Xsd_QName) and self._value == other._value

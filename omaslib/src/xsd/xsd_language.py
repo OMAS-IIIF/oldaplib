@@ -35,7 +35,9 @@ class Xsd_language(Xsd):
     def __repr__(self):
         return f'Xsd_language("{self.__value}")'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if not isinstance(other, Xsd_language):
             other = Xsd_language(other)
         return self.__value == other.__value

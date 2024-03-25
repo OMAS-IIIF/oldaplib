@@ -55,7 +55,9 @@ class Xsd_gYear(Xsd):
     def __repr__(self):
         return f'Xsd_gYear("{str(self)}")'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if not isinstance(other, Xsd_gYear):
             other = Xsd_gYear(other)
         if self.__year != other.__year:

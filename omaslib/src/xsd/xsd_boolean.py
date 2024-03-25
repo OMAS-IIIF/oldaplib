@@ -32,7 +32,9 @@ class Xsd_boolean(Xsd):
     def __bool__(self) -> bool:
         return self.__value
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: Any | None) -> bool:
+        if other is None:
+            return False
         if not isinstance(other, Xsd_boolean):
             other = Xsd_boolean(other)
         return self.__value == other.__value

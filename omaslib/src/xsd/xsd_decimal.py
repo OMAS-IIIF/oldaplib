@@ -31,7 +31,9 @@ class Xsd_decimal(Xsd):
     def __repr__(self) -> str:
         return f'Xsd_decimal("{str(self.__value)}")'
 
-    def __eq__(self, other: Self | float) -> bool:
+    def __eq__(self, other: Self | float | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, float):
             return self.__value == other
         elif isinstance(other, Xsd_decimal):

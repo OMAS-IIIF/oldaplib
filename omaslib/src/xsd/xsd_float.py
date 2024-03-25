@@ -48,13 +48,15 @@ class Xsd_float(Xsd):
         else:
             return f'Xsd_float({self.__value})'
 
-    def __eq__(self, other: Self | float) -> bool:
+    def __eq__(self, other: Self | float | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, float):
             return self.__value == other
         elif isinstance(other, Xsd_float):
             return self.__value == other.__value
         else:
-            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self._value}") to {type(other)}')
+            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self.__value}") to {type(other)}')
 
     def __ne__(self, other) -> bool:
         if isinstance(other, float):

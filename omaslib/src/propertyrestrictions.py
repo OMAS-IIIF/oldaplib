@@ -4,6 +4,7 @@ from typing import Dict, Union, Set, Optional, Callable
 
 from pystrict import strict
 
+from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.enums.action import Action
@@ -30,7 +31,7 @@ class Compare(Enum):
     XX = '__x__'
 
 
-RestrictionTypes = Xsd | Set[Language | str | int] | Xsd_QName | None
+RestrictionTypes = Xsd | RdfSet | LanguageIn | None
 
 RestrictionContainer = Dict[PropertyRestrictionType, RestrictionTypes]
 
@@ -87,7 +88,7 @@ class PropertyRestrictions(Notify):
         PropertyRestrictionType.MIN_COUNT: {Xsd_integer},
         PropertyRestrictionType.MAX_COUNT: {Xsd_integer},
         PropertyRestrictionType.LANGUAGE_IN: {LanguageIn},
-        PropertyRestrictionType.IN: {set},
+        PropertyRestrictionType.IN: {RdfSet},
         PropertyRestrictionType.UNIQUE_LANG: {Xsd_boolean},
         PropertyRestrictionType.MIN_LENGTH: {Xsd_integer},
         PropertyRestrictionType.MAX_LENGTH: {Xsd_integer},
@@ -114,7 +115,7 @@ class PropertyRestrictions(Notify):
         PropertyRestrictionType.MAX_INCLUSIVE: Compare.LE,
         PropertyRestrictionType.LESS_THAN: Compare.XX,
         PropertyRestrictionType.LESS_THAN_OR_EQUALS: Compare.XX
-        }
+    }
 
     def __init__(self, *,
                  restrictions: Optional[RestrictionContainer] = None,
@@ -132,10 +133,8 @@ class PropertyRestrictions(Notify):
             if restrictions.get(PropertyRestrictionType.UNIQUE_LANG) is not None:
                 restrictions[PropertyRestrictionType.UNIQUE_LANG] = Xsd_boolean(restrictions[PropertyRestrictionType.UNIQUE_LANG])
             for restriction, value in restrictions.items():
-                if type(restriction) != PropertyRestrictionType:
-                    raise OmasError(
-                        f'Unsupported restriction "{restriction}"'
-                    )
+                if restriction not in PropertyRestrictionType:
+                    raise OmasError(f'Unsupported restriction "{restriction}"')
                 if type(value) not in PropertyRestrictions.datatypes[restriction]:
                     raise OmasError(
                         f'Datatype of restriction "{restriction.value}": "{type(value)}" ({value}) is not valid'
@@ -161,16 +160,14 @@ class PropertyRestrictions(Notify):
     def __len__(self) -> int:
         return len(self._restrictions)
 
-    def __getitem__(self, restriction_type: PropertyRestrictionType) -> Union[bool, int, float, str, Set[Union[Language, str, int]], Xsd_QName]:
+    def __getitem__(self, restriction_type: PropertyRestrictionType) -> RestrictionTypes:
         return self._restrictions[restriction_type]
 
     def __setitem__(self,
                     restriction_type: PropertyRestrictionType,
-                    value: Union[bool, int, float, str, Set[Language], Xsd_QName]):
-        if type(restriction_type) != PropertyRestrictionType:
-            raise OmasError(
-                f'Unsupported restriction "{restriction_type}"'
-            )
+                    value: RestrictionTypes):
+        if restriction_type not in PropertyRestrictionType:
+            raise OmasError(f'Unsupported restriction "{restriction_type}"')
         if type(value) not in PropertyRestrictions.datatypes[restriction_type]:
             raise OmasError(
                 f'Datatype of restriction "{restriction_type.value}": "{type(value)}" ({value}) is not valid'
@@ -268,26 +265,27 @@ class PropertyRestrictions(Notify):
         blank = ''
         shacl = ''
         for name, rval in self._restrictions.items():
-            if type(rval) is set:
-                tmp = list(rval)
-                if isinstance(tmp[0], Language):
-                    tmp = [f'"{x.name.lower()}"' for x in rval]
-                elif isinstance(tmp[0], str):
-                    tmp = [f'"{x}"' for x in rval]
-                else:
-                    tmp = [f'{x}' for x in rval]
-                value = '(' + ' '.join(tmp) + ')'
-            elif type(rval) is bool:
-                value = 'true' if rval else 'false'
-            elif type(rval) in {int, float}:
-                value = rval
-            elif type(rval) is str:
-                value = f'"{rval}"'
-            elif type(rval) is Xsd_QName:
-                value = str(rval)
-            else:
-                value = rval
-            shacl += f' ;\n{blank:{indent*indent_inc}}{name.value} {value}'
+            shacl += f' ;\n{blank:{indent * indent_inc}}{name.value} {rval.toRdf}'
+            # if type(rval) is set:
+            #     tmp = list(rval)
+            #     if isinstance(tmp[0], Language):
+            #         tmp = [f'"{x.name.lower()}"' for x in rval]
+            #     elif isinstance(tmp[0], str):
+            #         tmp = [f'"{x}"' for x in rval]
+            #     else:
+            #         tmp = [f'{x}' for x in rval]
+            #     value = '(' + ' '.join(tmp) + ')'
+            # elif type(rval) is bool:
+            #     value = 'true' if rval else 'false'
+            # elif type(rval) in {int, float}:
+            #     value = rval
+            # elif type(rval) is str:
+            #     value = f'"{rval}"'
+            # elif type(rval) is Xsd_QName:
+            #     value = str(rval)
+            # else:
+            #     value = rval
+            # shacl += f' ;\n{blank:{indent*indent_inc}}{name.value} {value}'
         return shacl
 
     def create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
@@ -334,7 +332,7 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                 if owlclass_iri:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.resUri} .\n'
                 else:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?bnode .\n'
@@ -351,17 +349,19 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                if type(self._restrictions[restriction_type]) == set:
-                    items = list(self._restrictions[restriction_type])
-                    if isinstance(items[0], Language):
-                        newval = "(" + " ".join([f'"{x.name.lower()}"' for x in self._restrictions[restriction_type]]) + ")"
-                    elif isinstance(items[0], str):
-                        newval = "(" + " ".join([f'"{x}"' for x in self._restrictions[restriction_type]]) + ")"
-                    else:
-                        newval = "(" + " ".join(items) + ")"
-                else:
-                    newval = self._restrictions[restriction_type]
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} {newval} .\n'
+                # if type(self._restrictions[restriction_type]) == set:
+                #     items = list(self._restrictions[restriction_type])
+                #     if isinstance(items[0], Language):
+                #         newval = "(" + " ".join([f'"{x.name.lower()}"' for x in self._restrictions[restriction_type]]) + ")"
+                #     elif isinstance(items[0], str):
+                #         newval = "(" + " ".join([f'"{x}"' for x in self._restrictions[restriction_type]]) + ")"
+                #     else:
+                #         newval = "(" + " ".join(items) + ")"
+                # else:
+                #     newval = self._restrictions[restriction_type]
+                #sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} {newval} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} {self._restrictions[restriction_type].toRdf} .\n'
+
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
@@ -373,7 +373,7 @@ class PropertyRestrictions(Notify):
             if change.action != Action.CREATE:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?rval .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(modified)})\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)
@@ -454,7 +454,7 @@ class PropertyRestrictions(Notify):
                 else:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(modified)})\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
             minmax_done = True
         return sparql

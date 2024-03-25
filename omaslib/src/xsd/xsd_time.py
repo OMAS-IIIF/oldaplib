@@ -35,7 +35,9 @@ class Xsd_time(Xsd):
     def __repr__(self) -> str:
         return f'Xsd_time("{self.__value.isoformat()}")'
 
-    def __eq__(self, other: Self | str):
+    def __eq__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
         if isinstance(other, str):
             if re.match(
                     r'^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
