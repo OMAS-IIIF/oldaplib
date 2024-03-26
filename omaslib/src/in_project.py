@@ -27,7 +27,7 @@ class InProjectClass:
     __on_change: Callable[[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None] | None
 
     def __init__(self,
-                 data: Dict[Xsd_QName | Xsd_anyURI | str, set[AdminPermission | str] | ObservableSet[AdminPermission]] | None = None,
+                 data: Self | Dict[Xsd_QName | Xsd_anyURI | str, set[AdminPermission | str] | ObservableSet[AdminPermission]] | None = None,
                  on_change: Callable[[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None] = None) -> None:
         """
         Constructor of the class. The class acts like a dictionary and allows the access to the permission
@@ -48,11 +48,13 @@ class InProjectClass:
         self.__data = {}
         self.__on_change = None
         if data is not None:
-            for key, value in data.items():
-                key = self.__key(key)
-                self.__data[key] = self.__perms(key, value)
+            if isinstance(data, InProjectClass):
+                self.__data = data.__data
+            else:
+                for key, value in data.items():
+                    key = self.__key(key)
+                    self.__data[key] = self.__perms(key, value)
         self.__on_change = on_change
-
 
     def __key(self, key: Xsd_QName | Xsd_anyURI | str) -> Xsd_QName | Xsd_anyURI:
         if isinstance(key, str):
@@ -66,8 +68,10 @@ class InProjectClass:
 
     def __perms(self,
                 key: Xsd_QName | Xsd_anyURI,
-                value: set[AdminPermission | str] | ObservableSet[AdminPermission]) -> ObservableSet[AdminPermission]:
+                value: set[AdminPermission | str] | ObservableSet[AdminPermission] | None) -> ObservableSet[AdminPermission]:
         perms = ObservableSet(on_change=self.__on_set_changed, on_change_data=key)
+        if value is None:
+            return perms
         for permission in value:
             if isinstance(permission, str):
                 try:
@@ -134,12 +138,16 @@ class InProjectClass:
         self.__on_change = tmp
         return InProjectClass(data_copy, self.__on_change)
 
-    def __eq__(self, other: Self) -> bool:
+    def __eq__(self, other: Self | None) -> bool:
+        if other is None:
+            return False
         if not isinstance(other, InProjectClass):
             raise OmasErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
         return self.__data == other.__data
 
-    def __ne__(self, other: Self) -> bool:
+    def __ne__(self, other: Self | None) -> bool:
+        if other is None:
+            return True
         if not isinstance(other, InProjectClass):
             raise OmasErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
         return self.__data != other.__data
@@ -157,6 +165,9 @@ class InProjectClass:
         tmp = {f'{str(key)}': value for key, value in self.__data.items()}
         #return {'data': self.__data}
         return {'data': tmp}
+
+    def add_admin_permission(self, project: Xsd_anyURI | Xsd_QName, permission: AdminPermission) -> None:
+        pass
 
 
 if __name__ == '__main__':

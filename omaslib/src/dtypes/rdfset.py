@@ -61,6 +61,3 @@ class RdfSet:
     @property
     def toRdf(self) -> str:
         return f'({" ".join(map(lambda x: x.toRdf, self.__data))})'
-
-    def add(self, item: Xsd) -> None:
-        self.__data.add(item)

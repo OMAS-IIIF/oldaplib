@@ -10,6 +10,7 @@ from typing import List, Callable, Any, Iterable, Set, Self
 from pystrict import strict
 
 from omaslib.src.enums.action import Action
+from omaslib.src.helpers.omaserror import OmasErrorKey
 from omaslib.src.helpers.serializer import serializer
 
 
@@ -94,9 +95,13 @@ class ObservableSet(Set):
         super().add(item)
 
     def remove(self, item: Any) -> None:
+        tmp_copy = self.copy()
+        try:
+            super().remove(item)
+        except KeyError as err:
+            raise OmasErrorKey(str(err))
         if self.__on_change is not None:
-            self.__on_change(self.copy(), self.__on_change_data)
-        super().remove(item)
+            self.__on_change(tmp_copy, self.__on_change_data)
 
     def discard(self, item: Any):
         if self.__on_change is not None:

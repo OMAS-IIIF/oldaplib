@@ -99,9 +99,30 @@ class TestInproject(unittest.TestCase):
         val = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},
                               'https://gaga.com/test': {'ADMIN_MODEL'},
                               Xsd_QName('gaga:gugus'): set()})
-        val2 = val.copy()
+        val2 = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},
+                              'https://gaga.com/test': {'ADMIN_MODEL'},
+                              Xsd_QName('gaga:gugus'): set()})
         self.assertTrue(val == val2)
         self.assertFalse(val != val2)
+
+        val = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},
+                              'https://gaga.com/test': {'ADMIN_MODEL'},
+                              Xsd_QName('gaga:gugus'): set()})
+        val2 = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},
+                              'https://gaga.com/test': {'ADMIN_MODEL'},
+                              Xsd_QName('gaga:gaga'): set()})
+        self.assertFalse(val == val2)
+        self.assertTrue(val != val2)
+
+        val = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},
+                              'https://gaga.com/test': {'ADMIN_MODEL'},
+                              Xsd_QName('gaga:gugus'): {AdminPermission.ADMIN_RESOURCES}})
+        val2 = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},
+                              'https://gaga.com/test': {'ADMIN_MODEL'},
+                              Xsd_QName('gaga:gugus'): {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_PERMISSION_SETS}})
+        self.assertFalse(val == val2)
+        self.assertTrue(val != val2)
+
 
     def test_items(self):
         ip = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},

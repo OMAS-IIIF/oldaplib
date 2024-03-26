@@ -72,7 +72,7 @@ class QueryProcessor:
                     if row[name] is None:
                         row[name] = Xsd_anyURI(valobj["value"])
                 elif valobj["type"] == "bnode":
-                    row[name] = BNode(valobj["value"])
+                    row[name] = BNode(f'_:{valobj["value"]}')
                 elif valobj["type"] == "literal":
                     dt = valobj.get("datatype")
                     if dt is None:

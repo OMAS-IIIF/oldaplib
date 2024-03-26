@@ -3,6 +3,7 @@ from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.helpers.context import Context
+from omaslib.src.helpers.tools import str2qname_anyiri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -368,6 +369,70 @@ class TestUser(unittest.TestCase):
             user.update()
         self.assertEqual(str(ex.exception), 'No permission to modify user in project omas:HyperHamlet.')
 
+    # @unittest.skip('Work in progress')
+    def test_update_user_change_in_project(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
+                    userId=Xsd_NCName("chiquet"),
+                    familyName="Chiquet",
+                    givenName="Vera",
+                    credentials="Photography",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        user.inProject = InProjectClass({str2qname_anyiri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_OLDAP}})
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        self.assertEqual(user.inProject, InProjectClass({str2qname_anyiri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_OLDAP}}))
+
+    def test_update_user_empty_in_project(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0002-2553-8814"),
+                    userId=Xsd_NCName("bsimpson"),
+                    familyName="Simpson",
+                    givenName="Bart",
+                    credentials="AtomicPower",
+                    hasPermissions={Xsd_QName('omas:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="bsimpson")
+        user.inProject = InProjectClass({str2qname_anyiri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+            AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES
+        }})
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="bsimpson")
+        self.assertEqual(user.inProject, InProjectClass({str2qname_anyiri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+            AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES
+        }}))
+
+    def test_update_user_rm_in_project(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
+                    userId=Xsd_NCName("chiquet"),
+                    familyName="Chiquet",
+                    givenName="Vera",
+                    credentials="Photography",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        user.inProject = None
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        self.assertFalse(user.inProject)
+
     def test_update_user_del_in_project(self):
         user = User(con=self._connection,
                     userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
@@ -375,18 +440,234 @@ class TestUser(unittest.TestCase):
                     familyName="Chiquet",
                     givenName="Vera",
                     credentials="Photography",
-                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_USERS,
-                                                               AdminPermission.ADMIN_RESOURCES,
-                                                               AdminPermission.ADMIN_CREATE}},
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Xsd_QName('omas:GenericView')})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet")
-        user.inProject = InProjectClass({Xsd_QName('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_OLDAP}})
+        del user.inProject
+        user.update()
+        del user
         user = User.read(con=self._connection, userId="chiquet")
-        print(user)
+        self.assertFalse(user.inProject)
 
+    def test_update_user_add_to_project(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0002-2553-8814"),
+                    userId=Xsd_NCName("bsimpson"),
+                    familyName="Simpson",
+                    givenName="Bart",
+                    credentials="AtomicPower",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="bsimpson")
+        user.inProject[Xsd_QName('omas:HyperHamlet')] = {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE}
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="bsimpson")
+        self.assertEqual(user.inProject, InProjectClass(
+            {
+                str2qname_anyiri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                    AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
+                },
+                str2qname_anyiri('omas:HyperHamlet'): {
+                    AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
+                }
+            }
+        ))
 
+    def test_update_user_rm_from_project(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0002-2553-8814"),
+                    userId=Xsd_NCName("bsimpson"),
+                    familyName="Simpson",
+                    givenName="Bart",
+                    credentials="AtomicPower",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE},
+                        str2qname_anyiri('omas:HyperHamlet'): {
+                            AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
+                        }
+                    },
+                    hasPermissions={Xsd_QName('omas:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="bsimpson")
+        user.inProject[Xsd_QName('omas:HyperHamlet')] = None
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="bsimpson")
+        self.assertEqual(user.inProject, InProjectClass(
+            {
+                str2qname_anyiri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                    AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
+                }
+            }
+        ))
+
+    def test_update_user_del_from_project(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0002-2553-8814"),
+                    userId=Xsd_NCName("bsimpson"),
+                    familyName="Simpson",
+                    givenName="Bart",
+                    credentials="AtomicPower",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE},
+                        str2qname_anyiri('omas:HyperHamlet'): {
+                            AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
+                        }
+                    },
+                    hasPermissions={Xsd_QName('omas:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="bsimpson")
+        del user.inProject[Xsd_QName('omas:HyperHamlet')]
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="bsimpson")
+        self.assertEqual(user.inProject, InProjectClass(
+            {
+                str2qname_anyiri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                    AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
+                }
+            }
+        ))
+
+    # @unittest.skip('Work in progress')
+    def test_update_user_del_has_permissions(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
+                    userId=Xsd_NCName("chiquet"),
+                    familyName="Chiquet",
+                    givenName="Vera",
+                    credentials="Photography",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        del user.hasPermissions
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        self.assertFalse(user.hasPermissions)
+
+    def test_update_user_add_has_permissions(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
+                    userId=Xsd_NCName("chiquet"),
+                    familyName="Chiquet",
+                    givenName="Vera",
+                    credentials="Photography",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        user.hasPermissions.add(Xsd_QName('omas:HyperHamletMember'))
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        self.assertEqual(user.hasPermissions, {Xsd_QName('omas:GenericView'), Xsd_QName('omas:HyperHamletMember')})
+
+    def test_update_user_add_has_permissions(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
+                    userId=Xsd_NCName("chiquet"),
+                    familyName="Chiquet",
+                    givenName="Vera",
+                    credentials="Photography",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        user.hasPermissions = {Xsd_QName('omas:GenericView'), Xsd_QName('omas:HyperHamletMember')}
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        self.assertEqual(user.hasPermissions, {Xsd_QName('omas:GenericView'), Xsd_QName('omas:HyperHamletMember')})
+
+    def test_update_user_add_bad_has_permissions(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
+                    userId=Xsd_NCName("chiquet"),
+                    familyName="Chiquet",
+                    givenName="Vera",
+                    credentials="Photography",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        user.hasPermissions = {Xsd_QName('omas:GAGA'), Xsd_QName('omas:HyperHamletMember')}
+        with self.assertRaises(OmasErrorValue) as err:
+            user.update()
+
+    def test_update_user_rm_has_permissions(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
+                    userId=Xsd_NCName("chiquet"),
+                    familyName="Chiquet",
+                    givenName="Vera",
+                    credentials="Photography",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView'), Xsd_QName('omas:HyperHamletMember')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        user.hasPermissions.discard(Xsd_QName('omas:HyperHamletMember'))
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        self.assertEqual(user.hasPermissions, {Xsd_QName('omas:GenericView')})
+
+    def test_update_user_unexisting_has_permissions(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
+                    userId=Xsd_NCName("chiquet"),
+                    familyName="Chiquet",
+                    givenName="Vera",
+                    credentials="Photography",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView'), Xsd_QName('omas:HyperHamletMember')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        user.hasPermissions.discard(Xsd_QName('omas:GenericRestricted'))
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        self.assertEqual(user.hasPermissions, {Xsd_QName('omas:GenericView'), Xsd_QName('omas:HyperHamletMember')})
 
 if __name__ == '__main__':
     unittest.main()

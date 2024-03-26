@@ -242,7 +242,13 @@ class UserDataclass:
         self.__change_setter(field, value)
 
     def __del_value(self: Self, field: UserFields) -> None:
+        if self.__change_set.get(field) is None:
+            self.__change_set[field] = UserFieldChange(self.__fields[field], Action.DELETE)
         del self.__fields[field]
+        if field == UserFields.IN_PROJECT:
+            self.__fields[field] = InProjectClass(on_change=self.__inProject_cb)
+        elif field == UserFields.HAS_PERMISSIONS:
+            self.__fields[field] = ObservableSet(on_change=self.__hasPermission_cb)
 
     def __str__(self) -> str:
         """
@@ -543,7 +549,8 @@ class UserDataclass:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.resUri} as ?user)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?user a omas:User .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
-            sparql_list.append(sparql)
+            if removed or added:
+                sparql_list.append(sparql)
 
             #
             # check if existing :PermissionSet's have been given!
@@ -615,11 +622,6 @@ class UserDataclass:
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 if doit:
                     sparql_list.append(sparql)
-
-            # print("\nUPDATING IN_PROJECT...... Not Yet Implemented")
-            # print("OLD: ", self.__change_set[UserFields.IN_PROJECT].old_value)
-            # print("NEW: ", self.__fields[UserFields.IN_PROJECT])
-
         return ptest, ptest_len, " ;\n".join(sparql_list)
 
 
