@@ -349,17 +349,6 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                # if type(self._restrictions[restriction_type]) == set:
-                #     items = list(self._restrictions[restriction_type])
-                #     if isinstance(items[0], Language):
-                #         newval = "(" + " ".join([f'"{x.name.lower()}"' for x in self._restrictions[restriction_type]]) + ")"
-                #     elif isinstance(items[0], str):
-                #         newval = "(" + " ".join([f'"{x}"' for x in self._restrictions[restriction_type]]) + ")"
-                #     else:
-                #         newval = "(" + " ".join(items) + ")"
-                # else:
-                #     newval = self._restrictions[restriction_type]
-                #sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} {newval} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} {self._restrictions[restriction_type].toRdf} .\n'
 
                 sparql += f'{blank:{indent * indent_inc}}}}\n'

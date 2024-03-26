@@ -368,6 +368,25 @@ class TestUser(unittest.TestCase):
             user.update()
         self.assertEqual(str(ex.exception), 'No permission to modify user in project omas:HyperHamlet.')
 
+    def test_update_user_del_in_project(self):
+        user = User(con=self._connection,
+                    userIri=Xsd_anyURI("https://orcid.org/0000-0001-5925-2956"),
+                    userId=Xsd_NCName("chiquet"),
+                    familyName="Chiquet",
+                    givenName="Vera",
+                    credentials="Photography",
+                    inProject={Xsd_anyURI('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_USERS,
+                                                               AdminPermission.ADMIN_RESOURCES,
+                                                               AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('omas:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="chiquet")
+        user.inProject = InProjectClass({Xsd_QName('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_OLDAP}})
+        user = User.read(con=self._connection, userId="chiquet")
+        print(user)
+
+
 
 if __name__ == '__main__':
     unittest.main()
