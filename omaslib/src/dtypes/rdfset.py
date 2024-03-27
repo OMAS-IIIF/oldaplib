@@ -12,12 +12,13 @@ from omaslib.src.xsd.xsd import Xsd
 class RdfSet:
     __data: Set[Xsd]
 
-    def __init__(self, value: Iterable[Xsd]):
+    def __init__(self, value: Iterable[Xsd] | None = None) -> None:
         self.__data: Set[Xsd] = set()
-        for val in value:
-            if not isinstance(val, Xsd):
-                raise OmasErrorValue("Set elements must be of Subclasses of Xsd.")
-            self.__data.add(val)
+        if value is not None:
+            for val in value:
+                if not isinstance(val, Xsd):
+                    raise OmasErrorValue("Set elements must be of Subclasses of Xsd.")
+                self.__data.add(val)
 
     def __eq__(self, other: Self | Set[Xsd] | None) -> bool:
         if other is None:
