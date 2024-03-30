@@ -13,7 +13,7 @@ from omaslib.src.xsd.xsd_integer import Xsd_integer
 class Xsd_nonNegativeInteger(Xsd_integer):
     __value: int
 
-    def __init__(self, value: Self | int | str):
+    def __init__(self, value: Xsd | int | str):
         super().__init__(value)
         if self._value < 0:
             raise OmasErrorValue('Value must be "0" or positive.')

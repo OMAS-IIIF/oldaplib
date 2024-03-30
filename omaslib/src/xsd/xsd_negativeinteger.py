@@ -12,7 +12,7 @@ from omaslib.src.xsd.xsd_integer import Xsd_integer
 @serializer
 class Xsd_negativeInteger(Xsd_integer):
 
-    def __init__(self, value: Self | int | str):
+    def __init__(self, value: Xsd | int | str):
         super().__init__(value)
         if not self._value < 0:
             raise OmasErrorValue('Value must negative.')

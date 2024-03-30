@@ -18,6 +18,7 @@ from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_float import Xsd_float
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
+from omaslib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_string import Xsd_string
 
@@ -59,10 +60,10 @@ class TestPropertyRestrictions(unittest.TestCase):
         PropertyRestrictionType.LESS_THAN_OR_EQUALS: Xsd_QName('test:gugus')
     }
 
-    def check_expectation(self,
-                          context: Context,
-                          expected: Dict[PropertyRestrictionType, Xsd | LanguageIn | RdfSet],
-                          rdfgraph: ConjunctiveGraph):
+    def check_shacl_expectation(self,
+                                context: Context,
+                                expected: dict[PropertyRestrictionType, Xsd | LanguageIn | RdfSet],
+                                rdfgraph: ConjunctiveGraph):
         query = context.sparql_context
         query += '''SELECT ?prop ?val ?oo
         WHERE {
@@ -93,7 +94,22 @@ class TestPropertyRestrictions(unittest.TestCase):
         if expected.get(PropertyRestrictionType.IN) is not None:
             self.assertEqual(expected[PropertyRestrictionType.IN], set_in)
 
-    def create_restriction(self, context: Context, restrictions: PropertyRestrictions) -> ConjunctiveGraph:
+    def check_onto_expectation(self, context: Context, expected: dict[Xsd_QName, Xsd], rdfgraph: ConjunctiveGraph):
+        query = context.sparql_context
+        query += '''SELECT ?prop ?val
+        WHERE {
+            test:test ?prop ?val .
+        }
+        '''
+        results = rdfgraph.query(query)
+        jsonobj = json.loads(results.serialize(format='json'))
+        res = QueryProcessor(context, jsonobj)
+        for r in res:
+            if str(r['prop']) in {"rdf:type", "dcterms:creator", "dcterms:created", "dcterms:modified", "dcterms:contributor"}:
+                continue
+            self.assertEqual(expected[r['prop']], r['val'])
+
+    def create_shacl_restriction(self, context: Context, restrictions: PropertyRestrictions) -> tuple[ConjunctiveGraph, Xsd_dateTime]:
         modified = Xsd_dateTime()
         data = context.sparql_context
         data += f'''test:shacl {{
@@ -107,7 +123,22 @@ class TestPropertyRestrictions(unittest.TestCase):
         '''
         g1 = ConjunctiveGraph()
         g1.parse(data=data, format='trig')
-        return g1
+        return g1, modified
+
+    def create_onto_restriction(self, context: Context, restrictions: PropertyRestrictions) -> tuple[ConjunctiveGraph, Xsd_dateTime]:
+        modified = Xsd_dateTime()
+        data = context.sparql_context
+        data += f'''test:onto {{
+          test:test a owl:DatatypeProperty {restrictions.create_owl(indent=2, indent_inc=2)} ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created {modified.toRdf} ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified {modified.toRdf} ;
+        }}
+        '''
+        g1 = ConjunctiveGraph()
+        g1.parse(data=data, format='trig')
+        return g1, modified
 
     def test_constructor(self):
         val = PropertyRestrictions()
@@ -123,37 +154,27 @@ class TestPropertyRestrictions(unittest.TestCase):
         val = PropertyRestrictions(restrictions=restrictions)
         context = Context(name='hihi')
         context['test'] = "http://www.test.org/test#"
-        g1 = self.create_restriction(context, val)
-        # modified = Xsd_dateTime()
-        # data = context.sparql_context
-        # data += f'''test:shacl {{
-        #   test:testShape a sh:PropertyShape ;
-        #     sh:path test:test {val.create_shacl(indent=2, indent_inc=2)} ;
-        #     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        #     dcterms:created {modified.toRdf} ;
-        #     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        #     dcterms:modified {modified.toRdf} ;
-        # }}
-        # '''
-        # g1 = ConjunctiveGraph()
-        # g1.parse(data=data, format='trig')
-
-        self.check_expectation(context, self.test_restrictions, g1)
+        g1, modified = self.create_shacl_restriction(context, val)
+        self.check_shacl_expectation(context, self.test_restrictions, g1)
 
     def test_restriction_setitem_on_empty(self):
         val = PropertyRestrictions()
         for key, newval in self.test_restrictions.items():
             val[key] = newval
-        for key, expected_val in self.test_restrictions.items():
-            self.assertEqual(val[key], expected_val)
+        context = Context(name='hihi')
+        context['test'] = "http://www.test.org/test#"
+        g1, modified = self.create_shacl_restriction(context, val)
+        self.check_shacl_expectation(context, self.test_restrictions, g1)
 
     def test_restriction_setitem(self):
         restrictions = deepcopy(self.test_restrictions)
         val = PropertyRestrictions(restrictions=restrictions)
         for key, newval in self.test_restrictions2.items():
             val[key] = newval
-        for key, expected_val in self.test_restrictions2.items():
-            self.assertEqual(val[key], expected_val)
+        context = Context(name='hihi')
+        context['test'] = "http://www.test.org/test#"
+        g1, modified = self.create_shacl_restriction(context, val)
+        self.check_shacl_expectation(context, self.test_restrictions2, g1)
 
     def test_restriction_undo(self):
         restrictions = deepcopy(self.test_restrictions)
@@ -162,37 +183,44 @@ class TestPropertyRestrictions(unittest.TestCase):
             val[key] = newval
         for key in self.test_restrictions2.keys():
             val.undo(key)
-        for key, expected_val in self.test_restrictions.items():
-            self.assertEqual(val[key], expected_val)
+        context = Context(name='hihi')
+        context['test'] = "http://www.test.org/test#"
+        g1, modified = self.create_shacl_restriction(context, val)
+        self.check_shacl_expectation(context, self.test_restrictions, g1)
 
     def test_restriction_update_shacl(self):
         restrictions = deepcopy(self.test_restrictions)
         context = Context(name='hihi')
         context['test'] = "http://www.test.org/test#"
 
-        r1 = PropertyRestrictions(restrictions=restrictions)
-        modified = Xsd_dateTime()
-        data = context.sparql_context
-        data += f'''test:shacl {{
-  test:testShape a sh:PropertyShape ;
-    sh:path test:test {r1.create_shacl(indent=2, indent_inc=2)} ;
-    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:created {modified.toRdf} ;
-    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-    dcterms:modified {modified.toRdf} ;
-}} 
-'''
-        g1 = ConjunctiveGraph()
-        g1.parse(data=data, format='trig')
+        val = PropertyRestrictions(restrictions=restrictions)
+        g1, modified = self.create_shacl_restriction(context, val)
 
         for key, newval in self.test_restrictions2.items():
-            r1[key] = newval
+            val[key] = newval
 
         querystr = context.sparql_context
-        querystr += r1.update_shacl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
+        querystr += val.update_shacl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
         g1.update(querystr)
 
-        self.check_expectation(context, self.test_restrictions2, g1)
+        self.check_shacl_expectation(context, self.test_restrictions2, g1)
+
+    def test_restriction_update_onto(self):
+        restrictions = deepcopy(self.test_restrictions)
+        context = Context(name='hihi')
+        context['test'] = "http://www.test.org/test#"
+
+        val = PropertyRestrictions(restrictions=restrictions)
+        g1, modified = self.create_onto_restriction(context, val)
+
+        for key, newval in self.test_restrictions2.items():
+            val[key] = newval
+
+        querystr = ''  # context.sparql_context
+        querystr += val.update_owl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
+        g1.update(querystr)
+        self.check_onto_expectation(context, { Xsd_QName("owl:maxCardinality"): Xsd_nonNegativeInteger(10)}, g1)
+
 
 
 

@@ -12,7 +12,7 @@ from omaslib.src.xsd.xsd_integer import Xsd_integer
 @serializer
 class Xsd_long(Xsd_integer):
 
-    def __init__(self, value: Self | int | str):
+    def __init__(self, value: Xsd | int | str):
         super().__init__(value)
         if self._value < -9223372036854775808 or self._value > 9223372036854775807:
             raise OmasErrorValue('Value must be in the range of [-9223372036854775808 - 9223372036854775807].')

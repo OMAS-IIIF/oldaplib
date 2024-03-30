@@ -10,6 +10,7 @@ from omaslib.src.helpers.Notify import Notify
 from omaslib.src.enums.action import Action
 from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.xsd.xsd_integer import Xsd_integer
+from omaslib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -266,26 +267,6 @@ class PropertyRestrictions(Notify):
         shacl = ''
         for name, rval in self._restrictions.items():
             shacl += f' ;\n{blank:{indent * indent_inc}}{name.value} {rval.toRdf}'
-            # if type(rval) is set:
-            #     tmp = list(rval)
-            #     if isinstance(tmp[0], Language):
-            #         tmp = [f'"{x.name.lower()}"' for x in rval]
-            #     elif isinstance(tmp[0], str):
-            #         tmp = [f'"{x}"' for x in rval]
-            #     else:
-            #         tmp = [f'{x}' for x in rval]
-            #     value = '(' + ' '.join(tmp) + ')'
-            # elif type(rval) is bool:
-            #     value = 'true' if rval else 'false'
-            # elif type(rval) in {int, float}:
-            #     value = rval
-            # elif type(rval) is str:
-            #     value = f'"{rval}"'
-            # elif type(rval) is Xsd_QName:
-            #     value = str(rval)
-            # else:
-            #     value = rval
-            # shacl += f' ;\n{blank:{indent*indent_inc}}{name.value} {value}'
         return shacl
 
     def create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
@@ -297,15 +278,19 @@ class PropertyRestrictions(Notify):
         """
         blank = ''
         sparql = ''
-        mincnt = self._restrictions.get(PropertyRestrictionType.MIN_COUNT)
-        maxcnt = self._restrictions.get(PropertyRestrictionType.MAX_COUNT)
+        mincnt = None
+        if self._restrictions.get(PropertyRestrictionType.MIN_COUNT) is not None:
+            mincnt = Xsd_nonNegativeInteger(self._restrictions[PropertyRestrictionType.MIN_COUNT])
+        maxcnt = None
+        if self._restrictions.get(PropertyRestrictionType.MAX_COUNT) is not None:
+            maxcnt = Xsd_nonNegativeInteger(self._restrictions[PropertyRestrictionType.MAX_COUNT])
         if mincnt is not None and maxcnt is not None and mincnt == maxcnt:
-            sparql += f' ;\n{blank:{indent*indent_inc}}owl:cardinality {mincnt}'
+            sparql += f' ;\n{blank:{indent*indent_inc}}owl:cardinality {mincnt.toRdf}'
         else:
             if mincnt is not None:
-                sparql += f' ;\n{blank:{indent*indent_inc}}owl:minCardinality {mincnt}'
+                sparql += f' ;\n{blank:{indent*indent_inc}}owl:minCardinality {mincnt.toRdf}'
             if maxcnt is not None:
-                sparql += f' ;\n{blank:{indent*indent_inc}}owl:maxCardinality {maxcnt}'
+                sparql += f' ;\n{blank:{indent*indent_inc}}owl:maxCardinality {maxcnt.toRdf}'
         return sparql
 
     def update_shacl(self, *,
@@ -391,50 +376,50 @@ class PropertyRestrictions(Notify):
             if minmax_done:
                 continue
             if restriction_type == PropertyRestrictionType.MAX_COUNT or restriction_type == PropertyRestrictionType.MIN_COUNT:
-                old_min_count: Union[int, None]
-                old_max_count: Union[int, None]
+                old_min_count: Union[Xsd_nonNegativeInteger, None]
+                old_max_count: Union[Xsd_nonNegativeInteger, None]
                 if self._changeset.get(PropertyRestrictionType.MIN_COUNT) is None:
-                    old_min_count = int(self._restrictions.get(PropertyRestrictionType.MIN_COUNT))
+                    old_min_count = Xsd_nonNegativeInteger(self._restrictions.get(PropertyRestrictionType.MIN_COUNT))
                 else:
-                    old_min_count = self._changeset[PropertyRestrictionType.MIN_COUNT].old_value
+                    old_min_count = Xsd_nonNegativeInteger(self._changeset[PropertyRestrictionType.MIN_COUNT].old_value)
                 if self._changeset.get(PropertyRestrictionType.MAX_COUNT) is None:
-                    old_max_count = self._restrictions.get(PropertyRestrictionType.MAX_COUNT)
+                    old_max_count = Xsd_nonNegativeInteger(self._restrictions.get(PropertyRestrictionType.MAX_COUNT))
                 else:
-                    old_max_count = self._changeset[PropertyRestrictionType.MAX_COUNT].old_value
+                    old_max_count = Xsd_nonNegativeInteger(self._changeset[PropertyRestrictionType.MAX_COUNT].old_value)
                 sparql += f'#\n# Process "sh:maxCount"/"sh:minCount"...\n#\n'
                 sparql += f'WITH {graph}:onto\n'
                 if old_max_count is not None and old_max_count == old_min_count:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:cardinality {old_max_count} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:cardinality {old_max_count.toRdf} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 else:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     if old_min_count is not None:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:minCardinality {old_min_count} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:minCardinality {old_min_count.toRdf} .\n'
                     if old_max_count is not None:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:maxCardinality {old_max_count} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}?prop owl:maxCardinality {old_max_count.toRdf} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 # we have now removed all cardinality information
-                new_max_count: Union[int, None]
-                new_min_count: Union[int, None]
+                new_max_count: Union[Xsd_nonNegativeInteger, None]
+                new_min_count: Union[Xsd_nonNegativeInteger, None]
                 if self._restrictions.get(PropertyRestrictionType.MIN_COUNT) is None:
                     new_min_count = None
                 else:
-                    new_min_count = self._restrictions[PropertyRestrictionType.MIN_COUNT]
+                    new_min_count = Xsd_nonNegativeInteger(self._restrictions[PropertyRestrictionType.MIN_COUNT])
                 if self._restrictions.get(PropertyRestrictionType.MAX_COUNT) is None:
                     new_max_count = None
                 else:
-                    new_max_count = self._restrictions[PropertyRestrictionType.MAX_COUNT]
+                    new_max_count = Xsd_nonNegativeInteger(self._restrictions[PropertyRestrictionType.MAX_COUNT])
                 if new_max_count is not None and new_max_count == new_min_count:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:cardinality {new_max_count} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:cardinality {new_max_count.toRdf} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 else:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                     if new_max_count is not None:
-                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:maxCardinality {new_max_count} .\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:maxCardinality {new_max_count.toRdf} .\n'
                     if new_min_count is not None and new_min_count > 0:
-                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:minCardinality {new_min_count} .\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:minCardinality {new_min_count.toRdf} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                 if owlclass_iri:
@@ -445,7 +430,7 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
-            minmax_done = True
+                minmax_done = True
         return sparql
 
     def delete_shacl(self, *,

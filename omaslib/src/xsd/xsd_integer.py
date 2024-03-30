@@ -12,7 +12,7 @@ from omaslib.src.xsd.xsd import Xsd
 class Xsd_integer(Xsd):
     _value: int
 
-    def __init__(self, value: Self | int | str):
+    def __init__(self, value: Xsd | int | str):
         if isinstance(value, Xsd_integer):
             self._value = value._value
         elif isinstance(value, int):
