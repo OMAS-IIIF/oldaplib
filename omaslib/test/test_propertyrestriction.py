@@ -149,13 +149,32 @@ class TestPropertyRestrictions(unittest.TestCase):
             self.assertEqual(val[key], expected_val)
         s = str(val)
 
-    def test_restriction_create(self):
+    def test_restriction_create_shacl(self):
         restrictions = deepcopy(self.test_restrictions)
         val = PropertyRestrictions(restrictions=restrictions)
         context = Context(name='hihi')
         context['test'] = "http://www.test.org/test#"
         g1, modified = self.create_shacl_restriction(context, val)
         self.check_shacl_expectation(context, self.test_restrictions, g1)
+
+    def test_restriction_create_onto(self):
+        restrictions = deepcopy(self.test_restrictions)
+        val = PropertyRestrictions(restrictions=restrictions)
+        context = Context(name='hihi')
+        context['test'] = "http://www.test.org/test#"
+        g1, modified = self.create_onto_restriction(context, val)
+        self.check_onto_expectation(context, {Xsd_QName('owl:minCardinality'): Xsd_nonNegativeInteger(1),
+                                              Xsd_QName('owl:maxCardinality'): Xsd_nonNegativeInteger(4)}, g1)
+
+        restrictions = deepcopy(self.test_restrictions)
+        restrictions[PropertyRestrictionType.MIN_COUNT] = Xsd_integer(1)
+        restrictions[PropertyRestrictionType.MAX_COUNT] = Xsd_integer(1)
+        val = PropertyRestrictions(restrictions=restrictions)
+        context = Context(name='hihi')
+        context['test'] = "http://www.test.org/test#"
+        g1, modified = self.create_onto_restriction(context, val)
+        self.check_onto_expectation(context, {Xsd_QName('owl:cardinality'): Xsd_nonNegativeInteger(1)}, g1)
+
 
     def test_restriction_setitem_on_empty(self):
         val = PropertyRestrictions()
@@ -216,11 +235,31 @@ class TestPropertyRestrictions(unittest.TestCase):
         for key, newval in self.test_restrictions2.items():
             val[key] = newval
 
-        querystr = ''  # context.sparql_context
+        querystr = context.sparql_context
         querystr += val.update_owl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
         g1.update(querystr)
         self.check_onto_expectation(context, { Xsd_QName("owl:maxCardinality"): Xsd_nonNegativeInteger(10)}, g1)
 
+        restrictions = deepcopy(self.test_restrictions)
+        context = Context(name='hihi')
+        context['test'] = "http://www.test.org/test#"
+
+        val = PropertyRestrictions(restrictions=restrictions)
+        g1, modified = self.create_onto_restriction(context, val)
+
+        val[PropertyRestrictionType.MAX_COUNT] = Xsd_integer(1)
+        val[PropertyRestrictionType.MIN_COUNT] = Xsd_integer(1)
+
+        querystr = context.sparql_context
+        querystr += val.update_owl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
+        g1.update(querystr)
+        self.check_onto_expectation(context, { Xsd_QName("owl:cardinality"): Xsd_nonNegativeInteger(1)}, g1)
+
+    def test_restriction_clear(self):
+        test_restrictions2 = deepcopy(self.test_restrictions)
+        r1 = PropertyRestrictions(restrictions=test_restrictions2)
+        r1.clear()
+        self.assertEqual(len(r1), 0)
 
 
 
