@@ -5,6 +5,7 @@ from typing import Optional, List, Tuple, Union
 
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 
@@ -15,7 +16,7 @@ def lprint(text: str):
         print(f"{i}: {line}")
 
 
-def str2qname_anyiri(s: str) -> Xsd_QName | Xsd_anyURI:
+def str2qname_anyiri(s: Xsd_QName | Xsd_anyURI | str) -> Xsd_QName | Xsd_anyURI:
     try:
         return Xsd_QName(s)
     except:
@@ -104,11 +105,11 @@ class RdfModifyProp:
     def __rdf_modify_property(cls, *,
                               shacl: bool,
                               action: Action,
-                              owlclass_iri: Optional[Xsd_QName] = None,
+                              owlclass_iri: Xsd_QName | None = None,
                               pclass_iri: Xsd_QName,
                               graph: Xsd_QName,
                               ele: RdfModifyItem,
-                              last_modified: datetime,
+                              last_modified: Xsd_dateTime,
                               indent: int = 0, indent_inc: int = 4) -> str:
         sparql = f'WITH {graph}\n'
         blank = ' '
@@ -138,7 +139,7 @@ class RdfModifyProp:
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} {ele.old_value} .\n'
         if ele.property != 'dcterms:modified':
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(last_modified)})\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {last_modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 
@@ -146,10 +147,10 @@ class RdfModifyProp:
     def shacl(cls, *,
               action: Action,
               graph: Xsd_NCName,
-              owlclass_iri: Optional[Xsd_QName] = None,
+              owlclass_iri: Xsd_QName | None = None,
               pclass_iri: Xsd_QName,
               ele: RdfModifyItem,
-              last_modified: datetime,
+              last_modified: Xsd_dateTime,
               indent: int = 0, indent_inc: int = 4) -> str:
         graph = Xsd_QName(str(graph) + ':shacl')
         return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
@@ -163,7 +164,7 @@ class RdfModifyProp:
              owlclass_iri: Optional[Xsd_QName] = None,
              pclass_iri: Xsd_QName,
              ele: RdfModifyItem,
-             last_modified: datetime,
+             last_modified: Xsd_dateTime,
              indent: int = 0, indent_inc: int = 4) -> str:
         graph = Xsd_QName(str(graph) + ':onto')
         return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
@@ -174,7 +175,7 @@ class RdfModifyProp:
 class DataModelModtime:
 
     @classmethod
-    def __set_dm_modtime(cls, shacl: bool, graph: Xsd_NCName, timestamp: datetime, contributor: str) -> str:
+    def __set_dm_modtime(cls, shacl: bool, graph: Xsd_NCName, timestamp: Xsd_dateTime, contributor: Xsd_QName | Xsd_anyURI) -> str:
         graphname = f"{graph}:shacl" if shacl else f"{graph}:onto"
         element = f"{graph}:shapes" if shacl else f"{graph}:ontology"
         return f"""
@@ -182,7 +183,7 @@ class DataModelModtime:
             GRAPH {graphname} {{ {element} dcterms:modified ?value . }}
         }}
         INSERT {{
-            GRAPH {graphname} {{ {element} dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime . }}
+            GRAPH {graphname} {{ {element} dcterms:modified {timestamp.toRdf} . }}
         }}
         WHERE {{
             GRAPH {graphname} {{ {element} dcterms:modified ?value . }}
@@ -191,7 +192,7 @@ class DataModelModtime:
             GRAPH {graphname} {{ {element} dcterms:contributor ?value . }}
         }}
         INSERT {{
-            GRAPH {graphname} {{ {element} dcterms:contributor "{contributor}" . }}
+            GRAPH {graphname} {{ {element} dcterms:contributor "{contributor.resUri}" . }}
         }}
         WHERE {{
             GRAPH {graphname} {{ {element} dcterms:contributor ?value . }}
@@ -199,10 +200,10 @@ class DataModelModtime:
         """
 
     @classmethod
-    def set_dm_modtime_shacl(cls, graph: Xsd_NCName, timestamp: datetime, contributor: str) -> str:
+    def set_dm_modtime_shacl(cls, graph: Xsd_NCName, timestamp: Xsd_dateTime, contributor: Xsd_QName | Xsd_anyURI) -> str:
         return cls.__set_dm_modtime(True, graph, timestamp, contributor)
 
     @classmethod
-    def set_dm_modtime_onto(cls, graph: Xsd_NCName, timestamp: datetime, contributor: str) -> str:
+    def set_dm_modtime_onto(cls, graph: Xsd_NCName, timestamp: Xsd_dateTime, contributor: Xsd_QName | Xsd_anyURI) -> str:
         return cls.__set_dm_modtime(False, graph, timestamp, contributor)
 

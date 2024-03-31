@@ -95,6 +95,10 @@ class XsdDatatypes(Enum):
     def __str__(self):
         return self.value
 
+    @property
+    def toRdf(self):
+        return self.value
+
 
 @strict
 class IriValidator:

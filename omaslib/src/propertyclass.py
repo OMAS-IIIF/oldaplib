@@ -9,11 +9,14 @@ from typing import Set, Optional, Any, Dict, Callable, List, Self
 
 from pystrict import strict
 
+from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_decimal import Xsd_decimal
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -24,7 +27,7 @@ from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import RowType, QueryProcessor
 from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp, lprint
+from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp, lprint, str2qname_anyiri
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
@@ -37,10 +40,14 @@ class OwlPropertyType(Enum):
     OwlDataProperty = 'owl:DatatypeProperty'
     OwlObjectProperty = 'owl:ObjectProperty'
 
+    @property
+    def toRdf(self):
+        return self.value
 
-PropTypes = Xsd_QName | Xsd_anyURI | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | int | float | None
+
+PropTypes = Xsd_QName | Xsd_anyURI | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | Xsd_decimal | None
 PropertyClassAttributesContainer = Dict[PropertyClassAttribute, PropTypes]
-Attributes = Dict[Xsd_QName, List[Any] | Set[Any]]
+Attributes = Dict[Xsd_QName, LangString | RdfSet | List[Xsd]]
 
 
 @dataclass
@@ -78,22 +85,22 @@ class PropertyClass(Model, Notify):
     # The following attributes of this class cannot be set explicitely by the used
     # They are automatically managed by the OMAS system
     #
-    __creator: Optional[Xsd_anyURI]
-    __created: Optional[Xsd_dateTime]
-    __contributor: Optional[Xsd_anyURI]
-    __modified: Optional[Xsd_dateTime]
+    __creator: Xsd_anyURI | None
+    __created: Xsd_dateTime | None
+    __contributor: Xsd_anyURI | None
+    __modified: Xsd_dateTime | None
     __version: SemanticVersion
     __from_triplestore: bool
 
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
-        PropertyClassAttribute.SUBPROPERTY_OF: {Xsd_QName},
+        PropertyClassAttribute.SUBPROPERTY_OF: {Xsd_QName, Xsd_anyURI},
         PropertyClassAttribute.PROPERTY_TYPE: {OwlPropertyType},
         PropertyClassAttribute.TO_NODE_IRI: {Xsd_QName, Xsd_anyURI},
         PropertyClassAttribute.DATATYPE: {XsdDatatypes},
         PropertyClassAttribute.RESTRICTIONS: {PropertyRestrictions},
         PropertyClassAttribute.NAME: {LangString},
         PropertyClassAttribute.DESCRIPTION: {LangString},
-        PropertyClassAttribute.ORDER: {int, float}
+        PropertyClassAttribute.ORDER: {Xsd_decimal}
     }
 
     def __init__(self, *,
@@ -225,19 +232,19 @@ class PropertyClass(Model, Notify):
         return self.__version
 
     @property
-    def creator(self) -> Optional[Xsd_anyURI]:
+    def creator(self) -> Xsd_anyURI | None:
         return self.__creator
 
     @property
-    def created(self) -> Optional[datetime]:
+    def created(self) -> Xsd_dateTime | None:
         return self.__created
 
     @property
-    def contributor(self) -> Optional[Xsd_anyURI]:
+    def contributor(self) -> Xsd_anyURI | None:
         return self.__contributor
 
     @property
-    def modified(self):
+    def modified(self) -> Xsd_dateTime | None:
         return self.__modified
 
     @property
@@ -311,7 +318,7 @@ class PropertyClass(Model, Notify):
         query += f"""
         SELECT (COUNT(?rinstances) as ?nrinstances)
         WHERE {{
-            ?rinstances {self._property_class_iri} ?value
+            ?rinstances {self._property_class_iri.toRdf} ?value
         }} LIMIT 2
         """
         jsonres = self._con.query(query)
@@ -327,28 +334,43 @@ class PropertyClass(Model, Notify):
     @staticmethod
     def process_triple(r: RowType, attributes: Attributes) -> None:
         attriri = r['attriri']
-        if isinstance(r['value'], Xsd_QName):
+        if r['attriri'].fragment == 'languageIn':
             if attributes.get(attriri) is None:
-                attributes[attriri] = []
+                attributes[attriri] = LangString()
             attributes[attriri].append(r['value'])
-        elif isinstance(r['value'], OldapStringLiteral):
+        elif r['attriri'].fragment == 'in':
             if attributes.get(attriri) is None:
-                attributes[attriri] = []
-            attributes[attriri].append(str(r['value']))
-        elif isinstance(r['value'], BNode):
-            pass
+                attributes[attriri] = RdfSet()
+            attributes[attriri].add(r['value'])
         else:
             if attributes.get(attriri) is None:
                 attributes[attriri] = []
             attributes[attriri].append(r['value'])
-        if r['attriri'].fragment == 'languageIn':
-            if not attributes.get(attriri):
-                attributes[attriri] = set()
-            attributes[attriri].add(Language[str(r['oo']).upper()])
-        if r['attriri'].fragment == 'in':
-            if not attributes.get(attriri):
-                attributes[attriri] = set()
-            attributes[attriri].add(r['oo'])
+
+
+        # if isinstance(r['value'], Xsd_QName):
+        #     if attributes.get(attriri) is None:
+        #         attributes[attriri] = []
+        #     attributes[attriri].append(r['value'])
+        # elif isinstance(r['value'], OldapStringLiteral):
+        #     if attributes.get(attriri) is None:
+        #         attributes[attriri] = []
+        #     attributes[attriri].append(str(r['value']))
+        # elif isinstance(r['value'], BNode):
+        #     pass
+        # else:
+        #     if attributes.get(attriri) is None:
+        #         attributes[attriri] = []
+        #     attributes[attriri].append(r['value'])
+        # if r['attriri'].fragment == 'languageIn':
+        #     print("\n===>", r['attriri'], r['oo'])
+        #     if not attributes.get(attriri):
+        #         attributes[attriri] = set()
+        #     attributes[attriri].add(Language[str(r['oo']).upper()])
+        # if r['attriri'].fragment == 'in':
+        #     if not attributes.get(attriri):
+        #         attributes[attriri] = set()
+        #     attributes[attriri].add(r['oo'])
 
     @staticmethod
     def __query_shacl(con: IConnection, graph: Xsd_NCName, property_class_iri: Xsd_QName) -> Attributes:
@@ -386,33 +408,33 @@ class PropertyClass(Model, Notify):
         propkeys = {Xsd_QName(x.value) for x in PropertyClassAttribute}
         for key, val in attributes.items():
             if key == 'rdf:type':
-                if val[0] == 'sh:PropertyShape':
-                    continue
-                else:
+                if val[0] != 'sh:PropertyShape':
                     raise OmasError(f'Inconsistency, expected "sh:PropertyType", got "{val[0]}".')
+                continue
             elif key == 'sh:path':
-                self._property_class_iri = val[0]
+                self._property_class_iri = Xsd_QName(val[0])
             elif key == 'dcterms:hasVersion':
-                self.__version = SemanticVersion.fromString(val[0])
+                self.__version = SemanticVersion.fromString(str(val[0]))
             elif key == 'dcterms:creator':
-                self.__creator = val[0]
+                self.__creator = str2qname_anyiri(val[0])
             elif key == 'dcterms:created':
-                self.__created = val[0]
+                self.__created = Xsd_dateTime(val[0])
             elif key == 'dcterms:contributor':
-                self.__contributor = val[0]
+                self.__contributor = str2qname_anyiri(val[0])
             elif key == 'dcterms:modified':
-                self.__modified = val[0]
+                self.__modified = Xsd_dateTime(val[0])
             elif key == 'sh:group':
                 pass  # TODO: Process property group correctly.... (at Moment only omas:SystemPropGroup)
             elif key in propkeys:
                 attr = PropertyClassAttribute(key)
                 if {Xsd_QName, Xsd_anyURI} == self.__datatypes[attr]:
-                    self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
+                    if isinstance(val, list) and isinstance(val[0], Xsd_QName):
+                        self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
                 elif {XsdDatatypes} == self.__datatypes[attr]:
                     self._attributes[attr] = XsdDatatypes(str(val[0]))
                 elif {LangString} == self.__datatypes[attr]:
                     self._attributes[attr] = LangString(val)
-                elif {int, float} == self.__datatypes[attr]:
+                elif {Xsd_decimal} == self.__datatypes[attr]:
                     self._attributes[attr] = val[0]
             else:
                 try:
@@ -550,7 +572,7 @@ class PropertyClass(Model, Notify):
 
 
     def property_node_shacl(self, *,
-                            timestamp: datetime,
+                            timestamp: Xsd_dateTime,
                             bnode: Optional[Xsd_QName] = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -560,10 +582,10 @@ class PropertyClass(Model, Notify):
         else:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.resUri()}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {repr(timestamp)}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {repr(timestamp)}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.resUri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.userIri.resUri}>'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         for prop, value in self._attributes.items():
             if prop == PropertyClassAttribute.PROPERTY_TYPE:
                 continue
@@ -575,7 +597,7 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def create_shacl(self, *,
-                     timestamp: datetime,
+                     timestamp: Xsd_dateTime,
                      owlclass_iri: Optional[Xsd_QName] = None,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -590,21 +612,21 @@ class PropertyClass(Model, Notify):
         sparql += ' .\n'
         return sparql
 
-    def create_owl_part1(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
+    def create_owl_part1(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.resUri()} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
         if self._attributes.get(PropertyClassAttribute.SUBPROPERTY_OF):
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF]}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF].resUri}'
         if self._internal:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal.resUri}'
         if self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlDataProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
         elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.userIri}>'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {repr(timestamp)}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI].resUri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.userIri.resUri}>'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {repr(timestamp)}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql += ' .\n'
         return sparql
 
@@ -612,7 +634,7 @@ class PropertyClass(Model, Notify):
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri}'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri.resUri}'
         sparql += self._attributes[PropertyClassAttribute.RESTRICTIONS].create_owl(indent + 1, indent_inc)
         #
         # TODO: Add the possibility to use owl:onClass or owl:onDataRage instead of rdfs:range
@@ -691,7 +713,7 @@ class PropertyClass(Model, Notify):
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         with open(filename, 'w') as f:
-            timestamp = datetime.now()
+            timestamp = Xsd_dateTime().now()
             blank = ''
             context = Context(name=self._con.context_name)
             f.write(context.turtle_context)
@@ -733,17 +755,17 @@ class PropertyClass(Model, Notify):
                     raise OmasError(f'SHACL property {prop.value} should not have update action "Update".')
                 sparql_list.append(sparql)
             else:
-                old_value = None
-                new_value = None
+                old_value: str | None = None
+                new_value:str | None = None
                 if change.action == Action.DELETE:
                     old_value = '?val'
                     new_value = None
                 elif change.action == Action.CREATE:
                     old_value = None
-                    new_value = str(self._attributes[prop])
+                    new_value = self._attributes[prop].toRdf
                 elif change.action == Action.REPLACE:
-                    old_value = str(change.old_value)
-                    new_value = str(self._attributes[prop])
+                    old_value = change.old_value.toRdf
+                    new_value = self._attributes[prop].toRdf
                 ele = RdfModifyItem(prop.value, old_value, new_value)
                 sparql += RdfModifyProp.shacl(action=change.action,
                                               graph=self._graph,
@@ -779,7 +801,7 @@ class PropertyClass(Model, Notify):
 
     def update_owl(self, *,
                    owlclass_iri: Optional[Xsd_QName] = None,
-                   timestamp: datetime,
+                   timestamp: Xsd_dateTime,
                    indent: int = 0, indent_inc: int = 4) -> str:
         owl_propclass_attributes = {PropertyClassAttribute.SUBPROPERTY_OF,  # should be in OWL ontology
                                     PropertyClassAttribute.DATATYPE,  # used for rdfs:range in OWL ontology
@@ -835,15 +857,15 @@ class PropertyClass(Model, Notify):
         sparql = f'#\n# Update/add dcterms:contributor {self._graph}:onto\n#\n'
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor <{self.__contributor}>\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self.__contributor.resUri}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor <{self._con.userIri}>\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self._con.userIri.resUri}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql_list.append(sparql)
 
@@ -853,12 +875,12 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified {repr(timestamp)}\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified {timestamp.toRdf}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql_list.append(sparql)
 
@@ -937,7 +959,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
@@ -959,7 +981,7 @@ class PropertyClass(Model, Notify):
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
@@ -978,7 +1000,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri} .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri.resUri} .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
@@ -997,7 +1019,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}BIND({self._property_class_iri} as ?propnode)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {repr(self.__modified)})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 

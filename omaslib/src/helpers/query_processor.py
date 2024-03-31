@@ -47,7 +47,7 @@ from omaslib.src.xsd.xsd_string import Xsd_string
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd import Xsd
 
-RowElementType = bool | int | float | str | datetime | time | date | Duration | timedelta | Xsd_QName | BNode | Xsd_anyURI | Xsd_NCName | OldapStringLiteral | Xsd
+RowElementType = Xsd | BNode | OldapStringLiteral
 RowType = Dict[str, RowElementType]
 
 
@@ -157,10 +157,8 @@ class QueryProcessor:
                                 row[name] = Xsd_unsignedByte(valobj["value"])
                             case 'xsd:positiveInteger':
                                 row[name] = Xsd_positiveInteger(valobj["value"])
-                            case 'xsd:dateTime':
-                                row[name] = datetime.fromisoformat(valobj["value"])
                             case _:
-                                row[name] = str(valobj["value"])
+                                row[name] = Xsd_string(valobj["value"])
             self.__rows.append(row)
 
     def __len__(self) -> int:

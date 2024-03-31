@@ -15,6 +15,7 @@ from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.langstring import LangString
@@ -507,7 +508,7 @@ class ResourceClass(Model, Notify):
             return None
         return res[0].get('modified')
 
-    def create_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
+    def create_shacl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
         # for iri, p in self._properties.items():
@@ -551,7 +552,7 @@ class ResourceClass(Model, Notify):
             sparql += ' .\n'
         return sparql
 
-    def create_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4):
+    def create_owl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4):
         blank = ''
         sparql = ''
         for iri, p in self._properties.items():
