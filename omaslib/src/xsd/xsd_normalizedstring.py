@@ -4,7 +4,7 @@ from typing import Self
 from pystrict import strict
 
 from omaslib.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
+from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
@@ -27,7 +27,7 @@ class Xsd_normalizedString(Xsd):
 
     @classmethod
     def fromRdf(cls, value: str) -> Self:
-        value = OldapStringLiteral.unescaping(value)
+        value = StringLiteral.unescaping(value)
         return cls(value)
 
     def __str__(self):
@@ -48,7 +48,7 @@ class Xsd_normalizedString(Xsd):
 
     @property
     def toRdf(self) -> str:
-        return f'"{OldapStringLiteral.escaping(str(self))}"^^xsd:normalizedString'
+        return f'"{StringLiteral.escaping(str(self))}"^^xsd:normalizedString'
 
     def _as_dict(self) -> dict[str, str]:
         return {'value': self.__value}

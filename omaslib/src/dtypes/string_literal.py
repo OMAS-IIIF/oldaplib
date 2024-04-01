@@ -2,12 +2,13 @@ from typing import Optional, Self
 from pystrict import strict
 
 from omaslib.src.enums.language import Language
+from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 
 
 @strict
 @serializer
-class OldapStringLiteral:
+class StringLiteral:
     """
     # OoldapStringLiteral class
 
@@ -80,7 +81,10 @@ class OldapStringLiteral:
         if isinstance(lang, Language):
             self.__lang = lang
         else:
-            self.__lang = Language[lang.upper()] if lang else None
+            try:
+                self.__lang = Language[lang.upper()] if lang else None
+            except ValueError as err:
+                raise OmasErrorValue(str(err))
 
     @classmethod
     def fromRdf(cls, value: str, lang: Optional[str] = None):
@@ -91,9 +95,9 @@ class OldapStringLiteral:
         :param lang: Language ISO short (lowercased) [optional]
         :type lang: str
         :return: OldapStringLiteral instance
-        :rtype: OldapStringLiteral
+        :rtype: StringLiteral
         """
-        value = OldapStringLiteral.unescaping(value)
+        value = StringLiteral.unescaping(value)
         return cls(value, lang)
 
     def __str__(self) -> str:
@@ -114,19 +118,19 @@ class OldapStringLiteral:
         :rtype: str
         """
         if self.__lang:
-            return f'"{OldapStringLiteral.escaping(self.__value)}"@{self.__lang.name.lower()}'
+            return f'"{StringLiteral.escaping(self.__value)}"@{self.__lang.name.lower()}'
         else:
-            return f'"{OldapStringLiteral.escaping(self.__value)}"'
+            return f'"{StringLiteral.escaping(self.__value)}"'
 
     def __eq__(self, other: str | Self) -> bool:
         """
         Check for equality of two OldapStringLiterals (both strings and languages must be equal)
         :param other: Other OldapStringLiteral
-        :type other: OldapStringLiteral
+        :type other: StringLiteral
         :return: True or False
         :rtype: bool
         """
-        if isinstance(other, OldapStringLiteral):
+        if isinstance(other, StringLiteral):
             return self.__value == other.__value and self.__lang == other.__lang
         elif isinstance(other, str):
             return self.__value == other
@@ -141,6 +145,13 @@ class OldapStringLiteral:
             return hash(self.__value + '@' + self.__lang.value)
         else:
             return hash(self.__value)
+
+    @property
+    def toRdf(self):
+        if self.__lang:
+            return f'"{StringLiteral.escaping(self.__value)}"@{self.__lang.name.lower()}'
+        else:
+            return f'"{StringLiteral.escaping(self.__value)}"^^xsd:string'
 
     def _as_dict(self) -> dict:
         """

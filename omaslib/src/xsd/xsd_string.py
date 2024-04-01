@@ -2,7 +2,7 @@ from typing import Self, Dict
 
 from pystrict import strict
 
-from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
+from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
@@ -20,6 +20,9 @@ class Xsd_string(Xsd):
 
     def __str__(self) -> str:
         return self.__value
+
+    def __getitem__(self, key: int | slice) -> str:
+        return self.__value[key]
 
     def __eq__(self, other: Self | str | None) -> bool:
         if other is None:
@@ -46,11 +49,11 @@ class Xsd_string(Xsd):
 
     @classmethod
     def fromRdf(cls, value: str) -> Self:
-        return cls(OldapStringLiteral.unescaping(value))
+        return cls(StringLiteral.unescaping(value))
 
     @property
     def toRdf(self) -> str:
-        return f'"{OldapStringLiteral.escaping(str.__str__(self.__value))}"^^xsd:string'
+        return f'"{StringLiteral.escaping(str.__str__(self.__value))}"^^xsd:string'
 
     def _as_dict(self) -> Dict[str, str]:
         return {'value': self.__value}
@@ -59,3 +62,6 @@ class Xsd_string(Xsd):
     def value(self) -> str:
         return self.__value
 
+if __name__ == '__main__':
+    s = Xsd_string("abcdefghijklmnop")
+    print(s[-2:].upper())

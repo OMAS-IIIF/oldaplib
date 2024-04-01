@@ -2,6 +2,7 @@ from typing import Iterator, Self
 
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType
+from omaslib.src.xsd.xsd_string import Xsd_string
 
 
 class LanguageIn:
@@ -44,15 +45,21 @@ class LanguageIn:
         except KeyError:
             raise OmasErrorValue("Non valid language in set.")
 
-    def __eq__(self, other: Self | None) -> bool:
+    def __eq__(self, other: Self | set | None) -> bool:
         if other is None:
             return False
-        return self.__data == other.__data
+        if isinstance(other, LanguageIn):
+            return self.__data == other.__data
+        else:
+            return self.__data == other
 
     def __ne__(self, other: Self | None):
         if other is None:
             return False
-        return self.__data != other.__data
+        if isinstance(other, LanguageIn):
+            return self.__data != other.__data
+        else:
+            return self.__data != other
 
     def __gt__(self, other: Self) -> bool:
         if not isinstance(other, LanguageIn):
@@ -88,18 +95,18 @@ class LanguageIn:
     def __iter__(self) -> Iterator[Language]:
         return iter(self.__data)
 
-    def add(self, language: Language | str):
+    def add(self, language: Language | Xsd_string | str):
         if not isinstance(language, Language):
             try:
-                language = Language[language.upper()]
+                language = Language[str(language).upper()]
             except ValueError as err:
                 raise OmasErrorValue(str(err))
         self.__data.add(language)
 
-    def discard(self, language: Language | str):
+    def discard(self, language: Language | Xsd_string | str):
         if not isinstance(language, Language):
             try:
-                language = Language[language.upper()]
+                language = Language[str(language).upper()]
             except ValueError as err:
                 raise OmasErrorValue(str(err))
         self.__data.discard(language)

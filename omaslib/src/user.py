@@ -152,12 +152,11 @@ from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_string import Xsd_string
-from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
     OmasErrorValue, OmasErrorNoPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.enums.permissions import AdminPermission
-from omaslib.src.helpers.tools import lprint, str2qname_anyiri
+from omaslib.src.helpers.tools import str2qname_anyiri
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.user_dataclass import UserDataclass

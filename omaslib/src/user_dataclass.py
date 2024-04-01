@@ -32,7 +32,6 @@ setter and deleter methods.
 
 """
 from dataclasses import dataclass
-from datetime import datetime
 from enum import unique, Enum
 from functools import partial
 from typing import Dict, Self, Set, Tuple, Any
@@ -52,9 +51,8 @@ from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNotFound
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
+from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.helpers.serializer import serializer
-from omaslib.src.helpers.tools import lprint
 from omaslib.src.in_project import InProjectClass
 
 # InProjectType = Dict[str, ObservableSet[AdminPermission]]
@@ -276,7 +274,7 @@ class UserDataclass:
     # named properties. Here we implement the dict semantic
     #
     def __getitem__(self, item: UserFields) -> UserFieldTypes:
-        if isinstance(self.__fields.get(item), OldapStringLiteral):
+        if isinstance(self.__fields.get(item), StringLiteral):
             return str(self.__fields[item])
         return self.__fields.get(item)
 

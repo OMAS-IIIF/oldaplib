@@ -3,13 +3,15 @@
 :Copyright: © Lukas Rosenthaler (2023, 2024)
 """
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum, unique
-from typing import Set, Optional, Any, Dict, Callable, List, Self
+from typing import Optional, Dict, Callable, List, Self
 
 from pystrict import strict
 
+from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.dtypes.rdfset import RdfSet
+from omaslib.src.dtypes.string_literal import StringLiteral
+from omaslib.src.enums.language import Language
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
 from omaslib.src.dtypes.bnode import BNode
@@ -21,18 +23,17 @@ from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import RowType, QueryProcessor
-from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp, lprint, str2qname_anyiri
+from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp, str2qname_anyiri, lprint
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.propertyrestrictions import PropertyRestrictions
 from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
+from omaslib.src.xsd.xsd_string import Xsd_string
 
 
 @unique
@@ -47,7 +48,7 @@ class OwlPropertyType(Enum):
 
 PropTypes = Xsd_QName | Xsd_anyURI | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | Xsd_decimal | None
 PropertyClassAttributesContainer = Dict[PropertyClassAttribute, PropTypes]
-Attributes = Dict[Xsd_QName, LangString | RdfSet | List[Xsd]]
+Attributes = Dict[Xsd_QName, LangString | RdfSet | LanguageIn | List[Xsd]]
 
 
 @dataclass
@@ -93,14 +94,14 @@ class PropertyClass(Model, Notify):
     __from_triplestore: bool
 
     __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
-        PropertyClassAttribute.SUBPROPERTY_OF: {Xsd_QName, Xsd_anyURI},
-        PropertyClassAttribute.PROPERTY_TYPE: {OwlPropertyType},
-        PropertyClassAttribute.TO_NODE_IRI: {Xsd_QName, Xsd_anyURI},
-        PropertyClassAttribute.DATATYPE: {XsdDatatypes},
-        PropertyClassAttribute.RESTRICTIONS: {PropertyRestrictions},
-        PropertyClassAttribute.NAME: {LangString},
-        PropertyClassAttribute.DESCRIPTION: {LangString},
-        PropertyClassAttribute.ORDER: {Xsd_decimal}
+        PropertyClassAttribute.SUBPROPERTY_OF: (Xsd_QName, Xsd_anyURI),
+        PropertyClassAttribute.PROPERTY_TYPE: (OwlPropertyType,),
+        PropertyClassAttribute.TO_NODE_IRI: (Xsd_QName, Xsd_anyURI),
+        PropertyClassAttribute.DATATYPE: (XsdDatatypes,),
+        PropertyClassAttribute.RESTRICTIONS: (PropertyRestrictions,),
+        PropertyClassAttribute.NAME: (LangString,),
+        PropertyClassAttribute.DESCRIPTION: (LangString,),
+        PropertyClassAttribute.ORDER: (Xsd_decimal,)
     }
 
     def __init__(self, *,
@@ -336,23 +337,23 @@ class PropertyClass(Model, Notify):
         attriri = r['attriri']
         if r['attriri'].fragment == 'languageIn':
             if attributes.get(attriri) is None:
-                attributes[attriri] = LangString()
-            attributes[attriri].append(r['value'])
+                attributes[attriri] = LanguageIn()
+            attributes[attriri].add(r['oo'])
         elif r['attriri'].fragment == 'in':
             if attributes.get(attriri) is None:
                 attributes[attriri] = RdfSet()
-            attributes[attriri].add(r['value'])
+            attributes[attriri].add(r['oo'])
         else:
             if attributes.get(attriri) is None:
                 attributes[attriri] = []
             attributes[attriri].append(r['value'])
 
-
+        # attriri = r['attriri']
         # if isinstance(r['value'], Xsd_QName):
         #     if attributes.get(attriri) is None:
         #         attributes[attriri] = []
         #     attributes[attriri].append(r['value'])
-        # elif isinstance(r['value'], OldapStringLiteral):
+        # elif isinstance(r['value'], StringLiteral):
         #     if attributes.get(attriri) is None:
         #         attributes[attriri] = []
         #     attributes[attriri].append(str(r['value']))
@@ -363,7 +364,7 @@ class PropertyClass(Model, Notify):
         #         attributes[attriri] = []
         #     attributes[attriri].append(r['value'])
         # if r['attriri'].fragment == 'languageIn':
-        #     print("\n===>", r['attriri'], r['oo'])
+        #     #print("\n===>", r['attriri'], r['oo'])
         #     if not attributes.get(attriri):
         #         attributes[attriri] = set()
         #     attributes[attriri].add(Language[str(r['oo']).upper()])
@@ -412,30 +413,61 @@ class PropertyClass(Model, Notify):
                     raise OmasError(f'Inconsistency, expected "sh:PropertyType", got "{val[0]}".')
                 continue
             elif key == 'sh:path':
-                self._property_class_iri = Xsd_QName(val[0])
+                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_QName):
+                    self._property_class_iri = Xsd_QName(val[0])
+                else:
+                    raise OmasError(f'Inconsistency in SHACL "sh:path"')
             elif key == 'dcterms:hasVersion':
-                self.__version = SemanticVersion.fromString(str(val[0]))
+                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_string):
+                    self.__version = SemanticVersion.fromString(str(val[0]))
+                else:
+                    raise OmasError(f'Inconsistency in SHACL "dcterms:hasVersion"')
             elif key == 'dcterms:creator':
-                self.__creator = str2qname_anyiri(val[0])
+                if isinstance(val, list) and isinstance(val[0], (Xsd_QName, Xsd_anyURI)):
+                    self.__creator = str2qname_anyiri(val[0])
+                else:
+                    raise OmasError(f'Inconsistency in SHACL "dcterms:creator"')
             elif key == 'dcterms:created':
-                self.__created = Xsd_dateTime(val[0])
+                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_dateTime):
+                    self.__created = val[0]
+                else:
+                    raise OmasError(f'Inconsistency in SHACL "dcterms:created"')
             elif key == 'dcterms:contributor':
-                self.__contributor = str2qname_anyiri(val[0])
+                if isinstance(val, list) and isinstance(val[0], (Xsd_QName, Xsd_anyURI)):
+                    self.__contributor = str2qname_anyiri(val[0])
+                else:
+                    raise OmasError(f'Inconsistency in SHACL "dcterms:contributor"')
             elif key == 'dcterms:modified':
-                self.__modified = Xsd_dateTime(val[0])
+                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_dateTime):
+                    self.__modified = Xsd_dateTime(val[0])
+                else:
+                    raise OmasError(f'Inconsistency in SHACL "dcterms:modified"')
             elif key == 'sh:group':
                 pass  # TODO: Process property group correctly.... (at Moment only omas:SystemPropGroup)
             elif key in propkeys:
                 attr = PropertyClassAttribute(key)
-                if {Xsd_QName, Xsd_anyURI} == self.__datatypes[attr]:
-                    if isinstance(val, list) and isinstance(val[0], Xsd_QName):
+                if (Xsd_QName, Xsd_anyURI) == self.__datatypes[attr]:
+                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], (Xsd_QName, Xsd_anyURI)):
                         self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
-                elif {XsdDatatypes} == self.__datatypes[attr]:
-                    self._attributes[attr] = XsdDatatypes(str(val[0]))
-                elif {LangString} == self.__datatypes[attr]:
-                    self._attributes[attr] = LangString(val)
-                elif {Xsd_decimal} == self.__datatypes[attr]:
-                    self._attributes[attr] = val[0]
+                    else:
+                        raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val[0]} of type {type(val[0]).__name__})')
+                elif (XsdDatatypes,) == self.__datatypes[attr]:
+                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_QName):
+                        self._attributes[attr] = XsdDatatypes(val[0])
+                    else:
+                        raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val[0]} of type {type(val[0]).__name__})')
+                elif (LangString,) == self.__datatypes[attr]:
+                    if isinstance(val, list):
+                        if self._attributes.get(attr) is None:
+                            self._attributes[attr] = LangString()
+                        self._attributes[attr].add(val)
+                    else:
+                        raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val} of type {type(val[0]).__name__})')
+                elif (Xsd_decimal,) == self.__datatypes[attr]:
+                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_decimal):
+                        self._attributes[attr] = val[0]
+                    else:
+                        raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val[0]} of type {type(val[0]).__name__})')
             else:
                 try:
                     self._attributes[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType(key)] = val if (key == "sh:languageIn") or (key == "sh:in") else val[0]
@@ -584,7 +616,7 @@ class PropertyClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.resUri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.userIri.resUri}>'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.resUri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         for prop, value in self._attributes.items():
             if prop == PropertyClassAttribute.PROPERTY_TYPE:
@@ -614,7 +646,7 @@ class PropertyClass(Model, Notify):
 
     def create_owl_part1(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.resUri()} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
+        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.resUri} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
         if self._attributes.get(PropertyClassAttribute.SUBPROPERTY_OF):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF].resUri}'
         if self._internal:
@@ -623,9 +655,9 @@ class PropertyClass(Model, Notify):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
         elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI].resUri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator <{self._con.userIri.resUri}>'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.resUri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor <{self._con.userIri}>'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.resUri}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql += ' .\n'
         return sparql
@@ -697,6 +729,8 @@ class PropertyClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OmasError as err:
+            print("\n=============================")
+            lprint(sparql)
             self._con.transaction_abort()
             raise
         try:
@@ -783,7 +817,7 @@ class PropertyClass(Model, Notify):
                                       graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:contributor', f'<{self.__contributor}>', f'<{self._con.userIri}>'),
+                                      ele=RdfModifyItem('dcterms:contributor', f'{self.__contributor.resUri}', f'{self._con.userIri.resUri}'),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -917,7 +951,6 @@ class PropertyClass(Model, Notify):
             self._con.transaction_abort()
             raise
 
-        print("\n=============>", modtime_shacl, modtime_owl)
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
             self.__modified = timestamp

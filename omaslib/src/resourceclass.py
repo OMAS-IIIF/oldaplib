@@ -7,7 +7,7 @@ from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helpers.oldap_string_literal import OldapStringLiteral
+from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import RdfModifyRes, RdfModifyItem
@@ -303,7 +303,7 @@ class ResourceClass(Model, Notify):
                     if attributes.get(attriri) is None:
                         attributes[attriri] = []
                     attributes[attriri].append(r['value'])
-                elif isinstance(r['value'], OldapStringLiteral):
+                elif isinstance(r['value'], StringLiteral):
                     if attributes.get(attriri) is None:
                         attributes[attriri] = []
                     attributes[attriri].append(str(r['value']))

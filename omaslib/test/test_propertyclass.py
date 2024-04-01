@@ -2,16 +2,20 @@ import unittest
 from time import sleep
 
 from omaslib.src.connection import Connection
+from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.dtypes.rdfset import RdfSet
+from omaslib.src.enums.language import Language
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
+from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
 from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass, OwlPropertyType
 from omaslib.src.propertyrestrictions import PropertyRestrictions
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_decimal import Xsd_decimal
 from omaslib.src.xsd.xsd_integer import Xsd_integer
@@ -104,22 +108,71 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.creator, Xsd_anyURI('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(p1.created, Xsd_dateTime("2023-11-04T12:00:00Z"))
 
-        # p2 = PropertyClass.read(con=self._connection,
-        #                         graph=Xsd_NCName('test'),
-        #                         property_class_iri=Xsd_QName('test:test'))
-        # self.assertEqual(p2.property_class_iri, Xsd_QName('test:test'))
-        # self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
-        # self.assertEqual(p2[PropertyClassAttribute.NAME], LangString("Test"))
-        # self.assertEqual(p2[PropertyClassAttribute.DESCRIPTION], LangString("Property shape for testing purposes"))
-        # self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], Xsd_QName('test:comment'))
-        # self.assertEqual(p2[PropertyClassAttribute.ORDER], 3)
-        # self.assertEqual(p2[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
-        #
-        # p3 = PropertyClass.read(con=self._connection,
-        #                         graph=Xsd_NCName('test'),
-        #                         property_class_iri=Xsd_QName('test:enum'))
-        # self.assertEqual(p3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
-        #                  {"very good", "good", "fair", "insufficient"})
+        p2 = PropertyClass.read(con=self._connection,
+                                graph=Xsd_NCName('test'),
+                                property_class_iri=Xsd_QName('test:test'))
+        self.assertEqual(p2.property_class_iri, Xsd_QName('test:test'))
+        self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], Xsd_integer(1))
+        self.assertEqual(p2[PropertyClassAttribute.NAME], LangString("Test"))
+        self.assertEqual(p2[PropertyClassAttribute.DESCRIPTION], LangString("Property shape for testing purposes"))
+        self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], Xsd_QName('test:comment'))
+        self.assertEqual(p2[PropertyClassAttribute.ORDER], Xsd_decimal(3))
+        self.assertEqual(p2[PropertyClassAttribute.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
+
+        p3 = PropertyClass.read(con=self._connection,
+                                graph=Xsd_NCName('test'),
+                                property_class_iri=Xsd_QName('test:enum'))
+        self.assertEqual(p3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         {"very good", "good", "fair", "insufficient"})
+        self.assertEqual(p3[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         RdfSet({Xsd_string("very good"), Xsd_string("good"), Xsd_string("fair"), Xsd_string("insufficient")}))
+
+    def test_propertyclass_create(self):
+        props: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: Xsd_QName('test:comment'),
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.anyURI,
+            PropertyClassAttribute.NAME: LangString("Annotations@en"),
+            PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
+                PropertyRestrictionType.LANGUAGE_IN: LanguageIn({Language.EN, Language.DE, Language.FR, Language.IT}),
+                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                PropertyRestrictionType.IN: RdfSet({Xsd_anyURI("http://www.test.org/comment1"), Xsd_anyURI("http://www.test.org/comment2")})
+            }),
+            PropertyClassAttribute.ORDER: Xsd_decimal(11)
+        }
+        p1 = PropertyClass(
+            con=self._connection,
+            graph=Xsd_NCName('test'),
+            property_class_iri=Xsd_QName('test:testWrite'),
+            attrs=props
+        )
+        p1.create()
+        p2 = PropertyClass.read(con=self._connection,
+                                graph=Xsd_NCName('test'),
+                                property_class_iri=Xsd_QName('test:testWrite'))
+        self.assertEqual(p2.property_class_iri, Xsd_QName('test:testWrite'))
+        self.assertEqual(p2[PropertyClassAttribute.TO_NODE_IRI], Xsd_QName('test:comment'))
+        self.assertEqual(p2[PropertyClassAttribute.NAME], LangString("Annotations@en"))
+        self.assertEqual(p2[PropertyClassAttribute.DESCRIPTION], LangString("An annotation@en"))
+        self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         LanguageIn({Language.EN, Language.DE, Language.FR, Language.IT}))
+        self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         {"http://www.test.org/comment1", "http://www.test.org/comment2"})
+
+        self.assertEqual(p2[PropertyClassAttribute.ORDER], Xsd_decimal(11))
+
+        props: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.int,
+        }
+        pX = PropertyClass(
+            con=self._connection,
+            graph=Xsd_NCName('test'),
+            property_class_iri=Xsd_QName('test:testWrite'),
+            attrs=props
+        )
+        with self.assertRaises(OmasErrorAlreadyExists) as ex:
+            pX.create()
+        self.assertEqual(str(ex.exception), 'Property "test:testWrite" already exists.')
 
 
 if __name__ == '__main__':
