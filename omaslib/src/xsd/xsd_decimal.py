@@ -86,7 +86,7 @@ class Xsd_decimal(Xsd):
 
     @property
     def toRdf(self) -> str:
-        return str(self.__value)
+        return f'"{self.__value}"^^xsd:decimal'
 
     def _as_dict(self) -> dict[str, float]:
         return {'value': self.__value}

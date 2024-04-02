@@ -111,8 +111,9 @@ class RdfModifyProp:
                               ele: RdfModifyItem,
                               last_modified: Xsd_dateTime,
                               indent: int = 0, indent_inc: int = 4) -> str:
-        sparql = f'WITH {graph}\n'
-        blank = ' '
+        blank = ''
+        sparql = f'# __rdf_modify_property of "{pclass_iri}"\n'
+        sparql += f'WITH {graph}\n'
         if action != Action.CREATE:
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} {ele.old_value} .\n'

@@ -112,9 +112,9 @@ class Xsd_anyURI(Xsd):
     def toRdf(self) -> str:
         return f'"{self._value}"^^xsd:anyURI'
 
-    @property
-    def resUri(self) -> str:
-        return f'<{self._value}>'
+    # @property
+    # def resUri(self) -> str:
+    #     return f'<{self._value}>'
 
     @property
     def append_allowed(self) -> bool:

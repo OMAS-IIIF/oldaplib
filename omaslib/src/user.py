@@ -146,6 +146,7 @@ from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
 from omaslib.src.helpers.context import Context
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_qname import Xsd_QName
@@ -156,7 +157,7 @@ from omaslib.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, Oma
     OmasErrorValue, OmasErrorNoPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.enums.permissions import AdminPermission
-from omaslib.src.helpers.tools import str2qname_anyiri
+from omaslib.src.helpers.tools import str2qname_anyiri, lprint
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.user_dataclass import UserDataclass
@@ -171,18 +172,18 @@ class User(Model, UserDataclass):
 
     def __init__(self, *,
                  con: IConnection | None = None,
-                 creator: Xsd_anyURI | str | None = None,
+                 creator: Iri | str | None = None,
                  created: Xsd_dateTime | str | str | None = None,
-                 contributor: Xsd_anyURI | str | None = None,
+                 contributor: Iri | str | None = None,
                  modified: Xsd_dateTime | str | None = None,
-                 userIri: Xsd_anyURI | str | None = None,
+                 userIri: Iri | str | None = None,
                  userId: Xsd_NCName | str | None = None,
                  familyName: Xsd_string | str | None = None,
                  givenName: Xsd_string | str | None = None,
                  credentials: Xsd_string | str | str | None = None,
                  isActive: Xsd_boolean | bool | None = None,
-                 inProject: Dict[Xsd_QName | Xsd_anyURI, Set[AdminPermission]] | None = None,
-                 hasPermissions: Set[Xsd_QName] | None = None):
+                 inProject: Dict[Iri, Set[AdminPermission]] | None = None,
+                 hasPermissions: Set[Iri] | None = None):
         """
         Constructor for the User class
         :param con: IConnection instance
@@ -213,7 +214,7 @@ class User(Model, UserDataclass):
         :type hasPermissions: PermissionSet
         """
         if userIri is None:
-            userIri = Xsd_anyURI(uuid.uuid4().urn)
+            userIri = Iri()
         Model.__init__(self, connection=con)
         UserDataclass.__init__(self,
                                creator=creator,
@@ -247,7 +248,7 @@ class User(Model, UserDataclass):
         # the given project!
         #
         actor = self._con.userdata
-        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -259,7 +260,7 @@ class User(Model, UserDataclass):
                     raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
 
         if self.userIri is None:
-            self.userIri = Xsd_anyURI(uuid.uuid4().urn)
+            self.userIri = Iri()
         context = Context(name=self._con.context_name)
         sparql1 = context.sparql_context
         sparql1 += f"""
@@ -277,11 +278,11 @@ class User(Model, UserDataclass):
         FROM omas:admin
         WHERE {{
             ?user a omas:User .
-            FILTER(?user = {self.userIri.resUri})
+            FILTER(?user = {self.userIri.toRdf})
         }}
         """
 
-        projs = [x.resUri for x in self.inProject.keys()]
+        projs = [x.toRdf for x in self.inProject.keys()]
         projslist = ", ".join(projs)
         proj_test = context.sparql_context
         proj_test += f"""
@@ -311,10 +312,10 @@ class User(Model, UserDataclass):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.resUri} a omas:User'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.resUri}'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} a omas:User'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.resUri}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:userId {self.userId.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName {self.familyName.toRdf}'
@@ -324,12 +325,12 @@ class User(Model, UserDataclass):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:isActive {activeval}'
         star = ''
         if self.inProject:
-            project = [p.resUri for p in self.inProject.keys()]
+            project = [p.toRdf for p in self.inProject.keys()]
             rdfstr = ", ".join(project)
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:inProject {rdfstr}'
             for p in self.inProject.keys():
                 for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
-                    star += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.resUri} omas:inProject {p.resUri}>> omas:hasAdminPermission {admin_p.value} .\n'
+                    star += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {p.toRdf}>> omas:hasAdminPermission {admin_p.value} .\n'
         if self.hasPermissions:
             rdfstr = ", ".join([str(x) for x in self.hasPermissions])
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:hasPermissions {rdfstr}'
@@ -405,7 +406,7 @@ class User(Model, UserDataclass):
             userId = Xsd_NCName(userId)
 
         context = Context(name=con.context_name)
-        jsonobj = con.query(cls.sparql_query(context, userId))
+        jsonobj = con.query(UserDataclass.sparql_query(context, userId))
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
             raise OmasErrorNotFound(f'User "{userId}" not found.')
@@ -418,7 +419,7 @@ class User(Model, UserDataclass):
                userId: Optional[Xsd_NCName | str] = None,
                familyName: Optional[str | Xsd_string] = None,
                givenName: Optional[str | Xsd_string] = None,
-               inProject: Optional[Xsd_anyURI | Xsd_QName | str] = None) -> List[Xsd_anyURI]:
+               inProject: Optional[Iri | str] = None) -> List[Xsd_anyURI]:
         """
         Search for a user in the database. The user can be found by the
 
@@ -446,8 +447,8 @@ class User(Model, UserDataclass):
             userId = Xsd_NCName(userId)
         familyName = Xsd_string(familyName) if familyName else None
         givenName = Xsd_string(givenName) if givenName else None
-        if not isinstance(inProject, Xsd_anyURI) and not isinstance(inProject, Xsd_QName):
-            inProject = str2qname_anyiri(inProject) if inProject else None
+        if not isinstance(inProject, Iri):
+            inProject = Iri(inProject) if inProject else None
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?user\n'
@@ -465,7 +466,7 @@ class User(Model, UserDataclass):
             sparql += f'   FILTER(STR(?given_name) = {givenName.toRdf})\n'
         if inProject is not None:
             sparql += '   ?user omas:inProject ?project .\n'
-            sparql += f'   FILTER(?project = {inProject.resUri})\n'
+            sparql += f'   FILTER(?project = {inProject.toRdf})\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)

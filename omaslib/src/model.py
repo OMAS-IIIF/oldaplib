@@ -4,6 +4,7 @@ from typing import List, Set, Dict, Tuple, Optional, Any, Union
 from pystrict import strict
 
 from omaslib.src.helpers.context import Context
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -32,14 +33,14 @@ class Model:
         else:
             return False
 
-    def get_modified_by_iri(self, graph: Xsd_QName, iri: Xsd_anyURI | Xsd_QName) -> Xsd_dateTime:
+    def get_modified_by_iri(self, graph: Xsd_QName, iri: Iri) -> Xsd_dateTime:
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?modified
         FROM {graph}
         WHERE {{
-            {iri.resUri} dcterms:modified ?modified
+            {iri.toRdf} dcterms:modified ?modified
         }}
         """
         jsonobj = None
@@ -49,13 +50,14 @@ class Model:
             jsonobj = self._con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
+            print(sparql)
             raise OmasErrorNotFound(f'No resource found with iri "{iri}".')
         for r in res:
             return r['modified']
 
     def set_modified_by_iri(self,
                             graph: Xsd_QName,
-                            iri: Xsd_anyURI | Xsd_QName,
+                            iri: Iri,
                             old_timestamp: Xsd_dateTime,
                             timestamp: Xsd_dateTime) -> None:
         context = Context(name=self._con.context_name)
@@ -68,10 +70,10 @@ class Model:
         }}
         INSERT {{
             ?res dcterms:modified {timestamp.toRdf} .
-            ?res dcterms:contributor {self._con.userIri.resUri} .
+            ?res dcterms:contributor {self._con.userIri.toRdf} .
         }}
         WHERE {{
-            BIND({iri.resUri} as ?res)
+            BIND({iri.toRdf} as ?res)
             ?res dcterms:modified {old_timestamp.toRdf} .
             ?res dcterms:contributor ?contributor .
         }}

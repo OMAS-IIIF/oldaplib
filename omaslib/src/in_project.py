@@ -4,11 +4,11 @@
 The InProject class is a helper class that is used to record the per-project administrative permissions for
 a particular user. It's not meant to be used without the context of a user, that is as a _property_ of a User.
 """
-from copy import deepcopy
 from typing import Dict, Callable, Set, Self, ItemsView, KeysView
 
 from pystrict import strict
 
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.helpers.observable_set import ObservableSet
@@ -17,18 +17,19 @@ from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorKey
 from omaslib.src.helpers.serializer import serializer
 import json
 
+
 @strict
 @serializer
 class InProjectClass:
     """
     Implements the administrative permission a user has for the projects the user is associated with.
     """
-    __data: Dict[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission]]
-    __on_change: Callable[[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None] | None
+    __data: Dict[Iri, ObservableSet[AdminPermission]]
+    __on_change: Callable[[Iri, ObservableSet[AdminPermission] | None], None] | None
 
     def __init__(self,
-                 data: Self | Dict[Xsd_QName | Xsd_anyURI | str, set[AdminPermission | str] | ObservableSet[AdminPermission]] | None = None,
-                 on_change: Callable[[Xsd_QName | Xsd_anyURI, ObservableSet[AdminPermission] | None], None] = None) -> None:
+                 data: Self | Dict[Iri | str, set[AdminPermission | str] | ObservableSet[AdminPermission]] | None = None,
+                 on_change: Callable[[Iri, ObservableSet[AdminPermission] | None], None] = None) -> None:
         """
         Constructor of the class. The class acts like a dictionary and allows the access to the permission
         set for a project using the QName of the project as the key: ```perms = t.in_project[QName('ex:proj')]```.
@@ -52,22 +53,12 @@ class InProjectClass:
                 self.__data = data.__data
             else:
                 for key, value in data.items():
-                    key = self.__key(key)
+                    key = Iri(key)
                     self.__data[key] = self.__perms(key, value)
         self.__on_change = on_change
 
-    def __key(self, key: Xsd_QName | Xsd_anyURI | str) -> Xsd_QName | Xsd_anyURI:
-        if isinstance(key, str):
-            try:
-                key = Xsd_QName(key)
-            except OmasErrorValue:
-                key = Xsd_anyURI(key)
-        elif not isinstance(key, Xsd_QName) and not isinstance(key, Xsd_anyURI):
-            raise OmasErrorValue(f'{key} is not a valid XSD QName or XSD anyURI')
-        return key
-
     def __perms(self,
-                key: Xsd_QName | Xsd_anyURI,
+                key: Iri,
                 value: set[AdminPermission | str] | ObservableSet[AdminPermission] | None) -> ObservableSet[AdminPermission]:
         perms = ObservableSet(on_change=self.__on_set_changed, on_change_data=key)
         if value is None:
@@ -87,19 +78,21 @@ class InProjectClass:
                 raise OmasErrorValue(f'{permission} is not a valid AdminPermission')
         return perms
 
-    def __on_set_changed(self, oldset: ObservableSet[AdminPermission], key: Xsd_QName | str):
+    def __on_set_changed(self, oldset: ObservableSet[AdminPermission], key: Iri | str):
         if self.__on_change is not None:
             self.__on_change(key, oldset) ## Action.MODIFY
 
-    def __getitem__(self, key: Xsd_QName | Xsd_anyURI | str) -> ObservableSet[AdminPermission]:
-        key = self.__key(key)
+    def __getitem__(self, key: Iri | str) -> ObservableSet[AdminPermission]:
+        if not isinstance(key, Iri):
+            key = Iri(key)
         try:
             return self.__data[key]
         except KeyError as err:
             raise OmasErrorKey(str(err), key)
 
-    def __setitem__(self, key: Xsd_QName | Xsd_anyURI, value: set[AdminPermission | str] | ObservableSet[AdminPermission]) -> None:
-        key = self.__key(key)
+    def __setitem__(self, key: Iri | str, value: set[AdminPermission | str] | ObservableSet[AdminPermission]) -> None:
+        if not isinstance(key, Iri):
+            key = Iri(key)
         if self.__data.get(key) is None:
             if self.__on_change is not None:
                 self.__on_change(key, None) ## Action.CREATE: Create a new inProject connection to a new project and add permissions
@@ -108,15 +101,15 @@ class InProjectClass:
                 self.__on_change(key, self.__data[key].copy())  ## Action.REPLACE Replace all the permission of the given connection to a project
         self.__data[key] = self.__perms(key, value)
 
-    def __delitem__(self, key: Xsd_QName | Xsd_anyURI | str) -> None:
-        key = self.__key(key)
+    def __delitem__(self, key: Iri | str) -> None:
+        if not isinstance(key, Iri):
+            key = Iri(key)
         if self.__data.get(key) is not None:
             if self.__on_change is not None:
                 self.__on_change(key, self.__data[key].copy())  ## Action.DELETE
             del self.__data[key]
         else:
             raise OmasErrorKey(f'Can\'t delete key "{key}" – does not exist')
-
 
     def __str__(self) -> str:
         s = ''
@@ -130,7 +123,7 @@ class InProjectClass:
         return bool(self.__data)
 
     def copy(self) -> Self:
-        data_copy: dict[Xsd_QName | Xsd_anyURI | str, set[AdminPermission | str] | ObservableSet[AdminPermission]] = {}
+        data_copy: dict[Iri, set[AdminPermission | str] | ObservableSet[AdminPermission]] = {}
         tmp = self.__on_change
         self.__on_change = None
         for key, val in self.__data.items():
@@ -152,10 +145,10 @@ class InProjectClass:
             raise OmasErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
         return self.__data != other.__data
 
-    def get(self, key: Xsd_anyURI | Xsd_QName) -> ObservableSet[AdminPermission] | None:
+    def get(self, key: Iri) -> ObservableSet[AdminPermission] | None:
         return self.__data.get(key)
 
-    def items(self) -> ItemsView[Xsd_anyURI | Xsd_QName, ObservableSet[AdminPermission]]:
+    def items(self) -> ItemsView[Iri, ObservableSet[AdminPermission]]:
         return self.__data.items()
 
     def keys(self) -> KeysView:
@@ -163,15 +156,14 @@ class InProjectClass:
 
     def _as_dict(self) -> dict:
         tmp = {f'{str(key)}': value for key, value in self.__data.items()}
-        #return {'data': self.__data}
         return {'data': tmp}
 
-    def add_admin_permission(self, project: Xsd_anyURI | Xsd_QName, permission: AdminPermission) -> None:
+    def add_admin_permission(self, project: Iri, permission: AdminPermission) -> None:
         pass
 
 
 if __name__ == '__main__':
-    in_proj = InProjectClass({Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+    in_proj = InProjectClass({Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                               AdminPermission.ADMIN_RESOURCES,
                                                               AdminPermission.ADMIN_CREATE}})
     jsonstr = json.dumps(in_proj, default=serializer.encoder_default)

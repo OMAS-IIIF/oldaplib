@@ -40,6 +40,7 @@ import bcrypt
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_qname import Xsd_QName
@@ -58,7 +59,7 @@ from omaslib.src.in_project import InProjectClass
 # InProjectType = Dict[str, ObservableSet[AdminPermission]]
 
 
-UserFieldTypes = Xsd | ObservableSet[Xsd_QName] | InProjectClass | str | bool | None
+UserFieldTypes = Xsd | ObservableSet[Iri] | InProjectClass | str | bool | None
 
 
 @dataclass
@@ -140,19 +141,19 @@ class UserDataclass:
     - *remove_project_permission(...)*: Removes the given permission
     """
     __datatypes = {
-        UserFields.USER_IRI: Xsd_anyURI,
+        UserFields.USER_IRI: Iri,
         UserFields.USER_ID: Xsd_NCName,
         UserFields.FAMILY_NAME: Xsd_string,
         UserFields.GIVEN_NAME: Xsd_string,
         UserFields.CREDENTIALS: Xsd_string,
         UserFields.ACTIVE: Xsd_boolean,
         UserFields.IN_PROJECT: dict,
-        UserFields.HAS_PERMISSIONS: ObservableSet[Xsd_QName]
+        UserFields.HAS_PERMISSIONS: ObservableSet[Iri]
     }
 
-    __creator: Xsd_anyURI | None
+    __creator: Iri | None
     __created: Xsd_dateTime | None
-    __contributor: Xsd_anyURI | None
+    __contributor: Iri | None
     __modified: Xsd_dateTime | None
 
     __fields: Dict[UserFields, UserFieldTypes]
@@ -160,18 +161,18 @@ class UserDataclass:
     __change_set: Dict[UserFields, UserFieldChange]
 
     def __init__(self, *,
-                 creator: Xsd_anyURI | str | None = None,
+                 creator: Iri | str | None = None,
                  created: Xsd_dateTime | str | None = None,
-                 contributor: Xsd_anyURI | str | None = None,
+                 contributor: Iri | str | None = None,
                  modified: Xsd_dateTime | str | None = None,
-                 userIri: Xsd_anyURI | str | None = None,
+                 userIri: Iri | str | None = None,
                  userId: Xsd_NCName | str | None = None,
                  familyName: Xsd_string | str | None = None,
                  givenName: Xsd_string | str | None = None,
                  credentials: Xsd_string | str | None = None,
                  isActive: Xsd_boolean | bool | None = None,
-                 inProject: Dict[Xsd_QName | Xsd_anyURI | str, Set[AdminPermission]] | None = None,
-                 hasPermissions: Set[Xsd_QName] | None = None):
+                 inProject: Dict[Iri | str, Set[AdminPermission]] | None = None,
+                 hasPermissions: Set[Iri] | None = None):
         """
         Constructs a new UserDataclass
         :param creator: AnyIRI of the creator of this UserDataclass
@@ -199,11 +200,11 @@ class UserDataclass:
             salt = bcrypt.gensalt()
             credentials = Xsd_string(bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8'))
 
-        self.__creator = Xsd_anyURI(creator) if creator else None
+        self.__creator = Iri(creator) if creator else None
         self.__created = Xsd_dateTime(created) if created else None
-        self.__contributor = Xsd_anyURI(contributor) if contributor else None
+        self.__contributor = Iri(contributor) if contributor else None
         self.__modified = Xsd_dateTime(modified) if modified else None
-        self.__fields[UserFields.USER_IRI] = Xsd_anyURI(userIri) if userIri else None
+        self.__fields[UserFields.USER_IRI] = Iri(userIri) if userIri else None
         self.__fields[UserFields.USER_ID] = Xsd_NCName(userId) if userId else None
         self.__fields[UserFields.FAMILY_NAME] = Xsd_string(familyName) if familyName else None
         self.__fields[UserFields.GIVEN_NAME] = Xsd_string(givenName) if givenName else None
@@ -337,7 +338,7 @@ class UserDataclass:
         if self.__change_set.get(UserFields.HAS_PERMISSIONS) is None:
             self.__change_set[UserFields.HAS_PERMISSIONS] = UserFieldChange(oldset, Action.MODIFY)
 
-    def __inProject_cb(self, key: Xsd_QName | Xsd_anyURI, old: ObservableSet[AdminPermission] | None = None) -> None:
+    def __inProject_cb(self, key: Iri, old: ObservableSet[AdminPermission] | None = None) -> None:
         if self.__change_set.get(UserFields.IN_PROJECT) is None:
             old = None
             if self.__fields.get(UserFields.IN_PROJECT) is not None:
@@ -345,7 +346,7 @@ class UserDataclass:
             self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(old, Action.MODIFY)
 
     @property
-    def creator(self) -> Xsd_anyURI | None:
+    def creator(self) -> Iri | None:
         return self.__creator
 
     @property
@@ -353,7 +354,7 @@ class UserDataclass:
         return self.__created
 
     @property
-    def contributor(self) -> Xsd_anyURI | None:
+    def contributor(self) -> Iri | None:
         return self.__contributor
 
     @property
@@ -364,7 +365,7 @@ class UserDataclass:
     def modified(self, value: Xsd_dateTime) -> None:
         self.__modified = value
 
-    def add_project_permission(self, project: Xsd_QName | Xsd_anyURI | str, permission: AdminPermission | None) -> None:
+    def add_project_permission(self, project: Iri | str, permission: AdminPermission | None) -> None:
         """
         Adds a new administraive permission to the user. If the user is not yet member of the project, he
         will automatically become a member.
@@ -384,7 +385,7 @@ class UserDataclass:
                 self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.MODIFY)
             self.__fields[UserFields.IN_PROJECT][project].add(permission)
 
-    def remove_project_permission(self, project: Xsd_QName | Xsd_anyURI | str, permission: AdminPermission | None) -> None:
+    def remove_project_permission(self, project: Iri | str, permission: AdminPermission | None) -> None:
         """
         Remove the given Permission from the user (for the given project)
 
@@ -394,7 +395,9 @@ class UserDataclass:
         :type permission: AdminPermission | None
         :return:
         """
-        if self.__fields[UserFields.IN_PROJECT].get(str(project)) is None:
+        if not isinstance(project, Iri):
+            project = Iri(project)
+        if self.__fields[UserFields.IN_PROJECT].get(project) is None:
             raise OmasErrorValue(f"Project '{project}' does not exist")
         if self.__change_set.get(UserFields.IN_PROJECT) is None:
             self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.MODIFY)
@@ -522,7 +525,7 @@ class UserDataclass:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {self.__fields[field].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.resUri} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
@@ -544,7 +547,7 @@ class UserDataclass:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}?user omas:hasPermissions {perm} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.resUri} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?user a omas:User .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             if removed or added:
@@ -575,9 +578,9 @@ class UserDataclass:
                 sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
                 for proj in addedprojs:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.resUri} omas:inProject {proj.resUri} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} omas:inProject {proj.toRdf} .\n'
                     for perm in self.__fields[UserFields.IN_PROJECT][proj]:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.resUri} omas:inProject {proj.resUri}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -587,9 +590,9 @@ class UserDataclass:
                 sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
                 for proj in deletedprojs:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.resUri} omas:inProject {proj.resUri} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} omas:inProject {proj.toRdf} .\n'
                     for perm in self.__change_set[UserFields.IN_PROJECT].old_value[proj]:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.resUri} omas:inProject {proj.resUri}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -601,7 +604,7 @@ class UserDataclass:
                 for proj in changedprojs:
                     perms = self.__fields[UserFields.IN_PROJECT][proj] - self.__change_set[UserFields.IN_PROJECT].old_value[proj]
                     for perm in perms:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.resUri} omas:inProject {proj.resUri}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
                         doit = True
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -614,7 +617,7 @@ class UserDataclass:
                 for proj in changedprojs:
                     perms = self.__change_set[UserFields.IN_PROJECT].old_value[proj] - self.__fields[UserFields.IN_PROJECT][proj]
                     for perm in perms:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.resUri} omas:inProject {proj.resUri}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
                         doit = True
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -626,12 +629,12 @@ class UserDataclass:
 if __name__ == "__main__":
     gaga = UserDataclass()
     user_dataclass = UserDataclass(
-        userIri=Xsd_anyURI("https://orcid.org/0000-0002-9991-2055"),
+        userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
         userId=Xsd_NCName("edison"),
         familyName="Edison",
         givenName="Thomas A.",
         credentials="Lightbulb&Phonograph",
-        inProject={Xsd_QName('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+        inProject={Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                    AdminPermission.ADMIN_RESOURCES,
                                                    AdminPermission.ADMIN_CREATE}},
         hasPermissions={Xsd_QName('omas:GenericView')})

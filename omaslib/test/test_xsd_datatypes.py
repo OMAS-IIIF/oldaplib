@@ -372,6 +372,7 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertEqual(float(val), 3.141592653589793)
         self.assertEqual(str(val), '3.141592653589793')
         self.assertEqual(repr(val), 'Xsd_decimal("3.141592653589793")')
+        self.assertEqual(val.toRdf, '"3.141592653589793"^^xsd:decimal')
         nnn: Xsd_decimal | None = None
         self.assertFalse(val == nnn)
 

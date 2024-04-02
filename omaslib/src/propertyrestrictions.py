@@ -302,7 +302,7 @@ class PropertyRestrictions(Notify):
         blank = ''
         sparql_list = []
         for restriction_type, change in self._changeset.items():
-            sparql = f'#\n# Process "{restriction_type.value}" with Action "{change.action.value}"\n#\n'
+            sparql = f'#\n# (X) Process "{restriction_type.value}" with Action "{change.action.value}"\n#\n'
             sparql += f'WITH {graph}:shacl\n'
             if restriction_type == PropertyRestrictionType.LANGUAGE_IN or restriction_type == PropertyRestrictionType.IN:
                 #

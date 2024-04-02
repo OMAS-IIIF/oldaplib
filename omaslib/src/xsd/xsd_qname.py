@@ -97,9 +97,9 @@ class Xsd_QName(Xsd):
         """
         return self._value
 
-    @property
-    def resUri(self) -> str:
-        return self._value
+    # @property
+    # def resUri(self) -> str:
+    #     return self._value
 
     def __eq__(self, other: Any | None) -> bool:
         """

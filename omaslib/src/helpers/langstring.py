@@ -13,6 +13,7 @@ from pystrict import strict
 from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
@@ -417,7 +418,7 @@ class LangString(Notify):
 
     def create(self, *,
                graph: Xsd_QName,
-               subject: Xsd_QName | Xsd_anyURI,
+               subject: Iri,
                field: Xsd_QName,
                indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -425,14 +426,14 @@ class LangString(Notify):
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri} {field.toRdf} {self.toRdf} .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {self.toRdf} .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         return sparql
 
     def delete(self, *,
                graph: Xsd_QName,
-               subject: Xsd_QName | Xsd_anyURI,
+               subject: Iri,
                field: Xsd_QName,
                indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -440,14 +441,14 @@ class LangString(Notify):
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}DELETE WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri} {field.toRdf} ?o .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} ?o .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         return sparql
 
     def update(self, *,
                graph: Xsd_QName,
-               subject: Xsd_QName | Xsd_anyURI,
+               subject: Iri,
                subjectvar: str,
                field: Xsd_QName,
                indent: int = 0, indent_inc: int = 4) -> List[str]:
@@ -460,7 +461,7 @@ class LangString(Notify):
                 tmpstr = f'"{change.old_value}"'
                 if lang != Language.XX:
                     tmpstr += "@" + lang.name.lower()
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri} {field.toRdf} {tmpstr} .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {tmpstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -470,7 +471,7 @@ class LangString(Notify):
                 langstr = f'"{self._langstring[lang]}"'
                 if lang != Language.XX:
                     langstr += "@" + lang.name.lower()
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.resUri} {field.toRdf} {langstr} .\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {langstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)

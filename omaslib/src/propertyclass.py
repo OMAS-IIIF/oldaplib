@@ -729,8 +729,6 @@ class PropertyClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OmasError as err:
-            print("\n=============================")
-            lprint(sparql)
             self._con.transaction_abort()
             raise
         try:
@@ -789,8 +787,6 @@ class PropertyClass(Model, Notify):
                     raise OmasError(f'SHACL property {prop.value} should not have update action "Update" ({PropertyClass.__datatypes[prop]}).')
                 sparql_list.append(sparql)
             else:
-                old_value: str | None = None
-                new_value:str | None = None
                 if change.action == Action.DELETE:
                     old_value = '?val'
                     new_value = None
@@ -800,6 +796,8 @@ class PropertyClass(Model, Notify):
                 elif change.action == Action.REPLACE:
                     old_value = change.old_value.toRdf
                     new_value = self._attributes[prop].toRdf
+                else:
+                    raise OmasError(f'==========UNEXPECTED ACTION============')
                 ele = RdfModifyItem(prop.value, old_value, new_value)
                 sparql += RdfModifyProp.shacl(action=change.action,
                                               graph=self._graph,
@@ -826,7 +824,7 @@ class PropertyClass(Model, Notify):
                                       graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:modified', f'{repr(self.__modified)}', f'{repr(timestamp)}'),
+                                      ele=RdfModifyItem('dcterms:modified', f'{self.__modified.toRdf}', f'{timestamp.toRdf}'),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -935,10 +933,10 @@ class PropertyClass(Model, Notify):
         sparql += " ;\n"
         sparql += self.update_owl(owlclass_iri=self._internal,
                                   timestamp=timestamp)
+        lprint(sparql)
         try:
             self._con.transaction_update(sparql)
         except OmasError as e:
-            lprint(sparql)
             self._con.transaction_abort()
             raise
         try:

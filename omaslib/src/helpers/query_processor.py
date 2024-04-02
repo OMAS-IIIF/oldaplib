@@ -6,6 +6,7 @@ from pystrict import strict
 from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.helpers.context import Context
 from omaslib.src.dtypes.bnode import BNode
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_name import Xsd_name
 from omaslib.src.xsd.xsd_nmtoken import Xsd_NMTOKEN
@@ -66,9 +67,11 @@ class QueryProcessor:
             row: Dict[str, RowElementType] = {}
             for name, valobj in tmprow.items():
                 if valobj["type"] == "uri":
-                    row[name] = context.iri2qname(valobj["value"])
-                    if row[name] is None:
-                        row[name] = Xsd_anyURI(valobj["value"])
+                    tmp = context.iri2qname(valobj["value"])
+                    if tmp is None:
+                        row[name] = Iri(valobj["value"])
+                    else:
+                        row[name] = Iri(tmp)
                 elif valobj["type"] == "bnode":
                     row[name] = BNode(f'_:{valobj["value"]}')
                 elif valobj["type"] == "literal":
