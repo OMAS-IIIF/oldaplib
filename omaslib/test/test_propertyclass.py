@@ -174,6 +174,98 @@ class TestPropertyClass(unittest.TestCase):
             pX.create()
         self.assertEqual(str(ex.exception), 'Property "test:testWrite" already exists.')
 
+    def test_propertyclass_undo(self):
+        props: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: Xsd_QName('test:comment'),
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.anyURI,
+            PropertyClassAttribute.NAME: LangString(["Annotations@en", "Annotationen@de"]),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
+                PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE),
+                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                PropertyRestrictionType.PATTERN: Xsd_string('*.'),
+                PropertyRestrictionType.IN: RdfSet(Xsd_anyURI("http://www.test.org/comment1"),
+                                                   Xsd_anyURI("http://www.test.org/comment2"),
+                                                   Xsd_anyURI("http://www.test.org/comment3"))
+            }),
+            PropertyClassAttribute.ORDER: Xsd_decimal(11)
+        }
+        p1 = PropertyClass(
+            con=self._connection,
+            graph=Xsd_NCName('test'),
+            property_class_iri=Xsd_QName('test:testUndo'),
+            attrs=props
+        )
+        self.assertEqual(p1[PropertyClassAttribute.TO_NODE_IRI], Xsd_QName('test:comment'))
+        self.assertEqual(p1[PropertyClassAttribute.DATATYPE], XsdDatatypes.anyURI)
+        self.assertEqual(p1[PropertyClassAttribute.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         LanguageIn(Language.EN, Language.DE))
+        self.assertTrue(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.PATTERN], '*.')
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         RdfSet(Xsd_anyURI("http://www.test.org/comment1"),
+                                Xsd_anyURI("http://www.test.org/comment2"),
+                                Xsd_anyURI("http://www.test.org/comment3")))
+
+        self.assertEqual(p1[PropertyClassAttribute.ORDER], Xsd_decimal(11))
+
+        p1[PropertyClassAttribute.TO_NODE_IRI] = Xsd_QName('test:waseliwas')
+        p1[PropertyClassAttribute.NAME][Language.FR] = "Annotations en Français"
+        del p1[PropertyClassAttribute.NAME][Language.EN]
+        p1[PropertyClassAttribute.DESCRIPTION] = LangString("A description@en")
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN] = LanguageIn(Language.EN, Language.DE, Language.FR)
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN] = RdfSet(Xsd_anyURI("http://google.com"), Xsd_anyURI("https://google.com"))
+        p1[PropertyClassAttribute.ORDER] = Xsd_decimal(22)
+
+        self.assertEqual(p1[PropertyClassAttribute.TO_NODE_IRI], Xsd_QName('test:waseliwas'))
+        self.assertEqual(p1[PropertyClassAttribute.DATATYPE], XsdDatatypes.anyURI)
+        self.assertEqual(p1[PropertyClassAttribute.NAME], LangString(["Annotationen@de", "Annotations en Français@fr"]))
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         {Language.EN, Language.DE, Language.FR})
+        self.assertTrue(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.PATTERN], Xsd_string('*.'))
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         RdfSet(Xsd_anyURI("http://google.com"), Xsd_anyURI("https://google.com")))
+        self.assertEqual(p1[PropertyClassAttribute.ORDER], Xsd_decimal(22))
+
+        p1.undo()
+        self.assertEqual(p1[PropertyClassAttribute.TO_NODE_IRI], Xsd_QName('test:comment'))
+        self.assertEqual(p1[PropertyClassAttribute.DATATYPE], XsdDatatypes.anyURI)
+        self.assertEqual(p1[PropertyClassAttribute.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         LanguageIn(Language.EN, Language.DE))
+        self.assertTrue(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.PATTERN], Xsd_string('*.'))
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         RdfSet(Xsd_anyURI("http://www.test.org/comment1"), Xsd_anyURI("http://www.test.org/comment2"), Xsd_anyURI("http://www.test.org/comment3")))
+        self.assertEqual(p1[PropertyClassAttribute.ORDER], Xsd_decimal(11))
+
+        p1[PropertyClassAttribute.TO_NODE_IRI] = Xsd_QName('test:waseliwas')
+        p1[PropertyClassAttribute.NAME][Language.FR] = "Annotations en Français"
+        del p1[PropertyClassAttribute.NAME][Language.EN]
+        p1[PropertyClassAttribute.DESCRIPTION] = LangString("A description@en")
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN] = LanguageIn(Language.EN, Language.DE, Language.FR)
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN] = RdfSet(
+            Xsd_anyURI("https://gaga.com"), Xsd_anyURI("https://gugus.com")
+    )
+        p1[PropertyClassAttribute.ORDER] = Xsd_decimal(22)
+
+        p1.undo(PropertyClassAttribute.TO_NODE_IRI)
+        self.assertEqual(p1[PropertyClassAttribute.TO_NODE_IRI], Xsd_QName('test:comment'))
+        p1.undo(PropertyClassAttribute.NAME)
+        self.assertEqual(p1[PropertyClassAttribute.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        p1.undo(PropertyClassAttribute.DESCRIPTION)
+        self.assertIsNone(p1.get(PropertyClassAttribute.DESCRIPTION))
+        p1.undo(PropertyRestrictionType.LANGUAGE_IN)
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         LanguageIn(Language.EN, Language.DE))
+        p1.undo(PropertyRestrictionType.IN)
+        self.assertEqual(p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN],
+                         RdfSet(Xsd_anyURI("http://www.test.org/comment1"), Xsd_anyURI("http://www.test.org/comment2"), Xsd_anyURI("http://www.test.org/comment3")))
+        p1.undo(PropertyClassAttribute.ORDER)
+        self.assertEqual(p1[PropertyClassAttribute.ORDER], Xsd_decimal(11))
+        self.assertEqual(p1.changeset, {})
+
 
 if __name__ == '__main__':
     unittest.main()
