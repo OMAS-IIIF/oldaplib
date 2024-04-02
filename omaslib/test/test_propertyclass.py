@@ -5,6 +5,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.dtypes.rdfset import RdfSet
+from omaslib.src.enums.action import Action
 from omaslib.src.enums.language import Language
 from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
 from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
@@ -12,7 +13,8 @@ from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
-from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass, OwlPropertyType
+from omaslib.src.propertyclass import PropertyClassAttributesContainer, PropertyClass, OwlPropertyType, \
+    PropertyClassAttributeChange
 from omaslib.src.propertyrestrictions import PropertyRestrictions
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
@@ -265,6 +267,56 @@ class TestPropertyClass(unittest.TestCase):
         p1.undo(PropertyClassAttribute.ORDER)
         self.assertEqual(p1[PropertyClassAttribute.ORDER], Xsd_decimal(11))
         self.assertEqual(p1.changeset, {})
+
+    def test_propertyclass_update(self):
+        props: PropertyClassAttributesContainer = {
+            PropertyClassAttribute.TO_NODE_IRI: Xsd_QName('test:comment'),
+            PropertyClassAttribute.DATATYPE: XsdDatatypes.anyURI,
+            PropertyClassAttribute.NAME: LangString("Annotations@en"),
+            PropertyClassAttribute.DESCRIPTION: LangString("An annotation@en"),
+            PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(restrictions={
+                PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
+                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
+                PropertyRestrictionType.MIN_COUNT: Xsd_integer(0)
+            }),
+            PropertyClassAttribute.ORDER: Xsd_decimal(11)
+        }
+        p1 = PropertyClass(
+            con=self._connection,
+            graph=Xsd_NCName('test'),
+            property_class_iri=Xsd_QName('test:testUpdate'),
+            attrs=props
+        )
+        p1.create()
+        p1[PropertyClassAttribute.ORDER] = Xsd_decimal(12)
+        p1[PropertyClassAttribute.NAME][Language.DE] = 'Annotationen'
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG] = Xsd_boolean(False)
+        p1[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN] = RdfSet(Xsd_string("gaga"), Xsd_string("is was"))
+        p1[PropertyClassAttribute.DATATYPE] = XsdDatatypes.string
+        self.assertEqual(p1.changeset, {
+            PropertyClassAttribute.ORDER: PropertyClassAttributeChange(Xsd_decimal(11), Action.REPLACE, True),
+            PropertyClassAttribute.NAME: PropertyClassAttributeChange(None, Action.MODIFY, True),
+            PropertyClassAttribute.RESTRICTIONS: PropertyClassAttributeChange(None, Action.MODIFY, True),
+            PropertyClassAttribute.DATATYPE: PropertyClassAttributeChange(XsdDatatypes.anyURI, Action.CREATE, True),
+            PropertyClassAttribute.TO_NODE_IRI: PropertyClassAttributeChange(Xsd_QName('test:comment'), Action.DELETE, True)
+        })
+        p1.update()
+        self.assertEqual(p1.changeset, {})
+
+        p2 = PropertyClass.read(con=self._connection,
+                                graph=Xsd_NCName('test'),
+                                property_class_iri=Xsd_QName('test:testUpdate'))
+        self.assertEqual(p2.property_class_iri, Xsd_QName('test:testUpdate'))
+        self.assertEqual(p2[PropertyClassAttribute.DATATYPE], XsdDatatypes.string)
+        self.assertIsNone(p2.get(PropertyClassAttribute.TO_NODE_IRI))
+        self.assertEqual(p2[PropertyClassAttribute.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        self.assertEqual(p2[PropertyClassAttribute.DESCRIPTION], LangString("An annotation@en"))
+        self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
+                         LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertEqual(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.IN], RdfSet(Xsd_string("gaga"), Xsd_string("is was")))
+        self.assertEqual(p2[PropertyClassAttribute.ORDER], Xsd_decimal(12))
+        self.assertFalse(p2[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
 
 
 if __name__ == '__main__':

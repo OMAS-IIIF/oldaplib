@@ -772,21 +772,21 @@ class PropertyClass(Model, Notify):
         for prop, change in self._changeset.items():
             sparql = f'#\n# SHACL\n# Process "{prop.value}" with Action "{change.action.value}"\n#\n'
             if change.action == Action.MODIFY:
-                if PropertyClass.__datatypes[prop] == {LangString}:
+                if PropertyClass.__datatypes[prop] == (LangString,):
                     sparql += self._attributes[prop].update_shacl(graph=self._graph,
                                                                   owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
                                                                   attr=prop,
                                                                   modified=self.__modified,
                                                                   indent=indent, indent_inc=indent_inc)
-                elif PropertyClass.__datatypes[prop] == {PropertyRestrictions}:
+                elif PropertyClass.__datatypes[prop] == (PropertyRestrictions,):
                     sparql += self._attributes[prop].update_shacl(graph=self._graph,
                                                                   owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
                                                                   modified=self.__modified,
                                                                   indent=indent, indent_inc=indent_inc)
                 else:
-                    raise OmasError(f'SHACL property {prop.value} should not have update action "Update".')
+                    raise OmasError(f'SHACL property {prop.value} should not have update action "Update" ({PropertyClass.__datatypes[prop]}).')
                 sparql_list.append(sparql)
             else:
                 old_value: str | None = None
@@ -938,6 +938,7 @@ class PropertyClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OmasError as e:
+            lprint(sparql)
             self._con.transaction_abort()
             raise
         try:
