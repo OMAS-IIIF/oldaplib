@@ -79,7 +79,6 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(str(ns1), 'http://www.org/test/')
         self.assertEqual(repr(ns1), 'NamespaceIRI("http://www.org/test/")')
         self.assertEqual(ns1.toRdf, '"http://www.org/test/"^^xsd:anyURI')
-        self.assertEqual(ns1.resUri, '<http://www.org/test/>')
         self.assertEqual(ns1 + "gaga", Xsd_anyURI("http://www.org/test/gaga"))
 
         ns2 = NamespaceIRI('http://www.org/test#')

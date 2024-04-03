@@ -8,6 +8,9 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_gmonthday import Xsd_gMonthDay
+from omaslib.src.xsd.xsd_id import Xsd_ID
+from omaslib.src.xsd.xsd_idref import Xsd_IDREF
 from omaslib.src.xsd.xsd_name import Xsd_name
 from omaslib.src.xsd.xsd_nmtoken import Xsd_NMTOKEN
 from omaslib.src.xsd.xsd_positiveinteger import Xsd_positiveInteger
@@ -112,6 +115,12 @@ class QueryProcessor:
                                 row[name] = Xsd_gDay.fromRdf(valobj["value"])
                             case 'xsd:gMonth':
                                 row[name] = Xsd_gMonth.fromRdf(valobj["value"])
+                            case 'xsd:gMonthDay':
+                                row[name] = Xsd_gMonthDay.fromRdf(valobj["value"])
+                            case 'xsd:ID':
+                                row[name] = Xsd_ID.fromRdf(valobj["value"])
+                            case 'xsd:IDREF':
+                                row[name] = Xsd_IDREF.fromRdf(valobj["value"])
                             case 'xsd:hexBinary':
                                 row[name] = Xsd_hexBinary.fromRdf(valobj["value"])
                             case 'xsd:base64Binary':

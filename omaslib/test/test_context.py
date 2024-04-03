@@ -55,17 +55,17 @@ class TestContext(unittest.TestCase):
         self.assertIsNone(qn)
         with self.assertRaises(OmasError) as ex:
             qn = context.iri2qname('waseliwas/soll')
-        self.assertEqual(str(ex.exception), 'Invalid string "waseliwas/soll" for anyIRI')
+        self.assertEqual(str(ex.exception), 'Invalid string "waseliwas/soll" for anyURI')
 
     def test_context_qname2iri(self):
         context = Context(name='qname2iri')
         self.assertEqual(context.qname2iri(Xsd_QName('skos:gaga')), 'http://www.w3.org/2004/02/skos/core#gaga')
         with self.assertRaises(OmasError) as ex:
             qn = context.iri2qname('gaga')
-        self.assertEqual(str(ex.exception), 'Invalid string "gaga" for anyIRI')
+        self.assertEqual(str(ex.exception), 'Invalid string "gaga" for anyURI')
         with self.assertRaises(OmasError) as ex:
             qn = context.iri2qname('abc:def')
-        self.assertEqual(str(ex.exception), 'Invalid string "abc:def" for anyIRI')
+        self.assertEqual(str(ex.exception), 'Invalid string "abc:def" for anyURI')
         t = Xsd_QName('xml:integer')
         self.assertEqual(context.qname2iri(t), 'http://www.w3.org/XML/1998/namespace#integer')
 

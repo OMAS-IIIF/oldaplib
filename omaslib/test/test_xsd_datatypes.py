@@ -12,6 +12,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_base64binary import Xsd_base64Binary
@@ -111,6 +112,35 @@ class TestXsdDatatypes(unittest.TestCase):
         }}
         """
 
+    def test_iri(self):
+        val = Iri("test:whatiri")
+        self.assertEqual(str(val), 'test:whatiri')
+        self.assertEqual(repr(val), 'Iri("test:whatiri")')
+        self.assertEqual(val.toRdf, "test:whatiri")
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple("Iri", val)
+        valx = self.get_triple("Iri")
+        self.assertEqual(val, valx)
+
+        val = Iri("http://this.is.not/gaga")
+        self.assertEqual(str(val), 'http://this.is.not/gaga')
+        self.assertEqual(repr(val), 'Iri("http://this.is.not/gaga")')
+        self.assertEqual(val.toRdf, "<http://this.is.not/gaga>")
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple("Iri2", val)
+        valx = self.get_triple("Iri2")
+        self.assertEqual(val, valx)
+
+
+
     def test_xsd_anyuri(self):
         val = Xsd_anyURI('http://www.org/test')
         self.assertEqual(str(val), 'http://www.org/test')
@@ -118,7 +148,6 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertEqual(len(val), 19)
         self.assertFalse(val.append_allowed)
         self.assertEqual(val.toRdf, '"http://www.org/test"^^xsd:anyURI')
-        self.assertEqual(val.resUri, '<http://www.org/test>')
         self.assertEqual(val.value, 'http://www.org/test')
         nnn = None
         self.assertFalse(val == nnn)
