@@ -163,3 +163,4 @@ cython_debug/
 .idea
 /poetry.lock
 /gaga.trig
+/.42c
