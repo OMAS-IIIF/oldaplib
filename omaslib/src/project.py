@@ -11,6 +11,8 @@ from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.helpers.tools import lprint
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -24,7 +26,7 @@ from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 
-ProjectFieldTypes = Xsd_anyURI | Xsd_QName | Xsd_NCName | LangString | NamespaceIRI | Xsd | None
+ProjectFieldTypes = LangString | Xsd | None
 
 @dataclass
 class ProjectFieldChange:
@@ -102,7 +104,7 @@ class Project(Model):
 
     """
     __datatypes = {
-        ProjectFields.PROJECT_IRI: {Xsd_anyURI, Xsd_QName},
+        ProjectFields.PROJECT_IRI: Iri,
         ProjectFields.PROJECT_SHORTNAME: Xsd_NCName,
         ProjectFields.LABEL: LangString,
         ProjectFields.COMMENT: LangString,
@@ -111,9 +113,9 @@ class Project(Model):
         ProjectFields.PROJECT_END: Xsd_date,
     }
 
-    __creator: Xsd_anyURI | None
+    __creator: Iri | None
     __created: Xsd_dateTime | None
-    __contributor: Xsd_anyURI | None
+    __contributor: Iri | None
     __modified: Xsd_dateTime | None
 
     __fields: Dict[ProjectFields, ProjectFieldTypes]
@@ -122,17 +124,17 @@ class Project(Model):
 
     def __init__(self, *,
                  con: IConnection,
-                 creator: Optional[Xsd_anyURI | Xsd_QName] = None,
-                 created: Optional[Xsd_dateTime] = None,
-                 contributor: Optional[Xsd_anyURI | Xsd_QName] = None,
-                 modified: Optional[Xsd_dateTime] = None,
-                 projectIri: Optional[Xsd_anyURI | Xsd_QName] = None,
+                 creator: Iri | None = None,
+                 created: Xsd_dateTime | None = None,
+                 contributor: Iri | None = None,
+                 modified: Xsd_dateTime | None = None,
+                 projectIri: Iri | str | None = None,
                  projectShortName: Xsd_NCName | str,
                  namespaceIri: NamespaceIRI,
-                 label: Optional[LangString | str],
-                 comment: Optional[LangString | str],
-                 projectStart: Optional[Xsd_date] = None,
-                 projectEnd: Optional[Xsd_date] = None):
+                 label: LangString | str | None,
+                 comment: LangString | str | None,
+                 projectStart: Xsd_date | None = None,
+                 projectEnd: Xsd_date | None = None):
         """
         Constructs a new Project
         :param con: [Connection](/python_docstrings/iconnection) instance
@@ -173,14 +175,12 @@ class Project(Model):
         self.__fields = {}
 
         if projectIri:
-            if isinstance(projectIri, Xsd_anyURI):
-                self.__fields[ProjectFields.PROJECT_IRI] = projectIri
-            elif isinstance(projectIri, Xsd_QName):
-                self.__fields[ProjectFields.PROJECT_IRI] = projectIri
+            if not isinstance(projectIri, Iri):
+                self.__fields[ProjectFields.PROJECT_IRI] = Iri(projectIri)
             else:
-                raise OmasErrorValue(f'projectIri {projectIri} must be an instance of AnyIRI, not {type(projectIri)}')
+                self.__fields[ProjectFields.PROJECT_IRI] = projectIri
         else:
-            self.__fields[ProjectFields.PROJECT_IRI] = Xsd_anyURI(uuid.uuid4().urn)
+            self.__fields[ProjectFields.PROJECT_IRI] = Iri()
 
         self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
 
@@ -261,7 +261,7 @@ class Project(Model):
         return res
 
     @property
-    def creator(self) -> Xsd_anyURI | None:
+    def creator(self) -> Iri | None:
         return self.__creator
 
     @property
@@ -269,7 +269,7 @@ class Project(Model):
         return self.__created
 
     @property
-    def contributor(self) -> Xsd_anyURI | None:
+    def contributor(self) -> Iri | None:
         return self.__contributor
 
     @property
@@ -297,7 +297,7 @@ class Project(Model):
         pass
 
     @classmethod
-    def read(cls, con: IConnection, projectIri: Xsd_anyURI | Xsd_QName) -> Self:
+    def read(cls, con: IConnection, projectIri: Iri) -> Self:
         """
         Read the project from the triplestore and return an instance of the project
         :param con: A valid Connection object
@@ -314,7 +314,7 @@ class Project(Model):
             SELECT ?prop ?val
             FROM omas:admin
             WHERE {{
-                {projectIri.resUri} ?prop ?val
+                {projectIri.toRdf} ?prop ?val
             }}
         """
         jsonobj = con.query(query)
@@ -373,7 +373,7 @@ class Project(Model):
     @staticmethod
     def search(con: IConnection,
                label: Optional[str] = None,
-               comment: Optional[str] = None) -> List[Xsd_anyURI | Xsd_QName]:
+               comment: Optional[str] = None) -> List[Iri]:
         """
         Search for a given project. If no label or comment is given, all existing projects are returned. If both
         a search term for the label and comment are given, they will be combined by *AND*.
@@ -413,7 +413,7 @@ class Project(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
             raise OmasErrorNotFound('No matching Pprojects not found.')
-        projects = []
+        projects: List[Iri] = []
         for r in res:
             projects.append(r['project'])
         return projects
@@ -434,7 +434,7 @@ class Project(Model):
         # the given project!
         #
         actor = self._con.userdata
-        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -455,7 +455,7 @@ class Project(Model):
         FROM omas:admin
         WHERE {{
             ?project a omas:Project .
-            FILTER(?project = {self.projectIri.resUri})
+            FILTER(?project = {self.projectIri.toRdf})
         }}
         """
 
@@ -463,10 +463,10 @@ class Project(Model):
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql2 += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
-        sparql2 += f'{blank:{(indent + 2) * indent_inc}}{self.projectIri.resUri} a omas:Project ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.resUri} ;\n'
+        sparql2 += f'{blank:{(indent + 2) * indent_inc}}{self.projectIri.toRdf} a omas:Project ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.resUri} ;\n'
+        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectShortName {self.projectShortName.toRdf} ;\n'
         sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label.toRdf} ;\n'
@@ -512,7 +512,7 @@ class Project(Model):
         :Raises: Omas Error: Other Internal error
         """
         actor = self._con.userdata
-        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -552,7 +552,7 @@ class Project(Model):
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__fields[field].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.projectIri.resUri} as ?project)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.projectIri.toRdf} as ?project)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
@@ -586,7 +586,7 @@ class Project(Model):
         :raises OmasError: generic internal error
         """
         actor = self._con.userdata
-        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -600,8 +600,8 @@ class Project(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.projectIri.resUri} a omas:Project .
-            {self.projectIri.resUri} ?prop ?val .
+            {self.projectIri.toRdf} a omas:Project .
+            {self.projectIri.toRdf} ?prop ?val .
         }} 
         """
         # TODO: use transaction for error handling

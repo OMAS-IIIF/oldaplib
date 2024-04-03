@@ -6,6 +6,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_date import Xsd_date
@@ -46,7 +47,7 @@ class Testproject(unittest.TestCase):
         sleep(1)  # upload may take a while...
 
     def test_project_read(self):
-        project = Project.read(con=self._connection, projectIri=Xsd_QName("omas:SystemProject"))
+        project = Project.read(con=self._connection, projectIri=Iri("omas:SystemProject"))
         self.assertEqual(Xsd_NCName("system"), project.projectShortName)
         self.assertEqual(LangString(["System@en",
                                      "System@de",

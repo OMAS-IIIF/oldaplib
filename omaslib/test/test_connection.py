@@ -7,6 +7,7 @@ from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.helpers.context import Context
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -158,17 +159,17 @@ class TestBasicConnection(unittest.TestCase):
     #@unittest.skip('Work in progress')
     def test_json_query(self):
         expected = {
-            Xsd_QName('rdf:type'): {Xsd_QName('test:testMyRes'), Xsd_QName('sh:NodeShape')},
-            Xsd_QName("rdfs:comment"): "Resource for testing...",
-            Xsd_QName("rdfs:label"): {"My Resource@en", "Meine Ressource@de", "Ma Resource@fr"},
-            Xsd_QName("sh:property"): Xsd_QName("test:testShape"),
-            Xsd_QName("sh:closed"): Xsd_boolean(True),
-            Xsd_QName("sh:targetClass"): Xsd_QName("test:testMyRes"),
-            Xsd_QName("dcterms:hasVersion"): '1.0.0',
-            Xsd_QName("dcterms:creator"): Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
-            Xsd_QName("dcterms:created"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)),
-            Xsd_QName("dcterms:contributor"):  Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"),
-            Xsd_QName("dcterms:modified"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc))
+            Iri('rdf:type'): {Iri('test:testMyRes'), Iri('sh:NodeShape')},
+            Iri("rdfs:comment"): "Resource for testing...",
+            Iri("rdfs:label"): {"My Resource@en", "Meine Ressource@de", "Ma Resource@fr"},
+            Iri("sh:property"): Xsd_QName("test:testShape"),
+            Iri("sh:closed"): Xsd_boolean(True),
+            Iri("sh:targetClass"): Xsd_QName("test:testMyRes"),
+            Iri("dcterms:hasVersion"): '1.0.0',
+            Iri("dcterms:creator"): Iri("https://orcid.org/0000-0003-1681-4036"),
+            Iri("dcterms:created"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)),
+            Iri("dcterms:contributor"):  Iri("https://orcid.org/0000-0003-1681-4036"),
+            Iri("dcterms:modified"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc))
         }
         query = self._context.sparql_context
         query += """
@@ -189,7 +190,7 @@ class TestBasicConnection(unittest.TestCase):
             if r['prop'] == 'rdfs:label':
                 self.assertTrue(str(r['value']) in expected[r['prop']])
             elif r['prop'] == 'rdf:type':
-                self.assertTrue(str(r['value']) in expected[r['prop']])
+                self.assertTrue(r['value'] in expected[r['prop']])
             else:
                 self.assertEqual(r['value'], expected[r['prop']])
 

@@ -3,6 +3,7 @@ from enum import unique, Enum
 from typing import Self
 
 from omaslib.src.helpers.omaserror import OmasErrorValue
+from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_qname import Xsd_QName
@@ -14,6 +15,7 @@ class IriRep(Enum):
     QNAME = 'qname'
 
 
+@serializer
 class Iri(Xsd):
 
 
@@ -66,7 +68,7 @@ class Iri(Xsd):
         elif isinstance(other, Xsd_anyURI):
             return self.__value == str(other)
         else:
-            return self.__value == other
+            return self.__value == str(other)
 
     def __hash__(self) -> int:
         return hash(self.__value)
