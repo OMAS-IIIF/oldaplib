@@ -47,7 +47,7 @@ class Testproject(unittest.TestCase):
         sleep(1)  # upload may take a while...
 
     def test_project_read(self):
-        project = Project.read(con=self._connection, projectIri=Iri("omas:SystemProject"))
+        project = Project.read(con=self._connection, projectIri_SName=Iri("omas:SystemProject"))
         self.assertEqual(Xsd_NCName("system"), project.projectShortName)
         self.assertEqual(LangString(["System@en",
                                      "System@de",
@@ -56,6 +56,12 @@ class Testproject(unittest.TestCase):
         self.assertEqual(NamespaceIRI("http://omas.org/base#"), project.namespaceIri)
         self.assertEqual(LangString(["Project for system administration@en"]), project.comment)
         self.assertEqual(Xsd_date("2024-01-01"), project.projectStart)
+
+        project = Project.read(con=self._connection, projectIri_SName='http://www.salsah.org/version/2.0/SwissBritNet')
+        self.assertEqual(Xsd_NCName("britnet"), project.projectShortName)
+
+        project2 = Project.read(con=self._connection, projectIri_SName='hyha')
+        self.assertEqual(Xsd_NCName("hyha"), project2.projectShortName)
 
     # @unittest.skip('Work in progress')
     def test_project_search(self):
@@ -80,7 +86,7 @@ class Testproject(unittest.TestCase):
         projectIri = project.projectIri
         del project
 
-        project2 = Project.read(con=self._connection, projectIri=projectIri)
+        project2 = Project.read(con=self._connection, projectIri_SName=projectIri)
         self.assertEqual("unittest", project2.projectShortName)
         self.assertEqual(LangString(["unittest@en", "unittest@de"]), project2.label)
         self.assertEqual(LangString(["For testing@en", "Für Tests@de"]), project2.comment)
@@ -102,7 +108,7 @@ class Testproject(unittest.TestCase):
         projectIri = project.projectIri
         del project
 
-        project = Project.read(con=self._connection, projectIri=projectIri)
+        project = Project.read(con=self._connection, projectIri_SName=projectIri)
         project.comment[Language.FR] = "Pour les tests"
         project.comment[Language.DE] = "FÜR DAS TESTEN"
         project.label = LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"])
@@ -126,12 +132,12 @@ class Testproject(unittest.TestCase):
         projectIri = project.projectIri
         del project
 
-        project = Project.read(con=self._connection, projectIri=projectIri)
+        project = Project.read(con=self._connection, projectIri_SName=projectIri)
         project.delete()
         del project
 
         with self.assertRaises(OmasErrorNotFound) as ex:
-            project = Project.read(con=self._connection, projectIri=projectIri)
+            project = Project.read(con=self._connection, projectIri_SName=projectIri)
 
 if __name__ == '__main__':
     unittest.main()

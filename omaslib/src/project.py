@@ -297,7 +297,7 @@ class Project(Model):
         pass
 
     @classmethod
-    def read(cls, con: IConnection, projectIri: Iri) -> Self:
+    def read(cls, con: IConnection, projectIri_SName: Iri | Xsd_NCName | str) -> Self:
         """
         Read the project from the triplestore and return an instance of the project
         :param con: A valid Connection object
@@ -307,20 +307,43 @@ class Project(Model):
         :return: Project instance
         """
         context = Context(name=con.context_name)
-        if isinstance(projectIri, Xsd_QName):
-            projectIri = context.qname2iri(projectIri)
         query = context.sparql_context
-        query += f"""
-            SELECT ?prop ?val
-            FROM omas:admin
-            WHERE {{
-                {projectIri.toRdf} ?prop ?val
-            }}
-        """
+
+        projectIri: Iri | None = None
+        shortname: Xsd_NCName | None = None
+        if isinstance(projectIri_SName, Iri):
+            projectIri = projectIri_SName
+        elif isinstance(projectIri_SName, Xsd_NCName):
+            shortname = Xsd_NCName(projectIri_SName)
+        else:
+            if ':' in str(projectIri_SName):  # must be IRI or QName
+                projectIri = Iri(projectIri_SName)
+            else:
+                shortname = Xsd_NCName(projectIri_SName)
+
+        if projectIri is not None:
+            query += f"""
+                SELECT ?prop ?val
+                FROM omas:admin
+                WHERE {{
+                    {projectIri.toRdf} ?prop ?val
+                }}
+            """
+        elif shortname is not None:
+            query += f"""
+                SELECT ?prop ?val
+                FROM omas:admin
+                WHERE {{
+                    ?proj a omas:Project .
+                    ?proj omas:projectShortName ?shortname .
+                    ?proj ?prop ?val .
+                    FILTER(?shortname = {shortname.toRdf})
+                }}
+            """
         jsonobj = con.query(query)
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OmasErrorNotFound(f'Project with IRI "{projectIri}" not found.')
+            raise OmasErrorNotFound(f'Project with IRI/shortname "{projectIri_SName}" not found.')
         creator = None
         created = None
         contributor = None
