@@ -4,6 +4,7 @@
 """
 from dataclasses import dataclass
 from enum import Enum, unique
+from functools import partial
 from typing import Optional, Dict, Callable, List, Self
 
 from pystrict import strict
@@ -16,6 +17,7 @@ from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_decimal import Xsd_decimal
@@ -23,8 +25,8 @@ from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed
-from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed, OmasErrorValue
+from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.helpers.query_processor import RowType, QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp, str2qname_anyiri, lprint
@@ -46,13 +48,13 @@ class OwlPropertyType(Enum):
         return self.value
 
 
-PropTypes = Xsd_QName | Xsd_anyURI | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | Xsd_decimal | None
-PropertyClassAttributesContainer = Dict[PropertyClassAttribute, PropTypes]
+PropTypes = Iri | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | Xsd_decimal | None
+PropClassAttrContainer = Dict[PropClassAttr, PropTypes]
 Attributes = Dict[Xsd_QName, LangString | RdfSet | LanguageIn | List[Xsd]]
 
 
 @dataclass
-class PropertyClassAttributeChange:
+class PropClassAttrChange:
     old_value: PropTypes
     action: Action
     test_in_use: bool
@@ -75,42 +77,48 @@ class PropertyClass(Model, Notify):
 
     """
     _graph: Xsd_NCName
-    _property_class_iri: Xsd_QName | None
+    _property_class_iri: Iri | None
     _internal: Xsd_QName | None
     _force_external: bool
-    _attributes: PropertyClassAttributesContainer
-    _changeset: Dict[PropertyClassAttribute, PropertyClassAttributeChange]
+    _attributes: PropClassAttrContainer
+    _changeset: Dict[PropClassAttr, PropClassAttrChange]
     _test_in_use: bool
     _notifier: Callable[[type], None] | None
     #
     # The following attributes of this class cannot be set explicitely by the used
     # They are automatically managed by the OMAS system
     #
-    __creator: Xsd_anyURI | None
+    __creator: Iri | None
     __created: Xsd_dateTime | None
-    __contributor: Xsd_anyURI | None
+    __contributor: Iri | None
     __modified: Xsd_dateTime | None
     __version: SemanticVersion
     __from_triplestore: bool
 
-    __datatypes: Dict[PropertyClassAttribute, PropTypes] = {
-        PropertyClassAttribute.SUBPROPERTY_OF: (Xsd_QName, Xsd_anyURI),
-        PropertyClassAttribute.PROPERTY_TYPE: (OwlPropertyType,),
-        PropertyClassAttribute.TO_NODE_IRI: (Xsd_QName, Xsd_anyURI),
-        PropertyClassAttribute.DATATYPE: (XsdDatatypes,),
-        PropertyClassAttribute.RESTRICTIONS: (PropertyRestrictions,),
-        PropertyClassAttribute.NAME: (LangString,),
-        PropertyClassAttribute.DESCRIPTION: (LangString,),
-        PropertyClassAttribute.ORDER: (Xsd_decimal,)
+    __datatypes: Dict[PropClassAttr, PropTypes] = {
+        PropClassAttr.SUBPROPERTY_OF: Iri,
+        PropClassAttr.PROPERTY_TYPE: OwlPropertyType,
+        PropClassAttr.TO_NODE_IRI: Iri,
+        PropClassAttr.DATATYPE: XsdDatatypes,
+        PropClassAttr.RESTRICTIONS: PropertyRestrictions,
+        PropClassAttr.NAME: LangString,
+        PropClassAttr.DESCRIPTION: LangString,
+        PropClassAttr.ORDER: Xsd_decimal
     }
 
     def __init__(self, *,
                  con: IConnection,
-                 graph: Xsd_NCName,
-                 property_class_iri: Optional[Xsd_QName] = None,
-                 attrs: Optional[PropertyClassAttributesContainer] = None,
-                 notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
-                 notify_data: Optional[PropertyClassAttribute] = None):
+                 graph: Xsd_NCName | str,
+                 property_class_iri: Iri | str | None = None,
+                 subPropertyOf: Iri | str | None = None,
+                 toNodeIri: Iri | str | None = None,
+                 datatype: XsdDatatypes | None = None,
+                 restrictions: PropertyRestrictions | None = None,
+                 name: LangString | str | None = None,
+                 description: LangString | str | None = None,
+                 order: Xsd_decimal | None = None,
+                 notifier: Callable[[PropClassAttr], None] | None = None,
+                 notify_data: PropClassAttr | None = None):
         """
         TODO: 1) check if a valid datatype is defined!
         Constructor for a PropertyClass instance. It represents all the information about a PropertyClass
@@ -127,33 +135,54 @@ class PropertyClass(Model, Notify):
         """
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
-        self._graph = graph
-        self._property_class_iri = property_class_iri
-        if attrs is None:
-            self._attributes = {}
-        else:
-            for attr, value in attrs.items():
-                if type(attr) is not PropertyClassAttribute:
-                    raise OmasError(f'Unsupported Property prop "{attr}"')
-                if type(value) not in PropertyClass.__datatypes[attr]:
-                    raise OmasError(f'Datatype of prop "{attr.value}": "{type(value)}", should be {PropertyClass.__datatypes[attr]} ({value}) is not valid')
-                #
-                # if the "value"-class is a subclass of Notify, it has the method "set_notifier".
-                # we need to set it!
-                #
-                if getattr(value, 'set_notifier', None) is not None:
-                    value.set_notifier(self.notifier, attr)
-            self._attributes = attrs
+        self._graph = Xsd_NCName(graph)
+        self._property_class_iri = Iri(property_class_iri)
+        self._attributes: PropClassAttrContainer = {}
+        if subPropertyOf is not None:
+            self._attributes[PropClassAttr.SUBPROPERTY_OF] = Iri(subPropertyOf)
+        if toNodeIri is not None:
+            self._attributes[PropClassAttr.TO_NODE_IRI] = Iri(toNodeIri)
+        if datatype is not None:
+            if isinstance(datatype, XsdDatatypes):
+                self._attributes[PropClassAttr.DATATYPE] = datatype
+            else:
+                try:
+                    self._attributes[PropClassAttr.DATATYPE] = XsdDatatypes(datatype)
+                except ValueError as err:
+                    raise OmasErrorValue(str(err))
+        if restrictions is not None:
+            if not isinstance(restrictions, PropertyRestrictions):
+                raise OmasErrorValue(f'restrictions must be a "PropertyRestrictions" object, is "{type(restrictions).__name__}"')
+            self._attributes[PropClassAttr.RESTRICTIONS] = restrictions
+            self._attributes[PropClassAttr.RESTRICTIONS].set_notifier(self.notifier, PropClassAttr.RESTRICTIONS)
+        if name is not None:
+            self._attributes[PropClassAttr.NAME] = name if isinstance(name, LangString) else LangString(name)
+            self._attributes[PropClassAttr.NAME].set_notifier(self.notifier, PropClassAttr.NAME)
+        if description is not None:
+            self._attributes[PropClassAttr.DESCRIPTION] = description if isinstance(description, LangString) else LangString(description)
+            self._attributes[PropClassAttr.DESCRIPTION].set_notifier(self.notifier, PropClassAttr.DESCRIPTION)
+        if order is not None:
+            self._attributes[PropClassAttr.ORDER] = order if isinstance(order, Xsd_decimal) else Xsd_decimal(order)
 
         # setting property type for OWL which distinguished between Data- and Object-properties
-        if self._attributes:
-            if self._attributes.get(PropertyClassAttribute.TO_NODE_IRI) is not None:
-                self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
-                dt = self._attributes.get(PropertyClassAttribute.DATATYPE)
-                if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
-                    raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
-            else:
-                self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+        if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
+            self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
+            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+                raise OmasError(f'Datatype not possible for OwlObjectProperty')
+        else:
+            self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+
+        for attr in PropClassAttr:
+            prefix, name = attr.value.split(':')
+            if name == 'type':
+                name = 'propertyType'
+            elif name == 'class':
+                name = 'toNodeIri'
+            setattr(PropertyClass, name, property(
+                partial(PropertyClass.__get_value, attr=attr),
+                partial(PropertyClass.__set_value, attr=attr),
+                partial(PropertyClass.__del_value, attr=attr)))
+
         self._changeset = {}  # initialize changeset to empty set
         self._test_in_use = False
         self._internal = None
@@ -165,6 +194,55 @@ class PropertyClass(Model, Notify):
         self.__version = SemanticVersion()
         self.__from_triplestore = False
 
+    def __get_value(self: Self, attr: PropClassAttr) -> PropTypes | None:
+        return self._attributes.get(attr)
+
+    def __set_value(self: Self, value: PropTypes, attr: PropClassAttr) -> None:
+        self.__change_setter(attr, value)
+
+    def __del_value(self: Self, attr: PropClassAttr) -> None:
+        if self._attributes.get(attr) is not None:
+            self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.DELETE, True)
+            del self._attributes[attr]
+            self.notify()
+
+    def __change_setter(self: Self, attr: PropClassAttr, value: PropTypes) -> None:
+        if not isinstance(attr, PropClassAttr):
+            raise OmasError(f'Unsupported prop {attr}')
+        if not isinstance(value, PropertyClass.__datatypes[attr]):
+            raise OmasError(f'Datatype of {attr.value} is not in {PropertyClass.__datatypes[attr]}')
+        if self._attributes.get(attr) == value:
+            return
+        if getattr(value, 'set_notifier', None) is not None:
+            value.set_notifier(self.notifier, attr)
+
+        if attr == PropClassAttr.TO_NODE_IRI:
+            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+                self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(self._attributes[PropClassAttr.DATATYPE], Action.DELETE, True)
+                del self._attributes[PropClassAttr.DATATYPE]
+            if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
+                self._changeset[PropClassAttr.TO_NODE_IRI] = PropClassAttrChange(self._attributes[PropClassAttr.TO_NODE_IRI], Action.REPLACE, True)
+            else:
+                self._changeset[PropClassAttr.TO_NODE_IRI] = PropClassAttrChange(None, Action.CREATE, True)
+            self._attributes[PropClassAttr.TO_NODE_IRI] = value
+        elif attr == PropClassAttr.DATATYPE:
+            if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
+                self._changeset[PropClassAttr.TO_NODE_IRI] = PropClassAttrChange(self._attributes[PropClassAttr.TO_NODE_IRI], Action.DELETE, True)
+                del self._attributes[PropClassAttr.TO_NODE_IRI]
+            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+                self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(self._attributes[PropClassAttr.DATATYPE], Action.REPLACE, True)
+            else:
+                self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(None, Action.CREATE, True)
+            self._attributes[PropClassAttr.DATATYPE] = value
+        else:
+            if self._changeset.get(attr) is None:
+                if self._attributes.get(attr) is not None:
+                    self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.REPLACE, True)
+                else:
+                    self._changeset[attr] = PropClassAttrChange(None, Action.CREATE, True)
+            self._attributes[attr] = value
+        self.notify()
+
     def __len__(self) -> int:
         return len(self._attributes)
 
@@ -174,58 +252,23 @@ class PropertyClass(Model, Notify):
             propstr += f' {attr.value}: {value};'
         return propstr
 
-    def __getitem__(self, attr: PropertyClassAttribute) -> PropTypes:
+    def __getitem__(self, attr: PropClassAttr) -> PropTypes:
         return self._attributes[attr]
 
-    def get(self, attr: PropertyClassAttribute) -> PropTypes | None:
+    def get(self, attr: PropClassAttr) -> PropTypes | None:
         return self._attributes.get(attr)
 
-    def __setitem__(self, attr: PropertyClassAttribute, value: PropTypes) -> None:
-        if type(attr) is not PropertyClassAttribute:
-            raise OmasError(f'Unsupported prop {attr}')
-        if type(value) not in PropertyClass.__datatypes[attr]:
-            raise OmasError(f'Datatype of {attr.value} is not in {PropertyClass.__datatypes[attr]}')
+    def __setitem__(self, attr: PropClassAttr, value: PropTypes) -> None:
+        self.__change_setter(attr, value)
 
-        if self._attributes.get(attr) is None:
-            if getattr(value, 'set_notifier', None) is not None:
-                value.set_notifier(self.notifier, attr)
-            if self._changeset.get(attr) is None:
-                self._changeset[attr] = PropertyClassAttributeChange(None, Action.CREATE, True)
-            self._attributes[attr] = value
-            self.notify()
-        else:
-            if self._attributes.get(attr) != value:  # we do nothing if nothing changes
-                if attr == PropertyClassAttribute.TO_NODE_IRI \
-                        and self._attributes.get(PropertyClassAttribute.DATATYPE) \
-                        and self._attributes[PropertyClassAttribute.DATATYPE] != XsdDatatypes.anyURI \
-                        and self._attributes[PropertyClassAttribute.DATATYPE] != XsdDatatypes.QName:
-                    # We have to delete the DATATYPE
-                    self._changeset[PropertyClassAttribute.DATATYPE] = PropertyClassAttributeChange(self._attributes[PropertyClassAttribute.DATATYPE], Action.DELETE, True)
-                    del self._attributes[PropertyClassAttribute.DATATYPE]
-                    self._changeset[attr] = PropertyClassAttributeChange(self._attributes[attr], Action.CREATE, True)
-                    self.notify()
-                elif attr == PropertyClassAttribute.DATATYPE \
-                        and self._attributes.get(PropertyClassAttribute.TO_NODE_IRI) \
-                        and value != XsdDatatypes.anyURI \
-                        and value != XsdDatatypes.QName:
-                    self._changeset[PropertyClassAttribute.TO_NODE_IRI] = PropertyClassAttributeChange(self._attributes[PropertyClassAttribute.TO_NODE_IRI],
-                                                                                                    Action.DELETE, True)
-                    del self._attributes[PropertyClassAttribute.TO_NODE_IRI]
-                    self._changeset[attr] = PropertyClassAttributeChange(self._attributes[attr], Action.CREATE, True)
-                    self.notify()
-                elif self._changeset.get(attr) is None:
-                    self._changeset[attr] = PropertyClassAttributeChange(self._attributes[attr], Action.REPLACE, True)
-                self._attributes[attr] = value
-                self.notify()
-
-    def __delitem__(self, attr: PropertyClassAttribute) -> None:
+    def __delitem__(self, attr: PropClassAttr) -> None:
         if self._attributes.get(attr) is not None:
-            self._changeset[attr] = PropertyClassAttributeChange(self._attributes[attr], Action.DELETE, True)
+            self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.DELETE, True)
             del self._attributes[attr]
             self.notify()
 
     @property
-    def property_class_iri(self) -> Xsd_QName:
+    def property_class_iri(self) -> Iri:
         return self._property_class_iri
 
     @property
@@ -233,7 +276,7 @@ class PropertyClass(Model, Notify):
         return self.__version
 
     @property
-    def creator(self) -> Xsd_anyURI | None:
+    def creator(self) -> Iri | None:
         return self.__creator
 
     @property
@@ -241,7 +284,7 @@ class PropertyClass(Model, Notify):
         return self.__created
 
     @property
-    def contributor(self) -> Xsd_anyURI | None:
+    def contributor(self) -> Iri | None:
         return self.__contributor
 
     @property
@@ -249,7 +292,7 @@ class PropertyClass(Model, Notify):
         return self.__modified
 
     @property
-    def changeset(self) -> Dict[PropertyClassAttribute, PropertyClassAttributeChange]:
+    def changeset(self) -> Dict[PropClassAttr, PropClassAttrChange]:
         return self._changeset
 
     @property
@@ -266,7 +309,7 @@ class PropertyClass(Model, Notify):
     def from_triplestore(self) -> bool:
         return self.__from_triplestore
 
-    def undo(self, attr: Optional[PropertyClassAttribute | PropertyRestrictionType] = None) -> None:
+    def undo(self, attr: Optional[PropClassAttr | PropertyRestrictionType] = None) -> None:
         if attr is None:
             for p, change in self._changeset.items():
                 if change.action == Action.MODIFY:
@@ -280,7 +323,7 @@ class PropertyClass(Model, Notify):
                         self._attributes[p] = change.old_value
             self._changeset = {}
         else:
-            if type(attr) is PropertyClassAttribute:
+            if type(attr) is PropClassAttr:
                 if self._changeset.get(attr) is not None:  # this prop really changed...
                     if self._changeset[attr].action == Action.MODIFY:
                         self._attributes[attr].undo()
@@ -292,15 +335,15 @@ class PropertyClass(Model, Notify):
                         self._attributes[attr] = self._changeset[attr].old_value
                     del self._changeset[attr]
             elif type(attr) is PropertyRestrictionType:
-                if self._attributes.get(PropertyClassAttribute.RESTRICTIONS) is None:
+                if self._attributes.get(PropClassAttr.RESTRICTIONS) is None:
                     return
-                self._attributes[PropertyClassAttribute.RESTRICTIONS].undo(attr)
-                if len(self._attributes[PropertyClassAttribute.RESTRICTIONS].changeset) == 0:
-                    if self._changeset.get(PropertyClassAttribute.RESTRICTIONS) is not None:
-                        del self._changeset[PropertyClassAttribute.RESTRICTIONS]
-                if self._attributes.get(PropertyClassAttribute.RESTRICTIONS) is not None:
-                    if len(self._attributes[PropertyClassAttribute.RESTRICTIONS]) == 0:
-                        del self._attributes[PropertyClassAttribute.RESTRICTIONS]
+                self._attributes[PropClassAttr.RESTRICTIONS].undo(attr)
+                if len(self._attributes[PropClassAttr.RESTRICTIONS].changeset) == 0:
+                    if self._changeset.get(PropClassAttr.RESTRICTIONS) is not None:
+                        del self._changeset[PropClassAttr.RESTRICTIONS]
+                if self._attributes.get(PropClassAttr.RESTRICTIONS) is not None:
+                    if len(self._attributes[PropClassAttr.RESTRICTIONS]) == 0:
+                        del self._attributes[PropClassAttr.RESTRICTIONS]
 
     def __changeset_clear(self) -> None:
         for attr, change in self._changeset.items():
@@ -308,8 +351,8 @@ class PropertyClass(Model, Notify):
                 self._attributes[attr].changeset_clear()
         self._changeset = {}
 
-    def notifier(self, attr: PropertyClassAttribute) -> None:
-        self._changeset[attr] = PropertyClassAttributeChange(None, Action.MODIFY, True)
+    def notifier(self, attr: PropClassAttr) -> None:
+        self._changeset[attr] = PropClassAttrChange(None, Action.MODIFY, True)
         self.notify()
 
     @property
@@ -374,7 +417,7 @@ class PropertyClass(Model, Notify):
         #     attributes[attriri].add(r['oo'])
 
     @staticmethod
-    def __query_shacl(con: IConnection, graph: Xsd_NCName, property_class_iri: Xsd_QName) -> Attributes:
+    def __query_shacl(con: IConnection, graph: Xsd_NCName, property_class_iri: Iri) -> Attributes:
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
@@ -402,19 +445,19 @@ class PropertyClass(Model, Notify):
         Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
         :return:
         """
-        self._attributes[PropertyClassAttribute.RESTRICTIONS] = PropertyRestrictions()
+        self._attributes[PropClassAttr.RESTRICTIONS] = PropertyRestrictions()
         #
         # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
         #
-        propkeys = {Xsd_QName(x.value) for x in PropertyClassAttribute}
+        propkeys = {Iri(x.value) for x in PropClassAttr}
         for key, val in attributes.items():
             if key == 'rdf:type':
                 if val[0] != 'sh:PropertyShape':
                     raise OmasError(f'Inconsistency, expected "sh:PropertyType", got "{val[0]}".')
                 continue
             elif key == 'sh:path':
-                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_QName):
-                    self._property_class_iri = Xsd_QName(val[0])
+                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Iri):
+                    self._property_class_iri = val[0]
                 else:
                     raise OmasError(f'Inconsistency in SHACL "sh:path"')
             elif key == 'dcterms:hasVersion':
@@ -423,8 +466,8 @@ class PropertyClass(Model, Notify):
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:hasVersion"')
             elif key == 'dcterms:creator':
-                if isinstance(val, list) and isinstance(val[0], (Xsd_QName, Xsd_anyURI)):
-                    self.__creator = str2qname_anyiri(val[0])
+                if isinstance(val, list) and isinstance(val[0], Iri):
+                    self.__creator = val[0]
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:creator"')
             elif key == 'dcterms:created':
@@ -433,58 +476,58 @@ class PropertyClass(Model, Notify):
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:created"')
             elif key == 'dcterms:contributor':
-                if isinstance(val, list) and isinstance(val[0], (Xsd_QName, Xsd_anyURI)):
-                    self.__contributor = str2qname_anyiri(val[0])
+                if isinstance(val, list) and isinstance(val[0], Iri):
+                    self.__contributor = val[0]
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:contributor"')
             elif key == 'dcterms:modified':
                 if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_dateTime):
-                    self.__modified = Xsd_dateTime(val[0])
+                    self.__modified = val[0]
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:modified"')
             elif key == 'sh:group':
                 pass  # TODO: Process property group correctly.... (at Moment only omas:SystemPropGroup)
             elif key in propkeys:
-                attr = PropertyClassAttribute(key)
-                if (Xsd_QName, Xsd_anyURI) == self.__datatypes[attr]:
-                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], (Xsd_QName, Xsd_anyURI)):
+                attr = PropClassAttr(key)
+                if self.__datatypes[attr] == Iri:
+                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Iri):
                         self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
                     else:
                         raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val[0]} of type {type(val[0]).__name__})')
-                elif (XsdDatatypes,) == self.__datatypes[attr]:
-                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_QName):
-                        self._attributes[attr] = XsdDatatypes(val[0])
+                elif self.__datatypes[attr] == XsdDatatypes:
+                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Iri):
+                        self._attributes[attr] = XsdDatatypes(str(val[0]))
                     else:
                         raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val[0]} of type {type(val[0]).__name__})')
-                elif (LangString,) == self.__datatypes[attr]:
+                elif self.__datatypes[attr] == LangString:
                     if isinstance(val, list):
                         if self._attributes.get(attr) is None:
                             self._attributes[attr] = LangString()
                         self._attributes[attr].add(val)
                     else:
                         raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val} of type {type(val[0]).__name__})')
-                elif (Xsd_decimal,) == self.__datatypes[attr]:
+                elif self.__datatypes[attr] == Xsd_decimal:
                     if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_decimal):
                         self._attributes[attr] = val[0]
                     else:
                         raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val[0]} of type {type(val[0]).__name__})')
             else:
                 try:
-                    self._attributes[PropertyClassAttribute.RESTRICTIONS][PropertyRestrictionType(key)] = val if (key == "sh:languageIn") or (key == "sh:in") else val[0]
+                    self._attributes[PropClassAttr.RESTRICTIONS][PropertyRestrictionType(key)] = val if (key == "sh:languageIn") or (key == "sh:in") else val[0]
                 except (ValueError, TypeError) as err:
-                    raise OmasError(f'Invalid shacl definition of PropertyClass attribute: "{key} {val}"')
-        if self._attributes.get(PropertyClassAttribute.RESTRICTIONS):
-            self._attributes[PropertyClassAttribute.RESTRICTIONS].changeset_clear()
+                    raise OmasError(f'Invalid shacl definition of PropertyClass attribute: "{key}" "{val}"')
+        if self._attributes.get(PropClassAttr.RESTRICTIONS):
+            self._attributes[PropClassAttr.RESTRICTIONS].changeset_clear()
         #
         # setting property type for OWL which distinguished between Data- and Object-properties
         #
-        if self._attributes.get(PropertyClassAttribute.TO_NODE_IRI) is not None:
-            self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
-            dt = self._attributes.get(PropertyClassAttribute.DATATYPE)
+        if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
+            self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
+            dt = self._attributes.get(PropClassAttr.DATATYPE)
             if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
                 raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
         else:
-            self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+            self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
         for attr, value in self._attributes.items():
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
@@ -510,11 +553,11 @@ class PropertyClass(Model, Notify):
             match attr:
                 case 'rdf:type':
                     if obj == 'owl:DatatypeProperty':
-                        self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+                        self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
                     elif obj == 'owl:ObjectProperty':
-                        self._attributes[PropertyClassAttribute.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
+                        self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
                 case 'owl:subPropertyOf':
-                    self._attributes[PropertyClassAttribute.SUBPROPERTY_OF] = obj
+                    self._attributes[PropClassAttr.SUBPROPERTY_OF] = obj
                 case 'rdfs:range':
                     if obj.prefix == 'xsd':
                         datatype = obj
@@ -539,21 +582,21 @@ class PropertyClass(Model, Notify):
         #
         # Consistency checks
         #
-        if self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
+        if self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
             if not datatype:
                 raise OmasError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
-            if datatype != self._attributes.get(PropertyClassAttribute.DATATYPE).value:
+            if datatype != self._attributes.get(PropClassAttr.DATATYPE).value:
                 raise OmasError(
-                    f'Property "{self._property_class_iri}" has inconsistent datatype definitions: OWL: "{datatype}" vs. SHACL: "{self._attributes[PropertyClassAttribute.DATATYPE].value}"')
-        if self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
+                    f'Property "{self._property_class_iri}" has inconsistent datatype definitions: OWL: "{datatype}" vs. SHACL: "{self._attributes[PropClassAttr.DATATYPE].value}"')
+        if self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
             if not to_node_iri:
                 raise OmasError(f'OwlObjectProperty "{self._property_class_iri}" has no rdfs:range resource class defined!')
-            if to_node_iri != self._attributes.get(PropertyClassAttribute.TO_NODE_IRI):
+            if to_node_iri != self._attributes.get(PropClassAttr.TO_NODE_IRI):
                 raise OmasError(
-                    f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropertyClassAttribute.TO_NODE_IRI)}".')
+                    f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropClassAttr.TO_NODE_IRI)}".')
 
     @classmethod
-    def read(cls, con: IConnection, graph: Xsd_NCName, property_class_iri: Xsd_QName) -> Self:
+    def read(cls, con: IConnection, graph: Xsd_NCName, property_class_iri: Iri) -> Self:
         property = cls(con=con, graph=graph, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
@@ -610,21 +653,21 @@ class PropertyClass(Model, Notify):
         blank = ''
         sparql = f'{blank:{(indent + 1) * indent_inc}}# PropertyClass.property_node_shacl()'
         if bnode:
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}} {bnode} sh:path {self._property_class_iri}'
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}} {bnode} sh:path {self._property_class_iri.toRdf}'
         else:
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri}'
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion "{str(self.__version)}"'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.resUri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.resUri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         for prop, value in self._attributes.items():
-            if prop == PropertyClassAttribute.PROPERTY_TYPE:
+            if prop == PropClassAttr.PROPERTY_TYPE:
                 continue
-            if prop != PropertyClassAttribute.RESTRICTIONS:
+            if prop != PropClassAttr.RESTRICTIONS:
                 sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
             else:
-                sparql += self._attributes[PropertyClassAttribute.RESTRICTIONS].create_shacl(indent + 1, indent_inc)
+                sparql += self._attributes[PropClassAttr.RESTRICTIONS].create_shacl(indent + 1, indent_inc)
         #sparql += f' .\n'
         return sparql
 
@@ -646,18 +689,18 @@ class PropertyClass(Model, Notify):
 
     def create_owl_part1(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.resUri} rdf:type {self._attributes[PropertyClassAttribute.PROPERTY_TYPE].value}'
-        if self._attributes.get(PropertyClassAttribute.SUBPROPERTY_OF):
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropertyClassAttribute.SUBPROPERTY_OF].resUri}'
+        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} rdf:type {self._attributes[PropClassAttr.PROPERTY_TYPE].value}'
+        if self._attributes.get(PropClassAttr.SUBPROPERTY_OF):
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropClassAttr.SUBPROPERTY_OF].toRdf}'
         if self._internal:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal.resUri}'
-        if self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlDataProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.DATATYPE].value}'
-        elif self._attributes.get(PropertyClassAttribute.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropertyClassAttribute.TO_NODE_IRI].resUri}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.resUri}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal.toRdf}'
+        if self._attributes.get(PropClassAttr.PROPERTY_TYPE) == OwlPropertyType.OwlDataProperty:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.DATATYPE].value}'
+        elif self._attributes.get(PropClassAttr.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.TO_NODE_IRI].toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.resUri}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql += ' .\n'
         return sparql
@@ -666,8 +709,8 @@ class PropertyClass(Model, Notify):
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri.resUri}'
-        sparql += self._attributes[PropertyClassAttribute.RESTRICTIONS].create_owl(indent + 1, indent_inc)
+        sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri.toRdf}'
+        sparql += self._attributes[PropClassAttr.RESTRICTIONS].create_owl(indent + 1, indent_inc)
         #
         # TODO: Add the possibility to use owl:onClass or owl:onDataRage instead of rdfs:range
         # (NOTE: owl:onClass and owl:onDataRange can be used only in a restriction and are "local" to the use
@@ -762,7 +805,7 @@ class PropertyClass(Model, Notify):
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
     def update_shacl(self, *,
-                     owlclass_iri: Optional[Xsd_QName] = None,
+                     owlclass_iri: Iri | None = None,
                      timestamp: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -770,14 +813,14 @@ class PropertyClass(Model, Notify):
         for prop, change in self._changeset.items():
             sparql = f'#\n# SHACL\n# Process "{prop.value}" with Action "{change.action.value}"\n#\n'
             if change.action == Action.MODIFY:
-                if PropertyClass.__datatypes[prop] == (LangString,):
+                if PropertyClass.__datatypes[prop] == LangString:
                     sparql += self._attributes[prop].update_shacl(graph=self._graph,
                                                                   owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
                                                                   attr=prop,
                                                                   modified=self.__modified,
                                                                   indent=indent, indent_inc=indent_inc)
-                elif PropertyClass.__datatypes[prop] == (PropertyRestrictions,):
+                elif PropertyClass.__datatypes[prop] == PropertyRestrictions:
                     sparql += self._attributes[prop].update_shacl(graph=self._graph,
                                                                   owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
@@ -815,7 +858,7 @@ class PropertyClass(Model, Notify):
                                       graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:contributor', f'{self.__contributor.resUri}', f'{self._con.userIri.resUri}'),
+                                      ele=RdfModifyItem('dcterms:contributor', f'{self.__contributor.toRdf}', f'{self._con.userIri.toRdf}'),
                                       last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -835,16 +878,16 @@ class PropertyClass(Model, Notify):
                    owlclass_iri: Optional[Xsd_QName] = None,
                    timestamp: Xsd_dateTime,
                    indent: int = 0, indent_inc: int = 4) -> str:
-        owl_propclass_attributes = {PropertyClassAttribute.SUBPROPERTY_OF,  # should be in OWL ontology
-                                    PropertyClassAttribute.DATATYPE,  # used for rdfs:range in OWL ontology
-                                    PropertyClassAttribute.TO_NODE_IRI}  # used for rdfs:range in OWL ontology
-        owl_prop = {PropertyClassAttribute.SUBPROPERTY_OF: PropertyClassAttribute.SUBPROPERTY_OF.value,
-                    PropertyClassAttribute.DATATYPE: "rdfs:range",
-                    PropertyClassAttribute.TO_NODE_IRI: "rdfs:range"}
+        owl_propclass_attributes = {PropClassAttr.SUBPROPERTY_OF,  # should be in OWL ontology
+                                    PropClassAttr.DATATYPE,  # used for rdfs:range in OWL ontology
+                                    PropClassAttr.TO_NODE_IRI}  # used for rdfs:range in OWL ontology
+        owl_prop = {PropClassAttr.SUBPROPERTY_OF: PropClassAttr.SUBPROPERTY_OF.value,
+                    PropClassAttr.DATATYPE: "rdfs:range",
+                    PropClassAttr.TO_NODE_IRI: "rdfs:range"}
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
-            if prop == PropertyClassAttribute.RESTRICTIONS and change.action == Action.MODIFY:
+            if prop == PropClassAttr.RESTRICTIONS and change.action == Action.MODIFY:
                 sparql = self._attributes[prop].update_owl(graph=self._graph,
                                                            owlclass_iri=owlclass_iri,
                                                            prop_iri=self._property_class_iri,
@@ -866,9 +909,9 @@ class PropertyClass(Model, Notify):
                                              indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
 
-            if prop == PropertyClassAttribute.DATATYPE or prop == PropertyClassAttribute.TO_NODE_IRI:
+            if prop == PropClassAttr.DATATYPE or prop == PropClassAttr.TO_NODE_IRI:
                 ele: RdfModifyItem
-                if self._attributes.get(PropertyClassAttribute.TO_NODE_IRI):
+                if self._attributes.get(PropClassAttr.TO_NODE_IRI):
                     ele = RdfModifyItem('rdf:type', 'owl:DatatypeProperty', 'owl:ObjectProperty')
                 else:
                     ele = RdfModifyItem('rdf:type', 'owl:ObjectProperty', 'owl:DatatypeProperty')
@@ -889,10 +932,10 @@ class PropertyClass(Model, Notify):
         sparql = f'#\n# Update/add dcterms:contributor {self._graph}:onto\n#\n'
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self.__contributor.resUri}\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self.__contributor.toRdf}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self._con.userIri.resUri}\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self._con.userIri.toRdf}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
@@ -933,7 +976,6 @@ class PropertyClass(Model, Notify):
         sparql += " ;\n"
         sparql += self.update_owl(owlclass_iri=self._internal,
                                   timestamp=timestamp)
-        lprint(sparql)
         try:
             self._con.transaction_update(sparql)
         except OmasError as e:
@@ -1032,7 +1074,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri.resUri} .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri.toRdf} .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql

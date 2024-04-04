@@ -181,6 +181,11 @@ class MyTestCase(unittest.TestCase):
         val.discard(Xsd_string("ist"))
         self.assertFalse(Xsd_string("ist") in val)
 
+        val = RdfSet(Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?"))
+        self.assertTrue(Xsd_string("was") in val)
+        self.assertTrue(Xsd_string("ist") in val)
+        self.assertTrue(Xsd_string("das?") in val)
+
     def test_bnode(self):
         val = BNode("_:node42")
         self.assertEqual(str(val), "_:node42")

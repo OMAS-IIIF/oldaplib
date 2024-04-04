@@ -9,6 +9,7 @@ from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.enums.action import Action
 from omaslib.src.dtypes.languagein import LanguageIn
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 from omaslib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from omaslib.src.xsd.xsd_qname import Xsd_QName
@@ -20,7 +21,7 @@ from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
+from omaslib.src.enums.propertyclassattr import PropClassAttr
 
 
 @unique
@@ -120,8 +121,8 @@ class PropertyRestrictions(Notify):
 
     def __init__(self, *,
                  restrictions: Optional[RestrictionContainer] = None,
-                 notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
-                 notify_data: Optional[PropertyClassAttribute] = None):
+                 notifier: Optional[Callable[[PropClassAttr], None]] = None,
+                 notify_data: Optional[PropClassAttr] = None):
         """
         Constructor for restrictions
         :param restrictions: A Dict of restriction. See ~PropertyRestrictionType for SHACL-restriction supported
@@ -295,8 +296,8 @@ class PropertyRestrictions(Notify):
 
     def update_shacl(self, *,
                      graph: Xsd_NCName,
-                     owlclass_iri: Optional[Xsd_QName] = None,
-                     prop_iri: Xsd_QName,
+                     owlclass_iri: Iri | None = None,
+                     prop_iri: Iri,
                      modified: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -317,7 +318,7 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                 if owlclass_iri:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.resUri} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
                 else:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {restriction_type.value} ?bnode .\n'
@@ -341,7 +342,7 @@ class PropertyRestrictions(Notify):
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             if owlclass_iri:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
             if change.action != Action.CREATE:
@@ -355,8 +356,8 @@ class PropertyRestrictions(Notify):
 
     def update_owl(self, *,
                    graph: Xsd_NCName,
-                   owlclass_iri: Optional[Xsd_QName] = None,
-                   prop_iri: Xsd_QName,
+                   owlclass_iri: Iri | None = None,
+                   prop_iri: Iri,
                    modified: Xsd_dateTime,
                    indent: int = 0, indent_inc: int = 4) -> str:
         """
@@ -424,9 +425,9 @@ class PropertyRestrictions(Notify):
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                 if owlclass_iri:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?prop .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:onProperty {prop_iri} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:onProperty {prop_iri.toRdf} .\n'
                 else:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri.toRdf} as ?prop)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
@@ -435,8 +436,8 @@ class PropertyRestrictions(Notify):
 
     def delete_shacl(self, *,
                      graph: Xsd_NCName,
-                     owlclass_iri: Optional[Xsd_QName] = None,
-                     prop_iri: Xsd_QName,
+                     owlclass_iri: Iri | None = None,
+                     prop_iri: Iri,
                      restriction_type: PropertyRestrictionType,
                      indent: int = 0, indent_inc: int = 4) -> str:
         # TODO: Include into unittest!
@@ -450,9 +451,9 @@ class PropertyRestrictions(Notify):
             sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
             if owlclass_iri:
                 sparql += f'{blank:{(indent + 1)*indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                sparql += f'{blank:{(indent + 1)*indent_inc}}?prop sh:path {prop_iri} .\n'
+                sparql += f'{blank:{(indent + 1)*indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
             else:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri.toRdf} as ?prop)\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}?prop {restriction_type.value} ?bnode .\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}?bnode rdf:rest* ?z .\n'
             sparql += f'{blank:{(indent + 1)*indent_inc}}?z rdf:first ?head ;\n'
@@ -465,9 +466,9 @@ class PropertyRestrictions(Notify):
         sparql += f'{blank:{indent*indent_inc}}WHERE {{\n'
         if owlclass_iri:
             sparql += f'{blank:{(indent + 1)*indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-            sparql += f'{blank:{(indent + 1)*indent_inc}}?prop sh:path {prop_iri} .\n'
+            sparql += f'{blank:{(indent + 1)*indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
         else:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri} as ?prop)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri.toRdf} as ?prop)\n'
         sparql += f'{blank:{(indent + 1)*indent_inc}}?prop {restriction_type.value} ?rval\n'
         sparql += f'{blank:{indent*indent_inc}}}}\n'
         return sparql

@@ -29,6 +29,10 @@ class RdfSet:
                 else:
                     raise OmasErrorValue("Set elements must be of Subclasses of Xsd.")
         else:
+            if isinstance(value, Xsd):
+                self.__data.add(value)
+            else:
+                raise OmasErrorValue("Set elements must be of Subclasses of Xsd.")
             for arg in args:
                 if not isinstance(arg, Xsd):
                     raise OmasErrorValue("Set elements must be of Subclasses of Xsd.")

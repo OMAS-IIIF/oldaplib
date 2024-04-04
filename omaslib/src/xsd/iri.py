@@ -83,4 +83,35 @@ class Iri(Xsd):
     def _as_dict(self) -> dict[str, str]:
         return {'value': self.__value}
 
+    @property
+    def is_qname(self) -> bool:
+        return self.__rep == IriRep.QNAME
+
+    @property
+    def is_fulliri(self) -> bool:
+        return self.__rep == IriRep.FULL
+
+    @property
+    def prefix(self) -> str:
+        """
+        Access the prefix of the QName as property
+        :return: Prefix as string
+        """
+        if self.__rep == IriRep.FULL:
+            return None
+        parts = self.__value.split(':')
+        return parts[0]
+
+    @property
+    def fragment(self) -> str | None:
+        """
+        Access the fragment as fragment of the QName as property
+        :return: Fragment as string
+        """
+        if self.__rep == IriRep.FULL:
+            return None
+        parts = self.__value.split(':')
+        return parts[1]
+
+
 

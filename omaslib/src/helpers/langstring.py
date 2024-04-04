@@ -20,7 +20,7 @@ from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.omaserror import OmasError
-from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
+from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd_string import Xsd_string
 
@@ -75,8 +75,8 @@ class LangString(Notify):
     def __init__(self,
                  langstring: Optional[str | List[str] | Dict[str, str] | Dict[Language, str]] = None,
                  priorities: Optional[List[Language]] = None,
-                 notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
-                 notify_data: Optional[PropertyClassAttribute] = None):
+                 notifier: Optional[Callable[[PropClassAttr], None]] = None,
+                 notify_data: Optional[PropClassAttr] = None):
         """
         Implements language dependent strings.
 
@@ -256,7 +256,7 @@ class LangString(Notify):
             lang = Language[lang.upper()]
         return self._langstring.get(lang, default)
 
-    def __eq__(self, other: Self) -> bool:
+    def __eq__(self, other: Self | None) -> bool:
         """
         Test for equality of two language strings
         :param other: The other Language string to compare to
@@ -264,6 +264,8 @@ class LangString(Notify):
         :return: True or False
         :rtype: bool
         """
+        if other is None:
+            return False
         if len(self._langstring) != len(other._langstring):
             return False
         for lang in self._langstring:
@@ -507,9 +509,9 @@ class LangString(Notify):
 
     def update_shacl(self, *,
                      graph: Xsd_NCName,
-                     owlclass_iri: Optional[Xsd_QName] = None,
-                     prop_iri: Xsd_QName,
-                     attr: PropertyClassAttribute,
+                     owlclass_iri: Iri | None = None,
+                     prop_iri: Iri,
+                     attr: PropClassAttr,
                      modified: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         """
@@ -556,7 +558,7 @@ class LangString(Notify):
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             if owlclass_iri:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
             if change.action != Action.CREATE:
@@ -573,9 +575,9 @@ class LangString(Notify):
 
     def delete_shacl(self, *,
                      graph: Xsd_NCName,
-                     owlclass_iri: Optional[Xsd_QName] = None,
-                     prop_iri: Xsd_QName,
-                     attr: Xsd_QName,
+                     owlclass_iri: Iri | None = None,
+                     prop_iri: Iri,
+                     attr: PropClassAttr,
                      modified: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         # TODO: Include into unit tests!
@@ -599,23 +601,25 @@ class LangString(Notify):
         :rtype: str
         """
         blank = ''
-        sparql = f'#\n# Deleting the complete LangString data for {prop_iri} {attr}\n#\n'
+        sparql = f'#\n# Deleting the complete LangString data for {prop_iri} {attr.value}\n#\n'
         sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr} ?langval'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} ?langval'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{'
         if owlclass_iri:
             sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
         else:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr} ?langval'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} ?langval'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 
 
 if __name__ == '__main__':
+    l0 = LangString()
+    print(l0)
     ls1 = LangString("gaga")
     print(str(ls1))
     ls2 = LangString({

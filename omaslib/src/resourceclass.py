@@ -5,7 +5,7 @@ from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed
-from omaslib.src.enums.propertyclassattr import PropertyClassAttribute
+from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
@@ -73,8 +73,8 @@ class ResourceClass(Model, Notify):
                  owlclass_iri: Optional[Xsd_QName] = None,
                  attrs: Optional[ResourceClassAttributesContainer] = None,
                  properties: Optional[List[Union[PropertyClass, Xsd_QName]]] = None,
-                 notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
-                 notify_data: Optional[PropertyClassAttribute] = None):
+                 notifier: Optional[Callable[[PropClassAttr], None]] = None,
+                 notify_data: Optional[PropClassAttr] = None):
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
         self._graph = graph
@@ -800,7 +800,7 @@ class ResourceClass(Model, Notify):
                 if not self._properties[prop].from_triplestore:
                     self._properties[prop].create()
                 else:
-                    if self._properties[prop].get(PropertyClassAttribute.EXCLUSIVE_FOR) is None:
+                    if self._properties[prop].get(PropClassAttr.EXCLUSIVE_FOR) is None:
                         continue  # TODO: replace reference in __update_shacl and __update_owl
                     else:
                         raise OmasErrorInconsistency(f'Property is exclusive – simple reference not allowed')

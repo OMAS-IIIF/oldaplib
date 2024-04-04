@@ -231,7 +231,7 @@ class Project(Model):
             return
         if field == ProjectFields.PROJECT_IRI or field == ProjectFields.NAMESPACE_IRI or field == ProjectFields.PROJECT_SHORTNAME:
             raise OmasErrorImmutable(f'Field {field.value} is immutable.')
-        if self.__fields[field] is None:
+        if self.__fields.get(field) is None:
             if self.__change_set.get(field) is None:
                 self.__change_set[field] = ProjectFieldChange(None, Action.CREATE)
         else:
