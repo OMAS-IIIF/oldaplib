@@ -3,6 +3,9 @@ from typing import Self, Dict
 
 
 class Xsd(ABC):
+    """
+    Abstract base class for XSD classes.
+    """
 
     @abstractmethod
     def __init__(self, value: Self | str):

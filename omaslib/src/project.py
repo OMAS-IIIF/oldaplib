@@ -59,15 +59,16 @@ class Project(Model):
     needs the following metadata:
 
     - `projectIri`: The IRI that uniquely identifies this project. This can be an
-      [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) or
+      [Iri](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.Iri) instance or a string with either an Iri or Qname [mandatory]
       [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName).
     - `projectShortName`: The short name of the project that must be a NCName
-    - `label`: A multilingual string with a human-readable label for the project (`rdfs:label`)
-    - `comment`: A multilingual description of the project (`rdfs:comment`)
+    - `label`: A multilingual string with a human-readable label for the project (`rdfs:label`) [optional]
+    - `comment`: A multilingual description of the project (`rdfs:comment`) [optional]
     - `namespaceIri`: The namespace that the project uses for its data and data model. Must be
        a [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI).
-    - `projectStart`: The start date of the project.  Must be a Python `date` type.
-    - `projectEnd`: The optional end date of the project.Must be a Python `date` type.
+    - `projectStart`: The start date of the project.  Must be a Python `date` type. If not set,
+       the current date will be used. [optional]
+    - `projectEnd`: The optional end date of the project.Must be a Python `date` type. [optional]
 
     The class provides the following methods:
 
