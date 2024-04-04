@@ -131,30 +131,30 @@ class Project(Model):
                  projectIri: Iri | str | None = None,
                  projectShortName: Xsd_NCName | str,
                  namespaceIri: NamespaceIRI,
-                 label: LangString | str | None,
-                 comment: LangString | str | None,
+                 label: LangString | str | None = None,
+                 comment: LangString | str | None = None,
                  projectStart: Xsd_date | None = None,
                  projectEnd: Xsd_date | None = None):
         """
         Constructs a new Project
         :param con: [Connection](/python_docstrings/iconnection) instance
-        :param creator: Creator of the project  [Optional, usually not set!]
+        :param creator: Creator of the project  [DO NOT SET!]
         :type creator: Xsd_anyURI | None
-        :param created: Date the project was created  [Optional, usually not set!]
+        :param created: Date the project was created  [DO NOT SET!]
         :type created: datetime | None
-        :param contributor: person that made the last change  [Optional, usually not set!]
+        :param contributor: person that made the last change  [DO NOT SET!]
         :type contributor: Xsd_anyURI
-        :param modified: Last date the project was modified  [Optional, usually not set!]
+        :param modified: Last date the project was modified  [DO NOT SET!]
         :type modified: date | None
         :param projectIri: IRI to be used for the project. If no projectIRI is provied, the constrctor
-         will create an arbitrary IRI based on thr URN scheme and a UUID. [Optional].
-        :type projectIri: AnyIRI | Xsd_QName
+         will create an arbitrary IRI based on thr URN scheme and a UUID. [optional].
+        :type projectIri: Iri
         :param projectShortName: A short name for the project. Is used as prefix for named graphs that
-           are being used for the project.
+           are being used for the project. [mandatory]
         :type projectShortName: NCname (strings are accepted only if conform to NCName syntax)
-        :param namespaceIri: The namespace for the project
+        :param namespaceIri: The namespace to be used for the projects data [mandatory]
         :type namespaceIri: NamespaceIRI
-        :param label: Human-readable name for the project (multi-language) (`rdfs:label`)
+        :param label: Human-readable name for the project (multi-language) (`rdfs:label`) [optional]
         :type label: LangString
         :param comment: Description of the project (multi-language) (`rdfs:comment`)
         :type comment: LangString
@@ -213,7 +213,10 @@ class Project(Model):
         self.__change_set = {}
 
     def __get_value(self: Self, field: ProjectFields) -> ProjectFieldTypes | None:
-        return self.__fields.get(field)
+        tmp = self.__fields.get(field)
+        if not tmp:
+            return None
+        return tmp
 
     def __set_value(self: Self, value: ProjectFieldTypes, field: ProjectFields) -> None:
         self.__change_setter(field, value)
@@ -484,20 +487,23 @@ class Project(Model):
 
         blank = ''
         sparql2 = context.sparql_context
-        sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
-        sparql2 += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
-        sparql2 += f'{blank:{(indent + 2) * indent_inc}}{self.projectIri.toRdf} a omas:Project ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectShortName {self.projectShortName.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:namespaceIri {self.namespaceIri.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectStart {self.projectStart.toRdf} ;\n'
-        sparql2 += f'{blank:{(indent + 3) * indent_inc}}omas:projectEnd {self.projectEnd.toRdf} .\n'
-        sparql2 += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
+        sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{'
+        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.projectIri.toRdf} a omas:Project'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:projectShortName {self.projectShortName.toRdf}'
+        if self.label:
+            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label.toRdf}'
+        if self.comment:
+            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:namespaceIri {self.namespaceIri.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:projectStart {self.projectStart.toRdf}'
+        if self.projectEnd is not None:
+            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:projectEnd {self.projectEnd.toRdf}'
+        sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
         self._con.transaction_start()

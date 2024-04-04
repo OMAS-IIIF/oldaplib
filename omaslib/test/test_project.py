@@ -93,6 +93,33 @@ class Testproject(unittest.TestCase):
         self.assertEqual(Xsd_date(2024, 1, 1), project2.projectStart)
         self.assertEqual(Xsd_date(2025, 12, 31), project2.projectEnd)
 
+        project3 = Project(con=self._connection,
+                           projectShortName="unittest3",
+                           label=LangString(["unittest3@en", "unittest3@de"]),
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest3#"),
+                           comment=LangString(["For testing3@en", "Für Tests3@de"]),
+                           projectStart=Xsd_date(2024, 3, 3),
+                           projectEnd=None)
+        project3.create()
+        projectIri3 = project3.projectIri
+        project3 = Project.read(con=self._connection, projectIri_SName=projectIri3)
+        self.assertEqual("unittest3", project3.projectShortName)
+        self.assertEqual(LangString(["unittest3@en", "unittest3@de"]), project3.label)
+        self.assertEqual(LangString(["For testing3@en", "Für Tests3@de"]), project3.comment)
+        self.assertEqual(Xsd_date(2024, 3, 3), project3.projectStart)
+
+        project4 = Project(con=self._connection,
+                           projectShortName="unittest4",
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest4#"))
+        project4.create()
+        projectIri4 = project4.projectIri
+        project4 = Project.read(con=self._connection, projectIri_SName=projectIri4)
+        self.assertEqual("unittest4", project4.projectShortName)
+        self.assertIsNone(project4.label)
+        self.assertIsNone(project4.comment)
+        self.assertIsNotNone(project4.projectStart)
+
+
     # @unittest.skip('Work in progress')
     def test_project_modify(self):
         project = Project(con=self._connection,
@@ -126,7 +153,7 @@ class Testproject(unittest.TestCase):
                           namespaceIri=NamespaceIRI("http://unitest.org/project/deletetest#"),
                           comment=LangString(["For deleting@en", "Für Löschung@de"]),
                           projectStart=Xsd_date(2024, 1, 1),
-                          projectEnd=Xsd_date(2025, 12, 31)
+                          #projectEnd=Xsd_date(2025, 12, 31)
                           )
         project.create()
         projectIri = project.projectIri

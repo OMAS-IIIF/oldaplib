@@ -256,6 +256,9 @@ class LangString(Notify):
             lang = Language[lang.upper()]
         return self._langstring.get(lang, default)
 
+    def __bool__(self) -> bool:
+        return len(self._langstring) > 0
+
     def __eq__(self, other: Self | None) -> bool:
         """
         Test for equality of two language strings
