@@ -87,7 +87,7 @@ class InProjectClass:
             key = Iri(key)
         try:
             return self.__data[key]
-        except KeyError as err:
+        except (KeyError, AttributeError) as err:
             raise OmasErrorKey(str(err), key)
 
     def __setitem__(self, key: Iri | str, value: set[AdminPermission | str] | ObservableSet[AdminPermission]) -> None:

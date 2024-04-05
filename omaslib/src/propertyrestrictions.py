@@ -99,8 +99,8 @@ class PropertyRestrictions(Notify):
         PropertyRestrictionType.MIN_INCLUSIVE: {Xsd_integer, Xsd_float},
         PropertyRestrictionType.MAX_EXCLUSIVE: {Xsd_integer, Xsd_float},
         PropertyRestrictionType.MAX_INCLUSIVE: {Xsd_integer, Xsd_float},
-        PropertyRestrictionType.LESS_THAN: {Xsd_QName},
-        PropertyRestrictionType.LESS_THAN_OR_EQUALS: {Xsd_QName},
+        PropertyRestrictionType.LESS_THAN: {Iri},
+        PropertyRestrictionType.LESS_THAN_OR_EQUALS: {Iri},
     }
     compare = {
         PropertyRestrictionType.LANGUAGE_IN: Compare.XX,

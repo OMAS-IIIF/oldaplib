@@ -164,3 +164,4 @@ cython_debug/
 /poetry.lock
 /gaga.trig
 /.42c
+/propclass_test.trig

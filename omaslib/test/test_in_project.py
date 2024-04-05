@@ -5,6 +5,7 @@ from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorKey
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.in_project import InProjectClass
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_string import Xsd_string
 
@@ -24,16 +25,16 @@ class TestInproject(unittest.TestCase):
     def test_get_item(self):
         ip = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},
                              'https://gaga.com/test': {'ADMIN_MODEL'},
-                             Xsd_QName('gaga:gugus'): set()})
+                             Iri('gaga:gugus'): set()})
         self.assertEqual(ip['test:proj'], {AdminPermission.ADMIN_PERMISSION_SETS, AdminPermission.ADMIN_RESOURCES})
         self.assertEqual(ip['https://gaga.com/test'], {AdminPermission.ADMIN_MODEL})
-        self.assertEqual(ip[Xsd_QName('gaga:gugus')], set())
+        self.assertEqual(ip[Iri('gaga:gugus')], set())
 
         with self.assertRaises(OmasErrorValue) as ex:
             tmp = ip['gaga']
         with self.assertRaises(OmasErrorValue) as ex:
             tmp = ip['$<>12']
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OmasErrorKey) as ex:
             tmp = ip[Xsd_string('test:proj')]
 
     def test_set_item(self):
@@ -129,14 +130,14 @@ class TestInproject(unittest.TestCase):
                              'https://gaga.com/test': {'ADMIN_MODEL'},
                              Xsd_QName('gaga:gugus'): set()})
         for proj, perms in ip.items():
-            self.assertTrue(proj in ['test:proj', 'https://gaga.com/test', Xsd_QName('gaga:gugus')])
+            self.assertTrue(proj in ['test:proj', 'https://gaga.com/test', Iri('gaga:gugus')])
 
     def test_keys(self):
         ip = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},
                              'https://gaga.com/test': {'ADMIN_MODEL'},
-                             Xsd_QName('gaga:gugus'): set()})
+                             Iri('gaga:gugus'): set()})
         keys = set(ip.keys())
-        self.assertEqual(keys, {'test:proj', 'https://gaga.com/test', Xsd_QName('gaga:gugus')})
+        self.assertEqual(keys, {'test:proj', 'https://gaga.com/test', Iri('gaga:gugus')})
 
 
 if __name__ == '__main__':

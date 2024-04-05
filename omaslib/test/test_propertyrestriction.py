@@ -12,6 +12,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.propertyrestrictions import PropertyRestrictions
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -40,8 +41,8 @@ class TestPropertyRestrictions(unittest.TestCase):
         PropertyRestrictionType.MAX_EXCLUSIVE: Xsd_float(6.5),
         PropertyRestrictionType.MAX_INCLUSIVE: Xsd_integer(8),
         PropertyRestrictionType.PATTERN: Xsd_string('.*'),
-        PropertyRestrictionType.LESS_THAN: Xsd_QName('test:greater'),
-        PropertyRestrictionType.LESS_THAN_OR_EQUALS: Xsd_QName('test:gaga')
+        PropertyRestrictionType.LESS_THAN: Iri('test:greater'),
+        PropertyRestrictionType.LESS_THAN_OR_EQUALS: Iri('test:gaga')
     }
     test_restrictions2 = {
         PropertyRestrictionType.LANGUAGE_IN: LanguageIn('el', 'he'),
@@ -56,8 +57,8 @@ class TestPropertyRestrictions(unittest.TestCase):
         PropertyRestrictionType.MAX_EXCLUSIVE: Xsd_float(65),
         PropertyRestrictionType.MAX_INCLUSIVE: Xsd_integer(80),
         PropertyRestrictionType.PATTERN: Xsd_string('^.*$'),
-        PropertyRestrictionType.LESS_THAN: Xsd_QName('test:less_than'),
-        PropertyRestrictionType.LESS_THAN_OR_EQUALS: Xsd_QName('test:gugus')
+        PropertyRestrictionType.LESS_THAN: Iri('test:less_than'),
+        PropertyRestrictionType.LESS_THAN_OR_EQUALS: Iri('test:gugus')
     }
 
     def check_shacl_expectation(self,
@@ -94,7 +95,7 @@ class TestPropertyRestrictions(unittest.TestCase):
         if expected.get(PropertyRestrictionType.IN) is not None:
             self.assertEqual(expected[PropertyRestrictionType.IN], set_in)
 
-    def check_onto_expectation(self, context: Context, expected: dict[Xsd_QName, Xsd], rdfgraph: ConjunctiveGraph):
+    def check_onto_expectation(self, context: Context, expected: dict[Iri, Xsd], rdfgraph: ConjunctiveGraph):
         query = context.sparql_context
         query += '''SELECT ?prop ?val
         WHERE {
@@ -163,8 +164,8 @@ class TestPropertyRestrictions(unittest.TestCase):
         context = Context(name='hihi')
         context['test'] = "http://www.test.org/test#"
         g1, modified = self.create_onto_restriction(context, val)
-        self.check_onto_expectation(context, {Xsd_QName('owl:minCardinality'): Xsd_nonNegativeInteger(1),
-                                              Xsd_QName('owl:maxCardinality'): Xsd_nonNegativeInteger(4)}, g1)
+        self.check_onto_expectation(context, {Iri('owl:minCardinality'): Xsd_nonNegativeInteger(1),
+                                              Iri('owl:maxCardinality'): Xsd_nonNegativeInteger(4)}, g1)
 
         restrictions = deepcopy(self.test_restrictions)
         restrictions[PropertyRestrictionType.MIN_COUNT] = Xsd_integer(1)
@@ -173,7 +174,7 @@ class TestPropertyRestrictions(unittest.TestCase):
         context = Context(name='hihi')
         context['test'] = "http://www.test.org/test#"
         g1, modified = self.create_onto_restriction(context, val)
-        self.check_onto_expectation(context, {Xsd_QName('owl:cardinality'): Xsd_nonNegativeInteger(1)}, g1)
+        self.check_onto_expectation(context, {Iri('owl:cardinality'): Xsd_nonNegativeInteger(1)}, g1)
 
 
     def test_restriction_setitem_on_empty(self):
@@ -236,9 +237,9 @@ class TestPropertyRestrictions(unittest.TestCase):
             val[key] = newval
 
         querystr = context.sparql_context
-        querystr += val.update_owl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
+        querystr += val.update_owl(graph=Xsd_NCName('test'), prop_iri=Iri('test:test'), modified=modified)
         g1.update(querystr)
-        self.check_onto_expectation(context, { Xsd_QName("owl:maxCardinality"): Xsd_nonNegativeInteger(10)}, g1)
+        self.check_onto_expectation(context, { Iri("owl:maxCardinality"): Xsd_nonNegativeInteger(10)}, g1)
 
         restrictions = deepcopy(self.test_restrictions)
         context = Context(name='hihi')
@@ -251,9 +252,9 @@ class TestPropertyRestrictions(unittest.TestCase):
         val[PropertyRestrictionType.MIN_COUNT] = Xsd_integer(1)
 
         querystr = context.sparql_context
-        querystr += val.update_owl(graph=Xsd_NCName('test'), prop_iri=Xsd_QName('test:test'), modified=modified)
+        querystr += val.update_owl(graph=Xsd_NCName('test'), prop_iri=Iri('test:test'), modified=modified)
         g1.update(querystr)
-        self.check_onto_expectation(context, { Xsd_QName("owl:cardinality"): Xsd_nonNegativeInteger(1)}, g1)
+        self.check_onto_expectation(context, { Iri("owl:cardinality"): Xsd_nonNegativeInteger(1)}, g1)
 
     def test_restriction_clear(self):
         test_restrictions2 = deepcopy(self.test_restrictions)
