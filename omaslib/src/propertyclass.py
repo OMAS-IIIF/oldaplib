@@ -78,7 +78,7 @@ class PropertyClass(Model, Notify):
     """
     _graph: Xsd_NCName
     _property_class_iri: Iri | None
-    _internal: Xsd_QName | None
+    _internal: Iri | None
     _force_external: bool
     _attributes: PropClassAttrContainer
     _changeset: Dict[PropClassAttr, PropClassAttrChange]
@@ -296,7 +296,7 @@ class PropertyClass(Model, Notify):
         return self._changeset
 
     @property
-    def internal(self) -> Xsd_QName:
+    def internal(self) -> Iri:
         return self._internal
 
     def force_external(self):
@@ -673,7 +673,7 @@ class PropertyClass(Model, Notify):
 
     def create_shacl(self, *,
                      timestamp: Xsd_dateTime,
-                     owlclass_iri: Optional[Xsd_QName] = None,
+                     owlclass_iri: Iri | None = None,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'\n{blank:{indent * indent_inc}}# PropertyClass.create_shacl()'

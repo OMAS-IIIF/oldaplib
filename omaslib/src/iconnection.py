@@ -4,6 +4,7 @@ from typing import Optional, Any, Dict
 from pystrict import strict
 
 from omaslib.src.helpers.context import DEFAULT_CONTEXT
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -34,7 +35,7 @@ class IConnection(ABC):
         return self._userdata.userId
 
     @property
-    def userIri(self) -> Xsd_anyURI:
+    def userIri(self) -> Iri:
         return self._userdata.userIri
 
     @property

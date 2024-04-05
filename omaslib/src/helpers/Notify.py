@@ -2,6 +2,7 @@ from typing import Callable, Optional, Union
 
 from pystrict import strict
 
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
@@ -31,7 +32,7 @@ class Notify:
 
     def set_notifier(self,
                      notifier: Callable[[Union[PropClassAttr, ResourceClassAttribute, Xsd_QName]], None],
-                     data: Union[PropClassAttr, ResourceClassAttribute, Xsd_QName, None] = None) -> None:
+                     data: PropClassAttr | ResourceClassAttribute | Iri | Xsd_QName | None = None) -> None:
         """
         Sets the notifier callback function and the data it should return...
         :param notifier: A callable that is to be called by the subclass when an item changes

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Union, Optional, List, Dict, Callable
+from functools import partial
+from typing import Union, Optional, List, Dict, Callable, Self
 from pystrict import strict
 
 from omaslib.src.helpers.Notify import Notify
@@ -14,7 +15,9 @@ from omaslib.src.helpers.tools import RdfModifyRes, RdfModifyItem
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -27,20 +30,21 @@ from omaslib.src.propertyclass import PropertyClass, Attributes
 #
 # Datatype definitions
 #
-AttributeTypes = Union[Xsd_QName, LangString, bool, None]
+AttributeTypes = Union[Iri, LangString, Xsd_boolean, None]
 ResourceClassAttributesContainer = Dict[ResourceClassAttribute, AttributeTypes]
 Properties = Dict[BNode, Attributes]
 
 
 @dataclass
 class ResourceClassAttributeChange:
-    old_value: Union[AttributeTypes, PropertyClass, Xsd_QName, None]
+    old_value: Union[AttributeTypes, PropertyClass, Iri, None]
     action: Action
     test_in_use: bool
 
+
 @dataclass
 class ResourceClassPropertyChange:
-    old_value: Union[PropertyClass, Xsd_QName, None]
+    old_value: Union[PropertyClass, Iri, None]
     action: Action
     test_in_use: bool
 
@@ -48,60 +52,66 @@ class ResourceClassPropertyChange:
 @strict
 class ResourceClass(Model, Notify):
     _graph: Xsd_NCName
-    _owlclass_iri: Union[Xsd_QName, None]
+    _owlclass_iri: Iri | None
     _attributes: ResourceClassAttributesContainer
-    _properties: Dict[Xsd_QName, PropertyClass]
+    _properties: Dict[Iri, PropertyClass]
     _attr_changeset: Dict[ResourceClassAttribute, ResourceClassAttributeChange]
-    _prop_changeset: Dict[Xsd_QName, ResourceClassPropertyChange]
-    __creator: Optional[Xsd_anyURI]
-    __created: Optional[datetime]
-    __contributor: Optional[Xsd_anyURI]
-    __modified: Optional[datetime]
+    _prop_changeset: Dict[Iri, ResourceClassPropertyChange]
+    __creator: Iri | None
+    __created: Xsd_dateTime | None
+    __contributor: Iri | None
+    __modified: Xsd_dateTime | None
     __version: SemanticVersion
     __from_triplestore: bool
 
-    __datatypes: Dict[ResourceClassAttribute, Union[Xsd_QName, LangString, bool]] = {
-        ResourceClassAttribute.SUBCLASS_OF: Xsd_QName,
+    __datatypes: Dict[ResourceClassAttribute, Union[Iri, LangString, Xsd_boolean]] = {
+        ResourceClassAttribute.SUBCLASS_OF: Iri,
         ResourceClassAttribute.LABEL: LangString,
         ResourceClassAttribute.COMMENT: LangString,
-        ResourceClassAttribute.CLOSED: bool
+        ResourceClassAttribute.CLOSED: Xsd_boolean
     }
 
     def __init__(self, *,
                  con: IConnection,
                  graph: Xsd_NCName,
-                 owlclass_iri: Optional[Xsd_QName] = None,
-                 attrs: Optional[ResourceClassAttributesContainer] = None,
-                 properties: Optional[List[Union[PropertyClass, Xsd_QName]]] = None,
-                 notifier: Optional[Callable[[PropClassAttr], None]] = None,
-                 notify_data: Optional[PropClassAttr] = None):
+                 owlclass_iri: Iri | str |None = None,
+                 subClassOf: Iri | str | None = None,
+                 label: LangString | str | None = None,
+                 comment: LangString | str | None = None,
+                 closed: Xsd_boolean | bool | None = None,
+                 properties: List[PropertyClass | Iri] | None = None,
+                 notifier: Callable[[PropClassAttr], None] | None = None,
+                 notify_data: PropClassAttr | None = None):
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
-        self._graph = graph
-        self._owlclass_iri = owlclass_iri
+        self._graph = graph if isinstance(graph, Xsd_NCName) else Xsd_NCName(graph)
+
+        self._attributes = {}
+        if isinstance(owlclass_iri, Iri):
+            self._owlclass_iri = owlclass_iri
+        elif owlclass_iri is not None:
+            self._owlclass_iri = Iri(owlclass_iri)
+        else:
+            self._owlclass_iri = None
+        if subClassOf is not None:
+            self._attributes[ResourceClassAttribute.SUBCLASS_OF] = subClassOf if isinstance(subClassOf, Iri) else Iri(subClassOf)
+        if label is not None:
+            self._attributes[ResourceClassAttribute.LABEL] = label if isinstance(label, LangString) else LangString(label)
+        if comment is not None:
+            self._attributes[ResourceClassAttribute.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
+        if closed is not None:
+            self._attributes[ResourceClassAttribute.CLOSED] = closed if isinstance(closed, Xsd_boolean) else Xsd_boolean(closed)
         self.__creator = con.userIri
         self.__created = None
         self.__contributor = con.userIri
         self.__modified = None
         self.__version = SemanticVersion()
-        self._attributes = {}
-        if attrs is not None:
-            for attr, value in attrs.items():
-                if (attr == ResourceClassAttribute.LABEL or attr == ResourceClassAttribute.COMMENT) and type(value) != LangString:
-                    raise OmasError(f'Attribute "{attr.value}" must be a "LangString", but is "{type(value)}"!')
-                if attr == ResourceClassAttribute.SUBCLASS_OF and type(value) != Xsd_QName:
-                    raise OmasError(f'Attribute "{attr.value}" must be a "QName", but is "{type(value)}"!')
-                if attr == ResourceClassAttribute.CLOSED and type(value) != bool:
-                    raise OmasError(f'Attribute "{attr.value}" must be a "bool", but is "{type(value)}"!')
-                if getattr(value, 'set_notifier', None) is not None:
-                    value.set_notifier(self.notifier, attr)
-                self._attributes[attr] = value
         self._properties = {}
         if properties is not None:
             for prop in properties:
-                newprop: Union[PropertyClass, Xsd_QName]
-                if isinstance(prop, Xsd_QName):  # Reference to an external, standalone property definition
-                    fixed_prop = Xsd_QName(str(prop).removesuffix("Shape"))
+                newprop: PropertyClass | Iri | None = None
+                if isinstance(prop, Iri):  # Reference to an external, standalone property definition
+                    fixed_prop = Iri(str(prop).removesuffix("Shape"))
                     try:
                         newprop = PropertyClass.read(self._con, self._graph, fixed_prop)
                     except OmasErrorNotFound as err:
@@ -110,21 +120,32 @@ class ResourceClass(Model, Notify):
                     if not prop._force_external:
                         prop._internal = owlclass_iri
                     newprop = prop
-                self._properties[newprop.property_class_iri] = newprop
-                newprop.set_notifier(self.notifier, newprop.property_class_iri)
+                else:
+                    newprop = None
+                if newprop is not None:
+                    self._properties[newprop.property_class_iri] = newprop
+                    newprop.set_notifier(self.notifier, newprop.property_class_iri)
+        for attr in ResourceClassAttribute:
+            prefix, name = attr.value.split(':')
+            setattr(PropertyClass, name, property(
+                partial(ResourceClass.__get_value, attr=attr),
+                partial(ResourceClass.__set_value, attr=attr),
+                partial(ResourceClass.__del_value, attr=attr)))
+
         self._attr_changeset = {}
         self._prop_changeset = {}
         self.__from_triplestore = False
 
-    def __getitem__(self, key: Union[ResourceClassAttribute, Xsd_QName]) -> Union[AttributeTypes, PropertyClass, Xsd_QName]:
-        if isinstance(key, ResourceClassAttribute):
-            return self._attributes[key]
-        elif isinstance(key, Xsd_QName):
-            return self._properties[key]
-        else:
-            raise ValueError(f'Invalid key type {type(key)} of key {key}')
+    def __get_value(self: Self, attr: ResourceClassAttribute) -> AttributeTypes | PropertyClass | Iri | None:
+        return self.__getter_value(attr)
 
-    def get(self, key: Union[ResourceClassAttribute, Xsd_QName]) -> Union[AttributeTypes, PropertyClass, Xsd_QName, None]:
+    def __set_value(self: Self, attr: ResourceClassAttribute, value: AttributeTypes | PropertyClass | Iri) -> None:
+        self.__change_setter(attr, value)
+
+    def __del_value(self: Self, attr: ResourceClassAttribute) -> None:
+        self.__deleter(attr)
+
+    def __getter(self, key: ResourceClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri:
         if isinstance(key, ResourceClassAttribute):
             return self._attributes.get(key)
         elif isinstance(key, Xsd_QName):
@@ -132,8 +153,8 @@ class ResourceClass(Model, Notify):
         else:
             return None
 
-    def __setitem__(self, key: Union[ResourceClassAttribute, Xsd_QName], value: Union[AttributeTypes, PropertyClass, Xsd_QName]) -> None:
-        if type(key) not in {ResourceClassAttribute, PropertyClass, Xsd_QName}:
+    def __change_setter(self, key: ResourceClassAttribute | Iri, value: AttributeTypes | PropertyClass | Iri) -> None:
+        if type(key) not in {ResourceClassAttribute, PropertyClass, Iri}:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, key)
@@ -146,7 +167,7 @@ class ResourceClass(Model, Notify):
                 else:
                     self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
             self._attributes[key] = value
-        elif isinstance(key, Xsd_QName):  # QName
+        elif isinstance(key, Iri):  # Iri
             if self._properties.get(key) is None:  # Property not set -> CREATE action
                 self._prop_changeset[key] = ResourceClassPropertyChange(None, Action.CREATE, False)
                 if value is None:
@@ -172,18 +193,20 @@ class ResourceClass(Model, Notify):
                     value._internal = self._owlclass_iri  # we need to access the private variable here
                     value._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
+        else:
+            raise OmasError(f'Invalid key type {type(key).__name__} of key {key}')
         self.notify()
 
-    def __delitem__(self, key: Union[ResourceClassAttribute, Xsd_QName]) -> None:
-        if type(key) not in {ResourceClassAttribute, Xsd_QName}:
-            raise ValueError(f'Invalid key type {type(key)} of key {key}')
+    def __deleter(self, key: ResourceClassAttribute | Iri) -> None:
+        if not isinstance(key, (ResourceClassAttribute, Iri)):
+            raise ValueError(f'Invalid key type {type(key).__name__} of key {key}')
         if isinstance(key, ResourceClassAttribute):
             if self._attr_changeset.get(key) is None:
                 self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
             else:
                 self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.DELETE, False)
             del self._attributes[key]
-        elif isinstance(key, Xsd_QName):
+        elif isinstance(key, Iri):
             if self._prop_changeset.get(key) is None:
                 self._prop_changeset[key] = ResourceClassPropertyChange(self._properties[key], Action.DELETE, False)
             else:
@@ -191,8 +214,26 @@ class ResourceClass(Model, Notify):
             del self._properties[key]
         self.notify()
 
+
+    def __getitem__(self, key: Union[ResourceClassAttribute, Xsd_QName]) -> Union[AttributeTypes, PropertyClass, Xsd_QName]:
+        return self.__getter(key)
+
+    def get(self, key: ResourceClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri | None:
+        if isinstance(key, ResourceClassAttribute):
+            return self._attributes.get(key)
+        elif isinstance(key, Xsd_QName):
+            return self._properties.get(key)
+        else:
+            return None
+
+    def __setitem__(self, key: Union[ResourceClassAttribute, Xsd_QName], value: Union[AttributeTypes, PropertyClass, Xsd_QName]) -> None:
+        self.__change_setter(key, value)
+
+    def __delitem__(self, key: Union[ResourceClassAttribute, Xsd_QName]) -> None:
+        self.__deleter(key)
+
     @property
-    def owl_class_iri(self) -> Xsd_QName:
+    def owl_class_iri(self) -> Iri:
         return self._owlclass_iri
 
     @property
@@ -200,19 +241,19 @@ class ResourceClass(Model, Notify):
         return self.__version
 
     @property
-    def creator(self) -> Optional[Xsd_anyURI]:
+    def creator(self) -> Iri | None:
         return self.__creator
 
     @property
-    def created(self) -> Optional[datetime]:
+    def created(self) -> Xsd_dateTime | None:
         return self.__created
 
     @property
-    def contributor(self) -> Optional[Xsd_anyURI]:
+    def contributor(self) -> Iri | None:
         return self.__contributor
 
     @property
-    def modified(self) -> Optional[datetime]:
+    def modified(self) -> Xsd_dateTime | None:
         return self.__modified
 
     def properties_items(self):
