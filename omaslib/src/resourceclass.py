@@ -127,7 +127,7 @@ class ResourceClass(Model, Notify):
                     newprop.set_notifier(self.notifier, newprop.property_class_iri)
         for attr in ResourceClassAttribute:
             prefix, name = attr.value.split(':')
-            setattr(PropertyClass, name, property(
+            setattr(ResourceClass, name, property(
                 partial(ResourceClass.__get_value, attr=attr),
                 partial(ResourceClass.__set_value, attr=attr),
                 partial(ResourceClass.__del_value, attr=attr)))
@@ -137,10 +137,10 @@ class ResourceClass(Model, Notify):
         self.__from_triplestore = False
 
     def __get_value(self: Self, attr: ResourceClassAttribute) -> AttributeTypes | PropertyClass | Iri | None:
-        return self.__getter_value(attr)
+        return self.__getter(attr)
 
     def __set_value(self: Self, attr: ResourceClassAttribute, value: AttributeTypes | PropertyClass | Iri) -> None:
-        self.__change_setter(attr, value)
+        self.__setter(attr, value)
 
     def __del_value(self: Self, attr: ResourceClassAttribute) -> None:
         self.__deleter(attr)
@@ -148,12 +148,12 @@ class ResourceClass(Model, Notify):
     def __getter(self, key: ResourceClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri:
         if isinstance(key, ResourceClassAttribute):
             return self._attributes.get(key)
-        elif isinstance(key, Xsd_QName):
+        elif isinstance(key, Iri):
             return self._properties.get(key)
         else:
             return None
 
-    def __change_setter(self, key: ResourceClassAttribute | Iri, value: AttributeTypes | PropertyClass | Iri) -> None:
+    def __setter(self, key: ResourceClassAttribute | Iri, value: AttributeTypes | PropertyClass | Iri) -> None:
         if type(key) not in {ResourceClassAttribute, PropertyClass, Iri}:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
         if getattr(value, 'set_notifier', None) is not None:
@@ -227,7 +227,7 @@ class ResourceClass(Model, Notify):
             return None
 
     def __setitem__(self, key: Union[ResourceClassAttribute, Xsd_QName], value: Union[AttributeTypes, PropertyClass, Xsd_QName]) -> None:
-        self.__change_setter(key, value)
+        self.__setter(key, value)
 
     def __delitem__(self, key: Union[ResourceClassAttribute, Xsd_QName]) -> None:
         self.__deleter(key)

@@ -109,6 +109,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertTrue(r1.closed)
 
         prop1 = r1[Iri("test:comment")]
+        self.assertIsNotNone(prop1)
         self.assertIsNone(prop1.internal)
         self.assertEqual(prop1.property_class_iri, Xsd_QName("test:comment"))
         self.assertEqual(prop1.datatype, XsdDatatypes.string)
@@ -137,7 +138,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop3.restrictions[PropertyRestrictionType.UNIQUE_LANG], Xsd_boolean(True))
         self.assertEqual(prop3.restrictions[PropertyRestrictionType.LANGUAGE_IN], LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
-        prop4 = r1[Xsd_QName("test:enumprop")]
+        prop4 = r1[Iri("test:enumprop")]
         self.assertEqual(prop4[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.IN],
                          RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
