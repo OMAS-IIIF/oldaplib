@@ -16,10 +16,8 @@ from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.iri import Iri
-from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
-from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.context import Context
@@ -215,21 +213,21 @@ class ResourceClass(Model, Notify):
         self.notify()
 
 
-    def __getitem__(self, key: Union[ResourceClassAttribute, Xsd_QName]) -> Union[AttributeTypes, PropertyClass, Xsd_QName]:
+    def __getitem__(self, key: ResourceClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri:
         return self.__getter(key)
 
     def get(self, key: ResourceClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri | None:
         if isinstance(key, ResourceClassAttribute):
             return self._attributes.get(key)
-        elif isinstance(key, Xsd_QName):
+        elif isinstance(key, Iri):
             return self._properties.get(key)
         else:
             return None
 
-    def __setitem__(self, key: Union[ResourceClassAttribute, Xsd_QName], value: Union[AttributeTypes, PropertyClass, Xsd_QName]) -> None:
+    def __setitem__(self, key: ResourceClassAttribute | Iri, value: AttributeTypes | PropertyClass | Iri) -> None:
         self.__setter(key, value)
 
-    def __delitem__(self, key: Union[ResourceClassAttribute, Xsd_QName]) -> None:
+    def __delitem__(self, key: ResourceClassAttribute | Iri) -> None:
         self.__deleter(key)
 
     @property
@@ -285,10 +283,10 @@ class ResourceClass(Model, Notify):
                 self._properties[prop].changeset_clear()
         self._prop_changeset = {}
 
-    def notifier(self, what: ResourceClassAttribute | Xsd_QName):
+    def notifier(self, what: ResourceClassAttribute | Iri):
         if isinstance(what, ResourceClassAttribute):
             self._attr_changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
-        elif isinstance(what, Xsd_QName):
+        elif isinstance(what, Iri):
             self._prop_changeset[what] = ResourceClassPropertyChange(None, Action.MODIFY, True)
         self.notify()
 
@@ -314,7 +312,7 @@ class ResourceClass(Model, Notify):
                 return False
 
     @staticmethod
-    def __query_shacl(con: IConnection, graph: Xsd_NCName, owl_class_iri: Xsd_QName) -> Attributes:
+    def __query_shacl(con: IConnection, graph: Xsd_NCName, owl_class_iri: Iri) -> Attributes:
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
@@ -340,7 +338,7 @@ class ResourceClass(Model, Notify):
                 continue  # processes later – points to a BNode containing
             else:
                 attriri = r['attriri']
-                if isinstance(r['value'], Xsd_QName):
+                if isinstance(r['value'], Iri):
                     if attributes.get(attriri) is None:
                         attributes[attriri] = []
                     attributes[attriri].append(r['value'])
@@ -372,13 +370,13 @@ class ResourceClass(Model, Notify):
                 self.__modified = val[0]
             else:
                 attr = ResourceClassAttribute(key)
-                if Xsd_QName == self.__datatypes[attr]:
+                if Iri == self.__datatypes[attr]:
                     self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
                 elif XsdDatatypes == self.__datatypes[attr]:
                     self._attributes[attr] = XsdDatatypes(str(val[0]))
                 elif LangString == self.__datatypes[attr]:
                     self._attributes[attr] = LangString(val)
-                elif bool == self.__datatypes[attr]:
+                elif Xsd_boolean == self.__datatypes[attr]:
                     self._attributes[attr] = bool(val[0])
                 if getattr(self._attributes[attr], 'set_notifier', None) is not None:
                     self._attributes[attr].set_notifier(self.notifier, attr)
@@ -386,7 +384,7 @@ class ResourceClass(Model, Notify):
         self.__from_triplestore = True
 
     @staticmethod
-    def __query_resource_props(con: IConnection, graph: Xsd_NCName, owlclass_iri: Xsd_QName) -> List[Union[PropertyClass, Xsd_QName]]:
+    def __query_resource_props(con: IConnection, graph: Xsd_NCName, owlclass_iri: Iri) -> List[PropertyClass | Iri]:
         """
         This method queries and returns a list of properties defined in a sh:NodeShape. The properties may be
         given "inline" as BNode or may be a reference to an external sh:PropertyShape. These external shapes will be
@@ -416,20 +414,20 @@ class ResourceClass(Model, Notify):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=context, query_result=jsonobj)
-        propinfos: Dict[Xsd_QName, Attributes] = {}
+        propinfos: Dict[Iri, Attributes] = {}
         #
         # first we run over all triples to gather the information about the properties of the possible
         # BNode based sh:property-Shapes.
         # NOTE: some of the nodes may actually be QNames referencing shapes defines as "standalone" sh:PropertyShape's.
         #
         for r in res:
-            if r['value'] == 'rdf:type':
+            if isinstance(r['value'], Iri) and r['value'] == 'rdf:type':
                 continue
-            if not isinstance(r['attriri'], Xsd_QName):
+            if not isinstance(r['attriri'], Iri):
                 raise OmasError(f"There is some inconsistency in this shape! ({r['attriri']})")
             propnode = r['prop']  # usually a BNode, but may be a reference to a standalone sh:PropertyShape definition
-            prop: Union[PropertyClass, Xsd_QName]
-            if isinstance(propnode, Xsd_QName):
+            prop: PropertyClass | Iri
+            if isinstance(propnode, Iri):
                 qname = propnode
                 propinfos[qname] = propnode
             elif isinstance(propnode, BNode):
@@ -443,9 +441,9 @@ class ResourceClass(Model, Notify):
         # now we collected all the information from the triple store. Let's process the information into
         # a list of full PropertyClasses or QName's to external definitions
         #
-        proplist: List[Union[Xsd_QName, PropertyClass]] = []
+        proplist: List[Iri | PropertyClass] = []
         for prop_iri, attributes in propinfos.items():
-            if isinstance(attributes, Xsd_QName):
+            if isinstance(attributes, Iri):
                 proplist.append(prop_iri)
             else:
                 prop = PropertyClass(con=con, graph=graph)
@@ -502,9 +500,9 @@ class ResourceClass(Model, Notify):
             self._properties[prop[0]].prop.read_owl()
 
     @classmethod
-    def read(cls, con: IConnection, graph: Xsd_NCName, owl_class_iri: Xsd_QName) -> 'ResourceClass':
+    def read(cls, con: IConnection, graph: Xsd_NCName, owl_class_iri: Iri) -> 'ResourceClass':
         attributes = ResourceClass.__query_shacl(con, graph=graph, owl_class_iri=owl_class_iri)
-        properties: List[Union[PropertyClass, Xsd_QName]] = ResourceClass.__query_resource_props(con=con, graph=graph, owlclass_iri=owl_class_iri)
+        properties: List[Union[PropertyClass, Iri]] = ResourceClass.__query_resource_props(con=con, graph=graph, owlclass_iri=owl_class_iri)
         resclass = cls(con=con, graph=graph, owlclass_iri=owl_class_iri, properties=properties)
         for prop in properties:
             if isinstance(prop, PropertyClass):

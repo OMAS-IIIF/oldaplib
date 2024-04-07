@@ -13,11 +13,13 @@ from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
+from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.propertyclass import PropClassAttrContainer, PropertyClass, OwlPropertyType
 from omaslib.src.propertyrestrictions import PropertyRestrictions
 from omaslib.src.resourceclass import ResourceClass
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_decimal import Xsd_decimal
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -141,6 +143,57 @@ class TestResourceClass(unittest.TestCase):
         prop4 = r1[Iri("test:enumprop")]
         self.assertEqual(prop4[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.IN],
                          RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
+
+    #@unittest.skip('Work in progress')
+    def test_reading(self):
+        r1 = ResourceClass.read(con=self._connection,
+                                graph=Xsd_NCName('test'),
+                                owl_class_iri=Iri('test:testMyRes'))
+        self.assertEqual(r1.owl_class_iri, Iri('test:testMyRes'))
+        self.assertEqual(r1.version, SemanticVersion(1, 0, 0))
+        self.assertEqual(r1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(r1.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(r1.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(r1.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(r1.label, LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr"]))
+        self.assertEqual(r1.comment, LangString("Resource for testing..."))
+        self.assertTrue(r1.closed)
+
+        prop1 = r1[Iri('test:test')]
+        self.assertIsNone(prop1.internal)
+        self.assertEqual(prop1.property_class_iri, Iri("test:test"))
+        self.assertEqual(prop1.version, SemanticVersion(1, 0, 0))
+        self.assertEqual(prop1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop1.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop1.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop1.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlObjectProperty)
+        self.assertEqual(prop1.toNodeIri, Iri('test:comment'))
+        self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
+        self.assertEqual(prop1.restrictions.get(PropertyRestrictionType.MIN_COUNT), Xsd_integer(1))
+        self.assertEqual(prop1.order, Xsd_decimal(3))
+
+        prop2 = r1[Iri('test:hasText')]
+        self.assertEqual(prop2.internal, Iri('test:testMyRes'))
+        self.assertEqual(prop2.property_class_iri, Iri("test:hasText"))
+        self.assertEqual(prop2.version, SemanticVersion(1, 0, 0))
+        self.assertEqual(prop2.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop2.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop2.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop2.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop2.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop2.datatype, XsdDatatypes.string)
+        self.assertEqual(prop2.name, LangString(["A text", "Ein Text@de"]))
+        self.assertEqual(prop2.description, LangString("A longer text..."))
+        self.assertEqual(prop2.order, Xsd_decimal(1))
+        self.assertEqual(prop2.restrictions.get(PropertyRestrictionType.MIN_COUNT), Xsd_integer(1))
+        self.assertEqual(prop2.restrictions.get(PropertyRestrictionType.MAX_COUNT), Xsd_integer(1))
+
+        prop3 = r1[Iri('test:hasEnum')]
+        self.assertEqual(prop3.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop3.datatype, XsdDatatypes.string)
+        self.assertEqual(prop3.restrictions.get(PropertyRestrictionType.IN),
+                         RdfSet(Xsd_string('red'), Xsd_string('green'), Xsd_string('blue'), Xsd_string('yellow')))
 
 
 if __name__ == '__main__':
