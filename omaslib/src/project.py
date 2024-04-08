@@ -258,6 +258,7 @@ class Project(Model):
               f'  Modified: {self.__modified} by {self.__contributor}\n'\
               f'  Label: {self.__fields[ProjectFields.LABEL]}\n'\
               f'  Comment: {self.__fields[ProjectFields.COMMENT]}\n'\
+              f'  ShortName: {self.__fields[ProjectFields.PROJECT_SHORTNAME]}\n'\
               f'  Namespace IRI: {self.__fields[ProjectFields.NAMESPACE_IRI]}\n'\
               f'  Project start: {self.__fields[ProjectFields.PROJECT_START]}\n'
         if self.__fields.get(ProjectFields.PROJECT_END) is not None:
@@ -335,7 +336,7 @@ class Project(Model):
             """
         elif shortname is not None:
             query += f"""
-                SELECT ?prop ?val
+                SELECT ?proj ?prop ?val
                 FROM omas:admin
                 WHERE {{
                     ?proj a omas:Project .
@@ -359,6 +360,8 @@ class Project(Model):
         projectStart = None
         projectEnd = None
         for r in res:
+            if projectIri is None:
+                projectIri = r['proj']
             match str(r.get('prop')):
                 case 'dcterms:creator':
                     creator = r['val']

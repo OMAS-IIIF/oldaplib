@@ -50,7 +50,7 @@ class OwlPropertyType(Enum):
 
 PropTypes = Iri | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | Xsd_decimal | None
 PropClassAttrContainer = Dict[PropClassAttr, PropTypes]
-Attributes = Dict[Xsd_QName, LangString | RdfSet | LanguageIn | List[Xsd]]
+Attributes = Dict[Iri, LangString | RdfSet | LanguageIn | List[Xsd]]
 
 
 @dataclass
@@ -296,7 +296,7 @@ class PropertyClass(Model, Notify):
         return self._changeset
 
     @property
-    def internal(self) -> Iri:
+    def internal(self) -> Iri | None:
         return self._internal
 
     def force_external(self):

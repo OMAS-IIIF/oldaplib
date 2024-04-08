@@ -35,17 +35,18 @@ class Testproject(unittest.TestCase):
                                  context_name="DEFAULT")
 
 
-        # cls._connection.clear_graph(QName('test:shacl'))
-        # cls._connection.clear_graph(QName('test:onto'))
-        # cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
-        # sleep(1)  # upload may take a while...
-
-    @classmethod
-    def tearDownClass(cls):
         cls._connection.clear_graph(Xsd_QName('omas:admin'))
         cls._connection.upload_turtle("omaslib/ontologies/admin.trig")
         sleep(1)  # upload may take a while...
 
+    @classmethod
+    def tearDownClass(cls):
+        #cls._connection.clear_graph(Xsd_QName('omas:admin'))
+        #cls._connection.upload_turtle("omaslib/ontologies/admin.trig")
+        #sleep(1)  # upload may take a while...
+        pass
+
+    # @unittest.skip('Work in progress')
     def test_project_read(self):
         project = Project.read(con=self._connection, projectIri_SName=Iri("omas:SystemProject"))
         self.assertEqual(Xsd_NCName("system"), project.projectShortName)
@@ -73,6 +74,7 @@ class Testproject(unittest.TestCase):
         with self.assertRaises(OmasErrorNotFound) as ex:
             projects = Project.search(con=self._connection, label="NoExisting")
 
+    # @unittest.skip('Work in progress')
     def test_project_create(self):
         project = Project(con=self._connection,
                           projectShortName="unittest",
@@ -157,11 +159,9 @@ class Testproject(unittest.TestCase):
                           )
         project.create()
         projectIri = project.projectIri
-        del project
 
-        project = Project.read(con=self._connection, projectIri_SName=projectIri)
+        project = Project.read(con=self._connection, projectIri_SName="deletetest")
         project.delete()
-        del project
 
         with self.assertRaises(OmasErrorNotFound) as ex:
             project = Project.read(con=self._connection, projectIri_SName=projectIri)

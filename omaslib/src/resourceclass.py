@@ -4,8 +4,10 @@ from functools import partial
 from typing import Union, Optional, List, Dict, Callable, Self
 from pystrict import strict
 
+from omaslib.src.connection import Connection
+from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.helpers.Notify import Notify
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed, OmasErrorValue
 from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.dtypes.string_literal import StringLiteral
@@ -85,6 +87,7 @@ class ResourceClass(Model, Notify):
         self._graph = graph if isinstance(graph, Xsd_NCName) else Xsd_NCName(graph)
 
         self._attributes = {}
+
         if isinstance(owlclass_iri, Iri):
             self._owlclass_iri = owlclass_iri
         elif owlclass_iri is not None:
@@ -99,11 +102,6 @@ class ResourceClass(Model, Notify):
             self._attributes[ResourceClassAttribute.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
         if closed is not None:
             self._attributes[ResourceClassAttribute.CLOSED] = closed if isinstance(closed, Xsd_boolean) else Xsd_boolean(closed)
-        self.__creator = con.userIri
-        self.__created = None
-        self.__contributor = con.userIri
-        self.__modified = None
-        self.__version = SemanticVersion()
         self._properties = {}
         if properties is not None:
             for prop in properties:
@@ -119,10 +117,12 @@ class ResourceClass(Model, Notify):
                         prop._internal = owlclass_iri
                     newprop = prop
                 else:
-                    newprop = None
+                    #newprop = None
+                    raise OmasErrorValue(f'Unexpected property type: {type(prop).__name__}')
                 if newprop is not None:
                     self._properties[newprop.property_class_iri] = newprop
                     newprop.set_notifier(self.notifier, newprop.property_class_iri)
+
         for attr in ResourceClassAttribute:
             prefix, name = attr.value.split(':')
             setattr(ResourceClass, name, property(
@@ -130,6 +130,11 @@ class ResourceClass(Model, Notify):
                 partial(ResourceClass.__set_value, attr=attr),
                 partial(ResourceClass.__del_value, attr=attr)))
 
+        self.__creator = con.userIri
+        self.__created = None
+        self.__contributor = con.userIri
+        self.__modified = None
+        self.__version = SemanticVersion()
         self._attr_changeset = {}
         self._prop_changeset = {}
         self.__from_triplestore = False
@@ -137,8 +142,8 @@ class ResourceClass(Model, Notify):
     def __get_value(self: Self, attr: ResourceClassAttribute) -> AttributeTypes | PropertyClass | Iri | None:
         return self.__getter(attr)
 
-    def __set_value(self: Self, attr: ResourceClassAttribute, value: AttributeTypes | PropertyClass | Iri) -> None:
-        self.__setter(attr, value)
+    def __set_value(self: Self, value: AttributeTypes | PropertyClass | Iri, attr: ResourceClassAttribute) -> None:
+        self.__change_setter(attr, value)
 
     def __del_value(self: Self, attr: ResourceClassAttribute) -> None:
         self.__deleter(attr)
@@ -151,7 +156,7 @@ class ResourceClass(Model, Notify):
         else:
             return None
 
-    def __setter(self, key: ResourceClassAttribute | Iri, value: AttributeTypes | PropertyClass | Iri) -> None:
+    def __change_setter(self, key: ResourceClassAttribute | Iri, value: AttributeTypes | PropertyClass | Iri) -> None:
         if type(key) not in {ResourceClassAttribute, PropertyClass, Iri}:
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
         if getattr(value, 'set_notifier', None) is not None:
@@ -212,7 +217,6 @@ class ResourceClass(Model, Notify):
             del self._properties[key]
         self.notify()
 
-
     def __getitem__(self, key: ResourceClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri:
         return self.__getter(key)
 
@@ -225,7 +229,7 @@ class ResourceClass(Model, Notify):
             return None
 
     def __setitem__(self, key: ResourceClassAttribute | Iri, value: AttributeTypes | PropertyClass | Iri) -> None:
-        self.__setter(key, value)
+        self.__change_setter(key, value)
 
     def __delitem__(self, key: ResourceClassAttribute | Iri) -> None:
         self.__deleter(key)
@@ -500,7 +504,7 @@ class ResourceClass(Model, Notify):
             self._properties[prop[0]].prop.read_owl()
 
     @classmethod
-    def read(cls, con: IConnection, graph: Xsd_NCName, owl_class_iri: Iri) -> 'ResourceClass':
+    def read(cls, con: IConnection, graph: Xsd_NCName, owl_class_iri: Iri) -> Self:
         attributes = ResourceClass.__query_shacl(con, graph=graph, owl_class_iri=owl_class_iri)
         properties: List[Union[PropertyClass, Iri]] = ResourceClass.__query_resource_props(con=con, graph=graph, owlclass_iri=owl_class_iri)
         resclass = cls(con=con, graph=graph, owlclass_iri=owl_class_iri, properties=properties)
@@ -557,22 +561,20 @@ class ResourceClass(Model, Notify):
         #         sparql += p.property_node_shacl(timestamp=timestamp, indent=3) + " .\n"
         #         sparql += "\n"
 
-        sparql += f'{blank:{(indent + 1)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri}'
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:targetClass {self._owlclass_iri}'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:targetClass {self._owlclass_iri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:hasVersion "{self.__version}"'
         self.__created = timestamp
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:creator <{self.__creator}>'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:created {timestamp.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:creator {self.__creator.toRdf}'
         self.__modified = timestamp
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor <{self.__contributor}>'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self.__contributor.toRdf}'
         for attr, value in self._attributes.items():
             if attr == ResourceClassAttribute.SUBCLASS_OF:
                 sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}{attr.value} {value}Shape'
-            elif attr == ResourceClassAttribute.CLOSED:
-                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:closed {"true" if value else "false"}'
             else:
-                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}{attr.value} {value}'
+                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}{attr.value} {value.toRdf}'
 
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property'
         sparql += f'\n{blank:{(indent + 3) * indent_inc}}['
@@ -600,10 +602,10 @@ class ResourceClass(Model, Notify):
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owlclass_iri} rdf:type owl:Class ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion "{self.__version}" ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator <{self.__creator}> ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor <{self.__contributor}> ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator.toRdf} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor.toRdf} ;\n'
         if self._attributes.get(ResourceClassAttribute.SUBCLASS_OF) is not None:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {self._attributes[ResourceClassAttribute.SUBCLASS_OF]} ,\n'
         else:
@@ -629,7 +631,7 @@ class ResourceClass(Model, Notify):
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
             raise OmasErrorAlreadyExists(f'Cannot create property that was read from triplestore before (property: {self._owlclass_iri}')
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -660,7 +662,7 @@ class ResourceClass(Model, Notify):
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         with open(filename, 'w') as f:
-            timestamp = datetime.now()
+            timestamp = Xsd_dateTime.now()
             blank = ''
             context = Context(name=self._con.context_name)
             f.write(context.turtle_context)
@@ -673,7 +675,7 @@ class ResourceClass(Model, Notify):
             f.write(self.create_owl(timestamp=timestamp))
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
-    def __update_shacl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
+    def __update_shacl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._attr_changeset and not self._prop_changeset:
             return ''
         blank = ''
@@ -739,14 +741,14 @@ class ResourceClass(Model, Notify):
         sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
                                      graph=self._graph,
                                      owlclass_iri=self._owlclass_iri,
-                                     ele=RdfModifyItem('dcterms:modified', f'"{self.__modified.isoformat()}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                     ele=RdfModifyItem('dcterms:modified', self.__modified.toRdf, timestamp.toRdf),
                                      last_modified=self.__modified)
         sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
         return sparql
 
-    def __update_owl(self, timestamp: datetime, indent: int = 0, indent_inc: int = 4) -> str:
+    def __update_owl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._attr_changeset and not self._prop_changeset:
             return ''
         blank = ''
@@ -763,18 +765,18 @@ class ResourceClass(Model, Notify):
                 sparql += f'WITH {self._graph}:onto\n'
                 if change.action != Action.CREATE:
                     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop rdfs:subClassOf {change.old_value} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop rdfs:subClassOf {change.old_value.toRdf} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 if change.action != Action.DELETE:
                     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop rdfs:subClassOf {self._attributes[item]} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop rdfs:subClassOf {self._attributes[item].toRdf} .\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri} as ?prop)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri.toRdf} as ?prop)\n'
                 if change.action != Action.CREATE:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?res rdfs:subClassOf {change.old_value} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?res rdfs:subClassOf {change.old_value.toRdf} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{timestamp.isoformat()}"^^xsd:dateTime)\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {timestamp.toRdf})\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
 
@@ -793,9 +795,9 @@ class ResourceClass(Model, Notify):
                 sparql += '\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri} as ?res)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri.toRdf} as ?res)\n'
             if change.action != Action.CREATE:
-                sparql += f'{blank:{(indent + 2) * indent_inc}}?node owl:onProperty {prop}\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?node owl:onProperty {prop.toRdf}\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql_list.append(sparql)
 
@@ -814,7 +816,7 @@ class ResourceClass(Model, Notify):
         sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
                                     graph=self._graph,
                                     owlclass_iri=self._owlclass_iri,
-                                    ele=RdfModifyItem('dcterms:modified', f'"{self.__modified.isoformat()}"^^xsd:dateTime', f'"{timestamp.isoformat()}"^^xsd:dateTime'),
+                                    ele=RdfModifyItem('dcterms:modified', self.__modified.toRdf, timestamp.toRdf),
                                     last_modified=self.__modified)
         sparql_list.append(sparql)
 
@@ -822,7 +824,7 @@ class ResourceClass(Model, Notify):
         return sparql
 
     def update(self) -> None:
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
         #
         # First we process the changes regarding the properties
@@ -898,7 +900,7 @@ class ResourceClass(Model, Notify):
             ?prop ?p ?v
         }}
         WHERE {{
-            ?prop rdfs:domain {self._owlclass_iri} .
+            ?prop rdfs:domain {self._owlclass_iri.toRdf} .
             ?prop ?p ?v
         }} ;
         WITH {self._graph}:onto
@@ -907,7 +909,7 @@ class ResourceClass(Model, Notify):
             ?value ?pp ?vv .
         }}
         WHERE {{
-            BIND({self._owlclass_iri} AS ?res)
+            BIND({self._owlclass_iri.toRdf} AS ?res)
             ?res ?prop ?value
             OPTIONAL {{
                 ?value ?pp ?vv
@@ -931,7 +933,7 @@ class ResourceClass(Model, Notify):
         jsonobj = self._con.transaction_query(sparql)
         res_shacl = QueryProcessor(context, jsonobj)
         sparql = context.sparql_context
-        sparql += f"SELECT * FROM {self._graph}:onto WHERE {{ {self._owlclass_iri} ?p ?v }}"
+        sparql += f"SELECT * FROM {self._graph}:onto WHERE {{ {self._owlclass_iri.toRdf} ?p ?v }}"
         jsonobj = self._con.transaction_query(sparql)
         res_onto = QueryProcessor(context, jsonobj)
         if len(res_shacl) > 0 or len(res_onto) > 0:
@@ -942,76 +944,21 @@ class ResourceClass(Model, Notify):
 
 
 if __name__ == '__main__':
-    pass
-    # con = Connection('http://localhost:7200', 'omas')
-    # omas_project = ResourceClass(con, QName('omas:Project'))
-    # omas_project.read()
-    #print(omas_project)
-    #print(omas_project.create(as_string=True))
-    #exit(0)
-    #omas_project.label = LangString({Languages.EN: '*Omas Project*', Languages.DE: '*Omas-Projekt*'})
-    #omas_project.comment_add(Languages.FR, 'Un project pour OMAS')
-    #omas_project.closed = False
-    #omas_project.subclass_of = QName('omas:Object')
-    # omas_project[QName('omas:projectEnd')].name = LangString({Language.DE: "Projektende"})
-    # print(omas_project.update())
-    # omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
-    # omas_project2.read()
-    # print(omas_project2)
-    # exit(0)
-    #omas_project.closed = False
-    #omas_project.update()
-    #omas_project2 = ResourceClass(con, QName('omas:OmasProject'))
-    #omas_project2.read()
-    #print(omas_project2)
-    #exit(0)
-    #print(omas_project)
-    #omas_project.create()
-    #exit(-1)
-    # pdict = {
-    #     QName('omas:commentstr'):
-    #     PropertyClass(con=con,
-    #                   property_class_iri=QName('omas:commentstr'),
-    #                   datatype=XsdDatatypes.string,
-    #                   exclusive_for_class=QName('omas:OmasComment'),
-    #                   restrictions=PropertyRestrictions(
-    #                       min_count=1,
-    #                       language_in={Language.DE, Language.EN},
-    #                       unique_lang=True
-    #                   ),
-    #                   name=LangString({Language.EN: "Comment"}),
-    #                   description=LangString({Language.EN: "A comment to anything"}),
-    #                   order=1),
-    #     QName('omas:creator'):
-    #     PropertyClass(con=con,
-    #                   property_class_iri=QName('omas:creator'),
-    #                   to_node_iri=QName('omas:User'),
-    #                   restrictions=PropertyRestrictions(
-    #                       min_count=1,
-    #                       max_count=1
-    #                   ),
-    #                   order=2),
-    #     QName('omas:createdAt'):
-    #     PropertyClass(con=con,
-    #                   property_class_iri=QName('omas:createdAt'),
-    #                   datatype=XsdDatatypes.dateTime,
-    #                   restrictions=PropertyRestrictions(
-    #                       min_count=1,
-    #                       max_count=1
-    #                   ),
-    #                   order=3)
-    # }
-    # comment_class = ResourceClass(
-    #     con=con,
-    #     owlclass_iri=QName('omas:OmasComment'),
-    #     subclass_of=QName('omas:OmasUser'),
-    #     label=LangString({Language.EN: 'Omas Comment', Language.DE: 'Omas Kommentar'}),
-    #     comment=LangString({Language.EN: 'A class to comment something...'}),
-    #     properties=pdict,
-    #     closed=True
-    # )
-    # comment_class.create()
-    # comment_class = None
-    # comment_class2 = ResourceClass(con=con, owlclass_iri=QName('omas:OmasComment'))
-    # comment_class2.read()
-    # print(comment_class2)
+    context = Context(name="DEFAULT")
+    context['test'] = NamespaceIRI("http://omas.org/test#")
+    context.use('test', 'dcterms')
+
+    connection = Connection(server='http://localhost:7200',
+                                 userId="rosenth",
+                                 credentials="RioGrande",
+                                 repo="omas",
+                                 context_name="DEFAULT")
+    properties: list[PropertyClass | Iri] = [
+        Iri("test:comment"),
+        Iri("test:test"),
+    ]
+    r1 = ResourceClass(con=connection,
+                       graph=Xsd_NCName('test'),
+                       owlclass_iri=Iri("test:testMyResMinimal"))
+    r1.closed = Xsd_boolean(True)
+

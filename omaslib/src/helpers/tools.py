@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional, List, Tuple, Union
 
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
@@ -36,10 +37,10 @@ class RdfModifyRes:
     def __rdf_modify_property(cls, *,
                               shacl: bool,
                               action: Action,
-                              owlclass_iri: Xsd_QName,
+                              owlclass_iri: Iri,
                               graph: Xsd_QName,
                               ele: RdfModifyItem,
-                              last_modified: datetime,
+                              last_modified: Xsd_dateTime,
                               indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'WITH {graph}\n'
@@ -60,7 +61,7 @@ class RdfModifyRes:
         if shacl:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({owlclass_iri}Shape as ?resource)\n'
         else:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({owlclass_iri} as ?resource)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({owlclass_iri.toRdf} as ?resource)\n'
         if action != Action.CREATE:
             if ele.old_value is not None:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
@@ -68,7 +69,7 @@ class RdfModifyRes:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} ?value .\n'
         if ele.property != 'dcterms:modified':
             sparql += f'{blank:{(indent + 1) * indent_inc}}?resource dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = "{last_modified.isoformat()}"^^xsd:dateTime)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {last_modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 
@@ -76,9 +77,9 @@ class RdfModifyRes:
     def shacl(cls, *,
               action: Action,
               graph: Xsd_NCName,
-              owlclass_iri: Xsd_QName,
+              owlclass_iri: Iri,
               ele: RdfModifyItem,
-              last_modified: datetime,
+              last_modified: Xsd_dateTime,
               indent: int = 0, indent_inc: int = 4):
         graph = Xsd_QName(str(graph) + ':shacl')
         return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
@@ -89,9 +90,9 @@ class RdfModifyRes:
     def onto(cls, *,
              action: Action,
              graph: Xsd_NCName,
-             owlclass_iri: Xsd_QName,
+             owlclass_iri: Iri,
              ele: RdfModifyItem,
-             last_modified: datetime,
+             last_modified: Xsd_dateTime,
              indent: int = 0, indent_inc: int = 4):
         graph = Xsd_QName(str(graph) + ':onto')
         return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
