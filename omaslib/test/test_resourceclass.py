@@ -34,6 +34,51 @@ class Graph(Enum):
     SHACL = 'test:shacl'
 
 
+def check_prop_empty(con: Connection, context: Context, graph: Graph, res: str, prop: str) -> bool:
+    sparql = context.sparql_context
+    if graph == Graph.SHACL:
+        sparql += f"""
+        SELECT ?p ?v ?pp ?oo
+        FROM {graph.value}
+        WHERE {{
+            {res}Shape sh:property ?prop .
+            ?prop sh:path {prop} .
+            ?prop ?p ?v .
+            OPTIONAL {{ ?v ?pp ?oo }}
+        }}
+        """
+    else:
+        sparql += f"""
+        SELECT ?p ?v ?pp ?oo
+        FROM {graph.value}
+        WHERE {{
+            {res} rdfs:subClassOf ?prop .
+            ?prop owl:onProperty test:propB .
+            ?prop ?p ?v .
+            OPTIONAL {{ ?v ?pp ?oo }}
+        }}
+        """
+    jsonres = con.query(sparql)
+    res = QueryProcessor(context, jsonres)
+    return len(res) == 0
+
+def check_res_empty(con: Connection, context: Context, graph: Graph, res: str) -> bool:
+    sparql = context.sparql_context
+    if graph == Graph.SHACL:
+        res += 'Shape'
+    sparql += f"""
+    SELECT ?p ?v ?pp ?oo
+    FROM {graph.value}
+    WHERE {{
+        {res} ?p ?v .
+        OPTIONAL {{ ?v ?pp ?oo }}
+    }}
+    """
+    jsonres = con.query(sparql)
+    res = QueryProcessor(context, jsonres)
+    return len(res) == 0
+
+
 class TestResourceClass(unittest.TestCase):
     _context: Context
     _connection: Connection
@@ -464,6 +509,181 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r2[Iri('test:hasText')].restrictions[PropertyRestrictionType.LANGUAGE_IN], LanguageIn(Language.DE, Language.FR, Language.IT))
         self.assertEqual(r2[Iri('test:hasEnum')].restrictions[PropertyRestrictionType.IN], RdfSet(Xsd_string('L'), Xsd_string('a'), Xsd_string('b')))
 
+    # @unittest.skip('Work in progress')
+    def test_delete_props(self):
+        p1 = PropertyClass(con=self._connection,
+                           graph=Xsd_NCName('test'),
+                           property_class_iri=Iri('test:propA'),
+                           subPropertyOf=Iri('test:comment'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["Test property@en", "Testprädikat@de"]),
+                           description=LangString("A property for testing...@en"),
+                           restrictions=PropertyRestrictions(restrictions={
+                               PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
+                               PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                               PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                               PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
+
+                           }),
+                           order=Xsd_decimal(1))
+
+        p2 = PropertyClass(con=self._connection,
+                           graph=Xsd_NCName('test'),
+                           property_class_iri=Iri('test:propB'),
+                           toNodeIri=Iri('test:testMyRes'),
+                           name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
+                           description=LangString("An exclusive property for testing...@en"),
+                           restrictions=PropertyRestrictions(restrictions={
+                               PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                               PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                               PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
+                           }),
+                           order=Xsd_decimal(2))
+
+        p3 = PropertyClass(con=self._connection,
+                           graph=Xsd_NCName('test'),
+                           property_class_iri=Iri('test:propC'),
+                           datatype=XsdDatatypes.int,
+                           restrictions=PropertyRestrictions(restrictions={
+                               PropertyRestrictionType.IN: RdfSet(Xsd_integer(10), Xsd_integer(20), Xsd_integer(30))
+                           }))
+
+        properties: list[PropertyClass | Iri] = [
+            Iri("test:comment"),
+            Iri("test:test"),
+            p1, p2, p3
+        ]
+        r1 = ResourceClass(con=self._connection,
+                           graph=Xsd_NCName('test'),
+                           owlclass_iri=Iri("test:TestResourceDelProps"),
+                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           properties=properties)
+
+        r1.create()
+
+        r2 = ResourceClass.read(con=self._connection,
+                                graph=Xsd_NCName('test'),
+                                owl_class_iri=Iri("test:TestResourceDelProps"))
+        del r2[Iri('test:propB')]
+        del r2[Iri("test:test")]  # OWL is not yet removed (rdfs:subClassOf is still there)
+        del r2[Iri('test:propC')]
+        r2.update()
+
+        r3 = ResourceClass.read(con=self._connection,
+                                graph=Xsd_NCName('test'),
+                                owl_class_iri=Iri("test:TestResourceDelProps"))
+
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.SHACL, 'test:testMyResMinimal', 'test:propB'))
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.ONTO, 'test:testMyResMinimal', 'test:propB'))
+
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.SHACL, 'test:testMyResMinimal', 'test:test'))
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.ONTO, 'test:testMyResMinimal', 'test:test'))
+
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.SHACL, 'test:testMyResMinimal', 'test:propC'))
+        self.assertTrue(check_prop_empty(self._connection, self._context, Graph.ONTO, 'test:testMyResMinimal', 'test:propC'))
+
+    # @unittest.skip('Work in progress')
+    def test_delete(self):
+        p1 = PropertyClass(con=self._connection,
+                           graph=Xsd_NCName('test'),
+                           property_class_iri=Iri('test:deleteA'),
+                           subPropertyOf=Iri('test:comment'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["Test property@en", "Testprädikat@de"]),
+                           description=LangString("A property for testing...@en"),
+                           restrictions=PropertyRestrictions(restrictions={
+                               PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
+                               PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                               PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                               PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
+                           }),
+                           order=Xsd_decimal(1))
+
+        p2 = PropertyClass(con=self._connection,
+                           graph=Xsd_NCName('test'),
+                           property_class_iri=Iri('test:deleteB'),
+                           toNodeIri=Iri('test:testMyRes'),
+                           name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
+                           description=LangString("A property for testing...@en"),
+                           restrictions=PropertyRestrictions(restrictions={
+                               PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                               PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                               PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
+                           }),
+                           order=Xsd_decimal(2))
+
+        p3 = PropertyClass(con=self._connection,
+                           graph=Xsd_NCName('test'),
+                           property_class_iri=Xsd_QName('test:deleteC'),
+                           datatype=XsdDatatypes.int,
+                           restrictions=PropertyRestrictions(restrictions={
+                               PropertyRestrictionType.IN: RdfSet(Xsd_integer(10), Xsd_integer(20), Xsd_integer(30))
+                           }))
+
+        properties: list[PropertyClass | Iri] = [
+            Iri("test:comment"),
+            Iri("test:test"),
+            p1, p2, p3
+        ]
+        r1 = ResourceClass(con=self._connection,
+                           graph=Xsd_NCName('test'),
+                           owlclass_iri=Xsd_QName("test:TestResourceDelete"),
+                           label=LangString(["DeleteResTest@en", "EffaçerResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           properties=properties)
+
+        r1.create()
+        del r1
+
+        r2 = ResourceClass.read(con=self._connection,
+                                graph=Xsd_NCName('test'),
+                                owl_class_iri=Iri("test:TestResourceDelete"))
+        r2.delete()
+
+        self.assertTrue(check_res_empty(self._connection, self._context, Graph.SHACL, 'test:TestResourceDelete'))
+        self.assertTrue(check_res_empty(self._connection, self._context, Graph.ONTO, 'test:TestResourceDelete'))
+
+    #@unittest.skip('Work in progress')
+    def test_write_trig(self):
+        project_id = PropertyClass(con=self._connection,
+                                   graph=Xsd_NCName('test'),
+                                   property_class_iri=Iri('test:projectId'),
+                                   datatype=XsdDatatypes.NCName,
+                                   name=LangString(["Project ID@en", "Projekt ID@de"]),
+                                   description=LangString(["Unique ID for project@en", "Eindeutige ID für Projekt@de"]),
+                                   restrictions=PropertyRestrictions(restrictions={
+                                       PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                                       PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
+                                       PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True)
+                                   }),
+                                   order=Xsd_decimal(1))
+        project_name = PropertyClass(con=self._connection,
+                                     graph=Xsd_NCName('test'),
+                                     property_class_iri=Iri('test:projectName'),
+                                     datatype=XsdDatatypes.string,
+                                     name=LangString(["Project name@en", "Projektname@de"]),
+                                     description=LangString(["A description of the project@en", "EineBeschreibung des Projekts@de"]),
+                                     restrictions=PropertyRestrictions(restrictions={
+                                         PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                                         PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
+                                         PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True)
+                                     }),
+                                     order=Xsd_decimal(2))
+
+        properties: list[PropertyClass | Xsd_QName] = [
+            project_id, project_name
+        ]
+        r1 = ResourceClass(con=self._connection,
+                           graph=Xsd_NCName('test'),
+                           owlclass_iri=Xsd_QName("test:Project"),
+                           label=LangString(["Project@en", "Projekt@de"]),
+                           comment=LangString(["Definiton of a project@en", "Definition eines Projektes@de"]),
+                           closed=Xsd_boolean(True),
+                           properties=properties)
+        r1.write_as_trig("gaga.trig")
 
 
 if __name__ == '__main__':

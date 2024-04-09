@@ -669,7 +669,7 @@ class ResourceClass(Model, Notify):
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:shacl {{\n')
             f.write(self.create_shacl(timestamp=timestamp))
-            f.write(f' ;\n{blank:{indent * indent_inc}}}}\n')
+            f.write(f'\n{blank:{indent * indent_inc}}}}\n')
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
             f.write(self.create_owl(timestamp=timestamp))
