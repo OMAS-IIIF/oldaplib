@@ -305,6 +305,20 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_date(date(2000, 12, 21))
         self.assertEqual(str(val), '2000-12-21')
 
+        val1 = Xsd_date("2000-12-21")
+        val2 = Xsd_date("2000-12-24")
+        self.assertTrue(val1 < val2)
+        self.assertTrue(val1 < "2000-12-24")
+        self.assertTrue(val1 <= val2)
+        self.assertTrue(val1 <= "2000-12-24")
+        self.assertTrue(val2 > val1)
+        self.assertTrue(val2 > "2000-12-21")
+        self.assertTrue(val2 >= val1)
+        self.assertTrue(val2 >= "2000-12-21")
+        val2 = Xsd_date("2000-12-21")
+        self.assertTrue(val1 == val2)
+        self.assertTrue(val1 == "2000-12-21")
+
     def test_xsd_dateTime(self):
         val = Xsd_dateTime('2001-10-26T21:32:52')
         self.assertTrue(str(val), '2001-10-26T21:32:52')

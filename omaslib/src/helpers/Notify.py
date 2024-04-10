@@ -31,7 +31,7 @@ class Notify:
         self._data = data
 
     def set_notifier(self,
-                     notifier: Callable[[Union[PropClassAttr, ResourceClassAttribute, Xsd_QName]], None],
+                     notifier: Callable[[Union[PropClassAttr, ResourceClassAttribute, Xsd_QName | Iri]], None],
                      data: PropClassAttr | ResourceClassAttribute | Iri | Xsd_QName | None = None) -> None:
         """
         Sets the notifier callback function and the data it should return...

@@ -16,7 +16,7 @@ class TestLangstring(unittest.TestCase):
     def test_langstring_constructor(self):
         ls1 = LangString("english@en")
         self.assertEqual(ls1['en'], 'english')
-        ls2 = LangString(ls)
+        ls2 = LangString('nolanguage')
         self.assertEqual(ls2['xx'], 'nolanguage')
         self.assertEqual(ls2[Language.XX], 'nolanguage')
         ls3 = LangString(ls1)

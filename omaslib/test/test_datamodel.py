@@ -2,9 +2,14 @@ import unittest
 
 from omaslib.src.connection import Connection
 from omaslib.src.datamodel import DataModel, PropertyClassChange, ResourceClassChange
+from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.xsd.iri import Iri
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
+from omaslib.src.xsd.xsd_decimal import Xsd_decimal
+from omaslib.src.xsd.xsd_integer import Xsd_integer
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.langstring import LangString
@@ -46,98 +51,76 @@ class TestDataModel(unittest.TestCase):
         #
         # define an external standalone property
         #
-        attrs: PropClassAttrContainer = {
-            PropClassAttr.DATATYPE: XsdDatatypes.string,
-            PropClassAttr.NAME: LangString(["Comment@en", "Kommentar@de"]),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(
-                restrictions={
-                    PropertyRestrictionType.UNIQUE_LANG: True,
-                    PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT}
-                }),
-        }
         comment = PropertyClass(con=self._connection,
                                 graph=dm_name,
-                                property_class_iri=Xsd_QName(f'{dm_name}:comment'),
-                                attrs=attrs)
+                                property_class_iri=Iri(f'{dm_name}:comment'),
+                                datatype=XsdDatatypes.string,
+                                name=LangString(["Comment@en", "Kommentar@de"]),
+                                restrictions=PropertyRestrictions(restrictions={
+                                    PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                                    PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
+                                }))
         comment.force_external()
 
         #
         # Define the properties for the "Book"
         #
-        attrs: PropClassAttrContainer = {
-            PropClassAttr.DATATYPE: XsdDatatypes.string,
-            PropClassAttr.NAME: LangString(["Title@en", "Titel@de"]),
-            PropClassAttr.DESCRIPTION: LangString(["Title of book@en", "Titel des Buches@de"]),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(
-                restrictions={
-                    PropertyRestrictionType.MIN_COUNT: 1,
-                    PropertyRestrictionType.UNIQUE_LANG: True,
-                    PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT}
-                }),
-            PropClassAttr.ORDER: 1
-        }
         title = PropertyClass(con=self._connection,
                               graph=dm_name,
-                              property_class_iri=Xsd_QName(f'{dm_name}:title'),
-                              attrs=attrs)
+                              property_class_iri=Iri(f'{dm_name}:title'),
+                              datatype=XsdDatatypes.string,
+                              name=LangString(["Title@en", "Titel@de"]),
+                              description=LangString(["Title of book@en", "Titel des Buches@de"]),
+                              restrictions=PropertyRestrictions(restrictions={
+                                  PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                                  PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                                  PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
+                              }),
+                              order=Xsd_decimal(1))
 
-        attrs: PropClassAttrContainer = {
-            PropClassAttr.TO_NODE_IRI: Xsd_QName('omas:Person'),
-            PropClassAttr.NAME: LangString(["Author(s)@en", "Autor(en)@de"]),
-            PropClassAttr.DESCRIPTION: LangString(["Writers of the Book@en", "Schreiber des Buchs@de"]),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(
-                restrictions={
-                    PropertyRestrictionType.MIN_COUNT: 1,
-                }),
-            PropClassAttr.ORDER: 2
-        }
         authors = PropertyClass(con=self._connection,
                                 graph=dm_name,
-                                property_class_iri=Xsd_QName(f'{dm_name}:authors'),
-                                attrs=attrs)
+                                property_class_iri=Iri(f'{dm_name}:authors'),
+                                toNodeIri=Iri('omas:Person'),
+                                name=LangString(["Author(s)@en", "Autor(en)@de"]),
+                                description=LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]),
+                                restrictions=PropertyRestrictions(restrictions={
+                                    PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                                }),
+                                order=Xsd_decimal(2))
 
-        rattrs = ResourceClassAttributesContainer = {
-            ResourceClassAttribute.LABEL: LangString(["Book@en", "Buch@de"]),
-            ResourceClassAttribute.COMMENT: LangString("Ein Buch mit Seiten@en"),
-            ResourceClassAttribute.CLOSED: True
-        }
         book = ResourceClass(con=self._connection,
                              graph=dm_name,
-                             owlclass_iri=Xsd_QName(f'{dm_name}:Book'),
-                             attrs=rattrs,
+                             owlclass_iri=Iri(f'{dm_name}:Book'),
+                             label=LangString(["Book@en", "Buch@de"]),
+                             comment=LangString("Ein Buch mit Seiten@en"),
+                             closed=Xsd_boolean(True),
                              properties=[title, authors, comment])
 
-        attrs: PropClassAttrContainer = {
-            PropClassAttr.DATATYPE: XsdDatatypes.int,
-            PropClassAttr.NAME: LangString(["Pagenumber@en", "Seitennummer@de"]),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(
-                restrictions={
-                    PropertyRestrictionType.MAX_COUNT: 1,
-                    PropertyRestrictionType.MIN_COUNT: 1,
-                    PropertyRestrictionType.UNIQUE_LANG: True,
-                    PropertyRestrictionType.LANGUAGE_IN: {Language.EN, Language.DE, Language.FR, Language.IT}
-                }),
-            PropClassAttr.ORDER: 1
-        }
         pagenum = PropertyClass(con=self._connection,
                                 graph=dm_name,
-                                property_class_iri=Xsd_QName(f'{dm_name}:pagenum'),
-                                attrs=attrs)
+                                property_class_iri=Iri(f'{dm_name}:pagenum'),
+                                datatype=XsdDatatypes.int,
+                                name=LangString(["Pagenumber@en", "Seitennummer@de"]),
+                                restrictions=PropertyRestrictions(restrictions={
+                                    PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
+                                    PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                                    PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
+                                    PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
 
-        attrs: PropClassAttrContainer = {
-            PropClassAttr.TO_NODE_IRI: Xsd_QName(f'{dm_name}:Book'),
-            PropClassAttr.NAME: LangString(["Pagenumber@en", "Seitennummer@de"]),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(
-                restrictions={
-                    PropertyRestrictionType.MAX_COUNT: 1,
-                    PropertyRestrictionType.MIN_COUNT: 1,
-                }),
-            PropClassAttr.ORDER: 1
-        }
+                                }),
+                                order=Xsd_decimal(1))
+
         inbook = PropertyClass(con=self._connection,
                                graph=dm_name,
-                               property_class_iri=Xsd_QName(f'{dm_name}:inbook'),
-                               attrs=attrs)
+                               property_class_iri=Iri(f'{dm_name}:inbook'),
+                               toNodeIri=Iri(f'{dm_name}:Book'),
+                               name=LangString(["Pagenumber@en", "Seitennummer@de"]),
+                               restrictions=PropertyRestrictions(restrictions={
+                                   PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
+                                   PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                               }),
+                               order=Xsd_decimal(1))
 
         rattrs = ResourceClassAttributesContainer = {
             ResourceClassAttribute.LABEL: LangString(["Page@en", "Seite@de"]),
@@ -147,8 +130,10 @@ class TestDataModel(unittest.TestCase):
 
         page = ResourceClass(con=self._connection,
                              graph=dm_name,
-                             owlclass_iri=Xsd_QName(f'{dm_name}:Page'),
-                             attrs=rattrs,
+                             owlclass_iri=Iri(f'{dm_name}:Page'),
+                             label=LangString(["Page@en", "Seite@de"]),
+                             comment=LangString("Page of a book@en"),
+                             closed=Xsd_boolean(True),
                              properties=[pagenum, inbook, comment])
 
         dm = DataModel(con=self._connection,
@@ -167,131 +152,121 @@ class TestDataModel(unittest.TestCase):
         del dm
 
         dm2 = DataModel.read(con=self._connection, graph=dm_name)
-        p1 = dm2[Xsd_QName(f'{dm_name}:comment')]
-        self.assertEqual(p1[PropClassAttr.DATATYPE], XsdDatatypes.string)
-        self.assertEqual(p1[PropClassAttr.NAME], LangString(["Comment@en", "Kommentar@de"]))
-        self.assertTrue(p1[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+        p1 = dm2[Iri(f'{dm_name}:comment')]
+        self.assertEqual(p1.datatype, XsdDatatypes.string)
+        self.assertEqual(p1.name, LangString(["Comment@en", "Kommentar@de"]))
+        self.assertTrue(p1.restrictions[PropertyRestrictionType.UNIQUE_LANG])
 
-        r1 = dm2[Xsd_QName(f'{dm_name}:Book')]
-        r1p1 = r1[Xsd_QName(f'{dm_name}:title')]
-        self.assertEqual(r1p1.internal, Xsd_QName(f'{dm_name}:Book'))
-        self.assertEqual(r1p1[PropClassAttr.DATATYPE], XsdDatatypes.string)
-        self.assertEqual(r1p1[PropClassAttr.NAME], LangString(["Title@en", "Titel@de"]))
-        self.assertEqual(r1p1[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
-        r1p2 = r1[Xsd_QName(f'{dm_name}:authors')]
-        self.assertEqual(r1p2.internal, Xsd_QName(f'{dm_name}:Book'))
-        self.assertEqual(r1p2[PropClassAttr.TO_NODE_IRI], Xsd_QName('omas:Person'))
-        self.assertEqual(r1p2[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.MIN_COUNT], 1)
-        r1p3 = r1[Xsd_QName(f'{dm_name}:comment')]
+        r1 = dm2[Iri(f'{dm_name}:Book')]
+        r1p1 = r1[Iri(f'{dm_name}:title')]
+        self.assertEqual(r1p1.internal, Iri(f'{dm_name}:Book'))
+        self.assertEqual(r1p1.datatype, XsdDatatypes.string)
+        self.assertEqual(r1p1.name, LangString(["Title@en", "Titel@de"]))
+        self.assertEqual(r1p1.restrictions[PropertyRestrictionType.MIN_COUNT], Xsd_integer(1))
+        r1p2 = r1[Iri(f'{dm_name}:authors')]
+        self.assertEqual(r1p2.internal, Iri(f'{dm_name}:Book'))
+        self.assertEqual(r1p2.toNodeIri, Iri('omas:Person'))
+        self.assertEqual(r1p2.restrictions[PropertyRestrictionType.MIN_COUNT], Xsd_integer(1))
+        r1p3 = r1[Iri(f'{dm_name}:comment')]
         self.assertIsNone(r1p3.internal)
-        self.assertEqual(r1p3[PropClassAttr.DATATYPE], XsdDatatypes.string)
+        self.assertEqual(r1p3.datatype, XsdDatatypes.string)
 
-        r2 = dm2[Xsd_QName(f'{dm_name}:Page')]
-        r2p1 = r2[Xsd_QName(f'{dm_name}:pagenum')]
-        self.assertEqual(r2p1.internal, Xsd_QName(f'{dm_name}:Page'))
-        self.assertEqual(r2p1[PropClassAttr.DATATYPE], XsdDatatypes.int)
-        r2p2 = r2[Xsd_QName(f'{dm_name}:inbook')]
-        self.assertEqual(r2p2.internal, Xsd_QName(f'{dm_name}:Page'))
-        self.assertEqual(r2p2[PropClassAttr.TO_NODE_IRI], Xsd_QName(f'{dm_name}:Book'))
-        r2p3 = r1[Xsd_QName(f'{dm_name}:comment')]
+        r2 = dm2[Iri(f'{dm_name}:Page')]
+        r2p1 = r2[Iri(f'{dm_name}:pagenum')]
+        self.assertEqual(r2p1.internal, Iri(f'{dm_name}:Page'))
+        self.assertEqual(r2p1.datatype, XsdDatatypes.int)
+        r2p2 = r2[Iri(f'{dm_name}:inbook')]
+        self.assertEqual(r2p2.internal, Iri(f'{dm_name}:Page'))
+        self.assertEqual(r2p2[PropClassAttr.TO_NODE_IRI], Iri(f'{dm_name}:Book'))
+        r2p3 = r1[Iri(f'{dm_name}:comment')]
         self.assertIsNone(r2p3.internal)
-        self.assertEqual(r2p3[PropClassAttr.DATATYPE], XsdDatatypes.string)
+        self.assertEqual(r2p3.datatype, XsdDatatypes.string)
 
     #@unittest.skip('Work in progress')
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
         self.assertTrue(set(model.get_propclasses()) == {
-            #QName("omas:comment"),
-            Xsd_QName("omas:test"),
-            Xsd_QName("dcterms:creator"),
-            Xsd_QName("rdfs:label"),
-            Xsd_QName("rdfs:comment"),
-            Xsd_QName("dcterms:created"),
-            Xsd_QName("dcterms:contributor"),
-            Xsd_QName("dcterms:modified")
+            Iri("omas:test"),
+            Iri("dcterms:creator"),
+            Iri("rdfs:label"),
+            Iri("rdfs:comment"),
+            Iri("dcterms:created"),
+            Iri("dcterms:contributor"),
+            Iri("dcterms:modified")
         })
         self.assertTrue(set(model.get_resclasses()) == {
-            Xsd_QName("omas:Project"),
-            Xsd_QName("omas:User"),
-            Xsd_QName("omas:List"),
-            Xsd_QName("omas:ListNode"),
-            Xsd_QName("omas:AdminPermission"),
-            Xsd_QName("omas:DataPermission"),
-            Xsd_QName("omas:PermissionSet")
+            Iri("omas:Project"),
+            Iri("omas:User"),
+            Iri("omas:List"),
+            Iri("omas:ListNode"),
+            Iri("omas:AdminPermission"),
+            Iri("omas:DataPermission"),
+            Iri("omas:PermissionSet")
         })
 
-    #@unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_datamodel_modify_A(self):
         dm_name = Xsd_NCName("dmtest")
         dm = self.generate_a_datamodel(dm_name)
         dm.create()
-        dm_name = Xsd_NCName("dmtest")
         dm = DataModel.read(self._connection, dm_name)
 
         #
         # define an external standalone property
         #
-        attrs: PropClassAttrContainer = {
-            PropClassAttr.DATATYPE: XsdDatatypes.gYear,
-            PropClassAttr.NAME: LangString(["Publication Year@en", "Publikationsjahr@de"]),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(
-                restrictions={
-                    PropertyRestrictionType.MAX_COUNT: 1
-                }),
-        }
         pubyear = PropertyClass(con=self._connection,
                                 graph=dm_name,
                                 property_class_iri=Xsd_QName(f'{dm_name}:pubYear'),
-                                attrs=attrs)
+                                datatype=XsdDatatypes.gYear,
+                                name=LangString(["Publication Year@en", "Publicationsjahr@de"]),
+                                restrictions=PropertyRestrictions(restrictions={
+                                    PropertyRestrictionType.MAX_COUNT: Xsd_integer(1)
+                                }))
         pubyear.force_external()
-        dm[Xsd_QName(f'{dm_name}:pubYear')] = pubyear
-        self.assertEqual({Xsd_QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE)}, dm.changeset)
+        dm[Iri(f'{dm_name}:pubYear')] = pubyear
+        self.assertEqual({Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE)}, dm.changeset)
 
-        dm[Xsd_QName(f'{dm_name}:comment')][PropClassAttr.NAME][Language.FR] = 'Commentaire'
+        dm[Iri(f'{dm_name}:comment')].name[Language.FR] = 'Commentaire'
         self.assertEqual({
-            Xsd_QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
-            Xsd_QName(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY)
+            Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
+            Iri(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY)
         }, dm.changeset)
 
-        dm[Xsd_QName(f'{dm_name}:Book')][Xsd_QName(f'{dm_name}:authors')][PropClassAttr.NAME][Language.FR] = "Ecrivain(s)"
+        dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].name[Language.FR] = "Ecrivain(s)"
         self.assertEqual({
-            Xsd_QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
-            Xsd_QName(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
-            Xsd_QName(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY)
+            Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
+            Iri(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
+            Iri(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY)
         }, dm.changeset)
 
-        del dm[Xsd_QName(f'{dm_name}:Page')][Xsd_QName(f'{dm_name}:comment')]
+        del dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:comment')]
 
         self.assertEqual({
-            Xsd_QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
-            Xsd_QName(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
-            Xsd_QName(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY),
-            Xsd_QName(f'{dm_name}:Page'): ResourceClassChange(None, Action.MODIFY)
+            Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
+            Iri(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
+            Iri(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY),
+            Iri(f'{dm_name}:Page'): ResourceClassChange(None, Action.MODIFY)
         }, dm.changeset)
 
-        attrs: PropClassAttrContainer = {
-            PropClassAttr.DATATYPE: XsdDatatypes.string,
-            PropClassAttr.NAME: LangString(["Page name@en", "Seitenbezeichnung@de"]),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(
-                restrictions={
-                    PropertyRestrictionType.MAX_COUNT: 1,
-                    PropertyRestrictionType.MIN_COUNT: 1,
-                }),
-        }
         pagename = PropertyClass(con=self._connection,
                                  graph=dm_name,
                                  property_class_iri=Xsd_QName(f'{dm_name}:pageName'),
-                                 attrs=attrs)
+                                 datatype=XsdDatatypes.string,
+                                 name=LangString(["Page name@en", "Seitenbezeichnung@de"]),
+                                 restrictions=PropertyRestrictions(restrictions={
+                                     PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
+                                     PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                                 }))
 
-        dm[Xsd_QName(f'{dm_name}:Page')][Xsd_QName(f'{dm_name}:pageName')] = pagename
+        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = pagename
         self.assertEqual({
-            Xsd_QName(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
-            Xsd_QName(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
-            Xsd_QName(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY),
-            Xsd_QName(f'{dm_name}:Page'): ResourceClassChange(None, Action.MODIFY)
+            Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
+            Iri(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
+            Iri(f'{dm_name}:Book'): ResourceClassChange(None, Action.MODIFY),
+            Iri(f'{dm_name}:Page'): ResourceClassChange(None, Action.MODIFY)
         }, dm.changeset)
 
-    #@unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_datamodel_modify_B(self):
         dm_name = Xsd_NCName("dmtest")
         dm = self.generate_a_datamodel(dm_name)
@@ -304,52 +279,44 @@ class TestDataModel(unittest.TestCase):
         #
         # define an external standalone property
         #
-        attrs: PropClassAttrContainer = {
-            PropClassAttr.DATATYPE: XsdDatatypes.gYear,
-            PropClassAttr.NAME: LangString(["Publication Year@en", "Publikationsjahr@de"]),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(
-                restrictions={
-                    PropertyRestrictionType.MAX_COUNT: 1
-                }),
-        }
         pubyear = PropertyClass(con=self._connection,
                                 graph=dm_name,
                                 property_class_iri=Xsd_QName(f'{dm_name}:pubYear'),
-                                attrs=attrs)
+                                datatype=XsdDatatypes.gYear,
+                                name=LangString(["Publication Year@en", "Publicationsjahr@de"]),
+                                restrictions=PropertyRestrictions(restrictions={
+                                    PropertyRestrictionType.MAX_COUNT: Xsd_integer(1)
+                                }))
         pubyear.force_external()
 
-        dm[Xsd_QName(f'{dm_name}:pubYear')] = pubyear
-        dm[Xsd_QName(f'{dm_name}:comment')][PropClassAttr.NAME][Language.FR] = 'Commentaire'
-        dm[Xsd_QName(f'{dm_name}:Book')][Xsd_QName(f'{dm_name}:authors')][PropClassAttr.NAME][Language.FR] = "Ecrivain(s)"
-        del dm[Xsd_QName(f'{dm_name}:Page')][Xsd_QName(f'{dm_name}:comment')]
+        dm[Iri(f'{dm_name}:pubYear')] = pubyear
+        dm[Iri(f'{dm_name}:comment')][PropClassAttr.NAME][Language.FR] = 'Commentaire'
+        dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].name[Language.FR] = "Ecrivain(s)"
+        del dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:comment')]
 
-        attrs: PropClassAttrContainer = {
-            PropClassAttr.DATATYPE: XsdDatatypes.string,
-            PropClassAttr.NAME: LangString(["Page name@en", "Seitenbezeichnung@de"]),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(
-                restrictions={
-                    PropertyRestrictionType.MAX_COUNT: 1,
-                    PropertyRestrictionType.MIN_COUNT: 1,
-                }),
-        }
         pagename = PropertyClass(con=self._connection,
                                  graph=dm_name,
                                  property_class_iri=Xsd_QName(f'{dm_name}:pageName'),
-                                 attrs=attrs)
+                                 datatype=XsdDatatypes.string,
+                                 name=LangString(["Page name@en", "Seitenbezeichnung@de"]),
+                                 restrictions=PropertyRestrictions(restrictions={
+                                     PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
+                                     PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
+                                 }))
 
-        dm[Xsd_QName(f'{dm_name}:Page')][Xsd_QName(f'{dm_name}:pageName')] = pagename
+        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = pagename
 
         dm.update()
 
         del dm
 
         dm = DataModel.read(self._connection, dm_name)
-        self.assertIsNotNone(dm.get(Xsd_QName(f'{dm_name}:pubYear')))
-        self.assertEqual(dm[Xsd_QName(f'{dm_name}:pubYear')][PropClassAttr.DATATYPE], XsdDatatypes.gYear)
-        self.assertEqual(dm[Xsd_QName(f'{dm_name}:pubYear')][PropClassAttr.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT], 1)
-        self.assertEqual(dm[Xsd_QName(f'{dm_name}:comment')][PropClassAttr.NAME][Language.FR], 'Commentaire')
-        self.assertEqual(dm[Xsd_QName(f'{dm_name}:Book')][Xsd_QName(f'{dm_name}:authors')][PropClassAttr.NAME][Language.FR], "Ecrivain(s)")
-        self.assertIsNotNone(dm[Xsd_QName(f'{dm_name}:Page')][Xsd_QName(f'{dm_name}:pageName')])
-        self.assertIsNone(dm[Xsd_QName(f'{dm_name}:Page')].get(Xsd_QName(f'{dm_name}:comment')))
+        self.assertIsNotNone(dm.get(Iri(f'{dm_name}:pubYear')))
+        self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].datatype, XsdDatatypes.gYear)
+        self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].restrictions[PropertyRestrictionType.MAX_COUNT], 1)
+        self.assertEqual(dm[Iri(f'{dm_name}:comment')].name[Language.FR], 'Commentaire')
+        self.assertEqual(dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].name[Language.FR], "Ecrivain(s)")
+        self.assertIsNotNone(dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')])
+        self.assertIsNone(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment')))
 
 

@@ -73,7 +73,7 @@ class LangString(Notify):
     _notifier: Callable[[type], None] | None
 
     def __init__(self,
-                 langstring: Optional[str | List[str] | Dict[str, str] | Dict[Language, str]] = None,
+                 langstring: Optional[str | List[str] | Dict[str, str] | Dict[Language, str] | Self] = None,
                  priorities: Optional[List[Language]] = None,
                  notifier: Optional[Callable[[PropClassAttr], None]] = None,
                  notify_data: Optional[PropClassAttr] = None):
@@ -95,7 +95,11 @@ class LangString(Notify):
         """
         super().__init__(notifier, notify_data)
         self._changeset = {}
-        if isinstance(langstring, str):
+        if isinstance(langstring, LangString):
+            self._langstring = langstring._langstring
+            self._priorities = langstring._priorities
+            self._notifier = langstring._notifier
+        elif isinstance(langstring, str):
             if langstring[-3] == "@":
                 tmpls: str = langstring[-2:].upper()
                 try:

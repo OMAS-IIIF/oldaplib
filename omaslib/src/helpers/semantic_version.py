@@ -61,6 +61,10 @@ class SemanticVersion:
             return True
         return False
 
+    @property
+    def toRdf(self) -> str:
+        return f'"{self.__major}.{self.__minor}.{self.__patch}"^^xsd:string'
+
     @classmethod
     def fromString(cls, versionstring: str) -> Self:
         try:

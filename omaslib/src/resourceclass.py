@@ -620,7 +620,7 @@ class ResourceClass(Model, Notify):
             i += 1
         return sparql
 
-    def set_creation_metadata(self, timestamp: datetime):
+    def set_creation_metadata(self, timestamp: Xsd_dateTime):
         self.__created = timestamp
         self.__creator = self._con.userIri
         self.__modified = timestamp

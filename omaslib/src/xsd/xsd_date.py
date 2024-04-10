@@ -39,15 +39,55 @@ class Xsd_date(Xsd):
     def __repr__(self) -> str:
         return f'Xsd_date("{self.__value.isoformat()}")'
 
+    def __str2date(self, value: str) -> date:
+        if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', str(value)) is None:
+            raise OmasErrorValue(f'{value} wrong format for xsd:date.')
+        return date.fromisoformat(str(value))
+
     def __eq__(self, other: Self | str | None) -> bool:
         if other is None:
             return False
         if isinstance(other, str):
-            if re.match(
-                    r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', other) is None:
-                raise OmasErrorValue(f'{other} wrong format for xsd:date.')
-            other = time.fromisoformat(other)
-        return self.__value == other.__value
+            other = self.__str2date(other)
+            return self.__value == other
+        else:
+            return self.__value == other.__value
+
+    def __gt__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
+        if isinstance(other, str):
+            other = self.__str2date(other)
+            return self.__value > other
+        else:
+            return self.__value > other.__value
+
+    def __ge__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
+        if isinstance(other, str):
+            other = self.__str2date(other)
+            return self.__value >= other
+        else:
+            return self.__value >= other.__value
+
+    def __lt__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
+        if isinstance(other, str):
+            other = self.__str2date(other)
+            return self.__value < other
+        else:
+            return self.__value < other.__value
+
+    def __le__(self, other: Self | str | None) -> bool:
+        if other is None:
+            return False
+        if isinstance(other, str):
+            other = self.__str2date(other)
+            return self.__value <= other
+        else:
+            return self.__value <= other.__value
 
     def __hash__(self) -> int:
         return hash(self.__value)

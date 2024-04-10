@@ -459,7 +459,7 @@ class PropertyClass(Model, Notify):
                 if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Iri):
                     self._property_class_iri = val[0]
                 else:
-                    raise OmasError(f'Inconsistency in SHACL "sh:path"')
+                    raise OmasError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}"')
             elif key == 'dcterms:hasVersion':
                 if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_string):
                     self.__version = SemanticVersion.fromString(str(val[0]))

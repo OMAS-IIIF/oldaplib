@@ -6,7 +6,9 @@ from typing import Dict, List, Optional, Union
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasError, OmasErrorValue
@@ -32,16 +34,16 @@ class DataModel(Model):
     __graph: Xsd_NCName
     __context: Context
     __version: SemanticVersion
-    __propclasses: Dict[Xsd_QName, PropertyClass | None]
-    __resclasses: Dict[Xsd_QName, ResourceClass | None]
-    __resclasses_changeset: Dict[Xsd_QName, ResourceClassChange]
-    __propclasses_changeset: Dict[Xsd_QName, PropertyClassChange]
+    __propclasses: Dict[Iri, PropertyClass | None]
+    __resclasses: Dict[Iri, ResourceClass | None]
+    __resclasses_changeset: Dict[Iri, ResourceClassChange]
+    __propclasses_changeset: Dict[Iri, PropertyClassChange]
 
     def __init__(self, *,
                  con: IConnection,
                  graph: Xsd_NCName,
-                 propclasses: Optional[List[PropertyClass]] = None,
-                 resclasses: Optional[List[ResourceClass]] = None) -> None:
+                 propclasses: list[PropertyClass] | None = None,
+                 resclasses: list[ResourceClass] | None = None) -> None:
         super().__init__(con)
         self.__version = SemanticVersion()
 
@@ -57,7 +59,7 @@ class DataModel(Model):
         self.__propclasses_changeset = {}
         self.__resclasses_changeset = {}
 
-    def __getitem__(self, key: Xsd_QName) -> Union[PropertyClass, ResourceClass]:
+    def __getitem__(self, key: Iri) -> PropertyClass | ResourceClass:
         if key in self.__resclasses:
             return self.__resclasses[key]
         if key in self.__propclasses:
@@ -65,7 +67,7 @@ class DataModel(Model):
         else:
             raise KeyError(key)
 
-    def __setitem__(self, key: Xsd_QName, value: PropertyClass | ResourceClass) -> None:
+    def __setitem__(self, key: Iri, value: PropertyClass | ResourceClass) -> None:
         if isinstance(value, PropertyClass):
             if self.__propclasses.get(key) is None:
                 self.__propclasses_changeset[key] = PropertyClassChange(None, Action.CREATE)
@@ -81,9 +83,9 @@ class DataModel(Model):
                 self.__resclasses_changeset[key] = ResourceClassChange(old_value, Action.MODIFY)
             self.__resclasses[key] = value
         else:
-            raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass (is "{type(value)}")')
+            raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass (is "{type(value).__name__}")')
 
-    def __delitem__(self, key: Xsd_QName) -> None:
+    def __delitem__(self, key: Iri) -> None:
         if key in self.__propclasses:
             self.__propclasses_changeset[key] = PropertyClassChange(self.__propclasses[key], Action.DELETE)
             del self.__propclasses[key]
@@ -93,7 +95,7 @@ class DataModel(Model):
         else:
             raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
 
-    def get(self, key: Xsd_QName) -> PropertyClass | ResourceClass | None:
+    def get(self, key: Iri) -> PropertyClass | ResourceClass | None:
         if key in self.__propclasses:
             return self.__propclasses[key]
         elif key in self.__resclasses:
@@ -102,14 +104,14 @@ class DataModel(Model):
             return None
 
 
-    def get_propclasses(self) -> List[Xsd_QName]:
+    def get_propclasses(self) -> list[Iri]:
         return [x for x in self.__propclasses]
 
-    def get_resclasses(self) -> List[Xsd_QName]:
+    def get_resclasses(self) -> list[Iri]:
         return [x for x in self.__resclasses]
 
     @property
-    def changeset(self) -> Dict[Xsd_QName, PropertyClassChange | ResourceClassChange]:
+    def changeset(self) -> dict[Iri, PropertyClassChange | ResourceClassChange]:
         return self.__resclasses_changeset | self.__propclasses_changeset
 
     def changeset_clear(self) -> None:
@@ -122,7 +124,7 @@ class DataModel(Model):
                 self.__resclasses[res].changeset_clear()
         self.__resclasses_changeset = {}
 
-    def notifier(self, what: Xsd_QName) -> None:
+    def notifier(self, what: Iri) -> None:
         if what in self.__propclasses:
             self.__propclasses_changeset[what] = PropertyClassChange(None, Action.MODIFY)
         elif what in self.__resclasses:
@@ -181,7 +183,7 @@ class DataModel(Model):
         for r in res:
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
-            propclass = PropertyClass.read(con, graph, Xsd_QName(propclassiri))
+            propclass = PropertyClass.read(con, graph, Iri(propclassiri))
             propclasses.append(propclass)
         #
         # now get all resources defined in the data model
@@ -200,7 +202,7 @@ class DataModel(Model):
         for r in res:
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
-            resclass = ResourceClass.read(con, graph, Xsd_QName(resclassiri))
+            resclass = ResourceClass.read(con, graph, Iri(resclassiri))
             resclasses.append(resclass)
         instance = cls(graph=graph, con=con, propclasses=propclasses, resclasses=resclasses)
         for qname in instance.get_propclasses():
@@ -210,7 +212,7 @@ class DataModel(Model):
         return instance
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -219,7 +221,7 @@ class DataModel(Model):
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:hasVersion {repr(self.__version)} .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:hasVersion {self.__version.toRdf} .\n'
         sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
@@ -238,7 +240,7 @@ class DataModel(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:onto {{\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {repr(self.__version)} .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n'
         sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
