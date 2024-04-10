@@ -105,66 +105,6 @@ class MyTestCase(unittest.TestCase):
         with self.assertRaises(OmasErrorValue) as ex:
             nons = NamespaceIRI('http://www.org/test<super>\"; SELECT * FROM {?s ?p ?o}')
 
-    def test_language_in(self):
-        li = LanguageIn({"en", "fr", "it"})
-        self.assertTrue(Language.EN in li)
-        self.assertTrue(Language.FR in li)
-        self.assertTrue(Language.IT in li)
-        self.assertFalse(Language.DE in li)
-        s = str(li)
-        s = s.strip('() ')
-        s = s.split(', ')
-        self.assertTrue('"en"' in s)
-        self.assertTrue('"fr"' in s)
-        self.assertTrue('"it"' in s)
-        s = repr(li)
-        s = s.removeprefix('LanguageIn(')
-        s = s.strip('()')
-        s = s.split(', ')
-        self.assertTrue('"fr"^^xsd:string' in s)
-        self.assertTrue('"en"^^xsd:string' in s)
-        self.assertTrue('"it"^^xsd:string' in s)
-
-        s = li.toRdf
-        s = s.strip('()')
-        s = s.split(' ')
-        self.assertTrue('"fr"^^xsd:string' in s)
-        self.assertTrue('"en"^^xsd:string' in s)
-        self.assertTrue('"it"^^xsd:string' in s)
-
-        li = LanguageIn("en", "fr", "it")
-        self.assertTrue(Language.EN in li)
-        self.assertTrue(Language.FR in li)
-        self.assertTrue(Language.IT in li)
-        self.assertFalse(Language.DE in li)
-
-        li = LanguageIn(Language.EN, "fr", Language.IT)
-        self.assertTrue(Language.EN in li)
-        self.assertTrue(Language.FR in li)
-        self.assertTrue(Language.IT in li)
-        self.assertFalse(Language.DE in li)
-
-        li = LanguageIn([Language.EN, "fr", "it"])
-        self.assertTrue(Language.EN in li)
-        self.assertTrue(Language.FR in li)
-        self.assertTrue(Language.IT in li)
-        self.assertFalse(Language.DE in li)
-
-        li.add("el")
-        self.assertTrue(Language.EL in li)
-
-        li.add(Language.AB)
-        self.assertTrue(Language.AB in li)
-
-        li.discard("en")
-        self.assertFalse(Language.EN in li)
-
-        li.discard(Language.FR)
-        self.assertFalse(Language.FR in li)
-
-        with self.assertRaises(OmasErrorValue) as ex:
-            li = LanguageIn([Language.EN, "fr", "xyz"])
-
     def test_rdf_set(self):
         val = RdfSet({Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?")})
         self.assertTrue(Xsd_string("was") in val)

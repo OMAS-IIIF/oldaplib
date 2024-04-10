@@ -11,7 +11,7 @@ from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_date import Xsd_date
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasErrorNotFound
+from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorInconsistency
 from omaslib.src.project import Project
 
 
@@ -120,6 +120,15 @@ class Testproject(unittest.TestCase):
         self.assertIsNone(project4.label)
         self.assertIsNone(project4.comment)
         self.assertIsNotNone(project4.projectStart)
+
+        with self.assertRaises(OmasErrorInconsistency) as ex:
+            project5 = Project(con=self._connection,
+                               projectShortName="unittest5",
+                               label=LangString(["unittest5@en", "unittest5@de"]),
+                               namespaceIri=NamespaceIRI("http://unitest.org/project/unittest3#"),
+                               comment=LangString(["For testing3@en", "Für Tests3@de"]),
+                               projectStart=Xsd_date(2024, 3, 3),
+                               projectEnd=Xsd_date(2024, 3, 2))
 
 
     # @unittest.skip('Work in progress')

@@ -21,7 +21,7 @@ from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, \
-    OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound
+    OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound, OmasErrorInconsistency
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
@@ -195,12 +195,14 @@ class Project(Model):
         self.__fields[ProjectFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
         self.__fields[ProjectFields.COMMENT].set_notifier(self.notifier, Xsd_QName(ProjectFields.COMMENT.value))
         self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
-        if projectStart and isinstance(projectStart, Xsd_date):
-            self.__fields[ProjectFields.PROJECT_START] = projectStart
+        if projectStart is not None:
+            self.__fields[ProjectFields.PROJECT_START] = projectStart if isinstance(projectStart, Xsd_date) else Xsd_date(projectStart)
         else:
             self.__fields[ProjectFields.PROJECT_START] = Xsd_date.now()
-        if projectEnd and isinstance(projectEnd, Xsd_date):
-            self.__fields[ProjectFields.PROJECT_END] = projectEnd
+        if projectEnd is not None:
+            self.__fields[ProjectFields.PROJECT_END] = projectEnd if isinstance(projectEnd, Xsd_date) else Xsd_date(projectEnd)
+            if self.__fields[ProjectFields.PROJECT_END] < self.__fields[ProjectFields.PROJECT_START]:
+                raise OmasErrorInconsistency(f'Project start date {projectStart} is after project end date {projectEnd}.')
 
         #
         # create all the attributes of the class according to the ProjectFields dfinition

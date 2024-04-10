@@ -123,7 +123,7 @@ class ObservableSet(Set):
 
     @property
     def toRdf(self) -> str:
-        l = [x.toRdf for x in self]
+        l = [x.toRdf if getattr(x, "toRdf", None) else x for x in self]
         return ", ".join(l)
 
 

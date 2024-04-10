@@ -42,6 +42,8 @@ class LanguageIn:
                             self.__data.add(arg)
                         elif isinstance(arg, str):
                             self.__data.add(Language[arg.upper()])
+            else:
+                self.__data = set()
         except KeyError:
             raise OmasErrorValue("Non valid language in set.")
 
@@ -86,8 +88,11 @@ class LanguageIn:
         return f'({", ".join(langlist)})'
 
     def __repr__(self):
-        langlist = {f'"{x.name.lower()}"^^xsd:string' for x in self}
+        langlist = {f'"{x.name.lower()}"' for x in self}
         return 'LanguageIn(' + ", ".join(langlist) + ')'
+
+    def __len__(self):
+        return len(self.__data)
 
     def __contains__(self, language: Language):
         return language in self.__data
@@ -99,7 +104,7 @@ class LanguageIn:
         if not isinstance(language, Language):
             try:
                 language = Language[str(language).upper()]
-            except ValueError as err:
+            except (ValueError, KeyError) as err:
                 raise OmasErrorValue(str(err))
         self.__data.add(language)
 
