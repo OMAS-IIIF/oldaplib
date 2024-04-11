@@ -4,10 +4,10 @@ from typing import Self
 from pystrict import strict
 
 from omaslib.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
+from omaslib.src.xsd.xsd_string import Xsd_string
 
 
 @strict
@@ -31,7 +31,7 @@ class Xsd_token(Xsd):
         return self.__value
 
     def __repr__(self):
-        return f'Xsd_token("{StringLiteral.escaping(str(self))}")'
+        return f'Xsd_token("{Xsd_string.escaping(str(self))}")'
 
     def __eq__(self, other: Self | str | None) -> bool:
         if other is None:
@@ -47,8 +47,7 @@ class Xsd_token(Xsd):
 
     @classmethod
     def fromRdf(cls, value: str) -> Self:
-        value = StringLiteral.unescaping(value)
-        return cls(StringLiteral.unescaping(value))
+        return cls(Xsd_string.unescaping(value))
 
 
     def _as_dict(self) -> dict[str, str]:
@@ -56,7 +55,7 @@ class Xsd_token(Xsd):
 
     @property
     def toRdf(self) -> str:
-        return f'"{StringLiteral.escaping(str(self))}"^^xsd:token'
+        return f'"{Xsd_string.escaping(str(self))}"^^xsd:token'
 
     @property
     def value(self) -> str:

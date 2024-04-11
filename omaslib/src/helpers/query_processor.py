@@ -3,7 +3,6 @@ from typing import List, Dict
 
 from pystrict import strict
 
-from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.helpers.context import Context
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.xsd.iri import Iri
@@ -49,7 +48,7 @@ from omaslib.src.xsd.xsd_string import Xsd_string
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd import Xsd
 
-RowElementType = Xsd | BNode | StringLiteral
+RowElementType = Xsd | BNode
 RowType = Dict[str, RowElementType]
 
 
@@ -81,8 +80,9 @@ class QueryProcessor:
                     dt = valobj.get("datatype")
                     if dt is None:
                         if valobj.get("xml:lang") is not None:
-                            row[name] = StringLiteral.fromRdf(valobj["value"], valobj.get("xml:lang"))
+                            row[name] = Xsd_string.fromRdf(valobj["value"], valobj.get("xml:lang"))
                         else:
+                            # row[name] = Xsd_string.fromRdf(valobj["value"])
                             row[name] = Xsd_string.fromRdf(valobj["value"])
                     else:
                         dt = context.iri2qname(dt)

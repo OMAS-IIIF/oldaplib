@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from typing import Union, Optional, List, Dict, Callable, Self
+from typing import Union, List, Dict, Callable, Self
 from pystrict import strict
 
 from omaslib.src.connection import Connection
@@ -10,7 +10,6 @@ from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed, OmasErrorValue
 from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.helpers.tools import RdfModifyRes, RdfModifyItem
@@ -26,6 +25,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass, Attributes
+from omaslib.src.xsd.xsd_string import Xsd_string
 
 #
 # Datatype definitions
@@ -346,7 +346,7 @@ class ResourceClass(Model, Notify):
                     if attributes.get(attriri) is None:
                         attributes[attriri] = []
                     attributes[attriri].append(r['value'])
-                elif isinstance(r['value'], StringLiteral):
+                elif isinstance(r['value'], Xsd_string):
                     if attributes.get(attriri) is None:
                         attributes[attriri] = []
                     attributes[attriri].append(str(r['value']))

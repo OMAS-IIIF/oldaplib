@@ -11,15 +11,11 @@ from pystrict import strict
 
 from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.dtypes.rdfset import RdfSet
-from omaslib.src.dtypes.string_literal import StringLiteral
-from omaslib.src.enums.language import Language
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
-from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd import Xsd
-from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_decimal import Xsd_decimal
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -29,7 +25,7 @@ from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErro
 from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.helpers.query_processor import RowType, QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp, str2qname_anyiri, lprint
+from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model

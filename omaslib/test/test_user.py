@@ -44,7 +44,7 @@ class TestUser(unittest.TestCase):
     def tearDown(self):
         pass
 
-    # @unittest.skip('Work in progress')
+    #  @unittest.skip('Work in progress')
     def test_constructor(self):
         user = User(con=self._connection,
                     userId=Xsd_NCName("testuser"),
@@ -79,13 +79,13 @@ class TestUser(unittest.TestCase):
         }))
         self.assertEqual(user.hasPermissions, {Iri("omas:GenericRestricted"), Iri('omas:GenericView')})
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_read_unknown_user(self):
         with self.assertRaises(OmasErrorNotFound) as ex:
             user = User.read(con=self._connection, userId="nosuchuser")
         self.assertEqual(str(ex.exception), 'User "nosuchuser" not found.')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_search_user(self):
         users = User.search(con=self._connection, userId="fornaro")
         self.assertEqual([Iri("https://orcid.org/0000-0003-1485-4923")], users)
@@ -107,7 +107,7 @@ class TestUser(unittest.TestCase):
         users = User.search(con=self._connection, userId="GAGA")
         self.assertEqual([], users)
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_search_user_injection(self):
         with self.assertRaises(OmasErrorValue) as ex:
             users = User.search(con=self._connection, userId="fornaro\".}\nSELECT * WHERE {?s ?p ?s})#")
@@ -122,7 +122,7 @@ class TestUser(unittest.TestCase):
             users = User.search(con=self._connection, inProject="omas:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")
         self.assertEqual(str(ex.exception), 'Invalid string for IRI: "omas:HyperHamlet".}\nSELECT * WHERE{?s ?p ?s})#"')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0003-3478-9313"),
@@ -145,7 +145,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user2.hasPermissions, user.hasPermissions)
         self.assertTrue(user2.isActive)
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_no_admin_perms(self):
         user = User(con=self._connection,
                     userId=Xsd_NCName("birdy"),
@@ -160,7 +160,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId=Xsd_NCName("birdy"))
         self.assertEqual(user.familyName, "Birdy")
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_no_in_project(self):
         user = User(con=self._connection,
                     userId=Xsd_NCName("yogi"),
@@ -174,7 +174,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId=Xsd_NCName("yogi"))
         self.assertEqual(user.familyName, "Baer")
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_no_permset(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0003-3478-9313"),
@@ -192,7 +192,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.familyName, "Ganzales")
 
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_no_useriri(self):
         user = User(con=self._connection,
                     userId=Xsd_NCName("sylvester"),
@@ -210,7 +210,7 @@ class TestUser(unittest.TestCase):
         self.assertTrue(str(user.userIri).startswith("urn:uuid:"))
         self.assertFalse(user.isActive)
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_duplicate_userid(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0003-3478-9314"),
@@ -226,7 +226,7 @@ class TestUser(unittest.TestCase):
             user.create()
         self.assertEqual(str(ex.exception), 'A user with a user ID "fornaro" already exists')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_duplicate_useriri(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0003-1681-4036"),
@@ -242,7 +242,7 @@ class TestUser(unittest.TestCase):
             user.create()
         self.assertEqual(str(ex.exception), 'A user with a user IRI "https://orcid.org/0000-0003-1681-4036" already exists')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_invalid_project(self):
         user = User(con=self._connection,
                     userId=Xsd_NCName("donald"),
@@ -257,7 +257,7 @@ class TestUser(unittest.TestCase):
             user.create()
         self.assertEqual(str(ex.exception), 'One of the projects is not existing!')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_invalid_permset(self):
         user = User(con=self._connection,
                     userId=Xsd_NCName("donald"),
@@ -272,7 +272,7 @@ class TestUser(unittest.TestCase):
             user.create()
         self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_no_privilege(self):
         user = User(con=self._unpriv,
                     userId=Xsd_NCName("donald"),
@@ -285,7 +285,7 @@ class TestUser(unittest.TestCase):
             user.create()
         self.assertEqual(str(ex.exception), 'No permission to create user in project http://www.salsah.org/version/2.0/SwissBritNet.')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_create_user_no_connection(self):
         user = User(userId=Xsd_NCName("brown"),
                     familyName="Dock",
@@ -297,7 +297,7 @@ class TestUser(unittest.TestCase):
             user.create()
         self.assertEqual(str(ex.exception), 'Cannot create: no connection')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_delete_user(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
@@ -317,14 +317,14 @@ class TestUser(unittest.TestCase):
             user = User.read(con=self._connection, userId="edison")
         self.assertEqual(str(ex.exception), 'User "edison" not found.')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_delete_user_unpriv(self):
         user = User.read(con=self._unpriv, userId="bugsbunny")
         with self.assertRaises(OmasErrorNoPermission) as ex:
             user.delete()
         self.assertEqual(str(ex.exception), 'No permission to delete user in project omas:HyperHamlet.')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
@@ -363,7 +363,7 @@ class TestUser(unittest.TestCase):
         user4.update()
         del user4
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_unpriv(self):
         user = User.read(con=self._unpriv, userId="bugsbunny")
         user.credentials = "ChangedPassword"
@@ -371,7 +371,7 @@ class TestUser(unittest.TestCase):
             user.update()
         self.assertEqual(str(ex.exception), 'No permission to modify user in project omas:HyperHamlet.')
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_change_in_project(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),
@@ -393,7 +393,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="chiquet")
         self.assertEqual(user.inProject, InProjectClass({Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_OLDAP}}))
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_empty_in_project(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-2553-8814"),
@@ -415,7 +415,7 @@ class TestUser(unittest.TestCase):
             AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES
         }}))
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_rm_in_project(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),
@@ -437,7 +437,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="chiquet")
         self.assertFalse(user.inProject)
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_del_in_project(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),
@@ -459,7 +459,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="chiquet")
         self.assertFalse(user.inProject)
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_add_to_project(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-2553-8814"),
@@ -490,7 +490,7 @@ class TestUser(unittest.TestCase):
             }
         ))
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_rm_from_project(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-2553-8814"),
@@ -522,7 +522,7 @@ class TestUser(unittest.TestCase):
             }
         ))
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_del_from_project(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-2553-8814"),
@@ -554,7 +554,7 @@ class TestUser(unittest.TestCase):
             }
         ))
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_del_has_permissions(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),
@@ -576,7 +576,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="chiquet")
         self.assertFalse(user.hasPermissions)
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_add_has_permissions(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),
@@ -598,7 +598,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="chiquet")
         self.assertEqual(user.hasPermissions, {Iri('omas:GenericView'), Iri('omas:HyperHamletMember')})
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_add_has_permissions(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),
@@ -619,7 +619,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="chiquet")
         self.assertEqual(user.hasPermissions, {Iri('omas:GenericView'), Iri('omas:HyperHamletMember')})
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_add_bad_has_permissions(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),
@@ -638,7 +638,7 @@ class TestUser(unittest.TestCase):
         with self.assertRaises(OmasErrorValue) as err:
             user.update()
 
-    # @unittest.skip('Work in progress')
+    #  #unittest.skip('Work in progress')
     def test_update_user_rm_has_permissions(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),
@@ -660,7 +660,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="chiquet")
         self.assertEqual(user.hasPermissions, {Iri('omas:GenericView')})
 
-    # @unittest.skip('Work in progress')
+    #  unittest.skip('Work in progress')
     def test_update_user_unexisting_has_permissions(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),

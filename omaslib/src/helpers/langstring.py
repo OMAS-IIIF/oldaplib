@@ -10,11 +10,9 @@ from typing import Dict, List, Optional, Callable, Self
 
 from pystrict import strict
 
-from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.iri import Iri
-from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -73,7 +71,7 @@ class LangString(Notify):
     _notifier: Callable[[type], None] | None
 
     def __init__(self,
-                 langstring: Optional[str | List[str] | Dict[str, str] | Dict[Language, str] | Self] = None,
+                 langstring: Optional[str | Xsd_string | List[str] | Dict[str, str] | Dict[Language, str] | Self] = None,
                  priorities: Optional[List[Language]] = None,
                  notifier: Optional[Callable[[PropClassAttr], None]] = None,
                  notify_data: Optional[PropClassAttr] = None):
@@ -99,6 +97,9 @@ class LangString(Notify):
             self._langstring = langstring._langstring
             self._priorities = langstring._priorities
             self._notifier = langstring._notifier
+        elif isinstance(langstring, Xsd_string):
+            lang = langstring.lang if langstring.lang is not None else Language.XX
+            self._langstring = {lang: langstring.value}
         elif isinstance(langstring, str):
             if langstring[-3] == "@":
                 tmpls: str = langstring[-2:].upper()
@@ -223,7 +224,7 @@ class LangString(Notify):
         :return: language string as it would be used in a SPARQL insert statement
         :rtype: str
         """
-        langlist = [f'"{val}"@{lang.name.lower()}' for lang, val in self._langstring.items() if lang != Language.XX]
+        langlist = [f'"{val}"@{lang.name.lower()}' for lang, val in self._langstring.items() if lang is not None and lang != Language.XX]
         resstr = ", ".join(langlist)
         if self._langstring.get(Language.XX):
              if resstr:
@@ -316,7 +317,7 @@ class LangString(Notify):
         """
         return self._langstring
 
-    def add(self, langs: str | Xsd_string | List[str | Xsd_string | StringLiteral] | Dict[str, str] | Dict[Language, str]) -> None:
+    def add(self, langs: str | Xsd_string | list[str | Xsd_string] | dict[str, str] | dict[Language, str]) -> None:
         """
         Add one or several new languages to a lang string. The method accepts several forms:
         * ``mylstr.add("a new string@en")``
@@ -329,7 +330,7 @@ class LangString(Notify):
         :return: No return value
         :rtype: None
         """
-        if isinstance(langs, (str, Xsd_string)):
+        if isinstance(langs, str):
             if langs[-3] == "@":
                 lstr = langs[-2:].upper()
                 lobj = None
@@ -349,14 +350,22 @@ class LangString(Notify):
                                                                     Action.REPLACE if self._langstring.get(Language.XX) is not None else Action.CREATE)
                 self._langstring[Language.XX] = langs
             self.notify()
-        elif isinstance(langs, List):
+        elif isinstance(langs, Xsd_string):
+            lang = langs.lang if langs.lang is not None else Language.XX
+            if self._changeset.get(lang) is None:  # only the first change is recorded
+                self._changeset[lang] = LangStringChange(
+                    self._langstring.get(lang),
+                    Action.REPLACE if self._langstring.get(lang) is not None else Action.CREATE)
+            self._langstring[lang] = langs.value
+        elif isinstance(langs, list):
             for lang in langs:
-                if isinstance(lang, StringLiteral):
-                    if self._changeset.get(lang.lang) is None:  # only the first change is recorded
-                        self._changeset[lang.lang] = LangStringChange(self._langstring.get(lang.lang),
-                                                                      Action.REPLACE if self._langstring.get(lang.lang) is not None else Action.CREATE)
-                    self._langstring[lang.lang] = lang.value
-                elif isinstance(lang, (str, Xsd_string)):
+                if isinstance(lang, Xsd_string):
+                    tmplang = lang.lang if lang.lang else Language.XX
+                    if self._changeset.get(tmplang) is None:  # only the first change is recorded
+                        self._changeset[tmplang] = LangStringChange(self._langstring.get(tmplang),
+                                                                      Action.REPLACE if self._langstring.get(tmplang) is not None else Action.CREATE)
+                    self._langstring[tmplang] = lang.value
+                elif isinstance(lang, (str)):
                     if lang[-3] == "@":
                         lstr = lang[-2:].upper()
                         lobj = None

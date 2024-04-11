@@ -9,7 +9,7 @@ from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError, OmasErrorType
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.iri import Iri
@@ -435,6 +435,47 @@ class TestXsdDatatypes(unittest.TestCase):
 
         with self.assertRaises(OmasErrorValue):
             val = Xsd_decimal("abcd")
+
+        with self.assertRaises(OmasErrorType):
+            val = Xsd_decimal(set())
+
+        val = Xsd_decimal(1.0)
+        self.assertTrue(val == 1.0)
+
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val == set())
+
+        val = Xsd_decimal(1.0)
+        self.assertTrue(val != Xsd_decimal(2.0))
+        self.assertTrue(val != 2.0)
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val != set())
+
+        val = Xsd_decimal(1.0)
+        self.assertTrue(val > Xsd_decimal(0.5))
+        self.assertTrue(val > 0.5)
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val > set())
+
+        val = Xsd_decimal(1.0)
+        self.assertTrue(val >= Xsd_decimal(0.5))
+        self.assertTrue(val >= 0.5)
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val >= set())
+
+        val = Xsd_decimal(1.0)
+        self.assertTrue(val < Xsd_decimal(2.0))
+        self.assertTrue(val < 2.0)
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val < set())
+
+        val = Xsd_decimal(1.0)
+        self.assertTrue(val <= Xsd_decimal(2.0))
+        self.assertTrue(val <= 2.0)
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val <= set())
+
+
 
     def test_xsd_double(self):
         val = Xsd_double(6.62607015e-34)

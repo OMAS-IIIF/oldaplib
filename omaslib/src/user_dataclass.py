@@ -41,7 +41,6 @@ import bcrypt
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.iri import Iri
-from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -52,7 +51,6 @@ from omaslib.src.helpers.observable_set import ObservableSet
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNotFound
 from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.dtypes.string_literal import StringLiteral
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.in_project import InProjectClass
 
@@ -275,7 +273,7 @@ class UserDataclass:
     # named properties. Here we implement the dict semantic
     #
     def __getitem__(self, item: UserFields) -> UserFieldTypes:
-        if isinstance(self.__fields.get(item), StringLiteral):
+        if isinstance(self.__fields.get(item), Xsd_string):
             return str(self.__fields[item])
         return self.__fields.get(item)
 

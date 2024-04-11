@@ -56,67 +56,101 @@ class ObservableSet(Set):
         return NotImplemented
 
     def __ror__(self, other: Self) -> Self:
-        return self.__or__(other)
+        pass
+
+    def __ior__(self, other: Self) -> Self:
+        tmp_copy = self.copy()
+        super().__ior__(other)
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
+        return self
+
+    def __and__(self, other: Self) -> Self:
+        return ObservableSet(super().__and__(other))
+
+    def __iand__(self, other: Self) -> Self:
+        tmp_copy = self.copy()
+        super().__iand__(other)
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
+        return self
 
     def __rsub__(self, other: Self) -> Self:
-        return self.__sub__(other)
+        pass
 
     def __sub__(self, other: Self) -> Self:
-        if isinstance(other, ObservableSet):
-            return ObservableSet(super().__sub__(other))
-        return NotImplemented
+        return ObservableSet(super().__sub__(other))
+
+    def __isub__(self, other: Self) -> Self:
+        tmp_copy = self.copy()
+        super().__isub__(other)
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
+        return self
+
 
     def __eq__(self, other: Self) -> Self:
         return set(self) == set(other)
 
     def update(self, items: Iterable):
-        if self.__on_change is not None:
-            self.__on_change(self.copy(), self.__on_change_data)
+        tmp_copy = self.copy()
         super().update(items)
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
+
 
     def intersection_update(self, items: Iterable):
-        if self.__on_change is not None:
-            self.__on_change(self.copy(), self.__on_change_data)
+        tmp_copy = self.copy()
         super().intersection_update(items)
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
 
     def difference_update(self, items: Iterable):
-        if self.__on_change is not None:
-            self.__on_change(self.copy(), self.__on_change_data)
+        tmp_copy = self.copy()
         super().difference_update(items)
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
 
     def symmetric_difference_update(self, items: Iterable):
-        if self.__on_change is not None:
-            self.__on_change(self.copy(), self.__on_change_data)
+        tmp_copy = self.copy()
         super().symmetric_difference_update(items)
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
 
     def add(self, item: Any) -> None:
-        if self.__on_change is not None:
-            self.__on_change(self.copy(), self.__on_change_data)
+        tmp_copy = self.copy()
         super().add(item)
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
 
     def remove(self, item: Any) -> None:
         tmp_copy = self.copy()
-        try:
-            super().remove(item)
-        except KeyError as err:
-            raise OmasErrorKey(str(err))
+        super().remove(item)
         if self.__on_change is not None:
             self.__on_change(tmp_copy, self.__on_change_data)
 
     def discard(self, item: Any):
-        if self.__on_change is not None:
-            self.__on_change(self.copy(), self.__on_change_data)
+        tmp_copy = self.copy()
         super().discard(item)
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
+        return self
 
     def pop(self):
-        if self.__on_change is not None:
-            self.__on_change(self.copy(), self.__on_change_data)
+        tmp_copy = self.copy()
+        len1 = len(self)
         super().pop()
+        len2 = len(self)
+        if len1 == len2:
+            return
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
 
     def clear(self) -> None:
-        if self.__on_change is not None:
-            self.__on_change(self.copy(), self.__on_change_data)
+        tmp_copy = self.copy()
         super().clear()
+        if self.__on_change is not None:
+            self.__on_change(tmp_copy, self.__on_change_data)
 
     def copy(self) -> Self:
         return ObservableSet(super().copy(), on_change=self.__on_change)
@@ -137,33 +171,3 @@ class ObservableSet(Set):
         self.__on_change = func
         self.__on_change_data = data
 
-
-if __name__ == '__main__':
-    @serializer
-    class Test:
-        def __init__(self, data: ObservableSet[str] = None, on_change: Callable[[Self], None] = None):
-            self.__data = ObservableSet(setitems=data, on_change=self.__changing)
-
-        @property
-        def data(self) -> Any:
-            return self.__data
-
-        def __changing(self, old: Self, data: Any = None) -> None:
-            print("--->", old)
-
-        def _as_dict(self):
-            return {
-                'data': self.__data
-            }
-
-    t = Test()
-    t.data.add('x')
-    t.data.add('a')
-    t.data.add('b')
-    print(t.data)
-    jsonstr = json.dumps(t, default=serializer.encoder_default)
-    print(jsonstr)
-    t2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-    print(t2.data)
-    gaga = t2.data.asSet()
-    print(type(gaga))

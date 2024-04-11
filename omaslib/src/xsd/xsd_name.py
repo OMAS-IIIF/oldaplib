@@ -3,7 +3,7 @@ from typing import Self
 
 from pystrict import strict
 
-from omaslib.src.dtypes.string_literal import StringLiteral
+from omaslib.src.xsd.xsd_string import Xsd_string
 from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
@@ -24,7 +24,7 @@ class Xsd_name(Xsd):
 
     @classmethod
     def fromRdf(cls, value: str) -> Self:
-        value = StringLiteral.unescaping(value)
+        value = Xsd_string.unescaping(value)
         return cls(value)
 
     def __str__(self):
@@ -49,7 +49,7 @@ class Xsd_name(Xsd):
 
     @property
     def toRdf(self) -> str:
-        return f'"{StringLiteral.escaping(self.__value)}"^^xsd:name'
+        return f'"{Xsd_string.escaping(self.__value)}"^^xsd:name'
 
     @property
     def value(self) -> str:

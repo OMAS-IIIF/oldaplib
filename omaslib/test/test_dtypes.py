@@ -3,7 +3,6 @@ import unittest
 
 from omaslib.src.connection import Connection
 from omaslib.src.dtypes.bnode import BNode
-from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.enums.language import Language
@@ -49,6 +48,7 @@ class MyTestCase(unittest.TestCase):
                 test:{name} test:prop {value.toRdf}
             }}
         }}"""
+        print(sparql)
         self._connection.update_query(sparql)
 
     def get_triple(self, name: Xsd_NCName | str) -> Xsd:
@@ -63,6 +63,7 @@ class MyTestCase(unittest.TestCase):
         }}
         """
         result = self._connection.query(sparql)
+        print(result)
         res = QueryProcessor(context=self._context, query_result=result)
         return res[0]['value']
 
@@ -133,6 +134,40 @@ class MyTestCase(unittest.TestCase):
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
+
+    def test_string_literal(self):
+        val = Xsd_string("This is a test")
+        self.assertEqual(val.value, "This is a test")
+        self.assertIsNone(val.lang)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("LiteralStringA"), val)
+        valx = self.get_triple(Xsd_NCName("LiteralStringA"))
+        self.assertEqual(val, valx)
+
+
+        val = Xsd_string("This is a test", Language.EN)
+        self.assertEqual(val.value, "This is a test")
+        self.assertEqual(val.lang, Language.EN)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("LiteralStringB"), val)
+        valx = self.get_triple(Xsd_NCName("LiteralStringB"))
+        self.assertEqual(val, valx)
+
+        val = Xsd_string("This is a test", "en")
+        self.assertEqual(val.value, "This is a test")
+        self.assertEqual(val.lang, Language.EN)
+
+        with self.assertRaises(OmasErrorValue) as err:
+            val = Xsd_string("This is a test", "gaga")
+
 
 
 if __name__ == '__main__':

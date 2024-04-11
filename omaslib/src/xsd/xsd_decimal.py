@@ -3,7 +3,7 @@ from typing import Self
 
 from pystrict import strict
 
-from omaslib.src.helpers.omaserror import OmasErrorValue
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
@@ -24,6 +24,8 @@ class Xsd_decimal(Xsd):
                 self.__value = float(value)
             except ValueError as err:
                 raise OmasErrorValue(str(err))
+            except TypeError as err:
+                raise OmasErrorType(str(err))
 
     def __str__(self) -> str:
         return str(self.__value)
@@ -39,7 +41,7 @@ class Xsd_decimal(Xsd):
         elif isinstance(other, Xsd_decimal):
             return self.__value == other.__value
         else:
-            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self._value}") to {type(other)}')
+            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self.__value}") to {type(other)}')
 
     def __ne__(self, other) -> bool:
         if isinstance(other, float):
@@ -47,7 +49,7 @@ class Xsd_decimal(Xsd):
         elif isinstance(other, Xsd_decimal):
             return self.__value != other.__value
         else:
-            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self._value}") to {type(other)}')
+            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self.__value}") to {type(other)}')
 
     def __lt__(self, other) -> bool:
         if isinstance(other, float):
@@ -55,7 +57,7 @@ class Xsd_decimal(Xsd):
         elif isinstance(other, Xsd_decimal):
             return self.__value < other.__value
         else:
-            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self._value}") to {type(other)}')
+            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self.__value}") to {type(other)}')
 
     def __le__(self, other) -> bool:
         if isinstance(other, float):
@@ -63,7 +65,7 @@ class Xsd_decimal(Xsd):
         elif isinstance(other, Xsd_decimal):
             return self.__value <= other.__value
         else:
-            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self._value}") to {type(other)}')
+            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self.__value}") to {type(other)}')
 
     def __gt__(self, other) -> bool:
         if isinstance(other, float):
@@ -71,7 +73,7 @@ class Xsd_decimal(Xsd):
         elif isinstance(other, Xsd_decimal):
             return self.__value > other.__value
         else:
-            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self._value}") to {type(other)}')
+            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self.__value}") to {type(other)}')
 
     def __ge__(self, other) -> bool:
         if isinstance(other, float):
@@ -79,7 +81,7 @@ class Xsd_decimal(Xsd):
         elif isinstance(other, Xsd_decimal):
             return self.__value >= other.__value
         else:
-            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self._value}") to {type(other)}')
+            raise OmasErrorValue(f'Cannot compare Xsd_decimal("{self.__value}") to {type(other)}')
 
     def __float__(self) -> float:
         return self.__value
