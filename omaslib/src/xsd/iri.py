@@ -1,3 +1,11 @@
+"""
+# Iri
+
+Generic class/super class for Iri's.
+
+Iri's may occur as full qualified Iri's, e.g. "http://example.org/example/data" or as QName,
+e.g. "foaf:Person" with a prefix and fragment.
+"""
 import uuid
 from enum import unique, Enum
 from typing import Self
@@ -11,18 +19,29 @@ from omaslib.src.xsd.xsd_qname import Xsd_QName
 
 @unique
 class IriRep(Enum):
+    """
+    Enum to indicate form of Iri
+    """
     FULL = 'full'
     QNAME = 'qname'
 
 
 @serializer
 class Iri(Xsd):
-
+    """
+    Implements the Iri class
+    """
 
     __value: str
     __rep: IriRep
 
     def __init__(self, value: Self | Xsd_QName | Xsd_anyURI | str | None = None):
+        """
+        Constructor for the Iri class. If no parameter is supplied, the Iri class is initialized with
+        a generated random Iri from the urn-namespace.
+        :param value: an Iri value. If this parameter is omitted or None, a URN is being generated
+        :type value: IriRep | Xsd_anyURI | str | None
+        """
         if value is None:
             self.__value = uuid.uuid4().urn
             self.__rep = IriRep.FULL
@@ -55,9 +74,17 @@ class Iri(Xsd):
             raise OmasErrorValue(f'Invalid string for IRI: "{value}"')
 
     def __str__(self) -> str:
+        """
+        String representation of the Iri
+        :return: Iri string
+        """
         return self.__value
 
     def __repr__(self) -> str:
+        """
+        String representation of the Iri as constructor string
+        :return:
+        """
         return f'Iri("{self.__value}")'
 
     def __eq__(self, other: Self | Xsd_QName | Xsd_anyURI | str) -> bool:
