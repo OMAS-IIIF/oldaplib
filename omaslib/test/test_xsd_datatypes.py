@@ -12,6 +12,7 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError, OmasErrorType
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
+from omaslib.src.xsd.floatingpoint import FloatingPoint
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -111,6 +112,112 @@ class TestXsdDatatypes(unittest.TestCase):
             test:{name} test:prop ?value
         }}
         """
+
+    def test_floating_point(self):
+        val = FloatingPoint(3.14159)
+        fval = float(val)
+        self.assertEqual(fval, 3.14159)
+        self.assertEqual(str(val), "3.14159")
+        self.assertEqual(repr(val), 'FloatingPoint(3.14159)')
+        self.assertEqual(val.toRdf, '"3.14159"^^xsd:float')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        val = FloatingPoint("3.14159")
+        self.assertEqual(fval, 3.14159)
+
+        val = FloatingPoint(3.14159)
+        valc = FloatingPoint(val)
+        self.assertEqual(val2, 3.14159)
+
+        self.assertTrue(val == 3.14159)
+        self.assertTrue(val == "3.14159")
+        self.assertTrue(val == valc)
+        self.assertTrue(val == FloatingPoint(val))
+        self.assertFalse(val == None)
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val == complex(0.0, 1.0))
+
+        valc = FloatingPoint(4.0)
+        self.assertTrue(val != 4.0)
+        self.assertTrue(val != "4.0")
+        self.assertTrue(val != valc)
+        self.assertTrue(val != FloatingPoint(valc))
+        self.assertTrue(val != None)
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val != complex(0.0, 1.0))
+
+        self.assertTrue(val < 4.0)
+        self.assertTrue(val < "4.0")
+        self.assertTrue(val < valc)
+        self.assertTrue(val < FloatingPoint(valc))
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val < complex(0.0, 1.0))
+
+        self.assertTrue(val <= 4.0)
+        self.assertTrue(val <= "4.0")
+        self.assertTrue(val <= valc)
+        self.assertTrue(val <= FloatingPoint(valc))
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val <= complex(0.0, 1.0))
+
+        valc = FloatingPoint(3.0)
+        self.assertTrue(val > 3.0)
+        self.assertTrue(val > "3.0")
+        self.assertTrue(val > valc)
+        self.assertTrue(val > FloatingPoint(valc))
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val > complex(0.0, 1.0))
+
+        self.assertTrue(val >= 3.0)
+        self.assertTrue(val >= "3.0")
+        self.assertTrue(val >= valc)
+        self.assertTrue(val >= FloatingPoint(valc))
+        with self.assertRaises(OmasErrorValue):
+            self.assertTrue(val >= complex(0.0, 1.0))
+
+        val = FloatingPoint('NaN')
+        self.assertTrue(math.isnan(float(val)))
+        self.assertEqual(repr(val), 'FloatingPoint("NaN")')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertTrue(math.isnan(val2))
+
+        self.create_triple(Xsd_NCName("FloatingPoint_NaN"), val)
+        valx = self.get_triple(Xsd_NCName("FloatingPoint_NaN"))
+        self.assertTrue(math.isnan(float(valx)))
+
+        val = FloatingPoint('inf')
+        self.assertTrue(math.isinf(float(val)) and val > 0.0)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertTrue(math.isinf(val2) and val2 > 0.0)
+
+        self.create_triple(Xsd_NCName("FloatingPoint_Inf"), val)
+        valx = self.get_triple(Xsd_NCName("FloatingPoint_Inf"))
+        self.assertTrue(math.isinf(float(valx)) and valx > 0.0)
+
+        val = FloatingPoint('-inf')
+        self.assertTrue(math.isinf(float(val)) and val < 0.0)
+
+        self.create_triple(Xsd_NCName("FloatingPoint_minusInf"), val)
+        valx = self.get_triple(Xsd_NCName("FloatingPoint_minusInf"))
+        self.assertTrue(math.isinf(float(valx)) and valx < 0.0)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertTrue(math.isinf(val2) and val2 < 0.0)
+
+        with self.assertRaises(OmasErrorValue):
+            val = FloatingPoint("-1. 0")
+
+        with self.assertRaises(OmasErrorValue):
+            val = FloatingPoint("abcd")
+
 
     def test_iri(self):
         val = Iri("test:whatiri")
@@ -414,10 +521,8 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_decimal(3.141592653589793)
         self.assertEqual(float(val), 3.141592653589793)
         self.assertEqual(str(val), '3.141592653589793')
-        self.assertEqual(repr(val), 'Xsd_decimal("3.141592653589793")')
+        self.assertEqual(repr(val), 'Xsd_decimal(3.141592653589793)')
         self.assertEqual(val.toRdf, '"3.141592653589793"^^xsd:decimal')
-        nnn: Xsd_decimal | None = None
-        self.assertFalse(val == nnn)
 
         valc = Xsd_decimal(val)
         self.assertEqual(val, valc)
@@ -430,53 +535,6 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_decimal"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
-            val = Xsd_decimal("-1. 0")
-
-        with self.assertRaises(OmasErrorValue):
-            val = Xsd_decimal("abcd")
-
-        with self.assertRaises(OmasErrorType):
-            val = Xsd_decimal(set())
-
-        val = Xsd_decimal(1.0)
-        self.assertTrue(val == 1.0)
-
-        with self.assertRaises(OmasErrorValue):
-            self.assertTrue(val == set())
-
-        val = Xsd_decimal(1.0)
-        self.assertTrue(val != Xsd_decimal(2.0))
-        self.assertTrue(val != 2.0)
-        with self.assertRaises(OmasErrorValue):
-            self.assertTrue(val != set())
-
-        val = Xsd_decimal(1.0)
-        self.assertTrue(val > Xsd_decimal(0.5))
-        self.assertTrue(val > 0.5)
-        with self.assertRaises(OmasErrorValue):
-            self.assertTrue(val > set())
-
-        val = Xsd_decimal(1.0)
-        self.assertTrue(val >= Xsd_decimal(0.5))
-        self.assertTrue(val >= 0.5)
-        with self.assertRaises(OmasErrorValue):
-            self.assertTrue(val >= set())
-
-        val = Xsd_decimal(1.0)
-        self.assertTrue(val < Xsd_decimal(2.0))
-        self.assertTrue(val < 2.0)
-        with self.assertRaises(OmasErrorValue):
-            self.assertTrue(val < set())
-
-        val = Xsd_decimal(1.0)
-        self.assertTrue(val <= Xsd_decimal(2.0))
-        self.assertTrue(val <= 2.0)
-        with self.assertRaises(OmasErrorValue):
-            self.assertTrue(val <= set())
-
-
-
     def test_xsd_double(self):
         val = Xsd_double(6.62607015e-34)
         self.assertEqual(float(val), 6.62607015e-34)
@@ -484,6 +542,9 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertEqual(repr(val), 'Xsd_double(6.62607015e-34)')
         nnn: Xsd_double | None = None
         self.assertFalse(val == nnn)
+
+        val = Xsd_double("3.14159")
+        self.assertEqual(val, 3.14159)
 
         valc = Xsd_double(val)
         self.assertEqual(val, valc)
@@ -495,45 +556,6 @@ class TestXsdDatatypes(unittest.TestCase):
         self.create_triple(Xsd_NCName("Xsd_double"), val)
         valx = self.get_triple(Xsd_NCName("Xsd_double"))
         self.assertEqual(val, valx)
-
-        val = Xsd_double('NaN')
-        self.assertTrue(math.isnan(val))
-
-        jsonstr = json.dumps(val, default=serializer.encoder_default)
-        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-        self.assertTrue(math.isnan(val2))
-
-        self.create_triple(Xsd_NCName("Xsd_doubleNaN"), val)
-        valx = self.get_triple(Xsd_NCName("Xsd_doubleNaN"))
-        self.assertTrue(math.isnan(valx))
-
-        val = Xsd_double('inf')
-        self.assertTrue(math.isinf(val) and val > 0.0)
-
-        jsonstr = json.dumps(val, default=serializer.encoder_default)
-        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-        self.assertTrue(math.isinf(val2) and val2 > 0.0)
-
-        self.create_triple(Xsd_NCName("Xsd_doubleInf"), val)
-        valx = self.get_triple(Xsd_NCName("Xsd_doubleInf"))
-        self.assertTrue(math.isinf(valx) and valx > 0.0)
-
-        val = Xsd_double('-inf')
-        self.assertTrue(math.isinf(val) and val < 0.0)
-
-        self.create_triple(Xsd_NCName("Xsd_double_Inf"), val)
-        valx = self.get_triple(Xsd_NCName("Xsd_double_Inf"))
-        self.assertTrue(math.isinf(valx) and valx < 0.0)
-
-        jsonstr = json.dumps(val, default=serializer.encoder_default)
-        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-        self.assertTrue(math.isinf(val2) and val2 < 0.0)
-
-        with self.assertRaises(OmasErrorValue):
-            val = Xsd_double("-1. 0")
-
-        with self.assertRaises(OmasErrorValue):
-            val = Xsd_double("abcd")
 
     def test_xsd_duration(self):
         val = Xsd_duration('PT2M10S')
@@ -561,9 +583,6 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertEqual(val, 6.62607015e-34)
         self.assertEqual(str(val), '6.62607015e-34')
         self.assertEqual(repr(val), 'Xsd_float(6.62607015e-34)')
-        nnn: Xsd_float | None = None
-        self.assertFalse(val == nnn)
-
         valc = Xsd_float(val)
         self.assertEqual(val, valc)
 
@@ -574,46 +593,6 @@ class TestXsdDatatypes(unittest.TestCase):
         self.create_triple(Xsd_NCName("Xsd_float"), val)
         valx = self.get_triple(Xsd_NCName("Xsd_float"))
         self.assertEqual(val, valx)
-
-        val = Xsd_float('NaN')
-        self.assertTrue(math.isnan(val))
-        self.assertEqual(repr(val), 'Xsd_float("NaN")')
-
-        jsonstr = json.dumps(val, default=serializer.encoder_default)
-        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-        self.assertTrue(math.isnan(val2))
-
-        self.create_triple(Xsd_NCName("Xsd_floatNaN"), val)
-        valx = self.get_triple(Xsd_NCName("Xsd_floatNaN"))
-        self.assertTrue(math.isnan(valx))
-
-        val = Xsd_float('inf')
-        self.assertTrue(math.isinf(val) and val > 0.0)
-
-        jsonstr = json.dumps(val, default=serializer.encoder_default)
-        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-        self.assertTrue(math.isinf(val2) and val2 > 0.0)
-
-        self.create_triple(Xsd_NCName("Xsd_floatInf"), val)
-        valx = self.get_triple(Xsd_NCName("Xsd_floatInf"))
-        self.assertTrue(math.isinf(valx) and valx > 0.0)
-
-        val = Xsd_float('-inf')
-        self.assertTrue(math.isinf(val) and val < 0.0)
-
-        self.create_triple(Xsd_NCName("Xsd_float_Inf"), val)
-        valx = self.get_triple(Xsd_NCName("Xsd_float_Inf"))
-        self.assertTrue(math.isinf(valx) and valx < 0.0)
-
-        jsonstr = json.dumps(val, default=serializer.encoder_default)
-        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-        self.assertTrue(math.isinf(val2) and val2 < 0.0)
-
-        with self.assertRaises(OmasErrorValue):
-            val = Xsd_float("-1. 0")
-
-        with self.assertRaises(OmasErrorValue):
-            val = Xsd_float("abcd")
 
     def test_xsd_gDay(self):
         val = Xsd_gDay("---01")
