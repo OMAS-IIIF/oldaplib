@@ -1,8 +1,3 @@
-"""
-# FloatingPoint
-
-This module provides basic class to represent floating point numbers.
-"""
 import math
 from typing import Self
 
@@ -17,8 +12,16 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class FloatingPoint(Xsd):
     """
-    This is the superclass of floating point based XML Schema classes. It implements the basic
-    functionality of floating point XML Schema classes.
+    This is the superclass of all floating point based XML Schema classes. It implements the basic
+    functionality of floating point XML Schema classes. These are:
+
+    - Constructor method `__init__`
+    - Comparison methods `==`, `!=`, `<__lt__>`, `<=`, `>`, `>=`
+    - Serializer methods `str(XXX)`, `repr(XXX)`,
+    - RDF property `toRdf`
+    - Accessor methods `XXX.value`, `float(XX)`
+    - Hashing methods `hash(XXX)`
+
     """
     _value: float
 
@@ -27,6 +30,8 @@ class FloatingPoint(Xsd):
         Constructor for Floating Point
         :param value: The initial value. May not be None
         :type value: A FloatingPoint value, a float value or a string that can be interpreted as float.
+        :raises OmasErrorValue: If the value is not a float.
+        :raises OmasErrorType: If the value is not a float.
         """
         if isinstance(value, FloatingPoint):
             self._value = value._value
@@ -64,8 +69,8 @@ class FloatingPoint(Xsd):
 
     def __repr__(self) -> str:
         """
-        Returns the value as constructor statment
-        :return: Constructor statment
+        Returns the value as constructor statement string
+        :return: Constructor statement string
         """
         if math.isnan(self._value):
             valstr = '"NaN"'
@@ -80,7 +85,7 @@ class FloatingPoint(Xsd):
 
     def __eq__(self, other: Self | float | str | None) -> bool:
         """
-        test for equality
+        Test for equality
         :param other: The value to compare with
         :type other: Self | float | str | None
         :return: True or False
@@ -98,7 +103,7 @@ class FloatingPoint(Xsd):
 
     def __ne__(self, other: Self | float | str | None) -> bool:
         """
-        test for inequality
+        Test for inequality
         :param other: The value to compare with
         :type other: Self | float | str | None
         :return: True or False
@@ -116,7 +121,7 @@ class FloatingPoint(Xsd):
 
     def __lt__(self, other: Self | float | str) -> bool:
         """
-        test for less
+        Test for less-than
         :param other: The value to compare with
         :type other: Self | float | str | None
         :return: True or False
@@ -132,7 +137,7 @@ class FloatingPoint(Xsd):
 
     def __le__(self, other: Self | float | str) -> bool:
         """
-        test for less-equal
+        Test for less or equal than
         :param other: The value to compare with
         :type other: Self | float | str
         :return: True or False
@@ -148,7 +153,7 @@ class FloatingPoint(Xsd):
 
     def __gt__(self, other: Self | float | str) -> bool:
         """
-        test for greater than
+        Test for greater than
         :param other: The value to compare with
         :type other: Self | float | str
         :return: True or False
@@ -164,7 +169,7 @@ class FloatingPoint(Xsd):
 
     def __ge__(self, other: Self | float | str) -> bool:
         """
-        test for greater than-equal
+        Test for greater or equal than
         :param other: The value to compare with
         :type other: Self | float | str
         :return: True or False
@@ -195,7 +200,7 @@ class FloatingPoint(Xsd):
 
     def _toRdf(self, xsdtype: str = 'xsd:float') -> str:
         """
-        Converts the instance to a RDF string
+        Helper for converting instances to a RDF string
         :param xsdtype: XML Schema type to use
         :type xsdtype: XML Schema datatype to use (prefix: "xsd" to be used)
         :return: string representation of the instance as RDF
@@ -220,7 +225,7 @@ class FloatingPoint(Xsd):
 
     def _as_dict(self) -> dict:
         """
-        Used by JSON serialization
+        Used by JSON serialization (@serialisation decorator)
         :return: Representation of the instance as dict
         """
         return {'value': self._value}

@@ -19,17 +19,15 @@ class Xsd_anyURI(Xsd):
     Represents a generic IRI (corresonds to the XML datatype [AnyURI](https://www.w3.org/TR/xmlschema-2/#QName).
     This class is used to represent a generic IRI. This class has the following methods:
 
-    - *Constructor()*: Constructor which initializes a AnyIRI instance
-    - *+*: Append a string or NCName to an AnyIRI instance
-    - *+=*: Append a string or NCName to an AnyIRI instance
-    - *repr()*: Returns the Python representation of the AnyIRI instance
-    - *str()*: Returns the string representation of the AnyIRI instance
-    - *==*: Tests for equality of 2 AnyIRI instances
-    - *!=*: Tests for inequality of 2 AnyIRI instances
-    - *hash()*: Returns the hash of the AnyIRI instance
-    - *len()*: Returns the number of characters in the string representation of the AnyIRI
-    - *append_allowed()*: Returns True if the AnyIRI instance allows appending a fragment, that is if it terminates
-      with a "#" or "/" character
+    - Constructor method `__init__`
+    - Accessor methods `XXX.value`
+    - Comparison methods `==`, `!=`
+    - Operators for LangString manipulation:
+        - Append a string or NCName to an AnyIRI instance: `+`, `+=`
+    - Serializer methods `str(XXX)`, `repr(XXX)`,
+    - RDF property `toRdf`
+    - Hashing methods `hash(XXX)`
+    - information `len(XXX)`, `XXX.append_allowed`
     """
     _value: str
     _append_allowed: bool
@@ -39,6 +37,7 @@ class Xsd_anyURI(Xsd):
         Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI
         :param value: A string or another AnyIRI instance
         :type value: Xsd_anyURI | str
+        :raises OmasErrorValue: The given string is not an IRI
         """
         super().__init__(value)
         if isinstance(value, Xsd_anyURI):
@@ -75,6 +74,7 @@ class Xsd_anyURI(Xsd):
         """
         Test for equality of two AnyIRIs
         :param other: A string/AnyIRI to be compared
+        :type other: AnyIRI | None
         :return: True or False
         """
         if other is None:
@@ -87,8 +87,11 @@ class Xsd_anyURI(Xsd):
         """
         Test for inequality of two
         :param other: A string/AnyIRI to be compared
+        :type other: AnyIRI | None
         :return: True or False
         """
+        if other is None:
+            return True
         return self._value != str(other)
 
     def __hash__(self) -> int:
@@ -110,11 +113,11 @@ class Xsd_anyURI(Xsd):
 
     @property
     def toRdf(self) -> str:
+        """
+        Returns the RDF representation of the AnyIRI
+        :return: RDF string
+        """
         return f'"{self._value}"^^xsd:anyURI'
-
-    # @property
-    # def resUri(self) -> str:
-    #     return f'<{self._value}>'
 
     @property
     def append_allowed(self) -> bool:
@@ -126,4 +129,8 @@ class Xsd_anyURI(Xsd):
 
     @property
     def value(self) -> str:
+        """
+        Property which returns the AnyIRI value
+        :return: string
+        """
         return self._value

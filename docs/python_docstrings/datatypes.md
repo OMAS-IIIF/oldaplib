@@ -1,4 +1,10 @@
+# Xsd (base class)
 ::: omaslib.src.xsd.xsd
+
+# FloatingPoint (base class)
+::: omaslib.src.xsd.floatingpoint
+
+# Iri
 ::: omaslib.src.xsd.iri
 ::: omaslib.src.xsd.xsd_anyuri
 ::: omaslib.src.xsd.xsd_base64binary

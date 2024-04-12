@@ -1,11 +1,3 @@
-"""
-# Iri
-
-Generic class/super class for Iri's.
-
-Iri's may occur as full qualified Iri's, e.g. "http://example.org/example/data" or as QName,
-e.g. "foaf:Person" with a prefix and fragment.
-"""
 import uuid
 from enum import unique, Enum
 from typing import Self
@@ -41,6 +33,7 @@ class Iri(Xsd):
         a generated random Iri from the urn-namespace.
         :param value: an Iri value. If this parameter is omitted or None, a URN is being generated
         :type value: IriRep | Xsd_anyURI | str | None
+        :raises OmasErrorValue: Invalid IRI string
         """
         if value is None:
             self.__value = uuid.uuid4().urn
@@ -112,10 +105,18 @@ class Iri(Xsd):
 
     @property
     def is_qname(self) -> bool:
+        """
+        Checks if the Iri is an Iri QName
+        :return:
+        """
         return self.__rep == IriRep.QNAME
 
     @property
     def is_fulliri(self) -> bool:
+        """
+        Checks if the Iri is a full qualified Iri
+        :return:
+        """
         return self.__rep == IriRep.FULL
 
     @property

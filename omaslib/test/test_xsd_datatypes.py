@@ -301,7 +301,7 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_boolean(True)
         self.assertTrue(val)
         self.assertEqual(str(val), "true")
-        self.assertEqual(repr(val), '"true"^^xsd:boolean')
+        self.assertEqual(repr(val), "Xsd_boolean('true')")
         nnn = None
         self.assertFalse(val == nnn)
 
@@ -338,7 +338,7 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_boolean(False)
         self.assertFalse(val)
         self.assertEqual(str(val), "false")
-        self.assertEqual(repr(val), '"false"^^xsd:boolean')
+        self.assertEqual(repr(val), "Xsd_boolean('false')")
 
         valc = Xsd_boolean(val)
         self.assertFalse(valc)

@@ -16,11 +16,18 @@ nav:
       - Data modeling:
         - Property class: python_docstrings/propertyclass.md
       - Helper:
-        - XSD datatypes: python_docstrings/xsddatatypes.md
         - Context class: python_docstrings/context.md
-        - Datatypes: python_docstrings/datatypes.md
+        - XML Schema Datatypes:
+          - Xsd: python_docstrings/xsd/xsd.md
+          - Iri: python_docstrings/xsd/iri.md
+          - FloatingPoint: python_docstrings/xsd/floatingpoint.md
+          - Xsd_anyURI: python_docstrings/xsd/xsd_anyuri.md
+          - Xsd_base64Binary: python_docstrings/xsd/xsd_base64binary.md
+          - Xsd_boolean: python_docstrings/xsd/xsd_boolean.md
+          - Xsd_integer: python_docstrings/xsd/xsd_integer.md
+          - Xsd_byte: python_docstrings/xsd/xsd_byte.md
+          - Xsd_date: python_docstrings/xsd/xsd_date.md
         - Language enum: python_docstrings/language.md
-        - OLDAP string literal: python_docstrings/oldap_string_literal
         - LangString class: python_docstrings/langstring.md
         - QueryProcessor class: python_docstrings/query_processor.md
         - InProject class: python_docstrings/in_project.md
