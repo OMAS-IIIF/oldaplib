@@ -13,7 +13,7 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class Xsd_decimal(FloatingPoint):
     """
-    Implements the XSD Schema xsd:decimal datatype. Is a subclass of FloatingPoint class and
+    Implements the XML Schema [xsd:decimal](https://www.w3.org/TR/xmlschema11-2/#decimal) datatype. Is a subclass of FloatingPoint class and
     inherits most methods from the FloatingPoint class.
     """
 

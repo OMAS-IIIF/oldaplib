@@ -31,6 +31,13 @@ nav:
           - Xsd_dateTimeStamp: python_docstrings/xsd/xsd_datetimestamp.md
           - Xsd_decimal: python_docstrings/xsd/xsd_decimal.md
           - Xsd_double: python_docstrings/xsd/xsd_double.md
+          - Xsd_duration: python_docstrings/xsd/xsd_duration.md
+          - Xsd_float: python_docstrings/xsd/xsd_float.md
+          - Xsd_gDay: python_docstrings/xsd/xsd_gday.md
+          - Xsd_gMonth: python_docstrings/xsd/xsd_gmonth.md
+          - Xsd_gMonthDay: python_docstrings/xsd/xsd_gmonthday.md
+          - Xsd_gYear: python_docstrings/xsd/xsd_gyear.md
+          - Xsd_gYearMonth: python_docstrings/xsd/xsd_gyearmonth.md
         - Language enum: python_docstrings/language.md
         - LangString class: python_docstrings/langstring.md
         - QueryProcessor class: python_docstrings/query_processor.md

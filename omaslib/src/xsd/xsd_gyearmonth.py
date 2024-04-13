@@ -12,12 +12,21 @@ from omaslib.src.xsd.xsd import Xsd
 @strict
 @serializer
 class Xsd_gYearMonth(Xsd):
+    """
+    Implementation of the XML Schema [xsd:gYearMonth](https://www.w3.org/TR/xmlschema11-2/#gYearMonth) datatype
+    """
     __year: int
     __month: int
     __tz: Tuple[int, int] | None
     __zulu: bool
 
     def __init__(self, value: Self | str):
+        """
+        Constructor of the Xsd_gYearMonth class
+        :param value: Xsd_gYearMonth instance or a valid string representing a Xsd_gYearMonth instance
+        :type value: Xsd_gYearMonth | str
+        :raises OmasErrorValue: if the value is not a valid Xsd_gYearMonth instance
+        """
         if isinstance(value, Xsd_gYearMonth):
             self.__year = value.__year
             self.__month = value.__month
@@ -45,6 +54,10 @@ class Xsd_gYearMonth(Xsd):
             raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth.')
 
     def __str__(self):
+        """
+        String representation of the Xsd_gYearMonth instance
+        :return: String representation of the Xsd_gYearMonth instance
+        """
         ff = '05' if self.__year < 0 else '04'
         s = f'{self.__year:{ff}}-{self.__month:02}'
         if self.__tz is not None:
@@ -55,9 +68,20 @@ class Xsd_gYearMonth(Xsd):
         return s
 
     def __repr__(self):
+        """
+        Constructor string representation of the Xsd_gYearMonth instance
+        :return: Constructor string
+        """
         return f'Xsd_gYearMonth("{str(self)}")'
 
     def __eq__(self, other: Self | str | None) -> bool:
+        """
+        Equality test for Xsd_gYearMonth instance
+        :param other: Xsd_gYearMonth instance or a valid string representing a Xsd_gYearMonth instance
+        :type other: Xsd_gYearMonth | str | None
+        :return: True or False
+        :raise OmasErrorValue: if the value is not a valid Xsd_gYearMonth instance
+        """
         if other is None:
             return False
         if not isinstance(other, Xsd_gYearMonth):
@@ -71,12 +95,24 @@ class Xsd_gYearMonth(Xsd):
         return True
 
     def __hash__(self) -> int:
+        """
+        Hash representation of the Xsd_gYearMonth instance
+        :return: Hash value
+        """
         return hash(str(self))
 
     def _as_dict(self) -> dict[str, str]:
+        """
+        Internal method for JSON serialization (@serializer decorator)
+        :return: dict
+        """
         return {'value': str(self)}
 
     @property
     def toRdf(self) -> str:
+        """
+        RDF representation of the Xsd_gYearMonth instance
+        :return: RDF string
+        """
         return f'"{str(self)}"^^xsd:gYearMonth'
 

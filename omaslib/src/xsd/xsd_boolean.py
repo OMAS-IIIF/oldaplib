@@ -11,7 +11,7 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class Xsd_boolean(Xsd):
     """
-    Implements the XML Schema xsd:boolean datatype
+    Implements the XML Schema [xsd:boolean](https://www.w3.org/TR/xmlschema11-2/#boolean) datatype
     """
     __value: bool
 

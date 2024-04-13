@@ -13,7 +13,7 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class Xsd_date(Xsd):
     """
-    Implements the XSD Schema xsd:date datatype
+    Implements the XSD Schema [xsd:date](https://www.w3.org/TR/xmlschema11-2/#date) datatype
     """
     __value: date
 

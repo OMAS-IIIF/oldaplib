@@ -12,7 +12,7 @@ from omaslib.src.xsd.xsd_integer import Xsd_integer
 @serializer
 class Xsd_byte(Xsd_integer):
     """
-    Xsd_byte is a class that represents an XSD Schema xsd:byte datatype. It is derived from Xsd_integer
+    Xsd_byte is a class that represents an XML Schema [xsd:byte datatype](https://www.w3.org/TR/xmlschema11-2/#byte). It is derived from Xsd_integer
     and inherits most methods from Xsd_integer.
     """
 

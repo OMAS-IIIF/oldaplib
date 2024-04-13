@@ -14,7 +14,7 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class Xsd_double(FloatingPoint):
     """
-    Implements the XSD Schema xsd:double datatype.
+    Implements the XML Schema [xsd:double](https://www.w3.org/TR/xmlschema11-2/#double) datatype.
     """
     _value: float
 

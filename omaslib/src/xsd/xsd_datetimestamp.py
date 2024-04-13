@@ -13,7 +13,7 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class Xsd_dateTimeStamp(Xsd):
     """
-    Implements the XSD Schema xsd:dateTimeSTamp datatype
+    Implements the XML Schema [xsd:dateTimeStamp](https://www.w3.org/TR/xmlschema11-2/#dateTimeStamp) datatype
     """
     __value: datetime
 

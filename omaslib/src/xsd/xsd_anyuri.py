@@ -16,7 +16,7 @@ class Xsd_anyURI(Xsd):
     """
     # AnyIRI
 
-    Represents a generic IRI (corresonds to the XML datatype [AnyURI](https://www.w3.org/TR/xmlschema-2/#QName).
+    Represents a generic IRI (corresonds to the XML datatype [AnyURI](https://www.w3.org/TR/xmlschema11-2/#anyURI).
     This class is used to represent a generic IRI. This class has the following methods:
 
     - Constructor method `__init__`

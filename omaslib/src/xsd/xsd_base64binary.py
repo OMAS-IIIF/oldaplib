@@ -13,7 +13,7 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class Xsd_base64Binary(Xsd):
     """
-    Class that encodes and decodes binary data using the XML Scheme xsd:base64Binary datatype
+    Class that encodes and decodes binary data using the XML Scheme [xsd:base64Binary](https://www.w3.org/TR/xmlschema11-2/#base64Binary) datatype
     """
 
     __value: bytes

@@ -12,12 +12,21 @@ from omaslib.src.xsd.xsd import Xsd
 @strict
 @serializer
 class Xsd_gMonthDay(Xsd):
+    """
+    Implementation of the XML Schema [xsd:gMonthDay](https://www.w3.org/TR/xmlschema11-2/#gMonthDay) datatype
+    """
     __month: int
     __day: int
     __tz: Tuple[int, int] | None
     __zulu: bool
 
     def __init__(self, value: Self | str):
+        """
+        Constructor of the Xsd_gMonthDay class
+        :param value: Xsd_gMonthDay instance or valid string
+        :type value: Xsd_gMonthDay | str
+        :raises OmasErrorValue: if the value is not valid Xsd_gMonthDay representation
+        """
         if isinstance(value, Xsd_gMonthDay):
             self.__month = value.__month
             self.__day = value.__day
@@ -42,6 +51,10 @@ class Xsd_gMonthDay(Xsd):
             raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonthDay.')
 
     def __str__(self):
+        """
+        String representation of the Xsd_gMonthDay instance
+        :return: String representation of the Xsd_gMonthDay instance
+        """
         s = f'--{self.__month:02}-{self.__day:02}'
         if self.__tz is not None:
             if self.__zulu:
@@ -51,9 +64,20 @@ class Xsd_gMonthDay(Xsd):
         return s
 
     def __repr__(self):
+        """
+        Constructor string representation of the Xsd_gMonthDay instance
+        :return: Constructor string
+        """
         return f'Xsd_gMonthDay("{str(self)}")'
 
     def __eq__(self, other: Self | str | None) -> bool:
+        """
+        Equality check for Xsd_gMonthDay instance
+        :param other: Another Xsd_gMonthDay instance or a valid string
+        :type other: Xsd_gMonthDay | str | None
+        :return: True or False
+        :raise OmasErrorValue: if the value is not valid Xsd_gMonthDay representation
+        """
         if other is None:
             return False
         if not isinstance(other, Xsd_gMonthDay):
@@ -67,11 +91,23 @@ class Xsd_gMonthDay(Xsd):
         return True
 
     def __hash__(self) -> int:
+        """
+        Hash value of the Xsd_gMonthDay instance
+        :return: Hash value
+        """
         return hash(str(self))
 
     def _as_dict(self) -> dict[str, str]:
+        """
+        Internal method for JSON serialization (@serializer decorator)
+        :return: dict
+        """
         return {'value': str(self)}
 
     @property
     def toRdf(self) -> str:
+        """
+        RDF representation of the Xsd_gMonthDay instance
+        :return: RDF string
+        """
         return f'"{str(self)}"^^xsd:gMonthDay'

@@ -14,7 +14,7 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class Xsd_duration(Xsd):
     """
-    Implements the XSD Schema xsd:duration datatype
+    Implements the XML Schema [xsd:duration](https://www.w3.org/TR/xmlschema11-2/#duration) datatype
     """
     __value: timedelta
 
@@ -54,6 +54,7 @@ class Xsd_duration(Xsd):
         """
         Compares two Xsd_duration instances for equality.
         :param other: Xsd_duration instance, a timedelta instance, or a string for a timedelta
+        :type other: Self | timedelta | str | None
         :return: True or False
         :raise OmasErrorValue: if the value is not a valid timedelta
         """
@@ -77,22 +78,25 @@ class Xsd_duration(Xsd):
         """
         return hash(self.__value)
 
-    @classmethod
-    def from_dict(cls, value: str) -> Self:
-        """
-        Internal use for JSON serialization (@serializer decorator)
-        :param value:
-        :return:
-        """
-        return cls(isodate.parse_duration(value))
-
     @property
     def toRdf(self) -> str:
+        """
+        Converts the Xsd_duration instance to a RDF string.
+        :return: RDF string
+        """
         return f'"{isodate.duration_isoformat(self.__value)}"^^xsd:duration'
 
     def _as_dict(self) -> dict:
+        """
+        Internal method to convert for JSON serialization. (@serializer decorater)
+        :return:
+        """
         return {'value': isodate.duration_isoformat(self.__value)}
 
     @property
     def value(self) -> timedelta:
+        """
+        Converts the Xsd_duration instance to a timedelta instance.
+        :return: timedelta instance
+        """
         return self.__value
