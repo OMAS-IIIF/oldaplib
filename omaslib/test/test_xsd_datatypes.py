@@ -38,7 +38,7 @@ from omaslib.src.xsd.xsd_int import Xsd_int
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 from omaslib.src.xsd.xsd_language import Xsd_language
 from omaslib.src.xsd.xsd_long import Xsd_long
-from omaslib.src.xsd.xsd_name import Xsd_name
+from omaslib.src.xsd.xsd_name import Xsd_Name
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_negativeinteger import Xsd_negativeInteger
 from omaslib.src.xsd.xsd_nmtoken import Xsd_NMTOKEN
@@ -1006,25 +1006,25 @@ class TestXsdDatatypes(unittest.TestCase):
             val = Xsd_long("abcd")
 
     def test_xsd_name(self):
-        val = Xsd_name("dies:ist:ein_name12")
+        val = Xsd_Name("dies:ist:ein_name12")
         self.assertEqual(str(val), "dies:ist:ein_name12")
-        self.assertEqual(repr(val), 'Xsd_name("dies:ist:ein_name12")')
-        nnn: Xsd_name | None = None
+        self.assertEqual(repr(val), 'Xsd_Name("dies:ist:ein_name12")')
+        nnn: Xsd_Name | None = None
         self.assertFalse(val == nnn)
 
         jsonstr = json.dumps(val, default=serializer.encoder_default)
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertEqual(val, val2)
 
-        self.create_triple(Xsd_NCName("Xsd_name"), val)
-        valx = self.get_triple(Xsd_NCName("Xsd_name"))
+        self.create_triple(Xsd_NCName("Xsd_Name"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_Name"))
         self.assertEqual(val, valx)
 
         with self.assertRaises(OmasErrorValue):
-            val = Xsd_name("kühn,dreist")
+            val = Xsd_Name("kühn,dreist")
 
         with self.assertRaises(OmasErrorValue):
-            val = Xsd_name("01234:56789")
+            val = Xsd_Name("01234:56789")
 
     def test_ncname(self):
         ncn1 = Xsd_NCName('AnId0')

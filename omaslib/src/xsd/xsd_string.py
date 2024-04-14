@@ -11,7 +11,7 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class Xsd_string(Xsd):
     """
-    # OoldapStringLiteral class
+    Implements the XML Schema [xsd:string(https://www.w3.org/TR/xmlschema11-2/#string)] datatype.
 
     This class implements the handling of a single RDF/TRIG string that may have a language tag. It is
     serializable and manages the escaping/un-escaing of strings transfered to the triple store. This is
@@ -72,11 +72,12 @@ class Xsd_string(Xsd):
 
     def __init__(self, value: Self | str, lang: str | Language | None = None):
         """
-        Constructor of OldapStringLiteral.
+        Constructor of Xsd_string.
         :param value: String value
         :type value: str
         :param lang: Language the sting is in [optional]
         :type lang: str | Language
+        :raises OmasErrorValue: If the given language is invalid
         """
         if isinstance(value, Xsd_string):
             self.__value = value.__value
@@ -96,7 +97,7 @@ class Xsd_string(Xsd):
     @classmethod
     def fromRdf(cls, value: str, lang: Optional[str] = None):
         """
-        Constructor of OldapStringLiteral that takes a RDF/SPARQL representation of the string and un-escapes it
+        Constructor of Xsd_string that takes a RDF/SPARQL representation of the string and un-escapes it
         :param value: String from RDF/SPARQL representation
         :type value: str
         :param lang: Language ISO short (lowercased) [optional]
@@ -109,7 +110,7 @@ class Xsd_string(Xsd):
 
     def __str__(self) -> str:
         """
-        Returns the string representation of the OldapStringLiteral instance with the languages appended "@ll"
+        Returns the string representation of the Xsd_string instance with the languages appended "@ll"
         :return: Language string
         :rtype: str
         """
@@ -120,7 +121,7 @@ class Xsd_string(Xsd):
 
     def __repr__(self) -> str:
         """
-        Returns the OldapStringLiteral instance as string as used in a RDF/SPARQL representation
+        Returns the Xsd_string instance as string as used in a RDF/SPARQL representation
         :return: SPARQL/RDF/TRIG representation of the language string
         :rtype: str
         """
@@ -131,7 +132,7 @@ class Xsd_string(Xsd):
 
     def __eq__(self, other: str | Self | None) -> bool:
         """
-        Check for equality of two OldapStringLiterals (both strings and languages must be equal)
+        Check for equality of two Xsd_strings (both strings and languages must be equal)
         :param other: Other OldapStringLiteral
         :type other: StringLiteral
         :return: True or False
@@ -145,6 +146,11 @@ class Xsd_string(Xsd):
             return self.__value == other
 
     def __ne__(self, other: str | Self | None) -> bool:
+        """
+        Check for inequality of two Xsd_strings (both strings and languages must be equal)
+        :param other:
+        :return:
+        """
         if other is None:
             return True
         if isinstance(other, Xsd_string):

@@ -11,7 +11,8 @@ from omaslib.src.xsd.xsd import Xsd
 @serializer
 class Xsd_integer(Xsd):
     """
-    Base class for XSD Schema integer classes, impelemnts directly the XSD Schema xsd:integer datatype
+    Base class for XSD Schema integer classes, implements directly the XSD Schema
+    [xsd:integer](https://www.w3.org/TR/xmlschema11-2/#integer) datatype
     """
     _value: int
 
@@ -41,7 +42,7 @@ class Xsd_integer(Xsd):
 
     def __repr__(self) -> str:
         """
-        String representation of Xsd_integer in constructor form
+        Constrctor string representation of Xsd_integer in constructor form
         :return: string
         """
         return f'{type(self).__name__}({str(self._value)})'

@@ -24,7 +24,6 @@ nav:
           - Xsd_anyURI: python_docstrings/xsd/xsd_anyuri.md
           - Xsd_base64Binary: python_docstrings/xsd/xsd_base64binary.md
           - Xsd_boolean: python_docstrings/xsd/xsd_boolean.md
-          - Xsd_integer: python_docstrings/xsd/xsd_integer.md
           - Xsd_byte: python_docstrings/xsd/xsd_byte.md
           - Xsd_date: python_docstrings/xsd/xsd_date.md
           - Xsd_dateTime: python_docstrings/xsd/xsd_datetime.md
@@ -38,6 +37,23 @@ nav:
           - Xsd_gMonthDay: python_docstrings/xsd/xsd_gmonthday.md
           - Xsd_gYear: python_docstrings/xsd/xsd_gyear.md
           - Xsd_gYearMonth: python_docstrings/xsd/xsd_gyearmonth.md
+          - Xsd_hexBinary: python_docstrings/xsd/xsd_hexbinary.md
+          - Xsd_ID: python_docstrings/xsd/xsd_id.md
+          - Xsd_IDREF: python_docstrings/xsd/xsd_idref.md
+          - Xsd_int: python_docstrings/xsd/xsd_int.md
+          - Xsd_integer: python_docstrings/xsd/xsd_integer.md
+          - Xsd_language: python_docstrings/xsd/xsd_language.md
+          - Xsd_long: python_docstrings/xsd/xsd_long.md
+          - Xsd_Name: python_docstrings/xsd/xsd_name.md
+          - Xsd_NCName: python_docstrings/xsd/xsd_ncname.md
+          - Xsd_negativeInteger: python_docstrings/xsd/xsd_negativeinteger.md
+          - Xsd_NMTOKEN: python_docstrings/xsd/xsd_nmtoken.md
+          - Xsd_nonNegativeInteger: python_docstrings/xsd/xsd_nonnegativeinteger.md
+          - Xsd_nonPositiveInteger: python_docstrings/xsd/xsd_nonpositiveinteger.md
+          - Xsd_normalizedstring: python_docstrings/xsd/xsd_normalizedstring.md
+          - Xsd_positiveInteger: python_docstrings/xsd/xsd_positiveinteger.md
+          - Xsd_QName: python_docstrings/xsd/xsd_qname.md
+          - Xsd_short: python_docstrings/xsd/xsd_short.md
         - Language enum: python_docstrings/language.md
         - LangString class: python_docstrings/langstring.md
         - QueryProcessor class: python_docstrings/query_processor.md

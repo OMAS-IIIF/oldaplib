@@ -12,9 +12,7 @@ from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 @serializer
 class Xsd_QName(Xsd):
     """
-    # Xsd_QName
-
-    Implements a XSD qualified name (xs:QName) See [W3C documentation](https://www.w3.org/TR/xmlschema-2/#QName).
+    Implements a XML Schema qualified name [xsd:QName](https://www.w3.org/TR/xmlschema-2/#QName).
 
     A QName consists of a prefix (itelf a NCName) and a fragment (also itself a NCName) seperatet
     by a colon (":").
@@ -33,11 +31,14 @@ class Xsd_QName(Xsd):
     """
     _value: str
 
-    def __init__(self, value: Self | str | Xsd_NCName, fragment: Optional[str | Xsd_NCName] = None) -> None:
+    def __init__(self, value: Self | str | Xsd_NCName, fragment: str | Xsd_NCName | None = None) -> None:
         """
         Construct a QName from a QName, string (with a ":") or a prefix/fragment pair
         :param value: A Qname, string (with a ":") or a prefix as NCName or string
-        :param fragment: A NCName or string (conforming to NCName the convention) for the fragment part
+        :type value: Xsd_QName | str | Xsd_NCName
+        :param fragment: A NCName or string (conforming to NCName the convention) for the fragment part [optinonal]
+        :type fragment: str | Xsd_NCName | None
+        :raises OmasErrorValue: If the QName representation is invalid
         """
         if fragment is None:
             if isinstance(value, Xsd_QName):
@@ -68,6 +69,14 @@ class Xsd_QName(Xsd):
         return len(self._value)
 
     def __add__(self, other: Xsd_NCName | str) -> Self:
+        """
+        Add a NCName or a valid string to the QName
+        :param other: A NCName or string (conforming to NCName the convention) for the QName
+        :type other: Xsd_NCName | str
+        :return: The resulting Xsd_QName object
+        :rtype: Xsd_QName
+        :raises OmasErrorValue: If the resulting QName representation is invalid
+        """
         if isinstance(other, Xsd_NCName):
             return Xsd_QName(self._value + other.value)
         else:
@@ -75,6 +84,14 @@ class Xsd_QName(Xsd):
             return Xsd_QName(self._value + tmp.value)
 
     def __iadd__(self, other: Xsd_NCName | str) -> Self:
+        """
+        Add a NCName or a valid string to the QName
+        :param other: A NCName or string (conforming to NCName the convention) for the QName
+        :type other: Xsd_NCName | str
+        :return: The resulting Xsd_QName object
+        :rtype: Xsd_QName
+        :raises OmasErrorValue: If the resulting QName representation is invalid
+        """
         if isinstance(other, Xsd_NCName):
             self._value += other.value
         else:
@@ -87,6 +104,7 @@ class Xsd_QName(Xsd):
         """
         Return the Python representation of the QName
         :return: Python representation of the QName
+        :rtype: str
         """
         return f'Xsd_QName("{self._value}")'
 
@@ -94,6 +112,7 @@ class Xsd_QName(Xsd):
         """
         Return the string representation of the QName
         :return: String representation of the QName
+        :rtype: str
         """
         return self._value
 
@@ -106,6 +125,7 @@ class Xsd_QName(Xsd):
         Test for equality of two QNames
         :param other: Another QName/str to compare with
         :return: True of False
+        :rtype: bool
         """
         if other is None:
             return False
@@ -117,24 +137,45 @@ class Xsd_QName(Xsd):
         """
         Test for inequality of two QNames
         :param other: Another QName/str to compare with
+        :type other: Xsd_QName
         :return: True of False
+        :rtype: bool
         """
         if not isinstance(other, Xsd_QName):
             return False
         return self._value != other._value
 
     def __hash__(self) -> int:
+        """
+        Return the hash of the QName
+        :return: Hash of the QName
+        :rtype: int
+        """
         return hash(self._value)
 
     @property
     def toRdf(self) -> str:
+        """
+        Return the RDF representation of the QName
+        :return: RDF representation of the QName
+        :rtype: str
+        """
         return self._value
 
     def _as_dict(self) -> dict[str, str]:
+        """
+        Internal method for converting a QName to a JSON dictionary (@serializer decorator)
+        :return: dict
+        """
         return {'value': self._value}
 
     @property
     def value(self) -> str:
+        """
+        Return the value of the QName
+        :return: String representation of the QName
+        :rtype: str
+        """
         return self._value
 
     @property
@@ -142,6 +183,7 @@ class Xsd_QName(Xsd):
         """
         Access the prefix of the QName as property
         :return: Prefix as string
+        :rtype: str
         """
         parts = self._value.split(':')
         return parts[0]
@@ -151,6 +193,7 @@ class Xsd_QName(Xsd):
         """
         Access the fragment as fragment of the QName as property
         :return: Fragment as string
+        :rtype: str
         """
         parts = self._value.split(':')
         return parts[1]
