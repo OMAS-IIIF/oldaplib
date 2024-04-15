@@ -21,8 +21,9 @@ setter and deleter methods.
 
 ## Other classes used by the UserDataclass
 
-- `InProjectType`: Defines the user's membership to projects and the administrative permission
-   within these projects
+- [InProjectClass](/python_docstrings/datatypes#omaslib.src.in_project):
+  Defines the user's membership to projects and the administrative permission within these projects
+- [RdfSet](/python_docstrings/datatypes#omaslib.src.dtypes/rdfset):)
 
 
 ## Helper classes
@@ -53,8 +54,6 @@ from omaslib.src.enums.permissions import AdminPermission
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.in_project import InProjectClass
-
-# InProjectType = Dict[str, ObservableSet[AdminPermission]]
 
 
 UserFieldTypes = Xsd | ObservableSet[Iri] | InProjectClass | str | bool | None
@@ -107,13 +106,14 @@ class UserDataclass:
 
     The User class inherits the following properties from the UserDataclass class:
 
-    - _userIri_: IRI of the user, cannot be changed (RDF property `omas:userIri`)
-    - _userId_: User ID as NCName (RDF property `omas:)
-    - _familyName_: Family name as str (RDF property `foaf:familyName`)
-    - _givenName_: Given name or first name as str(RDF property `foaf:givenName`)
-    - _credentials_: Credential (password) (RDF property `omas:credentials`)
-    - _active_: Is the user isActive as bool? (RDF property `omas:isActive`)
-    - _inProject_: Membership to projects and administrative permissions for this project (RDF property `omas:inProject)
+    - `userIri: Iri` [mandatory]: IRI of the user, cannot be changed (RDF property `omas:userIri`).
+      If available, the [ORCID](https://orcid.org) should be used as Iri.
+    - `userId_: Xsd_NCname | str` [mandatory]: User ID as NCName (RDF property `omas:). Must be unique!
+    - `familyName: Xsd_string | str` [mandatory]: Family name as str (RDF property `foaf:familyName`)
+    - `givenName: Xsd_string | str` [mandatory]: Given name or first name as str(RDF property `foaf:givenName`)
+    - `credentials: Xsd_string | str` [mandatory]: Credential (password) (RDF property `omas:credentials`)
+    - `active: Xsd_boolean | bool | None` [optional]: Is the user isActive as bool? (RDF property `omas:isActive`)
+    - `inProject: Dict[Iri | str, Set[AdminPermission]] | None `: Membership to projects and administrative permissions for this project (RDF property `omas:inProject)
     - _hsPermission_: Permissions for data as sets of QNames (RDF property `omas:hasPermissions`)
 
     These properties can be accessed as normal python class properties or using the dictionary syntax. The keys

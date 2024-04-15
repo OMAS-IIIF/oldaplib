@@ -58,17 +58,25 @@ class Project(Model):
     framework that offers dedicated space for data, its own data modeling and access control. A project
     needs the following metadata:
 
-    - `projectIri`: The IRI that uniquely identifies this project. This can be an
-      [Iri](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.Iri) instance or a string with either an Iri or Qname [mandatory]
-      [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName).
-    - `projectShortName`: The short name of the project that must be a NCName
-    - `label`: A multilingual string with a human-readable label for the project (`rdfs:label`) [optional]
-    - `comment`: A multilingual description of the project (`rdfs:comment`) [optional]
-    - `namespaceIri`: The namespace that the project uses for its data and data model. Must be
+    - `projectIri: Iri | None` [optional]:
+      The IRI that uniquely identifies this project. This can be an
+      [Iri](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.Iri) instance or a string with either an Iri or Qname
+      [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName). If the `projectIri` is ommitted,
+      a random IRI based on the URN semantics will be generated.
+    - `projectShortName: Xsd_NCName | str` [mandatory]:
+      The short name of the project that must be a NCName or a string
+    - `label: LangString | None` [optional]:
+      A multilingual string with a human-readable label for the project (`rdfs:label`)
+    - `comment: LangString | None` [optional]:
+      A multilingual description of the project (`rdfs:comment`)
+    - `namespaceIri: NamespaceIri` [mandatory]:
+       The namespace that the project uses for its data and data model. Must be
        a [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI).
-    - `projectStart`: The start date of the project.  Must be a Python `date` type. If not set,
-       the current date will be used. [optional]
-    - `projectEnd`: The optional end date of the project.Must be a Python `date` type. [optional]
+    - `projectStart: Xsd_date | date | None` [optional]:
+      The start date of the project.  Must be a Python `date` type. If not set,
+       the current date will be used.
+    - `projectEnd: Xsd_date | None` [optional]:
+      The optional end date of the project. Must be a Xsd_date or a Python `date` type.
 
     The class provides the following methods:
 
@@ -85,23 +93,23 @@ class Project(Model):
 
     The class provides the following properties:
 
-    - `projectIri`: The project IRI [read only]
-    - `projectShortName`: The project short name. Must be a NCName [read/write]
-    - `projectLabel`: The projects label as multilingual LangString [read/write]
-    - `projectComment`: The projects comment/description as multilingual
-      [LangString](/python_docstrings/langstring) [read/write]
-    - `namespaceIri`: The namespace that the project uses for its data and data model. Must be
-      a [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI). [read only]
-    - `projectStart`: The start date of the project. Must be a Python `date` type [read/write]
-    - `projectEnd`: The end date of the project. Must be a Python `date` type [read/write]
-    - `creator`: The creator of the project. Must be a
+    - `projectIri` [read only]: The project IRI
+    - `projectShortName` [read/write]: The project short name. Must be a NCName
+    - `projectLabel` [read/write]: The projects label as multilingual LangString
+    - `projectComment` [read/write]: The projects comment/description as multilingual
+      [LangString](/python_docstrings/langstring)
+    - `namespaceIri` [read only]: The namespace that the project uses for its data and data model. Must be
+      a [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI).
+    - `projectStart` [read/write]: The start date of the project. Must be a Python `date` type
+    - `projectEnd` [read/write]: The end date of the project. Must be a Python `date` type
+    - `creator` [read only]: The creator of the project. Must be a
       [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) or
-      [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) [read only]
-    - `created`: The creation date of the project. Must be a Python `date` type [read only]
-    - `contributor`: The person which made the last changes to the project data. Must be a
+      [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI)
+    - `created` [read only]: The creation date of the project. Must be a Python `date` type
+    - `contributor` [read only]: The person which made the last changes to the project data. Must be a
       [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) or
-      [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI) [read only]
-    - `modified`: The modification date of the project. Must be a Python `date` type [read only]
+      [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI)
+    - `modified` [read only]: The modification date of the project. Must be a Python `date` type
 
     """
     __datatypes = {
@@ -163,6 +171,7 @@ class Project(Model):
         :type projectStart: Python date
         :param projectEnd: End date of the project [Optional]
         :type projectEnd: Python date
+        :raises OmasErrorValue: Invalid parameter supplied
         """
         super().__init__(con)
         self.__creator = creator if creator is not None else con.userIri
@@ -255,6 +264,10 @@ class Project(Model):
             else:
                 self.__fields[field] = value
     def __str__(self) -> str:
+        """
+        String representation of the project. This is a multiline string for the human reader.
+        :return: str
+        """
         res = f'Project: {self.__fields[ProjectFields.PROJECT_IRI]}\n'\
               f'  Creation: {self.__created} by {self.__creator}\n'\
               f'  Modified: {self.__modified} by {self.__contributor}\n'\
@@ -269,39 +282,65 @@ class Project(Model):
 
     @property
     def creator(self) -> Iri | None:
+        """
+        The creator of the project.
+        :return: Iri of the creator of the project.
+        :rtype: Iri | None
+        """
         return self.__creator
 
     @property
     def created(self) -> Xsd_dateTime | None:
+        """
+        The creation date of the project.
+        :return: Creation date of the project.
+        :rtype: Xsd_dateTime | None
+        """
         return self.__created
 
     @property
     def contributor(self) -> Iri | None:
+        """
+        The contributor of the project as Iri.
+        :return: Iri of the contributor of the project.
+        :rtype: Iri | None
+        """
         return self.__contributor
 
     @property
     def modified(self) -> Xsd_dateTime | None:
+        """
+        Modification date of the project.
+        :return: Modification date of the project.
+        :rtype: Xsd_dateTime | None
+        """
         return self.__modified
 
     @property
     def changeset(self) -> Dict[ProjectFields, ProjectFieldChange]:
         """
         Return the changeset, that is dicst with information about all properties that have benn changed.
+        This method is only for internal use or debugging...
         :return: A dictionary of all changes
+        :rtype: Dict[ProjectFields, ProjectFieldChange]
         """
         return self.__change_set
 
     def clear_changeset(self) -> None:
         """
-        Clear the changeset.
+        Clear the changeset. This method is only for internal use or debugging...
         :return: None
         """
         self.__change_set = {}
 
-    def notifier(self, fieldname: Xsd_QName):
+    def notifier(self, fieldname: Xsd_QName) -> None:
+        """
+        This method is called when a field is being changed.
+        :param fieldname: Fieldname of the field being modified
+        :return: None
+        """
         field = ProjectFields(fieldname)
         self.__change_set[field] = ProjectFieldChange(self.__fields[field], Action.MODIFY)
-        pass
 
     @classmethod
     def read(cls, con: IConnection, projectIri_SName: Iri | Xsd_NCName | str) -> Self:
@@ -312,6 +351,9 @@ class Project(Model):
         :param projectIri: The IRI/QName of the project to be read
         :type projectIri: Xsd_anyURI | Xsd_QName
         :return: Project instance
+        :rtype: Project
+        :raise: OmasErrorNotFound: project with given Iri not found
+        :raise: OmasError: All other errors/problems
         """
         context = Context(name=con.context_name)
         query = context.sparql_context
@@ -418,6 +460,7 @@ class Project(Model):
         **contains** the string given here
         :type comment: str
         :return: List of IRIs matching the search criteria (AnyIRI | QName)
+        :rtype: List[Iri]
         :raises OmasErrorNotFound: If the project does not exist
         """
         context = Context(name=con.context_name)
