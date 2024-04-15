@@ -22,17 +22,17 @@ class Xsd_string(Xsd):
 
     The class implements the following methods:
 
-    - `escaping(value:str)`: A static method that escapes a string
-    - `unescaping(value:str)`: A static method that un-escapes a string
-    - `OldapStringLiteral(value: str, lang: Optional[str | Language] = None)`: Constructor with an optional
+    - `escaping(value: str)`: A static method that escapes a string
+    - `unescaping(value: str)`: A static method that un-escapes a string
+    - `Xsd_string(value: str, lang: Optional[str | Language] = None)`: Constructor with an optional
       language. The Language can be given either as [Language](/python_docstrings/language) enum or as
       2-letter ISO 639-1 language.
-    - `fromRdf(value:str)`: A static constructor method that is used to convert an RDF/TRIG based string. It
+    - `fromRdf(value: str)`: A static constructor method that is used to convert an RDF/TRIG based string. It
       un-escapes the string retrieved from the triple store! This constructor is used by the
       [QueryProcessor](/python_docstrings/query_processor) class.
-    - `str(oldapstringliteral)`: Returns a string with the langauge tag appended as `@ll`
+    - `str(Xsd_string)`: Returns a string with the langauge tag appended as `@ll`
       (ll as the 2-letter ISO languages), e.g. `'dies ist deutsch@de'`
-    - `repr(oldapstringliteral)`: Returns a string with the langauge tag as it is beeiing used in TRIG/SPARQL
+    - `repr(Xsd_string)`: Returns a string with the langauge tag as it is beeiing used in TRIG/SPARQL
       queries, e.g. `'"dies ist deutsch"@de'`
     - `value`: Property returning the string value (without language tag)
     - `lang`: Property returning the language tag
@@ -143,13 +143,15 @@ class Xsd_string(Xsd):
         if isinstance(other, Xsd_string):
             return self.__value == other.__value and self.__lang == other.__lang
         elif isinstance(other, str):
-            return self.__value == other
+            return self.__value == str(other)
 
     def __ne__(self, other: str | Self | None) -> bool:
         """
         Check for inequality of two Xsd_strings (both strings and languages must be equal)
-        :param other:
-        :return:
+        :param other: An Xsd_string or a string value
+        :type other: Xsd_string
+        :return: True or False
+        :rtype: bool
         """
         if other is None:
             return True
@@ -159,12 +161,19 @@ class Xsd_string(Xsd):
             return self.__value != other
 
     def __getitem__(self, key: int | slice) -> str | None:
+        """
+        Get the character(s) at the given position (slicing or indexing supported).
+        :param key: Index or slice
+        :type key: int | slice
+        :return: Character or slice as string
+        :rtype: str | None
+        """
         return self.__value[key]
 
     def __hash__(self) -> int:
         """
-        Returns the OldapStringLiteral hash value as an integer
-        :return: Hast value
+        Returns the Xsd_string hash value as an integer
+        :return: Hash value
         :rtype: int
         """
         if self.__lang and self.__lang != Language.XX:
@@ -174,6 +183,11 @@ class Xsd_string(Xsd):
 
     @property
     def toRdf(self):
+        """
+        RDF representation of the Xsd_string instance
+        :return: RDF representation of the Xsd_string instance
+        :rtype: str
+        """
         if self.__lang and self.__lang != Language.XX:
             return f'"{Xsd_string.escaping(self.__value)}"@{self.__lang.name.lower()}'
         else:
@@ -181,9 +195,9 @@ class Xsd_string(Xsd):
 
     def _as_dict(self) -> dict:
         """
-        Used for the JSON serializer
+        Used for the JSON serializer (@serializer decorator)
         :return: Dictionary representation of the OldapStringLiteral
-        :rtype: Dict[str,str]
+        :rtype: dict
         """
         return {
                 "value": self.__value,
@@ -193,8 +207,8 @@ class Xsd_string(Xsd):
     @property
     def value(self) -> str:
         """
-        Returns the OldapStringLiteral string value only
-        :return: string representation of the OldapStringLiteral without language
+        Returns the Xsd_string string value only
+        :return: string representation of the Xsd_string without language
         :rtype: str
         """
         return self.__value

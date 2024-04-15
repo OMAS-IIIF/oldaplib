@@ -10,7 +10,7 @@ from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_gmonthday import Xsd_gMonthDay
 from omaslib.src.xsd.xsd_id import Xsd_ID
 from omaslib.src.xsd.xsd_idref import Xsd_IDREF
-from omaslib.src.xsd.xsd_name import Xsd_name
+from omaslib.src.xsd.xsd_name import Xsd_Name
 from omaslib.src.xsd.xsd_nmtoken import Xsd_NMTOKEN
 from omaslib.src.xsd.xsd_positiveinteger import Xsd_positiveInteger
 from omaslib.src.xsd.xsd_unsignedbyte import Xsd_unsignedByte
@@ -138,7 +138,7 @@ class QueryProcessor:
                             case 'xsd:language':
                                 row[name] = Xsd_language.fromRdf(valobj["value"])
                             case 'xsd:name':
-                                row[name] = Xsd_name.fromRdf(valobj["value"])
+                                row[name] = Xsd_Name.fromRdf(valobj["value"])
                             case 'xsd:NCName':
                                 row[name] = Xsd_NCName.fromRdf(valobj["value"])
                             case 'xsd:integer':

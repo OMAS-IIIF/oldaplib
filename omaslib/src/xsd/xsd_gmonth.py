@@ -17,7 +17,7 @@ class Xsd_gMonth(Xsd):
     """
     __month: int
     __tz: Tuple[int, int] | None
-    __zulu: bool
+    __zulu: bool | None
 
     def __init__(self, value: Self | str):
         """
@@ -45,6 +45,7 @@ class Xsd_gMonth(Xsd):
                 self.__zulu = False
             else:
                 self.__tz = None
+                self.__zulu = None
         if self.__month < 1 or self.__month > 12:
             raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonth.')
 
