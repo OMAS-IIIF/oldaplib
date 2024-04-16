@@ -2,72 +2,73 @@ site_name: OMASLIB
 site_url: https://omaslib.org
 docs_dir: docs
 nav:
-  - About: index.md
-  - Knowledge Foundation for OLDAP: knowledge_base.md
-  - Data Organization: data_organization.md
-  - Permission Concept: permission_concept.md
-  - Data Modeling: data_modeling.md
-  - PropertyClass: propertyclass.md
+  - Documentation:
+    - About: 'index.md'
+    - Knowledge Foundation for OLDAP: 'knowledge_base.md'
+    - Data Organization: 'data_organization.md'
+    - Permission Concept: 'permission_concept.md'
+    - Data Modeling: 'data_modeling.md'
+    - PropertyClass: 'propertyclass.md'
   - Python Documentation:
-      - Admin classes:
-        - Project: python_docstrings/project.md
-        - User: python_docstrings/user.md
-        - UserDataclass class: python_docstrings/userdataclass.md
-      - Data modeling:
-        - Property class: python_docstrings/propertyclass.md
-      - Helper:
-        - Context class: python_docstrings/context.md
-        - XML Schema Datatypes:
-          - Xsd: python_docstrings/xsd/xsd.md
-          - Iri: python_docstrings/xsd/iri.md
-          - FloatingPoint: python_docstrings/xsd/floatingpoint.md
-          - Xsd_anyURI: python_docstrings/xsd/xsd_anyuri.md
-          - Xsd_base64Binary: python_docstrings/xsd/xsd_base64binary.md
-          - Xsd_boolean: python_docstrings/xsd/xsd_boolean.md
-          - Xsd_byte: python_docstrings/xsd/xsd_byte.md
-          - Xsd_date: python_docstrings/xsd/xsd_date.md
-          - Xsd_dateTime: python_docstrings/xsd/xsd_datetime.md
-          - Xsd_dateTimeStamp: python_docstrings/xsd/xsd_datetimestamp.md
-          - Xsd_decimal: python_docstrings/xsd/xsd_decimal.md
-          - Xsd_double: python_docstrings/xsd/xsd_double.md
-          - Xsd_duration: python_docstrings/xsd/xsd_duration.md
-          - Xsd_float: python_docstrings/xsd/xsd_float.md
-          - Xsd_gDay: python_docstrings/xsd/xsd_gday.md
-          - Xsd_gMonth: python_docstrings/xsd/xsd_gmonth.md
-          - Xsd_gMonthDay: python_docstrings/xsd/xsd_gmonthday.md
-          - Xsd_gYear: python_docstrings/xsd/xsd_gyear.md
-          - Xsd_gYearMonth: python_docstrings/xsd/xsd_gyearmonth.md
-          - Xsd_hexBinary: python_docstrings/xsd/xsd_hexbinary.md
-          - Xsd_ID: python_docstrings/xsd/xsd_id.md
-          - Xsd_IDREF: python_docstrings/xsd/xsd_idref.md
-          - Xsd_int: python_docstrings/xsd/xsd_int.md
-          - Xsd_integer: python_docstrings/xsd/xsd_integer.md
-          - Xsd_language: python_docstrings/xsd/xsd_language.md
-          - Xsd_long: python_docstrings/xsd/xsd_long.md
-          - Xsd_Name: python_docstrings/xsd/xsd_name.md
-          - Xsd_NCName: python_docstrings/xsd/xsd_ncname.md
-          - Xsd_negativeInteger: python_docstrings/xsd/xsd_negativeinteger.md
-          - Xsd_NMTOKEN: python_docstrings/xsd/xsd_nmtoken.md
-          - Xsd_nonNegativeInteger: python_docstrings/xsd/xsd_nonnegativeinteger.md
-          - Xsd_nonPositiveInteger: python_docstrings/xsd/xsd_nonpositiveinteger.md
-          - Xsd_normalizedstring: python_docstrings/xsd/xsd_normalizedstring.md
-          - Xsd_positiveInteger: python_docstrings/xsd/xsd_positiveinteger.md
-          - Xsd_QName: python_docstrings/xsd/xsd_qname.md
-          - Xsd_short: python_docstrings/xsd/xsd_short.md
-          - Xsd_string: python_docstrings/xsd/xsd_string.md
-          - Xsd_time: python_docstrings/xsd/xsd_time.md
-          - Xsd_token: python_docstrings/xsd/xsd_token.md
-          - Xsd_unsignedByte: python_docstrings/xsd/xsd_unsignedByte.md
-          - Xsd_unsignedInt: python_docstrings/xsd/xsd_unsignedint.md
-          - Xsd_unsignedLong: python_docstrings/xsd/xsd_unsignedlong.md
-          - Xsd_unsignedShort: python_docstrings/xsd/xsd_unsignedShort.md
-        - Language enum: python_docstrings/language.md
-        - LangString class: python_docstrings/langstring.md
-        - QueryProcessor class: python_docstrings/query_processor.md
-        - InProject class: python_docstrings/in_project.md
-        - Property attribute class: python_docstrings/propertyclassattr.md
+    - Admin classes:
+      - Project: python_docstrings/project.md
+      - User: python_docstrings/user.md
+      - UserDataclass class: python_docstrings/userdataclass.md
+    - Data modeling:
+      - Property class: python_docstrings/propertyclass.md
+    - Helper:
+      - Context class: python_docstrings/context.md
+      - XML Schema Datatypes:
+        - Xsd: python_docstrings/xsd/xsd.md
+        - Iri: python_docstrings/xsd/iri.md
+        - FloatingPoint: python_docstrings/xsd/floatingpoint.md
+        - Xsd_anyURI: python_docstrings/xsd/xsd_anyuri.md
+        - Xsd_base64Binary: python_docstrings/xsd/xsd_base64binary.md
+        - Xsd_boolean: python_docstrings/xsd/xsd_boolean.md
+        - Xsd_byte: python_docstrings/xsd/xsd_byte.md
+        - Xsd_date: python_docstrings/xsd/xsd_date.md
+        - Xsd_dateTime: python_docstrings/xsd/xsd_datetime.md
+        - Xsd_dateTimeStamp: python_docstrings/xsd/xsd_datetimestamp.md
+        - Xsd_decimal: python_docstrings/xsd/xsd_decimal.md
+        - Xsd_double: python_docstrings/xsd/xsd_double.md
+        - Xsd_duration: python_docstrings/xsd/xsd_duration.md
+        - Xsd_float: python_docstrings/xsd/xsd_float.md
+        - Xsd_gDay: python_docstrings/xsd/xsd_gday.md
+        - Xsd_gMonth: python_docstrings/xsd/xsd_gmonth.md
+        - Xsd_gMonthDay: python_docstrings/xsd/xsd_gmonthday.md
+        - Xsd_gYear: python_docstrings/xsd/xsd_gyear.md
+        - Xsd_gYearMonth: python_docstrings/xsd/xsd_gyearmonth.md
+        - Xsd_hexBinary: python_docstrings/xsd/xsd_hexbinary.md
+        - Xsd_ID: python_docstrings/xsd/xsd_id.md
+        - Xsd_IDREF: python_docstrings/xsd/xsd_idref.md
+        - Xsd_int: python_docstrings/xsd/xsd_int.md
+        - Xsd_integer: python_docstrings/xsd/xsd_integer.md
+        - Xsd_language: python_docstrings/xsd/xsd_language.md
+        - Xsd_long: python_docstrings/xsd/xsd_long.md
+        - Xsd_Name: python_docstrings/xsd/xsd_name.md
+        - Xsd_NCName: python_docstrings/xsd/xsd_ncname.md
+        - Xsd_negativeInteger: python_docstrings/xsd/xsd_negativeinteger.md
+        - Xsd_NMTOKEN: python_docstrings/xsd/xsd_nmtoken.md
+        - Xsd_nonNegativeInteger: python_docstrings/xsd/xsd_nonnegativeinteger.md
+        - Xsd_nonPositiveInteger: python_docstrings/xsd/xsd_nonpositiveinteger.md
+        - Xsd_normalizedstring: python_docstrings/xsd/xsd_normalizedstring.md
+        - Xsd_positiveInteger: python_docstrings/xsd/xsd_positiveinteger.md
+        - Xsd_QName: python_docstrings/xsd/xsd_qname.md
+        - Xsd_short: python_docstrings/xsd/xsd_short.md
+        - Xsd_string: python_docstrings/xsd/xsd_string.md
+        - Xsd_time: python_docstrings/xsd/xsd_time.md
+        - Xsd_token: python_docstrings/xsd/xsd_token.md
+        - Xsd_unsignedByte: python_docstrings/xsd/xsd_unsignedByte.md
+        - Xsd_unsignedInt: python_docstrings/xsd/xsd_unsignedint.md
+        - Xsd_unsignedLong: python_docstrings/xsd/xsd_unsignedlong.md
+        - Xsd_unsignedShort: python_docstrings/xsd/xsd_unsignedShort.md
+      - Language enum: python_docstrings/language.md
+      - LangString class: python_docstrings/langstring.md
+      - QueryProcessor class: python_docstrings/query_processor.md
+      - InProject class: python_docstrings/in_project.md
+      - Property attribute class: python_docstrings/propertyclassattr.md
 
-theme: readthedocs
+theme: material
 
 plugins:
   - search

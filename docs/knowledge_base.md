@@ -1,4 +1,4 @@
-# Knowledge Foundation for OMASLIB
+# Knowledge Foundation for OLDAP
 
 OLDAP implements several Python Classes which can be used to build a consistent, project specific data model in RDF,
 usually implemented in a triplestore. The following terms are important:

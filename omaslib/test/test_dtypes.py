@@ -48,7 +48,6 @@ class MyTestCase(unittest.TestCase):
                 test:{name} test:prop {value.toRdf}
             }}
         }}"""
-        print(sparql)
         self._connection.update_query(sparql)
 
     def get_triple(self, name: Xsd_NCName | str) -> Xsd:
@@ -63,7 +62,6 @@ class MyTestCase(unittest.TestCase):
         }}
         """
         result = self._connection.query(sparql)
-        print(result)
         res = QueryProcessor(context=self._context, query_result=result)
         return res[0]['value']
 

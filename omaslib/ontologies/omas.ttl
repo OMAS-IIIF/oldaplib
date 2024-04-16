@@ -28,14 +28,14 @@ rdfs:label a owl:DatatypeProperty ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:string .
+    rdfs:range rdf:langString .
 
 rdfs:comment a owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:string .
+    rdfs:range rdf:langString .
 
 dcterms:creator a owl:ObjectProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -87,7 +87,7 @@ foaf:givenName a owl:DatatypeProperty ;
 
 ###  http://www.w3.org/2004/02/skos/core#altLabel
 skos:altLabel rdf:type owl:DatatypeProperty ;
-              rdfs:range xsd:string .
+              rdfs:range rdf:langString .
 
 ###  http://www.w3.org/2004/02/skos/core#changeNote
 skos:changeNote rdf:type owl:DatatypeProperty ;
@@ -110,7 +110,7 @@ skos:note rdf:type owl:DatatypeProperty ;
 
 ###  http://www.w3.org/2004/02/skos/core#prefLabel
 skos:prefLabel rdf:type owl:DatatypeProperty ;
-          rdfs:range xsd:string .
+          rdfs:range rdf:langString .
 
 skos:broaderTransitive rdf:type owl:ObjectProperty ;
           rdfs:range :OmasListNode .
@@ -134,7 +134,7 @@ skos:note rdf:type owl:DatatypeProperty .
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     rdfs:domain :DataPermission ;
-    rdfs:range xsd:int .
+    rdfs:range xsd:integer .
 
 
 ###############################################################################
@@ -320,7 +320,7 @@ skos:note rdf:type owl:DatatypeProperty .
     dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
     dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-    rdfs:range xsd:string .
+    rdfs:range rdf:langString .
 
 :test rdf:type owl:DatatypeProperty ;
     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -348,14 +348,14 @@ omas:AdminPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:label ;
-            owl:onDatatype xsd:string ;
+            owl:onDatatype rdf:langString ;
             owl:minCardinality "1"^^xsd:nonNegativeInteger
         ] ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:comment ;
-            owl:onDatatype xsd:string ;
+            owl:onDatatype rdf:langString ;
             owl:minCardinality "1"^^xsd:nonNegativeInteger
         ] .
 
@@ -373,21 +373,21 @@ omas:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:label ;
-            owl:onDatatype xsd:string ;
+            owl:onDatatype rdf:langString ;
             owl:minCardinality "1"^^xsd:nonNegativeInteger
         ] ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:comment ;
-            owl:onDatatype xsd:string ;
+            owl:onDatatype rdf:langString ;
             owl:minCardinality "1"^^xsd:nonNegativeInteger
         ] ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
             owl:onProperty omas:permissionValue ;
-            owl:onDatatype xsd:int ;
+            owl:onDatatype xsd:integer ;
             owl:cardinality "1"^^xsd:nonNegativeInteger
         ] .
 
@@ -441,13 +441,13 @@ omas:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:label ;
-            owl:onDataProperty xsd:string ;
+            owl:onDataProperty rdf:langString ;
             owl:minCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:comment ;
-            owl:onDataProperty xsd:string ;
+            owl:onDataProperty rdf:langString ;
             owl:minCardinality "1"^^xsd:nonNegativeInteger ;
         ] .
 
@@ -488,13 +488,13 @@ omas:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:label ;
-            owl:onDataProperty xsd:string ;
+            owl:onDataProperty rdf:langString ;
             owl:minCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:comment ;
-            owl:onDataProperty xsd:string ;
+            owl:onDataProperty rdf:langString ;
             owl:minCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [

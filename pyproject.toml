@@ -35,6 +35,7 @@ mkdocstrings-python = "^1.8.0"
 pyjwt = "^2.8.0"
 coverage = "^7.4.3"
 validators = "^0.22.0"
+mkdocs-material = "^9.5.18"
 
 
 [build-system]

@@ -14,61 +14,61 @@
     # Define the administrative permissions here
     #
     :ADMIN_OLDAP a :AdminPermission ;
-        rdfs:label "ADMIN_OLDAP" ;
-        rdfs:comment "Quasi 'root'-permissions, system administration" .
+        rdfs:label "ADMIN_OLDAP"@en ;
+        rdfs:comment "Quasi 'root'-permissions, system administration"@en .
 
     :ADMIN_USERS a :AdminPermission ;
-        rdfs:label "ADMIN_USERS" ;
-        rdfs:comment "add/modify/delete users." .
+        rdfs:label "ADMIN_USERS"@en ;
+        rdfs:comment "add/modify/delete users."@en .
 
     :ADMIN_PERMISSION_SETS a :AdminPermission ;
-        rdfs:label "ADMIN_PERMISSION_SETS" ;
-        rdfs:comment "Add/change/remove permission sets" .
+        rdfs:label "ADMIN_PERMISSION_SETS"@en ;
+        rdfs:comment "Add/change/remove permission sets"@en .
 
     :ADMIN_RESOURCES a :AdminPermission ;
-        rdfs:label "ADMIN_RESOURCES" ;
-        rdfs:comment "Override resource permissions to manipulate any resources within the given project (All CRUD-operations)." .
+        rdfs:label "ADMIN_RESOURCES"@en ;
+        rdfs:comment "Override resource permissions to manipulate any resources within the given project (All CRUD-operations)."@en .
 
     :ADMIN_MODEL a :AdminPermission ;
-        rdfs:label "ADMIN_MODEL" ;
-        rdfs:comment "User has permission to modify the data model." .
+        rdfs:label "ADMIN_MODEL"@en ;
+        rdfs:comment "User has permission to modify the data model."@en .
 
     :ADMIN_CREATE a :AdminPermission ;
-        rdfs:label "ADMIN_CREATE" ;
-        rdfs:comment "The user is allowed to add new resources." .
+        rdfs:label "ADMIN_CREATE"@en ;
+        rdfs:comment "The user is allowed to add new resources."@en .
 
     #==================================================================
     # Define the data permissions here
     #
     :DATA_RESTRICTED a :DataPermission ;
-        rdfs:label "DATA_RESTRICTED" ;
-        rdfs:comment "Allows a restricted view of the resource." ;
-        :permissionValue 1 .
+        rdfs:label "DATA_RESTRICTED"@en ;
+        rdfs:comment "Allows a restricted view of the resource."@en ;
+        :permissionValue "1"^^xsd:integer .
 
     :DATA_VIEW a :DataPermission ;
-        rdfs:label "DATA_VIEW" ;
-        rdfs:comment "Readonly access to a resource (full view)." ;
-        :permissionValue 2 .
+        rdfs:label "DATA_VIEW"@en ;
+        rdfs:comment "Readonly access to a resource (full view)."@en ;
+        :permissionValue "2"^^xsd:integer .
 
     :DATA_EXTEND a :DataPermission ;
-        rdfs:label "EXTEND" ;
-        rdfs:comment "Allows to extend the data (e.g. adding a comment or annotation or adding data to a filed that has a cardinality greater one)." ;
-        :permissionValue 3 .
+        rdfs:label "EXTEND"@en ;
+        rdfs:comment "Allows to extend the data (e.g. adding a comment or annotation or adding data to a filed that has a cardinality greater one)."@en ;
+        :permissionValue "3"^^xsd:integer .
 
     :DATA_UPDATE a :DataPermission ;
-        rdfs:label "DATA_UPDATE" ;
-        rdfs:comment "Allows to modify or update an existing resource." ;
-        :permissionValue 4 .
+        rdfs:label "DATA_UPDATE"@en ;
+        rdfs:comment "Allows to modify or update an existing resource."@en ;
+        :permissionValue "4"^^xsd:integer .
 
     :DATA_DELETE a :DataPermission ;
-        rdfs:label "DATA_DELETE" ;
-        rdfs:comment "Allows to completely remove a resource." ;
-        :permissionValue 5 .
+        rdfs:label "DATA_DELETE"@en ;
+        rdfs:comment "Allows to completely remove a resource."@en ;
+        :permissionValue "5"^^xsd:integer .
 
     :DATA_PERMISSIONS a :DataPermission ;
-        rdfs:label "DATA_PERMISSIONS" ;
-        rdfs:comment "Allows the user to change the assignments of groups and the ownership of a given resource." ;
-        :permissionValue 6 .
+        rdfs:label "DATA_PERMISSIONS"@en ;
+        rdfs:comment "Allows the user to change the assignments of groups and the ownership of a given resource."@en ;
+        :permissionValue "6"^^xsd:integer .
 
 
     :SystemProject a :Project ;
@@ -100,8 +100,8 @@
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         :projectShortName "britnet"^^xsd:NCName ;
         :namespaceIri "http://www.salsah.org/version/2.0/SwissBritNet#"^^xsd:anyURI ;
-        rdfs:label "SwissBritNet" ;
-        rdfs:comment "Elite network between Switzerland and Great Britain" ;
+        rdfs:label "SwissBritNet"@en ;
+        rdfs:comment "Elite network between Switzerland and Great Britain"@en ;
         :projectStart "2023-07-01"^^xsd:date .
 
 
