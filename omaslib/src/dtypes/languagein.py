@@ -17,7 +17,7 @@ class LanguageIn:
 
         """
         Constructor for the LanguageIn
-        :param args: Either the languages as 2-letter short strings, or a set of
+        :param args: Either the languages as 2-letter short strings, or a set of Language items
         """
         self.__data = set()
         try:
@@ -28,7 +28,9 @@ class LanguageIn:
                     elif isinstance(arg, str):
                         self.__data.add(Language[arg.upper()])
             elif len(args) == 1:
-                if isinstance(args[0], Language):
+                if isinstance(args[0], LanguageIn):
+                    self.__data = args[0].__data
+                elif isinstance(args[0], Language):
                     self.__data.add(args[0])
                 elif isinstance(args[0], str):
                     self.__data.add(Language[args[0].upper()])

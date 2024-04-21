@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 from enum import Enum, unique
 from functools import partial
-from typing import Optional, Dict, Callable, List, Self
+from typing import Optional, Dict, Callable, List, Self, Iterable
 
 from pystrict import strict
 
@@ -14,14 +14,18 @@ from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.floatingpoint import FloatingPoint
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd import Xsd
+from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_decimal import Xsd_decimal
+from omaslib.src.xsd.xsd_float import Xsd_float
+from omaslib.src.xsd.xsd_integer import Xsd_integer
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed, OmasErrorValue
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed, OmasErrorValue, OmasErrorInconsistency
 from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.helpers.query_processor import RowType, QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
@@ -44,9 +48,25 @@ class OwlPropertyType(Enum):
         return self.value
 
 
-PropTypes = Iri | OwlPropertyType | XsdDatatypes | PropertyRestrictions | LangString | Xsd_decimal | None
+
+
+class Numeric:
+
+    def __new__(cls, value: Xsd_integer | int | FloatingPoint | float | str):
+        if isinstance(value, (Xsd_integer, int)):
+            return Xsd_integer(value)
+        elif isinstance(value, (FloatingPoint, float)):
+            return Xsd_float(value)
+        else:
+            try:
+                return Xsd_integer(str(value))
+            except:
+                return Xsd_float(str(value))
+
+
+PropTypes = Iri | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | RdfSet | Numeric | None
 PropClassAttrContainer = Dict[PropClassAttr, PropTypes]
-Attributes = Dict[Iri, LangString | RdfSet | LanguageIn | List[Xsd]]
+Attributes = Dict[Iri, PropTypes]
 
 
 @dataclass
@@ -91,15 +111,28 @@ class PropertyClass(Model, Notify):
     __version: SemanticVersion
     __from_triplestore: bool
 
-    __datatypes: Dict[PropClassAttr, PropTypes] = {
+    __datatypes: Dict[PropClassAttr, type] = {
         PropClassAttr.SUBPROPERTY_OF: Iri,
         PropClassAttr.PROPERTY_TYPE: OwlPropertyType,
         PropClassAttr.TO_NODE_IRI: Iri,
         PropClassAttr.DATATYPE: XsdDatatypes,
-        PropClassAttr.RESTRICTIONS: PropertyRestrictions,
         PropClassAttr.NAME: LangString,
         PropClassAttr.DESCRIPTION: LangString,
-        PropClassAttr.ORDER: Xsd_decimal
+        PropClassAttr.ORDER: Xsd_decimal,
+        PropClassAttr.MIN_COUNT: Xsd_integer,
+        PropClassAttr.MAX_COUNT: Xsd_integer,
+        PropClassAttr.LANGUAGE_IN: LanguageIn,
+        PropClassAttr.UNIQUE_LANG: Xsd_boolean,
+        PropClassAttr.IN: RdfSet,
+        PropClassAttr.MIN_LENGTH: Xsd_integer,
+        PropClassAttr.MAX_LENGTH: Xsd_integer,
+        PropClassAttr.PATTERN: Xsd_string,
+        PropClassAttr.MIN_EXCLUSIVE: Numeric,
+        PropClassAttr.MIN_INCLUSIVE: Numeric,
+        PropClassAttr.MAX_EXCLUSIVE: Numeric,
+        PropClassAttr.MAX_INCLUSIVE: Numeric,
+        PropClassAttr.LESS_THAN: Iri,
+        PropClassAttr.LESS_THAN_OR_EQUALS: Iri
     }
 
     def __init__(self, *,
@@ -108,27 +141,26 @@ class PropertyClass(Model, Notify):
                  property_class_iri: Iri | str | None = None,
                  subPropertyOf: Iri | str | None = None,
                  toNodeIri: Iri | str | None = None,
-                 datatype: XsdDatatypes | None = None,
-                 restrictions: PropertyRestrictions | None = None,
+                 datatype: XsdDatatypes | str | None = None,
                  name: LangString | str | None = None,
                  description: LangString | str | None = None,
-                 order: Xsd_decimal | None = None,
+                 order: Xsd_decimal | float | int | None = None,
+                 minCount: Xsd_integer | int | None = None,
+                 maxCount: Xsd_integer | int | None = None,
+                 languageIn: LanguageIn | None = None,
+                 uniqueLang: Xsd_boolean | bool | None = None,
+                 inSet: RdfSet | Iterable[Xsd] | Xsd | None = None,
+                 minLength: Xsd_integer | int | None = None,
+                 maxLength: Xsd_integer | int | None = None,
+                 pattern: Xsd_string | None = None,
+                 minExclusive: Xsd_integer | int | FloatingPoint | float | str | None = None,
+                 maxExclusive: Xsd_integer | int | FloatingPoint | float | str | None = None,
+                 minInclusive: Xsd_integer | int | FloatingPoint | float | str | None = None,
+                 maxInclusive: Xsd_integer | int | FloatingPoint | float | str | None = None,
+                 lessThan: Iri | str | None = None,
+                 lessThanOrEquals: Iri | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None):
-        """
-        TODO: 1) check if a valid datatype is defined!
-        Constructor for a PropertyClass instance. It represents all the information about a PropertyClass
-        necessary to perform the CRUD (Create, Read, Update and Delete) operations in both the SHACL and
-        OWL representations.
-
-        :param con: A valid IConnection instance
-        :param graph: The name of the named graph the information is stored in
-        :param property_class_iri: The QName of the property (as used in OWL)
-        :param attrs: A PropertyClassAttributesContainer containing all the attributes
-        :param notifier: The notifier which is called when an complex atribute such as a LangString or
-                         a restriction has changed
-        :param notify_data: The data that should be given to the notifier
-        """
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
         self._graph = Xsd_NCName(graph)
@@ -146,11 +178,6 @@ class PropertyClass(Model, Notify):
                     self._attributes[PropClassAttr.DATATYPE] = XsdDatatypes(datatype)
                 except ValueError as err:
                     raise OmasErrorValue(str(err))
-        if restrictions is not None:
-            if not isinstance(restrictions, PropertyRestrictions):
-                raise OmasErrorValue(f'restrictions must be a "PropertyRestrictions" object, is "{type(restrictions).__name__}"')
-            self._attributes[PropClassAttr.RESTRICTIONS] = restrictions
-            self._attributes[PropClassAttr.RESTRICTIONS].set_notifier(self.notifier, PropClassAttr.RESTRICTIONS)
         if name is not None:
             self._attributes[PropClassAttr.NAME] = name if isinstance(name, LangString) else LangString(name)
             self._attributes[PropClassAttr.NAME].set_notifier(self.notifier, PropClassAttr.NAME)
@@ -158,16 +185,58 @@ class PropertyClass(Model, Notify):
             self._attributes[PropClassAttr.DESCRIPTION] = description if isinstance(description, LangString) else LangString(description)
             self._attributes[PropClassAttr.DESCRIPTION].set_notifier(self.notifier, PropClassAttr.DESCRIPTION)
         if order is not None:
-            self._attributes[PropClassAttr.ORDER] = order if isinstance(order, Xsd_decimal) else Xsd_decimal(order)
+            self._attributes[PropClassAttr.ORDER] = Xsd_decimal(order)
+        if minCount is not None:
+            self._attributes[PropClassAttr.MIN_COUNT] = Xsd_integer(minCount)
+        if maxCount is not None:
+            self._attributes[PropClassAttr.MAX_COUNT] = Xsd_integer(maxCount)
+        if languageIn is not None:
+            self._attributes[PropClassAttr.LANGUAGE_IN] = LanguageIn(languageIn)
+        if uniqueLang is not None:
+            self._attributes[PropClassAttr.UNIQUE_LANG] = Xsd_boolean(uniqueLang)
+        if inSet is not None:
+            self._attributes[PropClassAttr.IN] = RdfSet(inSet)
+        if minLength is not None:
+            self._attributes[PropClassAttr.MIN_LENGTH] = Xsd_integer(minLength)
+        if maxLength is not None:
+            self._attributes[PropClassAttr.MAX_LENGTH] = Xsd_integer(maxLength)
+        if pattern is not None:
+            self._attributes[PropClassAttr.PATTERN] = Xsd_string(pattern)
+        if minExclusive is not None:
+            self._attributes[PropClassAttr.MIN_EXCLUSIVE] = Numeric(minExclusive)
+        if maxExclusive is not None:
+            self._attributes[PropClassAttr.MAX_EXCLUSIVE] = Numeric(maxExclusive)
+        if minInclusive is not None:
+            self._attributes[PropClassAttr.MIN_INCLUSIVE] = Numeric(minInclusive)
+        if maxInclusive is not None:
+            self._attributes[PropClassAttr.MAX_INCLUSIVE] = Numeric(maxInclusive)
+        if lessThan is not None:
+            self._attributes[PropClassAttr.LESS_THAN] = Iri(lessThan)
+        if lessThanOrEquals is not None:
+            self._attributes[PropClassAttr.LESS_THAN_OR_EQUALS] = Iri(lessThanOrEquals)
+
+        #
+        # Consistency checks
+        #
+        if self._attributes.get(PropClassAttr.LANGUAGE_IN) is not None:
+            if self._attributes.get(PropClassAttr.DATATYPE) is None:
+                self._attributes[PropClassAttr.DATATYPE] = XsdDatatypes.langString
+            elif self._attributes[PropClassAttr.DATATYPE] != XsdDatatypes.langString:
+                raise OmasErrorValue(f'Using restriction LANGUAGE_IN requires DATATYPE "rdf:langString", not "{self._attributes[PropClassAttr.DATATYPE].value}"')
+        if self._attributes.get(PropClassAttr.DATATYPE) is not None and self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
+            raise OmasErrorInconsistency(f'It\'s not possible to use both DATATYPE="{self._attributes[PropClassAttr.DATATYPE]}" and TO_NODE_IRI={self._attributes[PropClassAttr.TO_NODE_IRI]} restrictions.')
 
         # setting property type for OWL which distinguished between Data- and Object-properties
         if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
             self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
             if self._attributes.get(PropClassAttr.DATATYPE) is not None:
-                raise OmasError(f'Datatype not possible for OwlObjectProperty')
+                raise OmasError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
         else:
             self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
 
+        #
+        # set the class properties
+        #
         for attr in PropClassAttr:
             prefix, name = attr.value.split(':')
             if name == 'type':
@@ -205,8 +274,6 @@ class PropertyClass(Model, Notify):
     def __change_setter(self: Self, attr: PropClassAttr, value: PropTypes) -> None:
         if not isinstance(attr, PropClassAttr):
             raise OmasError(f'Unsupported prop {attr}')
-        if not isinstance(value, PropertyClass.__datatypes[attr]):
-            raise OmasError(f'Datatype of {attr.value} is not in {PropertyClass.__datatypes[attr]}')
         if self._attributes.get(attr) == value:
             return
         if getattr(value, 'set_notifier', None) is not None:
@@ -236,7 +303,7 @@ class PropertyClass(Model, Notify):
                     self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.REPLACE, True)
                 else:
                     self._changeset[attr] = PropClassAttrChange(None, Action.CREATE, True)
-            self._attributes[attr] = value
+            self._attributes[attr] = self.__datatypes[attr](value)
         self.notify()
 
     def __len__(self) -> int:
@@ -305,7 +372,7 @@ class PropertyClass(Model, Notify):
     def from_triplestore(self) -> bool:
         return self.__from_triplestore
 
-    def undo(self, attr: Optional[PropClassAttr | PropertyRestrictionType] = None) -> None:
+    def undo(self, attr: PropClassAttr | None = None) -> None:
         if attr is None:
             for p, change in self._changeset.items():
                 if change.action == Action.MODIFY:
@@ -319,27 +386,16 @@ class PropertyClass(Model, Notify):
                         self._attributes[p] = change.old_value
             self._changeset = {}
         else:
-            if type(attr) is PropClassAttr:
-                if self._changeset.get(attr) is not None:  # this prop really changed...
-                    if self._changeset[attr].action == Action.MODIFY:
-                        self._attributes[attr].undo()
-                        if len(self._attributes[attr]) == 0:
-                            del self._attributes[attr]
-                    elif self._changeset[attr].action == Action.CREATE:
+            if self._changeset.get(attr) is not None:  # this prop really changed...
+                if self._changeset[attr].action == Action.MODIFY:
+                    self._attributes[attr].undo()
+                    if len(self._attributes[attr]) == 0:
                         del self._attributes[attr]
-                    else:
-                        self._attributes[attr] = self._changeset[attr].old_value
-                    del self._changeset[attr]
-            elif type(attr) is PropertyRestrictionType:
-                if self._attributes.get(PropClassAttr.RESTRICTIONS) is None:
-                    return
-                self._attributes[PropClassAttr.RESTRICTIONS].undo(attr)
-                if len(self._attributes[PropClassAttr.RESTRICTIONS].changeset) == 0:
-                    if self._changeset.get(PropClassAttr.RESTRICTIONS) is not None:
-                        del self._changeset[PropClassAttr.RESTRICTIONS]
-                if self._attributes.get(PropClassAttr.RESTRICTIONS) is not None:
-                    if len(self._attributes[PropClassAttr.RESTRICTIONS]) == 0:
-                        del self._attributes[PropClassAttr.RESTRICTIONS]
+                elif self._changeset[attr].action == Action.CREATE:
+                    del self._attributes[attr]
+                else:
+                    self._attributes[attr] = self._changeset[attr].old_value
+                del self._changeset[attr]
 
     def __changeset_clear(self) -> None:
         for attr, change in self._changeset.items():
@@ -383,34 +439,18 @@ class PropertyClass(Model, Notify):
                 attributes[attriri] = RdfSet()
             attributes[attriri].add(r['oo'])
         else:
-            if attributes.get(attriri) is None:
-                attributes[attriri] = []
-            attributes[attriri].append(r['value'])
+            if isinstance(r['value'], Xsd_string) and r['value'].lang is not None:
+                if attributes.get(attriri) is None:
+                    attributes[attriri] = LangString()
+                attributes[attriri].add(r['value'])
+            else:
+                if attributes.get(attriri) is not None:
+                    raise OmasError(f'Property attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
+                attributes[attriri] = r['value']
+            # if attributes.get(attriri) is None:
+            #     attributes[attriri] = []
+            # attributes[attriri].append(r['value'])
 
-        # attriri = r['attriri']
-        # if isinstance(r['value'], Xsd_QName):
-        #     if attributes.get(attriri) is None:
-        #         attributes[attriri] = []
-        #     attributes[attriri].append(r['value'])
-        # elif isinstance(r['value'], StringLiteral):
-        #     if attributes.get(attriri) is None:
-        #         attributes[attriri] = []
-        #     attributes[attriri].append(str(r['value']))
-        # elif isinstance(r['value'], BNode):
-        #     pass
-        # else:
-        #     if attributes.get(attriri) is None:
-        #         attributes[attriri] = []
-        #     attributes[attriri].append(r['value'])
-        # if r['attriri'].fragment == 'languageIn':
-        #     #print("\n===>", r['attriri'], r['oo'])
-        #     if not attributes.get(attriri):
-        #         attributes[attriri] = set()
-        #     attributes[attriri].add(Language[str(r['oo']).upper()])
-        # if r['attriri'].fragment == 'in':
-        #     if not attributes.get(attriri):
-        #         attributes[attriri] = set()
-        #     attributes[attriri].add(r['oo'])
 
     @staticmethod
     def __query_shacl(con: IConnection, graph: Xsd_NCName, property_class_iri: Iri) -> Attributes:
@@ -448,75 +488,49 @@ class PropertyClass(Model, Notify):
         propkeys = {Iri(x.value) for x in PropClassAttr}
         for key, val in attributes.items():
             if key == 'rdf:type':
-                if val[0] != 'sh:PropertyShape':
-                    raise OmasError(f'Inconsistency, expected "sh:PropertyType", got "{val[0]}".')
+                if val != 'sh:PropertyShape':
+                    raise OmasError(f'Inconsistency, expected "sh:PropertyType", got "{val}".')
                 continue
             elif key == 'sh:path':
-                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Iri):
-                    self._property_class_iri = val[0]
+                if isinstance(val, Iri):
+                    self._property_class_iri = val
                 else:
                     raise OmasError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}"')
             elif key == 'dcterms:hasVersion':
-                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_string):
-                    self.__version = SemanticVersion.fromString(str(val[0]))
+                if isinstance(val, Xsd_string):
+                    self.__version = SemanticVersion.fromString(str(val))
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:hasVersion"')
             elif key == 'dcterms:creator':
-                if isinstance(val, list) and isinstance(val[0], Iri):
-                    self.__creator = val[0]
+                if isinstance(val, Iri):
+                    self.__creator = val
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:creator"')
             elif key == 'dcterms:created':
-                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_dateTime):
-                    self.__created = val[0]
+                if isinstance(val, Xsd_dateTime):
+                    self.__created = val
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:created"')
             elif key == 'dcterms:contributor':
-                if isinstance(val, list) and isinstance(val[0], Iri):
-                    self.__contributor = val[0]
+                if isinstance(val, Iri):
+                    self.__contributor = val
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:contributor"')
             elif key == 'dcterms:modified':
-                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_dateTime):
-                    self.__modified = val[0]
+                if isinstance(val, Xsd_dateTime):
+                    self.__modified = val
                 else:
                     raise OmasError(f'Inconsistency in SHACL "dcterms:modified"')
             elif key == 'sh:group':
                 pass  # TODO: Process property group correctly.... (at Moment only omas:SystemPropGroup)
             elif key in propkeys:
                 attr = PropClassAttr(key)
-                if self.__datatypes[attr] == Iri:
-                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Iri):
-                        self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
-                    else:
-                        raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val[0]} of type {type(val[0]).__name__})')
-                elif self.__datatypes[attr] == XsdDatatypes:
-                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Iri):
-                        self._attributes[attr] = XsdDatatypes(str(val[0]))
-                    else:
-                        raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val[0]} of type {type(val[0]).__name__})')
-                elif self.__datatypes[attr] == LangString:
-                    if isinstance(val, list):
-                        if self._attributes.get(attr) is None:
-                            self._attributes[attr] = LangString()
-                        self._attributes[attr].add(val)
-                    else:
-                        raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val} of type {type(val[0]).__name__})')
-                elif self.__datatypes[attr] == Xsd_decimal:
-                    if isinstance(val, list) and len(val) == 1 and isinstance(val[0], Xsd_decimal):
-                        self._attributes[attr] = val[0]
-                    else:
-                        raise OmasError(f'Inconsistency in SHACL "{attr.value}" (got {val[0]} of type {type(val[0]).__name__})')
-            else:
-                try:
-                    self._attributes[PropClassAttr.RESTRICTIONS][PropertyRestrictionType(key)] = val if (key == "sh:languageIn") or (key == "sh:in") else val[0]
-                except (ValueError, TypeError) as err:
-                    raise OmasError(f'Invalid shacl definition of PropertyClass attribute: "{key}" "{val}"')
-        if self._attributes.get(PropClassAttr.RESTRICTIONS):
-            self._attributes[PropClassAttr.RESTRICTIONS].changeset_clear()
-        #
-        # setting property type for OWL which distinguished between Data- and Object-properties
-        #
+                if self.__datatypes[attr] == Numeric:
+                    if not isinstance(val, (Xsd_integer, Xsd_float)):
+                        raise OmasErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
+                else:
+                    self._attributes[attr] = self.__datatypes[attr](val)
+
         if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
             self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
             dt = self._attributes.get(PropClassAttr.DATATYPE)
@@ -661,10 +675,11 @@ class PropertyClass(Model, Notify):
         for prop, value in self._attributes.items():
             if prop == PropClassAttr.PROPERTY_TYPE:
                 continue
-            if prop != PropClassAttr.RESTRICTIONS:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
-            else:
-                sparql += self._attributes[PropClassAttr.RESTRICTIONS].create_shacl(indent + 1, indent_inc)
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.toRdf}'
+            # if prop != PropClassAttr.RESTRICTIONS:
+            #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
+            # else:
+            #     sparql += self._attributes[PropClassAttr.RESTRICTIONS].create_shacl(indent + 1, indent_inc)
         #sparql += f' .\n'
         return sparql
 
@@ -707,7 +722,16 @@ class PropertyClass(Model, Notify):
         sparql = f'{blank:{indent * indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri.toRdf}'
-        sparql += self._attributes[PropClassAttr.RESTRICTIONS].create_owl(indent + 1, indent_inc)
+
+        mincnt = self._attributes.get(PropClassAttr.MIN_COUNT)
+        maxcnt = self._attributes.get(PropClassAttr.MAX_COUNT)
+        if mincnt is not None and maxcnt is not None and mincnt == maxcnt:
+            sparql += f' ;\n{blank:{indent*indent_inc}}owl:cardinality {mincnt.toRdf}'
+        else:
+            if mincnt is not None:
+                sparql += f' ;\n{blank:{indent*indent_inc}}owl:minCardinality {mincnt.toRdf}'
+            if maxcnt is not None:
+                sparql += f' ;\n{blank:{indent*indent_inc}}owl:maxCardinality {maxcnt.toRdf}'
         #
         # TODO: Add the possibility to use owl:onClass or owl:onDataRage instead of rdfs:range
         # (NOTE: owl:onClass and owl:onDataRange can be used only in a restriction and are "local" to the use
@@ -1122,12 +1146,9 @@ class PropertyClass(Model, Notify):
 
 
 if __name__ == '__main__':
-    pass
-    # con = Connection('http://localhost:7200', 'omas')
-    # pclass1 = PropertyClass(con=con, graph=NCName('omas'), property_class_iri=QName('omas:comment'))
-    # pclass1.read()
-    # print(pclass1)
-    #
-    # pclass2 = PropertyClass(con=con, graph=NCName('omas'), property_class_iri=QName('omas:test'))
-    # pclass2.read()
-    # print(pclass2)
+    n = Numeric(Xsd_integer(4))
+    print(n, type(n).__name__)
+
+    s = Iri("xsd:integer")
+    dt = XsdDatatypes(s)
+    print(dt, type(dt))
