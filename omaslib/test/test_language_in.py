@@ -2,7 +2,7 @@ import unittest
 
 from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.enums.language import Language
-from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType, OmasErrorKey
 
 
 class TestLanguageIn(unittest.TestCase):
@@ -53,7 +53,7 @@ class TestLanguageIn(unittest.TestCase):
         self.assertTrue(Language.FR in lang)
         self.assertFalse(Language.RM in lang)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OmasErrorKey):
             lang = LanguageIn(["de", "en", "gaga", "it"])
 
     def test_compare_ops(self):
@@ -63,21 +63,17 @@ class TestLanguageIn(unittest.TestCase):
         self.assertTrue(lang1 == {Language.DE, Language.EN, Language.FR})
 
         self.assertTrue(lang1 >= lang2)
-        with self.assertRaises(OmasErrorType):
-            b = lang1 >= {Language.DE, Language.EN}
+        self.assertTrue(lang1 >= {Language.DE, Language.EN})
 
         self.assertTrue(lang1 <= lang2)
-        with self.assertRaises(OmasErrorType):
-            b = lang1 <= {Language.DE, Language.EN}
+        self.assertFalse(lang1 <= {Language.DE, Language.EN})
 
         lang1 = LanguageIn(["de", "en", Language.FR])
         lang2 = LanguageIn("de", "en")
         self.assertTrue(lang1 > lang2)
-        with self.assertRaises(OmasErrorType):
-            b = lang1 > {Language.DE, Language.EN}
+        self.assertTrue(lang1 > {Language.DE, Language.EN})
         self.assertTrue(lang2 < lang1)
-        with self.assertRaises(OmasErrorType):
-            b = lang2 < {Language.DE, Language.EN}
+        self.assertFalse(lang2 < {Language.DE, Language.EN})
         self.assertTrue(lang1 != lang2)
         self.assertTrue(lang1 != {Language.DE, Language.EN})
 
@@ -86,9 +82,9 @@ class TestLanguageIn(unittest.TestCase):
         s = str(li)
         s = s.strip('() ')
         s = s.split(', ')
-        self.assertTrue('"en"' in s)
-        self.assertTrue('"fr"' in s)
-        self.assertTrue('"it"' in s)
+        self.assertTrue("en" in s)
+        self.assertTrue("fr" in s)
+        self.assertTrue("it" in s)
 
         s = repr(li)
         s = s.removeprefix('LanguageIn(')
@@ -132,13 +128,14 @@ class TestLanguageIn(unittest.TestCase):
         s = str(li)
         s = s.strip('() ')
         s = s.split(', ')
-        self.assertTrue('"en"' in s)
-        self.assertTrue('"fr"' in s)
-        self.assertTrue('"it"' in s)
+        self.assertTrue("en" in s)
+        self.assertTrue("fr" in s)
+        self.assertTrue("it" in s)
         s = repr(li)
         s = s.removeprefix('LanguageIn(')
         s = s.strip('()')
         s = s.split(', ')
+        print(s)
         self.assertTrue('"fr"' in s)
         self.assertTrue('"en"' in s)
         self.assertTrue('"it"' in s)
@@ -180,7 +177,7 @@ class TestLanguageIn(unittest.TestCase):
         li.discard(Language.FR)
         self.assertFalse(Language.FR in li)
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OmasErrorKey) as ex:
             li = LanguageIn([Language.EN, "fr", "xyz"])
 
 

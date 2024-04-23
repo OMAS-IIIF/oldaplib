@@ -5,6 +5,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.dtypes.rdfset import RdfSet
+from omaslib.src.dtypes.xsdset import XsdSet
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.omaserror import OmasErrorValue
@@ -104,8 +105,8 @@ class MyTestCase(unittest.TestCase):
         with self.assertRaises(OmasErrorValue) as ex:
             nons = NamespaceIRI('http://www.org/test<super>\"; SELECT * FROM {?s ?p ?o}')
 
-    def test_rdf_set(self):
-        val = RdfSet({Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?")})
+    def test_xsd_set(self):
+        val = XsdSet({Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?")})
         self.assertTrue(Xsd_string("was") in val)
         self.assertTrue(Xsd_string("ist") in val)
         self.assertTrue(Xsd_string("das?") in val)
@@ -120,7 +121,7 @@ class MyTestCase(unittest.TestCase):
         val.discard(Xsd_string("ist"))
         self.assertFalse(Xsd_string("ist") in val)
 
-        val = RdfSet(Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?"))
+        val = XsdSet(Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?"))
         self.assertTrue(Xsd_string("was") in val)
         self.assertTrue(Xsd_string("ist") in val)
         self.assertTrue(Xsd_string("das?") in val)

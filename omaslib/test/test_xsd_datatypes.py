@@ -6,7 +6,6 @@ from datetime import date
 
 from omaslib.src.connection import Connection
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
-from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError, OmasErrorType

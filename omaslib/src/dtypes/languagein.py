@@ -1,106 +1,88 @@
-from typing import Iterator, Self
+import json
+from typing import Iterator, Self, Iterable
 
+from pystrict import strict
+
+from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.enums.language import Language
-from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType, OmasErrorKey
+from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd_string import Xsd_string
 
 
-class LanguageIn:
+@strict
+@serializer
+class LanguageIn(RdfSet[Language]):
     """
     This class implements the SHACL sh:languageIn datatype. It completely validates the input.
     If the validations failes, an OmasErrorValue is raised.
     """
-    __data: set[Language]
 
-    def __init__(self, *args):
-        __data: set[Language]
-
-        """
-        Constructor for the LanguageIn
-        :param args: Either the languages as 2-letter short strings, or a set of Language items
-        """
-        self.__data = set()
-        try:
-            if len(args) > 1:
-                for arg in args:
-                    if isinstance(arg, Language):
-                        self.__data.add(arg)
-                    elif isinstance(arg, str):
-                        self.__data.add(Language[arg.upper()])
-            elif len(args) == 1:
-                if isinstance(args[0], LanguageIn):
-                    self.__data = args[0].__data
-                elif isinstance(args[0], Language):
-                    self.__data.add(args[0])
-                elif isinstance(args[0], str):
-                    self.__data.add(Language[args[0].upper()])
-                else:
-                    try:
-                        iter(args[0])
-                    except:
-                        raise OmasErrorValue("Parameter must be iterable.")
-                    for arg in args[0]:
-                        if isinstance(arg, Language):
-                            self.__data.add(arg)
-                        elif isinstance(arg, str):
-                            self.__data.add(Language[arg.upper()])
+    def __init__(self,
+                 *args: set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str,
+                 value: set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None = None):
+        nargs = tuple()
+        nvalue = None
+        if len(args) == 0:
+            if value is None:
+                pass
             else:
-                self.__data = set()
-        except KeyError:
-            raise OmasErrorValue("Non valid language in set.")
-
-    def __eq__(self, other: Self | set | None) -> bool:
-        if other is None:
-            return False
-        if isinstance(other, LanguageIn):
-            return self.__data == other.__data
+                if isinstance(value, (set, list, tuple)):
+                    for v in value:
+                        if not isinstance(v, (Language, str)):
+                            raise OmasErrorType(f'Iterable contains element that is not an instance of "Language", but "{type(v).__name__}".')
+                    try:
+                        nvalue = [x if isinstance(x, Language) else Language[x.upper()] for x in value]
+                    except KeyError as err:
+                        raise OmasErrorKey(str(err))
+                else:
+                    if not isinstance(value, (Language, str)):
+                        raise OmasErrorType(f'Value is not an instance of "Language", but "{type(value).__name__}".')
+                    try:
+                        nvalue = value if isinstance(value, Language) else Language[value.upper()]
+                    except KeyError as err:
+                        raise OmasErrorKey(str(err))
+        elif len(args) == 1:
+            nvalue = None
+            if isinstance(args[0], (set, list, tuple)):
+                for v in args[0]:
+                    if not isinstance(v, (Language, str)):
+                        raise OmasErrorType(f'Iterable contains element that is not an instance of "Xsd", but "{type(v).__name__}".')
+                    try:
+                        nargs = tuple([x if isinstance(x, Language) else Language[x.upper()] for x in args[0]])
+                    except KeyError as err:
+                        raise OmasErrorKey(str(err))
+            else:
+                if not isinstance(args[0], (Language, str)):
+                    raise OmasErrorType(f'Value is not an instance of "Language", but "{type(args[0]).__name__}".')
+                try:
+                    nargs = args if isinstance(args[0], Language) else  (Language[args[0].upper()],)
+                except KeyError as err:
+                    raise OmasErrorKey(str(err))
         else:
-            return self.__data == other
+            for v in args:
+                if not isinstance(v, (Language, str)):
+                    raise OmasErrorType(f'Iterable contains element that is not an instance of "Xsd", but "{type(v).__name__}".')
+                try:
+                    nargs = tuple([x if isinstance(x, Language) else Language[x.upper()] for x in args])
+                except KeyError as err:
+                    raise OmasErrorKey(str(err))
 
-    def __ne__(self, other: Self | None):
-        if other is None:
-            return False
-        if isinstance(other, LanguageIn):
-            return self.__data != other.__data
-        else:
-            return self.__data != other
-
-    def __gt__(self, other: Self) -> bool:
-        if not isinstance(other, LanguageIn):
-            raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
-        return self.__data > other.__data
-
-    def __ge__(self, other: Self) -> bool:
-        if not isinstance(other, LanguageIn):
-            raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
-        return self.__data >= other.__data
-
-    def __lt__(self, other: Self) -> bool:
-        if not isinstance(other, LanguageIn):
-            raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
-        return self.__data < other.__data
-
-    def __le__(self, other: Self) -> bool:
-        if not isinstance(other, LanguageIn):
-            raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
-        return self.__data <= other.__data
+        super().__init__(*nargs, value=nvalue)
 
     def __str__(self):
-        langlist = {f'"{x.name.lower()}"' for x in self}
+        langlist = {f'{x.name.lower()}' for x in self}
         return f'({", ".join(langlist)})'
 
     def __repr__(self):
         langlist = {f'"{x.name.lower()}"' for x in self}
         return 'LanguageIn(' + ", ".join(langlist) + ')'
 
-    def __len__(self):
-        return len(self.__data)
+    def __contains__(self, val: Language | str) -> bool:
+        if not isinstance(val, Language):
+            val = Language[str(val).upper()]
+        return super().__contains__(val)
 
-    def __contains__(self, language: Language):
-        return language in self.__data
-
-    def __iter__(self) -> Iterator[Language]:
-        return iter(self.__data)
 
     def add(self, language: Language | Xsd_string | str):
         if not isinstance(language, Language):
@@ -108,7 +90,7 @@ class LanguageIn:
                 language = Language[str(language).upper()]
             except (ValueError, KeyError) as err:
                 raise OmasErrorValue(str(err))
-        self.__data.add(language)
+        super().add(language)
 
     def discard(self, language: Language | Xsd_string | str):
         if not isinstance(language, Language):
@@ -116,16 +98,13 @@ class LanguageIn:
                 language = Language[str(language).upper()]
             except ValueError as err:
                 raise OmasErrorValue(str(err))
-        self.__data.discard(language)
+        super().discard(language)
 
-    @property
-    def toRdf(self) -> str:
-        langlist = {f'"{x.name.lower()}"^^xsd:string' for x in self}
-        return f'({" ".join(langlist)})'
 
-    def _as_dict(self):
-        return {'value': [x for x in self.__data]}
-
-    @property
-    def value(self) -> set[Language]:
-        return self.__data
+if __name__ == '__main__':
+    x = LanguageIn("en", "fr")
+    print(x.toRdf)
+    jsonstr = json.dumps(x, default=serializer.encoder_default)
+    print(jsonstr)
+    x2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+    print(x2)

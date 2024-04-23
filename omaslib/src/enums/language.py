@@ -205,5 +205,10 @@ class Language(Enum):
     ZU = "Zulu"
     XX = "Undefined"
 
+    @property
+    def toRdf(self) -> str:
+        return f'"{self.name.lower()}"^^xsd:string'
+
+
 if __name__ == "__main__":
-    print(Language["ZUR"])
+    print(Language.EN.toRdf)
