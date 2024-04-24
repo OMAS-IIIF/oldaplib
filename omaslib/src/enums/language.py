@@ -205,6 +205,9 @@ class Language(Enum):
     ZU = "Zulu"
     XX = "Undefined"
 
+    def __repr__(self):
+        return str(self)
+
     @property
     def toRdf(self) -> str:
         return f'"{self.name.lower()}"^^xsd:string'

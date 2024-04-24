@@ -2,6 +2,7 @@ from typing import Set, List, Dict, Iterable, Iterator, Self, TypeVar, Generic
 
 from pystrict import strict
 
+from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
@@ -10,22 +11,27 @@ T = TypeVar("T")
 
 
 @serializer
-class RdfSet(Generic[T]):
+class RdfSet(Generic[T], Notify):
     __data: Set[T]
 
     def __init__(self, *args: set[T] | list[T] | tuple[T] | T, value: set[T] | list[T] | tuple[T] | T | None = None) -> None:
         self.__data: Set[T] = set()
+        Notify.__init__(self)
         if len(args) == 0:
             if value is None:
                 return
             else:
-                if isinstance(value, (set | list | tuple)):
+                if isinstance(value, RdfSet):
+                    self.__data = value.__data
+                elif isinstance(value, (set | list | tuple)):
                     for val in value:
                         self.__data.add(val)
                 else:
                     self.__data.add(value)
         elif len(args) == 1:
-            if isinstance(args[0], (set | list | tuple)):
+            if isinstance(args[0], RdfSet):
+                self.__data = args[0].__data
+            elif isinstance(args[0], (set | list | tuple)):
                 for val in args[0]:
                     self.__data.add(val)
             else:
@@ -88,9 +94,11 @@ class RdfSet(Generic[T]):
         return iter(self.__data)
 
     def add(self, val: T) -> None:
+        self.notify()
         self.__data.add(val)
 
     def discard(self, val: T) -> None:
+        self.notify()
         self.__data.discard(val)
 
     @property

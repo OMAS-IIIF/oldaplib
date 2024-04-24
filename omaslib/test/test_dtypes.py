@@ -121,6 +121,23 @@ class MyTestCase(unittest.TestCase):
         val.discard(Xsd_string("ist"))
         self.assertFalse(Xsd_string("ist") in val)
 
+        s = str(val)
+        s = s[1:-1]
+        s = set(s.split(", "))
+        self.assertEqual(s, {"was", "42", "das?"})
+
+        s = repr(val)
+        s = s.removeprefix('XsdSet')
+        s = s[1:-1]
+        s = set(s.split(", "))
+        self.assertEqual(s, {'Xsd_string("was")', 'Xsd_integer(42)', 'Xsd_string("das?")'})
+
+        s = val.toRdf
+        s = s[1:-1]
+        s = set(s.split(" "))
+
+        self.assertEqual(s, {'"was"^^xsd:string', '"42"^^xsd:integer', '"das?"^^xsd:string'})
+
         val = XsdSet(Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?"))
         self.assertTrue(Xsd_string("was") in val)
         self.assertTrue(Xsd_string("ist") in val)

@@ -5,14 +5,14 @@ from pystrict import strict
 
 from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.enums.language import Language
+from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType, OmasErrorKey
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd_string import Xsd_string
 
 
-@strict
 @serializer
-class LanguageIn(RdfSet[Language]):
+class LanguageIn(RdfSet[Language], Notify):
     """
     This class implements the SHACL sh:languageIn datatype. It completely validates the input.
     If the validations failes, an OmasErrorValue is raised.
@@ -53,12 +53,15 @@ class LanguageIn(RdfSet[Language]):
                     except KeyError as err:
                         raise OmasErrorKey(str(err))
             else:
-                if not isinstance(args[0], (Language, str)):
+                if not isinstance(args[0], (LanguageIn, Language, str)):
                     raise OmasErrorType(f'Value is not an instance of "Language", but "{type(args[0]).__name__}".')
-                try:
-                    nargs = args if isinstance(args[0], Language) else  (Language[args[0].upper()],)
-                except KeyError as err:
-                    raise OmasErrorKey(str(err))
+                if isinstance(args[0], LanguageIn):
+                    nargs = args
+                else:
+                    try:
+                        nargs = args if isinstance(args[0], Language) else (Language[args[0].upper()],)
+                    except KeyError as err:
+                        raise OmasErrorKey(str(err))
         else:
             for v in args:
                 if not isinstance(v, (Language, str)):
@@ -70,19 +73,18 @@ class LanguageIn(RdfSet[Language]):
 
         super().__init__(*nargs, value=nvalue)
 
-    def __str__(self):
-        langlist = {f'{x.name.lower()}' for x in self}
-        return f'({", ".join(langlist)})'
-
-    def __repr__(self):
-        langlist = {f'"{x.name.lower()}"' for x in self}
-        return 'LanguageIn(' + ", ".join(langlist) + ')'
+    # def __str__(self):
+    #     langlist = {f'{x.name.lower()}' for x in self}
+    #     return f'({", ".join(langlist)})'
+    #
+    # def __repr__(self):
+    #     langlist = {f'"{x.name.lower()}"' for x in self}
+    #     return 'LanguageIn(' + ", ".join(langlist) + ')'
 
     def __contains__(self, val: Language | str) -> bool:
         if not isinstance(val, Language):
             val = Language[str(val).upper()]
         return super().__contains__(val)
-
 
     def add(self, language: Language | Xsd_string | str):
         if not isinstance(language, Language):
@@ -103,6 +105,8 @@ class LanguageIn(RdfSet[Language]):
 
 if __name__ == '__main__':
     x = LanguageIn("en", "fr")
+    print("STR: ", str(x))
+    print("REPR: ", repr(x))
     print(x.toRdf)
     jsonstr = json.dumps(x, default=serializer.encoder_default)
     print(jsonstr)

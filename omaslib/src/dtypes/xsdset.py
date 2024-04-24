@@ -4,17 +4,20 @@ from typing import Iterable
 from pystrict import strict
 
 from omaslib.src.dtypes.rdfset import RdfSet
+from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.omaserror import OmasErrorType
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_string import Xsd_string
 
 
-@strict
 @serializer
 class XsdSet(RdfSet[Xsd]):
 
     def __init__(self, *args: Iterable[Xsd] | Xsd, value: Iterable[Xsd] | Xsd | None = None):
+        #
+        # Here we first do some fancy type checking, before we call the superclass' __init__() method
+        #
         if len(args) == 0:
             if value is None:
                 pass

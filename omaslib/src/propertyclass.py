@@ -5,12 +5,12 @@
 from dataclasses import dataclass
 from enum import Enum, unique
 from functools import partial
-from typing import Optional, Dict, Callable, List, Self, Iterable
+from typing import Callable, Self, Iterable
 
 from pystrict import strict
 
 from omaslib.src.dtypes.languagein import LanguageIn
-from omaslib.src.dtypes.rdfset import RdfSet
+from omaslib.src.dtypes.xsdset import XsdSet
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
@@ -34,12 +34,14 @@ from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.propertyrestrictions import PropertyRestrictions
-from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.xsd.xsd_string import Xsd_string
 
 
 @unique
 class OwlPropertyType(Enum):
+    """
+    Enumeration of the two types of RDF properties that OWL distinguishes
+    """
     OwlDataProperty = 'owl:DatatypeProperty'
     OwlObjectProperty = 'owl:ObjectProperty'
 
@@ -51,7 +53,11 @@ class OwlPropertyType(Enum):
 
 
 class Numeric:
-
+    """
+    This class represents a numeric value that eiter can be a subclass of Xsd_integer (and it's subclasses) or
+    a subclass of FloatingPoint (and it's subclasses). FLoatingPoint is the superclass of all XML Schema datatypes
+    with a floating point content (e.g. Xsd_float, Xsd_decimal etc.)
+    """
     def __new__(cls, value: Xsd_integer | int | FloatingPoint | float | str):
         if isinstance(value, (Xsd_integer, int)):
             return Xsd_integer(value)
@@ -64,13 +70,16 @@ class Numeric:
                 return Xsd_float(str(value))
 
 
-PropTypes = Iri | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | RdfSet | Numeric | None
-PropClassAttrContainer = Dict[PropClassAttr, PropTypes]
-Attributes = Dict[Iri, PropTypes]
+PropTypes = Iri | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | XsdSet | Numeric | None
+PropClassAttrContainer = dict[PropClassAttr, PropTypes]
+Attributes = dict[Iri, PropTypes]
 
 
 @dataclass
 class PropClassAttrChange:
+    """
+    Used for recording changes of the attributes of the property
+    """
     old_value: PropTypes
     action: Action
     test_in_use: bool
@@ -97,7 +106,7 @@ class PropertyClass(Model, Notify):
     _internal: Iri | None
     _force_external: bool
     _attributes: PropClassAttrContainer
-    _changeset: Dict[PropClassAttr, PropClassAttrChange]
+    _changeset: dict[PropClassAttr, PropClassAttrChange]
     _test_in_use: bool
     _notifier: Callable[[type], None] | None
     #
@@ -111,7 +120,7 @@ class PropertyClass(Model, Notify):
     __version: SemanticVersion
     __from_triplestore: bool
 
-    __datatypes: Dict[PropClassAttr, type] = {
+    __datatypes: dict[PropClassAttr, type] = {
         PropClassAttr.SUBPROPERTY_OF: Iri,
         PropClassAttr.PROPERTY_TYPE: OwlPropertyType,
         PropClassAttr.TO_NODE_IRI: Iri,
@@ -123,7 +132,7 @@ class PropertyClass(Model, Notify):
         PropClassAttr.MAX_COUNT: Xsd_integer,
         PropClassAttr.LANGUAGE_IN: LanguageIn,
         PropClassAttr.UNIQUE_LANG: Xsd_boolean,
-        PropClassAttr.IN: RdfSet,
+        PropClassAttr.IN: XsdSet,
         PropClassAttr.MIN_LENGTH: Xsd_integer,
         PropClassAttr.MAX_LENGTH: Xsd_integer,
         PropClassAttr.PATTERN: Xsd_string,
@@ -149,7 +158,7 @@ class PropertyClass(Model, Notify):
                  maxCount: Xsd_integer | int | None = None,
                  languageIn: LanguageIn | None = None,
                  uniqueLang: Xsd_boolean | bool | None = None,
-                 inSet: RdfSet | Iterable[Xsd] | Xsd | None = None,
+                 inSet: XsdSet | Iterable[Xsd] | Xsd | None = None,
                  minLength: Xsd_integer | int | None = None,
                  maxLength: Xsd_integer | int | None = None,
                  pattern: Xsd_string | None = None,
@@ -192,10 +201,12 @@ class PropertyClass(Model, Notify):
             self._attributes[PropClassAttr.MAX_COUNT] = Xsd_integer(maxCount)
         if languageIn is not None:
             self._attributes[PropClassAttr.LANGUAGE_IN] = LanguageIn(languageIn)
+            self._attributes[PropClassAttr.LANGUAGE_IN].set_notifier(self.notifier, PropClassAttr.LANGUAGE_IN)
         if uniqueLang is not None:
             self._attributes[PropClassAttr.UNIQUE_LANG] = Xsd_boolean(uniqueLang)
         if inSet is not None:
-            self._attributes[PropClassAttr.IN] = RdfSet(inSet)
+            self._attributes[PropClassAttr.IN] = XsdSet(inSet)
+            self._attributes[PropClassAttr.IN].set_notifier(self.notifier, PropClassAttr.IN)
         if minLength is not None:
             self._attributes[PropClassAttr.MIN_LENGTH] = Xsd_integer(minLength)
         if maxLength is not None:
@@ -355,7 +366,7 @@ class PropertyClass(Model, Notify):
         return self.__modified
 
     @property
-    def changeset(self) -> Dict[PropClassAttr, PropClassAttrChange]:
+    def changeset(self) -> dict[PropClassAttr, PropClassAttrChange]:
         return self._changeset
 
     @property
@@ -404,7 +415,12 @@ class PropertyClass(Model, Notify):
         self._changeset = {}
 
     def notifier(self, attr: PropClassAttr) -> None:
-        self._changeset[attr] = PropClassAttrChange(None, Action.MODIFY, True)
+        if self.__datatypes[attr] in [XsdSet, LanguageIn]:
+            # we can *not* modify sets, we have to replace them if an item is added or discarded
+            if self._changeset.get(attr) is None:
+                self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.REPLACE, True)
+        else:
+            self._changeset[attr] = PropClassAttrChange(None, Action.MODIFY, True)
         self.notify()
 
     @property
@@ -436,7 +452,7 @@ class PropertyClass(Model, Notify):
             attributes[attriri].add(r['oo'])
         elif r['attriri'].fragment == 'in':
             if attributes.get(attriri) is None:
-                attributes[attriri] = RdfSet()
+                attributes[attriri] = XsdSet()
             attributes[attriri].add(r['oo'])
         else:
             if isinstance(r['value'], Xsd_string) and r['value'].lang is not None:
@@ -659,7 +675,7 @@ class PropertyClass(Model, Notify):
 
     def property_node_shacl(self, *,
                             timestamp: Xsd_dateTime,
-                            bnode: Optional[Xsd_QName] = None,
+                            bnode: Xsd_QName | None = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{(indent + 1) * indent_inc}}# PropertyClass.property_node_shacl()'
@@ -896,7 +912,7 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def update_owl(self, *,
-                   owlclass_iri: Optional[Xsd_QName] = None,
+                   owlclass_iri: Xsd_QName | None = None,
                    timestamp: Xsd_dateTime,
                    indent: int = 0, indent_inc: int = 4) -> str:
         owl_propclass_attributes = {PropClassAttr.SUBPROPERTY_OF,  # should be in OWL ontology
