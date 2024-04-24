@@ -25,7 +25,7 @@
         sh:path :comment ;
         sh:name "comment"@en, "Kommentar"@de ;
         sh:description "This is a test property"@de ;
-        sh:datatype xsd:string ;
+        sh:datatype rdf:langString ;
         sh:uniqueLang true ;
         sh:languageIn ("de"^^xsd:string "fr"^^xsd:string "en"^^xsd:string) ;
         sh:maxCount "1"^^xsd:integer ;
@@ -83,11 +83,11 @@
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:datatype xsd:string ;
+                sh:datatype rdf:langString ;
                 sh:languageIn ("de"^^xsd:string "en"^^xsd:string) ;
                 sh:maxCount "1"^^xsd:integer ;
                 sh:minCount "1"^^xsd:integer ;
-                sh:name "A text"^^xsd:string, "Ein Text"@de ;
+                sh:name "A text"@en, "Ein Text"@de ;
                 sh:description "A longer text..."^^xsd:string ;
                 sh:order "1"^^xsd:decimal ;
             ] ;
@@ -146,7 +146,7 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string .
+        rdfs:range rdf:langString .
 
     :test rdf:type owl:ObjectProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -167,7 +167,7 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string ;
+        rdfs:range rdf:langString ;
         rdfs:domain :testMyRes .
 
     :hasEnum rdf:type owl:DatatypeProperty ;
