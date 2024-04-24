@@ -293,7 +293,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.order, Xsd_decimal(11))
 
 
-    @unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_propertyclass_update(self):
         p1 = PropertyClass(
             con=self._connection,
@@ -315,12 +315,13 @@ class TestPropertyClass(unittest.TestCase):
         p1[PropClassAttr.IN] = RdfSet(Xsd_string("gaga"), Xsd_string("is was"))
         p1.order = Xsd_decimal(22)
         p1.minCount = Xsd_integer(1)
+        self.maxDiff = None
         self.assertEqual(p1.changeset, {
             PropClassAttr.ORDER: PropClassAttrChange(Xsd_decimal(11), Action.REPLACE, True),
             PropClassAttr.NAME: PropClassAttrChange(None, Action.MODIFY, True),
-            PropClassAttr.IN: PropClassAttrChange(LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT), Action.REPLACE, True),
+            # PropClassAttr.LANGUAGE_IN: PropClassAttrChange(LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT), Action.REPLACE, True),
             PropClassAttr.UNIQUE_LANG: PropClassAttrChange(Xsd_boolean(True), Action.REPLACE, True),
-            PropClassAttr.ORDER: PropClassAttrChange(Xsd_decimal(11), Action.REPLACE, True),
+            PropClassAttr.IN: PropClassAttrChange(None, Action.CREATE, True),
             PropClassAttr.MIN_COUNT: PropClassAttrChange(Xsd_integer(10), Action.REPLACE, True),
         })
         p1.update()

@@ -857,14 +857,8 @@ class PropertyClass(Model, Notify):
                                                                   attr=prop,
                                                                   modified=self.__modified,
                                                                   indent=indent, indent_inc=indent_inc)
-                elif PropertyClass.__datatypes[prop] == PropertyRestrictions:
-                    sparql += self._attributes[prop].update_shacl(graph=self._graph,
-                                                                  owlclass_iri=owlclass_iri,
-                                                                  prop_iri=self._property_class_iri,
-                                                                  modified=self.__modified,
-                                                                  indent=indent, indent_inc=indent_inc)
                 else:
-                    raise OmasError(f'SHACL property {prop.value} should not have update action "Update" ({PropertyClass.__datatypes[prop]}).')
+                    raise OmasError(f'SHACL property {prop.value} should not have update action "MODIFY" ({PropertyClass.__datatypes[prop]}).')
                 sparql_list.append(sparql)
             else:
                 if change.action == Action.DELETE:
@@ -877,14 +871,22 @@ class PropertyClass(Model, Notify):
                     old_value = change.old_value.toRdf
                     new_value = self._attributes[prop].toRdf
                 else:
-                    raise OmasError(f'==========UNEXPECTED ACTION============')
+                    raise OmasError(f'An unexpected Action occured: {change.action} for {prop.value}.')
                 ele = RdfModifyItem(prop.value, old_value, new_value)
-                sparql += RdfModifyProp.shacl(action=change.action,
-                                              graph=self._graph,
-                                              owlclass_iri=owlclass_iri,
-                                              pclass_iri=self._property_class_iri,
-                                              ele=ele,
-                                              last_modified=self.__modified)
+                if self.__datatypes[prop] in {XsdSet, LanguageIn}:
+                    sparql += RdfModifyProp.replace_rdfset(action=change.action,
+                                                           graph=self._graph,
+                                                           owlclass_iri=owlclass_iri,
+                                                           pclass_iri=self._property_class_iri,
+                                                           ele=ele,
+                                                           last_modified=self.__modified)
+                else:
+                    sparql += RdfModifyProp.shacl(action=change.action,
+                                                  graph=self._graph,
+                                                  owlclass_iri=owlclass_iri,
+                                                  pclass_iri=self._property_class_iri,
+                                                  ele=ele,
+                                                  last_modified=self.__modified)
                 sparql_list.append(sparql)
 
         #

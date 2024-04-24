@@ -106,8 +106,8 @@ class RdfModifyProp:
     def __rdf_modify_property(cls, *,
                               shacl: bool,
                               action: Action,
-                              owlclass_iri: Xsd_QName | None = None,
-                              pclass_iri: Xsd_QName,
+                              owlclass_iri: Iri | None = None,
+                              pclass_iri: Iri,
                               graph: Xsd_QName,
                               ele: RdfModifyItem,
                               last_modified: Xsd_dateTime,
@@ -149,8 +149,8 @@ class RdfModifyProp:
     def shacl(cls, *,
               action: Action,
               graph: Xsd_NCName,
-              owlclass_iri: Xsd_QName | None = None,
-              pclass_iri: Xsd_QName,
+              owlclass_iri: Iri | None = None,
+              pclass_iri: Iri,
               ele: RdfModifyItem,
               last_modified: Xsd_dateTime,
               indent: int = 0, indent_inc: int = 4) -> str:
@@ -163,8 +163,8 @@ class RdfModifyProp:
     def onto(cls, *,
              action: Action,
              graph: Xsd_NCName,
-             owlclass_iri: Optional[Xsd_QName] = None,
-             pclass_iri: Xsd_QName,
+             owlclass_iri: Iri | None = None,
+             pclass_iri: Iri,
              ele: RdfModifyItem,
              last_modified: Xsd_dateTime,
              indent: int = 0, indent_inc: int = 4) -> str:
@@ -172,6 +172,67 @@ class RdfModifyProp:
         return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
                                          pclass_iri=pclass_iri, graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
+
+    @classmethod
+    def replace_rdfset(cls, *,
+                       action: Action,
+                       owlclass_iri: Iri | None = None,
+                       pclass_iri: Iri,
+                       graph: Xsd_QName,
+                       ele: RdfModifyItem,
+                       last_modified: Xsd_dateTime,
+                       indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql_list = []
+        sparql = f'#\n# (X) Process "{pclass_iri}" with Action "{action.value}"\n#\n'
+        #
+        # The SHACL RdfSet is implemented as a RDF List with blank nodes having
+        # a rdf:first and rdf:rest property. This makes the manipulation a bit complicated. If
+        # sh:languageIn is modified we delete the complete list and replace it by the new list.
+        #
+        if action != Action.CREATE:
+            sparql += f'WITH {graph}:shacl\n'
+            sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
+            sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            if owlclass_iri:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {pclass_iri.toRdf} .\n'
+            else:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({pclass_iri}Shape as ?prop)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} ?bnode .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?bnode rdf:rest* ?z .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:rest ?tail .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+
+        sparql = f'WITH {graph}:shacl\n'
+        if action != Action.CREATE:
+            sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} ?rval .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+        if action != Action.DELETE:
+            sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} {ele.new_value} .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        if owlclass_iri:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {pclass_iri.toRdf} .\n'
+        else:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({pclass_iri}Shape as ?prop)\n'
+        if action != Action.CREATE:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} ?rval .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {last_modified.toRdf})\n'
+        sparql += f'{blank:{indent * indent_inc}}}}'
+        sparql_list.append(sparql)
+
+        sparql = ";\n".join(sparql_list)
+        return sparql
 
 
 class DataModelModtime:
