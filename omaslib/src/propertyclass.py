@@ -2,6 +2,7 @@
 :Author: Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>
 :Copyright: © Lukas Rosenthaler (2023, 2024)
 """
+from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum, unique
 from functools import partial
@@ -254,6 +255,8 @@ class PropertyClass(Model, Notify):
                 name = 'propertyType'
             elif name == 'class':
                 name = 'toNodeIri'
+            elif name == 'in':
+                name = 'inSet'
             setattr(PropertyClass, name, property(
                 partial(PropertyClass.__get_value, attr=attr),
                 partial(PropertyClass.__set_value, attr=attr),
@@ -418,7 +421,8 @@ class PropertyClass(Model, Notify):
         if self.__datatypes[attr] in [XsdSet, LanguageIn]:
             # we can *not* modify sets, we have to replace them if an item is added or discarded
             if self._changeset.get(attr) is None:
-                self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.REPLACE, True)
+                tmp = deepcopy(self._attributes[attr])
+                self._changeset[attr] = PropClassAttrChange(tmp, Action.REPLACE, True)
         else:
             self._changeset[attr] = PropClassAttrChange(None, Action.MODIFY, True)
         self.notify()
@@ -926,15 +930,7 @@ class PropertyClass(Model, Notify):
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
-            if prop == PropClassAttr.RESTRICTIONS and change.action == Action.MODIFY:
-                sparql = self._attributes[prop].update_owl(graph=self._graph,
-                                                           owlclass_iri=owlclass_iri,
-                                                           prop_iri=self._property_class_iri,
-                                                           modified=self.__modified,
-                                                           indent=indent, indent_inc=indent_inc)
-                if sparql:
-                    sparql_list.append(sparql)
-            elif prop in owl_propclass_attributes:
+            if prop in owl_propclass_attributes:
                 sparql = f'#\n# OWL:\n# Process "{owl_prop[prop]}" with Action "{change.action.value}"\n#\n'
                 ele = RdfModifyItem(property=owl_prop[prop],
                                     old_value=str(change.old_value) if change.action != Action.CREATE else None,

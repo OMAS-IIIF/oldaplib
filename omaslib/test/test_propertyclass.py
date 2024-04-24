@@ -5,6 +5,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.dtypes.rdfset import RdfSet
+from omaslib.src.dtypes.xsdset import XsdSet
 from omaslib.src.enums.action import Action
 from omaslib.src.enums.language import Language
 from omaslib.src.enums.propertyclassattr import PropClassAttr
@@ -299,6 +300,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             graph=Xsd_NCName('test'),
             property_class_iri=Iri('test:testUpdate'),
+            subPropertyOf=Iri('test:masterProp'),
             datatype=XsdDatatypes.langString,
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
@@ -309,6 +311,8 @@ class TestPropertyClass(unittest.TestCase):
             order=Xsd_decimal(11)
         )
         p1.create()
+
+        p1[PropClassAttr.SUBPROPERTY_OF] = Iri('test:masterProp2')
         p1[PropClassAttr.ORDER] = Xsd_decimal(12)
         p1[PropClassAttr.NAME][Language.DE] = 'Annotationen'
         p1[PropClassAttr.UNIQUE_LANG] = Xsd_boolean(False)
@@ -320,6 +324,7 @@ class TestPropertyClass(unittest.TestCase):
             PropClassAttr.ORDER: PropClassAttrChange(Xsd_decimal(11), Action.REPLACE, True),
             PropClassAttr.NAME: PropClassAttrChange(None, Action.MODIFY, True),
             # PropClassAttr.LANGUAGE_IN: PropClassAttrChange(LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT), Action.REPLACE, True),
+            PropClassAttr.SUBPROPERTY_OF: PropClassAttrChange(Iri('test:masterProp'), Action.REPLACE, True),
             PropClassAttr.UNIQUE_LANG: PropClassAttrChange(Xsd_boolean(True), Action.REPLACE, True),
             PropClassAttr.IN: PropClassAttrChange(None, Action.CREATE, True),
             PropClassAttr.MIN_COUNT: PropClassAttrChange(Xsd_integer(10), Action.REPLACE, True),
@@ -331,17 +336,17 @@ class TestPropertyClass(unittest.TestCase):
                                 graph=Xsd_NCName('test'),
                                 property_class_iri=Iri('test:testUpdate'))
         self.assertEqual(p2.property_class_iri, Iri('test:testUpdate'))
-        self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.string)
+        self.assertEqual(p2.subPropertyOf, Iri('test:masterProp2'))
+        self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.langString)
         self.assertIsNone(p2.get(PropClassAttr.TO_NODE_IRI))
         self.assertEqual(p2[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("An annotation@en"))
-        self.assertEqual(p2[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN],
-                         LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
-        self.assertEqual(p2[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.IN], RdfSet(Xsd_string("gaga"), Xsd_string("is was")))
-        self.assertEqual(p2[PropClassAttr.ORDER], Xsd_decimal(12))
-        self.assertFalse(p2[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(p2[PropClassAttr.LANGUAGE_IN], LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertEqual(p2[PropClassAttr.IN], RdfSet(Xsd_string("gaga"), Xsd_string("is was")))
+        self.assertEqual(p2[PropClassAttr.ORDER], Xsd_decimal(22))
+        self.assertFalse(p2[PropClassAttr.UNIQUE_LANG])
 
-    @unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_propertyclass_update2(self):
         p1 = PropertyClass(
             con=self._connection,
@@ -349,27 +354,26 @@ class TestPropertyClass(unittest.TestCase):
             property_class_iri=Iri('test:testUpdate2'),
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
-            restrictions=PropertyRestrictions(restrictions={
-                PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
-                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
-                PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
-                PropertyRestrictionType.MIN_COUNT: Xsd_integer(0)
-            }),
+            datatype=XsdDatatypes.langString,
+            languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
+            uniqueLang=Xsd_boolean(True),
+            maxCount=Xsd_integer(1),
+            minCount=Xsd_integer(0),
             order=Xsd_decimal(11)
         )
         p1.create()
         p1.order = Xsd_decimal(12)
         p1.name[Language.DE] = 'Annotationen'
-        p1.restrictions[PropertyRestrictionType.UNIQUE_LANG] = Xsd_boolean(False)
-        p1.restrictions[PropertyRestrictionType.IN] = RdfSet(Xsd_string("gaga"), Xsd_string("is was"))
-        p1.datatype = XsdDatatypes.string
+        p1.languageIn.add(Language.ZU)
+        p1.uniqueLang = Xsd_boolean(False)
+        p1.inSet = RdfSet(Xsd_string("gaga"), Xsd_string("is was"))
         self.maxDiff = None
         self.assertEqual(p1.changeset, {
             PropClassAttr.ORDER: PropClassAttrChange(Xsd_decimal(11), Action.REPLACE, True),
             PropClassAttr.NAME: PropClassAttrChange(None, Action.MODIFY, True),
-            PropClassAttr.RESTRICTIONS: PropClassAttrChange(None, Action.MODIFY, True),
-            PropClassAttr.DATATYPE: PropClassAttrChange(None, Action.CREATE, True),
-            PropClassAttr.TO_NODE_IRI: PropClassAttrChange(Iri('test:comment'), Action.DELETE, True)  # TODO!!!!!!!!!!!!!
+            PropClassAttr.LANGUAGE_IN: PropClassAttrChange(LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT), Action.REPLACE, True),
+            PropClassAttr.UNIQUE_LANG: PropClassAttrChange(Xsd_boolean(True), Action.REPLACE, True),
+            PropClassAttr.IN: PropClassAttrChange(None, Action.CREATE, True),
         })
         p1.update()
         self.assertEqual(p1.changeset, {})
@@ -382,78 +386,72 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p2.toNodeIri)
         self.assertEqual(p2.name, LangString(["Annotations@en", "Annotationen@de"]))
         self.assertEqual(p2.description, LangString("An annotation@en"))
-        self.assertEqual(p2.restrictions[PropertyRestrictionType.LANGUAGE_IN],
-                         LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
-        self.assertEqual(p2.restrictions[PropertyRestrictionType.IN], RdfSet(Xsd_string("gaga"), Xsd_string("is was")))
+        self.assertEqual(p2.languageIn,
+                         LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT, Language.ZU))
+        self.assertEqual(p2.inSet, RdfSet(Xsd_string("gaga"), Xsd_string("is was")))
         self.assertEqual(p2.order, Xsd_decimal(12))
-        self.assertFalse(p2.restrictions[PropertyRestrictionType.UNIQUE_LANG])
+        self.assertFalse(p2.uniqueLang)
 
-    @unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_propertyclass_delete_attrs(self):
         p1 = PropertyClass(
             con=self._connection,
             graph=Xsd_NCName('test'),
-            property_class_iri=Xsd_QName('test:testDelete'),
-            toNodeIri=Iri('test:comment'),
+            property_class_iri=Iri('test:testDelete'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
-            restrictions=PropertyRestrictions(restrictions={
-                PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.ZU, Language.CY, Language.SV, Language.RM),
-                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
-                PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
-                PropertyRestrictionType.MIN_COUNT: Xsd_integer(0),
-                PropertyRestrictionType.IN: RdfSet(Xsd_string('A'), Xsd_string('B'), Xsd_string('C'))
-            }),
+            languageIn=LanguageIn(Language.ZU, Language.CY, Language.SV, Language.RM),
+            uniqueLang=Xsd_boolean(True),
+            maxCount=Xsd_integer(1),
+            minCount=Xsd_integer(0),
+            inSet=RdfSet(Xsd_string('A'), Xsd_string('B'), Xsd_string('C')),
             order=Xsd_decimal(11)
         )
         p1.create()
         del p1[PropClassAttr.NAME]
-        del p1[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.MAX_COUNT]
-        del p1[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.UNIQUE_LANG]
-        del p1[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.LANGUAGE_IN]
-        del p1[PropClassAttr.RESTRICTIONS][PropertyRestrictionType.IN]
+        del p1[PropClassAttr.MAX_COUNT]
+        del p1[PropClassAttr.UNIQUE_LANG]
+        del p1[PropClassAttr.LANGUAGE_IN]
+        del p1[PropClassAttr.IN]
         p1.update()
 
         p2 = PropertyClass.read(con=self._connection,
                                 graph=Xsd_NCName('test'),
                                 property_class_iri=Iri('test:testDelete'))
-        self.assertEqual(p2.restrictions.get(PropertyRestrictionType.MIN_COUNT), 0)
         self.assertIsNone(p2.name)
-        self.assertIsNone(p2.restrictions.get(PropertyRestrictionType.MAX_COUNT))
-        self.assertIsNone(p2.restrictions.get(PropertyRestrictionType.UNIQUE_LANG))
-        self.assertIsNone(p2.restrictions.get(PropertyRestrictionType.LANGUAGE_IN))
-        self.assertIsNone(p2.restrictions.get(PropertyRestrictionType.IN))
-        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
+        self.assertIsNone(p2.maxCount)
+        self.assertIsNone(p2.uniqueLang)
+        self.assertIsNone(p2.languageIn)
+        self.assertIsNone(p2.inSet)
+        cstr = self._context.sparql_context
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "A" . ?s ?p ?o}')
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "A" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
 
-    @unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_propertyclass_delete(self):
         p1 = PropertyClass(
             con=self._connection,
             graph=Xsd_NCName('test'),
             property_class_iri=Iri('test:testDeleteIt'),
-            toNodeIri=Iri('test:comment'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
-            restrictions=PropertyRestrictions(restrictions={
-                PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.ZU, Language.CY, Language.SV, Language.RM),
-                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
-                PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
-                PropertyRestrictionType.MIN_COUNT: Xsd_integer(0)
-            }),
+            languageIn=LanguageIn(Language.ZU, Language.CY, Language.SV, Language.RM),
+            uniqueLang=Xsd_boolean(True),
+            maxCount=Xsd_integer(1),
+            minCount=Xsd_integer(0),
             order=Xsd_decimal(11)
         )
         p1.create()
@@ -467,34 +465,60 @@ class TestPropertyClass(unittest.TestCase):
         jsonres = self._connection.query(sparql)
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
+
+        cstr = self._context.sparql_context
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "zu" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "cy" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "sv" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
-        jsonres = self._connection.query('SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
 
-    @unittest.skip('Work in progress')
+        p1 = PropertyClass(
+            con=self._connection,
+            graph=Xsd_NCName('test'),
+            property_class_iri=Iri('test:testDeleteIt2'),
+            toNodeIri=Iri('test:comment'),
+            name=LangString(["Annotations@en", "Annotationen@de"]),
+            description=LangString("An annotation@en"),
+            inSet=XsdSet(Iri('test:gaga1'), Iri('test:gaga2'), Iri('test:gaga3')),
+            maxCount=Xsd_integer(1),
+            minCount=Xsd_integer(0),
+            order=Xsd_decimal(11)
+        )
+        p1.create()
+
+        p2 = PropertyClass.read(con=self._connection,
+                                graph=Xsd_NCName('test'),
+                                property_class_iri=Iri('test:testDeleteIt2'))
+        p2.delete()
+        sparql = self._context.sparql_context
+        sparql += 'SELECT ?p ?o WHERE { test:testDeleteIt2 ?p ?o }'
+        jsonres = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonres)
+        self.assertEqual(len(res), 0)
+        cstr = self._context.sparql_context
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p test:gaga1 . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
+        self.assertEqual(len(res), 0)
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p test:gaga2 . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
+        self.assertEqual(len(res), 0)
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p test:gaga3 . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
+        self.assertEqual(len(res), 0)
+        jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "rm" . ?s ?p ?o}')
+        res = QueryProcessor(self._context, jsonres)
+        self.assertEqual(len(res), 0)
+
+    # @unittest.skip('Work in progress')
     def test_write_trig(self):
-        props: PropClassAttrContainer = {
-            PropClassAttr.TO_NODE_IRI: Xsd_QName('test:comment'),
-            PropClassAttr.DATATYPE: XsdDatatypes.anyURI,
-            PropClassAttr.NAME: LangString(["Annotations@en", "Annotationen@de"]),
-            PropClassAttr.DESCRIPTION: LangString("An annotation@en"),
-            PropClassAttr.RESTRICTIONS: PropertyRestrictions(restrictions={
-                PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.ZU, Language.CY, Language.SV, Language.RM),
-                PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
-                PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
-                PropertyRestrictionType.MIN_COUNT: Xsd_integer(0)
-            }),
-            PropClassAttr.ORDER: 11
-        }
         p1 = PropertyClass(
             con=self._connection,
             graph=Xsd_NCName('test'),
@@ -502,10 +526,8 @@ class TestPropertyClass(unittest.TestCase):
             toNodeIri=Iri('test:comment'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
-            restrictions=PropertyRestrictions(restrictions={
-                PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
-                PropertyRestrictionType.MIN_COUNT: Xsd_integer(0)
-            })
+            maxCount=Xsd_integer(1),
+            minCount=Xsd_integer(0),
         )
         p1.write_as_trig('propclass_test.trig')
 

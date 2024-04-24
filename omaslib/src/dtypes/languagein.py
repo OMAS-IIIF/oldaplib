@@ -19,15 +19,17 @@ class LanguageIn(RdfSet[Language], Notify):
     """
 
     def __init__(self,
-                 *args: set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str,
-                 value: set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None = None):
+                 *args: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str,
+                 value: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None = None):
         nargs = tuple()
         nvalue = None
         if len(args) == 0:
             if value is None:
                 pass
             else:
-                if isinstance(value, (set, list, tuple)):
+                if isinstance(value, LanguageIn):
+                    nvalue = value
+                elif isinstance(value, (set, list, tuple)):
                     for v in value:
                         if not isinstance(v, (Language, str)):
                             raise OmasErrorType(f'Iterable contains element that is not an instance of "Language", but "{type(v).__name__}".')
@@ -43,7 +45,8 @@ class LanguageIn(RdfSet[Language], Notify):
                     except KeyError as err:
                         raise OmasErrorKey(str(err))
         elif len(args) == 1:
-            nvalue = None
+            if isinstance(args[0], LanguageIn):
+                nargs = args
             if isinstance(args[0], (set, list, tuple)):
                 for v in args[0]:
                     if not isinstance(v, (Language, str)):
@@ -90,8 +93,10 @@ class LanguageIn(RdfSet[Language], Notify):
         if not isinstance(language, Language):
             try:
                 language = Language[str(language).upper()]
-            except (ValueError, KeyError) as err:
+            except (ValueError) as err:
                 raise OmasErrorValue(str(err))
+            except (KeyError) as err:
+                raise OmasErrorKey(str(err))
         super().add(language)
 
     def discard(self, language: Language | Xsd_string | str):

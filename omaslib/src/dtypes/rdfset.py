@@ -14,7 +14,8 @@ T = TypeVar("T")
 class RdfSet(Generic[T], Notify):
     __data: Set[T]
 
-    def __init__(self, *args: set[T] | list[T] | tuple[T] | T, value: set[T] | list[T] | tuple[T] | T | None = None) -> None:
+    def __init__(self, *args: Self | set[T] | list[T] | tuple[T] | T,
+                 value: Self | set[T] | list[T] | tuple[T] | T | None = None) -> None:
         self.__data: Set[T] = set()
         Notify.__init__(self)
         if len(args) == 0:
