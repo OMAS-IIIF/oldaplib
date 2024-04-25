@@ -130,6 +130,21 @@ class Testproject(unittest.TestCase):
                                projectStart=Xsd_date(2024, 3, 3),
                                projectEnd=Xsd_date(2024, 3, 2))
 
+        project6 = Project(con=self._connection,
+                           projectShortName="unittest3",
+                           label=LangString("unittes\"; SELECT * WHERE {?s ?p ?o}"),
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest3#"),
+                           comment=LangString(["For testing3@en", "Für Tests3@de"]),
+                           projectStart=Xsd_date(2024, 3, 3),
+                           projectEnd=None)
+        project6.create()
+        projectIri = project6.projectIri
+        del project6
+
+        project6 = Project.read(con=self._connection, projectIri_SName=projectIri)
+        self.assertEqual(project6.label, LangString("unittes\"; SELECT * WHERE {?s ?p ?o}"))
+
+
 
     # @unittest.skip('Work in progress')
     def test_project_modify(self):

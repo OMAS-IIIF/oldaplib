@@ -234,7 +234,7 @@ class LangString(Notify):
     def toRdf(self) -> str:
         langStringList = [Xsd_string(val, lang).toRdf for lang, val in self._langstring.items()]
         resstr = ", ".join(langStringList)
-        return self.__str__()
+        return resstr
 
     def _as_dict(self) -> dict:
         """

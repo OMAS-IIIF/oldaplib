@@ -49,7 +49,7 @@ class Xsd_string(Xsd):
         :return: Escaped string
         :rtype: str
         """
-        value = value.replace('\\', '\\\\')
+        value = value.replace('\\', '\\')
         value = value.replace("'", "\\'")
         value = value.replace('"', '\\"')
         value = value.replace('\n', '\\n').replace('\r', '\\r')
