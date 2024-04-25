@@ -65,7 +65,8 @@ class Iri(Xsd):
             except:
                 pass
             raise OmasErrorValue(f'Invalid string for IRI: "{value}"')
-
+        else:
+            raise OmasErrorValue(f'Invalid value for IRI: "{value}"')
     def __str__(self) -> str:
         """
         String representation of the Iri

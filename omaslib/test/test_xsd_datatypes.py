@@ -245,6 +245,9 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple("Iri2")
         self.assertEqual(val, valx)
 
+        with self.assertRaises(OmasErrorValue):
+            val = Iri(25)
+
 
 
     def test_xsd_anyuri(self):
