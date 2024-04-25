@@ -9,7 +9,7 @@ from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.langstring import LangString, LangStringChange
 from omaslib.src.enums.language import Language
-from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue
 
 
 class TestLangstring(unittest.TestCase):
@@ -72,6 +72,8 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls8['en'], 'lukas.rosenthaler@unibas.ch')
         self.assertEqual(ls8['de'], 'lukas.rosenthaler@gmail.com')
 
+        with self.assertRaises(OmasErrorValue) as ex:
+            ls9 = LangString(255)
 
     def test_langstring_setitem(self):
         LangString.defaultLanguage = Language.ZU
