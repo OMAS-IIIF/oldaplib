@@ -144,6 +144,16 @@ class Testproject(unittest.TestCase):
         project6 = Project.read(con=self._connection, projectIri_SName=projectIri)
         self.assertEqual(project6.label, LangString("unittes\"; SELECT * WHERE {?s ?p ?o}"))
 
+        with self.assertRaises(OmasErrorInconsistency) as ex:
+            project7 = Project(con=self._connection,
+                               projectShortName="unittest7",
+                               label=LangString("date"),
+                               namespaceIri=NamespaceIRI("http://unitest.org/project/unittest3#"),
+                               comment=LangString(["For testing3@en", "Für Tests3@de"]),
+                               projectStart=Xsd_date(2024, 3, 3),
+                               projectEnd=Xsd_date(2024, 3, 2))
+
+
 
 
     # @unittest.skip('Work in progress')

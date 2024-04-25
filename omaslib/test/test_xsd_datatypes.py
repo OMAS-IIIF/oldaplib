@@ -248,6 +248,9 @@ class TestXsdDatatypes(unittest.TestCase):
         with self.assertRaises(OmasErrorValue):
             val = Iri(25)
 
+        val = Iri()
+        self.assertTrue(str(val).startswith("urn:"))
+
 
 
     def test_xsd_anyuri(self):
