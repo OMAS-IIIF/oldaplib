@@ -1,20 +1,15 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime
-from pprint import pprint
 from typing import Dict, List, Optional, Union
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.iri import Iri
-from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
-from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasError, OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
-from omaslib.src.helpers.tools import lprint
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.propertyclass import PropertyClass
@@ -34,10 +29,10 @@ class DataModel(Model):
     __graph: Xsd_NCName
     __context: Context
     __version: SemanticVersion
-    __propclasses: Dict[Iri, PropertyClass | None]
-    __resclasses: Dict[Iri, ResourceClass | None]
-    __resclasses_changeset: Dict[Iri, ResourceClassChange]
-    __propclasses_changeset: Dict[Iri, PropertyClassChange]
+    __propclasses: dict[Iri, PropertyClass | None]
+    __resclasses: dict[Iri, ResourceClass | None]
+    __resclasses_changeset: dict[Iri, ResourceClassChange]
+    __propclasses_changeset: dict[Iri, PropertyClassChange]
 
     def __init__(self, *,
                  con: IConnection,

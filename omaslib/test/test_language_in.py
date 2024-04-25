@@ -115,7 +115,7 @@ class TestLanguageIn(unittest.TestCase):
         li.discard(Language.FR)
         self.assertFalse(Language.FR in li)
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OmasErrorKey) as ex:
             li = li.add("xyz")
 
 

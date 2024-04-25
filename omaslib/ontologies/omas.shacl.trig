@@ -74,7 +74,7 @@
         sh:datatype rdf:langString ;
         sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true ;
-        sh:name "Description" ;
+        sh:name "Description"@en ;
         sh:description "A description for something."@en .
 
     #
@@ -177,7 +177,7 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "AdminPermission"@en, "AdminPermission"@de, "AdminPermission"@fr, "AdminPermission"@it ;
-        rdfs:comment "Defines administrator permissions." ;
+        rdfs:comment "Defines administrator permissions."@en ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -193,7 +193,7 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "DataPermission"@en, "DataPermission"@de, "DataPermission"@fr, "DataPermission"@it ;
-        rdfs:comment "Defines data permissions." ;
+        rdfs:comment "Defines data permissions."@en ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -225,7 +225,7 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "Permission set"@en, "Berechtigungssatz"@de, "Ensemble de permissions"@fr, "Set di permessi"@it ;
-        rdfs:comment "A set of permissions a user and a resource grants." ;
+        rdfs:comment "A set of permissions a user and a resource grants."@en ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -287,7 +287,7 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "Project"@en, "Projekt"@de, "Projet"@fr, "Progetto"@it ;
-        rdfs:comment "Metadata about a project" ;
+        rdfs:comment "Metadata about a project"@en ;
 
         sh:property
             [
@@ -310,8 +310,8 @@
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
                 sh:datatype xsd:NCName ;
-                sh:name "Project ID", "Projekt ID"@de ;
-                sh:description "A unique NCName identifying the project" ;
+                sh:name "Project ID"@en, "Projekt ID"@de ;
+                sh:description "A unique NCName identifying the project"@en ;
                 sh:order "1"^^xsd:decimal ;
             ] ;
         sh:property
@@ -325,8 +325,8 @@
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
                 sh:datatype xsd:anyURI ;
-                sh:name "Namespace IRI" ;
-                sh:description "The namespace to use for this project." ;
+                sh:name "Namespace IRI"@en ;
+                sh:description "The namespace to use for this project."@en ;
                 sh:order "2"^^xsd:decimal ;
             ] ;
         sh:property
@@ -339,7 +339,7 @@
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:name "Start date" ;
+                sh:name "Start date"@en ;
                 sh:description "The date when the project will start/has started" ;
                 sh:datatype xsd:date ;
                 sh:order "5"^^xsd:decimal ;
@@ -354,7 +354,7 @@
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount "1"^^xsd:integer ;
                 sh:datatype xsd:date ;
-                sh:name "The date when the project wll end/has ended" ;
+                sh:name "The date when the project wll end/has ended"@en ;
                 sh:order "6"^^xsd:decimal ;
             ] ;
         sh:closed true .

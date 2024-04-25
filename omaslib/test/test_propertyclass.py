@@ -107,8 +107,8 @@ class TestPropertyClass(unittest.TestCase):
                                 graph=Xsd_NCName('test'),
                                 property_class_iri=Iri('test:comment'))
         self.assertEqual(p1.property_class_iri, Iri('test:comment'))
-        self.assertEqual(p1.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
-        self.assertEqual(p1.datatype, XsdDatatypes.string)
+        self.assertEqual(p1.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
+        self.assertEqual(p1.datatype, XsdDatatypes.langString)
         self.assertTrue(p1.get(PropClassAttr.UNIQUE_LANG))
         self.assertTrue(p1.uniqueLang)
         self.assertEqual(p1.get(PropClassAttr.MAX_COUNT), Xsd_integer(1))

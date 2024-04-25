@@ -34,7 +34,6 @@ from omaslib.src.helpers.tools import RdfModifyItem, RdfModifyProp
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
-from omaslib.src.propertyrestrictions import PropertyRestrictions
 from omaslib.src.xsd.xsd_string import Xsd_string
 
 
@@ -462,15 +461,14 @@ class PropertyClass(Model, Notify):
             if isinstance(r['value'], Xsd_string) and r['value'].lang is not None:
                 if attributes.get(attriri) is None:
                     attributes[attriri] = LangString()
-                attributes[attriri].add(r['value'])
+                try:
+                    attributes[attriri].add(r['value'])
+                except AttributeError as err:
+                    raise OmasError(f'Invalid value for attribute {attriri}: {err}.')
             else:
                 if attributes.get(attriri) is not None:
                     raise OmasError(f'Property attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
                 attributes[attriri] = r['value']
-            # if attributes.get(attriri) is None:
-            #     attributes[attriri] = []
-            # attributes[attriri].append(r['value'])
-
 
     @staticmethod
     def __query_shacl(con: IConnection, graph: Xsd_NCName, property_class_iri: Iri) -> Attributes:
@@ -501,7 +499,6 @@ class PropertyClass(Model, Notify):
         Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
         :return:
         """
-        self._attributes[PropClassAttr.RESTRICTIONS] = PropertyRestrictions()
         #
         # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
         #

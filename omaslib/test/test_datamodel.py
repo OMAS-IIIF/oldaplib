@@ -54,12 +54,10 @@ class TestDataModel(unittest.TestCase):
         comment = PropertyClass(con=self._connection,
                                 graph=dm_name,
                                 property_class_iri=Iri(f'{dm_name}:comment'),
-                                datatype=XsdDatatypes.string,
+                                datatype=XsdDatatypes.langString,
                                 name=LangString(["Comment@en", "Kommentar@de"]),
-                                restrictions=PropertyRestrictions(restrictions={
-                                    PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
-                                    PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
-                                }))
+                                uniqueLang=Xsd_boolean(True),
+                                languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
         comment.force_external()
 
         #
@@ -68,14 +66,12 @@ class TestDataModel(unittest.TestCase):
         title = PropertyClass(con=self._connection,
                               graph=dm_name,
                               property_class_iri=Iri(f'{dm_name}:title'),
-                              datatype=XsdDatatypes.string,
+                              datatype=XsdDatatypes.langString,
                               name=LangString(["Title@en", "Titel@de"]),
                               description=LangString(["Title of book@en", "Titel des Buches@de"]),
-                              restrictions=PropertyRestrictions(restrictions={
-                                  PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
-                                  PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
-                                  PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
-                              }),
+                              minCount=Xsd_integer(1),
+                              uniqueLang=Xsd_boolean(True),
+                              languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
                               order=Xsd_decimal(1))
 
         authors = PropertyClass(con=self._connection,
@@ -84,9 +80,7 @@ class TestDataModel(unittest.TestCase):
                                 toNodeIri=Iri('omas:Person'),
                                 name=LangString(["Author(s)@en", "Autor(en)@de"]),
                                 description=LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]),
-                                restrictions=PropertyRestrictions(restrictions={
-                                    PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
-                                }),
+                                minCount=Xsd_integer(1),
                                 order=Xsd_decimal(2))
 
         book = ResourceClass(con=self._connection,
@@ -102,13 +96,8 @@ class TestDataModel(unittest.TestCase):
                                 property_class_iri=Iri(f'{dm_name}:pagenum'),
                                 datatype=XsdDatatypes.int,
                                 name=LangString(["Pagenumber@en", "Seitennummer@de"]),
-                                restrictions=PropertyRestrictions(restrictions={
-                                    PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
-                                    PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
-                                    PropertyRestrictionType.UNIQUE_LANG: Xsd_boolean(True),
-                                    PropertyRestrictionType.LANGUAGE_IN: LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT)
-
-                                }),
+                                maxCount=Xsd_integer(1),
+                                minCount=Xsd_integer(1),
                                 order=Xsd_decimal(1))
 
         inbook = PropertyClass(con=self._connection,
@@ -116,17 +105,9 @@ class TestDataModel(unittest.TestCase):
                                property_class_iri=Iri(f'{dm_name}:inbook'),
                                toNodeIri=Iri(f'{dm_name}:Book'),
                                name=LangString(["Pagenumber@en", "Seitennummer@de"]),
-                               restrictions=PropertyRestrictions(restrictions={
-                                   PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
-                                   PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
-                               }),
+                               maxCount=Xsd_integer(1),
+                               minCount=Xsd_integer(1),
                                order=Xsd_decimal(1))
-
-        rattrs = ResourceClassAttributesContainer = {
-            ResourceClassAttribute.LABEL: LangString(["Page@en", "Seite@de"]),
-            ResourceClassAttribute.COMMENT: LangString("Page of a book@en"),
-            ResourceClassAttribute.CLOSED: True
-        }
 
         page = ResourceClass(con=self._connection,
                              graph=dm_name,
@@ -153,34 +134,60 @@ class TestDataModel(unittest.TestCase):
 
         dm2 = DataModel.read(con=self._connection, graph=dm_name)
         p1 = dm2[Iri(f'{dm_name}:comment')]
-        self.assertEqual(p1.datatype, XsdDatatypes.string)
+        self.assertEqual(p1.datatype, XsdDatatypes.langString)
         self.assertEqual(p1.name, LangString(["Comment@en", "Kommentar@de"]))
-        self.assertTrue(p1.restrictions[PropertyRestrictionType.UNIQUE_LANG])
+        self.assertEqual(p1.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertTrue(p1.uniqueLang)
 
         r1 = dm2[Iri(f'{dm_name}:Book')]
+
         r1p1 = r1[Iri(f'{dm_name}:title')]
         self.assertEqual(r1p1.internal, Iri(f'{dm_name}:Book'))
-        self.assertEqual(r1p1.datatype, XsdDatatypes.string)
+        self.assertEqual(r1p1.datatype, XsdDatatypes.langString)
         self.assertEqual(r1p1.name, LangString(["Title@en", "Titel@de"]))
-        self.assertEqual(r1p1.restrictions[PropertyRestrictionType.MIN_COUNT], Xsd_integer(1))
+        self.assertEqual(r1p1.description, LangString(["Title of book@en", "Titel des Buches@de"]))
+        self.assertEqual(r1p1.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertTrue(r1p1.uniqueLang)
+        self.assertEqual(r1p1.minCount, Xsd_integer(1))
+        self.assertEqual(r1p1.order, Xsd_decimal(1))
+
         r1p2 = r1[Iri(f'{dm_name}:authors')]
         self.assertEqual(r1p2.internal, Iri(f'{dm_name}:Book'))
         self.assertEqual(r1p2.toNodeIri, Iri('omas:Person'))
-        self.assertEqual(r1p2.restrictions[PropertyRestrictionType.MIN_COUNT], Xsd_integer(1))
+        self.assertEqual(r1p2.name, LangString(["Author(s)@en", "Autor(en)@de"]))
+        self.assertEqual(r1p2.description, LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]))
+        self.assertEqual(r1p2.minCount, Xsd_integer(1))
+        self.assertEqual(r1p2.order, Xsd_decimal(2))
+
         r1p3 = r1[Iri(f'{dm_name}:comment')]
         self.assertIsNone(r1p3.internal)
-        self.assertEqual(r1p3.datatype, XsdDatatypes.string)
+        self.assertEqual(r1p3.datatype, XsdDatatypes.langString)
+        self.assertEqual(r1p3.name, LangString(["Comment@en", "Kommentar@de"]))
+        self.assertTrue(r1p3.uniqueLang, Xsd_boolean(True))
+        self.assertEqual(r1p3.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
         r2 = dm2[Iri(f'{dm_name}:Page')]
         r2p1 = r2[Iri(f'{dm_name}:pagenum')]
         self.assertEqual(r2p1.internal, Iri(f'{dm_name}:Page'))
         self.assertEqual(r2p1.datatype, XsdDatatypes.int)
+        self.assertEqual(r2p1.name, LangString(["Pagenumber@en", "Seitennummer@de"]))
+        self.assertEqual(r2p1.maxCount, Xsd_integer(1))
+        self.assertEqual(r2p1.minCount, Xsd_integer(1))
+
         r2p2 = r2[Iri(f'{dm_name}:inbook')]
         self.assertEqual(r2p2.internal, Iri(f'{dm_name}:Page'))
         self.assertEqual(r2p2[PropClassAttr.TO_NODE_IRI], Iri(f'{dm_name}:Book'))
+        self.assertEqual(r2p2[PropClassAttr.NAME], LangString(["Pagenumber@en", "Seitennummer@de"]))
+        self.assertEqual(r2p2[PropClassAttr.MAX_COUNT], Xsd_integer(1))
+        self.assertEqual(r2p2[PropClassAttr.MIN_COUNT], Xsd_integer(1))
+        self.assertEqual(r2p2[PropClassAttr.ORDER], Xsd_decimal(1))
+
         r2p3 = r1[Iri(f'{dm_name}:comment')]
         self.assertIsNone(r2p3.internal)
-        self.assertEqual(r2p3.datatype, XsdDatatypes.string)
+        self.assertEqual(r2p3.datatype, XsdDatatypes.langString)
+        self.assertEqual(r2p3.name, LangString(["Comment@en", "Kommentar@de"]))
+        self.assertTrue(r2p3.uniqueLang, Xsd_boolean(True))
+        self.assertEqual(r2p3.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
     #@unittest.skip('Work in progress')
     def test_datamodel_read(self):
@@ -219,9 +226,7 @@ class TestDataModel(unittest.TestCase):
                                 property_class_iri=Xsd_QName(f'{dm_name}:pubYear'),
                                 datatype=XsdDatatypes.gYear,
                                 name=LangString(["Publication Year@en", "Publicationsjahr@de"]),
-                                restrictions=PropertyRestrictions(restrictions={
-                                    PropertyRestrictionType.MAX_COUNT: Xsd_integer(1)
-                                }))
+                                maxCount=Xsd_integer(1))
         pubyear.force_external()
         dm[Iri(f'{dm_name}:pubYear')] = pubyear
         self.assertEqual({Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE)}, dm.changeset)
@@ -253,10 +258,8 @@ class TestDataModel(unittest.TestCase):
                                  property_class_iri=Xsd_QName(f'{dm_name}:pageName'),
                                  datatype=XsdDatatypes.string,
                                  name=LangString(["Page name@en", "Seitenbezeichnung@de"]),
-                                 restrictions=PropertyRestrictions(restrictions={
-                                     PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
-                                     PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
-                                 }))
+                                 maxCount=Xsd_integer(1),
+                                 minCount=Xsd_integer(1))
 
         dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = pagename
         self.assertEqual({
@@ -284,9 +287,7 @@ class TestDataModel(unittest.TestCase):
                                 property_class_iri=Xsd_QName(f'{dm_name}:pubYear'),
                                 datatype=XsdDatatypes.gYear,
                                 name=LangString(["Publication Year@en", "Publicationsjahr@de"]),
-                                restrictions=PropertyRestrictions(restrictions={
-                                    PropertyRestrictionType.MAX_COUNT: Xsd_integer(1)
-                                }))
+                                maxCount=Xsd_integer(1))
         pubyear.force_external()
 
         dm[Iri(f'{dm_name}:pubYear')] = pubyear
@@ -299,10 +300,8 @@ class TestDataModel(unittest.TestCase):
                                  property_class_iri=Xsd_QName(f'{dm_name}:pageName'),
                                  datatype=XsdDatatypes.string,
                                  name=LangString(["Page name@en", "Seitenbezeichnung@de"]),
-                                 restrictions=PropertyRestrictions(restrictions={
-                                     PropertyRestrictionType.MAX_COUNT: Xsd_integer(1),
-                                     PropertyRestrictionType.MIN_COUNT: Xsd_integer(1),
-                                 }))
+                                 maxCount=Xsd_integer(1),
+                                 minCount=Xsd_integer(1))
 
         dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = pagename
 
@@ -313,7 +312,7 @@ class TestDataModel(unittest.TestCase):
         dm = DataModel.read(self._connection, dm_name)
         self.assertIsNotNone(dm.get(Iri(f'{dm_name}:pubYear')))
         self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].datatype, XsdDatatypes.gYear)
-        self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].restrictions[PropertyRestrictionType.MAX_COUNT], 1)
+        self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].maxCount, 1)
         self.assertEqual(dm[Iri(f'{dm_name}:comment')].name[Language.FR], 'Commentaire')
         self.assertEqual(dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].name[Language.FR], "Ecrivain(s)")
         self.assertIsNotNone(dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')])

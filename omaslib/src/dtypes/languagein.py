@@ -93,9 +93,9 @@ class LanguageIn(RdfSet[Language], Notify):
         if not isinstance(language, Language):
             try:
                 language = Language[str(language).upper()]
-            except (ValueError) as err:
+            except ValueError as err:
                 raise OmasErrorValue(str(err))
-            except (KeyError) as err:
+            except KeyError as err:
                 raise OmasErrorKey(str(err))
         super().add(language)
 
