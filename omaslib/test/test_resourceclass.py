@@ -1,3 +1,6 @@
+"""
+Test data
+"""
 import unittest
 from enum import Enum
 from time import sleep
