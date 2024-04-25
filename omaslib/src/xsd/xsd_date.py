@@ -40,7 +40,7 @@ class Xsd_date(Xsd):
             self.__value = date(value, month, day)
         else:
             if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', str(value)) is None:
-                raise OmasErrorValue(f'{value} wrong format for xsd:date.')
+                raise OmasErrorValue(f'"{value}" wrong format for xsd:date – correct format is "yyyy-mm-dd" .')
             try:
                 self.__value = date.fromisoformat(value)
             except ValueError as err:
