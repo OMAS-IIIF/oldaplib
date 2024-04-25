@@ -153,6 +153,13 @@ class Testproject(unittest.TestCase):
                                projectStart=Xsd_date(2024, 3, 3),
                                projectEnd=Xsd_date(2024, 3, 2))
 
+        project8 = Project(con=self._connection,
+                           projectShortName="unittest3",
+                           label=LangString("unittes\"; SELECT * WHERE {?s ?p ?o}"),
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest3#"),
+                           comment=LangString(["For testing3@en", "Für Tests3@de"]),
+                           projectEnd=Xsd_date(2028, 3, 3))
+        self.assertEqual(project8.projectStart, date.today())
 
 
 
