@@ -1344,6 +1344,49 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_string"))
         self.assertEqual(val, valx)
 
+
+        val = Xsd_string("Waseliwas", "de")
+        self.assertEqual(str(val), "Waseliwas@de")
+        self.assertEqual(repr(val), 'Xsd_string("Waseliwas", "de")')
+        self.assertEqual(val.toRdf, '"Waseliwas"@de')
+
+        valc = Xsd_string(val)
+        self.assertEqual(val, valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_string2"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_string2"))
+        self.assertEqual(val, valx)
+
+
+        val = Xsd_string("Whateliwhat", Language.EN)
+        self.assertEqual(str(val), "Whateliwhat@en")
+        self.assertEqual(repr(val), 'Xsd_string("Whateliwhat", "en")')
+        self.assertEqual(val.toRdf, '"Whateliwhat"@en')
+
+        valc = Xsd_string(val)
+        self.assertEqual(val, valc)
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Xsd_string3"), val)
+        valx = self.get_triple(Xsd_NCName("Xsd_string3"))
+        self.assertEqual(val, valx)
+
+        val = Xsd_string("sosdeli@xx")
+        self.assertEqual(str(val), "sosdeli@xx")
+        self.assertEqual(repr(val), 'Xsd_string("sosdeli@xx")')
+        self.assertEqual(val.toRdf, '"sosdeli@xx"^^xsd:string')
+
+        with self.assertRaises(OmasErrorValue):
+            val = Xsd_string("gaga", "xx")
+
+
     def test_xsd_time(self):
         val = Xsd_time('21:32:52+02:00')
         self.assertEqual(str(val), '21:32:52+02:00')

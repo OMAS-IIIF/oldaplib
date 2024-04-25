@@ -17,7 +17,7 @@ from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.enums.language import Language
-from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue
 from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd_string import Xsd_string
@@ -70,9 +70,11 @@ class LangString(Notify):
     _changeset: Dict[Language, LangStringChange]
     _notifier: Callable[[type], None] | None
 
-    def __init__(self,
-                 langstring: Optional[str | Xsd_string | List[str] | Dict[str, str] | Dict[Language, str] | Self] = None,
-                 priorities: Optional[List[Language]] = None,
+    _defaultLanguage: Language = Language.EN
+    _priorities: list[Language] = [Language.EN, Language.DE, Language.FR]
+
+    def __init__(self, *args: str | Xsd_string | List[str] | Dict[Language | str, str] | Self | None,
+                 langstring: str | Xsd_string | List[str] | Dict[Language | str, str] | Self | None = None,
                  notifier: Optional[Callable[[PropClassAttr], None]] = None,
                  notify_data: Optional[PropClassAttr] = None):
         """
@@ -93,49 +95,86 @@ class LangString(Notify):
         """
         super().__init__(notifier, notify_data)
         self._changeset = {}
-        if isinstance(langstring, LangString):
-            self._langstring = langstring._langstring
-            self._priorities = langstring._priorities
-            self._notifier = langstring._notifier
-        elif isinstance(langstring, Xsd_string):
-            lang = langstring.lang if langstring.lang is not None else Language.XX
-            self._langstring = {lang: langstring.value}
-        elif isinstance(langstring, str):
-            if langstring[-3] == "@":
-                tmpls: str = langstring[-2:].upper()
-                try:
-                    self._langstring = {Language[tmpls]: langstring[:-3]}
-                except KeyError as er:
-                    raise OmasError(f'Language in string "{langstring}" is invalid')
+
+        if len(args) <= 0:
+            if len(args) == 1:
+                langstring = args[0]
+            if langstring is None:
+                return
             else:
-                self._langstring = {Language.XX: langstring}
-        elif isinstance(langstring, List):
-            self._langstring = {}
-            for lstr in langstring:
-                if lstr[-3] == "@":
-                    tmpls: str = lstr[-2:].upper()
-                    try:
-                        self._langstring[Language[tmpls]] = lstr[:-3]
-                    except KeyError as er:
-                        raise OmasError(f'Language in string "{lstr}" is invalid')
+                if isinstance(langstring, LangString):
+                    self._langstring = langstring._langstring
+                elif isinstance(langstring, Xsd_string):
+                    l = LangString.setDefaultLang if langstring.lang is None else langstring.lang
+                    self._langstring[l] = langstring.value
+                elif isinstance(langstring, str):
+                    xstr = Xsd_string(langstring)
+                    l = LangString.setDefaultLang if xstr.lang is None else xstr.lang
+                    self._langstring[l] = xstr.value
+                elif isinstance(langstring, (list, tuple)):
+                    for lstr in langstring:
+                        xstr = Xsd_string(lstr)
+                        l = LangString.setDefaultLang if xstr.lang is None else xstr.lang
+                        self._langstring[l] = xstr.value
+                elif isinstance(langstring, dict):
+                    for lang, value in langstring.items():
+                        xstr = Xsd_string(value, lang)
+                        l = LangString.setDefaultLang if xstr.lang is None else xstr.lang
+                        self._langstring[l] = xstr.value
                 else:
-                    self._langstring[Language.XX] = lstr
-        elif langstring is None:
-            self._langstring = {}
+                    raise OmasErrorValue(f'LangString parameter hwas wring datatype: {type(langstring).__name}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
         else:
-            self._langstring = {}
-            for lang, value in langstring.items():
-                if isinstance(lang, Language):
-                    self._langstring[lang] = value
+            for langstring in args:
+                if isinstance(langstring, Xsd_string):
+                    l = LangString.setDefaultLang if langstring.lang is None else langstring.lang
+                    self._langstring[l] = langstring.value
+                elif isinstance(langstring, str):
+                    xstr = Xsd_string(langstring)
+                    l = LangString.setDefaultLang if xstr.lang is None else xstr.lang
+                    self._langstring[l] = xstr.value
                 else:
-                    try:
-                        self._langstring[Language[lang.upper()]] = value
-                    except KeyError as er:
-                        raise OmasError(f'Language "{lang}" is invalid')
-        if priorities is not None:
-            self._priorities = priorities
-        else:
-            self._priorities = [Language.XX, Language.EN, Language.DE, Language.FR]
+                    raise OmasErrorValue(
+                        f'LangString parameter hwas wring datatype: {type(langstring).__name}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
+
+        # if isinstance(langstring, LangString):
+        #     self._langstring = langstring._langstring
+        #     self._notifier = langstring._notifier
+        #     self._notify_data = notify_data
+        # elif isinstance(langstring, Xsd_string):
+        #     lang = langstring.lang if langstring.lang is not None else LangString._defaultLanguage
+        #     self._langstring = {lang: langstring.value}
+        # elif isinstance(langstring, str):
+        #     if langstring[-3] == "@":
+        #         tmpls: str = langstring[-2:].upper()
+        #         try:
+        #             self._langstring = {Language[tmpls]: langstring[:-3]}
+        #         except KeyError as er:
+        #             raise OmasError(f'Language in string "{langstring}" is invalid')
+        #     else:
+        #         self._langstring = {LangString._defaultLanguage: langstring}
+        # elif isinstance(langstring, List):
+        #     self._langstring = {}
+        #     for lstr in langstring:
+        #         if lstr[-3] == "@":
+        #             tmpls: str = lstr[-2:].upper()
+        #             try:
+        #                 self._langstring[Language[tmpls]] = lstr[:-3]
+        #             except KeyError as er:
+        #                 raise OmasError(f'Language in string "{lstr}" is invalid')
+        #         else:
+        #             self._langstring[LangString._defaultLanguage] = lstr
+        # elif langstring is None:
+        #     self._langstring = {}
+        # else:
+        #     self._langstring = {}
+        #     for lang, value in langstring.items():
+        #         if isinstance(lang, Language):
+        #             self._langstring[lang] = value
+        #         else:
+        #             try:
+        #                 self._langstring[Language[lang.upper()]] = value
+        #             except KeyError as er:
+        #                 raise OmasError(f'Language "{lang}" is invalid')
 
     def __len__(self):
         """
@@ -186,9 +225,9 @@ class LangString(Notify):
                 self._langstring[lobj] = value
                 self.notify()
             except (KeyError, ValueError) as err:
-                raise OmasError(f'Language "{lang}" is invalid')
+                raise OmasError(f'Language "{lang}" is invalid: {err}.')
         else:
-            raise OmasError(f'Language "{lang}" is invalid')
+            raise OmasError(f'Language "{lang}" is invalid.')
 
     def __delitem__(self, lang: Language | str) -> None:
         """
@@ -224,19 +263,25 @@ class LangString(Notify):
         :return: language string as it would be used in a SPARQL insert statement
         :rtype: str
         """
-        langlist = [f'"{val}"@{lang.name.lower()}' for lang, val in self._langstring.items() if lang is not None and lang != Language.XX]
+        langlist = [f'"{val}@{lang.name.lower()}"' for lang, val in self._langstring.items()]
         resstr = ", ".join(langlist)
-        if self._langstring.get(Language.XX):
-             if resstr:
-                 resstr += ', '
-             resstr += f'"{self._langstring[Language.XX]}"'
         return resstr
 
     def __repr__(self) -> str:
-        return self.__str__()
+        return f'LangString({self.__str__()}
+
+    @staticmethod
+    def setDefaultLang(lang: Language):
+        LangString._langstring = lang
+
+    @staticmethod
+    def setPriorities(priorities: list[Language]):
+        LangString._priorities = priorities
 
     @property
     def toRdf(self) -> str:
+        langStringList = [Xsd_string(val, lang).toRdf for lang, val in self._langstring.items()]
+        resstr = ", ".join(langStringList)
         return self.__str__()
 
     def _as_dict(self) -> dict:

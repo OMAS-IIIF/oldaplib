@@ -203,7 +203,6 @@ class Language(Enum):
     YO = "Yoruba"
     ZA = "Zhuang, Chuang"
     ZU = "Zulu"
-    XX = "Undefined"
 
     def __repr__(self):
         return str(self)

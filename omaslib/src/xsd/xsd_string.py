@@ -83,9 +83,21 @@ class Xsd_string(Xsd):
             self.__value = value.__value
             self.__lang = value.__lang
         else:
-            self.__value = str(value)
+            value = str(value)
             if lang is None:
-                self.__lang = Language.XX
+                if value[-3] == '@':
+                    tmpls: str = value[-2:].upper()
+                    try:
+                        self.__lang = Language[tmpls]
+                        self.__value = value[:-3]
+                    except KeyError as err:
+                        self.__lang = None
+                        self.__value = value
+                else:
+                    self.__lang = None
+                    self.__value = value
+                return
+            self.__value = value
             if isinstance(lang, Language):
                 self.__lang = lang
             else:
@@ -114,7 +126,7 @@ class Xsd_string(Xsd):
         :return: Language string
         :rtype: str
         """
-        if self.__lang and self.__lang != Language.XX:
+        if self.__lang:
             return f'{self.__value}@{self.__lang.name.lower()}'
         else:
             return self.__value
@@ -125,7 +137,7 @@ class Xsd_string(Xsd):
         :return: SPARQL/RDF/TRIG representation of the language string
         :rtype: str
         """
-        if self.__lang and self.__lang != Language.XX:
+        if self.__lang:
             return f'Xsd_string("{self.__value}", "{self.__lang.name.lower()}")'
         else:
             return f'Xsd_string("{self.__value}")'
@@ -188,7 +200,7 @@ class Xsd_string(Xsd):
         :return: RDF representation of the Xsd_string instance
         :rtype: str
         """
-        if self.__lang and self.__lang != Language.XX:
+        if self.__lang:
             return f'"{Xsd_string.escaping(self.__value)}"@{self.__lang.name.lower()}'
         else:
             return f'"{Xsd_string.escaping(self.__value)}"^^xsd:string'

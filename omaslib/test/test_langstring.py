@@ -14,26 +14,25 @@ from omaslib.src.helpers.omaserror import OmasError
 class TestLangstring(unittest.TestCase):
 
     def test_langstring_constructor(self):
+        LangString.setDefaultLang(Language.ZU)
         ls1 = LangString("english@en")
         self.assertEqual(ls1['en'], 'english')
         ls2 = LangString('nolanguage')
-        self.assertEqual(ls2['xx'], 'nolanguage')
-        self.assertEqual(ls2[Language.XX], 'nolanguage')
+        self.assertEqual(ls2['zu'], 'nolanguage')
+        self.assertEqual(ls2[Language.ZU], 'nolanguage')
         ls3 = LangString(ls1)
         self.assertEqual(ls3['en'], 'english')
 
         ls4 = LangString({
             'en': 'english',
             'de': 'deutsch',
-            'fr': 'français',
-            'xx': 'no language'
+            'fr': 'français'
         })
         self.assertEqual(ls4['fr'], 'français')
         self.assertEqual(ls4[Language.FR], 'français')
         self.assertEqual(ls4['de'], 'deutsch')
         self.assertEqual(ls4[Language.DE], 'deutsch')
         self.assertEqual(ls4['en'], 'english')
-        self.assertEqual(ls4['yi'], 'no language')
         with self.assertRaises(OmasError) as ex:
             impossible = ls4['rr']
         self.assertEqual(str(ex.exception), 'Language "rr" is invalid')
@@ -53,7 +52,6 @@ class TestLangstring(unittest.TestCase):
             Language.EN: 'english',
             Language.DE: 'deutsch',
             Language.FR: 'français',
-            Language.XX: 'no language'
         })
         self.assertEqual(ls6['fr'], 'français')
         self.assertEqual(ls6[Language.FR], 'français')
