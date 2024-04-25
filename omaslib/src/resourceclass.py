@@ -437,7 +437,6 @@ class ResourceClass(Model, Notify):
             elif isinstance(propnode, BNode):
                 if propinfos.get(propnode) is None:
                     propinfos[propnode]: Attributes = {}
-                attributes: Attributes = propinfos[propnode]
                 PropertyClass.process_triple(r, propinfos[propnode])
             else:
                 raise OmasError(f'Unexpected type for propnode in SHACL. Type = "{type(propnode)}".')

@@ -66,12 +66,11 @@ class LangString(Notify):
     - _delete_shacl_(): Return the SPARQL code piece that deletes an LanguageString
     """
     _langstring: Dict[Language, str]
-    _priorities: List[Language]
     _changeset: Dict[Language, LangStringChange]
     _notifier: Callable[[type], None] | None
 
-    _defaultLanguage: Language = Language.EN
-    _priorities: list[Language] = [Language.EN, Language.DE, Language.FR]
+    defaultLanguage: Language = Language.EN
+    priorities: list[Language] = [Language.EN, Language.DE, Language.FR]
 
     def __init__(self, *args: str | Xsd_string | List[str] | Dict[Language | str, str] | Self | None,
                  langstring: str | Xsd_string | List[str] | Dict[Language | str, str] | Self | None = None,
@@ -95,8 +94,9 @@ class LangString(Notify):
         """
         super().__init__(notifier, notify_data)
         self._changeset = {}
+        self._langstring = {}
 
-        if len(args) <= 0:
+        if len(args) <= 1:
             if len(args) == 1:
                 langstring = args[0]
             if langstring is None:
@@ -105,76 +105,36 @@ class LangString(Notify):
                 if isinstance(langstring, LangString):
                     self._langstring = langstring._langstring
                 elif isinstance(langstring, Xsd_string):
-                    l = LangString.setDefaultLang if langstring.lang is None else langstring.lang
+                    l = LangString.defaultLanguage if langstring.lang is None else langstring.lang
                     self._langstring[l] = langstring.value
                 elif isinstance(langstring, str):
                     xstr = Xsd_string(langstring)
-                    l = LangString.setDefaultLang if xstr.lang is None else xstr.lang
+                    l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                     self._langstring[l] = xstr.value
                 elif isinstance(langstring, (list, tuple)):
                     for lstr in langstring:
                         xstr = Xsd_string(lstr)
-                        l = LangString.setDefaultLang if xstr.lang is None else xstr.lang
+                        l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                         self._langstring[l] = xstr.value
                 elif isinstance(langstring, dict):
                     for lang, value in langstring.items():
                         xstr = Xsd_string(value, lang)
-                        l = LangString.setDefaultLang if xstr.lang is None else xstr.lang
+                        l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                         self._langstring[l] = xstr.value
                 else:
-                    raise OmasErrorValue(f'LangString parameter hwas wring datatype: {type(langstring).__name}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
+                    raise OmasErrorValue(f'LangString parameter has wrong datatype: {type(langstring).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
         else:
             for langstring in args:
                 if isinstance(langstring, Xsd_string):
-                    l = LangString.setDefaultLang if langstring.lang is None else langstring.lang
+                    l = LangString.defaultLanguage if langstring.lang is None else langstring.lang
                     self._langstring[l] = langstring.value
                 elif isinstance(langstring, str):
                     xstr = Xsd_string(langstring)
-                    l = LangString.setDefaultLang if xstr.lang is None else xstr.lang
+                    l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                     self._langstring[l] = xstr.value
                 else:
                     raise OmasErrorValue(
-                        f'LangString parameter hwas wring datatype: {type(langstring).__name}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
-
-        # if isinstance(langstring, LangString):
-        #     self._langstring = langstring._langstring
-        #     self._notifier = langstring._notifier
-        #     self._notify_data = notify_data
-        # elif isinstance(langstring, Xsd_string):
-        #     lang = langstring.lang if langstring.lang is not None else LangString._defaultLanguage
-        #     self._langstring = {lang: langstring.value}
-        # elif isinstance(langstring, str):
-        #     if langstring[-3] == "@":
-        #         tmpls: str = langstring[-2:].upper()
-        #         try:
-        #             self._langstring = {Language[tmpls]: langstring[:-3]}
-        #         except KeyError as er:
-        #             raise OmasError(f'Language in string "{langstring}" is invalid')
-        #     else:
-        #         self._langstring = {LangString._defaultLanguage: langstring}
-        # elif isinstance(langstring, List):
-        #     self._langstring = {}
-        #     for lstr in langstring:
-        #         if lstr[-3] == "@":
-        #             tmpls: str = lstr[-2:].upper()
-        #             try:
-        #                 self._langstring[Language[tmpls]] = lstr[:-3]
-        #             except KeyError as er:
-        #                 raise OmasError(f'Language in string "{lstr}" is invalid')
-        #         else:
-        #             self._langstring[LangString._defaultLanguage] = lstr
-        # elif langstring is None:
-        #     self._langstring = {}
-        # else:
-        #     self._langstring = {}
-        #     for lang, value in langstring.items():
-        #         if isinstance(lang, Language):
-        #             self._langstring[lang] = value
-        #         else:
-        #             try:
-        #                 self._langstring[Language[lang.upper()]] = value
-        #             except KeyError as er:
-        #                 raise OmasError(f'Language "{lang}" is invalid')
+                        f'LangString parameter has wrong datatype: {type(langstring).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
 
     def __len__(self):
         """
@@ -198,7 +158,7 @@ class LangString(Notify):
         if s:
             return s
         else:
-            for ll in self._priorities:
+            for ll in self.priorities:
                 if self._langstring.get(ll) is not None:
                     return self._langstring[ll]
             return '--no string--'
@@ -268,15 +228,7 @@ class LangString(Notify):
         return resstr
 
     def __repr__(self) -> str:
-        return f'LangString({self.__str__()}
-
-    @staticmethod
-    def setDefaultLang(lang: Language):
-        LangString._langstring = lang
-
-    @staticmethod
-    def setPriorities(priorities: list[Language]):
-        LangString._priorities = priorities
+        return f'LangString({self.__str__()})'
 
     @property
     def toRdf(self) -> str:
@@ -291,7 +243,7 @@ class LangString(Notify):
         """
         return {
             'langstring': [f'"{val}@{lang.value.lower()}"' for lang, val in self._langstring.items()],
-            'priorities': [lang.value.lower() for lang in self._priorities]
+            'priorities': [lang.value.lower() for lang in self.priorities]
         }
 
     def get(self, lang: str | Language, default: str = None) -> str:
@@ -362,7 +314,7 @@ class LangString(Notify):
         """
         return self._langstring
 
-    def add(self, langs: str | Xsd_string | list[str | Xsd_string] | dict[str, str] | dict[Language, str]) -> None:
+    def add(self, *args: str | Xsd_string | List[str] | Dict[Language | str, str] | Self) -> None:
         """
         Add one or several new languages to a lang string. The method accepts several forms:
         * ``mylstr.add("a new string@en")``
@@ -375,79 +327,70 @@ class LangString(Notify):
         :return: No return value
         :rtype: None
         """
-        if isinstance(langs, str):
-            if langs[-3] == "@":
-                lstr = langs[-2:].upper()
-                lobj = None
-                try:
-                    lobj = Language[lstr]
-                except KeyError:
-                    raise OmasError(f'Language "{lstr}" is invalid')
-                if self._changeset.get(lobj) is None:  # only the first change is recorded
-                    self._changeset[lobj] = LangStringChange(self._langstring.get(lobj),
-                                                             Action.REPLACE if self._langstring.get(lobj) is not None else Action.CREATE)
-
-                self._langstring[lobj] = langs[:-3]
-                self.notify()
+        if len(args) == 0:
+            return
+        elif len(args) == 1:
+            if isinstance(args[0], LangString):
+                for lang, val in args[0].langstring.items():
+                    oldval = self._langstring.get(lang)
+                    self._langstring[lang] = val
+                    if self._changeset.get(lang) is None:  # only the first change is recorded
+                        self._changeset[lang] = LangStringChange(oldval,
+                                                                 Action.REPLACE if oldval is not None else Action.CREATE)
+            elif isinstance(args[0], Xsd_string):
+                l = LangString.defaultLanguage if args[0].lang is None else args[0].lang
+                oldval = self._langstring.get(l)
+                self._langstring[l] = args[0].value
+                if self._changeset.get(l) is None:  # only the first change is recorded
+                    self._changeset[l] = LangStringChange(oldval,
+                                                             Action.REPLACE if oldval is not None else Action.CREATE)
+            elif isinstance(args[0], str):
+                xstr = Xsd_string(args[0])
+                l = xstr.lang or LangString.defaultLanguage
+                oldval = self._langstring.get(l)
+                self._langstring[l] = xstr.value
+                if self._changeset.get(l) is None:  # only the first change is recorded
+                    self._changeset[l] = LangStringChange(oldval, Action.REPLACE if oldval is not None else Action.CREATE)
+            elif isinstance(args[0], (list, tuple)):
+                for lstr in args[0]:
+                    xstr = Xsd_string(lstr)
+                    l = xstr.lang or LangString.defaultLanguage
+                    oldval = self._langstring.get(l)
+                    self._langstring[l] = xstr.value
+                    if self._changeset.get(l) is None:  # only the first change is recorded
+                        self._changeset[l] = LangStringChange(oldval, Action.REPLACE if oldval is not None else Action.CREATE)
+            elif isinstance(args[0], dict):
+                for lang, value in args[0].items():
+                    xstr = Xsd_string(value, lang)
+                    l = xstr.lang or LangString.defaultLanguage
+                    oldval = self._langstring.get(l)
+                    self._langstring[l] = xstr.value
+                    if self._changeset.get(l) is None:  # only the first change is recorded
+                        self._changeset[l] = LangStringChange(oldval,
+                                                              Action.REPLACE if oldval is not None else Action.CREATE)
             else:
-                if self._changeset.get(Language.XX) is None:  # only the first change is recorded
-                    self._changeset[Language.XX] = LangStringChange(self._langstring.get(Language.XX),
-                                                                    Action.REPLACE if self._langstring.get(Language.XX) is not None else Action.CREATE)
-                self._langstring[Language.XX] = langs
-            self.notify()
-        elif isinstance(langs, Xsd_string):
-            lang = langs.lang if langs.lang is not None else Language.XX
-            if self._changeset.get(lang) is None:  # only the first change is recorded
-                self._changeset[lang] = LangStringChange(
-                    self._langstring.get(lang),
-                    Action.REPLACE if self._langstring.get(lang) is not None else Action.CREATE)
-            self._langstring[lang] = langs.value
-        elif isinstance(langs, list):
-            for lang in langs:
-                if isinstance(lang, Xsd_string):
-                    tmplang = lang.lang if lang.lang else Language.XX
-                    if self._changeset.get(tmplang) is None:  # only the first change is recorded
-                        self._changeset[tmplang] = LangStringChange(self._langstring.get(tmplang),
-                                                                      Action.REPLACE if self._langstring.get(tmplang) is not None else Action.CREATE)
-                    self._langstring[tmplang] = lang.value
-                elif isinstance(lang, (str)):
-                    if lang[-3] == "@":
-                        lstr = lang[-2:].upper()
-                        lobj = None
-                        try:
-                            lobj = Language[lstr]
-                        except KeyError:
-                            raise OmasError(f'Language "{lstr}" is invalid')
-                        if self._changeset.get(lobj) is None:  # only the first change is recorded
-                            self._changeset[lobj] = LangStringChange(self._langstring.get(lobj),
-                                                                     Action.REPLACE if self._langstring.get(lobj) is not None else Action.CREATE)
-                        self._langstring[lobj] = lang[:-3]
-                    else:
-                        lobj = Language.XX
-                        if self._changeset.get(lobj) is None:  # only the first change is recorded
-                            self._changeset[lobj] = LangStringChange(self._langstring.get(lobj),
-                                                                     Action.REPLACE if self._langstring.get(lobj) is not None else Action.CREATE)
-                        self._langstring[lobj] = lang
-                else:
-                    raise OmasError(f'Inconsistent LangString (lang="{lang}", type="{type(lang).__name__}")')
-            self.notify()
-        elif isinstance(langs, Dict):
-            for lang, value in langs.items():
-                lobj = None
-                if isinstance(lang, Language):
-                    lobj = lang
-                else:
-                    try:
-                        lobj = Language[lang.upper()]
-                    except KeyError:
-                        raise OmasError(f'Language "{lang}" is invalid')
-                if self._changeset.get(lobj) is None:  # only the first change is recorded
-                    self._changeset[lobj] = LangStringChange(self._langstring.get(lobj),
-                                                             Action.REPLACE if self._langstring.get(lobj) is not None else Action.CREATE)
-                self._langstring[lobj] = value
-            self.notify()
+                raise OmasErrorValue(
+                    f'LangString parameter has wrong datatype: {type(args[0]).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
         else:
-            raise OmasError(f'Invalid data type for langs')
+            for langstring in args:
+                if isinstance(langstring, Xsd_string):
+                    l = langstring.lang or LangString.defaultLanguage
+                    oldval = self._langstring.get(l)
+                    self._langstring[l] = langstring.value
+                    if self._changeset.get(l) is None:  # only the first change is recorded
+                        self._changeset[l] = LangStringChange(oldval,
+                                                              Action.REPLACE if oldval is not None else Action.CREATE)
+                elif isinstance(langstring, str):
+                    xstr = Xsd_string(langstring)
+                    l = xstr.lang or LangString.defaultLanguage
+                    oldval = self._langstring.get(l)
+                    self._langstring[l] = xstr.value
+                    if self._changeset.get(l) is None:  # only the first change is recorded
+                        self._changeset[l] = LangStringChange(oldval,
+                                                              Action.REPLACE if oldval is not None else Action.CREATE)
+                else:
+                    raise OmasErrorValue(
+                        f'LangString parameter has wrong datatype: {type(langstring).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
 
     def undo(self) -> None:
         """
@@ -522,8 +465,7 @@ class LangString(Notify):
                 sparql = f'{blank:{indent * indent_inc}}DELETE DATA {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
                 tmpstr = f'"{change.old_value}"'
-                if lang != Language.XX:
-                    tmpstr += "@" + lang.name.lower()
+                tmpstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {tmpstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -532,8 +474,7 @@ class LangString(Notify):
                 sparql = f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
                 langstr = f'"{self._langstring[lang]}"'
-                if lang != Language.XX:
-                    langstr += "@" + lang.name.lower()
+                langstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {langstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -603,16 +544,14 @@ class LangString(Notify):
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 tmpstr = f'"{change.old_value}"'
-                if lang != Language.XX:
-                    tmpstr += "@" + lang.name.lower()
+                tmpstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 langstr = f'"{self._langstring[lang]}"'
-                if lang != Language.XX:
-                    langstr += "@" + lang.name.lower()
+                langstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {langstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -624,8 +563,7 @@ class LangString(Notify):
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
             if change.action != Action.CREATE:
                 tmpstr = f'"{change.old_value}"'
-                if lang != Language.XX:
-                    tmpstr += "@" + lang.name.lower()
+                tmpstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'

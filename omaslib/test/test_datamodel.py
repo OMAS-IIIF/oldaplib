@@ -121,7 +121,7 @@ class TestDataModel(unittest.TestCase):
                        resclasses=[book, page])
         return dm
 
-    #@unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_datamodel_constructor(self):
         dm_name = Xsd_NCName("dmtest")
 
@@ -187,7 +187,7 @@ class TestDataModel(unittest.TestCase):
         self.assertTrue(r2p3.uniqueLang, Xsd_boolean(True))
         self.assertEqual(r2p3.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
-    #@unittest.skip('Work in progress')
+    # @unittest.skip('Work in progress')
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, "omas")
         self.assertTrue(set(model.get_propclasses()) == {

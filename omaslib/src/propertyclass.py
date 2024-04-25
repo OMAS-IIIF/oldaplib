@@ -611,7 +611,6 @@ class PropertyClass(Model, Notify):
         #
         if self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
             if not datatype:
-                print("=====>", res)
                 raise OmasError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
             if datatype != self._attributes.get(PropClassAttr.DATATYPE).value:
                 raise OmasError(
