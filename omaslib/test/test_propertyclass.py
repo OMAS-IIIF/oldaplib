@@ -9,7 +9,6 @@ from omaslib.src.dtypes.xsdset import XsdSet
 from omaslib.src.enums.action import Action
 from omaslib.src.enums.language import Language
 from omaslib.src.enums.propertyclassattr import PropClassAttr
-from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
@@ -17,7 +16,6 @@ from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.propertyclass import PropClassAttrContainer, PropertyClass, OwlPropertyType, \
     PropClassAttrChange
-from omaslib.src.propertyrestrictions import PropertyRestrictions
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean

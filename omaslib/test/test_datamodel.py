@@ -18,8 +18,6 @@ from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.propertyclass import PropClassAttrContainer, PropertyClass
-from omaslib.src.propertyrestrictions import PropertyRestrictions
-from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.resourceclass import ResourceClass
 
 

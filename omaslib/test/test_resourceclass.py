@@ -11,7 +11,6 @@ from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.enums.language import Language
 from omaslib.src.enums.propertyclassattr import PropClassAttr
-from omaslib.src.enums.propertyrestrictiontype import PropertyRestrictionType
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.helpers.context import Context
@@ -20,7 +19,6 @@ from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
 from omaslib.src.propertyclass import PropClassAttrContainer, PropertyClass, OwlPropertyType
-from omaslib.src.propertyrestrictions import PropertyRestrictions
 from omaslib.src.resourceclass import ResourceClass
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
