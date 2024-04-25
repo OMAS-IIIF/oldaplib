@@ -17,7 +17,7 @@ class Xsd_date(Xsd):
     """
     __value: date
 
-    def __init__(self, value: date | Self | str | int, month: Optional[int] = None, day: Optional[int] = None):
+    def __init__(self, value: date | Self | str | int, month: int | None = None, day: int | None = None):
         """
         Constructor of a Xsd_date object
         :param value: Either the year as int, or an ISO date string, or a Python date value, or a Xsd_date instance
@@ -39,7 +39,7 @@ class Xsd_date(Xsd):
                 raise OmasErrorValue(f'({value}, {month}, {day}) wrong format for xsd:date.')
             self.__value = date(value, month, day)
         else:
-            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', value) is None:
+            if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', str(value)) is None:
                 raise OmasErrorValue(f'{value} wrong format for xsd:date.')
             try:
                 self.__value = date.fromisoformat(value)

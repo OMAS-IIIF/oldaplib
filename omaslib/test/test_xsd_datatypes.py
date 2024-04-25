@@ -425,6 +425,12 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(val1 == val2)
         self.assertTrue(val1 == "2000-12-21")
 
+        with self.assertRaises(OmasErrorValue):
+            val1 = Xsd_date(42)
+
+        val1 = Xsd_date.now()
+        self.assertTrue(val1 == date.today())
+
     def test_xsd_dateTime(self):
         val = Xsd_dateTime('2001-10-26T21:32:52')
         self.assertTrue(str(val), '2001-10-26T21:32:52')
