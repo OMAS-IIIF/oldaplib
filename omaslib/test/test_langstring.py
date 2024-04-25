@@ -75,6 +75,9 @@ class TestLangstring(unittest.TestCase):
         with self.assertRaises(OmasErrorValue) as ex:
             ls9 = LangString(255)
 
+        ls10 = LangString("lukas.rosenthaler@gmail.com")
+        self.assertEqual(str(ls10), '"lukas.rosenthaler@gmail.com@zu"')
+
     def test_langstring_setitem(self):
         LangString.defaultLanguage = Language.ZU
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
