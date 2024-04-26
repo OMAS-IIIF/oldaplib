@@ -8,7 +8,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError, OmasErrorType
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasError, OmasErrorType, OmasErrorIndex
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.floatingpoint import FloatingPoint
@@ -1338,6 +1338,27 @@ class TestXsdDatatypes(unittest.TestCase):
             val = Xsd_short("abcd")
 
     def test_xsd_string(self):
+        val = Xsd_string()
+        self.assertFalse(val)
+        self.assertEqual(len(val), 0)
+        self.assertEqual(val, None)
+        self.assertEqual(str(val), 'None')
+        self.assertEqual(repr(val), 'None')
+        self.assertTrue(val == None)
+        self.assertFalse(val != None)
+        self.assertEqual(hash(val), hash(None))
+        with self.assertRaises(OmasErrorIndex):
+            c = val[0]
+        with self.assertRaises(OmasErrorValue):
+            s = val.toRdf
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        val = Xsd_string("")
+        self.assertFalse(val)
+
         val = Xsd_string("Waseliwas\nsoll <denn> das\" sein?")
         self.assertEqual(str(val), "Waseliwas\nsoll <denn> das\" sein?")
         self.assertEqual(repr(val), 'Xsd_string("Waseliwas\nsoll <denn> das\" sein?")')
@@ -1356,11 +1377,11 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_string"))
         self.assertEqual(val, valx)
 
-
         val = Xsd_string("Waseliwas", "de")
         self.assertEqual(str(val), "Waseliwas@de")
         self.assertEqual(repr(val), 'Xsd_string("Waseliwas", "de")')
         self.assertEqual(val.toRdf, '"Waseliwas"@de')
+        self.assertEqual(len(val), 9)
 
         valc = Xsd_string(val)
         self.assertEqual(val, valc)

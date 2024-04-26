@@ -2,7 +2,7 @@ from typing import Optional, Self
 from pystrict import strict
 
 from omaslib.src.enums.language import Language
-from omaslib.src.helpers.omaserror import OmasErrorValue
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorIndex, OmasError
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
@@ -37,7 +37,7 @@ class Xsd_string(Xsd):
     - `value`: Property returning the string value (without language tag)
     - `lang`: Property returning the language tag
     """
-    __value: str
+    __value: str | None
     __lang: Language | None
 
     @staticmethod
@@ -70,7 +70,7 @@ class Xsd_string(Xsd):
         value = value.replace('\\n', '\n').replace('\\r', '\r')
         return value
 
-    def __init__(self, value: Self | str, lang: str | Language | None = None):
+    def __init__(self, value: Self | str | None = None, lang: str | Language | None = None):
         """
         Constructor of Xsd_string.
         :param value: String value
@@ -79,6 +79,10 @@ class Xsd_string(Xsd):
         :type lang: str | Language
         :raises OmasErrorValue: If the given language is invalid
         """
+        if not value:
+            self.__value = None
+            self.__lang = None
+            return
         if isinstance(value, Xsd_string):
             self.__value = value.__value
             self.__lang = value.__lang
@@ -107,7 +111,7 @@ class Xsd_string(Xsd):
                     raise OmasErrorValue(str(err))
 
     @classmethod
-    def fromRdf(cls, value: str, lang: Optional[str] = None):
+    def fromRdf(cls, value: str, lang: Optional[str] = None) -> Self:
         """
         Constructor of Xsd_string that takes a RDF/SPARQL representation of the string and un-escapes it
         :param value: String from RDF/SPARQL representation
@@ -120,12 +124,22 @@ class Xsd_string(Xsd):
         value = Xsd_string.unescaping(value)
         return cls(value, lang)
 
+    def __len__(self) -> int:
+        if self.__value is None:
+            return 0
+        return len(self.__value)
+
+    def __bool__(self) -> bool:
+        return self.__value is not None
+
     def __str__(self) -> str:
         """
         Returns the string representation of the Xsd_string instance with the languages appended "@ll"
         :return: Language string
         :rtype: str
         """
+        if self.__value is None:
+            return 'None'
         if self.__lang:
             return f'{self.__value}@{self.__lang.name.lower()}'
         else:
@@ -137,6 +151,8 @@ class Xsd_string(Xsd):
         :return: SPARQL/RDF/TRIG representation of the language string
         :rtype: str
         """
+        if self.__value is None:
+            return 'None'
         if self.__lang:
             return f'Xsd_string("{self.__value}", "{self.__lang.name.lower()}")'
         else:
@@ -151,7 +167,10 @@ class Xsd_string(Xsd):
         :rtype: bool
         """
         if other is None:
-            return False
+            if self.__value is None:
+                return True
+            else:
+                return False
         if isinstance(other, Xsd_string):
             return self.__value == other.__value and self.__lang == other.__lang
         elif isinstance(other, str):
@@ -166,7 +185,10 @@ class Xsd_string(Xsd):
         :rtype: bool
         """
         if other is None:
-            return True
+            if self.__value is None:
+                return False
+            else:
+                return True
         if isinstance(other, Xsd_string):
             return self.__value != other.__value and self.__lang == other.__lang
         elif isinstance(other, str):
@@ -180,7 +202,12 @@ class Xsd_string(Xsd):
         :return: Character or slice as string
         :rtype: str | None
         """
-        return self.__value[key]
+        c = None
+        try:
+            c = self.__value[key]
+        except (IndexError, TypeError) as err:
+            raise OmasErrorIndex(f'Cannot get character from Xsd_string at possition {key}: {err}')
+        return c
 
     def __hash__(self) -> int:
         """
@@ -188,7 +215,7 @@ class Xsd_string(Xsd):
         :return: Hash value
         :rtype: int
         """
-        if self.__lang and self.__lang != Language.XX:
+        if self.__lang:
             return hash(self.__value + '@' + self.__lang.value)
         else:
             return hash(self.__value)
@@ -200,6 +227,8 @@ class Xsd_string(Xsd):
         :return: RDF representation of the Xsd_string instance
         :rtype: str
         """
+        if self.__value is None:
+            raise OmasErrorValue(f'Cannot convert empty Xsd_string to RDF string.')
         if self.__lang:
             return f'"{Xsd_string.escaping(self.__value)}"@{self.__lang.name.lower()}'
         else:
@@ -217,7 +246,7 @@ class Xsd_string(Xsd):
         }
 
     @property
-    def value(self) -> str:
+    def value(self) -> str | None:
         """
         Returns the Xsd_string string value only
         :return: string representation of the Xsd_string without language

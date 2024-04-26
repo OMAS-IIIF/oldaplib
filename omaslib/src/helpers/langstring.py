@@ -105,20 +105,28 @@ class LangString(Notify):
                 if isinstance(langstring, LangString):
                     self._langstring = langstring._langstring
                 elif isinstance(langstring, Xsd_string):
+                    if not langstring:
+                        return
                     l = LangString.defaultLanguage if langstring.lang is None else langstring.lang
                     self._langstring[l] = langstring.value
                 elif isinstance(langstring, str):
+                    if not langstring:
+                        return
                     xstr = Xsd_string(langstring)
                     l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                     self._langstring[l] = xstr.value
                 elif isinstance(langstring, (list, tuple)):
                     for lstr in langstring:
                         xstr = Xsd_string(lstr)
+                        if not xstr:
+                            continue
                         l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                         self._langstring[l] = xstr.value
                 elif isinstance(langstring, dict):
                     for lang, value in langstring.items():
                         xstr = Xsd_string(value, lang)
+                        if not xstr:
+                            continue
                         l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                         self._langstring[l] = xstr.value
                 else:
@@ -126,10 +134,13 @@ class LangString(Notify):
         else:
             for langstring in args:
                 if isinstance(langstring, Xsd_string):
-                    l = LangString.defaultLanguage if langstring.lang is None else langstring.lang
-                    self._langstring[l] = langstring.value
+                    if langstring:
+                        l = LangString.defaultLanguage if langstring.lang is None else langstring.lang
+                        self._langstring[l] = langstring.value
                 elif isinstance(langstring, str):
                     xstr = Xsd_string(langstring)
+                    if not xstr:
+                        continue
                     l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                     self._langstring[l] = xstr.value
                 else:
@@ -142,6 +153,9 @@ class LangString(Notify):
         :return: Number of languages defined
         """
         return len(self._langstring)
+
+    def __bool__(self):
+        return len(self._langstring) > 0
 
     def __getitem__(self, lang: str | Language) -> str:
         """
@@ -618,15 +632,9 @@ class LangString(Notify):
 
 if __name__ == '__main__':
     l0 = LangString()
-    print(l0)
-    ls1 = LangString("gaga")
-    print(str(ls1))
-    ls2 = LangString({
-        Language.DE: "Deutsch....",
-        Language.EN: "German...."
-    })
-    print(str(ls2))
-    print(ls2[Language.EN])
-    print(ls1[Language.DE])
-    ls1.add({Language.DE: "gaga auf deutsch", Language.EN: "gaga in english"})
-    print(str(ls1))
+    print("l0: ", l0, len(l0))
+    l1 = LangString([])
+    print("l1 : ", l1, len(l1))
+    l2 = LangString([""])
+    print("l2 : ", l2, len(l2))
+

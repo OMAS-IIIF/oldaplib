@@ -204,6 +204,11 @@ class Project(Model):
         self.__fields[ProjectFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
         self.__fields[ProjectFields.COMMENT].set_notifier(self.notifier, Xsd_QName(ProjectFields.COMMENT.value))
         self.__fields[ProjectFields.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
+        #
+        # Consistency checks
+        #
+        if not self.__fields[ProjectFields.LABEL]:
+            raise OmasErrorInconsistency(f'Project must have at least one rdfs:label, none given.')
         if projectStart is not None:
             self.__fields[ProjectFields.PROJECT_START] = projectStart if isinstance(projectStart, Xsd_date) else Xsd_date(projectStart)
         else:

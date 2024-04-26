@@ -112,12 +112,12 @@ class Testproject(unittest.TestCase):
 
         project4 = Project(con=self._connection,
                            projectShortName="unittest4",
-                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest4#"))
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest4#"),
+                           label=LangString("For testing4@en"))
         project4.create()
         projectIri4 = project4.projectIri
         project4 = Project.read(con=self._connection, projectIri_SName=projectIri4)
         self.assertEqual("unittest4", project4.projectShortName)
-        self.assertIsNone(project4.label)
         self.assertIsNone(project4.comment)
         self.assertIsNotNone(project4.projectStart)
 
@@ -161,6 +161,56 @@ class Testproject(unittest.TestCase):
                            projectEnd=Xsd_date(2028, 3, 3))
         self.assertEqual(project8.projectStart, date.today())
 
+    def test_project_create_empty_fields(self):
+        project = Project(con=self._connection,
+                          projectShortName="emptyfields1",
+                          label=LangString(["unittest@en", "unittest@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittest#"),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
+                          )
+        project.create()
+        projectIri = project.projectIri
+        del project
+        project = Project.read(con=self._connection, projectIri_SName=projectIri)
+        self.assertIsNone(project.comment)
+
+        project = Project(con=self._connection,
+                          projectShortName="emptyfields1",
+                          label=LangString(["unittest@en", "unittest@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittest#"),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
+                          )
+        project.create()
+        projectIri = project.projectIri
+        del project
+        project = Project.read(con=self._connection, projectIri_SName=projectIri)
+        project.comment = LangString("Comment for unittest@en", "Kommentar für unittest@de")
+        self.assertEqual(project.comment[Language.EN], "Comment for unittest")
+        self.assertEqual(project.comment[Language.DE], "Kommentar für unittest")
+        project.update()
+        del project
+        project = Project.read(con=self._connection, projectIri_SName=projectIri)
+        self.assertEqual(project.comment[Language.EN], "Comment for unittest")
+        self.assertEqual(project.comment[Language.DE], "Kommentar für unittest")
+
+    def test_project_empty_label(self):
+        with self.assertRaises(OmasErrorInconsistency):
+            project = Project(con=self._connection,
+                              projectShortName="updatetest",
+                              namespaceIri=NamespaceIRI("http://unitest.org/project/updatetest#"),
+                              projectStart=Xsd_date(2024, 1, 1),
+                              projectEnd=Xsd_date(2025, 12, 31)
+                              )
+        with self.assertRaises(OmasErrorInconsistency):
+            project = Project(con=self._connection,
+                              projectShortName="updatetest",
+                              label=LangString(),
+                              namespaceIri=NamespaceIRI("http://unitest.org/project/updatetest#"),
+                              projectStart=Xsd_date(2024, 1, 1),
+                              projectEnd=Xsd_date(2025, 12, 31)
+                              )
 
 
     # @unittest.skip('Work in progress')

@@ -71,3 +71,7 @@ class OmasErrorNoPermission(OmasError):
 @strict
 class OmasErrorImmutable(OmasError):
     pass
+
+@strict
+class OmasErrorIndex(OmasError):
+    pass
