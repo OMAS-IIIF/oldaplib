@@ -34,7 +34,7 @@ class TestInproject(unittest.TestCase):
             tmp = ip['gaga']
         with self.assertRaises(OmasErrorValue) as ex:
             tmp = ip['$<>12']
-        with self.assertRaises(OmasErrorKey) as ex:
+        with self.assertRaises(OmasErrorValue) as ex:
             tmp = ip[Xsd_string('test:proj')]
 
     def test_set_item(self):
