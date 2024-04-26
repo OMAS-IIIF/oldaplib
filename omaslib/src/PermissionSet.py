@@ -11,7 +11,9 @@ from omaslib.src.connection import Connection
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
+from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
+from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
@@ -44,17 +46,17 @@ class PermissionSetFieldChange:
 @strict
 class PermissionSet(Model):
     __datatypes = {
-        PermissionSetFields.PERMISSION_SET_IRI: {Xsd_QName, Xsd_anyURI},
+        PermissionSetFields.PERMISSION_SET_IRI: Iri,
         PermissionSetFields.LABEL: LangString,
         PermissionSetFields.COMMENT: LangString,
         PermissionSetFields.GIVES_PERMISSION: DataPermission,
-        PermissionSetFields.DEFINED_BY_PROJECT: {Xsd_QName, Xsd_anyURI}
+        PermissionSetFields.DEFINED_BY_PROJECT: Iri
     }
 
-    __creator: Xsd_anyURI | None
-    __created: datetime | None
-    __contributor: Xsd_anyURI | None
-    __modified: datetime | None
+    __creator: Iri | None
+    __created: Xsd_dateTime | None
+    __contributor: Iri | None
+    __modified: Xsd_dateTime | None
 
     __fields: Dict[PermissionSetFields, PermissionSetFieldTypes]
 
@@ -62,19 +64,21 @@ class PermissionSet(Model):
 
     def __init__(self, *,
                  con: Connection,
-                 creator: Optional[Xsd_anyURI] = None,
-                 created: Optional[datetime] = None,
-                 contributor: Optional[Xsd_anyURI] = None,
-                 modified: Optional[datetime] = None,
-                 permissionSetIri: Optional[Xsd_anyURI | Xsd_QName] = None,
-                 label: Optional[LangString | str],
-                 comment: Optional[LangString | str],
+                 creator: Iri | None = None,
+                 created: Xsd_dateTime | datetime | str | None = None,
+                 contributor: Iri | None = None,
+                 modified: Xsd_dateTime | datetime | str | None = None,
+                 permissionSetIri: Iri | None = None,
+                 label: LangString | str | None = None,
+                 comment: LangString | str | None = None,
                  givesPermission: DataPermission,
-                 definedByProject: Xsd_anyURI | Xsd_QName | str):
+                 definedByProject: Iri):
         super().__init__(con)
-        self.__creator = creator if creator is not None else con.userIri
-        self.__created = created
-        self.__contributor = contributor if contributor is not None else con.userIri
+        self.__creator = Iri(creator) if creator is not None else con.userIri
+        self.__created = Xsd_dateTime(created) if created else None
+        self.__contributor = Iri(contributor) if contributor is not None else con.userIri
+        if modified and not isinstance(modified, Xsd_dateTime):
+            raise OmasErrorValue(f'Modified must be "Xsd_dateTime", not "{type(modified)}".')
         self.__modified = modified
         self.__fields = {}
 
@@ -91,10 +95,10 @@ class PermissionSet(Model):
         else:
             self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = Xsd_anyURI(uuid.uuid4().urn)
 
-        if label:
-            self.__fields[PermissionSetFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
-        if comment:
-            self.__fields[PermissionSetFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
+        self.__fields[PermissionSetFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
+        self.__fields[PermissionSetFields.LABEL].set_notifier(self.notifier, Xsd_QName(PermissionSetFields.LABEL.value))
+        self.__fields[PermissionSetFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
+        self.__fields[PermissionSetFields.COMMENT].set_notifier(self.notifier, Xsd_QName(PermissionSetFields.COMMENT.value))
         self.__fields[PermissionSetFields.GIVES_PERMISSION] = givesPermission
 
         if isinstance(definedByProject, Xsd_QName) or isinstance(definedByProject, Xsd_anyURI):
@@ -104,6 +108,9 @@ class PermissionSet(Model):
                 self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = str(definedByProject)
             except Exception as e:
                 raise OmasErrorValue(f'definedByProject {definedByProject} must be an instance of AnyIRI, QName or str, not {type(definedByProject)}.')
+
+        if not self.__fields[PermissionSetFields.LABEL]:
+            raise OmasErrorInconsistency(f'PermissionSet must have at least one rdfs:label, none given.')
 
         for field in PermissionSetFields:
             prefix, name = field.value.split(':')
