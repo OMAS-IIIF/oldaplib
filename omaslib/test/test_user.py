@@ -682,5 +682,41 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="chiquet")
         self.assertEqual(user.hasPermissions, {Iri('omas:GenericView'), Iri('omas:HyperHamletMember')})
 
+    def test_user_authorizations(self):
+        user = User(con=self._unpriv,
+                    userIri=Iri("https://orcid.org/0000-0001-9421-3434"),
+                    userId=Xsd_NCName("niederer"),
+                    familyName="Niedererer",
+                    givenName="Markus",
+                    credentials="DendroChronologie",
+                    inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Iri('omas:GenericView'), Iri('omas:HyperHamletMember')})
+        with self.assertRaises(OmasErrorNoPermission) as ex:
+            user.create()
+
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0001-9421-3434"),
+                    userId=Xsd_NCName("niederer"),
+                    familyName="Niedererer",
+                    givenName="Markus",
+                    credentials="DendroChronologie",
+                    inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Iri('omas:GenericView'), Iri('omas:HyperHamletMember')})
+        user.create()
+        user = User.read(con=self._unpriv, userId="niederer")
+        user.familyName = "Niederer"
+        user.inProject[Iri('http://www.salsah.org/version')] = {AdminPermission.ADMIN_CREATE}
+        with self.assertRaises(OmasErrorNoPermission) as ex:
+            user.update()
+        with self.assertRaises(OmasErrorNoPermission) as ex:
+            user.delete()
+
+
 if __name__ == '__main__':
     unittest.main()
