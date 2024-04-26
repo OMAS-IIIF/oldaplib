@@ -195,6 +195,17 @@ class Testproject(unittest.TestCase):
         self.assertEqual(project.comment[Language.EN], "Comment for unittest")
         self.assertEqual(project.comment[Language.DE], "Kommentar für unittest")
 
+        project = Project(con=self._connection,
+                          projectShortName="emptyfields1",
+                          label=LangString(["unittest@en", "unittest@de"]),
+                          comment=[],
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittest#"),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
+                          )
+        self.assertIsNone(project.comment)
+
+
     def test_project_empty_label(self):
         with self.assertRaises(OmasErrorInconsistency):
             project = Project(con=self._connection,
