@@ -247,7 +247,7 @@ class Project(Model):
     # action into the changeset.
     #
     def __change_setter(self, field: ProjectFields, value: ProjectFieldTypes) -> None:
-        if self.__fields[field] == value:
+        if self.__fields.get(field) == value:
             return
         if field == ProjectFields.PROJECT_IRI or field == ProjectFields.NAMESPACE_IRI or field == ProjectFields.PROJECT_SHORTNAME:
             raise OmasErrorImmutable(f'Field {field.value} is immutable.')

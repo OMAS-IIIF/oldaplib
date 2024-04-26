@@ -11,7 +11,7 @@ from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_date import Xsd_date
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorInconsistency
+from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorInconsistency, OmasErrorNoPermission
 from omaslib.src.project import Project
 
 
@@ -267,6 +267,34 @@ class Testproject(unittest.TestCase):
 
         with self.assertRaises(OmasErrorNotFound) as ex:
             project = Project.read(con=self._connection, projectIri_SName=projectIri)
+
+    def test_unauthorized_access(self):
+        project = Project(con=self._unpriv,
+                          projectShortName="unauthorized",
+                          label=LangString(["unauthorized@en", "unauthorized@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unauthorized#"),
+                          comment=LangString(["For unauthorized access@en", "Für nicht authorisierten Zugang@de"]),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          )
+        with self.assertRaises(OmasErrorNoPermission) as ex:
+            project.create()
+
+        project = Project(con=self._connection,
+                          projectShortName="unauthorized",
+                          label=LangString(["unauthorized@en", "unauthorized@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unauthorized#"),
+                          comment=LangString(["For unauthorized access@en", "Für nicht authorisierten Zugang@de"]),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          )
+        project.create()
+        projectIri = project.projectIri
+        project = Project.read(con=self._unpriv, projectIri_SName="unauthorized")
+        project.projectEnd = Xsd_date(2025, 12, 31)
+        with self.assertRaises(OmasErrorNoPermission) as ex:
+            project.update()
+        with self.assertRaises(OmasErrorNoPermission) as ex:
+            project.delete()
+
 
 if __name__ == '__main__':
     unittest.main()
