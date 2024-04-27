@@ -122,7 +122,7 @@
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
+        rdfs:label "Generic"@en, "Generic"@de, "Generic"@fr, "Generic"@it ;
         :givesPermission :DATA_VIEW ;
         :definedByProject :SystemProject .
 
@@ -131,7 +131,7 @@
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
+        rdfs:label "HyHaUpdate"@en, "HyHaUpdate"@de, "HyHaUpdate"@fr, "HyHaUpdate"@it ;
         :givesPermission :DATA_UPDATE ;
         :definedByProject :HyperHamlet .
 

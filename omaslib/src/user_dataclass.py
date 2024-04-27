@@ -33,6 +33,7 @@ setter and deleter methods.
 
 """
 from dataclasses import dataclass
+from datetime import datetime
 from enum import unique, Enum
 from functools import partial
 from typing import Dict, Self, Set, Tuple, Any
@@ -160,9 +161,9 @@ class UserDataclass:
 
     def __init__(self, *,
                  creator: Iri | str | None = None,
-                 created: Xsd_dateTime | str | None = None,
+                 created: Xsd_dateTime | datetime | str | None = None,
                  contributor: Iri | str | None = None,
-                 modified: Xsd_dateTime | str | None = None,
+                 modified: Xsd_dateTime | datetime | str | None = None,
                  userIri: Iri | str | None = None,
                  userId: Xsd_NCName | str | None = None,
                  familyName: Xsd_string | str | None = None,
@@ -199,7 +200,7 @@ class UserDataclass:
             credentials = Xsd_string(bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8'))
 
         self.__creator = Iri(creator) if creator else None
-        self.__created = Xsd_dateTime(created) if created else None
+        self.__created = Xsd_dateTime(created) if created is not None else None
         self.__contributor = Iri(contributor) if contributor else None
         self.__modified = Xsd_dateTime(modified) if modified else None
         self.__fields[UserFields.USER_IRI] = Iri(userIri) if userIri else None

@@ -509,6 +509,8 @@ class Project(Model):
         :raises OmasErrorAlreadyExists: If a project with the projectIri already exists
         :raises OmasError: All other errors
         """
+        if self._con is None:
+            raise OmasError("Cannot create: no connection")
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!

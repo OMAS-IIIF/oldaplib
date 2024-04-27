@@ -2,9 +2,8 @@ from typing import Callable, Optional, Union
 
 from pystrict import strict
 
-from omaslib.src.xsd import iri
+from omaslib.enums.permissionsetattr import PermissionSetAttr
 from omaslib.src.xsd.iri import Iri
-from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 
@@ -21,8 +20,8 @@ class Notify:
     _data: PropClassAttr
 
     def __init__(self,
-                 notifier: Callable[[PropClassAttr | ResourceClassAttribute | Iri], None] | None = None,
-                 data: PropClassAttr | ResourceClassAttribute | Iri | None = None):
+                 notifier: Callable[[PropClassAttr | ResourceClassAttribute | PermissionSetAttr | Iri], None] | None = None,
+                 data: PropClassAttr | ResourceClassAttribute | PermissionSetAttr | Iri | None = None):
         """
         Constructor of the notifier. Usually, the notifier is only used a base class and not used directly.
         :param notifier: The callable that is to be called by the subclass when an item is beeing chaged
@@ -32,8 +31,8 @@ class Notify:
         self._data = data
 
     def set_notifier(self,
-                     notifier: Callable[[Union[PropClassAttr, ResourceClassAttribute, Xsd_QName | Iri]], None],
-                     data: PropClassAttr | ResourceClassAttribute | Iri | Xsd_QName | None = None) -> None:
+                     notifier: Callable[[PropClassAttr | ResourceClassAttribute| PermissionSetAttr | Iri], None],
+                     data: PropClassAttr | ResourceClassAttribute | PermissionSetAttr | Iri |None = None) -> None:
         """
         Sets the notifier callback function and the data it should return...
         :param notifier: A callable that is to be called by the subclass when an item changes

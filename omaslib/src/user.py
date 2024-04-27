@@ -525,7 +525,8 @@ class User(Model, UserDataclass):
         :raises OmasValueError: A PermissionSet is not existing
         :raises OmasError: An internal error occurred
         """
-
+        if self._con is None:
+            raise OmasError("Cannot create: no connection")
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!

@@ -1,12 +1,11 @@
-import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, unique
 from functools import partial
-from typing import Dict, Optional, Self
+from typing import Dict, Self
 
 from pystrict import strict
 
+from omaslib.enums.permissionsetattr import PermissionSetAttr
 from omaslib.src.connection import Connection
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
@@ -23,34 +22,25 @@ from omaslib.src.helpers.tools import str2qname_anyiri
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 
-@unique
-class PermissionSetFields(Enum):
-    PERMISSION_SET_IRI = 'omas:permissionSetIri'  # virtual property, no equivalent in RDF
-    LABEL = 'rdfs:label'
-    COMMENT = 'rdfs:comment'
-    GIVES_PERMISSION = 'omas:givesPermission'
-    DEFINED_BY_PROJECT = 'omas:definedByProject'
-
-
-PermissionSetFieldTypes = Xsd_anyURI | Xsd_QName | LangString | DataPermission | None
+PermissionSetAttrTypes = Iri | LangString | DataPermission | None
 
 @dataclass
-class PermissionSetFieldChange:
+class PermissionSetAttrChange:
     """
     A dataclass used to represent the changes made to a field.
     """
-    old_value: PermissionSetFieldTypes
+    old_value: PermissionSetAttrTypes
     action: Action
 
 
 @strict
 class PermissionSet(Model):
     __datatypes = {
-        PermissionSetFields.PERMISSION_SET_IRI: Iri,
-        PermissionSetFields.LABEL: LangString,
-        PermissionSetFields.COMMENT: LangString,
-        PermissionSetFields.GIVES_PERMISSION: DataPermission,
-        PermissionSetFields.DEFINED_BY_PROJECT: Iri
+        PermissionSetAttr.PERMISSION_SET_IRI: Iri,
+        PermissionSetAttr.LABEL: LangString,
+        PermissionSetAttr.COMMENT: LangString,
+        PermissionSetAttr.GIVES_PERMISSION: DataPermission,
+        PermissionSetAttr.DEFINED_BY_PROJECT: Iri
     }
 
     __creator: Iri | None
@@ -58,13 +48,13 @@ class PermissionSet(Model):
     __contributor: Iri | None
     __modified: Xsd_dateTime | None
 
-    __fields: Dict[PermissionSetFields, PermissionSetFieldTypes]
+    __attributes: Dict[PermissionSetAttr, PermissionSetAttrTypes]
 
-    __change_set: Dict[PermissionSetFields, PermissionSetFieldChange]
+    __changeset: Dict[PermissionSetAttr, PermissionSetAttrChange]
 
     def __init__(self, *,
-                 con: Connection,
-                 creator: Iri | None = None,
+                 con: IConnection,
+                 creator: Iri | str |None = None,
                  created: Xsd_dateTime | datetime | str | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
@@ -74,102 +64,95 @@ class PermissionSet(Model):
                  givesPermission: DataPermission,
                  definedByProject: Iri):
         super().__init__(con)
-        self.__creator = Iri(creator) if creator is not None else con.userIri
+        self.__creator = Iri(creator) if creator else con.userIri
         self.__created = Xsd_dateTime(created) if created else None
-        self.__contributor = Iri(contributor) if contributor is not None else con.userIri
-        if modified and not isinstance(modified, Xsd_dateTime):
-            raise OmasErrorValue(f'Modified must be "Xsd_dateTime", not "{type(modified)}".')
-        self.__modified = modified
-        self.__fields = {}
+        self.__contributor = Iri(contributor) if contributor else con.userIri
+        self.__modified = Xsd_dateTime(modified) if modified else None
+        self.__attributes = {}
 
-        if permissionSetIri:
-            if isinstance(permissionSetIri, Xsd_anyURI) or isinstance(permissionSetIri, Xsd_QName):
-                self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = permissionSetIri
-            elif isinstance(permissionSetIri, str):
-                try:
-                    self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = str2qname_anyiri(permissionSetIri)
-                except:
-                    raise OmasErrorValue(f'permissionSetIri {permissionSetIri} must be an convertible to AnyIRI or QName: {permissionSetIri} ({type(permissionSetIri)}) does not work.')
-            else:
-                raise OmasErrorValue(f'permissionSetIri {permissionSetIri} must be an instance of AnyIRI, QName or str, not {type(permissionSetIri)}.')
-        else:
-            self.__fields[PermissionSetFields.PERMISSION_SET_IRI] = Xsd_anyURI(uuid.uuid4().urn)
+        self.__attributes[PermissionSetAttr.PERMISSION_SET_IRI] = Iri(permissionSetIri)
+        self.__attributes[PermissionSetAttr.LABEL] = LangString(label)
+        self.__attributes[PermissionSetAttr.LABEL].set_notifier(self.notifier, PermissionSetAttr.LABEL)
+        self.__attributes[PermissionSetAttr.COMMENT] = LangString(comment)
+        self.__attributes[PermissionSetAttr.COMMENT].set_notifier(self.notifier, PermissionSetAttr.COMMENT)
+        self.__attributes[PermissionSetAttr.GIVES_PERMISSION] = givesPermission
+        self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = Iri(definedByProject)
 
-        self.__fields[PermissionSetFields.LABEL] = label if isinstance(label, LangString) else LangString(label)
-        self.__fields[PermissionSetFields.LABEL].set_notifier(self.notifier, Xsd_QName(PermissionSetFields.LABEL.value))
-        self.__fields[PermissionSetFields.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
-        self.__fields[PermissionSetFields.COMMENT].set_notifier(self.notifier, Xsd_QName(PermissionSetFields.COMMENT.value))
-        self.__fields[PermissionSetFields.GIVES_PERMISSION] = givesPermission
-
-        if isinstance(definedByProject, Xsd_QName) or isinstance(definedByProject, Xsd_anyURI):
-            self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = definedByProject
-        elif isinstance(definedByProject, str):
-            try:
-                self.__fields[PermissionSetFields.DEFINED_BY_PROJECT] = str(definedByProject)
-            except Exception as e:
-                raise OmasErrorValue(f'definedByProject {definedByProject} must be an instance of AnyIRI, QName or str, not {type(definedByProject)}.')
-
-        if not self.__fields[PermissionSetFields.LABEL]:
+        if not self.__attributes[PermissionSetAttr.LABEL]:
             raise OmasErrorInconsistency(f'PermissionSet must have at least one rdfs:label, none given.')
 
-        for field in PermissionSetFields:
+        for field in PermissionSetAttr:
             prefix, name = field.value.split(':')
             setattr(PermissionSet, name, property(
                 partial(self.__get_value, field=field),
                 partial(self.__set_value, field=field),
                 partial(self.__del_value, field=field)))
-        self.__change_set = {}
+        self.__changeset = {}
 
-    def __get_value(self: Self, self2: Self, field: PermissionSetFields) -> PermissionSetFieldTypes | None:
-        return self.__fields.get(field)
+    def __get_value(self: Self, self2: Self, field: PermissionSetAttr) -> PermissionSetAttrTypes | None:
+        return self.__attributes.get(field)
 
-    def __set_value(self: Self, self2: Self, value: PermissionSetFieldTypes, field: PermissionSetFields) -> None:
-        if field == PermissionSetFields.PERMISSION_SET_IRI and self.__fields.get(PermissionSetFields.PERMISSION_SET_IRI) is not None:
-            OmasErrorAlreadyExists(f'A project IRI already has been assigned: "{repr(self.__fields.get(PermissionSetFields.PERMISSION_SET_IRI))}".')
+    def __set_value(self: Self, self2: Self, value: PermissionSetAttrTypes, field: PermissionSetAttr) -> None:
+        if field == PermissionSetAttr.PERMISSION_SET_IRI and self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI) is not None:
+            OmasErrorAlreadyExists(f'A project IRI already has been assigned: "{repr(self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI))}".')
         self.__change_setter(field, value)
 
-    def __del_value(self: Self, self2: Self, field: PermissionSetFields) -> None:
-        del self.__fields[field]
+    def __del_value(self: Self, self2: Self, field: PermissionSetAttr) -> None:
+        del self.__attributes[field]
 
-    def __change_setter(self, field: PermissionSetFields, value: PermissionSetFieldTypes) -> None:
-        if self.__fields[field] == value:
+    def __change_setter(self, field: PermissionSetAttr, value: PermissionSetAttrTypes) -> None:
+        if self.__attributes[field] == value:
             return
-        if field == PermissionSetFields.PERMISSION_SET_IRI:
+        if field == PermissionSetAttr.PERMISSION_SET_IRI:
             raise OmasErrorAlreadyExists(f'Field {field.value} is immutable.')
-        if self.__fields[field] is None:
-            if self.__change_set.get(field) is None:
-                self.__change_set[field] = PermissionSetFieldChange(None, Action.CREATE)
+        if self.__attributes[field] is None:
+            if self.__changeset.get(field) is None:
+                self.__changeset[field] = PermissionSetAttrChange(None, Action.CREATE)
         else:
             if value is None:
-                if self.__change_set.get(field) is None:
-                    self.__change_set[field] = PermissionSetFieldChange(self.__fields[field], Action.DELETE)
+                if self.__changeset.get(field) is None:
+                    self.__changeset[field] = PermissionSetAttrChange(self.__attributes[field], Action.DELETE)
             else:
-                if self.__change_set.get(field) is None:
-                    self.__change_set[field] = PermissionSetFieldChange(self.__fields[field], Action.REPLACE)
+                if self.__changeset.get(field) is None:
+                    self.__changeset[field] = PermissionSetAttrChange(self.__attributes[field], Action.REPLACE)
 
         if value is None:
-            del self.__fields[field]
+            del self.__attributes[field]
         else:
             if isinstance(self.__datatypes[field], set):
                 dtypes = list(self.__datatypes[field])
                 for dtype in dtypes:
                     try:
-                        self.__fields[field] = dtype(value)
+                        self.__attributes[field] = dtype(value)
                         break;
                     except OmasErrorValue:
                         pass
             else:
-                self.__fields[field] = self.__datatypes[field](value)
+                self.__attributes[field] = self.__datatypes[field](value)
 
     def __str__(self) -> str:
-        res = f'PermissionSet: {self.__fields[PermissionSetFields.PERMISSION_SET_IRI]}\n'\
-              f'  Creation: {self.__created.isoformat()} by {self.__creator}\n'\
-              f'  Modified: {self.__modified.isoformat()} by {self.__contributor}\n' \
-              f'  Label: {self.__fields.get(PermissionSetFields.LABEL, "-")}\n' \
-              f'  Comment: {self.__fields.get(PermissionSetFields.COMMENT, "-")}\n'\
-              f'  Permission: {self.__fields[PermissionSetFields.GIVES_PERMISSION].name}\n'\
-              f'  For project: {self.__fields[PermissionSetFields.DEFINED_BY_PROJECT]}\n'
+        res = f'PermissionSet: {self.__attributes[PermissionSetAttr.PERMISSION_SET_IRI]}\n'\
+              f'  Creation: {self.__created} by {self.__creator}\n'\
+              f'  Modified: {self.__modified} by {self.__contributor}\n' \
+              f'  Label: {self.__attributes.get(PermissionSetAttr.LABEL, "-")}\n' \
+              f'  Comment: {self.__attributes.get(PermissionSetAttr.COMMENT, "-")}\n'\
+              f'  Permission: {self.__attributes[PermissionSetAttr.GIVES_PERMISSION].name}\n'\
+              f'  For project: {self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]}\n'
         return res
+
+    def __getitem__(self, attr: PermissionSetAttr) -> PermissionSetAttrTypes:
+        return self.__attributes[attr]
+
+    def get(self, attr: PermissionSetAttr) -> PermissionSetAttrTypes:
+        return self.__attributes.get(attr)
+
+    def __setitem__(self, attr: PermissionSetAttr, value: PermissionSetAttrTypes) -> None:
+        self.__change_setter(attr, value)
+
+    def __delitem__(self, attr: PermissionSetAttr) -> None:
+        if self.__attributes.get(attr) is not None:
+            self.__changeset[attr] = PermissionSetAttrChange(self.__attributes[attr], Action.DELETE)
+            del self.__attributes[attr]
 
     @property
     def creator(self) -> Xsd_anyURI | None:
@@ -187,38 +170,41 @@ class PermissionSet(Model):
     def modified(self) -> datetime | None:
         return self.__modified
 
+    def notifier(self, what: PermissionSetAttr) -> None:
+        self.__changeset[what] = PermissionSetAttrChange(None, Action.MODIFY)
+
     @property
-    def changeset(self) -> Dict[PermissionSetFields, PermissionSetFieldChange]:
+    def changeset(self) -> Dict[PermissionSetAttr, PermissionSetAttrChange]:
         """
         Return the changeset, that is dicst with information about all properties that have benn changed.
         :return: A dictionary of all changes
         """
-        return self.__change_set
+        return self.__changeset
 
     def clear_changeset(self) -> None:
         """
         Clear the changeset.
         :return: None
         """
-        self.__change_set = {}
+        self.__changeset = {}
 
-    def create(self, indent: int = 0, indent_inc: int = 4) ->None:
+    def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OmasError("Cannot create: no connection")
-
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
         actor = self._con.userdata
         sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
         if not is_root:
-            for proj in self.inProject.keys():
-                if actor.inProject.get(proj) is None:
-                    raise OmasErrorNoPermission(f'No permission to create permission sets in project {proj}.')
-                if AdminPermission.ADMIN_PERMISSION_SETS not in actor.inProject.get(proj):
-                    raise OmasErrorNoPermission(f'No permission to create permission sets for project {proj}.')
-            projs = self.inProject.keys()
-            if not self.definedByProject in projs:
+            permissions = actor.inProject.get(self.definedByProject)
+            if permissions is None:
+                raise OmasErrorNoPermission(f'No permission to create permission sets for project {self.definedByProject}.')
+            if AdminPermission.ADMIN_PERMISSION_SETS not in permissions:
                 raise OmasErrorNoPermission(f'No permission to create permission sets for project {self.definedByProject}.')
 
         context = Context(name=self._con.context_name)
@@ -230,24 +216,25 @@ class PermissionSet(Model):
         FROM omas:admin
         WHERE {{
             ?permset a omas:PermissionSet .
-            FILTER(?permset = {self.permissionSetIri.resUri})       
+            FILTER(?permset = {self.permissionSetIri.toRdf})       
         }}
         """
 
-        timestamp = datetime.now()
+        timestamp = Xsd_dateTime()
         sparql = context.sparql_context
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}} {self.permissionSetIri.resUri} a omas:PermissionSet'
+        sparql += f'{blank:{(indent + 2) * indent_inc}} {self.permissionSetIri.toRdf} a omas:PermissionSet'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created "{timestamp.isoformat()}"^^xsd:dateTime'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified "{timestamp.isoformat()}"^^xsd:dateTime'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label.toRdf}'
+        if self.comment:
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment.toRedf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:givesPermission omas:{self.givesPermission.name}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:defineByProject {self.definedByProject}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:defineByProject {self.definedByProject.toRdf}'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -275,43 +262,36 @@ class PermissionSet(Model):
             raise
 
     @classmethod
-    def read(cls, con: IConnection, permissionSetIri: Xsd_QName | Xsd_anyURI | str) -> Self:
-        if isinstance(permissionSetIri, Xsd_anyURI) or isinstance(permissionSetIri, Xsd_QName):
-            pass
-        elif isinstance(permissionSetIri, str):
-            try:
-                permissionSetIri = str2qname_anyiri(permissionSetIri)
-            except:
-                raise OmasErrorValue(f'permissionSetIri {permissionSetIri} must be an convertible to AnyIRI or QName: {permissionSetIri} ({type(permissionSetIri)}) does not work.')
+    def read(cls, con: IConnection, permissionSetIri: Iri | str) -> Self:
+        permissionSetIri = Iri(permissionSetIri)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?permset ?p ?o
         FROM omas:admin
         WHERE {{
-            BIND({repr(permissionSetIri)} as ?permset)
+            BIND({permissionSetIri.toRdf} as ?permset)
             ?permset a omas:PermissionSet .
             ?permset ?p ?o .
         }}
         """
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        permissionSetIri: Xsd_QName | Xsd_anyURI | None = None
-        creator: Xsd_QName | Xsd_anyURI | None = None
-        created: datetime | None = None
-        contributor: Xsd_QName | Xsd_anyURI | None = None
-        modified: datetime | None = None
+        permissionSetIri: Iri | None = None
+        creator: Iri | None = None
+        created: Xsd_dateTime | None = None
+        contributor: Iri | None = None
+        modified: Xsd_dateTime | None = None
         label: LangString = LangString()
         comment: LangString = LangString()
         givesPermission: DataPermission | None = None
-        definedByProject: Xsd_QName | Xsd_anyURI | None = None
+        definedByProject: Iri | None = None
         for r in res:
             if not permissionSetIri:
                 try:
-                    permissionSetIri = str2qname_anyiri(r['permset'])
+                    permissionSetIri = r['permset']
                 except Exception as e:
                     raise OmasErrorInconsistency(f'Invalid project identifier "{r['o']}".')
-
             match str(r['p']):
                 case 'dcterms:creator':
                     creator = r['o']
@@ -332,6 +312,7 @@ class PermissionSet(Model):
                         definedByProject = str2qname_anyiri(str(r['o']))
                     except:
                         raise OmasErrorInconsistency(f'Invalid project identifier "{r['o']}".')
+        print("\n===>", label)
         return cls(con=con,
                    permissionSetIri=permissionSetIri,
                    creator=creator,
@@ -350,5 +331,5 @@ if __name__ == '__main__':
                      userId="rosenth",
                      credentials="RioGrande",
                      context_name="DEFAULT")
-    ps = PermissionSet.read(con, Xsd_QName('omas:GenericView'))
+    ps = PermissionSet.read(con, Iri('omas:GenericView'))
     print(str(ps))
