@@ -38,10 +38,12 @@ class Iri(Xsd):
         if value is None:
             self.__value = uuid.uuid4().urn
             self.__rep = IriRep.FULL
-        elif isinstance(value, Iri):
+            return
+        if isinstance(value, Iri):
             self.__value = value.__value
             self.__rep = value.__rep
-        elif isinstance(value, Xsd_QName):
+            return
+        if isinstance(value, Xsd_QName):
             self.__value = str(value)
             self.__rep = IriRep.QNAME
             return

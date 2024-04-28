@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
+from pprint import pprint
 from typing import Dict, Self
 
 from pystrict import strict
@@ -21,6 +22,7 @@ from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.tools import str2qname_anyiri
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
+from omaslib.src.xsd.xsd_string import Xsd_string
 
 PermissionSetAttrTypes = Iri | LangString | DataPermission | None
 
@@ -137,7 +139,7 @@ class PermissionSet(Model):
               f'  Label: {self.__attributes.get(PermissionSetAttr.LABEL, "-")}\n' \
               f'  Comment: {self.__attributes.get(PermissionSetAttr.COMMENT, "-")}\n'\
               f'  Permission: {self.__attributes[PermissionSetAttr.GIVES_PERMISSION].name}\n'\
-              f'  For project: {self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]}\n'
+              f'  By project: {self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]}\n'
         return res
 
     def __getitem__(self, attr: PermissionSetAttr) -> PermissionSetAttrTypes:
@@ -230,11 +232,11 @@ class PermissionSet(Model):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.LABEL.value} {self.label.toRdf}'
         if self.comment:
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment.toRedf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:givesPermission omas:{self.givesPermission.name}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:defineByProject {self.definedByProject.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.COMMENT.value} {self.comment.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.GIVES_PERMISSION.value} omas:{self.givesPermission.name}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.DEFINED_BY_PROJECT.value} {self.definedByProject.toRdf}'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -302,17 +304,13 @@ class PermissionSet(Model):
                 case 'dcterms:modified':
                     modified = r['o']
                 case 'rdfs:label':
-                    label.add(str(r['o']))
+                    label.add(r['o'])
                 case 'rdfs:comment':
-                    comment.add(str(r['o']))
+                    comment.add(r['o'])
                 case 'omas:givesPermission':
                     givesPermission = DataPermission.from_string(str(r['o']))
                 case 'omas:definedByProject':
-                    try:
-                        definedByProject = str2qname_anyiri(str(r['o']))
-                    except:
-                        raise OmasErrorInconsistency(f'Invalid project identifier "{r['o']}".')
-        print("\n===>", label)
+                    definedByProject = r['o']
         return cls(con=con,
                    permissionSetIri=permissionSetIri,
                    creator=creator,
@@ -322,8 +320,29 @@ class PermissionSet(Model):
                    label=label,
                    comment=comment,
                    givesPermission=givesPermission,
-                   definedByProject=definedByProject)
+                   definedByProject=Iri(definedByProject))
 
+    @staticmethod
+    def search(con: IConnection,
+               definedByProject: Iri | str | None = None,
+               givesPermission: DataPermission | None = None,
+               label: Xsd_string = None) -> dict[Iri, LangString]:
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        sparql += 'SELECT ?permsetIri ?label\n'
+        sparql += 'FROM omas:admin\n'
+        sparql += 'WHERE {\n'
+        sparql += '   ?permsetIri rdf:type omas:PermissionSet .\n'
+        sparql += '   ?permsetIri rdfs:label ?label .\n'
+        sparql += '}\n'
+        jsonobj = con.query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        permissionSets: dict[Iri, LangString] = {}
+        for r in res:
+            if permissionSets.get(r['permsetIri']) is None:
+                permissionSets[r['permsetIri']] = {}
+            permissionSets[r['label']]
+        return permissionSets
 
 if __name__ == '__main__':
     con = Connection(server='http://localhost:7200',
@@ -332,4 +351,4 @@ if __name__ == '__main__':
                      credentials="RioGrande",
                      context_name="DEFAULT")
     ps = PermissionSet.read(con, Iri('omas:GenericView'))
-    print(str(ps))
+    print(ps)
