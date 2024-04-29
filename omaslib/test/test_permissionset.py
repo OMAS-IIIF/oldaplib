@@ -7,6 +7,7 @@ from omaslib.src.connection import Connection
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
+from omaslib.src.helpers.omaserror import OmasErrorInconsistency
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 
@@ -41,6 +42,39 @@ class TestPermissionSet(unittest.TestCase):
         #sleep(1)  # upload may take a while...
         pass
 
+    def test_construct_permissionset(self):
+        ps = PermissionSet(con=self._connection,
+                           label=LangString("testPerm@en", "test@Perm@de"),
+                           comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject=Iri('omas:SystemProject'))
+        self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
+        self.assertEqual(ps.label, LangString("testPerm@en", "test@Perm@de"))
+        self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
+        self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
+
+        with self.assertRaises(OmasErrorInconsistency):
+            ps = PermissionSet(con=self._connection,
+                               comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
+                               givesPermission=DataPermission.DATA_UPDATE,
+                               definedByProject=Iri('omas:SystemProject'))
+
+        ps = PermissionSet(con=self._connection,
+                           label=LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"),
+                           comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject=Iri('omas:SystemProject'))
+        ps.create()
+        iri = ps.permissionSetIri
+        print("\n-------->", iri)
+        del ps
+        ps = PermissionSet.read(self._connection, iri)
+        self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
+        self.assertEqual(ps.label, LangString("testPerm@en", "test@Perm@de"))
+        self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
+        self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
+
+
     # @unittest.skip('Work in progress')
     def test_read_permission(self):
         ps = PermissionSet.read(self._connection, Iri('omas:GenericView'))
@@ -63,6 +97,7 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
         self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
 
+    @unittest.skip('Work in progress')
     def test_search_permission_sets(self):
         iris = PermissionSet.search(self._connection)
         print(iris)

@@ -78,6 +78,9 @@ class InProjectClass:
                 raise OmasErrorValue(f'{permission} is not a valid AdminPermission')
         return perms
 
+    def __bool__(self) -> bool:
+        return bool(self.__data)
+
     def __on_set_changed(self, oldset: ObservableSet[AdminPermission], key: Iri | str):
         if self.__on_change is not None:
             self.__on_change(key, oldset) ## Action.MODIFY

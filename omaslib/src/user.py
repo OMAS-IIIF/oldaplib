@@ -537,6 +537,8 @@ class User(Model, UserDataclass):
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
         if not is_root:
+            if not self.inProject:
+                raise OmasErrorNoPermission(f'No permission to modify user.')
             for proj in self.inProject.keys():
                 if actor.inProject.get(proj) is None:
                     raise OmasErrorNoPermission(f'No permission to modify user in project {proj}.')
