@@ -517,10 +517,7 @@ class Project(Model):
         #
         actor = self._con.userdata
         sysperms = actor.inProject.get(Iri('omas:SystemProject'))
-        is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-            is_root = True
-        if not is_root:
+        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
             raise OmasErrorNoPermission(f'No permission to create a new project.')
 
         timestamp = Xsd_dateTime.now()
@@ -598,10 +595,7 @@ class Project(Model):
         """
         actor = self._con.userdata
         sysperms = actor.inProject.get(Iri('omas:SystemProject'))
-        is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-            is_root = True
-        if not is_root:
+        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
             raise OmasErrorNoPermission(f'No permission to create a new project.')
 
         timestamp = Xsd_dateTime.now()
@@ -672,10 +666,7 @@ class Project(Model):
         """
         actor = self._con.userdata
         sysperms = actor.inProject.get(Iri('omas:SystemProject'))
-        is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-            is_root = True
-        if not is_root:
+        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
             raise OmasErrorNoPermission(f'No permission to delete project "{str(self.projectIri)}".')
 
         #

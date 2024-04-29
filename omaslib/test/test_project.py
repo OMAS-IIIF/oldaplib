@@ -1,5 +1,6 @@
 import unittest
 from datetime import date
+from pathlib import Path
 from time import sleep
 
 from omaslib.src.connection import Connection
@@ -15,12 +16,25 @@ from omaslib.src.helpers.omaserror import OmasErrorNotFound, OmasErrorInconsiste
 from omaslib.src.project import Project
 
 
+def find_project_root(current_path):
+    # Climb up the directory hierarchy and check for a marker file
+    path = Path(current_path).absolute()
+    while not (path / 'pyproject.toml').exists():
+        if path.parent == path:
+            # Root of the filesystem, file not found
+            raise RuntimeError('Project root not found')
+        path = path.parent
+    return path
+
+
 class Testproject(unittest.TestCase):
     _connection: Connection
     _unpriv: Connection
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
+        project_root = find_project_root(__file__)
         cls._context = Context(name="DEFAULT")
 
         cls._connection = Connection(server='http://localhost:7200',
@@ -36,7 +50,8 @@ class Testproject(unittest.TestCase):
 
 
         cls._connection.clear_graph(Xsd_QName('omas:admin'))
-        cls._connection.upload_turtle("omaslib/ontologies/admin.trig")
+        file = project_root / 'omaslib' / 'ontologies' / 'admin.trig'
+        cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 
     @classmethod

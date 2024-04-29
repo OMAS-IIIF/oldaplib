@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from time import sleep
 
 from omaslib.src.connection import Connection
@@ -14,6 +15,16 @@ from omaslib.src.user import User
 from omaslib.src.in_project import InProjectClass
 from omaslib.src.xsd.xsd_string import Xsd_string
 
+def find_project_root(current_path):
+    # Climb up the directory hierarchy and check for a marker file
+    path = Path(current_path).absolute()
+    while not (path / 'pyproject.toml').exists():
+        if path.parent == path:
+            # Root of the filesystem, file not found
+            raise RuntimeError('Project root not found')
+        path = path.parent
+    return path
+
 
 class TestUser(unittest.TestCase):
     _context: Context
@@ -22,6 +33,9 @@ class TestUser(unittest.TestCase):
 
     @classmethod
     def setUp(cls):
+        super().setUpClass()
+        project_root = find_project_root(__file__)
+
         cls._context = Context(name="DEFAULT")
 
         cls._connection = Connection(server='http://localhost:7200',
@@ -38,7 +52,8 @@ class TestUser(unittest.TestCase):
         # user = User(con=cls._connection, userId=NCName("coyote"))
         # user.delete()
         cls._connection.clear_graph(Xsd_QName('omas:admin'))
-        cls._connection.upload_turtle("omaslib/ontologies/admin.trig")
+        file = project_root / 'omaslib' / 'ontologies' / 'admin.trig'
+        cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 
     def tearDown(self):
@@ -124,6 +139,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user(self):
+        """Test if the creation of a new user works a intended"""
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0003-3478-9313"),
                     userId=Xsd_NCName("coyote"),
@@ -147,6 +163,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user_no_admin_perms(self):
+        """Create a user which belongs to omas:HyperHamlet without admin permissions"""
         user = User(con=self._connection,
                     userId=Xsd_NCName("birdy"),
                     familyName="Birdy",
@@ -162,6 +179,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user_no_in_project(self):
+        """Create a user which is not associated with a project"""
         user = User(con=self._connection,
                     userId=Xsd_NCName("yogi"),
                     familyName="Baer",
@@ -176,6 +194,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user_no_permset(self):
+        """Create a user that is associated with omas:HyperHmalet, but is not linked a PermissionSet"""
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0003-3478-9313"),
                     userId=Xsd_NCName("speedy"),
@@ -194,6 +213,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user_no_useriri(self):
+        """We create a user without giving an userIri. It should recieve a URN as userIRI"""
         user = User(con=self._connection,
                     userId=Xsd_NCName("sylvester"),
                     familyName="Sylvester",
@@ -212,6 +232,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user_duplicate_userid(self):
+        """Test that we cannot create a duplicate userId (here "fornaro")"""
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0003-3478-9314"),
                     userId=Xsd_NCName("fornaro"),
@@ -228,6 +249,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user_duplicate_useriri(self):
+        """Test that we cannot create a duplicate userIri"""
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0003-1681-4036"),
                     userId=Xsd_NCName("brown"),
@@ -244,14 +266,15 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user_invalid_project(self):
+        """Test that user creation will fail if we give an invalid project"""
         user = User(con=self._connection,
                     userId=Xsd_NCName("donald"),
                     familyName="Duck",
                     givenName="Donald",
                     credentials="Entenhausen@for&Ever",
                     inProject={Iri('omas:NotExistingproject'): {AdminPermission.ADMIN_USERS,
-                                                                      AdminPermission.ADMIN_RESOURCES,
-                                                                      AdminPermission.ADMIN_CREATE}},
+                                                                AdminPermission.ADMIN_RESOURCES,
+                                                                AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView')})
         with self.assertRaises(OmasErrorValue) as ex:
             user.create()
@@ -259,14 +282,15 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user_invalid_permset(self):
+        """Test that user creation will fail if we give an invalid permission set"""
         user = User(con=self._connection,
                     userId=Xsd_NCName("donald"),
                     familyName="Duck",
                     givenName="Donald",
                     credentials="Entenhausen@for&Ever",
                     inProject={Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                               AdminPermission.ADMIN_RESOURCES,
-                                                               AdminPermission.ADMIN_CREATE}},
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView'), Xsd_QName('omas:Gaga')})
         with self.assertRaises(OmasErrorValue) as ex:
             user.create()
@@ -274,19 +298,21 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_create_user_no_privilege(self):
+        """Test that user creation will fail if we do not have the permission for the given project to create users"""
         user = User(con=self._unpriv,
                     userId=Xsd_NCName("donald"),
                     familyName="Duck",
                     givenName="Donald",
                     credentials="Entenhausen@for&Ever",
-                    inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_CREATE}},
+                    inProject={Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView')})
         with self.assertRaises(OmasErrorNoPermission) as ex:
             user.create()
-        self.assertEqual(str(ex.exception), 'No permission to create user in project http://www.salsah.org/version/2.0/SwissBritNet.')
+        self.assertEqual(str(ex.exception), 'No permission to create user.')
 
     #  #unittest.skip('Work in progress')
     def test_create_user_no_connection(self):
+        """Test that user creation will fail if we do not have the connection"""
         user = User(userId=Xsd_NCName("brown"),
                     familyName="Dock",
                     givenName="Donald",
@@ -299,6 +325,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_delete_user(self):
+        """Test that user deletion does work"""
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
                     userId=Xsd_NCName("edison"),
@@ -306,8 +333,8 @@ class TestUser(unittest.TestCase):
                     givenName="Thomas A.",
                     credentials="Lightbulb&Phonograph",
                     inProject={Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                               AdminPermission.ADMIN_RESOURCES,
-                                                               AdminPermission.ADMIN_CREATE}},
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
@@ -319,10 +346,11 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_delete_user_unpriv(self):
+        """Delete a user without having the permission should fail"""
         user = User.read(con=self._unpriv, userId="bugsbunny")
         with self.assertRaises(OmasErrorNoPermission) as ex:
             user.delete()
-        self.assertEqual(str(ex.exception), 'No permission to delete user in project omas:HyperHamlet.')
+        self.assertEqual(str(ex.exception), 'No permission to delete user.')
 
     #  #unittest.skip('Work in progress')
     def test_update_user(self):
@@ -333,8 +361,8 @@ class TestUser(unittest.TestCase):
                     givenName="Thomas A.",
                     credentials="Lightbulb&Phonograph",
                     inProject={Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                               AdminPermission.ADMIN_RESOURCES,
-                                                               AdminPermission.ADMIN_CREATE}},
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView')})
         user.create()
         user2 = User.read(con=self._connection, userId="edison")
@@ -369,7 +397,7 @@ class TestUser(unittest.TestCase):
         user.credentials = "ChangedPassword"
         with self.assertRaises(OmasErrorNoPermission) as ex:
             user.update()
-        self.assertEqual(str(ex.exception), 'No permission to modify user in project omas:HyperHamlet.')
+        self.assertEqual(str(ex.exception), 'No permission to update user.')
 
     #  #unittest.skip('Work in progress')
     def test_update_user_change_in_project(self):

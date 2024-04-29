@@ -249,15 +249,18 @@ class User(Model, UserDataclass):
         #
         actor = self._con.userdata
         sysperms = actor.inProject.get(Iri('omas:SystemProject'))
-        is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-            is_root = True
-        if not is_root:
-            for proj in self.inProject.keys():
-                if actor.inProject.get(proj) is None:
-                    raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
-                if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
-                    raise OmasErrorNoPermission(f'No permission to create user in project {proj}.')
+        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
+            #
+            # user has not root privileges!
+            #
+            allowed: list[Iri] = []
+            common_projects = self.inProject.keys() & actor.inProject.keys()
+            if common_projects:
+                for proj in common_projects:
+                    if AdminPermission.ADMIN_USERS in actor.inProject[proj]:
+                        allowed.append(proj)
+            if not allowed:
+                raise OmasErrorNoPermission(f'No permission to create user.')
 
         if self.userIri is None:
             self.userIri = Iri()
@@ -482,15 +485,15 @@ class User(Model, UserDataclass):
         """
         actor = self._con.userdata
         sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
-        is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-            is_root = True
-        if not is_root:
-            for proj in self.inProject.keys():
-                if actor.inProject.get(proj) is None:
-                    raise OmasErrorNoPermission(f'No permission to delete user in project {proj}.')
-                if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
-                    raise OmasErrorNoPermission(f'No permission to delete user in project {proj}.')
+        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
+            allowed: list[Iri] = []
+            common_projects = self.inProject.keys() & actor.inProject.keys()
+            if common_projects:
+                for proj in common_projects:
+                    if AdminPermission.ADMIN_USERS in actor.inProject[proj]:
+                        allowed.append(proj)
+            if not allowed:
+                raise OmasErrorNoPermission(f'No permission to delete user.')
 
         #
         # TODO: Test, if the User is referenced as Owner of data etc. If so, raise an error. The User should then
@@ -533,17 +536,15 @@ class User(Model, UserDataclass):
         #
         actor = self._con.userdata
         sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
-        is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-            is_root = True
-        if not is_root:
-            if not self.inProject:
-                raise OmasErrorNoPermission(f'No permission to modify user.')
-            for proj in self.inProject.keys():
-                if actor.inProject.get(proj) is None:
-                    raise OmasErrorNoPermission(f'No permission to modify user in project {proj}.')
-                if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
-                    raise OmasErrorNoPermission(f'No permission to modify user in project {proj}.')
+        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
+            allowed: list[Iri] = []
+            common_projects = self.inProject.keys() & actor.inProject.keys()
+            if common_projects:
+                for proj in common_projects:
+                    if AdminPermission.ADMIN_USERS in actor.inProject[proj]:
+                        allowed.append(proj)
+            if not allowed:
+                raise OmasErrorNoPermission(f'No permission to update user.')
 
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
