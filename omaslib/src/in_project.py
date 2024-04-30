@@ -4,7 +4,7 @@
 The InProject class is a helper class that is used to record the per-project administrative permissions for
 a particular user. It's not meant to be used without the context of a user, that is as a _property_ of a User.
 """
-from typing import Dict, Callable, Set, Self, ItemsView, KeysView
+from typing import Dict, Callable, Set, Self, ItemsView, KeysView, Iterator
 
 from pystrict import strict
 
@@ -81,6 +81,9 @@ class InProjectClass:
     def __bool__(self) -> bool:
         return bool(self.__data)
 
+    def __len__(self) -> int:
+        return len(self.__data)
+
     def __on_set_changed(self, oldset: ObservableSet[AdminPermission], key: Iri | str):
         if self.__on_change is not None:
             self.__on_change(key, oldset) ## Action.MODIFY
@@ -114,6 +117,9 @@ class InProjectClass:
         else:
             raise OmasErrorKey(f'Can\'t delete key "{key}" – does not exist')
 
+    def __iter__(self) -> Iterator[Iri]:
+        return iter(self.__data)
+
     def __str__(self) -> str:
         s = ''
         for k, v in self.__data.items():
@@ -121,9 +127,6 @@ class InProjectClass:
             l.sort()
             s += f'{k} : {l}\n'
         return s
-
-    def __bool__(self) -> bool:
-        return bool(self.__data)
 
     def copy(self) -> Self:
         data_copy: dict[Iri, set[AdminPermission | str] | ObservableSet[AdminPermission]] = {}

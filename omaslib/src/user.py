@@ -230,6 +230,28 @@ class User(Model, UserDataclass):
                                inProject=inProject,
                                hasPermissions=hasPermissions)
 
+    def check_for_permissions(self) -> (bool, str):
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            #
+            # user has root privileges!
+            #
+            return True, "OK"
+        else:
+            allowed: list[Iri] = []
+            for proj in self.inProject.keys():
+                if actor.inProject.get(proj) is None:
+                    return False, f'Actor has no ADMIN_USERS permission for project {proj}'
+                else:
+                    if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
+                        return False, f'Actor has no ADMIN_USERS permission for project {proj}'
+            return True, "OK"
+
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Creates the given user in the triple store. Before the creation, the method checks if a
@@ -243,24 +265,10 @@ class User(Model, UserDataclass):
 
         if self._con is None:
             raise OmasError("Cannot create: no connection")
-        #
-        # First we check if the logged-in user ("actor") has the permission to create a user for
-        # the given project!
-        #
-        actor = self._con.userdata
-        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
-        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
-            #
-            # user has not root privileges!
-            #
-            allowed: list[Iri] = []
-            common_projects = self.inProject.keys() & actor.inProject.keys()
-            if common_projects:
-                for proj in common_projects:
-                    if AdminPermission.ADMIN_USERS in actor.inProject[proj]:
-                        allowed.append(proj)
-            if not allowed:
-                raise OmasErrorNoPermission(f'No permission to create user.')
+
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OmasErrorNoPermission(message)
 
         if self.userIri is None:
             self.userIri = Iri()
@@ -483,17 +491,9 @@ class User(Model, UserDataclass):
         Delete the given user from the triple store
         :return: None
         """
-        actor = self._con.userdata
-        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
-        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
-            allowed: list[Iri] = []
-            common_projects = self.inProject.keys() & actor.inProject.keys()
-            if common_projects:
-                for proj in common_projects:
-                    if AdminPermission.ADMIN_USERS in actor.inProject[proj]:
-                        allowed.append(proj)
-            if not allowed:
-                raise OmasErrorNoPermission(f'No permission to delete user.')
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OmasErrorNoPermission(message)
 
         #
         # TODO: Test, if the User is referenced as Owner of data etc. If so, raise an error. The User should then
@@ -530,21 +530,10 @@ class User(Model, UserDataclass):
         """
         if self._con is None:
             raise OmasError("Cannot create: no connection")
-        #
-        # First we check if the logged-in user ("actor") has the permission to create a user for
-        # the given project!
-        #
-        actor = self._con.userdata
-        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
-        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
-            allowed: list[Iri] = []
-            common_projects = self.inProject.keys() & actor.inProject.keys()
-            if common_projects:
-                for proj in common_projects:
-                    if AdminPermission.ADMIN_USERS in actor.inProject[proj]:
-                        allowed.append(proj)
-            if not allowed:
-                raise OmasErrorNoPermission(f'No permission to update user.')
+
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OmasErrorNoPermission(message)
 
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)

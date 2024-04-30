@@ -229,6 +229,14 @@ class Project(Model):
                 partial(Project.__del_value, field=field)))
         self.__change_set = {}
 
+    def check_for_permissions(self) -> (bool, str):
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            return True, "OK"
+        else:
+            return False, "No permission to create a new project."
+
     def __get_value(self: Self, field: ProjectFields) -> ProjectFieldTypes | None:
         tmp = self.__fields.get(field)
         if not tmp:
@@ -515,10 +523,9 @@ class Project(Model):
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
         #
-        actor = self._con.userdata
-        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
-        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
-            raise OmasErrorNoPermission(f'No permission to create a new project.')
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OmasErrorNoPermission(message)
 
         timestamp = Xsd_dateTime.now()
         indent: int = 0
@@ -593,10 +600,9 @@ class Project(Model):
         :Raises: OmasErrorUpdateFailed: Update failed
         :Raises: Omas Error: Other Internal error
         """
-        actor = self._con.userdata
-        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
-        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
-            raise OmasErrorNoPermission(f'No permission to create a new project.')
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OmasErrorNoPermission(message)
 
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
@@ -664,10 +670,9 @@ class Project(Model):
         :raises OmasErrorNoPermission: No permission for operation
         :raises OmasError: generic internal error
         """
-        actor = self._con.userdata
-        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
-        if not sysperms or not AdminPermission.ADMIN_OLDAP in sysperms:
-            raise OmasErrorNoPermission(f'No permission to delete project "{str(self.projectIri)}".')
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OmasErrorNoPermission(message)
 
         #
         # TODO: Check if project as any datamodel and/or data. Decline the deletion if this is the case

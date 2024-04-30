@@ -340,8 +340,8 @@ class PermissionSet(Model):
         permissionSets: dict[Iri, LangString] = {}
         for r in res:
             if permissionSets.get(r['permsetIri']) is None:
-                permissionSets[r['permsetIri']] = {}
-            permissionSets[r['label']]
+                permissionSets[r['permsetIri']] = LangString()
+            permissionSets[r['permsetIri']][r['label'].lang] = r['label'].value
         return permissionSets
 
 if __name__ == '__main__':

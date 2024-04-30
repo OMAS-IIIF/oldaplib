@@ -308,7 +308,7 @@ class TestUser(unittest.TestCase):
                     hasPermissions={Iri('omas:GenericView')})
         with self.assertRaises(OmasErrorNoPermission) as ex:
             user.create()
-        self.assertEqual(str(ex.exception), 'No permission to create user.')
+        self.assertEqual('Actor has no ADMIN_USERS permission for project omas:HyperHamlet', str(ex.exception), )
 
     #  #unittest.skip('Work in progress')
     def test_create_user_no_connection(self):
@@ -350,7 +350,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._unpriv, userId="bugsbunny")
         with self.assertRaises(OmasErrorNoPermission) as ex:
             user.delete()
-        self.assertEqual(str(ex.exception), 'No permission to delete user.')
+        self.assertEqual('Actor has no ADMIN_USERS permission for project omas:HyperHamlet', str(ex.exception))
 
     #  #unittest.skip('Work in progress')
     def test_update_user(self):
@@ -397,7 +397,7 @@ class TestUser(unittest.TestCase):
         user.credentials = "ChangedPassword"
         with self.assertRaises(OmasErrorNoPermission) as ex:
             user.update()
-        self.assertEqual(str(ex.exception), 'No permission to update user.')
+        self.assertEqual('Actor has no ADMIN_USERS permission for project omas:HyperHamlet', str(ex.exception))
 
     #  #unittest.skip('Work in progress')
     def test_update_user_change_in_project(self):

@@ -14,7 +14,14 @@ class TestInproject(unittest.TestCase):
     def test_creation(self):
         ip = InProjectClass({'test:proj': {AdminPermission.ADMIN_PERMISSION_SETS, 'omas:ADMIN_RESOURCES'},
                              'https://gaga.com/test': {'ADMIN_MODEL'},
-                             Xsd_QName('gaga:gugus'): set()})
+                             Iri('gaga:gugus'): set()})
+        self.assertEqual(len(ip), 3)
+        self.assertTrue(ip)
+        self.assertFalse(InProjectClass())
+        p = set()
+        for proj in ip.keys():
+            p.add(proj)
+        self.assertEqual(p, {Iri('test:proj'), Iri('https://gaga.com/test'), Iri('gaga:gugus')})
 
         with self.assertRaises(OmasErrorValue) as ex:
             ip = InProjectClass({'test': {'ADMIN_MODEL'}})
