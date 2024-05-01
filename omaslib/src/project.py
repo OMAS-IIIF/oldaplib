@@ -587,6 +587,10 @@ class Project(Model):
         except OmasError:
             self._con.transaction_abort()
             raise
+        self.__created = timestamp
+        self.__creator = self._con.userIri
+        self.__modified = timestamp
+        self.__contributor = self._con.userIri
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """

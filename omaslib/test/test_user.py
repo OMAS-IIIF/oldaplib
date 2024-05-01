@@ -152,6 +152,10 @@ class TestUser(unittest.TestCase):
                     hasPermissions={Iri('omas:GenericView')},
                     isActive=True)
         user.create()
+        self.assertIsNotNone(user.created)
+        self.assertIsNotNone(user.creator)
+        self.assertIsNotNone(user.modified)
+        self.assertIsNotNone(user.contributor)
         user2 = User.read(con=self._connection, userId="coyote")
         self.assertEqual(user2.userId, user.userId)
         self.assertEqual(user2.userIri, user.userIri)

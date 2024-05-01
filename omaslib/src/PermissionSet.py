@@ -17,7 +17,7 @@ from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
-    OmasErrorInconsistency
+    OmasErrorInconsistency, OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.tools import str2qname_anyiri
 from omaslib.src.iconnection import IConnection
@@ -91,6 +91,27 @@ class PermissionSet(Model):
                 partial(self.__del_value, field=field)))
         self.__changeset = {}
 
+    def check_for_permissions(self) -> (bool, str):
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            #
+            # user has root privileges!
+            #
+            return True, "OK"
+        else:
+            if actor.inProject.get(self.definedByProject) is None:
+                return False, f'Actor has no ADMIN_PERMISSION_SETS permission for project {self.definedByProject}'
+            else:
+                if AdminPermission.ADMIN_PERMISSION_SETS not in actor.inProject.get(self.definedByProject):
+                    return False, f'Actor has no ADMIN_PERMISSION_SETS permission for project {self.definedByProject}'
+            return True, "OK"
+
+
     def __get_value(self: Self, self2: Self, field: PermissionSetAttr) -> PermissionSetAttrTypes | None:
         return self.__attributes.get(field)
 
@@ -102,35 +123,35 @@ class PermissionSet(Model):
     def __del_value(self: Self, self2: Self, field: PermissionSetAttr) -> None:
         del self.__attributes[field]
 
-    def __change_setter(self, field: PermissionSetAttr, value: PermissionSetAttrTypes) -> None:
-        if self.__attributes[field] == value:
+    def __change_setter(self, attr: PermissionSetAttr, value: PermissionSetAttrTypes) -> None:
+        if self.__attributes[attr] == value:
             return
-        if field == PermissionSetAttr.PERMISSION_SET_IRI:
-            raise OmasErrorAlreadyExists(f'Field {field.value} is immutable.')
-        if self.__attributes[field] is None:
-            if self.__changeset.get(field) is None:
-                self.__changeset[field] = PermissionSetAttrChange(None, Action.CREATE)
+        if attr in {PermissionSetAttr.PERMISSION_SET_IRI, PermissionSetAttr.DEFINED_BY_PROJECT}:
+            raise OmasErrorImmutable(f'Field {attr.value} is immutable.')
+        if self.__attributes[attr] is None:
+            if self.__changeset.get(attr) is None:
+                self.__changeset[attr] = PermissionSetAttrChange(None, Action.CREATE)
         else:
             if value is None:
-                if self.__changeset.get(field) is None:
-                    self.__changeset[field] = PermissionSetAttrChange(self.__attributes[field], Action.DELETE)
+                if self.__changeset.get(attr) is None:
+                    self.__changeset[attr] = PermissionSetAttrChange(self.__attributes[attr], Action.DELETE)
             else:
-                if self.__changeset.get(field) is None:
-                    self.__changeset[field] = PermissionSetAttrChange(self.__attributes[field], Action.REPLACE)
+                if self.__changeset.get(attr) is None:
+                    self.__changeset[attr] = PermissionSetAttrChange(self.__attributes[attr], Action.REPLACE)
 
         if value is None:
-            del self.__attributes[field]
+            del self.__attributes[attr]
         else:
-            if isinstance(self.__datatypes[field], set):
-                dtypes = list(self.__datatypes[field])
+            if isinstance(self.__datatypes[attr], set):
+                dtypes = list(self.__datatypes[attr])
                 for dtype in dtypes:
                     try:
-                        self.__attributes[field] = dtype(value)
+                        self.__attributes[attr] = dtype(value)
                         break;
                     except OmasErrorValue:
                         pass
             else:
-                self.__attributes[field] = self.__datatypes[field](value)
+                self.__attributes[attr] = self.__datatypes[attr](value)
 
     def __str__(self) -> str:
         res = f'PermissionSet: {self.__attributes[PermissionSetAttr.PERMISSION_SET_IRI]}\n'\
@@ -193,21 +214,10 @@ class PermissionSet(Model):
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OmasError("Cannot create: no connection")
-        #
-        # First we check if the logged-in user ("actor") has the permission to create a user for
-        # the given project!
-        #
-        actor = self._con.userdata
-        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
-        is_root: bool = False
-        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-            is_root = True
-        if not is_root:
-            permissions = actor.inProject.get(self.definedByProject)
-            if permissions is None:
-                raise OmasErrorNoPermission(f'No permission to create permission sets for project {self.definedByProject}.')
-            if AdminPermission.ADMIN_PERMISSION_SETS not in permissions:
-                raise OmasErrorNoPermission(f'No permission to create permission sets for project {self.definedByProject}.')
+
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OmasErrorNoPermission(message)
 
         context = Context(name=self._con.context_name)
         blank = ''
@@ -262,6 +272,10 @@ class PermissionSet(Model):
         except OmasError:
             self._con.transaction_abort()
             raise
+        self.__created = timestamp
+        self.__creator = self._con.userIri
+        self.__modified = timestamp
+        self.__contributor = self._con.userIri
 
     @classmethod
     def read(cls, con: IConnection, permissionSetIri: Iri | str) -> Self:
@@ -279,6 +293,9 @@ class PermissionSet(Model):
         """
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
+        if len(res) == 0:
+            raise OmasErrorNotFound(f'No permission set "{permissionSetIri}"')
+
         permissionSetIri: Iri | None = None
         creator: Iri | None = None
         created: Xsd_dateTime | None = None
@@ -343,6 +360,87 @@ class PermissionSet(Model):
                 permissionSets[r['permsetIri']] = LangString()
             permissionSets[r['permsetIri']][r['label'].lang] = r['label'].value
         return permissionSets
+
+    def update(self, indent: int = 0, indent_inc: int = 4):
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OmasErrorNoPermission(message)
+        timestamp = Xsd_dateTime.now()
+        context = Context(name=self._con.context_name)
+        blank = ''
+        sparql_list = []
+
+        for attr, change in self.__changeset.items():
+            if attr == PermissionSetAttr.LABEL or attr == PermissionSetAttr.COMMENT:
+                if change.action == Action.MODIFY:
+                    sparql_list.extend(self.__attributes[attr].update(graph=Xsd_QName('omas:admin'),
+                                                                   subject=self.permissionSetIri,
+                                                                   subjectvar='?project',
+                                                                   field=Xsd_QName(attr.value)))
+                if change.action == Action.DELETE or change.action == Action.REPLACE:
+                    sparql = self.__attributes[attr].delete(graph=Xsd_QName('omas:admin'),
+                                                         subject=self.permissionSetIri,
+                                                         field=Xsd_QName(attr.value))
+                    sparql_list.append(sparql)
+                if change.action == Action.CREATE or change.action == Action.REPLACE:
+                    sparql = self.__attributes[attr].create(graph=Xsd_QName('omas:admin'),
+                                                         subject=self.permissionSetIri,
+                                                         field=Xsd_QName(attr.value))
+                    sparql_list.append(sparql)
+                continue
+            sparql = f'{blank:{indent * indent_inc}}# PermissionSet attribute "{attr.value}" with action "{change.action.value}"\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {change.old_value.toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if change.action != Action.DELETE:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {self.__attributes[attr].toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.permissionSetIri.toRdf} as ?project)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {change.old_value.toRdf} .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+        sparql = context.sparql_context
+        sparql += " ;\n".join(sparql_list)
+
+        self._con.transaction_start()
+        try:
+            self._con.transaction_update(sparql)
+            self.set_modified_by_iri(Xsd_QName('omas:admin'), self.permissionSetIri, self.__modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.permissionSetIri)
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        if timestamp != modtime:
+            self._con.transaction_abort()
+            raise OmasErrorUpdateFailed("Update failed! Timestamp does not match")
+        try:
+            self._con.transaction_commit()
+        except OmasError:
+            self._con.transaction_abort()
+            raise
+        self.__modified = timestamp
+        self.__contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
+
+    def delete(self) -> None:
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OmasErrorNoPermission(message)
+
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += f"""
+        DELETE WHERE {{
+            {self.permissionSetIri.toRdf} a omas:PermissionSet .
+            {self.permissionSetIri.toRdf} ?prop ?val .
+        }} 
+        """
+        # TODO: use transaction for error handling
+        self._con.update_query(sparql)
+
 
 if __name__ == '__main__':
     con = Connection(server='http://localhost:7200',

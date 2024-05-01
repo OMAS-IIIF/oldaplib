@@ -8,3 +8,7 @@ class PermissionSetAttr(Enum):
     COMMENT = 'rdfs:comment'
     GIVES_PERMISSION = 'omas:givesPermission'
     DEFINED_BY_PROJECT = 'omas:definedByProject'
+
+    @property
+    def toRdf(self):
+        return self.value

@@ -27,6 +27,10 @@ class AdminPermission(Enum):
     ADMIN_MODEL = 'omas:ADMIN_MODEL'
     ADMIN_CREATE = 'omas:ADMIN_CREATE'
 
+    @property
+    def toRdf(self):
+        return self.value
+
 
 @unique
 @serializer
@@ -43,12 +47,16 @@ class DataPermission(Enum):
     -_DATA_DELETE_: User may delete data
     -_DATA_PERMISSIONS_: User may change the permission of data
     """
-    DATA_RESTRICTED = 1
-    DATA_VIEW = 2
-    DATA_EXTEND = 3
-    DATA_UPDATE = 4
-    DATA_DELETE = 5
-    DATA_PERMISSIONS = 6
+    DATA_RESTRICTED = 'omas:DATA_RESTRICTED'
+    DATA_VIEW = 'omas:DATA_VIEW'
+    DATA_EXTEND = 'omas:DATA_EXTEND'
+    DATA_UPDATE = 'omas:DATA_UPDATE'
+    DATA_DELETE = 'omas:DATA_DELETE'
+    DATA_PERMISSIONS = 'omas:DATA_PERMISSIONS'
+
+    @property
+    def toRdf(self):
+        return self.value
 
     @classmethod
     def from_string(cls, permission_string: str) -> Self:

@@ -101,6 +101,10 @@ class Testproject(unittest.TestCase):
                           )
         project.create()
         projectIri = project.projectIri
+        self.assertIsNotNone(project.created)
+        self.assertIsNotNone(project.creator)
+        self.assertIsNotNone(project.modified)
+        self.assertIsNotNone(project.contributor)
         del project
 
         project2 = Project.read(con=self._connection, projectIri_SName=projectIri)

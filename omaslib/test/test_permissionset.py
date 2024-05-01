@@ -5,10 +5,11 @@ from time import sleep
 from omaslib.enums.permissionsetattr import PermissionSetAttr
 from omaslib.src.PermissionSet import PermissionSet
 from omaslib.src.connection import Connection
+from omaslib.src.enums.language import Language
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasErrorInconsistency
+from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasErrorNotFound
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 
@@ -82,6 +83,10 @@ class TestPermissionSet(unittest.TestCase):
                            definedByProject=Iri('omas:SystemProject'))
         ps.create()
         iri = ps.permissionSetIri
+        self.assertIsNotNone(ps.created)
+        self.assertIsNotNone(ps.creator)
+        self.assertIsNotNone(ps.modified)
+        self.assertIsNotNone(ps.contributor)
         del ps
         ps = PermissionSet.read(self._connection, iri)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
@@ -105,6 +110,10 @@ class TestPermissionSet(unittest.TestCase):
                            definedByProject=Iri('omas:SystemProject'))
         ps.create()
         iri = ps.permissionSetIri
+        self.assertIsNotNone(ps.created)
+        self.assertIsNotNone(ps.creator)
+        self.assertIsNotNone(ps.modified)
+        self.assertIsNotNone(ps.contributor)
         del ps
         ps = PermissionSet.read(self._connection, iri)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
@@ -119,6 +128,38 @@ class TestPermissionSet(unittest.TestCase):
             Iri("omas:GenericView"): LangString("GenericView@en", "GenericView@de", "GenericView@fr", "GenericView@it"),
             Iri("omas:HyperHamletMember"): LangString("HyHaUpdate@en", "HyHaUpdate@de", "HyHaUpdate@fr", "HyHaUpdate@it")
         }, iris)
+
+    def test_update_permission_set(self):
+        ps = PermissionSet(con=self._connection,
+                           label=LangString("testUpdatePerm@en", "testVerändernPerm@de"),
+                           comment=LangString("Testing update of PermissionSet@en", "Test einer Veränderung eines PermissionSet@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject=Iri('omas:SystemProject'))
+        ps.create()
+        psIri = ps.permissionSetIri
+        del ps
+        ps = PermissionSet.read(self._connection, psIri)
+        ps.label[Language.FR] = "testeModificationPerm"
+        ps.givesPermission = DataPermission.DATA_VIEW
+        ps.update()
+        ps = PermissionSet.read(self._connection, psIri)
+        self.assertEqual(ps.givesPermission, DataPermission.DATA_VIEW)
+        self.assertEqual(ps.label, LangString("testUpdatePerm@en", "testVerändernPerm@de", "testeModificationPerm@fr"))
+
+    def test_delete_permission_set(self):
+        ps = PermissionSet(con=self._connection,
+                           label=LangString("testDeletePerm@en", "testDeletePerm@de"),
+                           comment=LangString("Testing deleting a PermissionSet@en", "Test einer Löschung eines PermissionSet@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject=Iri('omas:HyperHamlet'))
+        ps.create()
+        psIri = ps.permissionSetIri
+        del ps
+        ps = PermissionSet.read(self._connection, psIri)
+        ps.delete()
+
+        with self.assertRaises(OmasErrorNotFound) as ex:
+            project = ps.read(self._connection, psIri)
 
 
 if __name__ == '__main__':

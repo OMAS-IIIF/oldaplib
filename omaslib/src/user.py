@@ -252,6 +252,42 @@ class User(Model, UserDataclass):
                         return False, f'Actor has no ADMIN_USERS permission for project {proj}'
             return True, "OK"
 
+    @property
+    def creator(self) -> Iri | None:
+        """
+        The creator of the project.
+        :return: Iri of the creator of the project.
+        :rtype: Iri | None
+        """
+        return self.__creator
+
+    @property
+    def created(self) -> Xsd_dateTime | None:
+        """
+        The creation date of the project.
+        :return: Creation date of the project.
+        :rtype: Xsd_dateTime | None
+        """
+        return self.__created
+
+    @property
+    def contributor(self) -> Iri | None:
+        """
+        The contributor of the project as Iri.
+        :return: Iri of the contributor of the project.
+        :rtype: Iri | None
+        """
+        return self.__contributor
+
+    @property
+    def modified(self) -> Xsd_dateTime | None:
+        """
+        Modification date of the project.
+        :return: Modification date of the project.
+        :rtype: Xsd_dateTime | None
+        """
+        return self.__modified
+
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Creates the given user in the triple store. Before the creation, the method checks if a
@@ -401,6 +437,10 @@ class User(Model, UserDataclass):
         except OmasError:
             self._con.transaction_abort()
             raise
+        self.__creator = self._con.userIri
+        self.__created = timestamp
+        self.__contributor = self._con.userIri
+        self.__modified = timestamp
 
     @classmethod
     def read(cls, con: IConnection, userId: Xsd_NCName | str) -> Self:

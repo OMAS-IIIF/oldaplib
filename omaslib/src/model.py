@@ -60,24 +60,27 @@ class Model:
                             iri: Iri,
                             old_timestamp: Xsd_dateTime,
                             timestamp: Xsd_dateTime) -> None:
-        context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        sparql += f"""
-        WITH {graph}
-        DELETE {{
-            ?res dcterms:modified {old_timestamp.toRdf} .
-            ?res dcterms:contributor ?contributor .
-        }}
-        INSERT {{
-            ?res dcterms:modified {timestamp.toRdf} .
-            ?res dcterms:contributor {self._con.userIri.toRdf} .
-        }}
-        WHERE {{
-            BIND({iri.toRdf} as ?res)
-            ?res dcterms:modified {old_timestamp.toRdf} .
-            ?res dcterms:contributor ?contributor .
-        }}
-        """
+        try:
+            context = Context(name=self._con.context_name)
+            sparql = context.sparql_context
+            sparql += f"""
+            WITH {graph}
+            DELETE {{
+                ?res dcterms:modified {old_timestamp.toRdf} .
+                ?res dcterms:contributor ?contributor .
+            }}
+            INSERT {{
+                ?res dcterms:modified {timestamp.toRdf} .
+                ?res dcterms:contributor {self._con.userIri.toRdf} .
+            }}
+            WHERE {{
+                BIND({iri.toRdf} as ?res)
+                ?res dcterms:modified {old_timestamp.toRdf} .
+                ?res dcterms:contributor ?contributor .
+            }}
+            """
+        except Exception as e:
+            raise OmasError(e)
         if self._con.in_transaction():
             self._con.transaction_update(sparql)
         else:
