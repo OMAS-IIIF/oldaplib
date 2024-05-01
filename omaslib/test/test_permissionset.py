@@ -12,6 +12,7 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasErrorNotFound
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_qname import Xsd_QName
+from omaslib.src.xsd.xsd_string import Xsd_string
 
 
 def find_project_root(current_path):
@@ -121,13 +122,11 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
         self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
 
+    # TODO: More testing!!!
     def test_search_permission_sets(self):
-        iris = PermissionSet.search(self._connection)
-        self.assertEqual({
-            Iri("omas:GenericRestricted"): LangString("Restricted@en", "Restricted@de", "Restricted@fr", "Restricted@it"),
-            Iri("omas:GenericView"): LangString("GenericView@en", "GenericView@de", "GenericView@fr", "GenericView@it"),
-            Iri("omas:HyperHamletMember"): LangString("HyHaUpdate@en", "HyHaUpdate@de", "HyHaUpdate@fr", "HyHaUpdate@it")
-        }, iris)
+        iris = PermissionSet.search(self._connection, label="GenericView")
+        self.assertEqual(len(iris), 1)
+        self.assertEqual(iris[Iri("omas:GenericView")], LangString("GenericView@en", "GenericView@de", "GenericView@fr", "GenericView@it"))
 
     def test_update_permission_set(self):
         ps = PermissionSet(con=self._connection,

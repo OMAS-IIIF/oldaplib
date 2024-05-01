@@ -19,7 +19,7 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
     OmasErrorInconsistency, OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helpers.tools import str2qname_anyiri
+from omaslib.src.helpers.tools import str2qname_anyiri, lprint
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.xsd.xsd_string import Xsd_string
@@ -343,7 +343,8 @@ class PermissionSet(Model):
     def search(con: IConnection,
                definedByProject: Iri | str | None = None,
                givesPermission: DataPermission | None = None,
-               label: Xsd_string = None) -> dict[Iri, LangString]:
+               label: Xsd_string | str | None = None) -> dict[Iri, LangString]:
+        label = Xsd_string(label)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT ?permsetIri ?label\n'
@@ -351,6 +352,11 @@ class PermissionSet(Model):
         sparql += 'WHERE {\n'
         sparql += '   ?permsetIri rdf:type omas:PermissionSet .\n'
         sparql += '   ?permsetIri rdfs:label ?label .\n'
+        if label:
+            if label.lang:
+                sparql += f'   FILTER(?label = {label.toRdf})\n'
+            else:
+                sparql += f'   FILTER(str(?label) = "{Xsd_string.escaping(label.value)}")\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
