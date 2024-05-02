@@ -17,7 +17,7 @@ class Xsd_date(Xsd):
     """
     __value: date
 
-    def __init__(self, value: date | Self | str | int, month: int | None = None, day: int | None = None):
+    def __init__(self, value: date | Self | str | int | None = None, month: int | None = None, day: int | None = None):
         """
         Constructor of a Xsd_date object
         :param value: Either the year as int, or an ISO date string, or a Python date value, or a Xsd_date instance
@@ -28,7 +28,9 @@ class Xsd_date(Xsd):
         :type day: int
         :raises OmasErrorValue: If the string passed is not a valid ISO date string
         """
-        if isinstance(value, Xsd_date):
+        if value is None:
+            self.__value = date.today()
+        elif isinstance(value, Xsd_date):
             self.__value = value.__value
         elif isinstance(value, date):
             self.__value = value
@@ -189,11 +191,3 @@ class Xsd_date(Xsd):
         :return: date
         """
         return self.__value
-
-    @classmethod
-    def now(cls):
-        """
-        Create a instance with the current date
-        :return: Instance of the Xsd_date object
-        """
-        return cls(datetime.now().date())

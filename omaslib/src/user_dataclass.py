@@ -150,10 +150,10 @@ class UserDataclass:
         UserFields.HAS_PERMISSIONS: ObservableSet[Iri]
     }
 
-    __creator: Iri | None
-    __created: Xsd_dateTime | None
-    __contributor: Iri | None
-    __modified: Xsd_dateTime | None
+    _creator: Iri | None
+    _created: Xsd_dateTime | None
+    _contributor: Iri | None
+    _modified: Xsd_dateTime | None
 
     __fields: Dict[UserFields, UserFieldTypes]
 
@@ -199,10 +199,10 @@ class UserDataclass:
             salt = bcrypt.gensalt()
             credentials = Xsd_string(bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8'))
 
-        self.__creator = Iri(creator) if creator else None
-        self.__created = Xsd_dateTime(created) if created is not None else None
-        self.__contributor = Iri(contributor) if contributor else None
-        self.__modified = Xsd_dateTime(modified) if modified else None
+        self._creator = Iri(creator) if creator else None
+        self._created = Xsd_dateTime(created) if created is not None else None
+        self._contributor = Iri(contributor) if contributor else None
+        self._modified = Xsd_dateTime(modified) if modified else None
         self.__fields[UserFields.USER_IRI] = Iri(userIri) if userIri else None
         self.__fields[UserFields.USER_ID] = Xsd_NCName(userId) if userId else None
         self.__fields[UserFields.FAMILY_NAME] = Xsd_string(familyName) if familyName else None
@@ -258,10 +258,10 @@ class UserDataclass:
             admin_permissions[str(proj)] = [str(x.value) for x in permissions]
         return \
             f'Userdata for {self.__fields[UserFields.USER_IRI]}:\n' \
-            f'  Creator: {self.__creator}\n' \
-            f'  Created at: {self.__created}\n' \
-            f'  Modified by: {self.__contributor}\n' \
-            f'  Modified at: {self.__modified}\n' \
+            f'  Creator: {self._creator}\n' \
+            f'  Created at: {self._created}\n' \
+            f'  Modified by: {self._contributor}\n' \
+            f'  Modified at: {self._modified}\n' \
             f'  User id: {self.__fields[UserFields.USER_ID]}\n' \
             f'  Family name: {str(self.__fields[UserFields.FAMILY_NAME])}\n' \
             f'  Given name: {str(self.__fields[UserFields.GIVEN_NAME])}\n' \
@@ -346,23 +346,23 @@ class UserDataclass:
 
     @property
     def creator(self) -> Iri | None:
-        return self.__creator
+        return self._creator
 
     @property
     def created(self) -> Xsd_dateTime | None:
-        return self.__created
+        return self._created
 
     @property
     def contributor(self) -> Iri | None:
-        return self.__contributor
+        return self._contributor
 
     @property
     def modified(self) -> Xsd_dateTime | None:
-        return self.__modified
+        return self._modified
 
     @modified.setter
     def modified(self, value: Xsd_dateTime) -> None:
-        self.__modified = value
+        self._modified = value
 
     def add_project_permission(self, project: Iri | str, permission: AdminPermission | None) -> None:
         """
@@ -459,14 +459,14 @@ class UserDataclass:
         for r in queryresult:
             match str(r.get('prop')):
                 case 'dcterms:creator':
-                    self.__creator = r['val']
+                    self._creator = r['val']
                     self.__fields[UserFields.USER_IRI] = r['user']
                 case 'dcterms:created':
-                    self.__created = r['val']
+                    self._created = r['val']
                 case 'dcterms:contributor':
-                    self.__contributor = r['val']
+                    self._contributor = r['val']
                 case 'dcterms:modified':
-                    self.__modified = r['val']
+                    self._modified = r['val']
                 case 'omas:userId':
                     self.__fields[UserFields.USER_ID] = r['val']
                 case 'foaf:familyName':
@@ -492,8 +492,8 @@ class UserDataclass:
                         # self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
         if in_project:
             self.__fields[UserFields.IN_PROJECT] = InProjectClass(in_project, on_change=self.__inProject_cb)
-        if not isinstance(self.__modified, Xsd_dateTime):
-            raise OmasErrorValue(f"Modified field is {type(self.__modified)} and not datetime!!!!")
+        if not isinstance(self._modified, Xsd_dateTime):
+            raise OmasErrorValue(f"Modified field is {type(self._modified)} and not datetime!!!!")
         self.clear_changeset()
 
     def _sparql_update(self, indent: int = 0, indent_inc: int = 4) -> Tuple[str | None, int, str]:

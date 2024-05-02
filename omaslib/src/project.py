@@ -212,7 +212,7 @@ class Project(Model):
         if projectStart is not None:
             self.__fields[ProjectFields.PROJECT_START] = projectStart if isinstance(projectStart, Xsd_date) else Xsd_date(projectStart)
         else:
-            self.__fields[ProjectFields.PROJECT_START] = Xsd_date.now()
+            self.__fields[ProjectFields.PROJECT_START] = Xsd_date()
         if projectEnd is not None:
             self.__fields[ProjectFields.PROJECT_END] = projectEnd if isinstance(projectEnd, Xsd_date) else Xsd_date(projectEnd)
             if self.__fields[ProjectFields.PROJECT_END] < self.__fields[ProjectFields.PROJECT_START]:

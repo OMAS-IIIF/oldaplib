@@ -434,7 +434,7 @@ class TestXsdDatatypes(unittest.TestCase):
         with self.assertRaises(OmasErrorValue):
             val1 = Xsd_date(42)
 
-        val1 = Xsd_date.now()
+        val1 = Xsd_date()
         self.assertTrue(val1 == date.today())
 
     def test_xsd_dateTime(self):
