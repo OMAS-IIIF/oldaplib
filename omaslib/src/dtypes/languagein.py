@@ -107,13 +107,3 @@ class LanguageIn(RdfSet[Language], Notify):
                 raise OmasErrorValue(str(err))
         super().discard(language)
 
-
-if __name__ == '__main__':
-    x = LanguageIn("en", "fr")
-    print("STR: ", str(x))
-    print("REPR: ", repr(x))
-    print(x.toRdf)
-    jsonstr = json.dumps(x, default=serializer.encoder_default)
-    print(jsonstr)
-    x2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-    print(x2)

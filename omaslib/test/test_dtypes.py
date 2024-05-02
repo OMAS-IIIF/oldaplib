@@ -8,7 +8,7 @@ from omaslib.src.dtypes.rdfset import RdfSet
 from omaslib.src.dtypes.xsdset import XsdSet
 from omaslib.src.enums.language import Language
 from omaslib.src.helpers.context import Context
-from omaslib.src.helpers.omaserror import OmasErrorValue
+from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorType
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
@@ -142,6 +142,27 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(Xsd_string("was") in val)
         self.assertTrue(Xsd_string("ist") in val)
         self.assertTrue(Xsd_string("das?") in val)
+
+        val = XsdSet(value={Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?")})
+        self.assertTrue(Xsd_string("was") in val)
+        self.assertTrue(Xsd_string("ist") in val)
+        self.assertTrue(Xsd_string("das?") in val)
+
+
+        with self.assertRaises(OmasErrorType) as ex:
+            val = XsdSet(3.5)
+
+        with self.assertRaises(OmasErrorType) as ex:
+            val = XsdSet(value=3.5)
+
+        with self.assertRaises(OmasErrorType) as ex:
+            val = XsdSet({3.5, 25})
+
+        with self.assertRaises(OmasErrorType) as ex:
+            val = XsdSet(value={3.5, 25})
+
+        with self.assertRaises(OmasErrorType) as ex:
+            val = XsdSet(5, 3.7)
 
     def test_bnode(self):
         val = BNode("_:node42")

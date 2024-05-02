@@ -1,5 +1,6 @@
 import unittest
 
+from omaslib.src.helpers.omaserror import OmasErrorValue
 from omaslib.src.helpers.semantic_version import SemanticVersion
 
 
@@ -20,6 +21,9 @@ class TestSemanticVersion(unittest.TestCase):
         self.assertEqual(sv.minor, 2)
         self.assertEqual(sv.patch, 3)
 
+        with self.assertRaises(OmasErrorValue):
+            sv = SemanticVersion.fromString("1.2.A")
+
     def test_string_conversion(self):
         sv = SemanticVersion(1, 2,3)
         self.assertEqual(str(sv), '1.2.3')
@@ -35,7 +39,13 @@ class TestSemanticVersion(unittest.TestCase):
     def test_compare_ops(self):
         self.assertTrue(SemanticVersion(1, 2, 3) == SemanticVersion(1, 2, 3))
         self.assertTrue(SemanticVersion(1, 2, 3) >= SemanticVersion(1, 2, 3))
+        self.assertTrue(SemanticVersion(1, 2, 4) >= SemanticVersion(1, 2, 3))
+        self.assertTrue(SemanticVersion(1, 3, 3) >= SemanticVersion(1, 2, 3))
+        self.assertTrue(SemanticVersion(2, 3, 3) >= SemanticVersion(1, 2, 3))
         self.assertTrue(SemanticVersion(1, 2, 3) <= SemanticVersion(1, 2, 3))
+        self.assertTrue(SemanticVersion(1, 2, 2) <= SemanticVersion(1, 2, 3))
+        self.assertTrue(SemanticVersion(1, 1, 3) <= SemanticVersion(1, 2, 3))
+        self.assertTrue(SemanticVersion(0, 2, 3) <= SemanticVersion(1, 2, 3))
         self.assertFalse(SemanticVersion(1, 2, 3) != SemanticVersion(1, 2, 3))
 
         self.assertTrue(SemanticVersion(1, 2, 3) != SemanticVersion(1, 2, 4))
@@ -49,6 +59,7 @@ class TestSemanticVersion(unittest.TestCase):
         self.assertTrue(SemanticVersion(1, 2, 4) > SemanticVersion(1, 2, 3))
         self.assertTrue(SemanticVersion(1, 3, 3) > SemanticVersion(1, 2, 3))
         self.assertTrue(SemanticVersion(2, 2, 3) > SemanticVersion(1, 2, 3))
+        self.assertFalse(SemanticVersion(2, 2, 3) > SemanticVersion(2, 2, 3))
 
     def test_increment(self):
         sv = SemanticVersion(1, 2, 3)
@@ -56,6 +67,12 @@ class TestSemanticVersion(unittest.TestCase):
         self.assertEqual(sv.major, 1)
         self.assertEqual(sv.minor, 2)
         self.assertEqual(sv.patch, 4)
+
+        sv = SemanticVersion(1, 2, 3)
+        sv.increment_minor()
+        self.assertEqual(sv.major, 1)
+        self.assertEqual(sv.minor, 3)
+        self.assertEqual(sv.patch, 0)
 
 
         sv = SemanticVersion(1, 2, 3)

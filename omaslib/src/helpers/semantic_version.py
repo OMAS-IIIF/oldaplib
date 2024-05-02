@@ -1,6 +1,6 @@
 from typing import Self
 
-from omaslib.src.helpers.omaserror import OmasError
+from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue
 
 
 class SemanticVersion:
@@ -71,7 +71,7 @@ class SemanticVersion:
             major, minor, patch = str(versionstring).split(".")
             return cls(int(major), int(minor), int(patch))
         except ValueError as err:
-            raise OmasError(f'Invalid version string: "{versionstring}": {err}')
+            raise OmasErrorValue(f'Invalid version string: "{versionstring}": {err}')
 
     def increment_patch(self):
         self.__patch += 1

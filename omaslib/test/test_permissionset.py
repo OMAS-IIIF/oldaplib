@@ -9,7 +9,7 @@ from omaslib.src.enums.language import Language
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
-from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasErrorNotFound
+from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasErrorNotFound, OmasErrorNoPermission
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_string import Xsd_string
@@ -121,6 +121,33 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.label, LangString("testPerm@en", "test@Perm@de"))
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
         self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
+
+        ps = PermissionSet(con=self._connection,
+                           label=LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"),
+                           comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject=Iri('omas:SystemProject'))
+        ps.create()
+        iri = ps.permissionSetIri
+        self.assertIsNotNone(ps.created)
+        self.assertIsNotNone(ps.creator)
+        self.assertIsNotNone(ps.modified)
+        self.assertIsNotNone(ps.contributor)
+        del ps
+        ps = PermissionSet.read(self._connection, iri)
+        self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
+        self.assertEqual(ps.label, LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"))
+        self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
+        self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
+
+    def test_create_permission_unauthorized(self):
+        ps = PermissionSet(con=self._unpriv,
+                           label=LangString("testPermUnauth@en", "test@PermUnauth@de"),
+                           comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject=Iri('omas:SystemProject'))
+        with self.assertRaises(OmasErrorNoPermission):
+            ps.create()
 
     # TODO: More testing!!!
     def test_search_permission_sets(self):

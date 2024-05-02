@@ -12,15 +12,45 @@ class TestLanguageIn(unittest.TestCase):
         self.assertIsInstance(lang, LanguageIn)
         self.assertEqual(len(lang), 0)
 
+    def test_simple_constructor(self):
         lang = LanguageIn(Language.DE)
         self.assertIsInstance(lang, LanguageIn)
         self.assertEqual(len(lang), 1)
         self.assertTrue(Language.DE in lang)
 
+        lang = LanguageIn(value=Language.DE)
+        self.assertIsInstance(lang, LanguageIn)
+        self.assertEqual(len(lang), 1)
+        self.assertTrue(Language.DE in lang)
+
+
         lang = LanguageIn("de")
         self.assertIsInstance(lang, LanguageIn)
         self.assertEqual(len(lang), 1)
         self.assertTrue(Language.DE in lang)
+
+        lang = LanguageIn(value="de")
+        self.assertIsInstance(lang, LanguageIn)
+        self.assertEqual(len(lang), 1)
+        self.assertTrue(Language.DE in lang)
+
+
+        lang2 = LanguageIn(lang)
+        self.assertIsInstance(lang, LanguageIn)
+        self.assertEqual(len(lang), 1)
+        self.assertTrue(Language.DE in lang)
+
+        lang2 = LanguageIn(value=lang)
+        self.assertIsInstance(lang, LanguageIn)
+        self.assertEqual(len(lang), 1)
+        self.assertTrue(Language.DE in lang)
+
+
+        with self.assertRaises(OmasErrorKey):
+            lang = LanguageIn("xxx")
+
+        with self.assertRaises(OmasErrorKey):
+            lang = LanguageIn(value="xxx")
 
 
     def test_constructor_A(self):
@@ -38,6 +68,43 @@ class TestLanguageIn(unittest.TestCase):
         self.assertTrue(Language.FR in lang)
         self.assertFalse(Language.RM in lang)
 
+        lang = LanguageIn(value={Language.DE, Language.EN, Language.FR})
+        self.assertEqual(len(lang), 3)
+        self.assertTrue(Language.DE in lang)
+        self.assertTrue(Language.EN in lang)
+        self.assertTrue(Language.FR in lang)
+        self.assertFalse(Language.RM in lang)
+
+        t = (Language.DE, Language.EN, "fr")
+        lang = LanguageIn(t)
+        self.assertEqual(len(lang), 3)
+        self.assertTrue(Language.DE in lang)
+        self.assertTrue(Language.EN in lang)
+        self.assertTrue(Language.FR in lang)
+        self.assertFalse(Language.RM in lang)
+
+        lang = LanguageIn(value=t)
+        self.assertEqual(len(lang), 3)
+        self.assertTrue(Language.DE in lang)
+        self.assertTrue(Language.EN in lang)
+        self.assertTrue(Language.FR in lang)
+        self.assertFalse(Language.RM in lang)
+
+        lang = LanguageIn([Language.DE, Language.EN, Language.FR])
+        self.assertEqual(len(lang), 3)
+        self.assertTrue(Language.DE in lang)
+        self.assertTrue(Language.EN in lang)
+        self.assertTrue(Language.FR in lang)
+        self.assertFalse(Language.RM in lang)
+
+        lang = LanguageIn(value=[Language.DE, Language.EN, Language.FR])
+        self.assertEqual(len(lang), 3)
+        self.assertTrue(Language.DE in lang)
+        self.assertTrue(Language.EN in lang)
+        self.assertTrue(Language.FR in lang)
+        self.assertFalse(Language.RM in lang)
+
+
     def test_constructor_B(self):
         lang = LanguageIn("de", "en", Language.FR)
         self.assertEqual(len(lang), 3)
@@ -53,8 +120,19 @@ class TestLanguageIn(unittest.TestCase):
         self.assertTrue(Language.FR in lang)
         self.assertFalse(Language.RM in lang)
 
+        lang = LanguageIn(value=["de", "en", Language.FR])
+        self.assertEqual(len(lang), 3)
+        self.assertTrue(Language.DE in lang)
+        self.assertTrue(Language.EN in lang)
+        self.assertTrue(Language.FR in lang)
+        self.assertFalse(Language.RM in lang)
+
+
         with self.assertRaises(OmasErrorKey):
             lang = LanguageIn(["de", "en", "gaga", "it"])
+        with self.assertRaises(OmasErrorKey):
+            lang = LanguageIn(value=["de", "en", "gaga", "it"])
+
 
     def test_compare_ops(self):
         lang1 = LanguageIn(["de", "en", Language.FR])

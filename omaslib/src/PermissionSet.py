@@ -93,7 +93,7 @@ class PermissionSet(Model):
 
     def check_for_permissions(self) -> (bool, str):
         #
-        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # First we check if the logged-in user ("actor") has the ADMIN_PERMISSION_SETS permission for
         # the given project!
         #
         actor = self._con.userdata
@@ -110,7 +110,6 @@ class PermissionSet(Model):
                 if AdminPermission.ADMIN_PERMISSION_SETS not in actor.inProject.get(self.definedByProject):
                     return False, f'Actor has no ADMIN_PERMISSION_SETS permission for project {self.definedByProject}'
             return True, "OK"
-
 
     def __get_value(self: Self, self2: Self, field: PermissionSetAttr) -> PermissionSetAttrTypes | None:
         return self.__attributes.get(field)

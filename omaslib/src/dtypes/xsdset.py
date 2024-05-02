@@ -37,15 +37,9 @@ class XsdSet(RdfSet[Xsd]):
             else:
                 if not isinstance(args[0], Xsd):
                     raise OmasErrorType(f'Value is not an instance of "Xsd", but "{type(args[0]).__name__}".')
+        else:
+            for arg in args:
+                if not isinstance(args[0], Xsd):
+                    raise OmasErrorType(f'Value is not an instance of "Xsd", but "{type(args[0]).__name__}".')
         super().__init__(*args, value=value)
 
-
-if __name__ == "__main__":
-    x = XsdSet(Xsd_string("gaga"), Xsd_string("gugus"))
-    print(x)
-    print(repr(x))
-    print(x.toRdf)
-    jsonstr = json.dumps(x, default=serializer.encoder_default)
-    print(jsonstr)
-    x2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-    print(x2)

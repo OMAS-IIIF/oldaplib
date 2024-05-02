@@ -2,7 +2,9 @@ import base64
 import json
 import math
 import unittest
-from datetime import date
+from datetime import date, datetime, time
+
+import isodate
 
 from omaslib.src.connection import Connection
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
@@ -513,6 +515,10 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(str(val), '2001-10-26T19:32:52+00:00')
         self.assertTrue(repr(val), '"2001-10-26T19:32:52+00:00"^^xsd:dateTimeStamp')
 
+        dts = datetime.now()
+        val = Xsd_dateTimeStamp(dts)
+        self.assertEqual(val, dts)
+
         with self.assertRaises(OmasErrorValue):
             val = Xsd_dateTimeStamp('2001-10-26T21:32:52.12679')
 
@@ -527,6 +533,9 @@ class TestXsdDatatypes(unittest.TestCase):
 
         with self.assertRaises(OmasErrorValue):
             val = Xsd_dateTime('01-10-26T21:32')
+
+        with self.assertRaises(OmasErrorValue):
+            b = Xsd_dateTimeStamp('2001-10-26T19:32:52+00:00') == '2001-10-26T25:32:52+02:00'
 
     def test_xsd_decimal(self):
         val = Xsd_decimal(3.141592653589793)
@@ -585,6 +594,18 @@ class TestXsdDatatypes(unittest.TestCase):
         self.create_triple(Xsd_NCName("Xsd_duration"), val)
         valx = self.get_triple(Xsd_NCName("Xsd_duration"))
         self.assertEqual(val, valx)
+
+        dt = isodate.parse_duration('PT2M10S')
+        val = Xsd_duration(dt)
+        self.assertEqual(val, dt)
+        self.assertTrue(val == dt)
+
+        h = hash(val)
+
+        self.assertTrue(val == 'PT2M10S')
+
+        with self.assertRaises(OmasErrorValue):
+            b = val == 'P1M2Y'
 
         with self.assertRaises(OmasErrorValue):
             val = Xsd_duration('P1M2Y')
@@ -1454,6 +1475,12 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertEqual(str(val), '21:32:52.126790')
         self.assertEqual(repr(val), 'Xsd_time("21:32:52.126790")')
 
+        h = hash(val)
+
+        t = time.fromisoformat('21:32:52.12679')
+        val = Xsd_time(t)
+        self.assertEqual(val.value, t)
+
         with self.assertRaises(OmasErrorValue):
             val = Xsd_time('21:32')
 
@@ -1465,6 +1492,9 @@ class TestXsdDatatypes(unittest.TestCase):
 
         with self.assertRaises(OmasErrorValue):
             val = Xsd_time('1:20:10')
+
+        with self.assertRaises(OmasErrorValue):
+            s = Xsd_time('19:32:52+00:00') == '1:20:10'
 
     def test_xsd_token(self):
         val = Xsd_token("Dies ist ein string mit $onderzeichen und anderen Dingen")
