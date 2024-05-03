@@ -268,6 +268,21 @@ class Testproject(unittest.TestCase):
         self.assertEqual(project.label, LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"]))
         self.assertEqual(project.projectEnd, Xsd_date(2026, 6, 30))
 
+    def test_project_start_end_consistency(self):
+        project = Project(con=self._connection,
+                          projectShortName="startendtest",
+                          label=LangString(["startendtest@en", "startendtest@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/startendtest#"),
+                          comment=LangString(["For testing@en", "Für Tests@de"]),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
+                          )
+        with self.assertRaises(OmasErrorInconsistency):
+            project.projectStart = Xsd_date(2026, 1, 1)
+        with self.assertRaises(OmasErrorInconsistency):
+            project.projectEnd = Xsd_date(2023, 12, 31)
+
+
     # @unittest.skip('Work in progress')
     def test_project_delete(self):
         project = Project(con=self._connection,

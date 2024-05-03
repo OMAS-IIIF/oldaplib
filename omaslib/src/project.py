@@ -259,6 +259,12 @@ class Project(Model):
             return
         if field == ProjectFields.PROJECT_IRI or field == ProjectFields.NAMESPACE_IRI or field == ProjectFields.PROJECT_SHORTNAME:
             raise OmasErrorImmutable(f'Field {field.value} is immutable.')
+        if field == ProjectFields.PROJECT_START:
+            if self.__fields.get(ProjectFields.PROJECT_END) and value >= self.__fields[ProjectFields.PROJECT_END]:
+                raise OmasErrorInconsistency('Project start date must be less than project end date.')
+        if field == ProjectFields.PROJECT_END:
+            if self.__fields.get(ProjectFields.PROJECT_START) and value <= self.__fields[ProjectFields.PROJECT_START]:
+                raise OmasErrorInconsistency('Project end date must be greater than project start date.')
         if self.__fields.get(field) is None:
             if self.__change_set.get(field) is None:
                 self.__change_set[field] = ProjectFieldChange(None, Action.CREATE)
