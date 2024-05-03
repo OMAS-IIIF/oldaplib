@@ -1,8 +1,8 @@
-from typing import Callable, Optional, Union
+from typing import Callable
 
 from pystrict import strict
 
-from omaslib.enums.permissionsetattr import PermissionSetAttr
+from omaslib.src.enums.permissionsetattr import PermissionSetAttr
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute

@@ -2,11 +2,11 @@ import unittest
 from pathlib import Path
 from time import sleep
 
-from omaslib.enums.permissionsetattr import PermissionSetAttr
+from omaslib.src.enums.permissionsetattr import PermissionSetAttr
 from omaslib.src.PermissionSet import PermissionSet
 from omaslib.src.connection import Connection
 from omaslib.src.enums.language import Language
-from omaslib.src.enums.permissions import AdminPermission, DataPermission
+from omaslib.src.enums.permissions import DataPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorInconsistency, OmasErrorNotFound, OmasErrorNoPermission, OmasErrorAlreadyExists, OmasErrorImmutable

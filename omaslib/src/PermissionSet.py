@@ -1,13 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from pprint import pprint
 from typing import Dict, Self
 
 from pystrict import strict
 
-from omaslib.enums.permissionsetattr import PermissionSetAttr
-from omaslib.src.connection import Connection
+from omaslib.src.enums.permissionsetattr import PermissionSetAttr
 from omaslib.src.enums.permissions import AdminPermission, DataPermission
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
@@ -19,7 +17,6 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
     OmasErrorInconsistency, OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.helpers.tools import str2qname_anyiri, lprint
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
 from omaslib.src.xsd.xsd_string import Xsd_string

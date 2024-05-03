@@ -145,6 +145,7 @@ import uuid
 from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
+from omaslib.src.enums.userdataclassattr import UserAttr
 from omaslib.src.helpers.context import Context
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -241,8 +242,10 @@ class User(Model, UserDataclass):
             #
             # user has root privileges!
             #
-            return True, "OK"
+            return True, "OK – IS ROOT"
         else:
+            if len(self.inProject) == 0:
+                return False, f'Actor has no ADMIN_USERS permission for user {self.userId}.'
             allowed: list[Iri] = []
             for proj in self.inProject.keys():
                 if actor.inProject.get(proj) is None:
@@ -250,7 +253,7 @@ class User(Model, UserDataclass):
                 else:
                     if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
                         return False, f'Actor has no ADMIN_USERS permission for project {proj}'
-            return True, "OK"
+            return True, "OK..."
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -536,6 +539,12 @@ class User(Model, UserDataclass):
             raise OmasError("Cannot create: no connection")
 
         result, message = self.check_for_permissions()
+        #
+        # Special case: The user should be able to change its own password!
+        #
+        actor = self._con.userdata
+        if actor.userIri == self.userIri and len(self.changeset) == 1 and self.changeset.get(UserAttr.CREDENTIALS):
+            result = True
         if not result:
             raise OmasErrorNoPermission(message)
 

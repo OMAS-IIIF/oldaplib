@@ -714,6 +714,61 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="chiquet")
         self.assertEqual(user.hasPermissions, {Iri('omas:GenericView'), Iri('omas:HyperHamletMember')})
 
+    def test_user_update_active(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0003-4545-3559"),
+                    userId=Xsd_NCName("jrosenthal"),
+                    familyName="Rosenthal",
+                    givenName="Joachim",
+                    credentials="CryptoGraphy0*0@",
+                    inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    isActive=False,
+                    hasPermissions={Iri('omas:GenericView'), Iri('omas:HyperHamletMember')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="jrosenthal")
+        self.assertFalse(user.isActive)
+        user.isActive = True
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="jrosenthal")
+        self.assertTrue(user.isActive)
+
+    def test_user_password_change(self):
+        user = User(con=self._connection,
+                    userId=Xsd_NCName("speedy"),
+                    familyName="Gonzales",
+                    givenName="Speedy",
+                    credentials="FastestMouseInMexico",
+                    isActive=True)
+        user.create()
+        mycon = Connection(server='http://localhost:7200',
+                           repo="omas",
+                           userId="speedy",
+                           credentials="FastestMouseInMexico",
+                           context_name="DEFAULT")
+        user = User.read(con=mycon, userId="speedy")
+        user.credentials = "ElRatónMásRápidoDeMéxico"
+        user.update()
+        with self.assertRaises(OmasError) as err:
+            mycon = Connection(server='http://localhost:7200',
+                               repo="omas",
+                               userId="speedy",
+                               credentials="FastestMouseInMexico",
+                               context_name="DEFAULT")
+        mycon = Connection(server='http://localhost:7200',
+                           repo="omas",
+                           userId="speedy",
+                           credentials="ElRatónMásRápidoDeMéxico",
+                           context_name="DEFAULT")
+        user = User.read(con=mycon, userId="speedy")
+        user.isActive = False
+        with self.assertRaises(OmasErrorNoPermission) as err:
+            user.update()
+
     def test_user_authorizations(self):
         user = User(con=self._unpriv,
                     userIri=Iri("https://orcid.org/0000-0001-9421-3434"),

@@ -34,12 +34,12 @@ setter and deleter methods.
 """
 from dataclasses import dataclass
 from datetime import datetime
-from enum import unique, Enum
 from functools import partial
 from typing import Dict, Self, Set, Tuple, Any
 
 import bcrypt
 
+from omaslib.src.enums.userdataclassattr import UserAttr
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
 from omaslib.src.xsd.iri import Iri
@@ -57,41 +57,16 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.in_project import InProjectClass
 
 
-UserFieldTypes = Xsd | ObservableSet[Iri] | InProjectClass | str | bool | None
+UserAttrTypes = Xsd | ObservableSet[Iri] | InProjectClass | str | bool | None
 
 
 @dataclass
-class UserFieldChange:
+class UserAttrChange:
     """
     A dataclass used to represent the changes made to a field.
     """
-    old_value: UserFieldTypes
+    old_value: UserAttrTypes
     action: Action
-
-
-@unique
-class UserFields(Enum):
-    """
-    Enumeration that defined the data fields (properties)
-
-    - _UserFields.USER_IRI_ (RDF: 'omas:userIri')
-    - _UserFields.USER_ID_ (RDF: 'omas:userId')
-    - _UserFields.FAMILY_NAME_ (RDF: 'foaf:familyName=
-    - _UserFields.GIVEN_NAME_ (RDF: 'foaf:givenName')
-    - _UserFields.CREDENTIALS_ (RDF: 'omas:credentials')
-    - _UserFields.ACTIVE_ (RDF: 'omas:isActive')
-    - _UserFields.IN_PROJECT_ (RDF: 'omas:inProject')
-    - _UserFields.HAS_PERMISSIONS_ (RDF: 'omas:hasPermissions')
-
-    """
-    USER_IRI = 'omas:userIri'
-    USER_ID = 'omas:userId'
-    FAMILY_NAME = 'foaf:familyName'
-    GIVEN_NAME = 'foaf:givenName'
-    CREDENTIALS = 'omas:credentials'
-    ACTIVE = 'omas:isActive'
-    IN_PROJECT = 'omas:inProject'
-    HAS_PERMISSIONS = 'omas:hasPermissions'
 
 
 @serializer
@@ -140,14 +115,14 @@ class UserDataclass:
     - *remove_project_permission(...)*: Removes the given permission
     """
     __datatypes = {
-        UserFields.USER_IRI: Iri,
-        UserFields.USER_ID: Xsd_NCName,
-        UserFields.FAMILY_NAME: Xsd_string,
-        UserFields.GIVEN_NAME: Xsd_string,
-        UserFields.CREDENTIALS: Xsd_string,
-        UserFields.ACTIVE: Xsd_boolean,
-        UserFields.IN_PROJECT: dict,
-        UserFields.HAS_PERMISSIONS: ObservableSet[Iri]
+        UserAttr.USER_IRI: Iri,
+        UserAttr.USER_ID: Xsd_NCName,
+        UserAttr.FAMILY_NAME: Xsd_string,
+        UserAttr.GIVEN_NAME: Xsd_string,
+        UserAttr.CREDENTIALS: Xsd_string,
+        UserAttr.ACTIVE: Xsd_boolean,
+        UserAttr.IN_PROJECT: dict,
+        UserAttr.HAS_PERMISSIONS: ObservableSet[Iri]
     }
 
     _creator: Iri | None
@@ -155,9 +130,9 @@ class UserDataclass:
     _contributor: Iri | None
     _modified: Xsd_dateTime | None
 
-    __fields: Dict[UserFields, UserFieldTypes]
+    __attr: Dict[UserAttr, UserAttrTypes]
 
-    __change_set: Dict[UserFields, UserFieldChange]
+    __changeset: Dict[UserAttr, UserAttrChange]
 
     def __init__(self, *,
                  creator: Iri | str | None = None,
@@ -187,8 +162,8 @@ class UserDataclass:
         :param inProject: an InProjectType instance for the project permissions of the user
         :param hasPermissions: Set of Administrative Permissions for the user
         """
-        self.__fields = {}
-        self.__change_set = {}
+        self.__attr = {}
+        self.__changeset = {}
         if inProject:
             inProjectTmp = InProjectClass(inProject, self.__inProject_cb)
         else:
@@ -203,14 +178,14 @@ class UserDataclass:
         self._created = Xsd_dateTime(created) if created is not None else None
         self._contributor = Iri(contributor) if contributor else None
         self._modified = Xsd_dateTime(modified) if modified else None
-        self.__fields[UserFields.USER_IRI] = Iri(userIri) if userIri else None
-        self.__fields[UserFields.USER_ID] = Xsd_NCName(userId) if userId else None
-        self.__fields[UserFields.FAMILY_NAME] = Xsd_string(familyName) if familyName else None
-        self.__fields[UserFields.GIVEN_NAME] = Xsd_string(givenName) if givenName else None
-        self.__fields[UserFields.CREDENTIALS] = Xsd_string(credentials) if credentials else None
-        self.__fields[UserFields.ACTIVE] = Xsd_boolean(isActive) if isActive is not None else None
-        self.__fields[UserFields.IN_PROJECT] = inProjectTmp if inProjectTmp is not None else None
-        self.__fields[UserFields.HAS_PERMISSIONS] = hasPermissions if hasPermissions is not None else None
+        self.__attr[UserAttr.USER_IRI] = Iri(userIri) if userIri else None
+        self.__attr[UserAttr.USER_ID] = Xsd_NCName(userId) if userId else None
+        self.__attr[UserAttr.FAMILY_NAME] = Xsd_string(familyName) if familyName else None
+        self.__attr[UserAttr.GIVEN_NAME] = Xsd_string(givenName) if givenName else None
+        self.__attr[UserAttr.CREDENTIALS] = Xsd_string(credentials) if credentials else None
+        self.__attr[UserAttr.ACTIVE] = Xsd_boolean(isActive) if isActive is not None else None
+        self.__attr[UserAttr.IN_PROJECT] = inProjectTmp if inProjectTmp is not None else None
+        self.__attr[UserAttr.HAS_PERMISSIONS] = hasPermissions if hasPermissions is not None else None
         #
         # here we dynamically generate class properties for the UserFields.
         # This we can access these properties either a Dict or as property
@@ -218,7 +193,7 @@ class UserDataclass:
         # - user[UserFields.USER_ID]
         # - user.userId
         #
-        for field in UserFields:
+        for field in UserAttr:
             prefix, name = field.value.split(':')
             setattr(UserDataclass, name, property(
                 partial(UserDataclass.__get_value, field=field),
@@ -228,25 +203,25 @@ class UserDataclass:
     #
     # these are the methods for the getter, setter and deleter
     #
-    def __get_value(self: Self, field: UserFields) -> UserFieldTypes | None:
-        return self.__fields.get(field)
+    def __get_value(self: Self, field: UserAttr) -> UserAttrTypes | None:
+        return self.__attr.get(field)
 
-    def __set_value(self: Self, value: UserFieldTypes, field: UserFields) -> None:
-        if field == UserFields.CREDENTIALS:
+    def __set_value(self: Self, value: UserAttrTypes, field: UserAttr) -> None:
+        if field == UserAttr.CREDENTIALS:
             salt = bcrypt.gensalt()
             value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
-        if field == UserFields.USER_IRI and self.__fields.get(UserFields.USER_IRI) is not None:
-            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__fields.get(UserFields.USER_IRI)}".')
+        if field == UserAttr.USER_IRI and self.__attr.get(UserAttr.USER_IRI) is not None:
+            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__attr.get(UserAttr.USER_IRI)}".')
         self.__change_setter(field, value)
 
-    def __del_value(self: Self, field: UserFields) -> None:
-        if self.__change_set.get(field) is None:
-            self.__change_set[field] = UserFieldChange(self.__fields[field], Action.DELETE)
-        del self.__fields[field]
-        if field == UserFields.IN_PROJECT:
-            self.__fields[field] = InProjectClass(on_change=self.__inProject_cb)
-        elif field == UserFields.HAS_PERMISSIONS:
-            self.__fields[field] = ObservableSet(on_change=self.__hasPermission_cb)
+    def __del_value(self: Self, field: UserAttr) -> None:
+        if self.__changeset.get(field) is None:
+            self.__changeset[field] = UserAttrChange(self.__attr[field], Action.DELETE)
+        del self.__attr[field]
+        if field == UserAttr.IN_PROJECT:
+            self.__attr[field] = InProjectClass(on_change=self.__inProject_cb)
+        elif field == UserAttr.HAS_PERMISSIONS:
+            self.__attr[field] = ObservableSet(on_change=self.__hasPermission_cb)
 
     def __str__(self) -> str:
         """
@@ -254,47 +229,47 @@ class UserDataclass:
         :return: Multiline string
         """
         admin_permissions = {}
-        for proj, permissions in self.__fields[UserFields.IN_PROJECT].items():
+        for proj, permissions in self.__attr[UserAttr.IN_PROJECT].items():
             admin_permissions[str(proj)] = [str(x.value) for x in permissions]
         return \
-            f'Userdata for {self.__fields[UserFields.USER_IRI]}:\n' \
+            f'Userdata for {self.__attr[UserAttr.USER_IRI]}:\n' \
             f'  Creator: {self._creator}\n' \
             f'  Created at: {self._created}\n' \
             f'  Modified by: {self._contributor}\n' \
             f'  Modified at: {self._modified}\n' \
-            f'  User id: {self.__fields[UserFields.USER_ID]}\n' \
-            f'  Family name: {str(self.__fields[UserFields.FAMILY_NAME])}\n' \
-            f'  Given name: {str(self.__fields[UserFields.GIVEN_NAME])}\n' \
-            f'  Active: {self.__fields[UserFields.ACTIVE]}\n' \
+            f'  User id: {self.__attr[UserAttr.USER_ID]}\n' \
+            f'  Family name: {str(self.__attr[UserAttr.FAMILY_NAME])}\n' \
+            f'  Given name: {str(self.__attr[UserAttr.GIVEN_NAME])}\n' \
+            f'  Active: {self.__attr[UserAttr.ACTIVE]}\n' \
             f'  In project: {admin_permissions}\n' \
-            f'  Has permissions: {self.__fields[UserFields.HAS_PERMISSIONS]}\n'
+            f'  Has permissions: {self.__attr[UserAttr.HAS_PERMISSIONS]}\n'
 
     #
     # The fields of the class can either be accessed using the dict-semantic or as
     # named properties. Here we implement the dict semantic
     #
-    def __getitem__(self, item: UserFields) -> UserFieldTypes:
-        if isinstance(self.__fields.get(item), Xsd_string):
-            return str(self.__fields[item])
-        return self.__fields.get(item)
+    def __getitem__(self, item: UserAttr) -> UserAttrTypes:
+        if isinstance(self.__attr.get(item), Xsd_string):
+            return str(self.__attr[item])
+        return self.__attr.get(item)
 
-    def __setitem__(self, field: UserFields, value: UserFieldTypes) -> None:
-        if field == UserFields.CREDENTIALS:
+    def __setitem__(self, field: UserAttr, value: UserAttrTypes) -> None:
+        if field == UserAttr.CREDENTIALS:
             salt = bcrypt.gensalt()
             value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
-        if field == UserFields.USER_IRI and self.__fields.get(UserFields.USER_IRI) is not None:
-            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__fields.get(UserFields.USER_IRI)}".')
+        if field == UserAttr.USER_IRI and self.__attr.get(UserAttr.USER_IRI) is not None:
+            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__attr.get(UserAttr.USER_IRI)}".')
         self.__change_setter(field, value)
 
     def _as_dict(self) -> dict:
         return {
-                'userIri': self.__fields.get(UserFields.USER_IRI),
-                'userId': self.__fields[UserFields.USER_ID],
-                'familyName': self.__fields[UserFields.FAMILY_NAME],
-                'givenName': self.__fields[UserFields.GIVEN_NAME],
-                'isActive': self.__fields[UserFields.ACTIVE],
-                'hasPermissions': self.__fields[UserFields.HAS_PERMISSIONS],
-                'inProject': self.__fields[UserFields.IN_PROJECT]
+                'userIri': self.__attr.get(UserAttr.USER_IRI),
+                'userId': self.__attr[UserAttr.USER_ID],
+                'familyName': self.__attr[UserAttr.FAMILY_NAME],
+                'givenName': self.__attr[UserAttr.GIVEN_NAME],
+                'isActive': self.__attr[UserAttr.ACTIVE],
+                'hasPermissions': self.__attr[UserAttr.HAS_PERMISSIONS],
+                'inProject': self.__attr[UserAttr.IN_PROJECT]
         }
 
     #
@@ -302,47 +277,47 @@ class UserDataclass:
     # set or modified, this method is called. It also puts the original value and the
     # action into the changeset.
     #
-    def __change_setter(self, field: UserFields, value: UserFieldTypes) -> None:
-        if self.__fields[field] == value:
+    def __change_setter(self, field: UserAttr, value: UserAttrTypes) -> None:
+        if self.__attr[field] == value:
             return
-        if self.__fields[field] is None:
-            if self.__change_set.get(field) is None:
-                self.__change_set[field] = UserFieldChange(None, Action.CREATE)
+        if self.__attr[field] is None:
+            if self.__changeset.get(field) is None:
+                self.__changeset[field] = UserAttrChange(None, Action.CREATE)
         else:
             if value is None:
-                if self.__change_set.get(field) is None:
-                    self.__change_set[field] = UserFieldChange(self.__fields[field], Action.DELETE)
+                if self.__changeset.get(field) is None:
+                    self.__changeset[field] = UserAttrChange(self.__attr[field], Action.DELETE)
             else:
-                if self.__change_set.get(field) is None:
-                    self.__change_set[field] = UserFieldChange(self.__fields[field], Action.REPLACE)
+                if self.__changeset.get(field) is None:
+                    self.__changeset[field] = UserAttrChange(self.__attr[field], Action.REPLACE)
         if value is None:
-            del self.__fields[field]
-            if field == UserFields.IN_PROJECT:
-                self.__fields[field] = InProjectClass(on_change=self.__inProject_cb)
-            elif field == UserFields.HAS_PERMISSIONS:
-                self.__fields[field] = ObservableSet(on_change=self.__hasPermission_cb)
+            del self.__attr[field]
+            if field == UserAttr.IN_PROJECT:
+                self.__attr[field] = InProjectClass(on_change=self.__inProject_cb)
+            elif field == UserAttr.HAS_PERMISSIONS:
+                self.__attr[field] = ObservableSet(on_change=self.__hasPermission_cb)
         else:
-            if field == UserFields.IN_PROJECT:
-                self.__fields[field] = InProjectClass(value, on_change=self.__inProject_cb)
-            elif field == UserFields.HAS_PERMISSIONS:
-                self.__fields[field] = ObservableSet(value, on_change=self.__hasPermission_cb)
+            if field == UserAttr.IN_PROJECT:
+                self.__attr[field] = InProjectClass(value, on_change=self.__inProject_cb)
+            elif field == UserAttr.HAS_PERMISSIONS:
+                self.__attr[field] = ObservableSet(value, on_change=self.__hasPermission_cb)
             else:
-                self.__fields[field] = self.__datatypes[field](value)
+                self.__attr[field] = self.__datatypes[field](value)
 
     #
     # Callbacks for the `ObservableSet`class. This is used whenever the `hasPermission`or
     # `inProject`properties are being modified
     #
     def __hasPermission_cb(self, oldset: ObservableSet, data: Any = None) -> None:
-        if self.__change_set.get(UserFields.HAS_PERMISSIONS) is None:
-            self.__change_set[UserFields.HAS_PERMISSIONS] = UserFieldChange(oldset, Action.MODIFY)
+        if self.__changeset.get(UserAttr.HAS_PERMISSIONS) is None:
+            self.__changeset[UserAttr.HAS_PERMISSIONS] = UserAttrChange(oldset, Action.MODIFY)
 
     def __inProject_cb(self, key: Iri, old: ObservableSet[AdminPermission] | None = None) -> None:
-        if self.__change_set.get(UserFields.IN_PROJECT) is None:
+        if self.__changeset.get(UserAttr.IN_PROJECT) is None:
             old = None
-            if self.__fields.get(UserFields.IN_PROJECT) is not None:
-                old = self.__fields[UserFields.IN_PROJECT].copy()
-            self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(old, Action.MODIFY)
+            if self.__attr.get(UserAttr.IN_PROJECT) is not None:
+                old = self.__attr[UserAttr.IN_PROJECT].copy()
+            self.__changeset[UserAttr.IN_PROJECT] = UserAttrChange(old, Action.MODIFY)
 
     @property
     def creator(self) -> Iri | None:
@@ -375,14 +350,14 @@ class UserDataclass:
         :type permission: AdminPermission | None
         :return: None
         """
-        if self.__fields[UserFields.IN_PROJECT].get(project) is None:
-            if self.__change_set.get(UserFields.IN_PROJECT) is None:
-                self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.CREATE)
-            self.__fields[UserFields.IN_PROJECT][project] = ObservableSet({permission})
+        if self.__attr[UserAttr.IN_PROJECT].get(project) is None:
+            if self.__changeset.get(UserAttr.IN_PROJECT) is None:
+                self.__changeset[UserAttr.IN_PROJECT] = UserAttrChange(self.__attr[UserAttr.IN_PROJECT], Action.CREATE)
+            self.__attr[UserAttr.IN_PROJECT][project] = ObservableSet({permission})
         else:
-            if self.__change_set.get(UserFields.IN_PROJECT) is None:
-                self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.MODIFY)
-            self.__fields[UserFields.IN_PROJECT][project].add(permission)
+            if self.__changeset.get(UserAttr.IN_PROJECT) is None:
+                self.__changeset[UserAttr.IN_PROJECT] = UserAttrChange(self.__attr[UserAttr.IN_PROJECT], Action.MODIFY)
+            self.__attr[UserAttr.IN_PROJECT][project].add(permission)
 
     def remove_project_permission(self, project: Iri | str, permission: AdminPermission | None) -> None:
         """
@@ -396,26 +371,26 @@ class UserDataclass:
         """
         if not isinstance(project, Iri):
             project = Iri(project)
-        if self.__fields[UserFields.IN_PROJECT].get(project) is None:
+        if self.__attr[UserAttr.IN_PROJECT].get(project) is None:
             raise OmasErrorValue(f"Project '{project}' does not exist")
-        if self.__change_set.get(UserFields.IN_PROJECT) is None:
-            self.__change_set[UserFields.IN_PROJECT] = UserFieldChange(self.__fields[UserFields.IN_PROJECT], Action.MODIFY)
-        self.__fields[UserFields.IN_PROJECT][project].remove(permission)
+        if self.__changeset.get(UserAttr.IN_PROJECT) is None:
+            self.__changeset[UserAttr.IN_PROJECT] = UserAttrChange(self.__attr[UserAttr.IN_PROJECT], Action.MODIFY)
+        self.__attr[UserAttr.IN_PROJECT][project].remove(permission)
 
     @property
-    def changeset(self) -> Dict[UserFields, UserFieldChange]:
+    def changeset(self) -> Dict[UserAttr, UserAttrChange]:
         """
-        Return the changeset, that is dicst with information about all properties that have benn changed.
+        Return the changeset, that is dict with information about all properties that have benn changed.
         :return: A dictionary of all changes
         """
-        return self.__change_set
+        return self.__changeset
 
     def clear_changeset(self):
         """
         Clear the changeset.
         :return:
         """
-        self.__change_set = {}
+        self.__changeset = {}
 
     @staticmethod
     def sparql_query(context: Context, userId: Xsd_NCName) -> str:
@@ -460,7 +435,7 @@ class UserDataclass:
             match str(r.get('prop')):
                 case 'dcterms:creator':
                     self._creator = r['val']
-                    self.__fields[UserFields.USER_IRI] = r['user']
+                    self.__attr[UserAttr.USER_IRI] = r['user']
                 case 'dcterms:created':
                     self._created = r['val']
                 case 'dcterms:contributor':
@@ -468,20 +443,20 @@ class UserDataclass:
                 case 'dcterms:modified':
                     self._modified = r['val']
                 case 'omas:userId':
-                    self.__fields[UserFields.USER_ID] = r['val']
+                    self.__attr[UserAttr.USER_ID] = r['val']
                 case 'foaf:familyName':
-                    self.__fields[UserFields.FAMILY_NAME] = r['val']
+                    self.__attr[UserAttr.FAMILY_NAME] = r['val']
                 case 'foaf:givenName':
-                    self.__fields[UserFields.GIVEN_NAME] = r['val']
+                    self.__attr[UserAttr.GIVEN_NAME] = r['val']
                 case 'omas:credentials':
-                    self.__fields[UserFields.CREDENTIALS] = r['val']
+                    self.__attr[UserAttr.CREDENTIALS] = r['val']
                 case 'omas:isActive':
-                    self.__fields[UserFields.ACTIVE] = r['val']
+                    self.__attr[UserAttr.ACTIVE] = r['val']
                 case 'omas:inProject':
                     in_project = {r['val']: set()}
                     # self.__fields[UserFields.IN_PROJECT] = {str(r['val']): ObservableSet()}
                 case 'omas:hasPermissions':
-                    self.__fields[UserFields.HAS_PERMISSIONS].add(r['val'])
+                    self.__attr[UserAttr.HAS_PERMISSIONS].add(r['val'])
                 case _:
                     if r.get('proj') and r.get('rval'):
                         if in_project.get(r['proj']) is None:
@@ -491,7 +466,7 @@ class UserDataclass:
                         #    self.__fields[UserFields.IN_PROJECT][str(r['proj'])] = ObservableSet()
                         # self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
         if in_project:
-            self.__fields[UserFields.IN_PROJECT] = InProjectClass(in_project, on_change=self.__inProject_cb)
+            self.__attr[UserAttr.IN_PROJECT] = InProjectClass(in_project, on_change=self.__inProject_cb)
         if not isinstance(self._modified, Xsd_dateTime):
             raise OmasErrorValue(f"Modified field is {type(self._modified)} and not datetime!!!!")
         self.clear_changeset()
@@ -510,8 +485,8 @@ class UserDataclass:
         ptest_len = 0
         blank = ''
         sparql_list = []
-        for field, change in self.__change_set.items():
-            if field == UserFields.HAS_PERMISSIONS or field == UserFields.IN_PROJECT:
+        for field, change in self.__changeset.items():
+            if field == UserAttr.HAS_PERMISSIONS or field == UserAttr.IN_PROJECT:
                 continue
             sparql = f'{blank:{indent * indent_inc}}# User field "{field.value}" with action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
@@ -521,16 +496,16 @@ class UserDataclass:
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {self.__fields[field].toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {self.__attr[field].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
-        if UserFields.HAS_PERMISSIONS in self.__change_set:
-            new_set = self.__fields[UserFields.HAS_PERMISSIONS]
-            old_set = self.__change_set[UserFields.HAS_PERMISSIONS].old_value
+        if UserAttr.HAS_PERMISSIONS in self.__changeset:
+            new_set = self.__attr[UserAttr.HAS_PERMISSIONS]
+            old_set = self.__changeset[UserAttr.HAS_PERMISSIONS].old_value
             added = new_set - old_set
             removed = old_set - new_set
             sparql = f'{blank:{indent * indent_inc}}# User field "hasPermission"\n'
@@ -566,11 +541,11 @@ class UserDataclass:
                 """
                 ptest_len = len(added) if added else 0
 
-        if UserFields.IN_PROJECT in self.__change_set:
+        if UserAttr.IN_PROJECT in self.__changeset:
             # first get all keys that must be added, that is that are in NEW but not in OLD:
-            addedprojs = self.__fields[UserFields.IN_PROJECT].keys() - self.__change_set[UserFields.IN_PROJECT].old_value.keys()
-            deletedprojs = self.__change_set[UserFields.IN_PROJECT].old_value.keys() - self.__fields[UserFields.IN_PROJECT].keys()
-            changedprojs = self.__fields[UserFields.IN_PROJECT].keys() & self.__change_set[UserFields.IN_PROJECT].old_value.keys()
+            addedprojs = self.__attr[UserAttr.IN_PROJECT].keys() - self.__changeset[UserAttr.IN_PROJECT].old_value.keys()
+            deletedprojs = self.__changeset[UserAttr.IN_PROJECT].old_value.keys() - self.__attr[UserAttr.IN_PROJECT].keys()
+            changedprojs = self.__attr[UserAttr.IN_PROJECT].keys() & self.__changeset[UserAttr.IN_PROJECT].old_value.keys()
 
             # add projects
             if addedprojs:
@@ -578,7 +553,7 @@ class UserDataclass:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
                 for proj in addedprojs:
                     sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} omas:inProject {proj.toRdf} .\n'
-                    for perm in self.__fields[UserFields.IN_PROJECT][proj]:
+                    for perm in self.__attr[UserAttr.IN_PROJECT][proj]:
                         sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -590,7 +565,7 @@ class UserDataclass:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
                 for proj in deletedprojs:
                     sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} omas:inProject {proj.toRdf} .\n'
-                    for perm in self.__change_set[UserFields.IN_PROJECT].old_value[proj]:
+                    for perm in self.__changeset[UserAttr.IN_PROJECT].old_value[proj]:
                         sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -601,7 +576,7 @@ class UserDataclass:
                 sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
                 for proj in changedprojs:
-                    perms = self.__fields[UserFields.IN_PROJECT][proj] - self.__change_set[UserFields.IN_PROJECT].old_value[proj]
+                    perms = self.__attr[UserAttr.IN_PROJECT][proj] - self.__changeset[UserAttr.IN_PROJECT].old_value[proj]
                     for perm in perms:
                         sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
                         doit = True
@@ -614,7 +589,7 @@ class UserDataclass:
                 sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
                 for proj in changedprojs:
-                    perms = self.__change_set[UserFields.IN_PROJECT].old_value[proj] - self.__fields[UserFields.IN_PROJECT][proj]
+                    perms = self.__changeset[UserAttr.IN_PROJECT].old_value[proj] - self.__attr[UserAttr.IN_PROJECT][proj]
                     for perm in perms:
                         sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
                         doit = True
