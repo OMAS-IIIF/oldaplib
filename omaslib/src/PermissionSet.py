@@ -342,28 +342,52 @@ class PermissionSet(Model):
     def search(con: IConnection,
                definedByProject: Iri | str | None = None,
                givesPermission: DataPermission | None = None,
-               label: Xsd_string | str | None = None) -> dict[Iri, LangString]:
+               label: Xsd_string | str | None = None) -> list[Iri]:
         label = Xsd_string(label)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
-        sparql += 'SELECT ?permsetIri ?label\n'
+        sparql += 'SELECT DISTINCT ?permsetIri'
+        # if definedByProject:
+        #     sparql += ' ?definedByProject'
+        # if givesPermission:
+        #     sparql += ' ?givesPermission'
+        # if label:
+        #     sparql += ' ?label'
+        sparql += '\n'
         sparql += 'FROM omas:admin\n'
         sparql += 'WHERE {\n'
         sparql += '   ?permsetIri rdf:type omas:PermissionSet .\n'
-        sparql += '   ?permsetIri rdfs:label ?label .\n'
+        if definedByProject:
+            sparql += '   ?permsetIri omas:definedByProject ?definedByProject .\n'
+        if givesPermission:
+            sparql += '   ?permsetIri omas:givesPermission ?givesPermission .\n'
         if label:
-            if label.lang:
-                sparql += f'   FILTER(?label = {label.toRdf})\n'
-            else:
-                sparql += f'   FILTER(str(?label) = "{Xsd_string.escaping(label.value)}")\n'
+            sparql += '   ?permsetIri rdfs:label ?label .\n'
+        if definedByProject or givesPermission or label:
+            sparql += '   FILTER('
+            use_and = False
+            if definedByProject:
+                sparql += f'?definedByProject = {definedByProject.toRdf}'
+                use_and = True
+            if givesPermission:
+                if use_and:
+                    sparql += ' && '
+                sparql += f'?givesPermission = {givesPermission.toRdf}'
+                use_and = True
+            if label:
+                if use_and:
+                    sparql += ' && '
+                if label.lang:
+                    sparql += f'?label = {label.toRdf}'
+                else:
+                    sparql += f'str(?label) = "{Xsd_string.escaping(label.value)}"'
+            sparql += ')\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        permissionSets: dict[Iri, LangString] = {}
+        permissionSets: list[Iri] = []
         for r in res:
-            if permissionSets.get(r['permsetIri']) is None:
-                permissionSets[r['permsetIri']] = LangString()
-            permissionSets[r['permsetIri']][r['label'].lang] = r['label'].value
+            permissionSets.append([r['permsetIri']])
         return permissionSets
 
     def update(self, indent: int = 0, indent_inc: int = 4):
@@ -446,12 +470,3 @@ class PermissionSet(Model):
         # TODO: use transaction for error handling
         self._con.update_query(sparql)
 
-
-if __name__ == '__main__':
-    con = Connection(server='http://localhost:7200',
-                     repo="omas",
-                     userId="rosenth",
-                     credentials="RioGrande",
-                     context_name="DEFAULT")
-    ps = PermissionSet.read(con, Iri('omas:GenericView'))
-    print(ps)
