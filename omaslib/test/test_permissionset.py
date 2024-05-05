@@ -3,7 +3,7 @@ from pathlib import Path
 from time import sleep
 
 from omaslib.src.enums.permissionsetattr import PermissionSetAttr
-from omaslib.src.PermissionSet import PermissionSet
+from omaslib.src.permissionset import PermissionSet
 from omaslib.src.connection import Connection
 from omaslib.src.enums.language import Language
 from omaslib.src.enums.permissions import DataPermission
@@ -178,14 +178,20 @@ class TestPermissionSet(unittest.TestCase):
     # TODO: More testing!!!
     def test_search_permission_sets(self):
         iris = PermissionSet.search(self._connection, label="GenericView")
-        print(iris)
         self.assertEqual(len(iris), 1)
+        self.assertEqual(Iri('omas:GenericView'), iris[0])
 
         iris = PermissionSet.search(self._connection, label=Xsd_string("GenericView@de"))
         self.assertEqual(len(iris), 1)
+        self.assertEqual(Iri('omas:GenericView'), iris[0])
 
-        iris = PermissionSet.search(self._connection, definedByProject=Iri("omas:SystemProject"))
-        self.assertEqual(len(iris), 2)
+        iris = PermissionSet.search(self._connection, definedByProject=Iri("omas:HyperHamlet"))
+        self.assertEqual(len(iris), 1)
+        self.assertEqual(Iri('omas:HyperHamletMember'), iris[0])
+
+        iris = PermissionSet.search(self._connection, givesPermission=DataPermission.DATA_RESTRICTED)
+        self.assertEqual(len(iris), 1)
+        self.assertEqual(Iri('omas:GenericRestricted'), iris[0])
 
     def test_update_permission_set(self):
         ps = PermissionSet(con=self._connection,

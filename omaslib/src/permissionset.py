@@ -384,7 +384,7 @@ class PermissionSet(Model):
         res = QueryProcessor(context, jsonobj)
         permissionSets: list[Iri] = []
         for r in res:
-            permissionSets.append([r['permsetIri']])
+            permissionSets.append(r['permsetIri'])
         return permissionSets
 
     def update(self, indent: int = 0, indent_inc: int = 4):
