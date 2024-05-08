@@ -10,6 +10,7 @@
 @prefix dmtest: <http://omas.org/dmtest#> .
 @prefix : <http://omas.org/dmtest#> .
 
+
 :shacl {
 
     :shapes dcterms:hasVersion "1.0.0" ;

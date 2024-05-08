@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Union
 
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
+from omaslib.src.project import Project
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
@@ -27,6 +28,7 @@ class PropertyClassChange:
 
 class DataModel(Model):
     __graph: Xsd_NCName
+    _project: Project
     __context: Context
     __version: SemanticVersion
     __propclasses: dict[Iri, PropertyClass | None]
@@ -36,13 +38,20 @@ class DataModel(Model):
 
     def __init__(self, *,
                  con: IConnection,
-                 graph: Xsd_NCName,
+                 project: Project,
                  propclasses: list[PropertyClass] | None = None,
                  resclasses: list[ResourceClass] | None = None) -> None:
         super().__init__(con)
         self.__version = SemanticVersion()
 
-        self.__graph = graph
+        if not isinstance(project, Project):
+            raise OmasErrorValue('The project parameter must be a Project instance')
+        self._project = project
+        context = Context(name=self._con.context_name)
+        context[project.projectShortName] = project.namespaceIri
+        context.use(project.projectShortName)
+        self.__graph = project.projectShortName
+
         self.__propclasses = {}
         if propclasses is not None:
             for p in propclasses:
@@ -128,9 +137,14 @@ class DataModel(Model):
             raise OmasErrorInconsistency(f'No resclass or property "{what}" in datamodel.')
 
     @classmethod
-    def read(cls, con: IConnection, graph: Xsd_NCName):
-        cls.__graph = graph
+    def read(cls, con: IConnection,
+             project: Project):
+        if not isinstance(project, Project):
+            raise OmasErrorValue('The project parameter must be a Project instance')
         cls.__context = Context(name=con.context_name)
+        cls.__context[project.projectShortName] = project.namespaceIri
+        cls.__context.use(project.projectShortName)
+        cls.__graph = project.projectShortName
         #
         # first we read the shapes metadata
         #
@@ -178,7 +192,7 @@ class DataModel(Model):
         for r in res:
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
-            propclass = PropertyClass.read(con, graph, Iri(propclassiri))
+            propclass = PropertyClass.read(con, project, Iri(propclassiri))
             propclasses.append(propclass)
         #
         # now get all resources defined in the data model
@@ -197,9 +211,9 @@ class DataModel(Model):
         for r in res:
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
-            resclass = ResourceClass.read(con, graph, Iri(resclassiri))
+            resclass = ResourceClass.read(con, project, Iri(resclassiri))
             resclasses.append(resclass)
-        instance = cls(graph=graph, con=con, propclasses=propclasses, resclasses=resclasses)
+        instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses)
         for qname in instance.get_propclasses():
             instance[qname].set_notifier(instance.notifier, qname)
         for qname in instance.get_resclasses():

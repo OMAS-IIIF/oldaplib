@@ -26,6 +26,7 @@ class AdminPermission(Enum):
     ADMIN_RESOURCES = 'omas:ADMIN_RESOURCES'
     ADMIN_MODEL = 'omas:ADMIN_MODEL'
     ADMIN_CREATE = 'omas:ADMIN_CREATE'
+    ADMIN_LISTS = 'omas:ADMIN_LISTS'
 
     @property
     def toRdf(self):

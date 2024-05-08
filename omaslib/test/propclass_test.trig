@@ -1,0 +1,37 @@
+@PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@PREFIX owl: <http://www.w3.org/2002/07/owl#> .
+@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
+@PREFIX xml: <http://www.w3.org/XML/1998/namespace#> .
+@PREFIX sh: <http://www.w3.org/ns/shacl#> .
+@PREFIX skos: <http://www.w3.org/2004/02/skos/core#> .
+@PREFIX dc: <http://purl.org/dc/elements/1.1/> .
+@PREFIX dcterms: <http://purl.org/dc/terms/> .
+@PREFIX foaf: <http://xmlns.com/foaf/0.1/> .
+@PREFIX omas: <http://omas.org/base#> .
+@PREFIX test: <http://omas.org/test#> .
+test:shacl {
+
+        # PropertyClass.create_shacl()
+        test:testWriteItShape a sh:PropertyShape ;
+            # PropertyClass.property_node_shacl()
+            sh:path test:testWriteIt ;
+            dcterms:hasVersion "0.1.0"^^xsd:string ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2024-05-08T22:35:27.433615"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2024-05-08T22:35:27.433615"^^xsd:dateTime ;
+            sh:class test:comment ;
+            sh:name "Annotations"@en, "Annotationen"@de ;
+            sh:description "An annotation"@en ;
+            sh:minCount "0"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer .
+}
+test:onto {
+        test:testWriteIt rdf:type owl:ObjectProperty ;
+            rdfs:range test:comment ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2024-05-08T22:35:27.433615"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2024-05-08T22:35:27.433615"^^xsd:dateTime .
+}

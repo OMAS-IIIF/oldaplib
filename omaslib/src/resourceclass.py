@@ -16,6 +16,7 @@ from omaslib.src.helpers.tools import RdfModifyRes, RdfModifyItem
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
 from omaslib.src.dtypes.bnode import BNode
 from omaslib.src.enums.action import Action
+from omaslib.src.project import Project
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -52,6 +53,7 @@ class ResourceClassPropertyChange:
 @strict
 class ResourceClass(Model, Notify):
     _graph: Xsd_NCName
+    _project: Project
     _owlclass_iri: Iri | None
     _attributes: ResourceClassAttributesContainer
     _properties: Dict[Iri, PropertyClass]
@@ -73,7 +75,7 @@ class ResourceClass(Model, Notify):
 
     def __init__(self, *,
                  con: IConnection,
-                 graph: Xsd_NCName,
+                 project: Project,
                  owlclass_iri: Iri | str |None = None,
                  subClassOf: Iri | str | None = None,
                  label: LangString | str | None = None,
@@ -84,7 +86,14 @@ class ResourceClass(Model, Notify):
                  notify_data: PropClassAttr | None = None):
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
-        self._graph = graph if isinstance(graph, Xsd_NCName) else Xsd_NCName(graph)
+
+        if not isinstance(project, Project):
+            raise OmasErrorValue('The project parameter must be a Project instance')
+        self._project = project
+        context = Context(name=self._con.context_name)
+        context[project.projectShortName] = project.namespaceIri
+        context.use(project.projectShortName)
+        self._graph = project.projectShortName
 
         self._attributes = {}
 
@@ -109,7 +118,7 @@ class ResourceClass(Model, Notify):
                 if isinstance(prop, Iri):  # Reference to an external, standalone property definition
                     fixed_prop = Iri(str(prop).removesuffix("Shape"))
                     try:
-                        newprop = PropertyClass.read(self._con, self._graph, fixed_prop)
+                        newprop = PropertyClass.read(self._con, self._project, fixed_prop)
                     except OmasErrorNotFound as err:
                         newprop = fixed_prop
                 elif isinstance(prop, PropertyClass):  # an internal, private property definition
@@ -175,7 +184,7 @@ class ResourceClass(Model, Notify):
                 self._prop_changeset[key] = ResourceClassPropertyChange(None, Action.CREATE, False)
                 if value is None:
                     try:
-                        self._properties[key] = PropertyClass.read(self._con, graph=self._graph, property_class_iri=key)
+                        self._properties[key] = PropertyClass.read(self._con, project=self._project, property_class_iri=key)
                     except OmasErrorNotFound as err:
                         self._properties[key] = key
                 else:
@@ -189,7 +198,7 @@ class ResourceClass(Model, Notify):
                     self._prop_changeset[key] = ResourceClassPropertyChange(self._prop_changeset[key].old_value, Action.REPLACE, True)
                 if value is None:
                     try:
-                        self._properties[key] = PropertyClass.read(self._con, graph=self._graph, property_class_iri=key)
+                        self._properties[key] = PropertyClass.read(self._con, project=self._project, property_class_iri=key)
                     except OmasErrorNotFound as err:
                         self._properties[key] = key
                 else:
@@ -316,8 +325,14 @@ class ResourceClass(Model, Notify):
                 return False
 
     @staticmethod
-    def __query_shacl(con: IConnection, graph: Xsd_NCName, owl_class_iri: Iri) -> Attributes:
+    def __query_shacl(con: IConnection,
+                      project: Project,
+                      owl_class_iri: Iri) -> Attributes:
         context = Context(name=con.context_name)
+        context[project.projectShortName] = project.namespaceIri
+        context.use(project.projectShortName)
+        graph = project.projectShortName
+
         query = context.sparql_context
         query += f"""
         SELECT ?attriri ?value
@@ -388,7 +403,7 @@ class ResourceClass(Model, Notify):
         self.__from_triplestore = True
 
     @staticmethod
-    def __query_resource_props(con: IConnection, graph: Xsd_NCName, owlclass_iri: Iri) -> List[PropertyClass | Iri]:
+    def __query_resource_props(con: IConnection, project: Project, owlclass_iri: Iri) -> List[PropertyClass | Iri]:
         """
         This method queries and returns a list of properties defined in a sh:NodeShape. The properties may be
         given "inline" as BNode or may be a reference to an external sh:PropertyShape. These external shapes will be
@@ -401,6 +416,10 @@ class ResourceClass(Model, Notify):
         """
 
         context = Context(name=con.context_name)
+        context[project.projectShortName] = project.namespaceIri
+        context.use(project.projectShortName)
+        graph = project.projectShortName
+
         query = context.sparql_context
         query += f"""
         SELECT ?prop ?attriri ?value ?oo
@@ -449,7 +468,7 @@ class ResourceClass(Model, Notify):
             if isinstance(attributes, Iri):
                 proplist.append(prop_iri)
             else:
-                prop = PropertyClass(con=con, graph=graph)
+                prop = PropertyClass(con=con, project=project)
                 prop.parse_shacl(attributes=attributes)
                 prop.read_owl()
                 if prop._internal != owlclass_iri:
@@ -503,13 +522,16 @@ class ResourceClass(Model, Notify):
             self._properties[prop[0]].prop.read_owl()
 
     @classmethod
-    def read(cls, con: IConnection, graph: Xsd_NCName, owl_class_iri: Iri) -> Self:
-        attributes = ResourceClass.__query_shacl(con, graph=graph, owl_class_iri=owl_class_iri)
-        properties: List[Union[PropertyClass, Iri]] = ResourceClass.__query_resource_props(con=con, graph=graph, owlclass_iri=owl_class_iri)
-        resclass = cls(con=con, graph=graph, owlclass_iri=owl_class_iri, properties=properties)
+    def read(cls, con: IConnection, project: Project, owl_class_iri: Iri) -> Self:
+        if not isinstance(project, Project):
+            raise OmasErrorValue('The project parameter must be a Project instance')
+
+        properties: List[Union[PropertyClass, Iri]] = ResourceClass.__query_resource_props(con=con, project=project, owlclass_iri=owl_class_iri)
+        resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, properties=properties)
         for prop in properties:
             if isinstance(prop, PropertyClass):
                 prop.set_notifier(resclass.notifier, prop.property_class_iri)
+        attributes = ResourceClass.__query_shacl(con, project=project, owl_class_iri=owl_class_iri)
         resclass._parse_shacl(attributes=attributes)
         resclass.__read_owl()
         return resclass

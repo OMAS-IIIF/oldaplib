@@ -79,6 +79,10 @@ class PermissionSet(Model):
 
         if not self.__attributes[PermissionSetAttr.LABEL]:
             raise OmasErrorInconsistency(f'PermissionSet must have at least one rdfs:label, none given.')
+        if not self.__attributes[PermissionSetAttr.GIVES_PERMISSION]:
+            raise OmasErrorInconsistency(f'PermissionSet must have at least one omas:givesPermission, none given.')
+        if not self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]:
+            raise OmasErrorInconsistency(f'PermissionSet must have at least one omas:definedByproject, none given.')
 
         for field in PermissionSetAttr:
             prefix, name = field.value.split(':')

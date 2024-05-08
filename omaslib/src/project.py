@@ -127,7 +127,7 @@ class Project(Model):
     __contributor: Iri | None
     __modified: Xsd_dateTime | None
 
-    __fields: dict[ProjectAttr, ProjectAttrTypes]
+    __attributes: dict[ProjectAttr, ProjectAttrTypes]
 
     __changeset: dict[ProjectAttr, ProjectAttrChange]
 
@@ -182,40 +182,40 @@ class Project(Model):
         if modified and not isinstance(modified, Xsd_dateTime):
             raise OmasErrorValue(f'Modified must be "Xsd_dateTime", not "{type(modified)}".')
         self.__modified = modified
-        self.__fields = {}
+        self.__attributes = {}
 
         if projectIri:
             if not isinstance(projectIri, Iri):
-                self.__fields[ProjectAttr.PROJECT_IRI] = Iri(projectIri)
+                self.__attributes[ProjectAttr.PROJECT_IRI] = Iri(projectIri)
             else:
-                self.__fields[ProjectAttr.PROJECT_IRI] = projectIri
+                self.__attributes[ProjectAttr.PROJECT_IRI] = projectIri
         else:
-            self.__fields[ProjectAttr.PROJECT_IRI] = Iri()
+            self.__attributes[ProjectAttr.PROJECT_IRI] = Iri()
 
-        self.__fields[ProjectAttr.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
+        self.__attributes[ProjectAttr.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
 
         if namespaceIri and isinstance(namespaceIri, NamespaceIRI):
-            self.__fields[ProjectAttr.NAMESPACE_IRI] = namespaceIri
+            self.__attributes[ProjectAttr.NAMESPACE_IRI] = namespaceIri
         else:
             raise OmasErrorValue(f'Invalid namespace iri: {namespaceIri}')
 
-        self.__fields[ProjectAttr.LABEL] = label if isinstance(label, LangString) else LangString(label)
-        self.__fields[ProjectAttr.LABEL].set_notifier(self.notifier, Xsd_QName(ProjectAttr.LABEL.value))
-        self.__fields[ProjectAttr.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
-        self.__fields[ProjectAttr.COMMENT].set_notifier(self.notifier, Xsd_QName(ProjectAttr.COMMENT.value))
-        self.__fields[ProjectAttr.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
+        self.__attributes[ProjectAttr.LABEL] = label if isinstance(label, LangString) else LangString(label)
+        self.__attributes[ProjectAttr.LABEL].set_notifier(self.notifier, Xsd_QName(ProjectAttr.LABEL.value))
+        self.__attributes[ProjectAttr.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
+        self.__attributes[ProjectAttr.COMMENT].set_notifier(self.notifier, Xsd_QName(ProjectAttr.COMMENT.value))
+        self.__attributes[ProjectAttr.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
         #
         # Consistency checks
         #
-        if not self.__fields[ProjectAttr.LABEL]:
+        if not self.__attributes[ProjectAttr.LABEL]:
             raise OmasErrorInconsistency(f'Project must have at least one rdfs:label, none given.')
         if projectStart is not None:
-            self.__fields[ProjectAttr.PROJECT_START] = projectStart if isinstance(projectStart, Xsd_date) else Xsd_date(projectStart)
+            self.__attributes[ProjectAttr.PROJECT_START] = projectStart if isinstance(projectStart, Xsd_date) else Xsd_date(projectStart)
         else:
-            self.__fields[ProjectAttr.PROJECT_START] = Xsd_date()
+            self.__attributes[ProjectAttr.PROJECT_START] = Xsd_date()
         if projectEnd is not None:
-            self.__fields[ProjectAttr.PROJECT_END] = projectEnd if isinstance(projectEnd, Xsd_date) else Xsd_date(projectEnd)
-            if self.__fields[ProjectAttr.PROJECT_END] < self.__fields[ProjectAttr.PROJECT_START]:
+            self.__attributes[ProjectAttr.PROJECT_END] = projectEnd if isinstance(projectEnd, Xsd_date) else Xsd_date(projectEnd)
+            if self.__attributes[ProjectAttr.PROJECT_END] < self.__attributes[ProjectAttr.PROJECT_START]:
                 raise OmasErrorInconsistency(f'Project start date {projectStart} is after project end date {projectEnd}.')
 
         #
@@ -238,7 +238,7 @@ class Project(Model):
             return False, "No permission to create a new project."
 
     def __get_value(self: Self, field: ProjectAttr) -> ProjectAttrTypes | None:
-        tmp = self.__fields.get(field)
+        tmp = self.__attributes.get(field)
         if not tmp:
             return None
         return tmp
@@ -247,7 +247,7 @@ class Project(Model):
         self.__change_setter(field, value)
 
     def __del_value(self: Self, field: ProjectAttr) -> None:
-        del self.__fields[field]
+        del self.__attributes[field]
 
     #
     # this private method handles the setting of a field. Whenever a field is being
@@ -255,48 +255,49 @@ class Project(Model):
     # action into the changeset.
     #
     def __change_setter(self, field: ProjectAttr, value: ProjectAttrTypes) -> None:
-        if self.__fields.get(field) == value:
+        if self.__attributes.get(field) == value:
             return
         if field == ProjectAttr.PROJECT_IRI or field == ProjectAttr.NAMESPACE_IRI or field == ProjectAttr.PROJECT_SHORTNAME:
             raise OmasErrorImmutable(f'Field {field.value} is immutable.')
         if field == ProjectAttr.PROJECT_START:
-            if self.__fields.get(ProjectAttr.PROJECT_END) and value >= self.__fields[ProjectAttr.PROJECT_END]:
+            if self.__attributes.get(ProjectAttr.PROJECT_END) and value >= self.__attributes[ProjectAttr.PROJECT_END]:
                 raise OmasErrorInconsistency('Project start date must be less than project end date.')
         if field == ProjectAttr.PROJECT_END:
-            if self.__fields.get(ProjectAttr.PROJECT_START) and value <= self.__fields[ProjectAttr.PROJECT_START]:
+            if self.__attributes.get(ProjectAttr.PROJECT_START) and value <= self.__attributes[ProjectAttr.PROJECT_START]:
                 raise OmasErrorInconsistency('Project end date must be greater than project start date.')
-        if self.__fields.get(field) is None:
+        if self.__attributes.get(field) is None:
             if self.__changeset.get(field) is None:
                 self.__changeset[field] = ProjectAttrChange(None, Action.CREATE)
         else:
             if value is None:
                 if self.__changeset.get(field) is None:
-                    self.__changeset[field] = ProjectAttrChange(self.__fields[field], Action.DELETE)
+                    self.__changeset[field] = ProjectAttrChange(self.__attributes[field], Action.DELETE)
             else:
                 if self.__changeset.get(field) is None:
-                    self.__changeset[field] = ProjectAttrChange(self.__fields[field], Action.REPLACE)
+                    self.__changeset[field] = ProjectAttrChange(self.__attributes[field], Action.REPLACE)
         if value is None:
-            del self.__fields[field]
+            del self.__attributes[field]
         else:
             if not isinstance(value, self.__datatypes[field]):
-                self.__fields[field] = self.__datatypes[field](value)
+                self.__attributes[field] = self.__datatypes[field](value)
             else:
-                self.__fields[field] = value
+                self.__attributes[field] = value
+
     def __str__(self) -> str:
         """
         String representation of the project. This is a multiline string for the human reader.
         :return: str
         """
-        res = f'Project: {self.__fields[ProjectAttr.PROJECT_IRI]}\n'\
+        res = f'Project: {self.__attributes[ProjectAttr.PROJECT_IRI]}\n'\
               f'  Creation: {self.__created} by {self.__creator}\n'\
               f'  Modified: {self.__modified} by {self.__contributor}\n'\
-              f'  Label: {self.__fields[ProjectAttr.LABEL]}\n'\
-              f'  Comment: {self.__fields[ProjectAttr.COMMENT]}\n'\
-              f'  ShortName: {self.__fields[ProjectAttr.PROJECT_SHORTNAME]}\n'\
-              f'  Namespace IRI: {self.__fields[ProjectAttr.NAMESPACE_IRI]}\n'\
-              f'  Project start: {self.__fields[ProjectAttr.PROJECT_START]}\n'
-        if self.__fields.get(ProjectAttr.PROJECT_END) is not None:
-            res += f'  Project end: {self.__fields[ProjectAttr.PROJECT_END]}\n'
+              f'  Label: {self.__attributes[ProjectAttr.LABEL]}\n'\
+              f'  Comment: {self.__attributes[ProjectAttr.COMMENT]}\n'\
+              f'  ShortName: {self.__attributes[ProjectAttr.PROJECT_SHORTNAME]}\n'\
+              f'  Namespace IRI: {self.__attributes[ProjectAttr.NAMESPACE_IRI]}\n'\
+              f'  Project start: {self.__attributes[ProjectAttr.PROJECT_START]}\n'
+        if self.__attributes.get(ProjectAttr.PROJECT_END) is not None:
+            res += f'  Project end: {self.__attributes[ProjectAttr.PROJECT_END]}\n'
         return res
 
     @property
@@ -359,7 +360,7 @@ class Project(Model):
         :return: None
         """
         field = ProjectAttr(fieldname)
-        self.__changeset[field] = ProjectAttrChange(self.__fields[field], Action.MODIFY)
+        self.__changeset[field] = ProjectAttrChange(self.__attributes[field], Action.MODIFY)
 
     @classmethod
     def read(cls, con: IConnection, projectIri_SName: Iri | Xsd_NCName | str) -> Self:
@@ -465,8 +466,8 @@ class Project(Model):
 
     @staticmethod
     def search(con: IConnection,
-               label: Optional[str] = None,
-               comment: Optional[str] = None) -> List[Iri]:
+               label: str | None = None,
+               comment: str | None = None) -> list[Iri]:
         """
         Search for a given project. If no label or comment is given, all existing projects are returned. If both
         a search term for the label and comment are given, they will be combined by *AND*.
@@ -536,8 +537,6 @@ class Project(Model):
         timestamp = Xsd_dateTime.now()
         indent: int = 0
         indent_inc: int = 4
-        if self._con is None:
-            raise OmasError("Cannot create: no connection")
 
         context = Context(name=self._con.context_name)
 
@@ -621,19 +620,19 @@ class Project(Model):
         for field, change in self.__changeset.items():
             if field == ProjectAttr.LABEL or field == ProjectAttr.COMMENT:
                 if change.action == Action.MODIFY:
-                    sparql_list.extend(self.__fields[field].update(graph=Xsd_QName('omas:admin'),
-                                                                   subject=self.projectIri,
-                                                                   subjectvar='?project',
-                                                                   field=Xsd_QName(field.value)))
+                    sparql_list.extend(self.__attributes[field].update(graph=Xsd_QName('omas:admin'),
+                                                                       subject=self.projectIri,
+                                                                       subjectvar='?project',
+                                                                       field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    sparql = self.__fields[field].delete(graph=Xsd_QName('omas:admin'),
-                                                         subject=self.projectIri,
-                                                         field=Xsd_QName(field.value))
+                    sparql = self.__attributes[field].delete(graph=Xsd_QName('omas:admin'),
+                                                             subject=self.projectIri,
+                                                             field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
-                    sparql = self.__fields[field].create(graph=Xsd_QName('omas:admin'),
-                                                         subject=self.projectIri,
-                                                         field=Xsd_QName(field.value))
+                    sparql = self.__attributes[field].create(graph=Xsd_QName('omas:admin'),
+                                                             subject=self.projectIri,
+                                                             field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 continue
             sparql = f'{blank:{indent * indent_inc}}# Project field "{field.value}" with action "{change.action.value}"\n'
@@ -644,7 +643,7 @@ class Project(Model):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__fields[field].toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__attributes[field].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.projectIri.toRdf} as ?project)\n'

@@ -3,6 +3,7 @@ Test data
 """
 import unittest
 from enum import Enum
+from pathlib import Path
 from time import sleep
 
 from omaslib.src.connection import Connection
@@ -18,6 +19,7 @@ from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.helpers.semantic_version import SemanticVersion
+from omaslib.src.project import Project
 from omaslib.src.propertyclass import PropClassAttrContainer, PropertyClass, OwlPropertyType
 from omaslib.src.resourceclass import ResourceClass
 from omaslib.src.xsd.iri import Iri
@@ -80,12 +82,26 @@ def check_res_empty(con: Connection, context: Context, graph: Graph, res: str) -
     return len(res) == 0
 
 
+def find_project_root(current_path):
+    # Climb up the directory hierarchy and check for a marker file
+    path = Path(current_path).absolute()
+    while not (path / 'pyproject.toml').exists():
+        if path.parent == path:
+            # Root of the filesystem, file not found
+            raise RuntimeError('Project root not found')
+        path = path.parent
+    return path
+
+
 class TestResourceClass(unittest.TestCase):
     _context: Context
     _connection: Connection
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
+        project_root = find_project_root(__file__)
+
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://omas.org/test#")
         cls._context.use('test', 'dcterms')
@@ -100,8 +116,11 @@ class TestResourceClass(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:onto'))
         cls._connection.clear_graph(Xsd_QName('dcterms:shacl'))
         cls._connection.clear_graph(Xsd_QName('dcterms:onto'))
-        cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
+
+        file = project_root / 'omaslib' / 'testdata' / 'connection_test.trig'
+        cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
+        cls._project = Project.read(cls._connection, "test")
 
     @classmethod
     def tearDownClass(cls):
@@ -112,7 +131,7 @@ class TestResourceClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_constructor(self):
         p1 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:testprop'),
                            subPropertyOf=Iri('test:comment'),
                            datatype=XsdDatatypes.langString,
@@ -124,7 +143,7 @@ class TestResourceClass(unittest.TestCase):
                            order=Xsd_decimal(5))
 
         p2 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:enumprop'),
                            datatype=XsdDatatypes.string,
                            name=LangString(["Test enum@en", "Enumerationen@de"]),
@@ -140,7 +159,7 @@ class TestResourceClass(unittest.TestCase):
         ]
 
         r1 = ResourceClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            owlclass_iri=Iri("test:TestResource"),
                            label=LangString(["Test resource@en", "Resource de test@fr"]),
                            comment=LangString("For testing purposes@en"),
@@ -190,7 +209,7 @@ class TestResourceClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_reading(self):
         r1 = ResourceClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 owl_class_iri=Iri('test:testMyRes'))
         self.assertEqual(r1.owl_class_iri, Iri('test:testMyRes'))
         self.assertEqual(r1.version, SemanticVersion(1, 0, 0))
@@ -241,7 +260,7 @@ class TestResourceClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_creating(self):
         p1 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:testone'),
                            subPropertyOf=Iri('test:comment'),
                            datatype=XsdDatatypes.langString,
@@ -254,7 +273,7 @@ class TestResourceClass(unittest.TestCase):
                            order=Xsd_decimal(1))
 
         p2 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:testtwo'),
                            toNodeIri=Iri('test:testMyRes'),
                            name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
@@ -263,7 +282,7 @@ class TestResourceClass(unittest.TestCase):
                            order=Xsd_decimal(2))
 
         p3 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:testthree'),
                            datatype=XsdDatatypes.int,
                            name=LangString(["E.N.U.M@en"]),
@@ -277,7 +296,7 @@ class TestResourceClass(unittest.TestCase):
             p1, p2, p3
         ]
         r1 = ResourceClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            owlclass_iri=Iri("test:TestResource"),
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
@@ -287,7 +306,7 @@ class TestResourceClass(unittest.TestCase):
         r1.create()
 
         r2 = ResourceClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 owl_class_iri=Iri("test:TestResource"))
         self.assertEqual(r2.owl_class_iri, Xsd_QName("test:TestResource"))
         self.assertEqual(r2.label, LangString(["CreateResTest@en", "CréationResTeste@fr"]))
@@ -349,7 +368,7 @@ class TestResourceClass(unittest.TestCase):
             Iri("test:test"),
         ]
         r1 = ResourceClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            owlclass_iri=Iri("test:testMyResMinimal"),
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
@@ -363,7 +382,7 @@ class TestResourceClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_updating_add(self):
         r1 = ResourceClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 owl_class_iri=Iri("test:testMyResMinimal"))
         r1[ResourceClassAttribute.LABEL] = LangString(["Minimal Resource@en", "Kleinste Resource@de"])
         r1[ResourceClassAttribute.COMMENT] = LangString("Eine Beschreibung einer minimalen Ressource")
@@ -378,13 +397,13 @@ class TestResourceClass(unittest.TestCase):
         # Adding an internal, private property
         #
         p = PropertyClass(con=self._connection,
-                          graph=Xsd_NCName('test'),
+                          project=self._project,
                           toNodeIri=Iri('test:Person'),
                           maxCount=Xsd_integer(1))
         r1[Iri('dcterms:creator')] = p
 
         p2 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            datatype=XsdDatatypes.string,
                            inSet=RdfSet(Xsd_string('A'), Xsd_string('B'), Xsd_string('C'), Xsd_string('D'))
                            )
@@ -392,7 +411,7 @@ class TestResourceClass(unittest.TestCase):
         r1.update()
 
         r2 = ResourceClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 owl_class_iri=Iri("test:testMyResMinimal"))
         self.assertEqual(r2.label, LangString(["Minimal Resource@en", "Kleinste Resource@de"]))
         self.assertEqual(r2.comment, LangString("Eine Beschreibung einer minimalen Ressource"))
@@ -466,7 +485,7 @@ class TestResourceClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 owl_class_iri=Iri("test:testMyRes"))
         self.assertEqual(r1[Iri('test:hasText')].maxCount, Xsd_integer(1))
         self.assertEqual(r1[Iri('test:hasText')].minCount, Xsd_integer(1))
@@ -481,7 +500,7 @@ class TestResourceClass(unittest.TestCase):
         r1.update()
 
         r2 = ResourceClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 owl_class_iri=Iri("test:testMyRes"))
         self.assertEqual(r2.label, LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr", "La mia risorsa@it"]))
         self.assertFalse(r2.closed)
@@ -494,7 +513,7 @@ class TestResourceClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_delete_props(self):
         p1 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:propA'),
                            subPropertyOf=Iri('test:comment'),
                            datatype=XsdDatatypes.langString,
@@ -507,7 +526,7 @@ class TestResourceClass(unittest.TestCase):
                            order=Xsd_decimal(1))
 
         p2 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:propB'),
                            toNodeIri=Iri('test:testMyRes'),
                            name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
@@ -516,7 +535,7 @@ class TestResourceClass(unittest.TestCase):
                            order=Xsd_decimal(2))
 
         p3 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:propC'),
                            datatype=XsdDatatypes.int,
                            inSet=RdfSet(Xsd_integer(10), Xsd_integer(20), Xsd_integer(30)))
@@ -527,7 +546,7 @@ class TestResourceClass(unittest.TestCase):
             p1, p2, p3
         ]
         r1 = ResourceClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            owlclass_iri=Iri("test:TestResourceDelProps"),
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
@@ -537,7 +556,7 @@ class TestResourceClass(unittest.TestCase):
         r1.create()
 
         r2 = ResourceClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 owl_class_iri=Iri("test:TestResourceDelProps"))
         del r2[Iri('test:propB')]
         del r2[Iri("test:test")]  # OWL is not yet removed (rdfs:subClassOf is still there)
@@ -545,7 +564,7 @@ class TestResourceClass(unittest.TestCase):
         r2.update()
 
         r3 = ResourceClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 owl_class_iri=Iri("test:TestResourceDelProps"))
 
         self.assertTrue(check_prop_empty(self._connection, self._context, Graph.SHACL, 'test:testMyResMinimal', 'test:propB'))
@@ -560,7 +579,7 @@ class TestResourceClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_delete(self):
         p1 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:deleteA'),
                            subPropertyOf=Iri('test:comment'),
                            datatype=XsdDatatypes.langString,
@@ -573,7 +592,7 @@ class TestResourceClass(unittest.TestCase):
                            order=Xsd_decimal(1))
 
         p2 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:deleteB'),
                            toNodeIri=Iri('test:testMyRes'),
                            name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
@@ -582,7 +601,7 @@ class TestResourceClass(unittest.TestCase):
                            order=Xsd_decimal(2))
 
         p3 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:deleteC'),
                            datatype=XsdDatatypes.int,
                            inSet=RdfSet(Xsd_integer(10), Xsd_integer(20), Xsd_integer(30)))
@@ -593,7 +612,7 @@ class TestResourceClass(unittest.TestCase):
             p1, p2, p3
         ]
         r1 = ResourceClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            owlclass_iri=Iri("test:TestResourceDelete"),
                            label=LangString(["DeleteResTest@en", "EffaçerResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
@@ -604,7 +623,7 @@ class TestResourceClass(unittest.TestCase):
         del r1
 
         r2 = ResourceClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 owl_class_iri=Iri("test:TestResourceDelete"))
         r2.delete()
 
@@ -614,7 +633,7 @@ class TestResourceClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_write_trig(self):
         project_id = PropertyClass(con=self._connection,
-                                   graph=Xsd_NCName('test'),
+                                   project=self._project,
                                    property_class_iri=Iri('test:projectId'),
                                    datatype=XsdDatatypes.langString,
                                    name=LangString(["Project ID@en", "Projekt ID@de"]),
@@ -624,7 +643,7 @@ class TestResourceClass(unittest.TestCase):
                                    uniqueLang=Xsd_boolean(True),
                                    order=Xsd_decimal(1))
         project_name = PropertyClass(con=self._connection,
-                                     graph=Xsd_NCName('test'),
+                                     project=self._project,
                                      property_class_iri=Iri('test:projectName'),
                                      datatype=XsdDatatypes.langString,
                                      name=LangString(["Project name@en", "Projektname@de"]),
@@ -638,7 +657,7 @@ class TestResourceClass(unittest.TestCase):
             project_id, project_name
         ]
         r1 = ResourceClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            owlclass_iri=Iri("test:Project"),
                            label=LangString(["Project@en", "Projekt@de"]),
                            comment=LangString(["Definiton of a project@en", "Definition eines Projektes@de"]),

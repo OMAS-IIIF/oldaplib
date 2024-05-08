@@ -10,6 +10,31 @@
 @prefix test: <http://omas.org/test#> .
 @prefix : <http://omas.org/test#> .
 
+omas:admin {
+
+    omas:Test a omas:Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        omas:projectShortName "test"^^xsd:NCName ;
+        omas:namespaceIri "http://omas.org/test#"^^xsd:anyURI ;
+        rdfs:label "Test"@en, "Test"@de, "Test"@fr, "Test"@it ;
+        rdfs:comment "For testing purposes"@en ;
+        omas:projectStart "2024-01-01"^^xsd:date .
+
+    omas:DmTest a omas:Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        omas:projectShortName "dmtest"^^xsd:NCName ;
+        omas:namespaceIri "http://omas.org/dmtest#"^^xsd:anyURI ;
+        rdfs:label "DmTest"@en, "DmTest"@de, "DmTest"@fr, "DmTest"@it ;
+        rdfs:comment "For data model testing purposes"@en ;
+        omas:projectStart "2024-01-01"^^xsd:date .
+
+}
 
 :shacl {
 

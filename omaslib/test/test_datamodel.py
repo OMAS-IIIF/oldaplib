@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+from time import sleep
 
 from omaslib.src.connection import Connection
 from omaslib.src.datamodel import DataModel, PropertyClassChange, ResourceClassChange
@@ -6,30 +8,47 @@ from omaslib.src.dtypes.languagein import LanguageIn
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
 from omaslib.src.dtypes.namespaceiri import NamespaceIRI
+from omaslib.src.project import Project
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_decimal import Xsd_decimal
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 from omaslib.src.xsd.xsd_qname import Xsd_QName
-from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.enums.language import Language
 from omaslib.src.enums.propertyclassattr import PropClassAttr
-from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 from omaslib.src.enums.xsd_datatypes import XsdDatatypes
-from omaslib.src.propertyclass import PropClassAttrContainer, PropertyClass
+from omaslib.src.propertyclass import PropertyClass
 from omaslib.src.resourceclass import ResourceClass
+
+
+def find_project_root(current_path):
+    # Climb up the directory hierarchy and check for a marker file
+    path = Path(current_path).absolute()
+    while not (path / 'pyproject.toml').exists():
+        if path.parent == path:
+            # Root of the filesystem, file not found
+            raise RuntimeError('Project root not found')
+        path = path.parent
+    return path
 
 
 class TestDataModel(unittest.TestCase):
     _context: Context
     _connection: Connection
+    _project: Project
+    _dmproject: Project
+    _sysproject: Project
 
     @classmethod
     def setUp(cls):
+        super().setUpClass()
+        project_root = find_project_root(__file__)
+
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://omas.org/test#")
         cls._context['dmtest'] = NamespaceIRI('http://omas.org/dmtest#')
+        cls._context.use('test', 'dmtest')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="omas",
@@ -42,15 +61,24 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtest:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtest:onto'))
 
+        file = project_root / 'omaslib' / 'testdata' / 'connection_test.trig'
+        cls._connection.upload_turtle(file)
+        sleep(1)  # upload may take a while...
+        cls._project = Project.read(cls._connection, "test")
+        cls._dmproject = Project.read(cls._connection, "dmtest")
+        cls._sysproject = Project.read(cls._connection, "system")
+
+
     def tearDown(self):
         pass
 
-    def generate_a_datamodel(self, dm_name: Xsd_NCName) -> DataModel:
+    def generate_a_datamodel(self, project: Project) -> DataModel:
+        dm_name = project.projectShortName
         #
         # define an external standalone property
         #
         comment = PropertyClass(con=self._connection,
-                                graph=dm_name,
+                                project=self._dmproject,
                                 property_class_iri=Iri(f'{dm_name}:comment'),
                                 datatype=XsdDatatypes.langString,
                                 name=LangString(["Comment@en", "Kommentar@de"]),
@@ -62,7 +90,7 @@ class TestDataModel(unittest.TestCase):
         # Define the properties for the "Book"
         #
         title = PropertyClass(con=self._connection,
-                              graph=dm_name,
+                              project=self._dmproject,
                               property_class_iri=Iri(f'{dm_name}:title'),
                               datatype=XsdDatatypes.langString,
                               name=LangString(["Title@en", "Titel@de"]),
@@ -73,7 +101,7 @@ class TestDataModel(unittest.TestCase):
                               order=Xsd_decimal(1))
 
         authors = PropertyClass(con=self._connection,
-                                graph=dm_name,
+                                project=self._dmproject,
                                 property_class_iri=Iri(f'{dm_name}:authors'),
                                 toNodeIri=Iri('omas:Person'),
                                 name=LangString(["Author(s)@en", "Autor(en)@de"]),
@@ -82,7 +110,7 @@ class TestDataModel(unittest.TestCase):
                                 order=Xsd_decimal(2))
 
         book = ResourceClass(con=self._connection,
-                             graph=dm_name,
+                             project=self._dmproject,
                              owlclass_iri=Iri(f'{dm_name}:Book'),
                              label=LangString(["Book@en", "Buch@de"]),
                              comment=LangString("Ein Buch mit Seiten@en"),
@@ -90,7 +118,7 @@ class TestDataModel(unittest.TestCase):
                              properties=[title, authors, comment])
 
         pagenum = PropertyClass(con=self._connection,
-                                graph=dm_name,
+                                project=self._dmproject,
                                 property_class_iri=Iri(f'{dm_name}:pagenum'),
                                 datatype=XsdDatatypes.int,
                                 name=LangString(["Pagenumber@en", "Seitennummer@de"]),
@@ -99,7 +127,7 @@ class TestDataModel(unittest.TestCase):
                                 order=Xsd_decimal(1))
 
         inbook = PropertyClass(con=self._connection,
-                               graph=dm_name,
+                               project=self._dmproject,
                                property_class_iri=Iri(f'{dm_name}:inbook'),
                                toNodeIri=Iri(f'{dm_name}:Book'),
                                name=LangString(["Pagenumber@en", "Seitennummer@de"]),
@@ -108,7 +136,7 @@ class TestDataModel(unittest.TestCase):
                                order=Xsd_decimal(1))
 
         page = ResourceClass(con=self._connection,
-                             graph=dm_name,
+                             project=self._dmproject,
                              owlclass_iri=Iri(f'{dm_name}:Page'),
                              label=LangString(["Page@en", "Seite@de"]),
                              comment=LangString("Page of a book@en"),
@@ -116,21 +144,21 @@ class TestDataModel(unittest.TestCase):
                              properties=[pagenum, inbook, comment])
 
         dm = DataModel(con=self._connection,
-                       graph=dm_name,
+                       project=self._dmproject,
                        propclasses=[comment],
                        resclasses=[book, page])
         return dm
 
     # @unittest.skip('Work in progress')
     def test_datamodel_constructor(self):
-        dm_name = Xsd_NCName("dmtest")
+        dm_name = self._dmproject.projectShortName
 
-        dm = self.generate_a_datamodel(dm_name)
+        dm = self.generate_a_datamodel(self._dmproject)
         dm.create()
 
         del dm
 
-        dm2 = DataModel.read(con=self._connection, graph=dm_name)
+        dm2 = DataModel.read(con=self._connection, project=self._dmproject)
         p1 = dm2[Iri(f'{dm_name}:comment')]
         self.assertEqual(p1.datatype, XsdDatatypes.langString)
         self.assertEqual(p1.name, LangString(["Comment@en", "Kommentar@de"]))
@@ -189,7 +217,7 @@ class TestDataModel(unittest.TestCase):
 
     # @unittest.skip('Work in progress')
     def test_datamodel_read(self):
-        model = DataModel.read(self._connection, "omas")
+        model = DataModel.read(self._connection, self._sysproject)
         self.assertTrue(set(model.get_propclasses()) == {
             Iri("omas:test"),
             Iri("dcterms:creator"),
@@ -211,16 +239,17 @@ class TestDataModel(unittest.TestCase):
 
     # @unittest.skip('Work in progress')
     def test_datamodel_modify_A(self):
-        dm_name = Xsd_NCName("dmtest")
-        dm = self.generate_a_datamodel(dm_name)
+        dm_name = self._dmproject.projectShortName
+
+        dm = self.generate_a_datamodel(self._dmproject)
         dm.create()
-        dm = DataModel.read(self._connection, dm_name)
+        dm = DataModel.read(self._connection, self._dmproject)
 
         #
         # define an external standalone property
         #
         pubyear = PropertyClass(con=self._connection,
-                                graph=dm_name,
+                                project=self._dmproject,
                                 property_class_iri=Xsd_QName(f'{dm_name}:pubYear'),
                                 datatype=XsdDatatypes.gYear,
                                 name=LangString(["Publication Year@en", "Publicationsjahr@de"]),
@@ -252,7 +281,8 @@ class TestDataModel(unittest.TestCase):
         }, dm.changeset)
 
         pagename = PropertyClass(con=self._connection,
-                                 graph=dm_name,
+                                 #graph=dm_name,
+                                 project=self._dmproject,
                                  property_class_iri=Xsd_QName(f'{dm_name}:pageName'),
                                  datatype=XsdDatatypes.string,
                                  name=LangString(["Page name@en", "Seitenbezeichnung@de"]),
@@ -269,19 +299,19 @@ class TestDataModel(unittest.TestCase):
 
     # @unittest.skip('Work in progress')
     def test_datamodel_modify_B(self):
-        dm_name = Xsd_NCName("dmtest")
-        dm = self.generate_a_datamodel(dm_name)
+        dm_name = self._dmproject.projectShortName
+
+        dm = self.generate_a_datamodel(self._dmproject)
         dm.create()
         del dm
 
-        dm_name = Xsd_NCName("dmtest")
-        dm = DataModel.read(self._connection, dm_name)
+        dm = DataModel.read(self._connection, self._dmproject)
 
         #
         # define an external standalone property
         #
         pubyear = PropertyClass(con=self._connection,
-                                graph=dm_name,
+                                project=self._dmproject,
                                 property_class_iri=Xsd_QName(f'{dm_name}:pubYear'),
                                 datatype=XsdDatatypes.gYear,
                                 name=LangString(["Publication Year@en", "Publicationsjahr@de"]),
@@ -294,7 +324,8 @@ class TestDataModel(unittest.TestCase):
         del dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:comment')]
 
         pagename = PropertyClass(con=self._connection,
-                                 graph=dm_name,
+                                 #graph=dm_name,
+                                 project=self._dmproject,
                                  property_class_iri=Xsd_QName(f'{dm_name}:pageName'),
                                  datatype=XsdDatatypes.string,
                                  name=LangString(["Page name@en", "Seitenbezeichnung@de"]),
@@ -307,7 +338,7 @@ class TestDataModel(unittest.TestCase):
 
         del dm
 
-        dm = DataModel.read(self._connection, dm_name)
+        dm = DataModel.read(self._connection, self._dmproject)
         self.assertIsNotNone(dm.get(Iri(f'{dm_name}:pubYear')))
         self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].datatype, XsdDatatypes.gYear)
         self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].maxCount, 1)

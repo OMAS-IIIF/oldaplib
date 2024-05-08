@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from time import sleep
 
 from omaslib.src.connection import Connection
@@ -14,23 +15,36 @@ from omaslib.src.helpers.context import Context
 from omaslib.src.helpers.langstring import LangString
 from omaslib.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
 from omaslib.src.helpers.query_processor import QueryProcessor
-from omaslib.src.propertyclass import PropClassAttrContainer, PropertyClass, OwlPropertyType, \
+from omaslib.src.project import Project
+from omaslib.src.propertyclass import PropertyClass, OwlPropertyType, \
     PropClassAttrChange
 from omaslib.src.xsd.iri import Iri
-from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 from omaslib.src.xsd.xsd_boolean import Xsd_boolean
 from omaslib.src.xsd.xsd_datetime import Xsd_dateTime
 from omaslib.src.xsd.xsd_decimal import Xsd_decimal
-from omaslib.src.xsd.xsd_int import Xsd_int
 from omaslib.src.xsd.xsd_integer import Xsd_integer
-from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 from omaslib.src.xsd.xsd_string import Xsd_string
 
 
+def find_project_root(current_path):
+    # Climb up the directory hierarchy and check for a marker file
+    path = Path(current_path).absolute()
+    while not (path / 'pyproject.toml').exists():
+        if path.parent == path:
+            # Root of the filesystem, file not found
+            raise RuntimeError('Project root not found')
+        path = path.parent
+    return path
+
+
 class TestPropertyClass(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
+        project_root = find_project_root(__file__)
+
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://omas.org/test#")
         cls._context.use('test')
@@ -43,8 +57,10 @@ class TestPropertyClass(unittest.TestCase):
 
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
-        cls._connection.upload_turtle("omaslib/testdata/connection_test.trig")
+        file = project_root / 'omaslib' / 'testdata' / 'connection_test.trig'
+        cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
+        cls._project = Project.read(cls._connection, "test")
 
     @classmethod
     def tearDownClass(cls):
@@ -54,7 +70,7 @@ class TestPropertyClass(unittest.TestCase):
 
     def test_propertyclass_constructor(self):
         p = PropertyClass(con=self._connection,
-                          graph=Xsd_NCName('test'),
+                          project=self._project,
                           property_class_iri=Iri('test:testprop'),
                           subPropertyOf=Iri('test:comment'),
                           datatype=XsdDatatypes.string,
@@ -69,14 +85,14 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropClassAttr.ORDER), Xsd_decimal(5))
 
         p2 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            toNodeIri=Iri('test:Person'),
                            maxCount=1)
         self.assertEqual(p2.get(PropClassAttr.TO_NODE_IRI), Xsd_QName('test:Person'))
         self.assertEqual(p2.get(PropClassAttr.MAX_COUNT), Xsd_integer(1))
 
         p3 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:testprop3'),
                            datatype=XsdDatatypes.string,
                            inSet=RdfSet(Xsd_string('yes'), Xsd_string('may be'), Xsd_string('no')))
@@ -85,7 +101,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p3.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
 
         p4 = PropertyClass(con=self._connection,
-                           graph=Xsd_NCName('test'),
+                           project=self._project,
                            property_class_iri=Iri('test:testprop4'),
                            languageIn=LanguageIn(Language.EN, Language.DE, Language.FR))
         self.assertEqual(p4.property_class_iri, Xsd_QName('test:testprop4'))
@@ -94,7 +110,7 @@ class TestPropertyClass(unittest.TestCase):
 
         with self.assertRaises(OmasErrorValue):
             p5 = PropertyClass(con=self._connection,
-                               graph=Xsd_NCName('test'),
+                               project=self._project,
                                property_class_iri=Iri('test:testprop5'),
                                datatype=XsdDatatypes.string,
                                languageIn=LanguageIn(Language.EN, Language.DE, Language.FR))
@@ -102,7 +118,7 @@ class TestPropertyClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_propertyclass_read_shacl(self):
         p1 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:comment'))
         self.assertEqual(p1.property_class_iri, Iri('test:comment'))
         self.assertEqual(p1.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
@@ -125,7 +141,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.created, Xsd_dateTime("2023-11-04T12:00:00Z"))
 
         p2 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:test'))
         self.assertEqual(p2.property_class_iri, Iri('test:test'))
         self.assertEqual(p2[PropClassAttr.MIN_COUNT], Xsd_integer(1))
@@ -136,7 +152,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropClassAttr.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
 
         p3 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                #graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:enum'))
         self.assertEqual(p3[PropClassAttr.IN],
                          {"very good", "good", "fair", "insufficient"})
@@ -147,7 +164,7 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_create(self):
         p1 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testWrite'),
             toNodeIri=Iri('test:comment'),
             name=LangString("Annotations@en"),
@@ -157,7 +174,7 @@ class TestPropertyClass(unittest.TestCase):
         )
         p1.create()
         p1 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:testWrite'))
         self.assertEqual(p1.property_class_iri, Iri('test:testWrite'))
         self.assertEqual(p1[PropClassAttr.TO_NODE_IRI], Iri('test:comment'))
@@ -169,7 +186,8 @@ class TestPropertyClass(unittest.TestCase):
 
         p2 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            #graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testWrite2'),
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
@@ -179,7 +197,7 @@ class TestPropertyClass(unittest.TestCase):
         )
         p2.create()
         p2 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:testWrite2'))
         self.assertEqual(p2.property_class_iri, Iri('test:testWrite2'))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.langString)
@@ -191,7 +209,8 @@ class TestPropertyClass(unittest.TestCase):
 
         pX = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            #graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testWrite'),
             datatype=XsdDatatypes.int
         )
@@ -203,7 +222,7 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_undo(self):
         p1 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testUndo'),
             datatype=XsdDatatypes.langString,
             name=LangString(["Annotations@en", "Annotationen@de"]),
@@ -270,7 +289,8 @@ class TestPropertyClass(unittest.TestCase):
 
         p1 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            #graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testUndo'),
             toNodeIri=Iri('test:testUndo42'),
             minCount=Xsd_integer(1),
@@ -296,7 +316,7 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_update(self):
         p1 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testUpdate'),
             subPropertyOf=Iri('test:masterProp'),
             datatype=XsdDatatypes.langString,
@@ -331,7 +351,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.changeset, {})
 
         p2 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:testUpdate'))
         self.assertEqual(p2.property_class_iri, Iri('test:testUpdate'))
         self.assertEqual(p2.subPropertyOf, Iri('test:masterProp2'))
@@ -348,7 +368,7 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_update2(self):
         p1 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testUpdate2'),
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
@@ -377,7 +397,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.changeset, {})
 
         p2 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                #graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:testUpdate2'))
         self.assertEqual(p2.property_class_iri, Iri('test:testUpdate2'))
         self.assertEqual(p2.datatype, XsdDatatypes.langString)
@@ -394,7 +415,7 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_delete_attrs(self):
         p1 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testDelete'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
@@ -414,7 +435,8 @@ class TestPropertyClass(unittest.TestCase):
         p1.update()
 
         p2 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                #graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:testDelete'))
         self.assertIsNone(p2.name)
         self.assertIsNone(p2.maxCount)
@@ -442,7 +464,7 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_delete(self):
         p1 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testDeleteIt'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
@@ -455,7 +477,7 @@ class TestPropertyClass(unittest.TestCase):
         p1.create()
 
         p2 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:testDeleteIt'))
         p2.delete()
         sparql = self._context.sparql_context
@@ -480,7 +502,7 @@ class TestPropertyClass(unittest.TestCase):
 
         p1 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testDeleteIt2'),
             toNodeIri=Iri('test:comment'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
@@ -493,7 +515,7 @@ class TestPropertyClass(unittest.TestCase):
         p1.create()
 
         p2 = PropertyClass.read(con=self._connection,
-                                graph=Xsd_NCName('test'),
+                                project=self._project,
                                 property_class_iri=Iri('test:testDeleteIt2'))
         p2.delete()
         sparql = self._context.sparql_context
@@ -519,7 +541,7 @@ class TestPropertyClass(unittest.TestCase):
     def test_write_trig(self):
         p1 = PropertyClass(
             con=self._connection,
-            graph=Xsd_NCName('test'),
+            project=self._project,
             property_class_iri=Iri('test:testWriteIt'),
             toNodeIri=Iri('test:comment'),
             name=LangString(["Annotations@en", "Annotationen@de"]),

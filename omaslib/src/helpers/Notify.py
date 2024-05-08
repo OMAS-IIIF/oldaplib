@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Callable
 
 from pystrict import strict
@@ -17,7 +18,7 @@ class Notify:
     e.g. the change of value
     """
     _notifier: Callable[[PropClassAttr], None]
-    _data: PropClassAttr
+    _data: Enum
 
     def __init__(self,
                  notifier: Callable[[PropClassAttr | ResourceClassAttribute | PermissionSetAttr | Iri], None] | None = None,
@@ -31,8 +32,8 @@ class Notify:
         self._data = data
 
     def set_notifier(self,
-                     notifier: Callable[[PropClassAttr | ResourceClassAttribute| PermissionSetAttr | Iri], None],
-                     data: PropClassAttr | ResourceClassAttribute | PermissionSetAttr | Iri |None = None) -> None:
+                     notifier: Callable[[Enum | Iri], None],
+                     data: Enum | Iri |None = None) -> None:
         """
         Sets the notifier callback function and the data it should return...
         :param notifier: A callable that is to be called by the subclass when an item changes

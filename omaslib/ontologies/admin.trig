@@ -37,6 +37,10 @@
         rdfs:label "ADMIN_CREATE"@en ;
         rdfs:comment "The user is allowed to add new resources."@en .
 
+    :ADMIN_LISTS a :AdminPermission ;
+        rdfs:label "ADMIN_LISTS"@en ;
+        rdfs:comment "The user is allowed to add/modify oldap lists."@en .
+
     #==================================================================
     # Define the data permissions here
     #

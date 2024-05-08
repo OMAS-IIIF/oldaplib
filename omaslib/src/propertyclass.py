@@ -15,6 +15,7 @@ from omaslib.src.dtypes.xsdset import XsdSet
 from omaslib.src.helpers.Notify import Notify
 from omaslib.src.helpers.context import Context
 from omaslib.src.enums.action import Action
+from omaslib.src.project import Project
 from omaslib.src.xsd.floatingpoint import FloatingPoint
 from omaslib.src.xsd.iri import Iri
 from omaslib.src.xsd.xsd import Xsd
@@ -102,6 +103,7 @@ class PropertyClass(Model, Notify):
 
     """
     _graph: Xsd_NCName
+    _project: Project
     _property_class_iri: Iri | None
     _internal: Iri | None
     _force_external: bool
@@ -146,7 +148,7 @@ class PropertyClass(Model, Notify):
 
     def __init__(self, *,
                  con: IConnection,
-                 graph: Xsd_NCName | str,
+                 project: Project,
                  property_class_iri: Iri | str | None = None,
                  subPropertyOf: Iri | str | None = None,
                  toNodeIri: Iri | str | None = None,
@@ -172,7 +174,15 @@ class PropertyClass(Model, Notify):
                  notify_data: PropClassAttr | None = None):
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
-        self._graph = Xsd_NCName(graph)
+
+        if not isinstance(project, Project):
+            raise OmasErrorValue('The project parameter must be a Project instance')
+        self._project = project
+        context = Context(name=self._con.context_name)
+        context[project.projectShortName] = project.namespaceIri
+        context.use(project.projectShortName)
+        self._graph = project.projectShortName
+
         self._property_class_iri = Iri(property_class_iri)
         self._attributes: PropClassAttrContainer = {}
         if subPropertyOf is not None:
@@ -623,9 +633,11 @@ class PropertyClass(Model, Notify):
                     f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropClassAttr.TO_NODE_IRI)}".')
 
     @classmethod
-    def read(cls, con: IConnection, graph: Xsd_NCName, property_class_iri: Iri) -> Self:
-        property = cls(con=con, graph=graph, property_class_iri=property_class_iri)
-        attributes = PropertyClass.__query_shacl(con, graph, property_class_iri)
+    def read(cls, con: IConnection,
+             project: Project,
+             property_class_iri: Iri) -> Self:
+        property = cls(con=con, project=project, property_class_iri=property_class_iri)
+        attributes = PropertyClass.__query_shacl(con, property._graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
         property.read_owl()
         return property
