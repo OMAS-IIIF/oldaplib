@@ -75,3 +75,8 @@ class OmasErrorImmutable(OmasError):
 @strict
 class OmasErrorIndex(OmasError):
     pass
+
+@strict
+class OmasErrorInUse(OmasError):
+    pass
+

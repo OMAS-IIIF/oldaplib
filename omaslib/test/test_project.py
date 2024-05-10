@@ -86,8 +86,8 @@ class Testproject(unittest.TestCase):
 
     # @unittest.skip('Work in progress')
     def test_project_search_fail(self):
-        with self.assertRaises(OmasErrorNotFound) as ex:
-            projects = Project.search(con=self._connection, label="NoExisting")
+        projects = Project.search(con=self._connection, label="NoExisting")
+        self.assertEqual([], projects)
 
     # @unittest.skip('Work in progress')
     def test_project_create(self):

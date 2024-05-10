@@ -25,6 +25,7 @@ from omaslib.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAl
 from omaslib.src.helpers.query_processor import QueryProcessor
 from omaslib.src.iconnection import IConnection
 from omaslib.src.model import Model
+from omaslib.src.xsd.xsd_string import Xsd_string
 
 ProjectAttrTypes = LangString | Xsd | None
 
@@ -246,8 +247,9 @@ class Project(Model):
     def __set_value(self: Self, value: ProjectAttrTypes, field: ProjectAttr) -> None:
         self.__change_setter(field, value)
 
-    def __del_value(self: Self, field: ProjectAttr) -> None:
-        del self.__attributes[field]
+    def __del_value(self: Self, attr: ProjectAttr) -> None:
+        self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
+        del self.__attributes[attr]
 
     #
     # this private method handles the setting of a field. Whenever a field is being
@@ -299,6 +301,21 @@ class Project(Model):
         if self.__attributes.get(ProjectAttr.PROJECT_END) is not None:
             res += f'  Project end: {self.__attributes[ProjectAttr.PROJECT_END]}\n'
         return res
+
+    def __getitem__(self, attr: ProjectAttr) -> ProjectAttrTypes:
+        return self.__attributes[attr]
+
+    def get(self, attr: ProjectAttr) -> ProjectAttrTypes:
+        return self.__attributes.get(attr)
+
+    def __setitem__(self, attr: ProjectAttr, value: ProjectAttrTypes) -> None:
+        self.__change_setter(attr, value)
+
+    def __delitem__(self, attr: ProjectAttr) -> None:
+        if self.__attributes.get(attr) is not None:
+            self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
+            del self.__attributes[attr]
+
 
     @property
     def creator(self) -> Iri | None:
@@ -413,10 +430,10 @@ class Project(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
             raise OmasErrorNotFound(f'Project with IRI/shortname "{projectIri_SName}" not found.')
-        creator = None
-        created = None
-        contributor = None
-        modified = None
+        creator: Iri | None = None
+        created: Xsd_dateTime | None = None
+        contributor: Iri | None = None
+        modified: Xsd_dateTime | None = None
         projectShortName = None
         namespaceIri = None
         label = LangString()
@@ -466,8 +483,8 @@ class Project(Model):
 
     @staticmethod
     def search(con: IConnection,
-               label: str | None = None,
-               comment: str | None = None) -> list[Iri]:
+               label: Xsd_string | str | None = None,
+               comment: Xsd_string | str | None = None) -> list[Iri]:
         """
         Search for a given project. If no label or comment is given, all existing projects are returned. If both
         a search term for the label and comment are given, they will be combined by *AND*.
@@ -483,18 +500,20 @@ class Project(Model):
         :rtype: List[Iri]
         :raises OmasErrorNotFound: If the project does not exist
         """
+        label = Xsd_string(label)
+        comment = Xsd_string(comment)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?project\n'
         sparql += 'FROM omas:admin\n'
         sparql += 'WHERE {\n'
         sparql += '   ?project a omas:Project .\n'
-        if label is not None:
+        if label:
             sparql += '   ?project rdfs:label ?label .\n'
-            sparql += f'   FILTER(CONTAINS(STR(?label), "{label}"))\n'
-        if comment is not None:
+            sparql += f'   FILTER(CONTAINS(STR(?label), "{Xsd_string.escaping(label.value)}"))\n'
+        if comment:
             sparql += '   ?project rdfs:comment ?comment .\n'
-            sparql += f'   FILTER(CONTAINS(STR(?comment), "{comment}"))\n'
+            sparql += f'   FILTER(CONTAINS(STR(?comment), "{Xsd_string.escaping(comment.value)}"))\n'
         sparql += '}\n'
         # sparql += f"""
         # SELECT DISTINCT ?project
@@ -506,11 +525,10 @@ class Project(Model):
         # """
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        if len(res) == 0:
-            raise OmasErrorNotFound('No matching projects not found.')
-        projects: List[Iri] = []
-        for r in res:
-            projects.append(r['project'])
+        projects: list[Iri] = []
+        if len(res) > 0:
+            for r in res:
+                projects.append(r['project'])
         return projects
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -625,9 +643,9 @@ class Project(Model):
                                                                        subjectvar='?project',
                                                                        field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    sparql = self.__attributes[field].delete(graph=Xsd_QName('omas:admin'),
-                                                             subject=self.projectIri,
-                                                             field=Xsd_QName(field.value))
+                    sparql = self.__changeset[field].old_value.delete(graph=Xsd_QName('omas:admin'),
+                                                                      subject=self.projectIri,
+                                                                      field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
                     sparql = self.__attributes[field].create(graph=Xsd_QName('omas:admin'),
@@ -696,29 +714,4 @@ class Project(Model):
         """
         # TODO: use transaction for error handling
         self._con.update_query(sparql)
-
-
-if __name__ == "__main__":
-    pass
-    # con = Connection(server='http://localhost:7200',
-    #                  repo="omas",
-    #                  userId="rosenth",
-    #                  credentials="RioGrande",
-    #                  context_name="DEFAULT")
-    # project = Project.read(con, QName("omas:SystemProject"))
-    # print(str(project))
-    #
-    # hyha = Project.read(con, QName("omas:HyperHamlet"))
-    # print(str(hyha))
-    #
-    # swissbritnet = Project.read(con, AnyIRI('http://www.salsah.org/version/2.0/SwissBritNet'))
-    # print(swissbritnet)
-    #
-    # p = Project.search(con=con)
-    # print(p)
-    # print("=================")
-    # p = Project.search(con=con, label="Hamlet")
-    # print(p)
-    # p = Project.search(con=con, comment="Britain")
-    # print(p)
 

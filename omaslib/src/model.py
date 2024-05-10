@@ -50,7 +50,6 @@ class Model:
             jsonobj = self._con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
-            print(sparql)
             raise OmasErrorNotFound(f'No resource found with iri "{iri}".')
         for r in res:
             return r['modified']

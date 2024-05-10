@@ -102,7 +102,7 @@ skos:editorialNote rdf:type owl:DatatypeProperty ;
                    rdfs:range xsd:string .
 
 skos:inScheme rdf:type owl:ObjectProperty ;
-                       rdfs:range :OmasList .
+                       rdfs:range :OldapList .
 
 ###  http://www.w3.org/2004/02/skos/core#note
 skos:note rdf:type owl:DatatypeProperty ;
@@ -113,7 +113,7 @@ skos:prefLabel rdf:type owl:DatatypeProperty ;
           rdfs:range rdf:langString .
 
 skos:broaderTransitive rdf:type owl:ObjectProperty ;
-          rdfs:range :OmasListNode .
+          rdfs:range :OldapListNode .
 
 skos:notation rdf:type owl:DatatypeProperty ;
           rdfs:range xsd:string .
