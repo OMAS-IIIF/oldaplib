@@ -1,5 +1,6 @@
 import json
 import unittest
+from pathlib import Path
 
 from oldap.src.connection import Connection
 from oldap.src.dtypes.bnode import BNode
@@ -19,17 +20,30 @@ from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_string import Xsd_string
 
 
+def find_project_root(current_path):
+    # Climb up the directory hierarchy and check for a marker file
+    path = Path(current_path).absolute()
+    while not (path / 'pyproject.toml').exists():
+        if path.parent == path:
+            # Root of the filesystem, file not found
+            raise RuntimeError('Project root not found')
+        path = path.parent
+    return path
+
+
 class MyTestCase(unittest.TestCase):
 
     _connection: Connection
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
+        project_root = find_project_root(__file__)
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://testing.org/datatypes#")
         cls._context.use('test')
         cls._connection = Connection(server='http://localhost:7200',
-                                     repo="omas",
+                                     repo="oldap",
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")

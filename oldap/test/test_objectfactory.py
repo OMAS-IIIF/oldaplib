@@ -30,21 +30,21 @@ class TestObjectFactory(unittest.TestCase):
         cls._context = Context(name="DEFAULT")
 
         cls._connection = Connection(server='http://localhost:7200',
-                                     repo="omas",
+                                     repo="oldap",
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
         cls._unpriv = Connection(server='http://localhost:7200',
-                                 repo="omas",
+                                 repo="oldap",
                                  userId="fornaro",
                                  credentials="RioGrande",
                                  context_name="DEFAULT")
-        cls._context['test'] = 'http://omas.org/test#'
+        cls._context['test'] = 'http://oldap.org/test#'
         cls._context.use('test')
 
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
-        cls._connection.clear_graph(Xsd_QName('omas:admin'))
+        cls._connection.clear_graph(Xsd_QName('oldap:admin'))
 
         file = project_root / 'oldap' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
@@ -57,7 +57,7 @@ class TestObjectFactory(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        #cls._connection.clear_graph(Xsd_QName('omas:admin'))
+        #cls._connection.clear_graph(Xsd_QName('oldap:admin'))
         #cls._connection.upload_turtle("oldap/ontologies/admin.trig")
         #sleep(1)  # upload may take a while...
         pass

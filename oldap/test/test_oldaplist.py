@@ -39,11 +39,11 @@ class TestOldapList(unittest.TestCase):
         cls._context['test'] = NamespaceIRI("http://testing.org/datatypes#")
         cls._context.use('test')
         cls._connection = Connection(server='http://localhost:7200',
-                                     repo="omas",
+                                     repo="oldap",
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
-        cls._connection.clear_graph(Xsd_QName('omas:admin'))
+        cls._connection.clear_graph(Xsd_QName('oldap:admin'))
         file = project_root / 'oldap' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
 

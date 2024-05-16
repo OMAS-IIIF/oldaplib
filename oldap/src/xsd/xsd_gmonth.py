@@ -24,7 +24,7 @@ class Xsd_gMonth(Xsd):
         Constructor of Xsd_gMonth class
         :param value: An Xsd_gMonth instance or a valid string conforming to the
         :type value: Xsd | str
-        :raises OmasErrorValue: If a Xsd_gMonth instance or string is not valid
+        :raises OldapErrorValue: If a Xsd_gMonth instance or string is not valid
         """
         if isinstance(value, Xsd_gMonth):
             self.__month = value.__month
@@ -76,7 +76,7 @@ class Xsd_gMonth(Xsd):
         :param other: Other Xsd_gMonth instance or valid gMonth string
         :type other: Xsd_gMonth | str | None
         :return: True or False
-        :raises OmasErrorValue: If Xsd_gMonth instance or string is not valid
+        :raises OldapErrorValue: If Xsd_gMonth instance or string is not valid
         """
         if other is None:
             return False

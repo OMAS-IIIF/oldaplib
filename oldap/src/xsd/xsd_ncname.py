@@ -36,7 +36,7 @@ class Xsd_NCName(Xsd):
         Initialize the NCName
         :param value: Either a string conforming to the QName syntax or a NCName
         :type value: Xsd_NCName | str
-        :raises OmasErrorValue: If the value is not a valid NCName
+        :raises OldapErrorValue: If the value is not a valid NCName
         """
         if isinstance(value, Xsd_NCName):
             self.__value = str(value)
@@ -100,7 +100,7 @@ class Xsd_NCName(Xsd):
         :param other: NCName or string to add
         :return: Concatenated NCName
         :rtype: Xsd_NCName
-        :raises OmasErrorValue: If the other value is not a valid NCName
+        :raises OldapErrorValue: If the other value is not a valid NCName
         """
         if not isinstance(other, Xsd_NCName):
             other = Xsd_NCName(other)
@@ -112,7 +112,7 @@ class Xsd_NCName(Xsd):
         :param other: A NCName or string to add
         :return: Self
         :rtype: Xsd_NCName
-        :raises OmasErrorValue: If the other value is not a valid NCName
+        :raises OldapErrorValue: If the other value is not a valid NCName
         """
         if not isinstance(other, Xsd_NCName):
             other = Xsd_NCName(other)

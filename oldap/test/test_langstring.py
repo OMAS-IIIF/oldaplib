@@ -227,33 +227,33 @@ class TestLangstring(unittest.TestCase):
         ls1 = LangString(["english@en", "deutsch@de"])
         ls1.add({Language.FR: "français", Language.ZU: "undefined"})
         del ls1[Language.EN]
-        qlist = ls1.update(graph=Xsd_QName("omas:test"),
-                           subject=Iri("omas:subj"),
+        qlist = ls1.update(graph=Xsd_QName("oldap:test"),
+                           subject=Iri("oldap:subj"),
                            subjectvar="?subj",
-                           field=Xsd_QName("omas:prop"))
+                           field=Xsd_QName("oldap:prop"))
         qstr = " ;\n".join(qlist)
         expected = """INSERT DATA {
-    GRAPH omas:test {
-        omas:subj omas:prop "français"@fr .
+    GRAPH oldap:test {
+        oldap:subj oldap:prop "français"@fr .
     }
 }
  ;
 INSERT DATA {
-    GRAPH omas:test {
-        omas:subj omas:prop "undefined"@zu .
+    GRAPH oldap:test {
+        oldap:subj oldap:prop "undefined"@zu .
     }
 }
  ;
 DELETE DATA {
-    GRAPH omas:test {
-        omas:subj omas:prop "english"@en .
+    GRAPH oldap:test {
+        oldap:subj oldap:prop "english"@en .
     }
 }
 """
         self.assertEqual(qstr, expected)
 
         sstr = ls1.update_shacl(graph=Xsd_NCName("test"),
-                                prop_iri=Iri('omas:prop'),
+                                prop_iri=Iri('oldap:prop'),
                                 attr=PropClassAttr.NAME,
                                 modified=Xsd_dateTime("2023-11-04T12:00:00Z"))
         expected = """# LangString: Process "FR" with Action "create"
@@ -262,7 +262,7 @@ INSERT {
     ?prop sh:name "français"@fr .
 }
 WHERE {
-    BIND(omas:propShape as ?prop) .
+    BIND(oldap:propShape as ?prop) .
     ?prop dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
 };
@@ -272,7 +272,7 @@ INSERT {
     ?prop sh:name "undefined"@zu .
 }
 WHERE {
-    BIND(omas:propShape as ?prop) .
+    BIND(oldap:propShape as ?prop) .
     ?prop dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
 };
@@ -282,7 +282,7 @@ DELETE {
     ?prop sh:name "english"@en .
 }
 WHERE {
-    BIND(omas:propShape as ?prop) .
+    BIND(oldap:propShape as ?prop) .
     ?prop sh:name "english"@en .
     ?prop dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)

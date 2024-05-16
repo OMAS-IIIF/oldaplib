@@ -20,7 +20,7 @@ class Xsd_nonPositiveInteger(Xsd_integer):
         Constructor of the Xsd_nonPositiveInteger class.
         :param value: A Xsd instance or an integer value <= 0.
         :type value: Xsd_integer | int | str
-        :raises OmasErrorValue: If the value is not a non-positive integer.
+        :raises OldapErrorValue: If the value is not a non-positive integer.
         """
         super().__init__(value)
         if self._value > 0:

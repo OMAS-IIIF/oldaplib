@@ -69,7 +69,7 @@ class InProjectClass:
                     if permission.find(':') >= 0:
                         perms.add(AdminPermission(permission))
                     else:
-                        perms.add(AdminPermission('omas:' + permission))
+                        perms.add(AdminPermission('oldap:' + permission))
                 except ValueError as err:
                     raise OldapErrorValue(str(err))
             elif permission in AdminPermission:
@@ -169,7 +169,7 @@ class InProjectClass:
 
 
 if __name__ == '__main__':
-    in_proj = InProjectClass({Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+    in_proj = InProjectClass({Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                               AdminPermission.ADMIN_RESOURCES,
                                                               AdminPermission.ADMIN_CREATE}})
     jsonstr = json.dumps(in_proj, default=serializer.encoder_default)

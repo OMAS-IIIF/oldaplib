@@ -21,7 +21,7 @@ class Xsd_int(Xsd_integer):
         Constructor for Xsd_int class
         :param value: Int value. Must be in the range -2147483648 - 2147483647
         :type value: Xsd_integer | int | str
-        :raises OmasValueError: If value is not in the range -2147483648 - 2147483647 or is not a valid
+        :raises OldapValueError: If value is not in the range -2147483648 - 2147483647 or is not a valid
         integer representation.
         """
         super().__init__(value, validate=validate)

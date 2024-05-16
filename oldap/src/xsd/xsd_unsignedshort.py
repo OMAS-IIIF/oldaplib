@@ -19,7 +19,7 @@ class Xsd_unsignedShort(Xsd_integer):
         Constructor for the Xsd_unsignedShort class.
         :param value: A Xsd_integer instance, a valid int or a valid string representation. Valid range [0 - 65535].
         :type value: Xsd_integer | int | str
-        :raises OmasErrorValue: If the value is not a valid unsigned short
+        :raises OldapErrorValue: If the value is not a valid unsigned short
         """
         super().__init__(value)
         if self._value < 0 or self._value > 65535:

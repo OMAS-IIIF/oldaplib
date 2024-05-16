@@ -21,7 +21,7 @@ class Xsd_Name(Xsd):
         """
         Constructs an Xsd_Name instance.
         :param value: An Xsd_Name instance or a string conforming to the XML Schema [xsd:Name]
-        :raises OmasErrorValue: If an invalid value is passed.
+        :raises OldapErrorValue: If an invalid value is passed.
         """
         if isinstance(value, Xsd_Name):
             self.__value = value.__value
@@ -65,7 +65,7 @@ class Xsd_Name(Xsd):
         :param other: An other Xsd_Name instance.
         :return: True or False
         :rtype: bool
-        :raises OmasErrorValue: If an invalid value is passed.
+        :raises OldapErrorValue: If an invalid value is passed.
         """
         if other is None:
             return False

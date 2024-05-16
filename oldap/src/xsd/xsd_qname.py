@@ -38,7 +38,7 @@ class Xsd_QName(Xsd):
         :type value: Xsd_QName | str | Xsd_NCName
         :param fragment: A NCName or string (conforming to NCName the convention) for the fragment part [optinonal]
         :type fragment: str | Xsd_NCName | None
-        :raises OmasErrorValue: If the QName representation is invalid
+        :raises OldapErrorValue: If the QName representation is invalid
         """
         if fragment is None:
             if isinstance(value, Xsd_QName):
@@ -75,7 +75,7 @@ class Xsd_QName(Xsd):
         :type other: Xsd_NCName | str
         :return: The resulting Xsd_QName object
         :rtype: Xsd_QName
-        :raises OmasErrorValue: If the resulting QName representation is invalid
+        :raises OldapErrorValue: If the resulting QName representation is invalid
         """
         if isinstance(other, Xsd_NCName):
             return Xsd_QName(self._value + other.value)
@@ -90,7 +90,7 @@ class Xsd_QName(Xsd):
         :type other: Xsd_NCName | str
         :return: The resulting Xsd_QName object
         :rtype: Xsd_QName
-        :raises OmasErrorValue: If the resulting QName representation is invalid
+        :raises OldapErrorValue: If the resulting QName representation is invalid
         """
         if isinstance(other, Xsd_NCName):
             self._value += other.value

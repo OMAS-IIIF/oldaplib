@@ -26,7 +26,7 @@ class Xsd_date(Xsd):
         :type month: int
         :param day: The day number in the range 1-31 [optional]
         :type day: int
-        :raises OmasErrorValue: If the string passed is not a valid ISO date string
+        :raises OldapErrorValue: If the string passed is not a valid ISO date string
         """
         if value is None:
             self.__value = date.today()
@@ -68,7 +68,7 @@ class Xsd_date(Xsd):
         Internal method for converting a string to a Python date object
         :param value: Date string
         :return: Python date instance
-        :raises OmasErrorValue: If the input string is not a valid date string
+        :raises OldapErrorValue: If the input string is not a valid date string
         """
         if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', str(value)) is None:
             raise OldapErrorValue(f'{value} wrong format for xsd:date.')
@@ -80,7 +80,7 @@ class Xsd_date(Xsd):
         :param other: another Xsd_date object or ISO string
         :type other: Xsd_date | date | str | None
         :return: True or False
-        :raises OmasErrorValue: If the input string is not a valid date string
+        :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
             return False
@@ -98,7 +98,7 @@ class Xsd_date(Xsd):
         :param other: Value to compare to
         :type other: Xsd_date | date | str | None
         :return: True or False
-        :raises OmasErrorValue: If the input string is not a valid date string
+        :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
             return False
@@ -116,7 +116,7 @@ class Xsd_date(Xsd):
         :param other: Value to compare to
         :type other: Xsd_date | date | str | None
         :return: True or False
-        :raises OmasErrorValue: If the input string is not a valid date string
+        :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
             return False
@@ -134,7 +134,7 @@ class Xsd_date(Xsd):
         :param other: Value to compare to
         :type other: Xsd_date | date | str | None
         :return: True or False
-        :raises OmasErrorValue: If the input string is not a valid date string
+        :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
             return False
@@ -151,7 +151,7 @@ class Xsd_date(Xsd):
         Compare less or equal than for Xsd_date object
         :param other: Value to compare to
         :return: True or False
-        :raises OmasErrorValue: If the input string is not a valid date string
+        :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
             return False

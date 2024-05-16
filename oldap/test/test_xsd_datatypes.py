@@ -69,7 +69,7 @@ class TestXsdDatatypes(unittest.TestCase):
         cls._context['test'] = NamespaceIRI("http://testing.org/datatypes#")
         cls._context.use('test')
         cls._connection = Connection(server='http://localhost:7200',
-                                     repo="omas",
+                                     repo="oldap",
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")

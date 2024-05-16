@@ -28,18 +28,26 @@ from oldap.src.xsd.xsd_string import Xsd_string
 # For bootstrapping the whole tripel store, the following SPARQL has to be executed within the GraphDB
 # SPARQL-console:
 #
-# PREFIX omas: <http://omas.org/base#>
-#
-# INSERT DATA {
-# 	GRAPH omas:admin {
-# 		<https://orcid.org/0000-0003-1681-4036> a omas:User ;
-#         	omas:personLastName "Rosenthaler" ;
-#         	omas:personFirstName "Lukas" ;
-#         	omas:userId "rosenth" ;
-#         	omas:userCredentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2" ;
-#         	omas:userIsActive true .
-# 	}
-# }
+"""
+PREFIX oldap: <http://oldap.org/base#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+INSERT DATA {
+	GRAPH oldap:admin {
+		<https://orcid.org/0000-0003-1681-4036> a oldap:User ;
+        	oldap:userId "rosenth"^^xsd:NCName ;
+		    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+		    dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+		    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+		    dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        	oldap:familyName "Rosenthaler"^^xsd:string ;
+        	oldap:givenName "Lukas"^^xsd:string ;
+        	oldap:credentials "$2b$12$N00UMBBJG9XfPV6R5NxulOTKi0qRBpypTFe82dKwSdTFrWZS7nat2"^^xsd:string ;
+        	oldap:isActive "true"^^xsd:boolean .
+	}
+}
+
+"""
 #
 # Then, executing the __main__ of the file "connection.py" will initialize the triple store with all the data
 # needed to run the tests
@@ -71,7 +79,7 @@ class Connection(IConnection):
         - _repo_: returns the repository name
         - _context_name_: returns the context name
     * Setter methods:
-        - Any setting of the _server_, _repo_ or _context_name_ - variables raises an OmasError-exception
+        - Any setting of the _server_, _repo_ or _context_name_ - variables raises an OldapError-exception
     * Further methods
         - _Constructor(server,repo,contextname)_: requires _server_ and _repo_string, _context_name defaults to "DEFAULT"
         - _clear_graph_(graph_name: QName)_: Deletes the given graph (must be given as QName)
@@ -193,7 +201,7 @@ class Connection(IConnection):
 
     def clear_graph(self, graph_iri: Xsd_QName) -> None:
         """
-        This method clears (deletes) the given RDF graph. May raise an OmasError.
+        This method clears (deletes) the given RDF graph. May raise an OldapError.
 
         :param graph_iri: RDF graph name as QName. The prefix must be defined in the context!
         :return: None
@@ -201,7 +209,7 @@ class Connection(IConnection):
         if not self._userdata:
             raise OldapErrorNoPermission("No permission")
         actor = self._userdata
-        sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
+        sysperms = actor.inProject.get(Xsd_QName('oldap:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
@@ -227,14 +235,14 @@ class Connection(IConnection):
         :return: None
         """
         # if not self._userdata:
-        #     raise OmasErrorNoPermission("No permission")
+        #     raise OldapErrorNoPermission("No permission")
         # actor = self._userdata
-        # sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        # sysperms = actor.inProject.get(QName('oldap:SystemProject'))
         # is_root: bool = False
         # if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
         #     is_root = True
         # if not is_root:
-        #     raise OmasErrorNoPermission("No permission")
+        #     raise OldapErrorNoPermission("No permission")
         headers = {
             "Accept": "application/json, text/plain, */*",
         }
@@ -255,14 +263,14 @@ class Connection(IConnection):
         :return: None
         """
         # if not self._userdata:
-        #     raise OmasErrorNoPermission("No permission")
+        #     raise OldapErrorNoPermission("No permission")
         # actor = self._userdata
-        # sysperms = actor.inProject.get(QName('omas:SystemProject'))
+        # sysperms = actor.inProject.get(QName('oldap:SystemProject'))
         # is_root: bool = False
         # if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
         #     is_root = True
         # if not is_root:
-        #     raise OmasErrorNoPermission("No permission")
+        #     raise OldapErrorNoPermission("No permission")
 
         with open(filename, encoding="utf-8") as f:
             content = f.read()
@@ -431,7 +439,7 @@ class Connection(IConnection):
     #     :return: a RDFLib Result instance
     #     """
     #     if not self._userdata:
-    #         raise OmasError("No login")
+    #         raise OldapError("No login")
     #     return self._store.query(query, initBindings=bindings)
 
 
@@ -439,10 +447,10 @@ if __name__ == "__main__":
     con = Connection(server='http://localhost:7200',
                      userId="rosenth",
                      credentials="RioGrande",
-                     repo="omas",
+                     repo="oldap",
                      context_name="DEFAULT")
     con.clear_repo()
-    con.upload_turtle("../ontologies/omas.ttl", "http://omas.org/base#onto")
-    con.upload_turtle("../ontologies/omas.shacl.trig")
+    con.upload_turtle("../ontologies/oldap.ttl", "http://oldap.org/base#onto")
+    con.upload_turtle("../ontologies/oldap.shacl.trig")
     con.upload_turtle("../ontologies/admin.trig")
 

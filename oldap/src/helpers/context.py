@@ -50,7 +50,7 @@ class Context(metaclass=ContextSingleton):
     for  SPARQL queries. The graph names are special prefixes (NCNames) that are used with the
     appropriate fragments (<graphname>:shacl, <graphname>:onto, <graphname>:data) to form the graph IRI's.
 
-    The following methods are defined, In case of an error they raise an OmasError():
+    The following methods are defined, In case of an error they raise an OldapError():
 
     - *[] (aka getitem)*: Access a full IRI using the prefix, e.g. ```context['rdfs']```
     - *[] (aka setitem)*: Set or modify a prefix/IRI pair, e.g. ```context['test'] = 'http://www.test.org/gaga#'```
@@ -83,7 +83,7 @@ class Context(metaclass=ContextSingleton):
         * dc (http://purl.org/dc/elements/1.1/)
         * dcterms (http://purl.org/dc/terms/)
         * orcid (https://orcid.org/)
-        * omas (http://omas.org/base#)
+        * oldap (http://oldap.org/base#)
 
         *Note*: If a context with the same name already exists, a reference to the already existing is returned:
 
@@ -101,7 +101,7 @@ class Context(metaclass=ContextSingleton):
             Xsd_NCName('dc', validate=False): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
             Xsd_NCName('dcterms', validate=False): NamespaceIRI('http://purl.org/dc/terms/'),
             Xsd_NCName('foaf', validate=False): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
-            Xsd_NCName('omas', validate=False): NamespaceIRI('http://omas.org/base#')
+            Xsd_NCName('oldap', validate=False): NamespaceIRI('http://oldap.org/base#')
         }
         self._inverse = {
             NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf', validate=False),
@@ -114,7 +114,7 @@ class Context(metaclass=ContextSingleton):
             NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc', validate=False),
             NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms', validate=False),
             NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf', validate=False),
-            NamespaceIRI('http://omas.org/base#'): Xsd_NCName('omas', validate=False),
+            NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap', validate=False),
         }
         self._use = []
 

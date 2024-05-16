@@ -30,8 +30,8 @@ class FloatingPoint(Xsd):
         Constructor for Floating Point
         :param value: The initial value. May not be None
         :type value: A FloatingPoint value, a float value or a string that can be interpreted as float.
-        :raises OmasErrorValue: If the value is not a float.
-        :raises OmasErrorType: If the value is not a float.
+        :raises OldapErrorValue: If the value is not a float.
+        :raises OldapErrorType: If the value is not a float.
         """
         if isinstance(value, FloatingPoint):
             self._value = value._value

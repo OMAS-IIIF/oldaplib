@@ -77,7 +77,7 @@ class Xsd_string(Xsd):
         :type value: str
         :param lang: Language the sting is in [optional]
         :type lang: str | Language
-        :raises OmasErrorValue: If the given language is invalid
+        :raises OldapErrorValue: If the given language is invalid
         """
         if not value:
             self.__value = None

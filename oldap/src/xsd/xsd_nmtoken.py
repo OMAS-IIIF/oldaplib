@@ -22,7 +22,7 @@ class Xsd_NMTOKEN(Xsd):
         Constructor of the Xsd_NMTOKEN class.
         :param value: Either a Xsd_NMTOKEN instance or a string conforming to the syntax of Xsd_NMTOKEN.
         :type value: Xsd_NMTOKEN | str
-        :raises OmasErrorValue: If the value is not a valid Xsd_NMTOKEN string.
+        :raises OldapErrorValue: If the value is not a valid Xsd_NMTOKEN string.
         """
         if isinstance(value, Xsd_NMTOKEN):
             self.__value = value.__value
@@ -57,7 +57,7 @@ class Xsd_NMTOKEN(Xsd):
         :type other: Xsd_NMTOKEN | str | None
         :return: True or False
         :rtype: bool
-        :raises OmasErrorValue: If the value is not a valid Xsd_NMTOKEN instance.
+        :raises OldapErrorValue: If the value is not a valid Xsd_NMTOKEN instance.
         """
         if other is None:
             return False

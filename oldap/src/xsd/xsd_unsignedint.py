@@ -19,7 +19,7 @@ class Xsd_unsignedInt(Xsd_integer):
         Constructor for the Xsd_unsignedInt class
         :param value: A Xsd_unsignedInt instance, an int in the range[0 - 4294967295] or a valid string representation.
         :type value: Xsd_unsignedInt | int | str
-        :raises OmasErrorValue: If the value is not a valid representation of an unsigned int.
+        :raises OldapErrorValue: If the value is not a valid representation of an unsigned int.
         """
         super().__init__(value)
         if self._value < 0 or self._value > 4294967295:

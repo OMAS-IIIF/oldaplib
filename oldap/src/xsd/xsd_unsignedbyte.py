@@ -21,7 +21,7 @@ class Xsd_unsignedByte(Xsd_integer):
         Constructor of the Xsd_unsignedByte class.
         :param value: A Xsd_integer instance, an int in the range [0, 255] or a valid string representation.
         :type value: Xsd_integer | int | str
-        :raises OmasErrorValue: If the value is not a valid unsigned byte value.
+        :raises OldapErrorValue: If the value is not a valid unsigned byte value.
         """
         super().__init__(value)
         if self._value < 0 or self._value > 255:

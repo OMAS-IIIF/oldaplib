@@ -23,7 +23,7 @@ class Xsd_dateTimeStamp(Xsd):
         :param value: A Xsd_dateTimeStamp instance, or a datetime object or a string
         containing a datetimestmp in OS format
         :type value: datetime | Self | str
-        :raises OmasErrorValue: If the value is not a datetimestamp object
+        :raises OldapErrorValue: If the value is not a datetimestamp object
         """
         if isinstance(value, Xsd_dateTimeStamp):
             self.__value = value.__value
@@ -60,7 +60,7 @@ class Xsd_dateTimeStamp(Xsd):
         :param other: A Xsd_dateTimeStamp instance, or a datetime object or a string, or None
         :type other: Xsd_dateTimeStamp | datetime | str | None
         :return: True of False
-        :raise OmasErrorValue: If the value is not a valid datetimestamp object
+        :raise OldapErrorValue: If the value is not a valid datetimestamp object
         """
         if other is None:
             return False

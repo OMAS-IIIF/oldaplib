@@ -25,7 +25,7 @@ class Xsd_gYearMonth(Xsd):
         Constructor of the Xsd_gYearMonth class
         :param value: Xsd_gYearMonth instance or a valid string representing a Xsd_gYearMonth instance
         :type value: Xsd_gYearMonth | str
-        :raises OmasErrorValue: if the value is not a valid Xsd_gYearMonth instance
+        :raises OldapErrorValue: if the value is not a valid Xsd_gYearMonth instance
         """
         if isinstance(value, Xsd_gYearMonth):
             self.__year = value.__year
@@ -80,7 +80,7 @@ class Xsd_gYearMonth(Xsd):
         :param other: Xsd_gYearMonth instance or a valid string representing a Xsd_gYearMonth instance
         :type other: Xsd_gYearMonth | str | None
         :return: True or False
-        :raise OmasErrorValue: if the value is not a valid Xsd_gYearMonth instance
+        :raise OldapErrorValue: if the value is not a valid Xsd_gYearMonth instance
         """
         if other is None:
             return False

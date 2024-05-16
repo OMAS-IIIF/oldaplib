@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 from time import sleep
 
 from oldap.src.connection import Connection
@@ -16,27 +17,38 @@ from oldap.src.xsd.xsd_boolean import Xsd_boolean
 from oldap.src.helpers.oldaperror import OldapError, OldapErrorNotFound
 from oldap.src.helpers.query_processor import QueryProcessor
 
+def find_project_root(current_path):
+    # Climb up the directory hierarchy and check for a marker file
+    path = Path(current_path).absolute()
+    while not (path / 'pyproject.toml').exists():
+        if path.parent == path:
+            # Root of the filesystem, file not found
+            raise RuntimeError('Project root not found')
+        path = path.parent
+    return path
 
-#sys.path.append("/Users/rosenth/ProgDev/OMAS/oldap/oldap")
-#sys.path.append("oldap")
 
 class TestBasicConnection(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
+        project_root = find_project_root(__file__)
         cls._context = Context(name="DEFAULT")
-        cls._context['test'] = NamespaceIRI("http://omas.org/test#")
+        cls._context['test'] = NamespaceIRI("http://oldap.org/test#")
         cls._context.use('test')
 
         cls._connection = Connection(server='http://localhost:7200',
-                                     repo="omas",
+                                     repo="oldap",
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
-        cls._connection.upload_turtle("oldap/testdata/connection_test.trig")
+        file = project_root / 'oldap' / 'testdata' / 'connection_test.trig'
+
+        cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 
     @classmethod
@@ -47,19 +59,19 @@ class TestBasicConnection(unittest.TestCase):
 
     def test_basic_connection(self):
         con = Connection(server='http://localhost:7200',
-                         repo="omas",
+                         repo="oldap",
                          userId="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         self.assertIsInstance(con, Connection)
         self.assertEqual(con.server, 'http://localhost:7200')
-        self.assertEqual(con.repo, 'omas')
+        self.assertEqual(con.repo, 'oldap')
         self.assertEqual(con.context_name, 'DEFAULT')
 
     def test_basic_connection_wrong_credentials(self):
         with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
-                             repo="omas",
+                             repo="oldap",
                              userId="rosenth",
                              credentials="XXX",
                              context_name="DEFAULT")
@@ -68,7 +80,7 @@ class TestBasicConnection(unittest.TestCase):
     def test_basic_connection_unknown_user(self):
         with self.assertRaises(OldapErrorNotFound) as ex:
             con = Connection(server='http://localhost:7200',
-                             repo="omas",
+                             repo="oldap",
                              userId="XXX",
                              credentials="RioGrande",
                              context_name="DEFAULT")
@@ -77,7 +89,7 @@ class TestBasicConnection(unittest.TestCase):
     def test_inactive_user(self):
         with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
-                             repo="omas",
+                             repo="oldap",
                              userId="bugsbunny",
                              credentials="DuffyDuck",
                              context_name="DEFAULT")
@@ -86,7 +98,7 @@ class TestBasicConnection(unittest.TestCase):
     def test_basic_connection_injection_userid(self):
         with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
-                             repo="omas",
+                             repo="oldap",
                              userId="rosenth \". #\n; SELECT * {?s ?p ?o}",
                              credentials="RioGrande",
                              context_name="DEFAULT")
@@ -95,7 +107,7 @@ class TestBasicConnection(unittest.TestCase):
     def test_basic_connection_injection_credentials(self):
         with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
-                             repo="omas",
+                             repo="oldap",
                              userId="rosenth",
                              credentials="RioGrande \". #\n; SELECT * {?s ?p ?o};",
                              context_name="DEFAULT")
@@ -104,13 +116,13 @@ class TestBasicConnection(unittest.TestCase):
     def test_token(self):
         Connection.jwtkey = "This is a very special secret, yeah!"
         con = Connection(server='http://localhost:7200',
-                         repo="omas",
+                         repo="oldap",
                          userId="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         token = con.token
         con = Connection(server='http://localhost:7200',
-                         repo="omas",
+                         repo="oldap",
                          token=token,
                          context_name="DEFAULT")
         self.assertEqual(con.userid, Xsd_NCName("rosenth"))
@@ -118,7 +130,7 @@ class TestBasicConnection(unittest.TestCase):
 
         with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
-                             repo="omas",
+                             repo="oldap",
                              token=token + "X",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
@@ -142,14 +154,14 @@ class TestBasicConnection(unittest.TestCase):
                 'vars': ['s', 'o']
             },
             'results': {
-                'bindings': [{'o': {'type': 'uri', 'value': 'http://omas.org/test#comment'},
-                              's': {'type': 'uri', 'value': 'http://omas.org/test#commentShape'}
+                'bindings': [{'o': {'type': 'uri', 'value': 'http://oldap.org/test#comment'},
+                              's': {'type': 'uri', 'value': 'http://oldap.org/test#commentShape'}
                               },
-                             {'o': {'type': 'uri', 'value': 'http://omas.org/test#test'},
-                              's': {'type': 'uri', 'value': 'http://omas.org/test#testShape'}
+                             {'o': {'type': 'uri', 'value': 'http://oldap.org/test#test'},
+                              's': {'type': 'uri', 'value': 'http://oldap.org/test#testShape'}
                               },
-                             {'o': {'type': 'uri', 'value': 'http://omas.org/test#enum'},
-                              's': {'type': 'uri', 'value': 'http://omas.org/test#enumShape'}
+                             {'o': {'type': 'uri', 'value': 'http://oldap.org/test#enum'},
+                              's': {'type': 'uri', 'value': 'http://oldap.org/test#enumShape'}
                               }]
             }
         }

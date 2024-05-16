@@ -493,7 +493,7 @@ class ResourceClass(Model, Notify):
         SELECT ?prop ?p ?o
         FROM {self._owlclass_iri.prefix}:onto
         WHERE {{
-   	        omas:OmasProject rdfs:subClassOf ?prop .
+   	        oldap:OldapProject rdfs:subClassOf ?prop .
             ?prop ?p ?o .
             FILTER(?o != owl:Restriction)
         }}
@@ -975,13 +975,13 @@ class ResourceClass(Model, Notify):
 
 if __name__ == '__main__':
     context = Context(name="DEFAULT")
-    context['test'] = NamespaceIRI("http://omas.org/test#")
+    context['test'] = NamespaceIRI("http://oldap.org/test#")
     context.use('test', 'dcterms')
 
     connection = Connection(server='http://localhost:7200',
                                  userId="rosenth",
                                  credentials="RioGrande",
-                                 repo="omas",
+                                 repo="oldap",
                                  context_name="DEFAULT")
     properties: list[PropertyClass | Iri] = [
         Iri("test:comment"),

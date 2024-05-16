@@ -5,8 +5,8 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix omas: <http://omas.org/base#> .
-@prefix : <http://omas.org/base#> .
+@prefix oldap: <http://oldap.org/base#> .
+@prefix : <http://oldap.org/base#> .
 
 :admin {
 
@@ -80,8 +80,8 @@
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        :projectShortName "omas"^^xsd:NCName ;
-        :namespaceIri "http://omas.org/base#"^^xsd:anyURI ;
+        :projectShortName "oldap"^^xsd:NCName ;
+        :namespaceIri "http://oldap.org/base#"^^xsd:anyURI ;
         rdfs:label "System"@en, "System"@de, "Système"@fr, "Systema"@it ;
         rdfs:comment "Project for system administration"@en ;
         :projectStart "2024-01-01"^^xsd:date .
@@ -142,7 +142,7 @@
     #==================================================================
     # Define some users
     #
-    <https://orcid.org/0000-0003-1681-4036> a omas:User ;
+    <https://orcid.org/0000-0003-1681-4036> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -158,7 +158,7 @@
     <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_OLDAP .
     <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
 
-    <https://orcid.org/0000-0003-1485-4923> a omas:User ;
+    <https://orcid.org/0000-0003-1485-4923> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -173,7 +173,7 @@
 
     <<<https://orcid.org/0000-0003-1485-4923> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
 
-    <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> a omas:User ;
+    <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -186,7 +186,7 @@
         :hasPermissions :GenericRestricted ;
         :isActive true .
 
-    <https://orcid.org/0000-0001-9277-3921> a omas:User ;
+    <https://orcid.org/0000-0001-9277-3921> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -202,8 +202,8 @@
 }
 
 #SELECT *
-#FROM omas:base
-#FROM omas:admin
+#FROM oldap:base
+#FROM oldap:admin
 #WHERE {
 #    ?user a :User .
 #    ?user :userId "rosenth" .

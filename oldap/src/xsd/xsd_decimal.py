@@ -22,7 +22,7 @@ class Xsd_decimal(FloatingPoint):
         Constructor for the Xsd_decimal class.
         :param value: Either a Xsd_decimal, float or string in decimal format.
         :type value: Xsd_decimal | float | str
-        :raises OmasErrorValue: If the value is not in a valid decimal format.
+        :raises OldapErrorValue: If the value is not in a valid decimal format.
         """
         if isinstance(value, str):
             if validate:

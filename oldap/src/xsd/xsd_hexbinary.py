@@ -22,7 +22,7 @@ class Xsd_hexBinary(Xsd):
         Constructor of the Xsd_hexBinary class
         :param value: Xsd_hexBinary instance or a valid string
         :type value: Xsd_hexBinary | str
-        :raises OmasErrorValue: If the value is not a valid Xsd_hexBinary instance
+        :raises OldapErrorValue: If the value is not a valid Xsd_hexBinary instance
         """
         if isinstance(value, Xsd_hexBinary):
             self.__value = value.__value
@@ -53,7 +53,7 @@ class Xsd_hexBinary(Xsd):
         Equality test for Xsd_hexBinary instance
         :param other: Xsd_hexBinary instance or a valid string
         :return: True or False
-        :raises OmasErrorValue: If the value is not a valid Xsd_hexBinary instance
+        :raises OldapErrorValue: If the value is not a valid Xsd_hexBinary instance
         """
         if other is None:
             return False

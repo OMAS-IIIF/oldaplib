@@ -24,7 +24,7 @@ class Xsd_gDay(Xsd):
         Constructor for the Xsd_gDay class
         :param value: A Xsd_gDay object or a string valid for xsd:gDay
         :type value: Xsd_gDay | str
-        :raises OmasErrorValue: If the value is not a valid xsd:gDay
+        :raises OldapErrorValue: If the value is not a valid xsd:gDay
         """
         if isinstance(value, Xsd_gDay):
             self.__day = value.__day
@@ -76,7 +76,7 @@ class Xsd_gDay(Xsd):
         :param other: Another Xsd_gDay object
         :type other: Xsd_gDay | str | None
         :return: True or False
-        :raise OmasErrorValue: If the value is not a valid xsd:gDay
+        :raise OldapErrorValue: If the value is not a valid xsd:gDay
         """
         if other is None:
             return False

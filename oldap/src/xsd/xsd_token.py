@@ -23,7 +23,7 @@ class Xsd_token(Xsd):
         Constructor for the Xsd_token class.
         :param value: A Xml_token instance or a valid token string
         :type value: Xsd_token | str
-        :raises OmasErrorValue: If the token is invalid
+        :raises OldapErrorValue: If the token is invalid
         """
         if isinstance(value, Xsd_token):
             self.__value = value.__value

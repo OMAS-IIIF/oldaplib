@@ -38,24 +38,24 @@ class TestPermissionSet(unittest.TestCase):
         cls._context = Context(name="DEFAULT")
 
         cls._connection = Connection(server='http://localhost:7200',
-                                     repo="omas",
+                                     repo="oldap",
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
         cls._unpriv = Connection(server='http://localhost:7200',
-                                 repo="omas",
+                                 repo="oldap",
                                  userId="fornaro",
                                  credentials="RioGrande",
                                  context_name="DEFAULT")
 
-        cls._connection.clear_graph(Xsd_QName('omas:admin'))
+        cls._connection.clear_graph(Xsd_QName('oldap:admin'))
         file = project_root / 'oldap' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 
     @classmethod
     def tearDownClass(cls):
-        #cls._connection.clear_graph(Xsd_QName('omas:admin'))
+        #cls._connection.clear_graph(Xsd_QName('oldap:admin'))
         #cls._connection.upload_turtle("oldap/ontologies/admin.trig")
         #sleep(1)  # upload may take a while...
         pass
@@ -65,23 +65,23 @@ class TestPermissionSet(unittest.TestCase):
                            label=LangString("testPerm@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
-                           definedByProject=Iri('omas:SystemProject'))
+                           definedByProject=Iri('oldap:SystemProject'))
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertEqual(ps.label, LangString("testPerm@en", "test@Perm@de"))
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
-        self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
+        self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
         with self.assertRaises(OldapErrorInconsistency):
             ps = PermissionSet(con=self._connection,
                                comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                                givesPermission=DataPermission.DATA_UPDATE,
-                               definedByProject=Iri('omas:SystemProject'))
+                               definedByProject=Iri('oldap:SystemProject'))
 
         ps = PermissionSet(con=self._connection,
                            label=LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
-                           definedByProject=Iri('omas:SystemProject'))
+                           definedByProject=Iri('oldap:SystemProject'))
         ps.create()
         iri = ps.permissionSetIri
         self.assertIsNotNone(ps.created)
@@ -93,22 +93,22 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertEqual(ps.label, LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"))
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
-        self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
+        self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
 
     # @unittest.skip('Work in progress')
     def test_read_permission(self):
-        ps = PermissionSet.read(self._connection, Iri('omas:GenericView'))
+        ps = PermissionSet.read(self._connection, Iri('oldap:GenericView'))
         self.assertEqual(ps.givesPermission, DataPermission.DATA_VIEW)  # add assertion here
         self.assertEqual(ps.label, LangString("GenericView@en", "GenericView@de", "GenericView@fr", "GenericView@it"))
-        self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
+        self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
     def test_create_permission(self):
         ps = PermissionSet(con=self._connection,
                            label=LangString("testPerm@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
-                           definedByProject=Iri('omas:SystemProject'))
+                           definedByProject=Iri('oldap:SystemProject'))
         ps.create()
         iri = ps.permissionSetIri
         self.assertIsNotNone(ps.created)
@@ -120,13 +120,13 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertEqual(ps.label, LangString("testPerm@en", "test@Perm@de"))
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
-        self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
+        self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
         ps = PermissionSet(con=self._connection,
                            label=LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
-                           definedByProject=Iri('omas:SystemProject'))
+                           definedByProject=Iri('oldap:SystemProject'))
         ps.create()
         iri = ps.permissionSetIri
         self.assertIsNotNone(ps.created)
@@ -138,21 +138,21 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertEqual(ps.label, LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"))
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
-        self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
+        self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
         ps = PermissionSet(con=self._connection,
-                           permissionSetIri=Iri('omas:APermSet'),
+                           permissionSetIri=Iri('oldap:APermSet'),
                            label=LangString("testPerm@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
-                           definedByProject=Iri('omas:SystemProject'))
+                           definedByProject=Iri('oldap:SystemProject'))
         ps.create()
         ps = PermissionSet(con=self._connection,
-                           permissionSetIri=Iri('omas:APermSet'),
+                           permissionSetIri=Iri('oldap:APermSet'),
                            label=LangString("testPerm33@en", "test@Perm33@de"),
                            comment=LangString("Testing a PermissionSet33@en", "Test eines PermissionSet33@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
-                           definedByProject=Iri('omas:hyperHamlet'))
+                           definedByProject=Iri('oldap:hyperHamlet'))
         with self.assertRaises(OldapErrorAlreadyExists) as ex:
             ps.create()
 
@@ -162,7 +162,7 @@ class TestPermissionSet(unittest.TestCase):
                            label=LangString("testPermUnauth@en", "test@PermUnauth@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
-                           definedByProject=Iri('omas:SystemProject'))
+                           definedByProject=Iri('oldap:SystemProject'))
         with self.assertRaises(OldapErrorNoPermission):
             ps.create()
 
@@ -171,7 +171,7 @@ class TestPermissionSet(unittest.TestCase):
                                label=LangString("testPermUnauth2@en", "test@PermUnauth2@de"),
                                comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                                givesPermission=DataPermission.DATA_UPDATE,
-                               definedByProject=Iri('omas:HyperHamlet'))
+                               definedByProject=Iri('oldap:HyperHamlet'))
             with self.assertRaises(OldapErrorNoPermission):
                 ps.create()
 
@@ -179,26 +179,26 @@ class TestPermissionSet(unittest.TestCase):
     def test_search_permission_sets(self):
         iris = PermissionSet.search(self._connection, label="GenericView")
         self.assertEqual(len(iris), 1)
-        self.assertEqual(Iri('omas:GenericView'), iris[0])
+        self.assertEqual(Iri('oldap:GenericView'), iris[0])
 
         iris = PermissionSet.search(self._connection, label=Xsd_string("GenericView@de"))
         self.assertEqual(len(iris), 1)
-        self.assertEqual(Iri('omas:GenericView'), iris[0])
+        self.assertEqual(Iri('oldap:GenericView'), iris[0])
 
-        iris = PermissionSet.search(self._connection, definedByProject=Iri("omas:HyperHamlet"))
+        iris = PermissionSet.search(self._connection, definedByProject=Iri("oldap:HyperHamlet"))
         self.assertEqual(len(iris), 1)
-        self.assertEqual(Iri('omas:HyperHamletMember'), iris[0])
+        self.assertEqual(Iri('oldap:HyperHamletMember'), iris[0])
 
         iris = PermissionSet.search(self._connection, givesPermission=DataPermission.DATA_RESTRICTED)
         self.assertEqual(len(iris), 1)
-        self.assertEqual(Iri('omas:GenericRestricted'), iris[0])
+        self.assertEqual(Iri('oldap:GenericRestricted'), iris[0])
 
     def test_update_permission_set(self):
         ps = PermissionSet(con=self._connection,
                            label=LangString("testUpdatePerm@en", "testVerändernPerm@de"),
                            comment=LangString("Testing update of PermissionSet@en", "Test einer Veränderung eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
-                           definedByProject=Iri('omas:SystemProject'))
+                           definedByProject=Iri('oldap:SystemProject'))
         ps.create()
         psIri = ps.permissionSetIri
         del ps
@@ -217,7 +217,7 @@ class TestPermissionSet(unittest.TestCase):
         ps = PermissionSet.read(self._connection, psIri)
         ps.comment = LangString("gagagaga@en")
         with self.assertRaises(OldapErrorImmutable):
-            ps[PermissionSetAttr.DEFINED_BY_PROJECT] = Iri('omas:HyperHamlet')
+            ps[PermissionSetAttr.DEFINED_BY_PROJECT] = Iri('oldap:HyperHamlet')
 
         ps = PermissionSet.read(self._unpriv, psIri)
         ps.comment[Language.FR] = "gagagaga"
@@ -230,7 +230,7 @@ class TestPermissionSet(unittest.TestCase):
                            label=LangString("testDeletePerm@en", "testDeletePerm@de"),
                            comment=LangString("Testing deleting a PermissionSet@en", "Test einer Löschung eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
-                           definedByProject=Iri('omas:HyperHamlet'))
+                           definedByProject=Iri('oldap:HyperHamlet'))
         ps.create()
         psIri = ps.permissionSetIri
         del ps

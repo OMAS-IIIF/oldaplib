@@ -22,7 +22,7 @@ class Xsd_long(Xsd_integer):
         :param value: The integer value as Xsd_long, int or string. It must be in the
         range of -9223372036854775808 to 9223372036854775807
         :type value: Xsd_integer | int | str
-        :raises OmasErrorValue: If the value is not a valid long integer
+        :raises OldapErrorValue: If the value is not a valid long integer
         """
         super().__init__(value, validate=validate)
         if self._value < -9223372036854775808 or self._value > 9223372036854775807:

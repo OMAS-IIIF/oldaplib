@@ -82,7 +82,7 @@ PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX omas: <http://omas.org/base#>
+PREFIX oldap: <http://oldap.org/base#>
 PREFIX test: <http://www.test.org/gaga#>
 """
         self.assertEqual(context.sparql_context, expected)
@@ -100,7 +100,7 @@ PREFIX test: <http://www.test.org/gaga#>
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix omas: <http://omas.org/base#> .
+@prefix oldap: <http://oldap.org/base#> .
 @prefix test: <http://www.test.org/gaga#> .
 """
         self.maxDiff = None

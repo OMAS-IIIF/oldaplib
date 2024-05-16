@@ -21,7 +21,7 @@ class Xsd_integer(Xsd):
         Constructor for Xsd_integer
         :param value: Value to convert to Xsd_integer
         :type value: Xsd | int | str
-        :raises OmasErrorValue: Value cannot be converted to Xsd_integer
+        :raises OldapErrorValue: Value cannot be converted to Xsd_integer
         """
         if isinstance(value, Xsd_integer):
             self._value = value._value
@@ -67,7 +67,7 @@ class Xsd_integer(Xsd):
         :param other: Value to compare instance with
         :type other: Xsd | int | None
         :return: True or False
-        :raises OmasErrorValue: Value cannot be converted to Xsd_integer
+        :raises OldapErrorValue: Value cannot be converted to Xsd_integer
         """
         if other is None:
             return False
@@ -84,7 +84,7 @@ class Xsd_integer(Xsd):
         :param other: Value to compare with
         :type other: Xsd | int | None
         :return: True of False
-        :raises OmasErrorValue: Value cannot be converted to Xsd_integer
+        :raises OldapErrorValue: Value cannot be converted to Xsd_integer
         """
         if other is None:
             return True
@@ -100,7 +100,7 @@ class Xsd_integer(Xsd):
         Compare for greater than value
         :param other: Value to compare with
         :return: True or False
-        :raises OmasErrorValue: Value cannot be converted to Xsd_integer
+        :raises OldapErrorValue: Value cannot be converted to Xsd_integer
         """
         if isinstance(other, Xsd_integer):
             return self._value > other._value
@@ -114,7 +114,7 @@ class Xsd_integer(Xsd):
         Compare for greater or equal than value
         :param other: Value to compare with
         :return: True or False
-        :raises OmasErrorValue: Value cannot be converted to Xsd_integer
+        :raises OldapErrorValue: Value cannot be converted to Xsd_integer
         """
         if isinstance(other, Xsd_integer):
             return self._value >= other._value
@@ -128,7 +128,7 @@ class Xsd_integer(Xsd):
         Compare for less than value
         :param other: Value to compare with
         :return: True or False
-        :raises OmasErrorValue: Value cannot be converted to Xsd_integer
+        :raises OldapErrorValue: Value cannot be converted to Xsd_integer
         """
         if isinstance(other, Xsd_integer):
             return self._value < other._value
@@ -142,7 +142,7 @@ class Xsd_integer(Xsd):
         Compare for less or equal than value
         :param other: Value to compare with
         :return: True or False
-        :raises OmasErrorValue: Value cannot be converted to Xsd_integer
+        :raises OldapErrorValue: Value cannot be converted to Xsd_integer
         """
         if isinstance(other, Xsd_integer):
             return self._value <= other._value

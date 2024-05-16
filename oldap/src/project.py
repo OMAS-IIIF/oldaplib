@@ -42,13 +42,13 @@ class ProjectAttr(Enum):
     """
     This enum class represents the fields used in the project model
     """
-    PROJECT_IRI = 'omas:projectIri'  # virtual property, repents the RDF subject
-    PROJECT_SHORTNAME = 'omas:projectShortName'
+    PROJECT_IRI = 'oldap:projectIri'  # virtual property, repents the RDF subject
+    PROJECT_SHORTNAME = 'oldap:projectShortName'
     LABEL = 'rdfs:label'
     COMMENT = 'rdfs:comment'
-    NAMESPACE_IRI = 'omas:namespaceIri'
-    PROJECT_START = 'omas:projectStart'
-    PROJECT_END = 'omas:projectEnd'
+    NAMESPACE_IRI = 'oldap:namespaceIri'
+    PROJECT_START = 'oldap:projectStart'
+    PROJECT_END = 'oldap:projectEnd'
 
 #@strict
 class Project(Model):
@@ -172,7 +172,7 @@ class Project(Model):
         :type projectStart: Python date
         :param projectEnd: End date of the project [Optional]
         :type projectEnd: Python date
-        :raises OmasErrorValue: Invalid parameter supplied
+        :raises OldapErrorValue: Invalid parameter supplied
         """
         super().__init__(con)
         self.__creator = creator if creator is not None else con.userIri
@@ -232,7 +232,7 @@ class Project(Model):
 
     def check_for_permissions(self) -> (bool, str):
         actor = self._con.userdata
-        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
+        sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             return True, "OK"
         else:
@@ -389,8 +389,8 @@ class Project(Model):
         :type projectIri: Xsd_anyURI | Xsd_QName
         :return: Project instance
         :rtype: Project
-        :raise: OmasErrorNotFound: project with given Iri not found
-        :raise: OmasError: All other errors/problems
+        :raise: OldapErrorNotFound: project with given Iri not found
+        :raise: OldapError: All other errors/problems
         """
         context = Context(name=con.context_name)
         query = context.sparql_context
@@ -409,7 +409,7 @@ class Project(Model):
         if projectIri is not None:
             query += f"""
                 SELECT ?prop ?val
-                FROM omas:admin
+                FROM oldap:admin
                 WHERE {{
                     {projectIri.toRdf} ?prop ?val
                 }}
@@ -417,10 +417,10 @@ class Project(Model):
         elif shortname is not None:
             query += f"""
                 SELECT ?proj ?prop ?val
-                FROM omas:admin
+                FROM oldap:admin
                 WHERE {{
-                    ?proj a omas:Project .
-                    ?proj omas:projectShortName ?shortname .
+                    ?proj a oldap:Project .
+                    ?proj oldap:projectShortName ?shortname .
                     ?proj ?prop ?val .
                     FILTER(?shortname = {shortname.toRdf})
                 }}
@@ -451,17 +451,17 @@ class Project(Model):
                     contributor = r['val']
                 case 'dcterms:modified':
                     modified = r['val']
-                case 'omas:namespaceIri':
+                case 'oldap:namespaceIri':
                     namespaceIri = NamespaceIRI(r['val'])
-                case 'omas:projectShortName':
+                case 'oldap:projectShortName':
                     projectShortName = r['val']
                 case 'rdfs:label':
                     label.add(str(r['val']))
                 case 'rdfs:comment':
                     comment.add(str(r['val']))
-                case 'omas:projectStart':
+                case 'oldap:projectStart':
                     projectStart = r['val']
-                case 'omas:projectEnd':
+                case 'oldap:projectEnd':
                     projectEnd = r['val']
         label.changeset_clear()
         label.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.LABEL.value))
@@ -497,16 +497,16 @@ class Project(Model):
         :type comment: str
         :return: List of IRIs matching the search criteria (AnyIRI | QName)
         :rtype: List[Iri]
-        :raises OmasErrorNotFound: If the project does not exist
+        :raises OldapErrorNotFound: If the project does not exist
         """
         label = Xsd_string(label)
         comment = Xsd_string(comment)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?project\n'
-        sparql += 'FROM omas:admin\n'
+        sparql += 'FROM oldap:admin\n'
         sparql += 'WHERE {\n'
-        sparql += '   ?project a omas:Project .\n'
+        sparql += '   ?project a oldap:Project .\n'
         if label:
             sparql += '   ?project rdfs:label ?label .\n'
             sparql += f'   FILTER(CONTAINS(STR(?label), "{Xsd_string.escaping(label.value)}"))\n'
@@ -516,7 +516,7 @@ class Project(Model):
         sparql += '}\n'
         # sparql += f"""
         # SELECT DISTINCT ?project
-        # FROM omas:admin
+        # FROM oldap:admin
         # WHERE {{
         #     ?project rdfs:label ?label
         #     FILTER(STRSTARTS(?label, "{label}"))
@@ -538,8 +538,8 @@ class Project(Model):
         :param indent_inc: Indent increment
         :type indent_inc: int
         :return: None
-        :raises OmasErrorAlreadyExists: If a project with the projectIri already exists
-        :raises OmasError: All other errors
+        :raises OldapErrorAlreadyExists: If a project with the projectIri already exists
+        :raises OldapError: All other errors
         """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
@@ -560,9 +560,9 @@ class Project(Model):
         sparql1 = context.sparql_context
         sparql1 += f"""
         SELECT ?project
-        FROM omas:admin
+        FROM oldap:admin
         WHERE {{
-            ?project a omas:Project .
+            ?project a oldap:Project .
             FILTER(?project = {self.projectIri.toRdf})
         }}
         """
@@ -570,21 +570,21 @@ class Project(Model):
         blank = ''
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
-        sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{'
-        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.projectIri.toRdf} a omas:Project'
+        sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
+        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.projectIri.toRdf} a oldap:Project'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:projectShortName {self.projectShortName.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:projectShortName {self.projectShortName.toRdf}'
         if self.label:
             sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label.toRdf}'
         if self.comment:
             sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:namespaceIri {self.namespaceIri.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:projectStart {self.projectStart.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:namespaceIri {self.namespaceIri.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:projectStart {self.projectStart.toRdf}'
         if self.projectEnd is not None:
-            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}omas:projectEnd {self.projectEnd.toRdf}'
+            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:projectEnd {self.projectEnd.toRdf}'
         sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -622,9 +622,9 @@ class Project(Model):
         :param indent_inc: Indent increment for SPARQL queries [Only used for debbugging purposes]
         :type indent_inc: int
         :return: None
-        :Raises: OmasErrorNoPermission: No permission for operation
-        :Raises: OmasErrorUpdateFailed: Update failed
-        :Raises: Omas Error: Other Internal error
+        :Raises: OldapErrorNoPermission: No permission for operation
+        :Raises: OldapErrorUpdateFailed: Update failed
+        :Raises: Oldap Error: Other Internal error
         """
         result, message = self.check_for_permissions()
         if not result:
@@ -637,23 +637,23 @@ class Project(Model):
         for field, change in self.__changeset.items():
             if field == ProjectAttr.LABEL or field == ProjectAttr.COMMENT:
                 if change.action == Action.MODIFY:
-                    sparql_list.extend(self.__attributes[field].update(graph=Xsd_QName('omas:admin'),
+                    sparql_list.extend(self.__attributes[field].update(graph=Xsd_QName('oldap:admin'),
                                                                        subject=self.projectIri,
                                                                        subjectvar='?project',
                                                                        field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    sparql = self.__changeset[field].old_value.delete(graph=Xsd_QName('omas:admin'),
+                    sparql = self.__changeset[field].old_value.delete(graph=Xsd_QName('oldap:admin'),
                                                                       subject=self.projectIri,
                                                                       field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
-                    sparql = self.__attributes[field].create(graph=Xsd_QName('omas:admin'),
+                    sparql = self.__attributes[field].create(graph=Xsd_QName('oldap:admin'),
                                                              subject=self.projectIri,
                                                              field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 continue
             sparql = f'{blank:{indent * indent_inc}}# Project field "{field.value}" with action "{change.action.value}"\n'
-            sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
@@ -673,8 +673,8 @@ class Project(Model):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(Xsd_QName('omas:admin'), self.projectIri, self.modified, timestamp)
-            modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.projectIri)
+            self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.projectIri, self.modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.projectIri)
         except OldapError:
             self._con.transaction_abort()
             raise
@@ -693,8 +693,8 @@ class Project(Model):
         """
         Delete the given user from the triplestore
         :return: None
-        :raises OmasErrorNoPermission: No permission for operation
-        :raises OmasError: generic internal error
+        :raises OldapErrorNoPermission: No permission for operation
+        :raises OldapError: generic internal error
         """
         result, message = self.check_for_permissions()
         if not result:
@@ -707,7 +707,7 @@ class Project(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.projectIri.toRdf} a omas:Project .
+            {self.projectIri.toRdf} a oldap:Project .
             {self.projectIri.toRdf} ?prop ?val .
         }} 
         """

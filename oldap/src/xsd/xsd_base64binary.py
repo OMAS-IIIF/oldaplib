@@ -23,7 +23,7 @@ class Xsd_base64Binary(Xsd):
         Constructor that encodes and decodes binary data using the XML Scheme xsd:base64Binary datatype
         :param value: Either another instance of Xsd_base64Binary or a bytes object
         :type value: Xsd_base64Binary | bytes
-        :raises OmasErrorValue: If the value is not an instance of Xsd_base64Binary or a valid bytes object
+        :raises OldapErrorValue: If the value is not an instance of Xsd_base64Binary or a valid bytes object
         """
         if isinstance(value, Xsd_base64Binary):
             self.__value = value.__value

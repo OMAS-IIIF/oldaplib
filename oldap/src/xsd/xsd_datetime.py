@@ -24,7 +24,7 @@ class Xsd_dateTime(Xsd):
         object or a string representation of a datetime in ISO format, or None.
         If the parameter is None or omitted, the current datetime is used.
         :type value: datetime | Self | str | None
-        :raises OmasErrorValue: if the parameter cannot be converted to a datetime
+        :raises OldapErrorValue: if the parameter cannot be converted to a datetime
         """
         if value is None:
             self.__value = datetime.now()
@@ -62,7 +62,7 @@ class Xsd_dateTime(Xsd):
         Equality test for Xsd_dateTime instance
         :param other: Value to compare instance to
         :return: True or False
-        :raises OmasErrorValue: if the parameter cannot be converted to a datetime
+        :raises OldapErrorValue: if the parameter cannot be converted to a datetime
         """
         if other is None:
             return False

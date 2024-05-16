@@ -21,7 +21,7 @@ class Xsd_negativeInteger(Xsd_integer):
         Constructor of the Xsd_negativeInteger class.
         :param value: Any valid Xsd value, an int or a string reprenting a negative integer.
         :type value: Xsd_integer | int | str
-        :raises OmasErrorValue: If the value is not a valid Xsd or negative integer.
+        :raises OldapErrorValue: If the value is not a valid Xsd or negative integer.
         """
         super().__init__(value)
         if not self._value < 0:

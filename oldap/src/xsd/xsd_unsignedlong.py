@@ -19,7 +19,7 @@ class Xsd_unsignedLong(Xsd_integer):
         Constructor of the Xsd_unsignedLong class.
         :param value: A Xsd_integer instance, an int or a string representation.
         :type value: Xsd_integer | int | str
-        :raises OmasErrorValue: If the value is not a valid unsigned long value.
+        :raises OldapErrorValue: If the value is not a valid unsigned long value.
         """
         super().__init__(value)
         if self._value < 0 or self._value > 18446744073709551615:

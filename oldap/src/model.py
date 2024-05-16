@@ -21,9 +21,9 @@ class Model:
 
     def __init__(self, connection: IConnection) -> None:
         # if not isinstance(connection, Connection):
-        #     raise OmasError('"con"-parameter must be an instance of Connection')
+        #     raise OldapError('"con"-parameter must be an instance of Connection')
         # if type(connection) != Connection:
-        #     raise OmasError('"con"-parameter must be an instance of Connection')
+        #     raise OldapError('"con"-parameter must be an instance of Connection')
         self._con = connection
         self._changed = set()
 

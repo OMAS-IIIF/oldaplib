@@ -35,7 +35,7 @@ class OldapListAttr(Enum):
     """
     This enum class represents the fields used in the project model
     """
-    OLDAPLIST_IRI = 'omas:oldapListIri'  # virtual property, repents the RDF subject
+    OLDAPLIST_IRI = 'oldap:oldapListIri'  # virtual property, repents the RDF subject
     PREF_LABEL = 'skos:prefLabel'
     DEFINITION = 'skos:definition'
 
@@ -123,7 +123,7 @@ class OldapList(Model):
         # the given project!
         #
         actor = self._con.userdata
-        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
+        sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             #
             # user has root privileges!
@@ -339,7 +339,7 @@ class OldapList(Model):
         sparql += 'SELECT DISTINCT ?list\n'
         sparql += f'FROM {graph}:lists\n'
         sparql += 'WHERE {\n'
-        sparql += '   ?list a omas:OldapList .\n'
+        sparql += '   ?list a oldap:OldapList .\n'
         if prefLabel:
             sparql += '   ?list skos:prefLabel ?label .\n'
             if prefLabel.lang:
@@ -381,7 +381,7 @@ class OldapList(Model):
         SELECT ?list
         FROM {self.__graph}:lists
         WHERE {{
-            ?list a omas:OldapList .
+            ?list a oldap:OldapList .
             FILTER(?list = {self.oldapListIri.toRdf})
         }}
         """
@@ -390,7 +390,7 @@ class OldapList(Model):
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.oldapListIri.toRdf} a omas:OldapList'
+        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.oldapListIri.toRdf} a oldap:OldapList'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
@@ -484,8 +484,8 @@ class OldapList(Model):
         """
         Delete the given user from the triplestore
         :return: None
-        :raises OmasErrorNoPermission: No permission for operation
-        :raises OmasError: generic internal error
+        :raises OldapErrorNoPermission: No permission for operation
+        :raises OldapError: generic internal error
         """
         result, message = self.check_for_permissions()
         if not result:
@@ -496,7 +496,7 @@ class OldapList(Model):
         SELECT ?listnode
         FROM {self.__graph}:lists
         WHERE {{
-            ?listnode a omas:OldapListNode .
+            ?listnode a oldap:OldapListNode .
         }}
         '''
         jsonobj = self._con.query(sparql)
@@ -507,7 +507,7 @@ class OldapList(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.oldapListIri.toRdf} a omas:OldapList .
+            {self.oldapListIri.toRdf} a oldap:OldapList .
             {self.oldapListIri.toRdf} ?prop ?val .
         }} 
         """

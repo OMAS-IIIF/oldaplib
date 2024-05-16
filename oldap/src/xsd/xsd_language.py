@@ -64,7 +64,7 @@ class Xsd_language(Xsd):
         :param other: A Xsd_language instance.
         :return: True or False
         :rtype: bool
-        :raises OmasErrorValue: If the syntax is invalid.
+        :raises OldapErrorValue: If the syntax is invalid.
         """
         if other is None:
             return False

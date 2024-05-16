@@ -8,21 +8,21 @@
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix omas: <http://omas.org/base#> .
-@prefix test: <http://omas.org/test#> .
+@prefix oldap: <http://oldap.org/base#> .
+@prefix test: <http://oldap.org/test#> .
 
-omas:admin {
+oldap:admin {
 
-    omas:Test a omas:Project ;
+    oldap:Test a oldap:Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        omas:projectShortName "test"^^xsd:NCName ;
-        omas:namespaceIri "http://omas.org/test#"^^xsd:anyURI ;
+        oldap:projectShortName "test"^^xsd:NCName ;
+        oldap:namespaceIri "http://oldap.org/test#"^^xsd:anyURI ;
         rdfs:label "Test"@en, "Test"@de, "Test"@fr, "Test"@it ;
         rdfs:comment "For testing purposes"@en ;
-        omas:projectStart "2024-01-01"^^xsd:date .
+        oldap:projectStart "2024-01-01"^^xsd:date .
 
 }
 
@@ -36,7 +36,7 @@ test:shacl {
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            sh:class omas:ThingShape ;
+            sh:class oldap:ThingShape ;
             rdfs:label "Project"@en, "Projekt"@de ;
             rdfs:comment "A page of a book"@en, "Seite eines Buches"@de ;
             sh:closed "true"^^xsd:boolean ;
@@ -122,7 +122,7 @@ test:shacl {
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            sh:class omas:ThingShape ;
+            sh:class oldap:ThingShape ;
             rdfs:label "Book"@en, "Buch"@de ;
             sh:closed "true"^^xsd:boolean ;
             sh:property
@@ -221,7 +221,7 @@ test:onto {
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            rdfs:subClassOf omas:Thing ,
+            rdfs:subClassOf oldap:Thing ,
                 [
                     rdf:type owl:Restriction ;
                     owl:onProperty test:pageDesignation ;
@@ -276,7 +276,7 @@ test:onto {
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            rdfs:subClassOf omas:Thing ,
+            rdfs:subClassOf oldap:Thing ,
                 [
                     rdf:type owl:Restriction ;
                     owl:onProperty test:title ;

@@ -21,7 +21,7 @@ class Xsd_positiveInteger(Xsd_integer):
         Constructor of Xsd_positiveInteger class.
         :param value: A valid XSD instance, a positive int or a valid string
         :type value: Xsd_integer | int | str
-        :raises OmasErrorValue: If the value is invalid.
+        :raises OldapErrorValue: If the value is invalid.
         """
         super().__init__(value)
         if not self._value > 0:

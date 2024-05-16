@@ -24,7 +24,7 @@ class Xsd_duration(Xsd):
         :param value: a Xsd_duration instance, or a timedelta instance, or a string for a timedelta
         in ISO8601 format.
         :type value: Self | timedelta | str
-        :raises OmasErrorValue: if the value is not a valid timedelta
+        :raises OldapErrorValue: if the value is not a valid timedelta
         """
         if isinstance(value, Xsd_duration):
             self.__value = value.__value
@@ -56,7 +56,7 @@ class Xsd_duration(Xsd):
         :param other: Xsd_duration instance, a timedelta instance, or a string for a timedelta
         :type other: Self | timedelta | str | None
         :return: True or False
-        :raise OmasErrorValue: if the value is not a valid timedelta
+        :raise OldapErrorValue: if the value is not a valid timedelta
         """
         if other is None:
             return False

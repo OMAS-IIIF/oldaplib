@@ -80,9 +80,9 @@ class PermissionSet(Model):
         if not self.__attributes[PermissionSetAttr.LABEL]:
             raise OldapErrorInconsistency(f'PermissionSet must have at least one rdfs:label, none given.')
         if not self.__attributes[PermissionSetAttr.GIVES_PERMISSION]:
-            raise OldapErrorInconsistency(f'PermissionSet must have at least one omas:givesPermission, none given.')
+            raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:givesPermission, none given.')
         if not self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]:
-            raise OldapErrorInconsistency(f'PermissionSet must have at least one omas:definedByproject, none given.')
+            raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:definedByproject, none given.')
 
         for field in PermissionSetAttr:
             prefix, name = field.value.split(':')
@@ -98,7 +98,7 @@ class PermissionSet(Model):
         # the given project!
         #
         actor = self._con.userdata
-        sysperms = actor.inProject.get(Iri('omas:SystemProject'))
+        sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             #
             # user has root privileges!
@@ -225,9 +225,9 @@ class PermissionSet(Model):
         sparql1 = context.sparql_context
         sparql1 += f"""
         SELECT ?permset
-        FROM omas:admin
+        FROM oldap:admin
         WHERE {{
-            ?permset a omas:PermissionSet .
+            ?permset a oldap:PermissionSet .
             FILTER(?permset = {self.permissionSetIri.toRdf})       
         }}
         """
@@ -235,9 +235,9 @@ class PermissionSet(Model):
         timestamp = Xsd_dateTime()
         sparql = context.sparql_context
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}} {self.permissionSetIri.toRdf} a omas:PermissionSet'
+        sparql += f'{blank:{(indent + 2) * indent_inc}} {self.permissionSetIri.toRdf} a oldap:PermissionSet'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
@@ -245,7 +245,7 @@ class PermissionSet(Model):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.LABEL.value} {self.label.toRdf}'
         if self.comment:
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.COMMENT.value} {self.comment.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.GIVES_PERMISSION.value} omas:{self.givesPermission.name}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.GIVES_PERMISSION.value} oldap:{self.givesPermission.name}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.DEFINED_BY_PROJECT.value} {self.definedByProject.toRdf}'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
@@ -284,10 +284,10 @@ class PermissionSet(Model):
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?permset ?p ?o
-        FROM omas:admin
+        FROM oldap:admin
         WHERE {{
             BIND({permissionSetIri.toRdf} as ?permset)
-            ?permset a omas:PermissionSet .
+            ?permset a oldap:PermissionSet .
             ?permset ?p ?o .
         }}
         """
@@ -324,9 +324,9 @@ class PermissionSet(Model):
                     label.add(r['o'])
                 case 'rdfs:comment':
                     comment.add(r['o'])
-                case 'omas:givesPermission':
+                case 'oldap:givesPermission':
                     givesPermission = DataPermission.from_string(str(r['o']))
-                case 'omas:definedByProject':
+                case 'oldap:definedByProject':
                     definedByProject = r['o']
         return cls(con=con,
                    permissionSetIri=permissionSetIri,
@@ -355,13 +355,13 @@ class PermissionSet(Model):
         # if label:
         #     sparql += ' ?label'
         sparql += '\n'
-        sparql += 'FROM omas:admin\n'
+        sparql += 'FROM oldap:admin\n'
         sparql += 'WHERE {\n'
-        sparql += '   ?permsetIri rdf:type omas:PermissionSet .\n'
+        sparql += '   ?permsetIri rdf:type oldap:PermissionSet .\n'
         if definedByProject:
-            sparql += '   ?permsetIri omas:definedByProject ?definedByProject .\n'
+            sparql += '   ?permsetIri oldap:definedByProject ?definedByProject .\n'
         if givesPermission:
-            sparql += '   ?permsetIri omas:givesPermission ?givesPermission .\n'
+            sparql += '   ?permsetIri oldap:givesPermission ?givesPermission .\n'
         if label:
             sparql += '   ?permsetIri rdfs:label ?label .\n'
         if definedByProject or givesPermission or label:
@@ -403,23 +403,23 @@ class PermissionSet(Model):
         for attr, change in self.__changeset.items():
             if attr == PermissionSetAttr.LABEL or attr == PermissionSetAttr.COMMENT:
                 if change.action == Action.MODIFY:
-                    sparql_list.extend(self.__attributes[attr].update(graph=Xsd_QName('omas:admin'),
+                    sparql_list.extend(self.__attributes[attr].update(graph=Xsd_QName('oldap:admin'),
                                                                    subject=self.permissionSetIri,
                                                                    subjectvar='?project',
                                                                    field=Xsd_QName(attr.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    sparql = self.__attributes[attr].delete(graph=Xsd_QName('omas:admin'),
+                    sparql = self.__attributes[attr].delete(graph=Xsd_QName('oldap:admin'),
                                                          subject=self.permissionSetIri,
                                                          field=Xsd_QName(attr.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
-                    sparql = self.__attributes[attr].create(graph=Xsd_QName('omas:admin'),
+                    sparql = self.__attributes[attr].create(graph=Xsd_QName('oldap:admin'),
                                                          subject=self.permissionSetIri,
                                                          field=Xsd_QName(attr.value))
                     sparql_list.append(sparql)
                 continue
             sparql = f'{blank:{indent * indent_inc}}# PermissionSet attribute "{attr.value}" with action "{change.action.value}"\n'
-            sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {change.old_value.toRdf} .\n'
@@ -439,8 +439,8 @@ class PermissionSet(Model):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(Xsd_QName('omas:admin'), self.permissionSetIri, self.__modified, timestamp)
-            modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.permissionSetIri)
+            self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.permissionSetIri, self.__modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.permissionSetIri)
         except OldapError:
             self._con.transaction_abort()
             raise
@@ -464,7 +464,7 @@ class PermissionSet(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.permissionSetIri.toRdf} a omas:PermissionSet .
+            {self.permissionSetIri.toRdf} a oldap:PermissionSet .
             {self.permissionSetIri.toRdf} ?prop ?val .
         }} 
         """

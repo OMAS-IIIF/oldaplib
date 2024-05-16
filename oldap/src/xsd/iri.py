@@ -33,7 +33,7 @@ class Iri(Xsd):
         a generated random Iri from the urn-namespace.
         :param value: an Iri value. If this parameter is omitted or None, a URN is being generated
         :type value: IriRep | Xsd_anyURI | str | None
-        :raises OmasErrorValue: Invalid IRI string
+        :raises OldapErrorValue: Invalid IRI string
         """
         if value is None:
             self.__value = uuid.uuid4().urn
@@ -146,4 +146,4 @@ class Iri(Xsd):
 
 
 if __name__ == '__main__':
-    iri = Iri("omas:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")
+    iri = Iri("oldap:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")

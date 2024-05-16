@@ -549,7 +549,7 @@ class PropertyClass(Model, Notify):
                 else:
                     raise OldapError(f'Inconsistency in SHACL "dcterms:modified"')
             elif key == 'sh:group':
-                pass  # TODO: Process property group correctly.... (at Moment only omas:SystemPropGroup)
+                pass  # TODO: Process property group correctly.... (at Moment only oldap:SystemPropGroup)
             elif key in propkeys:
                 attr = PropClassAttr(key)
                 if self.__datatypes[attr] == Numeric:

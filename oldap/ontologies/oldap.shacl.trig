@@ -5,11 +5,11 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
-@prefix omas: <http://omas.org/base#> .
+@prefix oldap: <http://oldap.org/base#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 
-@prefix : <http://omas.org/base#> .
+@prefix : <http://oldap.org/base#> .
 
 
 :shacl {
@@ -105,7 +105,7 @@
         sh:datatype xsd:integer .
 
     #
-    # Definition of SHACL for OLDAP's use of dcterms:creator. Points an omas:User .
+    # Definition of SHACL for OLDAP's use of dcterms:creator. Points an oldap:User .
     #
     :creatorShape a sh:PropertyShape ;
         sh:path dcterms:creator ;
@@ -135,7 +135,7 @@
         sh:group :SystemPropGroup .
 
     #
-    # Define SHACL for OLDAPLIB's use of dcterms:contributer. Points an omas:User .
+    # Define SHACL for OLDAPLIB's use of dcterms:contributer. Points an oldap:User .
     #
     :contributorShape a sh:PropertyShape ;
         sh:path dcterms:contributor ;
@@ -165,8 +165,8 @@
         sh:group :SystemPropGroup .
 
     #
-    # SHACL definition of the omas:AdminPermission class. The AdminPermission instances are attached as
-    # RDF*star to the triple that defines to which omas:project as omas:User belongs to.
+    # SHACL definition of the oldap:AdminPermission class. The AdminPermission instances are attached as
+    # RDF*star to the triple that defines to which oldap:project as oldap:User belongs to.
     # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasRights :ADMIN_PROJECT .
     #
     :AdminPermissionShape a sh:NodeShape, :AdminPermission ;
@@ -361,7 +361,7 @@
 
 
     #
-    # Nodeshape for :User class which is a subclass of :OmasPerson
+    # Nodeshape for :User class which is a subclass of :OldapPerson
     #
     :UserShape a sh:NodeShape, :User ;
         sh:targetClass :User ;

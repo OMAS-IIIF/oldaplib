@@ -15,7 +15,7 @@ from oldap.src.xsd.xsd_string import Xsd_string
 class LanguageIn(RdfSet[Language], Notify):
     """
     This class implements the SHACL sh:languageIn datatype. It completely validates the input.
-    If the validations failes, an OmasErrorValue is raised.
+    If the validations failes, an OldapErrorValue is raised.
     """
 
     def __init__(self,

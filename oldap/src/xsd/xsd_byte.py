@@ -20,7 +20,7 @@ class Xsd_byte(Xsd_integer):
         """
         Xsd_byte constructor
         :param value: a byte value >= -128 and <= 127
-        :raises OmasErrorValue: if the value is not valid or cannot be converted to Xsd_byte type.
+        :raises OldapErrorValue: if the value is not valid or cannot be converted to Xsd_byte type.
         """
         super().__init__(value, validate=validate)
         if self._value < -128 or self._value > 127:

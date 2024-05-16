@@ -21,7 +21,7 @@ class Xsd_short(Xsd_integer):
         Constructor for the Xsd_short class
         :param value: A valid xsd class, an int in the range of -32768 - 32767, or a valid str
         :type value: Xsd_integer | int | str
-        :raises OmasErrorValue: If the value is not a valid short value
+        :raises OldapErrorValue: If the value is not a valid short value
         """
         super().__init__(value)
         if self._value < -32768 or self._value > 32767:

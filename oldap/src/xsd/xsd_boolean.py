@@ -20,7 +20,7 @@ class Xsd_boolean(Xsd):
         Constructor of Xsd_boolean
         :param value: Any value that can be interpreted as boolean
         :type value: Any
-        :raises OmasErrorValue: If the value is not a boolean
+        :raises OldapErrorValue: If the value is not a boolean
         """
         if isinstance(value, str):
             if value.lower() in ('yes', 'true', 't', 'y', '1'):

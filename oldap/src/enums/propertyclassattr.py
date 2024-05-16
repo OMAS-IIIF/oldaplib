@@ -4,7 +4,7 @@ from enum import unique, Enum
 @unique
 class PropClassAttr(Enum):
     """
-    Enumeration of all the attributes of a property. Please note that the `omas:restriction` attribute
+    Enumeration of all the attributes of a property. Please note that the `Oldap:restriction` attribute
     itself is a complex onbject defining restrictions to the property.
     The following attributes are defined:
 

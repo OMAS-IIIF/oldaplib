@@ -22,7 +22,7 @@ class Xsd_float(FloatingPoint):
         Constructor for Xsd_float class
         :param value: A Xsd_float value, a floating point or a string containing a valid float value
         :type value: Xsd_float | float | str
-        :raises OmasErrorValue: If the value is not a float or a string containing a valid float value
+        :raises OldapErrorValue: If the value is not a float or a string containing a valid float value
         """
         if isinstance(value, str):
             if validate:

@@ -23,7 +23,7 @@ class Xsd_normalizedString(Xsd):
         Constructor for Xsd_normalizedString class
         :param value: Another instance of the Xsd_normalizedString class or a valid string
         :type value: Xsd_normalizedString | str
-        :raises OmasErrorValue: If the value is not a valid.
+        :raises OldapErrorValue: If the value is not a valid.
         """
         if isinstance(value, Xsd_normalizedString):
             self.__value = value.__value
@@ -69,7 +69,7 @@ class Xsd_normalizedString(Xsd):
         :param other: A Xsd_normalizedString instance or a valid string
         :return: True or False
         :rtype: bool
-        :raises OmasErrorValue: If the value is not a valid.
+        :raises OldapErrorValue: If the value is not a valid.
         """
         if other is None:
             return False

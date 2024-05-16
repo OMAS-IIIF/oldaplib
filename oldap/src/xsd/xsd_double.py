@@ -23,7 +23,7 @@ class Xsd_double(FloatingPoint):
         Constructor for the Xsd_double class.
         :param value: a FloatinPoint instance, a float or a valid string for a float number
         :type value: FloatingPoint | float | str
-        :raises OmasErrorValue: if the value cannot be converted to a floating point value
+        :raises OldapErrorValue: if the value cannot be converted to a floating point value
         """
         if isinstance(value, str):
             if validate:

@@ -38,38 +38,38 @@ class Testproject(unittest.TestCase):
         cls._context = Context(name="DEFAULT")
 
         cls._connection = Connection(server='http://localhost:7200',
-                                     repo="omas",
+                                     repo="oldap",
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
         cls._unpriv = Connection(server='http://localhost:7200',
-                                 repo="omas",
+                                 repo="oldap",
                                  userId="fornaro",
                                  credentials="RioGrande",
                                  context_name="DEFAULT")
 
 
-        cls._connection.clear_graph(Xsd_QName('omas:admin'))
+        cls._connection.clear_graph(Xsd_QName('oldap:admin'))
         file = project_root / 'oldap' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 
     @classmethod
     def tearDownClass(cls):
-        #cls._connection.clear_graph(Xsd_QName('omas:admin'))
+        #cls._connection.clear_graph(Xsd_QName('oldap:admin'))
         #cls._connection.upload_turtle("oldap/ontologies/admin.trig")
         #sleep(1)  # upload may take a while...
         pass
 
     # @unittest.skip('Work in progress')
     def test_project_read(self):
-        project = Project.read(con=self._connection, projectIri_SName=Iri("omas:SystemProject"))
-        self.assertEqual(Xsd_NCName("omas"), project.projectShortName)
+        project = Project.read(con=self._connection, projectIri_SName=Iri("oldap:SystemProject"))
+        self.assertEqual(Xsd_NCName("oldap"), project.projectShortName)
         self.assertEqual(LangString(["System@en",
                                      "System@de",
                                      "Système@fr",
                                      "Systema@it"]), project.label)
-        self.assertEqual(NamespaceIRI("http://omas.org/base#"), project.namespaceIri)
+        self.assertEqual(NamespaceIRI("http://oldap.org/base#"), project.namespaceIri)
         self.assertEqual(LangString(["Project for system administration@en"]), project.comment)
         self.assertEqual(Xsd_date("2024-01-01"), project.projectStart)
 
@@ -82,7 +82,7 @@ class Testproject(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_project_search(self):
         projects = Project.search(con=self._connection, label="HyperHamlet")
-        self.assertEqual(["omas:HyperHamlet"], projects)
+        self.assertEqual(["oldap:HyperHamlet"], projects)
 
     # @unittest.skip('Work in progress')
     def test_project_search_fail(self):

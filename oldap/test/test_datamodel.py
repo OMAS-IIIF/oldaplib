@@ -46,12 +46,12 @@ class TestDataModel(unittest.TestCase):
         project_root = find_project_root(__file__)
 
         cls._context = Context(name="DEFAULT")
-        cls._context['test'] = NamespaceIRI("http://omas.org/test#")
-        cls._context['dmtest'] = NamespaceIRI('http://omas.org/dmtest#')
+        cls._context['test'] = NamespaceIRI("http://oldap.org/test#")
+        cls._context['dmtest'] = NamespaceIRI('http://oldap.org/dmtest#')
         cls._context.use('test', 'dmtest')
 
         cls._connection = Connection(server='http://localhost:7200',
-                                     repo="omas",
+                                     repo="oldap",
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
@@ -69,7 +69,7 @@ class TestDataModel(unittest.TestCase):
 
         cls._project = Project.read(cls._connection, "test")
         cls._dmproject = Project.read(cls._connection, "dmtest")
-        cls._sysproject = Project.read(cls._connection, "omas")
+        cls._sysproject = Project.read(cls._connection, "oldap")
 
 
     def tearDown(self):
@@ -106,7 +106,7 @@ class TestDataModel(unittest.TestCase):
         authors = PropertyClass(con=self._connection,
                                 project=self._dmproject,
                                 property_class_iri=Iri(f'{dm_name}:authors'),
-                                toNodeIri=Iri('omas:Person'),
+                                toNodeIri=Iri('oldap:Person'),
                                 name=LangString(["Author(s)@en", "Autor(en)@de"]),
                                 description=LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]),
                                 minCount=Xsd_integer(1),
@@ -182,7 +182,7 @@ class TestDataModel(unittest.TestCase):
 
         r1p2 = r1[Iri(f'{dm_name}:authors')]
         self.assertEqual(r1p2.internal, Iri(f'{dm_name}:Book'))
-        self.assertEqual(r1p2.toNodeIri, Iri('omas:Person'))
+        self.assertEqual(r1p2.toNodeIri, Iri('oldap:Person'))
         self.assertEqual(r1p2.name, LangString(["Author(s)@en", "Autor(en)@de"]))
         self.assertEqual(r1p2.description, LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]))
         self.assertEqual(r1p2.minCount, Xsd_integer(1))
@@ -222,7 +222,7 @@ class TestDataModel(unittest.TestCase):
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, self._sysproject)
         self.assertTrue(set(model.get_propclasses()) == {
-            Iri("omas:test"),
+            Iri("oldap:test"),
             Iri("dcterms:creator"),
             Iri("rdfs:label"),
             Iri("rdfs:comment"),
@@ -231,14 +231,14 @@ class TestDataModel(unittest.TestCase):
             Iri("dcterms:modified")
         })
         self.assertTrue(set(model.get_resclasses()) == {
-            Iri("omas:Project"),
-            Iri("omas:User"),
-            Iri("omas:OldapList"),
-            Iri("omas:OldapListNode"),
-            Iri("omas:AdminPermission"),
-            Iri("omas:DataPermission"),
-            Iri("omas:PermissionSet"),
-            Iri("omas:Thing")
+            Iri("oldap:Project"),
+            Iri("oldap:User"),
+            Iri("oldap:OldapList"),
+            Iri("oldap:OldapListNode"),
+            Iri("oldap:AdminPermission"),
+            Iri("oldap:DataPermission"),
+            Iri("oldap:PermissionSet"),
+            Iri("oldap:Thing")
         })
 
     # @unittest.skip('Work in progress')
@@ -391,7 +391,7 @@ class TestDataModel(unittest.TestCase):
         page = ResourceClass(con=self._connection,
                              project=self._project,
                              owlclass_iri=Iri("test:Page"),
-                             subClassOf=Iri('omas:Thing'),
+                             subClassOf=Iri('oldap:Thing'),
                              label=LangString(["Project@en", "Projekt@de"]),
                              comment=LangString(["A page of a book@en", "Seite eines Buches@de"]),
                              closed=Xsd_boolean(True),
@@ -419,7 +419,7 @@ class TestDataModel(unittest.TestCase):
         book = ResourceClass(con=self._connection,
                              project=self._project,
                              owlclass_iri=Iri('test:Book'),
-                             subClassOf=Iri('omas:Thing'),
+                             subClassOf=Iri('oldap:Thing'),
                              label=LangString(["Book@en", "Buch@de"]),
                              closed=Xsd_boolean(True),
                              properties=[title, author, pubDate])
@@ -427,7 +427,7 @@ class TestDataModel(unittest.TestCase):
         person = ResourceClass(con=self._connection,
                                project=self._project,
                                owlclass_iri=Iri('test:Person'),
-                               subClassOf=Iri('omas:Thing'),
+                               subClassOf=Iri('oldap:Thing'),
                                label=LangString(["Person@en", "Person@de"]),
                                properties=[title, author, pubDate])
 

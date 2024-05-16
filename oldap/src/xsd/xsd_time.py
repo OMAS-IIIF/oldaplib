@@ -24,7 +24,7 @@ class Xsd_time(Xsd):
         Constructor for the Xsd_time class
         :param value: Either a Xsd_time instance, a Python time object, or a valid string representing a time
         :type value: Xsd_time | time | str
-        :raises OmasErrorValue: If the value is not a valid time
+        :raises OldapErrorValue: If the value is not a valid time
         """
         if isinstance(value, Xsd_time):
             self.__value = value.__value
@@ -62,7 +62,7 @@ class Xsd_time(Xsd):
         :type other: Xsd_time | time | str | None
         :return: True or False
         :rtype: bool
-        :raises OmasErrorValue: If the value is not a valid time
+        :raises OldapErrorValue: If the value is not a valid time
         """
         if other is None:
             return False

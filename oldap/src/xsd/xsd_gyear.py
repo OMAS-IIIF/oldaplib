@@ -24,7 +24,7 @@ class Xsd_gYear(Xsd):
         Constructor of the Xsd_gYear class.
         :param value: Xsd_gYear instance or a valid string representation
         :type value: Xsd | int | str
-        :raises OmasErrorValue: If the value is not valid
+        :raises OldapErrorValue: If the value is not valid
         """
         if isinstance(value, Xsd_gYear):
             self.__year = value.__year
@@ -79,7 +79,7 @@ class Xsd_gYear(Xsd):
         :param other: Any instance of the Xsd_gYear class or a valid string representation
         :type other: Xsd_gYear | str | None
         :return: True or False
-        :raises OmasErrorValue: If the value is not valid
+        :raises OldapErrorValue: If the value is not valid
         """
         if other is None:
             return False

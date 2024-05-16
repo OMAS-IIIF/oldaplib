@@ -46,11 +46,11 @@ class TestPropertyClass(unittest.TestCase):
         project_root = find_project_root(__file__)
 
         cls._context = Context(name="DEFAULT")
-        cls._context['test'] = NamespaceIRI("http://omas.org/test#")
+        cls._context['test'] = NamespaceIRI("http://oldap.org/test#")
         cls._context.use('test')
 
         cls._connection = Connection(server='http://localhost:7200',
-                                     repo="omas",
+                                     repo="oldap",
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")

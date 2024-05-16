@@ -20,13 +20,13 @@ class AdminPermission(Enum):
     - _AdminPermission.ADMIN_MODEL: Change the data model
     - _AdminPermission.ADMIN_CREATE: Create new resources in the given project
     """
-    ADMIN_OLDAP = 'omas:ADMIN_OLDAP'
-    ADMIN_USERS = 'omas:ADMIN_USERS'
-    ADMIN_PERMISSION_SETS = 'omas:ADMIN_PERMISSION_SETS'
-    ADMIN_RESOURCES = 'omas:ADMIN_RESOURCES'
-    ADMIN_MODEL = 'omas:ADMIN_MODEL'
-    ADMIN_CREATE = 'omas:ADMIN_CREATE'
-    ADMIN_LISTS = 'omas:ADMIN_LISTS'
+    ADMIN_OLDAP = 'oldap:ADMIN_OLDAP'
+    ADMIN_USERS = 'oldap:ADMIN_USERS'
+    ADMIN_PERMISSION_SETS = 'oldap:ADMIN_PERMISSION_SETS'
+    ADMIN_RESOURCES = 'oldap:ADMIN_RESOURCES'
+    ADMIN_MODEL = 'oldap:ADMIN_MODEL'
+    ADMIN_CREATE = 'oldap:ADMIN_CREATE'
+    ADMIN_LISTS = 'oldap:ADMIN_LISTS'
 
     @property
     def toRdf(self):
@@ -48,12 +48,12 @@ class DataPermission(Enum):
     -_DATA_DELETE_: User may delete data
     -_DATA_PERMISSIONS_: User may change the permission of data
     """
-    DATA_RESTRICTED = 'omas:DATA_RESTRICTED'
-    DATA_VIEW = 'omas:DATA_VIEW'
-    DATA_EXTEND = 'omas:DATA_EXTEND'
-    DATA_UPDATE = 'omas:DATA_UPDATE'
-    DATA_DELETE = 'omas:DATA_DELETE'
-    DATA_PERMISSIONS = 'omas:DATA_PERMISSIONS'
+    DATA_RESTRICTED = 'oldap:DATA_RESTRICTED'
+    DATA_VIEW = 'oldap:DATA_VIEW'
+    DATA_EXTEND = 'oldap:DATA_EXTEND'
+    DATA_UPDATE = 'oldap:DATA_UPDATE'
+    DATA_DELETE = 'oldap:DATA_DELETE'
+    DATA_PERMISSIONS = 'oldap:DATA_PERMISSIONS'
 
     @property
     def toRdf(self):
@@ -62,7 +62,7 @@ class DataPermission(Enum):
     @classmethod
     def from_string(cls, permission_string: str) -> Self:
         for member in cls:
-            if f'omas:{member.name}' == permission_string:
+            if f'oldap:{member.name}' == permission_string:
                 return member
         raise ValueError(f'{permission_string} is not in DataPermission enum.')
 

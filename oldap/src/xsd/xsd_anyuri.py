@@ -50,7 +50,7 @@ class Xsd_anyURI(Xsd):
         Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI
         :param value: A string or another AnyIRI instance
         :type value: Xsd_anyURI | str
-        :raises OmasErrorValue: The given string is not an IRI
+        :raises OldapErrorValue: The given string is not an IRI
         """
         super().__init__(value)
         if isinstance(value, Xsd_anyURI):

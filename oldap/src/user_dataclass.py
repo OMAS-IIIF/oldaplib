@@ -82,15 +82,15 @@ class UserDataclass:
 
     The User class inherits the following properties from the UserDataclass class:
 
-    - `userIri: Iri` [mandatory]: IRI of the user, cannot be changed (RDF property `omas:userIri`).
+    - `userIri: Iri` [mandatory]: IRI of the user, cannot be changed (RDF property `oldap:userIri`).
       If available, the [ORCID](https://orcid.org) should be used as Iri.
-    - `userId_: Xsd_NCname | str` [mandatory]: User ID as NCName (RDF property `omas:). Must be unique!
+    - `userId_: Xsd_NCname | str` [mandatory]: User ID as NCName (RDF property `oldap:). Must be unique!
     - `familyName: Xsd_string | str` [mandatory]: Family name as str (RDF property `foaf:familyName`)
     - `givenName: Xsd_string | str` [mandatory]: Given name or first name as str(RDF property `foaf:givenName`)
-    - `credentials: Xsd_string | str` [mandatory]: Credential (password) (RDF property `omas:credentials`)
-    - `active: Xsd_boolean | bool | None` [optional]: Is the user isActive as bool? (RDF property `omas:isActive`)
-    - `inProject: Dict[Iri | str, Set[AdminPermission]] | None `: Membership to projects and administrative permissions for this project (RDF property `omas:inProject)
-    - _hsPermission_: Permissions for data as sets of QNames (RDF property `omas:hasPermissions`)
+    - `credentials: Xsd_string | str` [mandatory]: Credential (password) (RDF property `oldap:credentials`)
+    - `active: Xsd_boolean | bool | None` [optional]: Is the user isActive as bool? (RDF property `oldap:isActive`)
+    - `inProject: Dict[Iri | str, Set[AdminPermission]] | None `: Membership to projects and administrative permissions for this project (RDF property `oldap:inProject)
+    - _hsPermission_: Permissions for data as sets of QNames (RDF property `oldap:hasPermissions`)
 
     These properties can be accessed as normal python class properties or using the dictionary syntax. The keys
     are defined in the [UserFields](/python_docstrings/userdataclass/#oldap.src.user_dataclass.UserFields) Enum class.
@@ -405,16 +405,16 @@ class UserDataclass:
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?user ?prop ?val ?proj ?rval
-        FROM omas:admin
+        FROM oldap:admin
         WHERE {{
             {{
-                ?user a omas:User .
-                ?user omas:userId {userId.toRdf} .
+                ?user a oldap:User .
+                ?user oldap:userId {userId.toRdf} .
                 ?user ?prop ?val .
             }} UNION {{
-                ?user a omas:User .
-                ?user omas:userId {userId.toRdf} .
-                <<?user omas:inProject ?proj>> omas:hasAdminPermission ?rval
+                ?user a oldap:User .
+                ?user oldap:userId {userId.toRdf} .
+                <<?user oldap:inProject ?proj>> oldap:hasAdminPermission ?rval
             }}
         }}
         """
@@ -426,7 +426,7 @@ class UserDataclass:
         :param queryresult:
         :type queryresult: QueryProcessor
         :return: None
-        :raises OmasErrorNotFound: Given user not found!
+        :raises OldapErrorNotFound: Given user not found!
         """
         in_project: Dict[str, Set[AdminPermission]] | None = None
         if len(queryresult) == 0:
@@ -442,20 +442,20 @@ class UserDataclass:
                     self._contributor = r['val']
                 case 'dcterms:modified':
                     self._modified = r['val']
-                case 'omas:userId':
+                case 'oldap:userId':
                     self.__attr[UserAttr.USER_ID] = r['val']
                 case 'foaf:familyName':
                     self.__attr[UserAttr.FAMILY_NAME] = r['val']
                 case 'foaf:givenName':
                     self.__attr[UserAttr.GIVEN_NAME] = r['val']
-                case 'omas:credentials':
+                case 'oldap:credentials':
                     self.__attr[UserAttr.CREDENTIALS] = r['val']
-                case 'omas:isActive':
+                case 'oldap:isActive':
                     self.__attr[UserAttr.ACTIVE] = r['val']
-                case 'omas:inProject':
+                case 'oldap:inProject':
                     in_project = {r['val']: set()}
                     # self.__fields[UserFields.IN_PROJECT] = {str(r['val']): ObservableSet()}
-                case 'omas:hasPermissions':
+                case 'oldap:hasPermissions':
                     self.__attr[UserAttr.HAS_PERMISSIONS].add(r['val'])
                 case _:
                     if r.get('proj') and r.get('rval'):
@@ -489,7 +489,7 @@ class UserDataclass:
             if field == UserAttr.HAS_PERMISSIONS or field == UserAttr.IN_PROJECT:
                 continue
             sparql = f'{blank:{indent * indent_inc}}# User field "{field.value}" with action "{change.action.value}"\n'
-            sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {change.old_value.toRdf} .\n'
@@ -509,20 +509,20 @@ class UserDataclass:
             added = new_set - old_set
             removed = old_set - new_set
             sparql = f'{blank:{indent * indent_inc}}# User field "hasPermission"\n'
-            sparql += f'{blank:{indent * indent_inc}}WITH omas:admin\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
             if removed:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 for perm in removed:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user omas:hasPermissions {perm} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasPermissions {perm} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if added:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 for perm in added:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user omas:hasPermissions {perm} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasPermissions {perm} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?user a omas:User .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user a oldap:User .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             if removed or added:
                 sparql_list.append(sparql)
@@ -533,9 +533,9 @@ class UserDataclass:
             if added:
                 ptest = f"""
                 SELECT ?permissionset
-                FROM omas:admin
+                FROM oldap:admin
                 WHERE {{
-                    ?permissionset a omas:PermissionSet .
+                    ?permissionset a oldap:PermissionSet .
                     FILTER(?permissionset IN ({added.toRdf}))
                 }}
                 """
@@ -550,11 +550,11 @@ class UserDataclass:
             # add projects
             if addedprojs:
                 sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
                 for proj in addedprojs:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} omas:inProject {proj.toRdf} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} oldap:inProject {proj.toRdf} .\n'
                     for perm in self.__attr[UserAttr.IN_PROJECT][proj]:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {proj.toRdf}>> oldap:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -562,11 +562,11 @@ class UserDataclass:
             # delete projects
             if deletedprojs:
                 sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
                 for proj in deletedprojs:
-                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} omas:inProject {proj.toRdf} .\n'
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} oldap:inProject {proj.toRdf} .\n'
                     for perm in self.__changeset[UserAttr.IN_PROJECT].old_value[proj]:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {proj.toRdf}>> oldap:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -574,11 +574,11 @@ class UserDataclass:
             if changedprojs:
                 doit = False
                 sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
                 for proj in changedprojs:
                     perms = self.__attr[UserAttr.IN_PROJECT][proj] - self.__changeset[UserAttr.IN_PROJECT].old_value[proj]
                     for perm in perms:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {proj.toRdf}>> oldap:hasAdminPermission {perm.value} .\n'
                         doit = True
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -587,11 +587,11 @@ class UserDataclass:
 
                 doit = False
                 sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
-                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH omas:admin {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
                 for proj in changedprojs:
                     perms = self.__changeset[UserAttr.IN_PROJECT].old_value[proj] - self.__attr[UserAttr.IN_PROJECT][proj]
                     for perm in perms:
-                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} omas:inProject {proj.toRdf}>> omas:hasAdminPermission {perm.value} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {proj.toRdf}>> oldap:hasAdminPermission {perm.value} .\n'
                         doit = True
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -606,10 +606,10 @@ if __name__ == "__main__":
         userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
         userId=Xsd_NCName("edison"),
         familyName="Edison",
-        givenName="Thomas A.",
+        givenName="Tholdap A.",
         credentials="Lightbulb&Phonograph",
-        inProject={Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+        inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                    AdminPermission.ADMIN_RESOURCES,
                                                    AdminPermission.ADMIN_CREATE}},
-        hasPermissions={Xsd_QName('omas:GenericView')})
+        hasPermissions={Xsd_QName('oldap:GenericView')})
     print(user_dataclass.userId)
