@@ -6,7 +6,7 @@ from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 
 
-@strict
+#@strict
 @serializer
 class Xsd_unsignedShort(Xsd_integer):
     """
@@ -14,7 +14,7 @@ class Xsd_unsignedShort(Xsd_integer):
     Inherits from Xsd_integer.
     """
 
-    def __init__(self, value: Xsd_integer | int | str):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
         """
         Constructor for the Xsd_unsignedShort class.
         :param value: A Xsd_integer instance, a valid int or a valid string representation. Valid range [0 - 65535].

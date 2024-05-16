@@ -9,7 +9,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_dateTime(Xsd):
     """
@@ -17,7 +17,7 @@ class Xsd_dateTime(Xsd):
     """
     __value: datetime
 
-    def __init__(self, value: datetime | Self | str | None = None):
+    def __init__(self, value: datetime | Self | str | None = None, validate: bool = True):
         """
         Constructor of a Xsd_dateTime instance
         :param value: a Xsd_dateTime instance, Python datetime
@@ -33,10 +33,11 @@ class Xsd_dateTime(Xsd):
         elif isinstance(value, datetime):
             self.__value = value
         else:
-            if re.match(
-                    r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
-                    value) is None:
-                raise OmasErrorValue(f'DateTime "{value}" not a valid ISO 8601.')
+            if validate:
+                if re.match(
+                        r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
+                        value) is None:
+                    raise OmasErrorValue(f'DateTime "{value}" not a valid ISO 8601.')
             try:
                 self.__value = datetime.fromisoformat(value)
             except ValueError as err:

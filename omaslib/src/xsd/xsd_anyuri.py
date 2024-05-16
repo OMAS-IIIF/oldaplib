@@ -10,7 +10,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_anyURI(Xsd):
     """
@@ -31,8 +31,21 @@ class Xsd_anyURI(Xsd):
     """
     _value: str
     _append_allowed: bool
+    _uri_pattern = re.compile(
+        r'^[a-zA-Z][a-zA-Z0-9+.-]*:'  # Scheme
+        r'//'  # Authority separator
+        r'([a-zA-Z0-9._~%!$&\'()*+,;=:@-]*@)?'  # Optional userinfo
+        r'('
+        r'(\[[0-9a-fA-F:.]+\])|'  # IPv6 address
+        r'(([a-zA-Z0-9._~%!$&\'()*+,;=:-]+)|'  # Domain name
+        r'([a-zA-Z0-9.-]+(\.[a-zA-Z]{2,})+))'  # Or domain name with TLD
+        r')'
+        r'(:\d{2,5})?'  # Optional port
+        r'(/[a-zA-Z0-9._~%!$&\'()*+,;=:@-]*)*'  # Path
+        r'(\?[a-zA-Z0-9._~%!$&\'()*+,;=:@/?-]*)?'  # Optional query
+        r'(#[-a-zA-Z0-9._~%!$&\'()*+,;=:@/?]*)?')  # Optional fragment
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI
         :param value: A string or another AnyIRI instance
@@ -41,18 +54,25 @@ class Xsd_anyURI(Xsd):
         """
         super().__init__(value)
         if isinstance(value, Xsd_anyURI):
-            self._value = str(value)
+            self._value = value._value
+            self._append_allowed = value.append_allowed
         else:
             if isinstance(value, str):
                 value = value.replace("<", "").replace(">", "")
-            if not XsdValidator.validate(XsdDatatypes.anyURI, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for anyURI')
             if value.startswith("urn:"):
                 if not re.match(r'^urn:[a-z0-9][a-z0-9-]{0,31}:[^\s]+', value):
                     raise OmasErrorValue(f'Invalid URN format for "{value}".')
-            else:
-                if not url(value):
+            elif value.startswith("http"):
+                if not re.match(self._uri_pattern, value):
                     raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+                if validate:
+                    if not XsdValidator.validate(XsdDatatypes.anyURI, value):
+                        raise OmasErrorValue(f'Invalid string "{value}" for anyURI')
+                    else:
+                        if not url(value):
+                            raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+            else:
+                raise OmasErrorValue(f'Invalid string "{value}" for anyURI')
             self._value = value
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 
@@ -134,3 +154,7 @@ class Xsd_anyURI(Xsd):
         :return: string
         """
         return self._value
+
+
+if __name__ == '__main__':
+    iri = Xsd_anyURI('urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b')

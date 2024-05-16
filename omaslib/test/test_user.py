@@ -52,6 +52,7 @@ class TestUser(unittest.TestCase):
         # user = User(con=cls._connection, userId=NCName("coyote"))
         # user.delete()
         cls._connection.clear_graph(Xsd_QName('omas:admin'))
+
         file = project_root / 'omaslib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...

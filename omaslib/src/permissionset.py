@@ -32,7 +32,7 @@ class PermissionSetAttrChange:
     action: Action
 
 
-@strict
+#@strict
 class PermissionSet(Model):
     __datatypes = {
         PermissionSetAttr.PERMISSION_SET_IRI: Iri,

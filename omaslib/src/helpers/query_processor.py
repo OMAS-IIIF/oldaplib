@@ -53,7 +53,7 @@ RowType = Dict[str, RowElementType]
 
 
 @dataclass
-@strict
+#@strict
 class QueryProcessor:
     __names: List[str]
     __context: Context
@@ -69,13 +69,13 @@ class QueryProcessor:
             row: Dict[str, RowElementType] = {}
             for name, valobj in tmprow.items():
                 if valobj["type"] == "uri":
-                    tmp = context.iri2qname(valobj["value"])
+                    tmp = context.iri2qname(valobj["value"], validate=False)
                     if tmp is None:
-                        row[name] = Iri(valobj["value"])
+                        row[name] = Iri(valobj["value"], validate=False)
                     else:
-                        row[name] = Iri(tmp)
+                        row[name] = Iri(tmp, validate=False)
                 elif valobj["type"] == "bnode":
-                    row[name] = BNode(f'_:{valobj["value"]}')
+                    row[name] = BNode(f'_:{valobj["value"]}', validate=False)
                 elif valobj["type"] == "literal":
                     dt = valobj.get("datatype")
                     if dt is None:
@@ -85,12 +85,12 @@ class QueryProcessor:
                             # row[name] = Xsd_string.fromRdf(valobj["value"])
                             row[name] = Xsd_string.fromRdf(valobj["value"])
                     else:
-                        dt = context.iri2qname(dt)
+                        dt = context.iri2qname(dt, validate=False)
                         match str(dt):
                             case 'xsd:string':
                                 row[name] = Xsd_string.fromRdf(valobj["value"])
                             case 'xsd:boolean':
-                                row[name] = Xsd_boolean(valobj["value"])
+                                row[name] = Xsd_boolean(valobj["value"], validate=False)
                             case 'xsd:decimal':
                                 row[name] = Xsd_decimal.fromRdf(valobj["value"])
                             case 'xsd:float':
@@ -128,7 +128,7 @@ class QueryProcessor:
                             case 'xsd:anyURI':
                                 row[name] = Xsd_anyURI.fromRdf(valobj["value"])
                             case 'xsd:QName':
-                                row[name] = Xsd_QName(valobj["value"])
+                                row[name] = Xsd_QName.fromRdf(valobj["value"])
                             case 'xsd:normalizedString':
                                 row[name] = Xsd_normalizedString.fromRdf(valobj["value"])
                             case 'xsd:token:':
@@ -156,19 +156,19 @@ class QueryProcessor:
                             case 'xsd:byte':
                                 row[name] = Xsd_byte.fromRdf(valobj["value"])
                             case 'xsd:nonNegativeInteger':
-                                row[name] = Xsd_nonNegativeInteger(valobj["value"])
+                                row[name] = Xsd_nonNegativeInteger.fromRdf(valobj["value"])
                             case 'xsd:unsignedLong':
-                                row[name] = Xsd_unsignedLong(valobj["value"])
+                                row[name] = Xsd_unsignedLong.fromRdf(valobj["value"])
                             case 'xsd:unsignedInt':
-                                row[name] = Xsd_unsignedInt(valobj["value"])
+                                row[name] = Xsd_unsignedInt.fromRdf(valobj["value"])
                             case 'xsd:unsignedShort':
-                                row[name] = Xsd_unsignedShort(valobj["value"])
+                                row[name] = Xsd_unsignedShort.fromRdf(valobj["value"])
                             case 'xsd:unsignedByte':
-                                row[name] = Xsd_unsignedByte(valobj["value"])
+                                row[name] = Xsd_unsignedByte.fromRdf(valobj["value"])
                             case 'xsd:positiveInteger':
-                                row[name] = Xsd_positiveInteger(valobj["value"])
+                                row[name] = Xsd_positiveInteger.fromRdf(valobj["value"])
                             case _:
-                                row[name] = Xsd_string(valobj["value"])
+                                row[name] = Xsd_string.fromRdf(valobj["value"])
             self.__rows.append(row)
 
     def __len__(self) -> int:

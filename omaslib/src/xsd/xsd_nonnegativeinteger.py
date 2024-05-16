@@ -8,7 +8,7 @@ from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 
 
-@strict
+#@strict
 @serializer
 class Xsd_nonNegativeInteger(Xsd_integer):
     """
@@ -16,7 +16,7 @@ class Xsd_nonNegativeInteger(Xsd_integer):
     """
     __value: int
 
-    def __init__(self, value: Xsd_integer | int | str):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
         """
         Constructor of the Xsd_nonNegativeInteger class.
         :param value: Another valid Xsd instance, a non-negative integer or a valid string representation.

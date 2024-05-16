@@ -7,7 +7,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_boolean(Xsd):
     """
@@ -15,7 +15,7 @@ class Xsd_boolean(Xsd):
     """
     __value: bool
 
-    def __init__(self, value: Any):
+    def __init__(self, value: Any, validate: bool = True):
         """
         Constructor of Xsd_boolean
         :param value: Any value that can be interpreted as boolean

@@ -4,7 +4,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 
 
-@strict
+#@strict
 @serializer
 class Xsd_ID(Xsd_NCName):
     """

@@ -50,7 +50,7 @@ class ProjectAttr(Enum):
     PROJECT_START = 'omas:projectStart'
     PROJECT_END = 'omas:projectEnd'
 
-@strict
+#@strict
 class Project(Model):
     """
     # Project
@@ -222,12 +222,12 @@ class Project(Model):
         #
         # create all the attributes of the class according to the ProjectFields dfinition
         #
-        for field in ProjectAttr:
-            prefix, name = field.value.split(':')
+        for attr in ProjectAttr:
+            prefix, name = attr.value.split(':')
             setattr(Project, name, property(
-                partial(Project.__get_value, field=field),
-                partial(Project.__set_value, field=field),
-                partial(Project.__del_value, field=field)))
+                partial(Project.__get_value, attr=attr),
+                partial(Project.__set_value, attr=attr),
+                partial(Project.__del_value, attr=attr)))
         self.__changeset = {}
 
     def check_for_permissions(self) -> (bool, str):
@@ -238,14 +238,14 @@ class Project(Model):
         else:
             return False, "No permission to create a new project."
 
-    def __get_value(self: Self, field: ProjectAttr) -> ProjectAttrTypes | None:
-        tmp = self.__attributes.get(field)
+    def __get_value(self: Self, attr: ProjectAttr) -> ProjectAttrTypes | None:
+        tmp = self.__attributes.get(attr)
         if not tmp:
             return None
         return tmp
 
-    def __set_value(self: Self, value: ProjectAttrTypes, field: ProjectAttr) -> None:
-        self.__change_setter(field, value)
+    def __set_value(self: Self, value: ProjectAttrTypes, attr: ProjectAttr) -> None:
+        self.__change_setter(attr, value)
 
     def __del_value(self: Self, attr: ProjectAttr) -> None:
         self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
@@ -406,7 +406,6 @@ class Project(Model):
                 projectIri = Iri(projectIri_SName)
             else:
                 shortname = Xsd_NCName(projectIri_SName)
-
         if projectIri is not None:
             query += f"""
                 SELECT ?prop ?val

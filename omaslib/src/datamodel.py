@@ -192,7 +192,7 @@ class DataModel(Model):
         for r in res:
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
-            propclass = PropertyClass.read(con, project, Iri(propclassiri))
+            propclass = PropertyClass.read(con, project, Iri(propclassiri, validate=False))
             propclasses.append(propclass)
         #
         # now get all resources defined in the data model
@@ -211,7 +211,7 @@ class DataModel(Model):
         for r in res:
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
-            resclass = ResourceClass.read(con, project, Iri(resclassiri))
+            resclass = ResourceClass.read(con, project, Iri(resclassiri, validate=False))
             resclasses.append(resclass)
         instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses)
         for qname in instance.get_propclasses():
@@ -250,6 +250,8 @@ class DataModel(Model):
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n'
+        #sparql += f'{blank:{(indent + 2) * indent_inc}}owl:imports <http://www.w3.org/2004/02/skos/core> ;\n'
+        #sparql += f'{blank:{(indent + 2) * indent_inc}}owl:imports omas:ontology .\n'
         sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
@@ -290,6 +292,36 @@ class DataModel(Model):
                     self.__resclasses[qname].update()
                 case Action.DELETE:
                     self.__resclasses[qname].delete()
+
+    def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4):
+        with open(filename, 'w') as f:
+            timestamp = Xsd_dateTime.now()
+            blank = ''
+            context = Context(name=self._con.context_name)
+            f.write('\n')
+            f.write(context.turtle_context)
+            f.write(f'\n{blank:{indent * indent_inc}}{self.__graph}:shacl {{\n')
+            f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:hasVersion {self.__version.toRdf} .\n')
+            f.write('\n')
+            for iri, prop in self.__propclasses.items():
+                if not prop.internal:
+                    f.write(prop.create_shacl(timestamp=timestamp, indent=1))
+            for iri, resclass in self.__resclasses.items():
+                f.write(resclass.create_shacl(timestamp=timestamp, indent=1))
+            f.write(f'\n{blank:{indent * indent_inc}}}}\n')
+
+            f.write(f'{blank:{indent * indent_inc}}{self.__graph}:onto {{\n')
+            f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n')
+            f.write(f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n')
+            # f.write(f'{blank:{(indent + 2) * indent_inc}}owl:imports <http://www.w3.org/2004/02/skos/core> ;\n')
+            # f.write(f'{blank:{(indent + 2) * indent_inc}}owl:imports omas:ontology .\n')
+            f.write('\n')
+            for iri, prop in self.__propclasses.items():
+                f.write(prop.create_owl_part1(timestamp=timestamp, indent=2))
+            for iri, resclass in self.__resclasses.items():
+                f.write(resclass.create_owl(timestamp=timestamp))
+            f.write(f'{blank:{indent * indent_inc}}}}\n')
+
 
 
 

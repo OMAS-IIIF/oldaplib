@@ -8,7 +8,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class FloatingPoint(Xsd):
     """
@@ -25,7 +25,7 @@ class FloatingPoint(Xsd):
     """
     _value: float
 
-    def __init__(self, value: Self | float | str):
+    def __init__(self, value: Self | float | str, validate: bool = True):
         """
         Constructor for Floating Point
         :param value: The initial value. May not be None
@@ -83,7 +83,7 @@ class FloatingPoint(Xsd):
             valstr = str(self._value)
         return f'{type(self).__name__}({valstr})'
 
-    def __eq__(self, other: Self | float | str | None) -> bool:
+    def __eq__(self, other: Self | float | int | str | None) -> bool:
         """
         Test for equality
         :param other: The value to compare with
@@ -94,14 +94,14 @@ class FloatingPoint(Xsd):
             return False
         if isinstance(other, str):
             other = FloatingPoint(other)
-        if isinstance(other, float):
+        if isinstance(other, (float, int)):
             return self._value == other
         elif isinstance(other, FloatingPoint):
             return self._value == other._value
         else:
             raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other)}')
 
-    def __ne__(self, other: Self | float | str | None) -> bool:
+    def __ne__(self, other: Self | float | int | str | None) -> bool:
         """
         Test for inequality
         :param other: The value to compare with
@@ -112,14 +112,14 @@ class FloatingPoint(Xsd):
             return True
         if isinstance(other, str):
             other = FloatingPoint(other)
-        if isinstance(other, float):
+        if isinstance(other, (float, int)):
             return self._value != other
         elif isinstance(other, FloatingPoint):
             return self._value != other._value
         else:
             raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
 
-    def __lt__(self, other: Self | float | str) -> bool:
+    def __lt__(self, other: Self | float | int | str) -> bool:
         """
         Test for less-than
         :param other: The value to compare with
@@ -128,14 +128,14 @@ class FloatingPoint(Xsd):
         """
         if isinstance(other, str):
             other = FloatingPoint(other)
-        if isinstance(other, float):
+        if isinstance(other, (float, int)):
             return self._value < other
         elif isinstance(other, FloatingPoint):
             return self._value < other._value
         else:
             raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
 
-    def __le__(self, other: Self | float | str) -> bool:
+    def __le__(self, other: Self | float | int | str) -> bool:
         """
         Test for less or equal than
         :param other: The value to compare with
@@ -144,14 +144,14 @@ class FloatingPoint(Xsd):
         """
         if isinstance(other, str):
             other = FloatingPoint(other)
-        if isinstance(other, float):
+        if isinstance(other, (float, int)):
             return self._value <= other
         elif isinstance(other, FloatingPoint):
             return self._value <= other._value
         else:
             raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
 
-    def __gt__(self, other: Self | float | str) -> bool:
+    def __gt__(self, other: Self | float | int | str) -> bool:
         """
         Test for greater than
         :param other: The value to compare with
@@ -160,14 +160,14 @@ class FloatingPoint(Xsd):
         """
         if isinstance(other, str):
             other = FloatingPoint(other)
-        if isinstance(other, float):
+        if isinstance(other, (float, int)):
             return self._value > other
         elif isinstance(other, FloatingPoint):
             return self._value > other._value
         else:
             raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
 
-    def __ge__(self, other: Self | float | str) -> bool:
+    def __ge__(self, other: Self | float | int | str) -> bool:
         """
         Test for greater or equal than
         :param other: The value to compare with
@@ -176,7 +176,7 @@ class FloatingPoint(Xsd):
         """
         if isinstance(other, str):
             other = FloatingPoint(other)
-        if isinstance(other, float):
+        if isinstance(other, (float, int)):
             return self._value >= other
         elif isinstance(other, FloatingPoint):
             return self._value >= other._value

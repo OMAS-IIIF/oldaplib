@@ -28,7 +28,7 @@ class LangStringChange:
     old_value: str | None
     action: Action
 
-@strict
+#@strict
 @serializer
 class LangString(Notify):
     """

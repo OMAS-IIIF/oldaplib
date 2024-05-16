@@ -8,7 +8,7 @@ from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 
 
-@strict
+#@strict
 @serializer
 class Xsd_positiveInteger(Xsd_integer):
     """
@@ -16,7 +16,7 @@ class Xsd_positiveInteger(Xsd_integer):
     Inherits from Xsd_integer.
     """
 
-    def __init__(self, value: Xsd_integer | int | str):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
         """
         Constructor of Xsd_positiveInteger class.
         :param value: A valid XSD instance, a positive int or a valid string

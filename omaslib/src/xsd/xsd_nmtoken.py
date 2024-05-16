@@ -9,7 +9,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_NMTOKEN(Xsd):
     """
@@ -17,7 +17,7 @@ class Xsd_NMTOKEN(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Constructor of the Xsd_NMTOKEN class.
         :param value: Either a Xsd_NMTOKEN instance or a string conforming to the syntax of Xsd_NMTOKEN.
@@ -27,10 +27,11 @@ class Xsd_NMTOKEN(Xsd):
         if isinstance(value, Xsd_NMTOKEN):
             self.__value = value.__value
         else:
-            if not XsdValidator.validate(XsdDatatypes.NMTOKEN, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
-            if not re.match("^[a-zA-Z_:.][a-zA-Z0-9_.:-]*$", value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
+            if validate:
+                if not XsdValidator.validate(XsdDatatypes.NMTOKEN, value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
+                if not re.match("^[a-zA-Z_:.][a-zA-Z0-9_.:-]*$", value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
             self.__value = value
 
     def __str__(self):

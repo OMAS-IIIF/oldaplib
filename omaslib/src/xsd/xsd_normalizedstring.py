@@ -10,7 +10,7 @@ from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_string import Xsd_string
 
 
-@strict
+#@strict
 @serializer
 class Xsd_normalizedString(Xsd):
     """
@@ -18,7 +18,7 @@ class Xsd_normalizedString(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Constructor for Xsd_normalizedString class
         :param value: Another instance of the Xsd_normalizedString class or a valid string
@@ -28,10 +28,11 @@ class Xsd_normalizedString(Xsd):
         if isinstance(value, Xsd_normalizedString):
             self.__value = value.__value
         else:
-            if not XsdValidator.validate(XsdDatatypes.normalizedString, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
-            if re.match("^[^\r\n\t]*$", value) is None:
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
+            if validate:
+                if not XsdValidator.validate(XsdDatatypes.normalizedString, value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
+                if re.match("^[^\r\n\t]*$", value) is None:
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
             self.__value = value
 
     @classmethod
@@ -44,7 +45,7 @@ class Xsd_normalizedString(Xsd):
         :rtype: Xsd_normalizedString
         """
         value = Xsd_string.unescaping(value)
-        return cls(value)
+        return cls(value, validate=False)
 
     def __str__(self):
         """

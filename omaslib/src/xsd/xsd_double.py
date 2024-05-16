@@ -10,7 +10,7 @@ from omaslib.src.xsd.floatingpoint import FloatingPoint
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_double(FloatingPoint):
     """
@@ -18,7 +18,7 @@ class Xsd_double(FloatingPoint):
     """
     _value: float
 
-    def __init__(self, value: FloatingPoint | float | str):
+    def __init__(self, value: FloatingPoint | float | str, validate: bool = True):
         """
         Constructor for the Xsd_double class.
         :param value: a FloatinPoint instance, a float or a valid string for a float number
@@ -26,10 +26,11 @@ class Xsd_double(FloatingPoint):
         :raises OmasErrorValue: if the value cannot be converted to a floating point value
         """
         if isinstance(value, str):
-            if not re.match("^([-+]?(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?|[Nn]a[Nn]|[-+]?(inf|INF))$", str(value)):
-                raise OmasErrorValue(f'"{value}" is not convertible to a Xsd_float.')
+            if validate:
+                if not re.match("^([-+]?(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?|[Nn]a[Nn]|[-+]?(inf|INF))$", str(value)):
+                    raise OmasErrorValue(f'"{value}" is not convertible to a Xsd_float.')
             value = float(value)
-        super().__init__(value=value)
+        super().__init__(value=value, validate=validate)
 
     @property
     def toRdf(self) -> str:

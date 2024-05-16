@@ -9,7 +9,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_gMonthDay(Xsd):
     """
@@ -20,7 +20,7 @@ class Xsd_gMonthDay(Xsd):
     __tz: Tuple[int, int] | None
     __zulu: bool
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Constructor of the Xsd_gMonthDay class
         :param value: Xsd_gMonthDay instance or valid string

@@ -64,7 +64,7 @@ class Testproject(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_project_read(self):
         project = Project.read(con=self._connection, projectIri_SName=Iri("omas:SystemProject"))
-        self.assertEqual(Xsd_NCName("system"), project.projectShortName)
+        self.assertEqual(Xsd_NCName("omas"), project.projectShortName)
         self.assertEqual(LangString(["System@en",
                                      "System@de",
                                      "Système@fr",

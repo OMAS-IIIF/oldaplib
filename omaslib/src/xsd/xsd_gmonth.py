@@ -9,7 +9,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_gMonth(Xsd):
     """
@@ -19,7 +19,7 @@ class Xsd_gMonth(Xsd):
     __tz: Tuple[int, int] | None
     __zulu: bool | None
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Constructor of Xsd_gMonth class
         :param value: An Xsd_gMonth instance or a valid string conforming to the
@@ -31,8 +31,9 @@ class Xsd_gMonth(Xsd):
             self.__tz = value.__tz
             self.__zulu = value.__zulu
         else:
-            if not XsdValidator.validate(XsdDatatypes.gMonth, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonth.')
+            if validate:
+                if not XsdValidator.validate(XsdDatatypes.gMonth, value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonth.')
             res = re.split("--([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
             if len(res) != 8:
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonth.')

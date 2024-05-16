@@ -12,7 +12,7 @@ from omaslib.src.enums.sparql_result_format import SparqlResultFormat
 from omaslib.src.user_dataclass import UserDataclass
 
 
-@strict
+#@strict
 class IConnection(ABC):
     _context_name: str
     _userdata: UserDataclass

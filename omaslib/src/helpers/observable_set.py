@@ -14,7 +14,7 @@ from omaslib.src.helpers.omaserror import OmasErrorKey
 from omaslib.src.helpers.serializer import serializer
 
 
-@strict
+#@strict
 @serializer
 class ObservableSet(Set):
     """

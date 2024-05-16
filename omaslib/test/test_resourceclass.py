@@ -185,7 +185,7 @@ class TestResourceClass(unittest.TestCase):
         prop2 = r1[Iri("test:test")]
         self.assertIsNone(prop2.internal)
         self.assertEqual(prop2.property_class_iri, Iri("test:test"))
-        self.assertEqual(prop2.toNodeIri, Iri('test:comment'))
+        self.assertEqual(prop2.datatype, XsdDatatypes.string)
         self.assertEqual(prop2.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop2.minCount, Xsd_integer(1))
         self.assertEqual(prop2.order, Xsd_decimal(3))
@@ -229,8 +229,8 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
         self.assertEqual(prop1.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop1.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
-        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlObjectProperty)
-        self.assertEqual(prop1.toNodeIri, Iri('test:comment'))
+        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.datatype, XsdDatatypes.string)
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop1.minCount, Xsd_integer(1))
         self.assertEqual(prop1.order, Xsd_decimal(3))
@@ -333,9 +333,9 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.minCount, Xsd_integer(1))
         self.assertEqual(prop2.name, LangString("Test"))
         self.assertEqual(prop2.description, LangString("Property shape for testing purposes"))
-        self.assertEqual(prop2.toNodeIri, Xsd_QName('test:comment'))
+        self.assertEqual(prop2.datatype, XsdDatatypes.string)
         self.assertEqual(prop2.order, Xsd_decimal(3))
-        self.assertEqual(prop2.propertyType, OwlPropertyType.OwlObjectProperty)
+        self.assertEqual(prop2.propertyType, OwlPropertyType.OwlDataProperty)
 
         prop3 = r2[Iri("test:testone")]
         self.assertEqual(prop3.internal, Iri("test:TestResource"))
@@ -424,15 +424,15 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.minCount, Xsd_integer(1))
         self.assertEqual(prop1.name, LangString("Test"))
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
-        self.assertEqual(prop1.toNodeIri, Iri('test:comment'))
+        self.assertEqual(prop1.datatype, XsdDatatypes.string)
         self.assertEqual(prop1.order, Xsd_decimal(3))
-        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlObjectProperty)
+        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlDataProperty)
 
         prop2 = r2[Iri('dcterms:creator')]
         self.assertEqual(prop2.internal, Xsd_QName("test:testMyResMinimal"))
         self.assertEqual(prop2.toNodeIri, Xsd_QName('test:Person'))
         self.assertEqual(prop2.maxCount, Xsd_integer(1))
-        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlObjectProperty)
+        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlDataProperty)
 
         prop3 = r2[Iri('test:color')]
         self.assertEqual(prop3.internal, Xsd_QName("test:testMyResMinimal"))

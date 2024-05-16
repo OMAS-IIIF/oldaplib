@@ -8,7 +8,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd_qname import Xsd_QName
 
 
-@strict
+#@strict
 @serializer
 class BNode(Xsd_QName):
     """
@@ -25,13 +25,13 @@ class BNode(Xsd_QName):
     - *value()*: Return the value of the blank node (same as str())
     """
 
-    def __init__(self, value: Xsd_QName | str) -> None:
+    def __init__(self, value: Xsd_QName | str, validate: bool = True) -> None:
         """
         Construct a blank node from its name
         :param value: Name/id of the blank node
         :type value: str
         """
-        super().__init__(value)
+        super().__init__(value, validate=validate)
         if self.prefix != '_':
             raise OmasErrorValue('BNode prefix is not "_"')
 

@@ -20,9 +20,6 @@ props: PropertyClassAttributesContainer = {
     PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
     PropertyClassAttribute.NAME: LangString(["Test property@en", "Testprädikat@de"]),
     PropertyClassAttribute.DESCRIPTION: LangString("A property for testing...@en"),
-    PropertyClassAttribute.RESTRICTIONS: PropertyRestrictions(
-        restrictions={PropertyRestrictionType.MAX_COUNT: 1}
-    ),
     PropertyClassAttribute.ORDER: 5,
 }
 p = PropertyClass(con=self._connection,

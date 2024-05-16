@@ -14,7 +14,7 @@ from omaslib.src.helpers.tools import lprint
 from omaslib.src.iconnection import IConnection
 
 
-@strict
+#@strict
 class Model:
     _con: IConnection
     _changed: Set[str]

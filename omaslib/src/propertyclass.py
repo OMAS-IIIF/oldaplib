@@ -86,7 +86,7 @@ class PropClassAttrChange:
     test_in_use: bool
 
 
-@strict
+#@strict
 class PropertyClass(Model, Notify):
     """
     This class implements a property as used by OMASlib. There are 2 types of properties:
@@ -512,7 +512,7 @@ class PropertyClass(Model, Notify):
         #
         # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
         #
-        propkeys = {Iri(x.value) for x in PropClassAttr}
+        propkeys = {Iri(x.value, validate=False) for x in PropClassAttr}
         for key, val in attributes.items():
             if key == 'rdf:type':
                 if val != 'sh:PropertyShape':

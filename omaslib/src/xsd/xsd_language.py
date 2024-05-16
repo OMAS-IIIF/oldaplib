@@ -10,7 +10,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_language(Xsd):
     """
@@ -23,7 +23,7 @@ class Xsd_language(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | Language | str):
+    def __init__(self, value: Self | Language | str, validate: bool = True):
         """
         Constructs a new Xsd_language instance. It checks if the syntax is valid, but it does
         not test if the language tag is a valid language!
@@ -37,12 +37,11 @@ class Xsd_language(Xsd):
         elif isinstance(value, Language):
             self.__value = value.name.lower()
         else:
-            if not XsdValidator.validate(XsdDatatypes.language, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
-            if not re.match('^[a-zA-Z]{2}(-[a-zA-Z]{2})?$', value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
-            # if re.match(".*[\n\r\t].*", value) is not None:
-            #     raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
+            if validate:
+                if not XsdValidator.validate(XsdDatatypes.language, value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
+                if not re.match('^[a-zA-Z]{2}(-[a-zA-Z]{2})?$', value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:language.')
             self.__value = value
 
     def __str__(self):

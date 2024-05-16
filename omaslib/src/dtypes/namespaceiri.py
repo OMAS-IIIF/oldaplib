@@ -7,7 +7,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd_anyuri import Xsd_anyURI
 
 
-@strict
+#@strict
 @serializer
 class NamespaceIRI(Xsd_anyURI):
     """
@@ -17,12 +17,12 @@ class NamespaceIRI(Xsd_anyURI):
     It is a subclass of AnyIRI and checks in the constructor for the termination with a "#" or "/".
     """
 
-    def __init__(self, value: Self | Xsd_anyURI | str):
+    def __init__(self, value: Self | Xsd_anyURI | str, validate: bool = True):
         """
         Constructor for the NamespaceIRI
         :param value: A string or another NamespaceIRI
         """
-        super().__init__(value)
+        super().__init__(value, validate)
         if not self._append_allowed:
             raise OmasErrorValue("NamespaceIRI must end with '/' or '#'!")
 

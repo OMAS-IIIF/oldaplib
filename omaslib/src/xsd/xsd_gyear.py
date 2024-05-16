@@ -9,7 +9,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_gYear(Xsd):
     """
@@ -19,7 +19,7 @@ class Xsd_gYear(Xsd):
     __tz: Tuple[int, int] | None
     __zulu: bool
 
-    def __init__(self, value: Self | int | str):
+    def __init__(self, value: Self | int | str, validate: bool = True):
         """
         Constructor of the Xsd_gYear class.
         :param value: Xsd_gYear instance or a valid string representation
@@ -34,8 +34,9 @@ class Xsd_gYear(Xsd):
             self.__tz = (0, 0)
             self.__zulu = True
         else:
-            if not XsdValidator.validate(XsdDatatypes.gYear, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
+            if validate:
+                if not XsdValidator.validate(XsdDatatypes.gYear, value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
             if not re.match("([+-]?[0-9]{4})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value):
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
             res = re.split("([+-]?[0-9]{4})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)

@@ -50,7 +50,7 @@ class ResourceClassPropertyChange:
     test_in_use: bool
 
 
-@strict
+#@strict
 class ResourceClass(Model, Notify):
     _graph: Xsd_NCName
     _project: Project
@@ -76,7 +76,7 @@ class ResourceClass(Model, Notify):
     def __init__(self, *,
                  con: IConnection,
                  project: Project,
-                 owlclass_iri: Iri | str |None = None,
+                 owlclass_iri: Iri | str | None = None,
                  subClassOf: Iri | str | None = None,
                  label: LangString | str | None = None,
                  comment: LangString | str | None = None,
@@ -267,6 +267,10 @@ class ResourceClass(Model, Notify):
     def modified(self) -> Xsd_dateTime | None:
         return self.__modified
 
+    @property
+    def properties(self) -> dict[Iri, PropertyClass]:
+        return self._properties
+
     def properties_items(self):
         return self._properties.items()
 
@@ -387,6 +391,11 @@ class ResourceClass(Model, Notify):
                 self.__contributor = val[0]
             elif key == 'dcterms:modified':
                 self.__modified = val[0]
+            elif key == 'sh:class':
+                if str(val[0]).endswith("Shape"):
+                    self._attributes[ResourceClassAttribute.SUBCLASS_OF] = Iri(str(val[0])[:-5], validate=False)
+                else:
+                    raise OmasErrorInconsistency(f'Value "{val[0]}" must end with "Shape".')
             else:
                 attr = ResourceClassAttribute(key)
                 if Iri == self.__datatypes[attr]:
@@ -593,7 +602,7 @@ class ResourceClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self.__contributor.toRdf}'
         for attr, value in self._attributes.items():
             if attr == ResourceClassAttribute.SUBCLASS_OF:
-                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}{attr.value} {value}Shape'
+                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:class {value.toRdf}Shape'
             else:
                 sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}{attr.value} {value.toRdf}'
 

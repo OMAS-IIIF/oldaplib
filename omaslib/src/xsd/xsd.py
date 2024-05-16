@@ -8,7 +8,7 @@ class Xsd(ABC):
     """
 
     @abstractmethod
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Initialize the XSD class. Must not be called by subclasses
         :param value:
@@ -38,7 +38,7 @@ class Xsd(ABC):
         :param value: String with RDF value string.
         :return: Instance of the XSD class.
         """
-        return cls(value)
+        return cls(value, validate=False)
 
     @property
     @abstractmethod

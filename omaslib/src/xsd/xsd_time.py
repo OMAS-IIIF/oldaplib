@@ -9,7 +9,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_time(Xsd):
     """
@@ -19,7 +19,7 @@ class Xsd_time(Xsd):
 
     __pattern = r'^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$'
 
-    def __init__(self, value: time | Self | str):
+    def __init__(self, value: time | Self | str, validate: bool = True):
         """
         Constructor for the Xsd_time class
         :param value: Either a Xsd_time instance, a Python time object, or a valid string representing a time
@@ -31,8 +31,9 @@ class Xsd_time(Xsd):
         elif isinstance(value, time):
             self.__value = value
         else:
-            if re.match(self.__pattern, value) is None:
-                raise OmasErrorValue(f'{value} wrong format for xsd:time.')
+            if validate:
+                if re.match(self.__pattern, value) is None:
+                    raise OmasErrorValue(f'{value} wrong format for xsd:time.')
             try:
                 self.__value = time.fromisoformat(value)
             except ValueError as err:

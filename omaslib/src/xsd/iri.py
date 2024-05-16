@@ -27,7 +27,7 @@ class Iri(Xsd):
     __value: str
     __rep: IriRep
 
-    def __init__(self, value: Self | Xsd_QName | Xsd_anyURI | str | None = None):
+    def __init__(self, value: Self | Xsd_QName | Xsd_anyURI | str | None = None, validate: bool = True):
         """
         Constructor for the Iri class. If no parameter is supplied, the Iri class is initialized with
         a generated random Iri from the urn-namespace.
@@ -53,14 +53,14 @@ class Iri(Xsd):
             return
         elif isinstance(value, str):
             try:
-                tmp = Xsd_QName(value)
+                tmp = Xsd_QName(value, validate=validate)
                 self.__value = str(value)
                 self.__rep = IriRep.QNAME
                 return
             except:
                 pass
             try:
-                tmp = Xsd_anyURI(value)
+                tmp = Xsd_anyURI(value, validate=validate)
                 self.__value = str(value)
                 self.__rep = IriRep.FULL
                 return
@@ -145,4 +145,5 @@ class Iri(Xsd):
         return parts[1]
 
 
-
+if __name__ == '__main__':
+    iri = Iri("omas:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")

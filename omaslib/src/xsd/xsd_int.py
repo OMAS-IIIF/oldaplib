@@ -8,7 +8,7 @@ from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 
 
-@strict
+#@strict
 @serializer
 class Xsd_int(Xsd_integer):
     """
@@ -16,7 +16,7 @@ class Xsd_int(Xsd_integer):
     It inherits from Xsd_integer. The xsd:int datatype has a limited range -2147483648 - 2147483647.
     """
 
-    def __init__(self, value: Xsd_integer | int | str):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
         """
         Constructor for Xsd_int class
         :param value: Int value. Must be in the range -2147483648 - 2147483647
@@ -24,6 +24,6 @@ class Xsd_int(Xsd_integer):
         :raises OmasValueError: If value is not in the range -2147483648 - 2147483647 or is not a valid
         integer representation.
         """
-        super().__init__(value)
+        super().__init__(value, validate=validate)
         if self._value < -2147483648 or self._value > 2147483647:
             raise OmasErrorValue(f"Value must be between -2147483648 and 2147483647")

@@ -7,7 +7,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_integer(Xsd):
     """
@@ -16,7 +16,7 @@ class Xsd_integer(Xsd):
     """
     _value: int
 
-    def __init__(self, value: Xsd | int | str):
+    def __init__(self, value: Xsd | int | str, validate: bool = True):
         """
         Constructor for Xsd_integer
         :param value: Value to convert to Xsd_integer

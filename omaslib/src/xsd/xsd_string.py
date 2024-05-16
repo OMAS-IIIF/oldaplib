@@ -7,7 +7,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_string(Xsd):
     """
@@ -70,7 +70,7 @@ class Xsd_string(Xsd):
         value = value.replace('\\n', '\n').replace('\\r', '\r')
         return value
 
-    def __init__(self, value: Self | str | None = None, lang: str | Language | None = None):
+    def __init__(self, value: Self | str | None = None, lang: str | Language | None = None, validate: bool = True):
         """
         Constructor of Xsd_string.
         :param value: String value
@@ -122,7 +122,7 @@ class Xsd_string(Xsd):
         :rtype: StringLiteral
         """
         value = Xsd_string.unescaping(value)
-        return cls(value, lang)
+        return cls(value, lang, validate=False)
 
     def __len__(self) -> int:
         if self.__value is None:

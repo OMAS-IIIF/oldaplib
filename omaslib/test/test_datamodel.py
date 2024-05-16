@@ -63,10 +63,13 @@ class TestDataModel(unittest.TestCase):
 
         file = project_root / 'omaslib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
+
+
         sleep(1)  # upload may take a while...
+
         cls._project = Project.read(cls._connection, "test")
         cls._dmproject = Project.read(cls._connection, "dmtest")
-        cls._sysproject = Project.read(cls._connection, "system")
+        cls._sysproject = Project.read(cls._connection, "omas")
 
 
     def tearDown(self):
@@ -230,11 +233,12 @@ class TestDataModel(unittest.TestCase):
         self.assertTrue(set(model.get_resclasses()) == {
             Iri("omas:Project"),
             Iri("omas:User"),
-            Iri("omas:List"),
-            Iri("omas:ListNode"),
+            Iri("omas:OldapList"),
+            Iri("omas:OldapListNode"),
             Iri("omas:AdminPermission"),
             Iri("omas:DataPermission"),
-            Iri("omas:PermissionSet")
+            Iri("omas:PermissionSet"),
+            Iri("omas:Thing")
         })
 
     # @unittest.skip('Work in progress')
@@ -346,5 +350,90 @@ class TestDataModel(unittest.TestCase):
         self.assertEqual(dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].name[Language.FR], "Ecrivain(s)")
         self.assertIsNotNone(dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')])
         self.assertIsNone(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment')))
+
+    def test_write_trig(self):
+        pagename = PropertyClass(con=self._connection,
+                                 project=self._project,
+                                 property_class_iri=Iri('test:pageDesignation'),
+                                 datatype=XsdDatatypes.string,
+                                 name=LangString("Page designation@en", "Seitenbezeichnung@de"),
+                                 minCount=Xsd_integer(1),
+                                 order=Xsd_decimal(1))
+        pagenum = PropertyClass(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:pageNum'),
+                                datatype=XsdDatatypes.positiveInteger,
+                                name=LangString("Pagenumber@en", "Seitennummer@de"),
+                                description=LangString("consecutive numbering of pages@en", "Konsekutive Nummerierung der Seiten@de"),
+                                minCount=Xsd_integer(1),
+                                maxCount=Xsd_integer(1),
+                                order=Xsd_decimal(2))
+        pagedescription = PropertyClass(con=self._connection,
+                                        project=self._project,
+                                        property_class_iri=Iri('test:pageDescription'),
+                                        datatype=XsdDatatypes.langString,
+                                        languageIn=LanguageIn(Language.EN, Language.DE),
+                                        uniqueLang=Xsd_boolean(True),
+                                        order=Xsd_decimal(3))
+        content = PropertyClass(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:pageContent'),
+                                datatype=XsdDatatypes.string,
+                                maxCount=Xsd_integer(1),
+                                order=Xsd_decimal(4))
+        inBook = PropertyClass(con=self._connection,
+                               project=self._project,
+                               property_class_iri=Iri('test:pageInBook'),
+                               toNodeIri=Iri('test:Book'),
+                               minCount=Xsd_integer(1),
+                               maxCount=Xsd_integer(1),
+                               order=Xsd_decimal(5))
+        page = ResourceClass(con=self._connection,
+                             project=self._project,
+                             owlclass_iri=Iri("test:Page"),
+                             subClassOf=Iri('omas:Thing'),
+                             label=LangString(["Project@en", "Projekt@de"]),
+                             comment=LangString(["A page of a book@en", "Seite eines Buches@de"]),
+                             closed=Xsd_boolean(True),
+                             properties=[pagename, pagenum, pagedescription, content, inBook])
+
+        title = PropertyClass(con=self._connection,
+                              project=self._project,
+                              property_class_iri=Iri('test:title'),
+                              datatype=XsdDatatypes.string,
+                              minCount=Xsd_integer(1),
+                              maxCount=Xsd_integer(1),
+                              order=Xsd_decimal(1))
+        author = PropertyClass(con=self._connection,
+                               project=self._project,
+                               property_class_iri=Iri('test:author'),
+                               toNodeIri=Iri('test:Person'),
+                               order=Xsd_decimal(2))
+        pubDate = PropertyClass(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:pubDate'),
+                                datatype=XsdDatatypes.date,
+                                minCount=Xsd_integer(1),
+                                maxCount=Xsd_integer(1),
+                                order=Xsd_decimal(3))
+        book = ResourceClass(con=self._connection,
+                             project=self._project,
+                             owlclass_iri=Iri('test:Book'),
+                             subClassOf=Iri('omas:Thing'),
+                             label=LangString(["Book@en", "Buch@de"]),
+                             closed=Xsd_boolean(True),
+                             properties=[title, author, pubDate])
+
+        person = ResourceClass(con=self._connection,
+                               project=self._project,
+                               owlclass_iri=Iri('test:Person'),
+                               subClassOf=Iri('omas:Thing'),
+                               label=LangString(["Person@en", "Person@de"]),
+                               properties=[title, author, pubDate])
+
+        dm = DataModel(con=self._connection,
+                       project=self._project,
+                       resclasses=[page, book])
+        dm.write_as_trig('gaga.trig')
 
 

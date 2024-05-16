@@ -7,7 +7,7 @@ from pystrict import strict
 from omaslib.src.helpers.serializer import serializer
 
 
-@strict
+#@strict
 @serializer
 class ObservableDict(UserDict):
     __on_change: Callable[[Self], None]

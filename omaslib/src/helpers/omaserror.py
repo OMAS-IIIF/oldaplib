@@ -4,7 +4,7 @@ This module implements the error clasees
 from pystrict import strict
 from traceback import format_exc
 
-@strict
+#@strict
 class OmasError(Exception):
     """
     No special needs besides a special class for errors in OMAS
@@ -12,7 +12,7 @@ class OmasError(Exception):
     pass
 
 
-@strict
+#@strict
 class OmasErrorValue(OmasError):
     """
     Raised when an invalid value is passed/processed
@@ -20,7 +20,7 @@ class OmasErrorValue(OmasError):
     pass
 
 
-@strict
+#@strict
 class OmasErrorType(OmasError):
     """
     Raised when an invalid value is passed/processed
@@ -28,12 +28,12 @@ class OmasErrorType(OmasError):
     pass
 
 
-@strict
+#@strict
 class OmasErrorKey(OmasError):
     pass
 
 
-@strict
+#@strict
 class OmasErrorNotFound(OmasError):
     """
     Raised when something was not found
@@ -41,7 +41,7 @@ class OmasErrorNotFound(OmasError):
     pass
 
 
-@strict
+#@strict
 class OmasErrorAlreadyExists(OmasError):
     """
     Raised when something should be created which already exists
@@ -49,7 +49,7 @@ class OmasErrorAlreadyExists(OmasError):
     pass
 
 
-@strict
+#@strict
 class OmasErrorInconsistency(OmasError):
     """
     Raised when an inconsistency is encountered
@@ -57,26 +57,26 @@ class OmasErrorInconsistency(OmasError):
     pass
 
 
-@strict
+#@strict
 class OmasErrorUpdateFailed(OmasError):
     """
     Updating failed for some reason
     """
     pass
 
-@strict
+#@strict
 class OmasErrorNoPermission(OmasError):
     pass
 
-@strict
+#@strict
 class OmasErrorImmutable(OmasError):
     pass
 
-@strict
+#@strict
 class OmasErrorIndex(OmasError):
     pass
 
-@strict
+#@strict
 class OmasErrorInUse(OmasError):
     pass
 

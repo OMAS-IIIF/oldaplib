@@ -9,7 +9,7 @@ from omaslib.src.enums.propertyclassattr import PropClassAttr
 from omaslib.src.enums.resourceclassattr import ResourceClassAttribute
 
 
-@strict
+#@strict
 class Notify:
     """
     This class can be used as super-class for a classes used as real (sh:name, sh:description) or

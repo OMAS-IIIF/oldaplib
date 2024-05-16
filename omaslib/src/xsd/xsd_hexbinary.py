@@ -9,7 +9,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_hexBinary(Xsd):
     """
@@ -17,7 +17,7 @@ class Xsd_hexBinary(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Constructor of the Xsd_hexBinary class
         :param value: Xsd_hexBinary instance or a valid string
@@ -27,10 +27,11 @@ class Xsd_hexBinary(Xsd):
         if isinstance(value, Xsd_hexBinary):
             self.__value = value.__value
         else:
-            if not bool(re.match(r'^[0-9A-Fa-f]*$', value)) or len(value) % 2 != 0:
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
-            if not XsdValidator.validate(XsdDatatypes.hexBinary, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
+            if validate:
+                if not bool(re.match(r'^[0-9A-Fa-f]*$', value)) or len(value) % 2 != 0:
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
+                if not XsdValidator.validate(XsdDatatypes.hexBinary, value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
             self.__value = value
 
     def __str__(self):

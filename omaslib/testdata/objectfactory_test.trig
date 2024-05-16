@@ -1,17 +1,30 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix omas: <http://omas.org/base#> .
+@prefix test: <http://omas.org/test#> .
 
-@PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@PREFIX owl: <http://www.w3.org/2002/07/owl#> .
-@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .
-@PREFIX xml: <http://www.w3.org/XML/1998/namespace#> .
-@PREFIX sh: <http://www.w3.org/ns/shacl#> .
-@PREFIX skos: <http://www.w3.org/2004/02/skos/core#> .
-@PREFIX dc: <http://purl.org/dc/elements/1.1/> .
-@PREFIX dcterms: <http://purl.org/dc/terms/> .
-@PREFIX foaf: <http://xmlns.com/foaf/0.1/> .
-@PREFIX omas: <http://omas.org/base#> .
-@PREFIX test: <http://omas.org/test#> .
-@PREFIX dmtest: <http://omas.org/dmtest#> .
+omas:admin {
+
+    omas:Test a omas:Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        omas:projectShortName "test"^^xsd:NCName ;
+        omas:namespaceIri "http://omas.org/test#"^^xsd:anyURI ;
+        rdfs:label "Test"@en, "Test"@de, "Test"@fr, "Test"@it ;
+        rdfs:comment "For testing purposes"@en ;
+        omas:projectStart "2024-01-01"^^xsd:date .
+
+}
 
 test:shacl {
         test:shapes dcterms:hasVersion "0.1.0"^^xsd:string .
@@ -160,7 +173,7 @@ test:shacl {
 }
 test:onto {
         test:ontology owl:type owl:Ontology ;
-        owl:versionInfo "0.1.0"^^xsd:string ;
+        owl:versionInfo "0.1.0"^^xsd:string .
 
         test:pageDesignation rdf:type owl:DatatypeProperty ;
             rdfs:domain test:Page ;
@@ -279,3 +292,5 @@ test:onto {
                 owl:cardinality "1"^^xsd:integer ;
                 ] .
 }
+
+

@@ -18,7 +18,7 @@ from omaslib.src.helpers.serializer import serializer
 import json
 
 
-@strict
+#@strict
 @serializer
 class InProjectClass:
     """

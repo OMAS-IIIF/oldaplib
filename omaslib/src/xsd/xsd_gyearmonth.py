@@ -9,7 +9,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_gYearMonth(Xsd):
     """
@@ -20,7 +20,7 @@ class Xsd_gYearMonth(Xsd):
     __tz: Tuple[int, int] | None
     __zulu: bool
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Constructor of the Xsd_gYearMonth class
         :param value: Xsd_gYearMonth instance or a valid string representing a Xsd_gYearMonth instance
@@ -32,11 +32,11 @@ class Xsd_gYearMonth(Xsd):
             self.__month = value.__month
             self.__tz = value.__tz
         else:
-            if not XsdValidator.validate(XsdDatatypes.gYearMonth, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth')
-            # or: re.match("[+-]?[0-9]{4}-[0-9]{2}(([+-][0-9]{2}:[0-9]{2})|Z)?", string)
-            if not re.match("([+-]?[0-9]{4})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth.')
+            if validate:
+                if not XsdValidator.validate(XsdDatatypes.gYearMonth, value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth')
+                if not re.match("([+-]?[0-9]{4})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth.')
             res = re.split("([+-]?[0-9]{4})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
             if len(res) != 9:
                 raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYearMonth.')

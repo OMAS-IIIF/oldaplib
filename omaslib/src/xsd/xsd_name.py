@@ -17,7 +17,7 @@ class Xsd_Name(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Constructs an Xsd_Name instance.
         :param value: An Xsd_Name instance or a string conforming to the XML Schema [xsd:Name]
@@ -26,8 +26,9 @@ class Xsd_Name(Xsd):
         if isinstance(value, Xsd_Name):
             self.__value = value.__value
         else:
-            if not re.match("^[a-zA-Z_][\\w.\\-:_]*$", value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:Name.')
+            if validate:
+                if not re.match("^[a-zA-Z_][\\w.\\-:_]*$", value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:Name.')
             self.__value = value
 
     @classmethod
@@ -40,7 +41,7 @@ class Xsd_Name(Xsd):
         :rtype: Xsd_Name
         """
         value = Xsd_string.unescaping(value)
-        return cls(value)
+        return cls(value, validate=False)#
 
     def __str__(self):
         """

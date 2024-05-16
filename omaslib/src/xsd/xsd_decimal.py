@@ -9,7 +9,7 @@ from omaslib.src.xsd.floatingpoint import FloatingPoint
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_decimal(FloatingPoint):
     """
@@ -17,7 +17,7 @@ class Xsd_decimal(FloatingPoint):
     inherits most methods from the FloatingPoint class.
     """
 
-    def __init__(self, value: Self | float | str):
+    def __init__(self, value: Self | float | str, validate: bool = True):
         """
         Constructor for the Xsd_decimal class.
         :param value: Either a Xsd_decimal, float or string in decimal format.
@@ -25,8 +25,9 @@ class Xsd_decimal(FloatingPoint):
         :raises OmasErrorValue: If the value is not in a valid decimal format.
         """
         if isinstance(value, str):
-            if not re.match("^[+-]?[0-9]*\\.?[0-9]*$", value):
-                raise OmasErrorValue(f'"{value}" is not a xsd:decimal.')
+            if validate:
+                if not re.match("^[+-]?[0-9]*\\.?[0-9]*$", value):
+                    raise OmasErrorValue(f'"{value}" is not a xsd:decimal.')
             value = float(value)
         super().__init__(value)
 

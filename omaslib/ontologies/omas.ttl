@@ -9,6 +9,8 @@
 @prefix omas: <http://omas.org/base#> .
 @prefix : <http://omas.org/base#> .
 
+
+
 omas:ontology rdf:type owl:Ontology ;
     #owl:versionIRI <http://omas.org/ontology/version/1.0.0> ;
     owl:versionInfo "0.1.0"^^xsd:string ;
@@ -95,7 +97,7 @@ skos:changeNote rdf:type owl:DatatypeProperty ;
 
 ###  http://www.w3.org/2004/02/skos/core#definition
 skos:definition rdf:type owl:DatatypeProperty ;
-                rdfs:range xsd:string .
+                rdfs:range rdf:langString .
 
 ###  http://www.w3.org/2004/02/skos/core#editorialNote
 skos:editorialNote rdf:type owl:DatatypeProperty ;
@@ -106,7 +108,7 @@ skos:inScheme rdf:type owl:ObjectProperty ;
 
 ###  http://www.w3.org/2004/02/skos/core#note
 skos:note rdf:type owl:DatatypeProperty ;
-          rdfs:range xsd:string .
+          rdfs:range rdf:langString .
 
 ###  http://www.w3.org/2004/02/skos/core#prefLabel
 skos:prefLabel rdf:type owl:DatatypeProperty ;
@@ -118,8 +120,8 @@ skos:broaderTransitive rdf:type owl:ObjectProperty ;
 skos:notation rdf:type owl:DatatypeProperty ;
           rdfs:range xsd:string .
 
-skos:alternativeLabel rdf:type owl:DatatypeProperty ;
-          rdfs:range xsd:string .
+skos:altLabel rdf:type owl:DatatypeProperty ;
+          rdfs:range rdf:langString .
 
 ###  http://www.w3.org/2004/02/skos/core#note
 skos:note rdf:type owl:DatatypeProperty .
@@ -766,7 +768,7 @@ omas:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty :lastModifiedBy ;
-            owl:maxCardinality "1"^^xsd:nonNegativeInteger ;
+            owl:cardinality "1"^^xsd:nonNegativeInteger ;
             owl:onClass :User
         ],
         [
@@ -778,12 +780,12 @@ omas:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty :lastModificationDate ;
-            owl:maxCardinality "1"^^xsd:nonNegativeInteger ;
+            owl:cardinality "1"^^xsd:nonNegativeInteger ;
             owl:onDatatype xsd:dateTimeStamp
         ] ,
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :grantsPermissions ;
+            owl:onProperty :grantsPermission ;
             owl:minCardinality "0"^^xsd:nonNegativeInteger ;
             owl:onClass :PermissionSet
         ] ;

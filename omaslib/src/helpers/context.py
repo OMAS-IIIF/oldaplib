@@ -38,7 +38,7 @@ class ContextSingleton(type):
         cls._cache = {}
 
 
-@strict
+#@strict
 class Context(metaclass=ContextSingleton):
     """
     This class is used to hold the "context" for RDF (trig-format) of a SPARQL query/update.
@@ -91,30 +91,30 @@ class Context(metaclass=ContextSingleton):
         """
         self._name = name
         self._context = {
-            Xsd_NCName('rdf'): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
-            Xsd_NCName('rdfs'): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
-            Xsd_NCName('owl'): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
-            Xsd_NCName('xsd'): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
-            Xsd_NCName('xml'): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
-            Xsd_NCName('sh'): NamespaceIRI('http://www.w3.org/ns/shacl#'),
-            Xsd_NCName('skos'): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
-            Xsd_NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
-            Xsd_NCName('dcterms'): NamespaceIRI('http://purl.org/dc/terms/'),
-            Xsd_NCName('foaf'): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
-            Xsd_NCName('omas'): NamespaceIRI('http://omas.org/base#')
+            Xsd_NCName('rdf', validate=False): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
+            Xsd_NCName('rdfs', validate=False): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
+            Xsd_NCName('owl', validate=False): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
+            Xsd_NCName('xsd', validate=False): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
+            Xsd_NCName('xml', validate=False): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
+            Xsd_NCName('sh', validate=False): NamespaceIRI('http://www.w3.org/ns/shacl#'),
+            Xsd_NCName('skos', validate=False): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
+            Xsd_NCName('dc', validate=False): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
+            Xsd_NCName('dcterms', validate=False): NamespaceIRI('http://purl.org/dc/terms/'),
+            Xsd_NCName('foaf', validate=False): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
+            Xsd_NCName('omas', validate=False): NamespaceIRI('http://omas.org/base#')
         }
         self._inverse = {
-            NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf'),
-            NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs'),
-            NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl'),
-            NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd'),
-            NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml'),
-            NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh'),
-            NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos'),
-            NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc'),
-            NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms'),
-            NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf'),
-            NamespaceIRI('http://omas.org/base#'): Xsd_NCName('omas'),
+            NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf', validate=False),
+            NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs', validate=False),
+            NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl', validate=False),
+            NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd', validate=False),
+            NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml', validate=False),
+            NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh', validate=False),
+            NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos', validate=False),
+            NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc', validate=False),
+            NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms', validate=False),
+            NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf', validate=False),
+            NamespaceIRI('http://omas.org/base#'): Xsd_NCName('omas', validate=False),
         }
         self._use = []
 
@@ -194,7 +194,7 @@ class Context(metaclass=ContextSingleton):
         """
         return self._context.items()
 
-    def iri2qname(self, iri: str | NamespaceIRI) -> Xsd_QName | None:
+    def iri2qname(self, iri: str | NamespaceIRI, validate: bool = True) -> Xsd_QName | None:
         """
         Returns a QName
 
@@ -202,14 +202,14 @@ class Context(metaclass=ContextSingleton):
         :return: QName or None
         """
         if not isinstance(iri, Xsd_anyURI):
-            iri = Xsd_anyURI(iri)
+            iri = Xsd_anyURI(iri, validate=validate)
         for prefix, trunk in self._context.items():
             if str(iri).startswith(str(trunk)):
                 fragment = str(iri)[len(trunk):]
-                return Xsd_QName(prefix, fragment)
+                return Xsd_QName(prefix, fragment, validate=validate)
         return None
 
-    def qname2iri(self, qname: Xsd_QName | str) -> NamespaceIRI:
+    def qname2iri(self, qname: Xsd_QName | str, validate: bool = True) -> NamespaceIRI:
         """
         Convert a QName into a IRI string.
 
@@ -217,7 +217,7 @@ class Context(metaclass=ContextSingleton):
         :return: Full IRI as str
         """
         if not isinstance(qname, Xsd_QName):
-            qname = Xsd_QName(qname)
+            qname = Xsd_QName(qname, validate)
         return self._context[Xsd_NCName(qname.prefix)] + qname.fragment
 
 
@@ -238,7 +238,7 @@ class Context(metaclass=ContextSingleton):
 
         :return: Context as turtle string
         """
-        contextlist = [f"@PREFIX {str(x)}: <{str(y)}> ." for x, y in self._context.items()]
+        contextlist = [f"@prefix {str(x)}: <{str(y)}> ." for x, y in self._context.items()]
         return "\n".join(contextlist) + "\n"
 
     @classmethod

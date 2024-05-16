@@ -8,7 +8,7 @@ from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_integer import Xsd_integer
 
 
-@strict
+#@strict
 @serializer
 class Xsd_short(Xsd_integer):
     """
@@ -16,7 +16,7 @@ class Xsd_short(Xsd_integer):
     Xsd_integer.
     """
 
-    def __init__(self, value: Xsd_integer | int | str):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
         """
         Constructor for the Xsd_short class
         :param value: A valid xsd class, an int in the range of -32768 - 32767, or a valid str

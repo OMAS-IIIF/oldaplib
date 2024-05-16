@@ -10,7 +10,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_duration(Xsd):
     """
@@ -18,7 +18,7 @@ class Xsd_duration(Xsd):
     """
     __value: timedelta
 
-    def __init__(self, value: timedelta | Self | str):
+    def __init__(self, value: timedelta | Self | str, validate: bool = True):
         """
         Constructor of the Xsd_duration class.
         :param value: a Xsd_duration instance, or a timedelta instance, or a string for a timedelta

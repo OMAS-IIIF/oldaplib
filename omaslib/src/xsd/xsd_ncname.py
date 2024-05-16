@@ -1,4 +1,6 @@
 import re
+import sys
+import traceback
 from typing import Self, Any
 
 from pystrict import strict
@@ -9,7 +11,7 @@ from omaslib.src.helpers.serializer import serializer
 from omaslib.src.xsd.xsd import Xsd
 
 
-@strict
+#@strict
 @serializer
 class Xsd_NCName(Xsd):
     """
@@ -29,7 +31,7 @@ class Xsd_NCName(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Initialize the NCName
         :param value: Either a string conforming to the QName syntax or a NCName
@@ -41,8 +43,9 @@ class Xsd_NCName(Xsd):
         else:
             if not bool(re.match(r'^[A-Za-z_][A-Za-z0-9_.-]*$', value)):
                 raise OmasErrorValue(f'Invalid string "{value}" for NCName')
-            if not XsdValidator.validate(XsdDatatypes.NCName, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for NCName')
+            if validate:
+                if not XsdValidator.validate(XsdDatatypes.NCName, value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for NCName')
             self.__value = value
 
     def __repr__(self) -> str:

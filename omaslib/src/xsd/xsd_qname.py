@@ -8,7 +8,7 @@ from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_ncname import Xsd_NCName
 
 
-@strict
+#@strict
 @serializer
 class Xsd_QName(Xsd):
     """
@@ -31,7 +31,7 @@ class Xsd_QName(Xsd):
     """
     _value: str
 
-    def __init__(self, value: Self | str | Xsd_NCName, fragment: str | Xsd_NCName | None = None) -> None:
+    def __init__(self, value: Self | str | Xsd_NCName, fragment: str | Xsd_NCName | None = None, validate: bool = True) -> None:
         """
         Construct a QName from a QName, string (with a ":") or a prefix/fragment pair
         :param value: A Qname, string (with a ":") or a prefix as NCName or string
@@ -49,16 +49,16 @@ class Xsd_QName(Xsd):
                 except ValueError as err:
                     raise OmasErrorValue(f'Invalid string "{value}" for QName')
                 try:
-                    prefix = Xsd_NCName(prefix)
-                    fragment = Xsd_NCName(fragment)
+                    prefix = Xsd_NCName(prefix, validate=validate)
+                    fragment = Xsd_NCName(fragment, validate=validate)
                 except OmasErrorValue as err:
                     raise OmasErrorValue(f'Invalid string "{value}" for QName. Error: {err}')
                 self._value = f'{prefix}:{fragment}'
             else:
                 raise OmasErrorValue(f'Invalid value for QName "{value}"')
         else:
-            prefix = Xsd_NCName(value)
-            fragment = Xsd_NCName(fragment)
+            prefix = Xsd_NCName(value, validate=validate)
+            fragment = Xsd_NCName(fragment, validate=validate)
             self._value = f'{prefix}:{fragment}'
 
     def __len__(self) -> int:

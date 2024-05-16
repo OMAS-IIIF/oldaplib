@@ -147,9 +147,9 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropClassAttr.MIN_COUNT], Xsd_integer(1))
         self.assertEqual(p2[PropClassAttr.NAME], LangString("Test"))
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("Property shape for testing purposes"))
-        self.assertEqual(p2[PropClassAttr.TO_NODE_IRI], Iri('test:comment'))
+        self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.string)
         self.assertEqual(p2[PropClassAttr.ORDER], Xsd_decimal(3))
-        self.assertEqual(p2[PropClassAttr.PROPERTY_TYPE], OwlPropertyType.OwlObjectProperty)
+        self.assertEqual(p2[PropClassAttr.PROPERTY_TYPE], OwlPropertyType.OwlDataProperty)
 
         p3 = PropertyClass.read(con=self._connection,
                                 #graph=Xsd_NCName('test'),

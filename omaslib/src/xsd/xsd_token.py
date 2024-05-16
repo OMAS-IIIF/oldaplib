@@ -10,7 +10,7 @@ from omaslib.src.xsd.xsd import Xsd
 from omaslib.src.xsd.xsd_string import Xsd_string
 
 
-@strict
+#@strict
 @serializer
 class Xsd_token(Xsd):
     """
@@ -18,7 +18,7 @@ class Xsd_token(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str):
+    def __init__(self, value: Self | str, validate: bool = True):
         """
         Constructor for the Xsd_token class.
         :param value: A Xml_token instance or a valid token string
@@ -28,12 +28,13 @@ class Xsd_token(Xsd):
         if isinstance(value, Xsd_token):
             self.__value = value.__value
         else:
-            if not XsdValidator.validate(XsdDatatypes.token, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
-            if not re.match("^[^\\s]+(\\s[^\\s]+)*$", value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
-            if re.match(".*[\n\r\t].*", value) is not None:
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
+            if validate:
+                if not XsdValidator.validate(XsdDatatypes.token, value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
+                if not re.match("^[^\\s]+(\\s[^\\s]+)*$", value):
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
+                if re.match(".*[\n\r\t].*", value) is not None:
+                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
             self.__value = value
 
     def __str__(self):
@@ -81,7 +82,7 @@ class Xsd_token(Xsd):
         :param value:
         :return:
         """
-        return cls(Xsd_string.unescaping(value))
+        return cls(Xsd_string.unescaping(value), validate=False)
 
 
     def _as_dict(self) -> dict[str, str]:
