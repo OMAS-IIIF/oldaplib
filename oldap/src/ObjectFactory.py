@@ -10,7 +10,7 @@ from oldap.src.enums.action import Action
 from oldap.src.enums.propertyclassattr import PropClassAttr
 from oldap.src.enums.xsd_datatypes import XsdDatatypes
 from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.omaserror import OmasErrorNotFound, OmasErrorValue, OmasErrorInconsistency
+from oldap.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency
 from oldap.src.iconnection import IConnection
 from oldap.src.model import Model
 from oldap.src.project import Project
@@ -148,7 +148,7 @@ class ResourceInstance(Model):
             case None:
                 return Iri(value)
             case _:
-                raise OmasErrorValue(f'Invalid datatype "{datatype}" for value "{value}"')
+                raise OldapErrorValue(f'Invalid datatype "{datatype}" for value "{value}"')
 
     def __init__(self, *,
                  iri: Iri | None = None,
@@ -190,12 +190,12 @@ class ResourceInstance(Model):
         for prop_iri, prop in self.properties.items():
             if prop.get(PropClassAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
                 if prop[PropClassAttr.MIN_COUNT] > 0 and not self._values.get(prop_iri.fragment):
-                    raise OmasErrorValue(f'Property {prop_iri} with MIN_COUNT={prop[PropClassAttr.MIN_COUNT]} is missing')
+                    raise OldapErrorValue(f'Property {prop_iri} with MIN_COUNT={prop[PropClassAttr.MIN_COUNT]} is missing')
                 elif isinstance(self._values[prop_iri.fragment], (list, tuple, set)) and len(self._values[prop_iri.fragment]) < 1:
-                    raise OmasErrorValue(f'Property {prop_iri} with MIN_COUNT={prop[PropClassAttr.MIN_COUNT]} is missing')
+                    raise OldapErrorValue(f'Property {prop_iri} with MIN_COUNT={prop[PropClassAttr.MIN_COUNT]} is missing')
             if prop.get(PropClassAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
                 if isinstance(self._values.get(prop_iri.fragment), (list, tuple, set)) and len(self._values[prop_iri.fragment]) > prop[PropClassAttr.MAX_COUNT]:
-                    raise OmasErrorValue(f'Property {prop_iri} with MAX_COUNT={prop[PropClassAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
+                    raise OldapErrorValue(f'Property {prop_iri} with MAX_COUNT={prop[PropClassAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
             else:
                 if self._values.get(prop_iri):
                     if isinstance(self._values.get(prop_iri), (list, tuple, set)):
@@ -207,31 +207,31 @@ class ResourceInstance(Model):
     def validate_value(self, value: ValueType, property: PropertyClass):
         if property.get(PropClassAttr.LANGUAGE_IN):  # testing for LANGUAGE_IN conformance
             if not isinstance(value, LangString):
-                raise OmasErrorInconsistency(f'Property {property} with LANGUAGE_IN requires datatype rdf:langstring.')
+                raise OldapErrorInconsistency(f'Property {property} with LANGUAGE_IN requires datatype rdf:langstring.')
             for lang, dummy in value.items():
                 if not lang in property[PropClassAttr.LANGUAGE_IN]:
-                    raise OmasErrorValue(f'Property {property} with LANGUAGE_IN={property[PropClassAttr.LANGUAGE_IN]} has invalid language "{lang.value}"')
+                    raise OldapErrorValue(f'Property {property} with LANGUAGE_IN={property[PropClassAttr.LANGUAGE_IN]} has invalid language "{lang.value}"')
         if property.get(PropClassAttr.UNIQUE_LANG):
             return  # TODO: LangString does not yet allow multiple entries of the same language...
         if property.get(PropClassAttr.IN):
             if not value in property[PropClassAttr.IN]:
-                raise OmasErrorValue(f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{value}"')
+                raise OldapErrorValue(f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{value}"')
         if property.get(PropClassAttr.MIN_LENGTH):
             l = 0
             try:
                 l = len(value)
             except TypeError:
-                raise OmasErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has no length.')
+                raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has no length.')
             if l < property[PropClassAttr.MIN_LENGTH]:
-                raise OmasErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has length "{len(value)}".')
+                raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has length "{len(value)}".')
         if property.get(PropClassAttr.MAX_LENGTH):
             l = 0
             try:
                 l = len(value)
             except TypeError:
-                raise OmasErrorInconsistency(f'Property {property} with MAX_LENGTH={property[PropClassAttr.MAX_LENGTH]} has no length.')
+                raise OldapErrorInconsistency(f'Property {property} with MAX_LENGTH={property[PropClassAttr.MAX_LENGTH]} has no length.')
             if l > property[PropClassAttr.MAX_LENGTH]:
-                raise OmasErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MAX_LENGTH]} has length "{len(value)}".')
+                raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MAX_LENGTH]} has length "{len(value)}".')
         if property.get(PropClassAttr.PATTERN):
             pass  # TODO: regex pattern match!
         if property.get(PropClassAttr.MIN_EXCLUSIVE):
@@ -239,33 +239,33 @@ class ResourceInstance(Model):
             try:
                 v = value > property[PropClassAttr.MIN_EXCLUSIVE]
             except TypeError:
-                raise OmasErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} cannot be compared to "{value}".')
+                raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} cannot be compared to "{value}".')
             if not v:
-                raise OmasErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} has invalid "{value}".')
+                raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} has invalid "{value}".')
         if property.get(PropClassAttr.MIN_INCLUSIVE):
             v: bool | None = None
             try:
                 v = value >= property[PropClassAttr.MIN_INCLUSIVE]
             except TypeError:
-                raise OmasErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{value}".')
+                raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{value}".')
             if not v:
-                raise OmasErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{value}".')
+                raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{value}".')
         if property.get(PropClassAttr.MAX_EXCLUSIVE):
             v: bool | None = None
             try:
                 v = value < property[PropClassAttr.MAX_EXCLUSIVE]
             except TypeError:
-                raise OmasErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{value}".')
+                raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{value}".')
             if not v:
-                raise OmasErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{value}".')
+                raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{value}".')
         if property.get(PropClassAttr.MAX_INCLUSIVE):
             v: bool | None = None
             try:
                 v = value <= property[PropClassAttr.MAX_INCLUSIVE]
             except TypeError:
-                raise OmasErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{value}".')
+                raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{value}".')
             if not v:
-                raise OmasErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{value}".')
+                raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{value}".')
         if property.get(PropClassAttr.LESS_THAN):
             other_value = self._values.get(property[PropClassAttr.LESS_THAN])
             if isinstance(other_value, (list, tuple, list)):
@@ -274,19 +274,19 @@ class ResourceInstance(Model):
                     try:
                         b = value < oval
                     except TypeError:
-                        raise OmasErrorInconsistency(
+                        raise OldapErrorInconsistency(
                             f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {oval}".')
                     if not b:
-                        raise OmasErrorInconsistency(
+                        raise OldapErrorInconsistency(
                             f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{oval}".')
             else:
                 b: bool | None = None
                 try:
                     b = value < other_value
                 except TypeError:
-                    raise OmasErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {other_value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {other_value}".')
                 if not b:
-                    raise OmasErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{other_value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{other_value}".')
         if property.get(PropClassAttr.LESS_THAN_OR_EQUAL):
             other_value = self._values.get(property[PropClassAttr.LESS_THAN])
             if isinstance(other_value, (list, tuple, list)):
@@ -295,19 +295,19 @@ class ResourceInstance(Model):
                     try:
                         b = value < oval
                     except TypeError:
-                        raise OmasErrorInconsistency(
+                        raise OldapErrorInconsistency(
                             f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {oval}".')
                     if not b:
-                        raise OmasErrorInconsistency(
+                        raise OldapErrorInconsistency(
                             f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{oval}".')
             else:
                 b: bool | None = None
                 try:
                     b = value < other_value
                 except TypeError:
-                    raise OmasErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {other_value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {other_value}".')
                 if not b:
-                    raise OmasErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{other_value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{other_value}".')
 
     def __get_value(self: Self, attr: str) -> ValueType | None:
         tmp = self._values.get(attr)
@@ -338,7 +338,7 @@ class ResourceInstanceFactory:
     def createObjectInstance(self, classiri: Iri, name: str) -> Type:  ## ToDo: Get name automatically from IRI
         resclass = self._datamodel.get(classiri)
         if resclass is None:
-            raise OmasErrorNotFound(f'Given Resource Class "{classiri}" not found.')
+            raise OldapErrorNotFound(f'Given Resource Class "{classiri}" not found.')
         return type(name, (ResourceInstance,), {
             'connection': self._con,
             'project': self._project,

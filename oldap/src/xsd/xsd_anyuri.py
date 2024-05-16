@@ -5,7 +5,7 @@ from pystrict import strict
 from validators import url
 
 from oldap.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -61,18 +61,18 @@ class Xsd_anyURI(Xsd):
                 value = value.replace("<", "").replace(">", "")
             if value.startswith("urn:"):
                 if not re.match(r'^urn:[a-z0-9][a-z0-9-]{0,31}:[^\s]+', value):
-                    raise OmasErrorValue(f'Invalid URN format for "{value}".')
+                    raise OldapErrorValue(f'Invalid URN format for "{value}".')
             elif value.startswith("http"):
                 if not re.match(self._uri_pattern, value):
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
                 if validate:
                     if not XsdValidator.validate(XsdDatatypes.anyURI, value):
-                        raise OmasErrorValue(f'Invalid string "{value}" for anyURI')
+                        raise OldapErrorValue(f'Invalid string "{value}" for anyURI')
                     else:
                         if not url(value):
-                            raise OmasErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+                            raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
             else:
-                raise OmasErrorValue(f'Invalid string "{value}" for anyURI')
+                raise OldapErrorValue(f'Invalid string "{value}" for anyURI')
             self._value = value
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 

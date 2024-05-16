@@ -4,7 +4,7 @@ from typing import Self
 from pystrict import strict
 
 from oldap.src.xsd.xsd_string import Xsd_string
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -28,7 +28,7 @@ class Xsd_Name(Xsd):
         else:
             if validate:
                 if not re.match("^[a-zA-Z_][\\w.\\-:_]*$", value):
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:Name.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:Name.')
             self.__value = value
 
     @classmethod

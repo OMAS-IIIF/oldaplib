@@ -9,7 +9,7 @@ from oldap.src.enums.language import Language
 from oldap.src.enums.permissions import DataPermission
 from oldap.src.helpers.context import Context
 from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.omaserror import OmasErrorInconsistency, OmasErrorNotFound, OmasErrorNoPermission, OmasErrorAlreadyExists, OmasErrorImmutable
+from oldap.src.helpers.oldaperror import OldapErrorInconsistency, OldapErrorNotFound, OldapErrorNoPermission, OldapErrorAlreadyExists, OldapErrorImmutable
 from oldap.src.xsd.iri import Iri
 from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_string import Xsd_string
@@ -71,7 +71,7 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
         self.assertEqual(ps.definedByProject, Iri('omas:SystemProject'))
 
-        with self.assertRaises(OmasErrorInconsistency):
+        with self.assertRaises(OldapErrorInconsistency):
             ps = PermissionSet(con=self._connection,
                                comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                                givesPermission=DataPermission.DATA_UPDATE,
@@ -153,7 +153,7 @@ class TestPermissionSet(unittest.TestCase):
                            comment=LangString("Testing a PermissionSet33@en", "Test eines PermissionSet33@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
                            definedByProject=Iri('omas:hyperHamlet'))
-        with self.assertRaises(OmasErrorAlreadyExists) as ex:
+        with self.assertRaises(OldapErrorAlreadyExists) as ex:
             ps.create()
 
 
@@ -163,7 +163,7 @@ class TestPermissionSet(unittest.TestCase):
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
                            definedByProject=Iri('omas:SystemProject'))
-        with self.assertRaises(OmasErrorNoPermission):
+        with self.assertRaises(OldapErrorNoPermission):
             ps.create()
 
         def test_create_permission_unauthorized(self):
@@ -172,7 +172,7 @@ class TestPermissionSet(unittest.TestCase):
                                comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                                givesPermission=DataPermission.DATA_UPDATE,
                                definedByProject=Iri('omas:HyperHamlet'))
-            with self.assertRaises(OmasErrorNoPermission):
+            with self.assertRaises(OldapErrorNoPermission):
                 ps.create()
 
     # TODO: More testing!!!
@@ -216,12 +216,12 @@ class TestPermissionSet(unittest.TestCase):
 
         ps = PermissionSet.read(self._connection, psIri)
         ps.comment = LangString("gagagaga@en")
-        with self.assertRaises(OmasErrorImmutable):
+        with self.assertRaises(OldapErrorImmutable):
             ps[PermissionSetAttr.DEFINED_BY_PROJECT] = Iri('omas:HyperHamlet')
 
         ps = PermissionSet.read(self._unpriv, psIri)
         ps.comment[Language.FR] = "gagagaga"
-        with self.assertRaises(OmasErrorNoPermission):
+        with self.assertRaises(OldapErrorNoPermission):
             ps.update()
 
 
@@ -237,7 +237,7 @@ class TestPermissionSet(unittest.TestCase):
         ps = PermissionSet.read(self._connection, psIri)
         ps.delete()
 
-        with self.assertRaises(OmasErrorNotFound) as ex:
+        with self.assertRaises(OldapErrorNotFound) as ex:
             project = ps.read(self._connection, psIri)
 
 

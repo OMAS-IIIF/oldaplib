@@ -16,7 +16,7 @@ from oldap.src.dtypes.namespaceiri import NamespaceIRI
 from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.omaserror import OmasError
+from oldap.src.helpers.oldaperror import OldapError
 
 DEFAULT_CONTEXT = "OMAS_DEFAULT_CONTEXT"
 
@@ -130,7 +130,7 @@ class Context(metaclass=ContextSingleton):
         try:
             return self._context[prefix]
         except KeyError as err:
-            raise OmasError(f'Unknown prefix "{prefix}"')
+            raise OldapError(f'Unknown prefix "{prefix}"')
 
     def __setitem__(self, prefix: Xsd_NCName | str, iri: NamespaceIRI | str) -> None:
         """
@@ -161,7 +161,7 @@ class Context(metaclass=ContextSingleton):
         try:
             iri = self._context[prefix]
         except KeyError:
-            raise OmasError(f'Unknown prefix "{prefix}"')
+            raise OldapError(f'Unknown prefix "{prefix}"')
         self._context.pop(prefix)
         self._inverse.pop(iri)
 

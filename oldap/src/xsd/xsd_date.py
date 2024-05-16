@@ -4,7 +4,7 @@ from typing import Self, Optional
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -36,18 +36,18 @@ class Xsd_date(Xsd):
             self.__value = value
         elif isinstance(value, int) and isinstance(month, int) and isinstance(day, int):
             if month < 1 or month > 12:
-                raise OmasErrorValue(f'({value}, {month}, {day}) wrong format for xsd:date.')
+                raise OldapErrorValue(f'({value}, {month}, {day}) wrong format for xsd:date.')
             if day < 1 or day > 31:
-                raise OmasErrorValue(f'({value}, {month}, {day}) wrong format for xsd:date.')
+                raise OldapErrorValue(f'({value}, {month}, {day}) wrong format for xsd:date.')
             self.__value = date(value, month, day)
         else:
             if validate:
                 if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', str(value)) is None:
-                    raise OmasErrorValue(f'"{value}" wrong format for xsd:date – correct format is "yyyy-mm-dd" .')
+                    raise OldapErrorValue(f'"{value}" wrong format for xsd:date – correct format is "yyyy-mm-dd" .')
             try:
                 self.__value = date.fromisoformat(value)
             except ValueError as err:
-                raise OmasErrorValue(str(err))
+                raise OldapErrorValue(str(err))
 
     def __str__(self) -> str:
         """
@@ -71,7 +71,7 @@ class Xsd_date(Xsd):
         :raises OmasErrorValue: If the input string is not a valid date string
         """
         if re.match(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$', str(value)) is None:
-            raise OmasErrorValue(f'{value} wrong format for xsd:date.')
+            raise OldapErrorValue(f'{value} wrong format for xsd:date.')
         return date.fromisoformat(str(value))
 
     def __eq__(self, other: Self | date | str | None) -> bool:

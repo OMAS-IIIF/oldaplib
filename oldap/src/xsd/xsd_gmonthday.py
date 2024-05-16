@@ -4,7 +4,7 @@ from typing import Tuple, Self
 from pystrict import strict
 
 from oldap.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -33,10 +33,10 @@ class Xsd_gMonthDay(Xsd):
             self.__tz = value.__tz
         else:
             if not XsdValidator.validate(XsdDatatypes.gMonthDay, value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonthDay')
+                raise OldapErrorValue(f'Invalid string "{value}" for xsd:gMonthDay')
             res = re.split("--([0-9]{2})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
             if len(res) != 9:
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonthDay.')
+                raise OldapErrorValue(f'Invalid string "{value}" for xsd:gMonthDay.')
             self.__month = int(res[1])
             self.__day = int(res[2])
             if res[3] == 'Z':
@@ -48,7 +48,7 @@ class Xsd_gMonthDay(Xsd):
             else:
                 self.__tz = None
         if self.__month < 1 or self.__month > 12 or self.__day < 1 or self.__day > 31:
-            raise OmasErrorValue(f'Invalid string "{value}" for xsd:gMonthDay.')
+            raise OldapErrorValue(f'Invalid string "{value}" for xsd:gMonthDay.')
 
     def __str__(self):
         """

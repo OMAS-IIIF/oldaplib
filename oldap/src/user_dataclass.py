@@ -50,7 +50,7 @@ from oldap.src.xsd.xsd_datetime import Xsd_dateTime
 from oldap.src.xsd.xsd_string import Xsd_string
 from oldap.src.xsd.xsd import Xsd
 from oldap.src.helpers.observable_set import ObservableSet
-from oldap.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNotFound
+from oldap.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNotFound
 from oldap.src.enums.permissions import AdminPermission
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.helpers.serializer import serializer
@@ -211,7 +211,7 @@ class UserDataclass:
             salt = bcrypt.gensalt()
             value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
         if field == UserAttr.USER_IRI and self.__attr.get(UserAttr.USER_IRI) is not None:
-            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__attr.get(UserAttr.USER_IRI)}".')
+            OldapErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__attr.get(UserAttr.USER_IRI)}".')
         self.__change_setter(field, value)
 
     def __del_value(self: Self, field: UserAttr) -> None:
@@ -258,7 +258,7 @@ class UserDataclass:
             salt = bcrypt.gensalt()
             value = bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8')
         if field == UserAttr.USER_IRI and self.__attr.get(UserAttr.USER_IRI) is not None:
-            OmasErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__attr.get(UserAttr.USER_IRI)}".')
+            OldapErrorAlreadyExists(f'A user IRI already has been assigned: "{self.__attr.get(UserAttr.USER_IRI)}".')
         self.__change_setter(field, value)
 
     def _as_dict(self) -> dict:
@@ -372,7 +372,7 @@ class UserDataclass:
         if not isinstance(project, Iri):
             project = Iri(project)
         if self.__attr[UserAttr.IN_PROJECT].get(project) is None:
-            raise OmasErrorValue(f"Project '{project}' does not exist")
+            raise OldapErrorValue(f"Project '{project}' does not exist")
         if self.__changeset.get(UserAttr.IN_PROJECT) is None:
             self.__changeset[UserAttr.IN_PROJECT] = UserAttrChange(self.__attr[UserAttr.IN_PROJECT], Action.MODIFY)
         self.__attr[UserAttr.IN_PROJECT][project].remove(permission)
@@ -430,7 +430,7 @@ class UserDataclass:
         """
         in_project: Dict[str, Set[AdminPermission]] | None = None
         if len(queryresult) == 0:
-            raise OmasErrorNotFound("Given user not found!")
+            raise OldapErrorNotFound("Given user not found!")
         for r in queryresult:
             match str(r.get('prop')):
                 case 'dcterms:creator':
@@ -468,7 +468,7 @@ class UserDataclass:
         if in_project:
             self.__attr[UserAttr.IN_PROJECT] = InProjectClass(in_project, on_change=self.__inProject_cb)
         if not isinstance(self._modified, Xsd_dateTime):
-            raise OmasErrorValue(f"Modified field is {type(self._modified)} and not datetime!!!!")
+            raise OldapErrorValue(f"Modified field is {type(self._modified)} and not datetime!!!!")
         self.clear_changeset()
 
     def _sparql_update(self, indent: int = 0, indent_inc: int = 4) -> Tuple[str | None, int, str]:

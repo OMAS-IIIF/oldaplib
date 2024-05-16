@@ -2,7 +2,7 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 from oldap.src.xsd.xsd_integer import Xsd_integer
@@ -25,4 +25,4 @@ class Xsd_positiveInteger(Xsd_integer):
         """
         super().__init__(value)
         if not self._value > 0:
-            raise OmasErrorValue('Value must be greater 0.')
+            raise OldapErrorValue('Value must be greater 0.')

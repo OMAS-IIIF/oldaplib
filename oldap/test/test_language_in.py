@@ -2,7 +2,7 @@ import unittest
 
 from oldap.src.dtypes.languagein import LanguageIn
 from oldap.src.enums.language import Language
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorType, OmasErrorKey
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType, OldapErrorKey
 
 
 class TestLanguageIn(unittest.TestCase):
@@ -46,10 +46,10 @@ class TestLanguageIn(unittest.TestCase):
         self.assertTrue(Language.DE in lang)
 
 
-        with self.assertRaises(OmasErrorKey):
+        with self.assertRaises(OldapErrorKey):
             lang = LanguageIn("xxx")
 
-        with self.assertRaises(OmasErrorKey):
+        with self.assertRaises(OldapErrorKey):
             lang = LanguageIn(value="xxx")
 
 
@@ -128,9 +128,9 @@ class TestLanguageIn(unittest.TestCase):
         self.assertFalse(Language.RM in lang)
 
 
-        with self.assertRaises(OmasErrorKey):
+        with self.assertRaises(OldapErrorKey):
             lang = LanguageIn(["de", "en", "gaga", "it"])
-        with self.assertRaises(OmasErrorKey):
+        with self.assertRaises(OldapErrorKey):
             lang = LanguageIn(value=["de", "en", "gaga", "it"])
 
 
@@ -193,7 +193,7 @@ class TestLanguageIn(unittest.TestCase):
         li.discard(Language.FR)
         self.assertFalse(Language.FR in li)
 
-        with self.assertRaises(OmasErrorKey) as ex:
+        with self.assertRaises(OldapErrorKey) as ex:
             li = li.add("xyz")
 
 
@@ -254,7 +254,7 @@ class TestLanguageIn(unittest.TestCase):
         li.discard(Language.FR)
         self.assertFalse(Language.FR in li)
 
-        with self.assertRaises(OmasErrorKey) as ex:
+        with self.assertRaises(OldapErrorKey) as ex:
             li = LanguageIn([Language.EN, "fr", "xyz"])
 
 

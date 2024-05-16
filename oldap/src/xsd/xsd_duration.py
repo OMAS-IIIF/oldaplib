@@ -5,7 +5,7 @@ import isodate
 from isodate import ISO8601Error
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -34,7 +34,7 @@ class Xsd_duration(Xsd):
             try:
                 self.__value = isodate.parse_duration(value)
             except ISO8601Error as err:
-                raise OmasErrorValue(str(err))
+                raise OldapErrorValue(str(err))
 
     def __str__(self) -> str:
         """
@@ -68,7 +68,7 @@ class Xsd_duration(Xsd):
             try:
                 other = isodate.parse_duration(str(other))
             except ISO8601Error as err:
-                raise OmasErrorValue(str(err))
+                raise OldapErrorValue(str(err))
             return self.__value == other
 
     def __hash__(self) -> int:

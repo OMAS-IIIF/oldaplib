@@ -12,7 +12,7 @@ from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
 from oldap.src.xsd.xsd_date import Xsd_date
 from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.omaserror import OmasErrorNotFound, OmasErrorInconsistency, OmasErrorNoPermission
+from oldap.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission
 from oldap.src.project import Project
 
 
@@ -140,7 +140,7 @@ class Testproject(unittest.TestCase):
         self.assertIsNone(project4.comment)
         self.assertIsNotNone(project4.projectStart)
 
-        with self.assertRaises(OmasErrorInconsistency) as ex:
+        with self.assertRaises(OldapErrorInconsistency) as ex:
             project5 = Project(con=self._connection,
                                projectShortName="unittest5",
                                label=LangString(["unittest5@en", "unittest5@de"]),
@@ -163,7 +163,7 @@ class Testproject(unittest.TestCase):
         project6 = Project.read(con=self._connection, projectIri_SName=projectIri)
         self.assertEqual(project6.label, LangString("unittes\"; SELECT * WHERE {?s ?p ?o}"))
 
-        with self.assertRaises(OmasErrorInconsistency) as ex:
+        with self.assertRaises(OldapErrorInconsistency) as ex:
             project7 = Project(con=self._connection,
                                projectShortName="unittest7",
                                label=LangString("date"),
@@ -226,14 +226,14 @@ class Testproject(unittest.TestCase):
 
 
     def test_project_empty_label(self):
-        with self.assertRaises(OmasErrorInconsistency):
+        with self.assertRaises(OldapErrorInconsistency):
             project = Project(con=self._connection,
                               projectShortName="updatetest",
                               namespaceIri=NamespaceIRI("http://unitest.org/project/updatetest#"),
                               projectStart=Xsd_date(2024, 1, 1),
                               projectEnd=Xsd_date(2025, 12, 31)
                               )
-        with self.assertRaises(OmasErrorInconsistency):
+        with self.assertRaises(OldapErrorInconsistency):
             project = Project(con=self._connection,
                               projectShortName="updatetest",
                               label=LangString(),
@@ -277,9 +277,9 @@ class Testproject(unittest.TestCase):
                           projectStart=Xsd_date(2024, 1, 1),
                           projectEnd=Xsd_date(2025, 12, 31)
                           )
-        with self.assertRaises(OmasErrorInconsistency):
+        with self.assertRaises(OldapErrorInconsistency):
             project.projectStart = Xsd_date(2026, 1, 1)
-        with self.assertRaises(OmasErrorInconsistency):
+        with self.assertRaises(OldapErrorInconsistency):
             project.projectEnd = Xsd_date(2023, 12, 31)
 
 
@@ -299,7 +299,7 @@ class Testproject(unittest.TestCase):
         project = Project.read(con=self._connection, projectIri_SName="deletetest")
         project.delete()
 
-        with self.assertRaises(OmasErrorNotFound) as ex:
+        with self.assertRaises(OldapErrorNotFound) as ex:
             project = Project.read(con=self._connection, projectIri_SName=projectIri)
 
     def test_unauthorized_access(self):
@@ -310,7 +310,7 @@ class Testproject(unittest.TestCase):
                           comment=LangString(["For unauthorized access@en", "Für nicht authorisierten Zugang@de"]),
                           projectStart=Xsd_date(2024, 1, 1),
                           )
-        with self.assertRaises(OmasErrorNoPermission) as ex:
+        with self.assertRaises(OldapErrorNoPermission) as ex:
             project.create()
 
         project = Project(con=self._connection,
@@ -324,9 +324,9 @@ class Testproject(unittest.TestCase):
         projectIri = project.projectIri
         project = Project.read(con=self._unpriv, projectIri_SName="unauthorized")
         project.projectEnd = Xsd_date(2025, 12, 31)
-        with self.assertRaises(OmasErrorNoPermission) as ex:
+        with self.assertRaises(OldapErrorNoPermission) as ex:
             project.update()
-        with self.assertRaises(OmasErrorNoPermission) as ex:
+        with self.assertRaises(OldapErrorNoPermission) as ex:
             project.delete()
 
 

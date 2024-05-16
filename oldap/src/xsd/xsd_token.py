@@ -4,7 +4,7 @@ from typing import Self
 from pystrict import strict
 
 from oldap.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 from oldap.src.xsd.xsd_string import Xsd_string
@@ -30,11 +30,11 @@ class Xsd_token(Xsd):
         else:
             if validate:
                 if not XsdValidator.validate(XsdDatatypes.token, value):
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:token.')
                 if not re.match("^[^\\s]+(\\s[^\\s]+)*$", value):
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:token.')
                 if re.match(".*[\n\r\t].*", value) is not None:
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:token.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:token.')
             self.__value = value
 
     def __str__(self):

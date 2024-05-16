@@ -2,7 +2,7 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 from oldap.src.xsd.xsd_integer import Xsd_integer
@@ -25,5 +25,5 @@ class Xsd_unsignedByte(Xsd_integer):
         """
         super().__init__(value)
         if self._value < 0 or self._value > 255:
-            raise OmasErrorValue('Value must be in the range of [0 - 255].')
+            raise OldapErrorValue('Value must be in the range of [0 - 255].')
 

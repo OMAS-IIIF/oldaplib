@@ -154,8 +154,8 @@ from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
 from oldap.src.xsd.xsd_datetime import Xsd_dateTime
 from oldap.src.xsd.xsd_string import Xsd_string
-from oldap.src.helpers.omaserror import OmasError, OmasErrorAlreadyExists, OmasErrorNotFound, OmasErrorUpdateFailed, \
-    OmasErrorValue, OmasErrorNoPermission
+from oldap.src.helpers.oldaperror import OldapError, OldapErrorAlreadyExists, OldapErrorNotFound, OldapErrorUpdateFailed, \
+    OldapErrorValue, OldapErrorNoPermission
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.enums.permissions import AdminPermission
 from oldap.src.helpers.tools import str2qname_anyiri, lprint
@@ -267,11 +267,11 @@ class User(Model, UserDataclass):
         """
 
         if self._con is None:
-            raise OmasError("Cannot create: no connection")
+            raise OldapError("Cannot create: no connection")
 
         result, message = self.check_for_permissions()
         if not result:
-            raise OmasErrorNoPermission(message)
+            raise OldapErrorNoPermission(message)
 
         if self.userIri is None:
             self.userIri = Iri()
@@ -356,52 +356,52 @@ class User(Model, UserDataclass):
         self._con.transaction_start()
         try:
             jsonobj = self._con.transaction_query(sparql1)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OmasErrorAlreadyExists(f'A user with a user ID "{self.userId}" already exists')
+            raise OldapErrorAlreadyExists(f'A user with a user ID "{self.userId}" already exists')
 
         try:
             jsonobj = self._con.transaction_query(sparql2)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OmasErrorAlreadyExists(f'A user with a user IRI "{self.userIri}" already exists')
+            raise OldapErrorAlreadyExists(f'A user with a user IRI "{self.userIri}" already exists')
 
         try:
             jsonobj = self._con.transaction_query(proj_test)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         res = QueryProcessor(context, jsonobj)
         if len(res) != len(projs):
             self._con.transaction_abort()
-            raise OmasErrorValue("One of the projects is not existing!")
+            raise OldapErrorValue("One of the projects is not existing!")
 
         try:
             jsonobj = self._con.transaction_query(pset_test)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         res = QueryProcessor(context, jsonobj)
         if len(res) != len(self.hasPermissions):
             self._con.transaction_abort()
-            raise OmasErrorValue("One of the permission sets is not existing!")
+            raise OldapErrorValue("One of the permission sets is not existing!")
 
         try:
             self._con.transaction_update(sparql)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         try:
             self._con.transaction_commit()
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         self._creator = self._con.userIri
@@ -427,7 +427,7 @@ class User(Model, UserDataclass):
         jsonobj = con.query(UserDataclass.sparql_query(context, userId))
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OmasErrorNotFound(f'User "{userId}" not found.')
+            raise OldapErrorNotFound(f'User "{userId}" not found.')
         instance = cls(con=con)
         instance._create_from_queryresult(res)
         return instance
@@ -500,7 +500,7 @@ class User(Model, UserDataclass):
         """
         result, message = self.check_for_permissions()
         if not result:
-            raise OmasErrorNoPermission(message)
+            raise OldapErrorNoPermission(message)
 
         #
         # TODO: Test, if the User is referenced as Owner of data etc. If so, raise an error. The User should then
@@ -536,7 +536,7 @@ class User(Model, UserDataclass):
         :raises OmasError: An internal error occurred
         """
         if self._con is None:
-            raise OmasError("Cannot create: no connection")
+            raise OldapError("Cannot create: no connection")
 
         result, message = self.check_for_permissions()
         #
@@ -546,7 +546,7 @@ class User(Model, UserDataclass):
         if actor.userIri == self.userIri and len(self.changeset) == 1 and self.changeset.get(UserAttr.CREDENTIALS):
             result = True
         if not result:
-            raise OmasErrorNoPermission(message)
+            raise OldapErrorNoPermission(message)
 
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
@@ -556,12 +556,12 @@ class User(Model, UserDataclass):
         self._con.transaction_start()
         try:
             modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.userIri)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         if modtime != self.modified:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed(
+            raise OldapErrorUpdateFailed(
                 f'Modifying user "{self.userId}" failed because of changed modification time: {modtime}')
         if ptest and ptest_len > 0:
             ptest_sparql = context.sparql_context
@@ -570,19 +570,19 @@ class User(Model, UserDataclass):
             res = QueryProcessor(context, jsonobj)
             if len(res) != ptest_len:
                 self._con.transaction_abort()
-                raise OmasErrorValue("One of the permission sets is not existing!")
+                raise OldapErrorValue("One of the permission sets is not existing!")
         try:
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(Xsd_QName('omas:admin'), self.userIri, self.modified, timestamp)
             modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.userIri)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         if timestamp != modtime:
-            raise OmasErrorUpdateFailed("Update failed! Timestamp does not match")
+            raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
         try:
             self._con.transaction_commit()
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         self.modified = timestamp

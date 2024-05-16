@@ -3,7 +3,7 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorType
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.floatingpoint import FloatingPoint
 from oldap.src.xsd.xsd import Xsd
@@ -27,7 +27,7 @@ class Xsd_decimal(FloatingPoint):
         if isinstance(value, str):
             if validate:
                 if not re.match("^[+-]?[0-9]*\\.?[0-9]*$", value):
-                    raise OmasErrorValue(f'"{value}" is not a xsd:decimal.')
+                    raise OldapErrorValue(f'"{value}" is not a xsd:decimal.')
             value = float(value)
         super().__init__(value)
 

@@ -4,7 +4,7 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -33,11 +33,11 @@ class Xsd_time(Xsd):
         else:
             if validate:
                 if re.match(self.__pattern, value) is None:
-                    raise OmasErrorValue(f'{value} wrong format for xsd:time.')
+                    raise OldapErrorValue(f'{value} wrong format for xsd:time.')
             try:
                 self.__value = time.fromisoformat(value)
             except ValueError as err:
-                raise OmasErrorValue(str(err))
+                raise OldapErrorValue(str(err))
 
     def __str__(self) -> str:
         """
@@ -72,7 +72,7 @@ class Xsd_time(Xsd):
             return self.__value == other
         if isinstance(other, str):
             if re.match(self.__pattern, other) is None:
-                raise OmasErrorValue(f'{other} wrong format for xsd:time.')
+                raise OldapErrorValue(f'{other} wrong format for xsd:time.')
             other = time.fromisoformat(other)
 
     def __hash__(self) -> int:

@@ -13,7 +13,7 @@ from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
 from oldap.src.xsd.xsd_datetime import Xsd_dateTime
 from oldap.src.xsd.xsd_boolean import Xsd_boolean
-from oldap.src.helpers.omaserror import OmasError, OmasErrorNotFound
+from oldap.src.helpers.oldaperror import OldapError, OldapErrorNotFound
 from oldap.src.helpers.query_processor import QueryProcessor
 
 
@@ -57,7 +57,7 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(con.context_name, 'DEFAULT')
 
     def test_basic_connection_wrong_credentials(self):
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
                              userId="rosenth",
@@ -66,7 +66,7 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
     def test_basic_connection_unknown_user(self):
-        with self.assertRaises(OmasErrorNotFound) as ex:
+        with self.assertRaises(OldapErrorNotFound) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
                              userId="XXX",
@@ -75,7 +75,7 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(str(ex.exception), "Given user not found!")
 
     def test_inactive_user(self):
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
                              userId="bugsbunny",
@@ -84,7 +84,7 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
     def test_basic_connection_injection_userid(self):
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
                              userId="rosenth \". #\n; SELECT * {?s ?p ?o}",
@@ -93,7 +93,7 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(str(ex.exception), 'Invalid string "rosenth ". #\n; SELECT * {?s ?p ?o}" for NCName')
 
     def test_basic_connection_injection_credentials(self):
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
                              userId="rosenth",
@@ -116,7 +116,7 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(con.userid, Xsd_NCName("rosenth"))
         self.assertEqual(con.userIri, Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"))
 
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             con = Connection(server='http://localhost:7200',
                              repo="omas",
                              token=token + "X",

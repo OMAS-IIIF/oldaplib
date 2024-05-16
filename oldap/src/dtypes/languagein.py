@@ -6,7 +6,7 @@ from pystrict import strict
 from oldap.src.dtypes.rdfset import RdfSet
 from oldap.src.enums.language import Language
 from oldap.src.helpers.Notify import Notify
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorType, OmasErrorKey
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType, OldapErrorKey
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd_string import Xsd_string
 
@@ -32,47 +32,47 @@ class LanguageIn(RdfSet[Language], Notify):
                 elif isinstance(value, (set, list, tuple)):
                     for v in value:
                         if not isinstance(v, (Language, str)):
-                            raise OmasErrorType(f'Iterable contains element that is not an instance of "Language", but "{type(v).__name__}".')
+                            raise OldapErrorType(f'Iterable contains element that is not an instance of "Language", but "{type(v).__name__}".')
                     try:
                         nvalue = [x if isinstance(x, Language) else Language[x.upper()] for x in value]
                     except KeyError as err:
-                        raise OmasErrorKey(str(err))
+                        raise OldapErrorKey(str(err))
                 else:
                     if not isinstance(value, (Language, str)):
-                        raise OmasErrorType(f'Value is not an instance of "Language", but "{type(value).__name__}".')
+                        raise OldapErrorType(f'Value is not an instance of "Language", but "{type(value).__name__}".')
                     try:
                         nvalue = value if isinstance(value, Language) else Language[value.upper()]
                     except KeyError as err:
-                        raise OmasErrorKey(str(err))
+                        raise OldapErrorKey(str(err))
         elif len(args) == 1:
             if isinstance(args[0], LanguageIn):
                 nargs = args
             if isinstance(args[0], (set, list, tuple)):
                 for v in args[0]:
                     if not isinstance(v, (Language, str)):
-                        raise OmasErrorType(f'Iterable contains element that is not an instance of "Xsd", but "{type(v).__name__}".')
+                        raise OldapErrorType(f'Iterable contains element that is not an instance of "Xsd", but "{type(v).__name__}".')
                     try:
                         nargs = tuple([x if isinstance(x, Language) else Language[x.upper()] for x in args[0]])
                     except KeyError as err:
-                        raise OmasErrorKey(str(err))
+                        raise OldapErrorKey(str(err))
             else:
                 if not isinstance(args[0], (LanguageIn, Language, str)):
-                    raise OmasErrorType(f'Value is not an instance of "Language", but "{type(args[0]).__name__}".')
+                    raise OldapErrorType(f'Value is not an instance of "Language", but "{type(args[0]).__name__}".')
                 if isinstance(args[0], LanguageIn):
                     nargs = args
                 else:
                     try:
                         nargs = args if isinstance(args[0], Language) else (Language[args[0].upper()],)
                     except KeyError as err:
-                        raise OmasErrorKey(str(err))
+                        raise OldapErrorKey(str(err))
         else:
             for v in args:
                 if not isinstance(v, (Language, str)):
-                    raise OmasErrorType(f'Iterable contains element that is not an instance of "Xsd", but "{type(v).__name__}".')
+                    raise OldapErrorType(f'Iterable contains element that is not an instance of "Xsd", but "{type(v).__name__}".')
                 try:
                     nargs = tuple([x if isinstance(x, Language) else Language[x.upper()] for x in args])
                 except KeyError as err:
-                    raise OmasErrorKey(str(err))
+                    raise OldapErrorKey(str(err))
 
         super().__init__(*nargs, value=nvalue)
 
@@ -94,9 +94,9 @@ class LanguageIn(RdfSet[Language], Notify):
             try:
                 language = Language[str(language).upper()]
             except ValueError as err:
-                raise OmasErrorValue(str(err))
+                raise OldapErrorValue(str(err))
             except KeyError as err:
-                raise OmasErrorKey(str(err))
+                raise OldapErrorKey(str(err))
         super().add(language)
 
     def discard(self, language: Language | Xsd_string | str):
@@ -104,6 +104,6 @@ class LanguageIn(RdfSet[Language], Notify):
             try:
                 language = Language[str(language).upper()]
             except ValueError as err:
-                raise OmasErrorValue(str(err))
+                raise OldapErrorValue(str(err))
         super().discard(language)
 

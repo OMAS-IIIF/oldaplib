@@ -8,7 +8,7 @@ from oldap.src.dtypes.rdfset import RdfSet
 from oldap.src.dtypes.xsdset import XsdSet
 from oldap.src.enums.language import Language
 from oldap.src.helpers.context import Context
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorType
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
@@ -95,14 +95,14 @@ class MyTestCase(unittest.TestCase):
         if isinstance(valx, Xsd_anyURI):
             self.assertEqual(ns1, NamespaceIRI(valx))
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             nons = NamespaceIRI('http://www.org/test')
         self.assertEqual(str(ex.exception), "NamespaceIRI must end with '/' or '#'!")
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             nons = NamespaceIRI('http://www.org/test\"; SELECT * FROM {?s ?p ?o}')
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             nons = NamespaceIRI('http://www.org/test<super>\"; SELECT * FROM {?s ?p ?o}')
 
     def test_xsd_set(self):
@@ -149,19 +149,19 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(Xsd_string("das?") in val)
 
 
-        with self.assertRaises(OmasErrorType) as ex:
+        with self.assertRaises(OldapErrorType) as ex:
             val = XsdSet(3.5)
 
-        with self.assertRaises(OmasErrorType) as ex:
+        with self.assertRaises(OldapErrorType) as ex:
             val = XsdSet(value=3.5)
 
-        with self.assertRaises(OmasErrorType) as ex:
+        with self.assertRaises(OldapErrorType) as ex:
             val = XsdSet({3.5, 25})
 
-        with self.assertRaises(OmasErrorType) as ex:
+        with self.assertRaises(OldapErrorType) as ex:
             val = XsdSet(value={3.5, 25})
 
-        with self.assertRaises(OmasErrorType) as ex:
+        with self.assertRaises(OldapErrorType) as ex:
             val = XsdSet(5, 3.7)
 
     def test_bnode(self):
@@ -202,7 +202,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(val.value, "This is a test")
         self.assertEqual(val.lang, Language.EN)
 
-        with self.assertRaises(OmasErrorValue) as err:
+        with self.assertRaises(OldapErrorValue) as err:
             val = Xsd_string("This is a test", "gaga")
 
 

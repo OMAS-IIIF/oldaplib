@@ -2,7 +2,7 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 from oldap.src.xsd.xsd_integer import Xsd_integer
@@ -26,4 +26,4 @@ class Xsd_int(Xsd_integer):
         """
         super().__init__(value, validate=validate)
         if self._value < -2147483648 or self._value > 2147483647:
-            raise OmasErrorValue(f"Value must be between -2147483648 and 2147483647")
+            raise OldapErrorValue(f"Value must be between -2147483648 and 2147483647")

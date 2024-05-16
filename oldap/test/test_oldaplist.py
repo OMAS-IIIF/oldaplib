@@ -7,7 +7,7 @@ from oldap.src.dtypes.namespaceiri import NamespaceIRI
 from oldap.src.enums.language import Language
 from oldap.src.helpers.context import Context
 from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.omaserror import OmasErrorNotFound, OmasErrorImmutable
+from oldap.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmutable
 from oldap.src.iconnection import IConnection
 from oldap.src.oldaplist import OldapList, OldapListAttr
 from oldap.src.project import Project
@@ -109,7 +109,7 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual(oldaplist.prefLabel, LangString("TestUpdateListA@en", "TestesDeModifications@fr"))
         self.assertEqual(oldaplist.definition, LangString("Test-A@en", "test-B@fr", "test-C@de"))
 
-        with self.assertRaises(OmasErrorImmutable):
+        with self.assertRaises(OldapErrorImmutable):
             oldaplist.oldapListIri = Iri("https://gaga.gaga/gaga")
 
     def test_update_B(self):
@@ -159,7 +159,7 @@ class TestOldapList(unittest.TestCase):
                                    project=self._project,
                                    oldapListIri=iri)
         oldaplist.delete()
-        with self.assertRaises(OmasErrorNotFound) as ex:
+        with self.assertRaises(OldapErrorNotFound) as ex:
             oldaplist = OldapList.read(con=self._connection,
                                        project=self._project,
                                        oldapListIri=iri)

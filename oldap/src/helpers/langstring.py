@@ -17,7 +17,7 @@ from oldap.src.xsd.xsd_datetime import Xsd_dateTime
 from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
 from oldap.src.enums.language import Language
-from oldap.src.helpers.omaserror import OmasError, OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapError, OldapErrorValue
 from oldap.src.enums.propertyclassattr import PropClassAttr
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd_string import Xsd_string
@@ -130,7 +130,7 @@ class LangString(Notify):
                         l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                         self._langstring[l] = xstr.value
                 else:
-                    raise OmasErrorValue(f'LangString parameter has wrong datatype: {type(langstring).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
+                    raise OldapErrorValue(f'LangString parameter has wrong datatype: {type(langstring).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
         else:
             for langstring in args:
                 if isinstance(langstring, Xsd_string):
@@ -144,7 +144,7 @@ class LangString(Notify):
                     l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                     self._langstring[l] = xstr.value
                 else:
-                    raise OmasErrorValue(
+                    raise OldapErrorValue(
                         f'LangString parameter has wrong datatype: {type(langstring).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
 
     def __len__(self):
@@ -167,7 +167,7 @@ class LangString(Notify):
             try:
                 lang = Language[lang.upper()]
             except KeyError:
-                raise OmasError(f'Language "{lang}" is invalid')
+                raise OldapError(f'Language "{lang}" is invalid')
         s = self._langstring.get(lang)
         if s:
             return s
@@ -199,9 +199,9 @@ class LangString(Notify):
                 self._langstring[lobj] = value
                 self.notify()
             except (KeyError, ValueError) as err:
-                raise OmasError(f'Language "{lang}" is invalid: {err}.')
+                raise OldapError(f'Language "{lang}" is invalid: {err}.')
         else:
-            raise OmasError(f'Language "{lang}" is invalid.')
+            raise OldapError(f'Language "{lang}" is invalid.')
 
     def __delitem__(self, lang: Language | str) -> None:
         """
@@ -218,7 +218,7 @@ class LangString(Notify):
                 del self._langstring[lang]
                 self.notify()
             except KeyError as err:
-                raise OmasError(f'No language string of language: "{lang}"!')
+                raise OldapError(f'No language string of language: "{lang}"!')
         elif isinstance(lang, str):
             try:
                 lobj = Language[lang.upper()]
@@ -227,9 +227,9 @@ class LangString(Notify):
                 del self._langstring[lobj]
                 self.notify()
             except (KeyError, ValueError) as err:
-                raise OmasError(f'No language string of language: "{lang}"!')
+                raise OldapError(f'No language string of language: "{lang}"!')
         else:
-            raise OmasError(f'Unsupported language value {lang}!')
+            raise OldapError(f'Unsupported language value {lang}!')
 
     def __str__(self) -> str:
         """
@@ -383,7 +383,7 @@ class LangString(Notify):
                         self._changeset[l] = LangStringChange(oldval,
                                                               Action.REPLACE if oldval is not None else Action.CREATE)
             else:
-                raise OmasErrorValue(
+                raise OldapErrorValue(
                     f'LangString parameter has wrong datatype: {type(args[0]).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
         else:
             for langstring in args:
@@ -403,7 +403,7 @@ class LangString(Notify):
                         self._changeset[l] = LangStringChange(oldval,
                                                               Action.REPLACE if oldval is not None else Action.CREATE)
                 else:
-                    raise OmasErrorValue(
+                    raise OldapErrorValue(
                         f'LangString parameter has wrong datatype: {type(langstring).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
 
     def undo(self) -> None:

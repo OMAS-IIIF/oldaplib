@@ -2,7 +2,7 @@ from typing import Self, Dict
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
 
@@ -24,7 +24,7 @@ class NamespaceIRI(Xsd_anyURI):
         """
         super().__init__(value, validate)
         if not self._append_allowed:
-            raise OmasErrorValue("NamespaceIRI must end with '/' or '#'!")
+            raise OldapErrorValue("NamespaceIRI must end with '/' or '#'!")
 
     def __repr__(self) -> str:
         return f'NamespaceIRI("{self.value}")'

@@ -4,7 +4,7 @@ from oldap.src.helpers.context import Context
 from oldap.src.dtypes.namespaceiri import NamespaceIRI
 from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.helpers.omaserror import OmasError
+from oldap.src.helpers.oldaperror import OldapError
 
 
 class TestContext(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestContext(unittest.TestCase):
         self.assertTrue(context1 is context2)
         self.assertFalse(context1 is context3)
         self.assertEqual(context1['rdf'], NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'))
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             gaga = context1['gaga']
         self.assertEqual(str(ex.exception), 'Unknown prefix "gaga"')
 
@@ -26,17 +26,17 @@ class TestContext(unittest.TestCase):
         self.assertEqual(context['test'], NamespaceIRI("http://rdf.test.org/test/"))
         context['test2'] = "http://rdf.test.org/test2#"
         self.assertEqual(context['test2'], NamespaceIRI("http://rdf.test.org/test2#"))
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             context['test3'] = "http://rdf.test.org/test"
         self.assertEqual(str(ex.exception), "NamespaceIRI must end with '/' or '#'!")
 
     def test_context_del(self):
         context = Context(name="del")
         del context['rdfs']
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             gaga = context['rdfs']
         self.assertEqual(str(ex.exception), 'Unknown prefix "rdfs"')
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             del context['gugus']
         self.assertEqual(str(ex.exception), 'Unknown prefix "gugus"')
 
@@ -53,17 +53,17 @@ class TestContext(unittest.TestCase):
         self.assertEqual(qn, 'skos:node')
         qn = context.iri2qname(Xsd_anyURI('http://www.gaga.org#label'))
         self.assertIsNone(qn)
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             qn = context.iri2qname('waseliwas/soll')
         self.assertEqual(str(ex.exception), 'Invalid string "waseliwas/soll" for anyURI')
 
     def test_context_qname2iri(self):
         context = Context(name='qname2iri')
         self.assertEqual(context.qname2iri(Xsd_QName('skos:gaga')), 'http://www.w3.org/2004/02/skos/core#gaga')
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             qn = context.iri2qname('gaga')
         self.assertEqual(str(ex.exception), 'Invalid string "gaga" for anyURI')
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             qn = context.iri2qname('abc:def')
         self.assertEqual(str(ex.exception), 'Invalid string "abc:def" for anyURI')
         t = Xsd_QName('xml:integer')

@@ -2,7 +2,7 @@ from typing import Optional, Self
 from pystrict import strict
 
 from oldap.src.enums.language import Language
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorIndex, OmasError
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorIndex, OldapError
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -108,7 +108,7 @@ class Xsd_string(Xsd):
                 try:
                     self.__lang = Language[lang.upper()] if lang else None
                 except (ValueError, KeyError) as err:
-                    raise OmasErrorValue(str(err))
+                    raise OldapErrorValue(str(err))
 
     @classmethod
     def fromRdf(cls, value: str, lang: Optional[str] = None) -> Self:
@@ -206,7 +206,7 @@ class Xsd_string(Xsd):
         try:
             c = self.__value[key]
         except (IndexError, TypeError) as err:
-            raise OmasErrorIndex(f'Cannot get character from Xsd_string at possition {key}: {err}')
+            raise OldapErrorIndex(f'Cannot get character from Xsd_string at possition {key}: {err}')
         return c
 
     def __hash__(self) -> int:
@@ -228,7 +228,7 @@ class Xsd_string(Xsd):
         :rtype: str
         """
         if self.__value is None:
-            raise OmasErrorValue(f'Cannot convert empty Xsd_string to RDF string.')
+            raise OldapErrorValue(f'Cannot convert empty Xsd_string to RDF string.')
         if self.__lang:
             return f'"{Xsd_string.escaping(self.__value)}"@{self.__lang.name.lower()}'
         else:

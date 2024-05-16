@@ -6,7 +6,7 @@ from typing import Self, Any
 from pystrict import strict
 
 from oldap.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -42,10 +42,10 @@ class Xsd_NCName(Xsd):
             self.__value = str(value)
         else:
             if not bool(re.match(r'^[A-Za-z_][A-Za-z0-9_.-]*$', value)):
-                raise OmasErrorValue(f'Invalid string "{value}" for NCName')
+                raise OldapErrorValue(f'Invalid string "{value}" for NCName')
             if validate:
                 if not XsdValidator.validate(XsdDatatypes.NCName, value):
-                    raise OmasErrorValue(f'Invalid string "{value}" for NCName')
+                    raise OldapErrorValue(f'Invalid string "{value}" for NCName')
             self.__value = value
 
     def __repr__(self) -> str:
@@ -78,7 +78,7 @@ class Xsd_NCName(Xsd):
         elif isinstance(other, str):
             return self.__value == other
         else:
-            raise OmasErrorValue(f'Cannot compare to {type(other)}')
+            raise OldapErrorValue(f'Cannot compare to {type(other)}')
 
     def __ne__(self, other: Self | str) -> bool:
         """
@@ -92,7 +92,7 @@ class Xsd_NCName(Xsd):
         elif isinstance(other, str):
             return self.__value != other
         else:
-            raise OmasErrorValue(f'Cannot compare to {type(other)}')
+            raise OldapErrorValue(f'Cannot compare to {type(other)}')
 
     def __add__(self, other: Self | str) -> Self:
         """

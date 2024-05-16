@@ -10,7 +10,7 @@ from oldap.src.connection import Connection
 from oldap.src.dtypes.namespaceiri import NamespaceIRI
 from oldap.src.enums.language import Language
 from oldap.src.helpers.context import Context
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasError, OmasErrorType, OmasErrorIndex
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapError, OldapErrorType, OldapErrorIndex
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.floatingpoint import FloatingPoint
@@ -138,7 +138,7 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(val == valc)
         self.assertTrue(val == FloatingPoint(val))
         self.assertFalse(val == None)
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             self.assertTrue(val == complex(0.0, 1.0))
 
         valc = FloatingPoint(4.0)
@@ -147,21 +147,21 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(val != valc)
         self.assertTrue(val != FloatingPoint(valc))
         self.assertTrue(val != None)
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             self.assertTrue(val != complex(0.0, 1.0))
 
         self.assertTrue(val < 4.0)
         self.assertTrue(val < "4.0")
         self.assertTrue(val < valc)
         self.assertTrue(val < FloatingPoint(valc))
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             self.assertTrue(val < complex(0.0, 1.0))
 
         self.assertTrue(val <= 4.0)
         self.assertTrue(val <= "4.0")
         self.assertTrue(val <= valc)
         self.assertTrue(val <= FloatingPoint(valc))
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             self.assertTrue(val <= complex(0.0, 1.0))
 
         valc = FloatingPoint(3.0)
@@ -169,14 +169,14 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(val > "3.0")
         self.assertTrue(val > valc)
         self.assertTrue(val > FloatingPoint(valc))
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             self.assertTrue(val > complex(0.0, 1.0))
 
         self.assertTrue(val >= 3.0)
         self.assertTrue(val >= "3.0")
         self.assertTrue(val >= valc)
         self.assertTrue(val >= FloatingPoint(valc))
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             self.assertTrue(val >= complex(0.0, 1.0))
 
         val = FloatingPoint('NaN')
@@ -213,10 +213,10 @@ class TestXsdDatatypes(unittest.TestCase):
         val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
         self.assertTrue(math.isinf(val2) and val2 < 0.0)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = FloatingPoint("-1. 0")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = FloatingPoint("abcd")
 
 
@@ -247,7 +247,7 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple("Iri2")
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Iri(25)
 
         val = Iri()
@@ -280,7 +280,7 @@ class TestXsdDatatypes(unittest.TestCase):
         val1 = Xsd_anyURI('http://www.ch/tescht#')
         val2 = Xsd_anyURI('http://www.ch/tescht#')
         self.assertEqual(hash(val1), hash(val2))
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             val = Xsd_anyURI('waseliwas')
         self.assertEqual(str(ex.exception), 'Invalid string "waseliwas" for anyURI')
 
@@ -301,7 +301,7 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple("Xsd_base64Binary")
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             val = Xsd_base64Binary(b'Waseliwas soll den das sein?')
 
     def test_xsd_boolean(self):
@@ -376,7 +376,7 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_boolean(0)
         self.assertFalse(val)
 
-        with self.assertRaises(OmasError):
+        with self.assertRaises(OldapError):
             val = Xsd_boolean("True\";SELECT * { ?s ?p ?o}")
 
     def test_xsd_byte(self):
@@ -433,7 +433,7 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(val1 == val2)
         self.assertTrue(val1 == "2000-12-21")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val1 = Xsd_date(42)
 
         val1 = Xsd_date()
@@ -473,16 +473,16 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(str(val), '2001-10-26T21:32:52.12679')
         self.assertTrue(repr(val), '"2001-10-26T21:32:52.12679"^^xsd:dateTime')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_dateTime('2001-10-26')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_dateTime('2001-10-26T21:32')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_dateTime('2001-10-26T25:32:52+02:00')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_dateTime('01-10-26T21:32')
 
     def test_xsd_dateTimeStamp(self):
@@ -519,22 +519,22 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_dateTimeStamp(dts)
         self.assertEqual(val, dts)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_dateTimeStamp('2001-10-26T21:32:52.12679')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_dateTime('2001-10-26')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_dateTime('2001-10-26T21:32')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_dateTime('2001-10-26T25:32:52+02:00')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_dateTime('01-10-26T21:32')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             b = Xsd_dateTimeStamp('2001-10-26T19:32:52+00:00') == '2001-10-26T25:32:52+02:00'
 
     def test_xsd_decimal(self):
@@ -604,10 +604,10 @@ class TestXsdDatatypes(unittest.TestCase):
 
         self.assertTrue(val == 'PT2M10S')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             b = val == 'P1M2Y'
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_duration('P1M2Y')
 
     def test_xsd_float(self):
@@ -653,13 +653,13 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_gDay"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gDay("--01+01:00")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gDay("--01-")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gDay("---01+01:0")
 
     def test_xsd_gMonth(self):
@@ -689,16 +689,16 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_gMonth"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gMonth("---01+01:00")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gMonth("--01-")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gMonth("--01+01:0")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gMonth("--13Z")
 
     def test_xsd_gMonthDay(self):
@@ -729,13 +729,13 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_gMonthDay"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gMonthDay("--02-32Z")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gMonthDay("--13-20")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gMonthDay("-13-20")
 
         val = Xsd_gMonthDay("--02-21Z")
@@ -776,7 +776,7 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_gYear(2022)
         self.assertEqual(str(val), "2022Z")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gYear("20-2-22222")
 
     def test_xsd_gYearMonth(self):
@@ -811,16 +811,16 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_gYearMonth"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gYearMonth("2023-13Z")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gYearMonth("2023-00Z")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gYearMonth("2000Z")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_gYearMonth("2000-04\"\n SELECT * {?s ?p ?o } #")
 
     def test_xsd_hexBinary(self):
@@ -841,7 +841,7 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_hexBinary"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_hexBinary("1fab17fg")
 
     def test_xsd_ID(self):
@@ -862,7 +862,7 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_ID"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_ID("1fab17fg")
 
     def test_xsd_IDREF(self):
@@ -883,7 +883,7 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_IDREF"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_IDREF("1fab17fg")
 
     def test_xsd_int(self):
@@ -920,13 +920,13 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_int(25) <= Xsd_int(25))
         self.assertTrue(Xsd_int(24) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_int(2_147_483_648)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_int(-2_147_483_649)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_int("abcd")
 
     def test_xsd_integer(self):
@@ -963,7 +963,7 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_integer(25) <= Xsd_integer(25))
         self.assertTrue(Xsd_integer(24) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_integer("was ist 42")
 
     def test_xsd_language(self):
@@ -991,7 +991,7 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_language(Language.IT)
         self.assertEqual(str(val), "it")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_language("xxx")
 
     def test_xsd_long(self):
@@ -1028,13 +1028,13 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_long(25) <= Xsd_long(25))
         self.assertTrue(Xsd_long(24) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_long(9223372036854775808)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_long(-9223372036854775809)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_long("abcd")
 
     def test_xsd_name(self):
@@ -1052,10 +1052,10 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_Name"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_Name("kühn,dreist")
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_Name("01234:56789")
 
     def test_ncname(self):
@@ -1070,16 +1070,16 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(ncn1a == ncn1b)
         self.assertEqual(hash(ncn1a), hash(ncn1b))
         self.assertFalse(ncn1a != ncn1b)
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             ncn2 = Xsd_NCName('0AnId')
         self.assertEqual(str(ex.exception), 'Invalid string "0AnId" for NCName')
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             ncn3 = Xsd_NCName('An$Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An$Id" for NCName')
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             ncn4 = Xsd_NCName('An:Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An:Id" for NCName')
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             ncn5 = Xsd_NCName('An@Id')
         self.assertEqual(str(ex.exception), 'Invalid string "An@Id" for NCName')
         nnn: Xsd_NCName | None = None
@@ -1119,10 +1119,10 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_negativeInteger(-25) <= Xsd_negativeInteger(-25))
         self.assertTrue(Xsd_negativeInteger(-25) <= -25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_negativeInteger(5)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_negativeInteger("abcd<-")
 
     def test_xsd_NMTOKEN(self):
@@ -1140,7 +1140,7 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_NMTOKEN"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_NMTOKEN("$EinTest;")
 
     def test_xsd_nonNegativeInteger(self):
@@ -1177,10 +1177,10 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_nonNegativeInteger(25) <= Xsd_nonNegativeInteger(25))
         self.assertTrue(Xsd_nonNegativeInteger(25) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_nonNegativeInteger(-5)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_nonNegativeInteger("abcd")
 
     def test_xsd_nonPositiveInteger(self):
@@ -1220,10 +1220,10 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_nonPositiveInteger(-25) <= Xsd_nonPositiveInteger(-25))
         self.assertTrue(Xsd_nonPositiveInteger(-25) <= -25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_nonPositiveInteger(1)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_nonPositiveInteger('minusfortytwo')
 
     def test_xsd_normalizedString(self):
@@ -1283,10 +1283,10 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_positiveInteger(25) <= Xsd_positiveInteger(25))
         self.assertTrue(Xsd_positiveInteger(25) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_positiveInteger(0)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_positiveInteger("abcd")
 
     def test_qname(self):
@@ -1304,12 +1304,12 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(qn != qn2)
         qn += 'Shape'
         self.assertEqual(str(qn), 'prefix:nameShape')
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             qn4 = Xsd_QName('2gaga')
         self.assertEqual(str(ex.exception), 'Invalid string "2gaga" for QName')
         qn5 = Xsd_QName('xml:double')
         self.assertEqual(str(qn5), 'xml:double')
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             qn6 = Xsd_QName('xml:2gaga')
         self.assertEqual(str(ex.exception), 'Invalid string "xml:2gaga" for QName. Error: Invalid string "2gaga" for NCName')
         nnn: Xsd_QName | None = None
@@ -1349,13 +1349,13 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_positiveInteger(25) <= Xsd_positiveInteger(25))
         self.assertTrue(Xsd_positiveInteger(25) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_short(32768)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_short(-32769)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_short("abcd")
 
     def test_xsd_string(self):
@@ -1368,9 +1368,9 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(val == None)
         self.assertFalse(val != None)
         self.assertEqual(hash(val), hash(None))
-        with self.assertRaises(OmasErrorIndex):
+        with self.assertRaises(OldapErrorIndex):
             c = val[0]
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             s = val.toRdf
 
         jsonstr = json.dumps(val, default=serializer.encoder_default)
@@ -1437,7 +1437,7 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertEqual(repr(val), 'Xsd_string("sosdeli@xx")')
         self.assertEqual(val.toRdf, '"sosdeli@xx"^^xsd:string')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_string("gaga", "xx")
 
 
@@ -1481,19 +1481,19 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_time(t)
         self.assertEqual(val.value, t)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_time('21:32')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_time('25:25:10')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_time('-10:00:00')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_time('1:20:10')
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             s = Xsd_time('19:32:52+00:00') == '1:20:10'
 
     def test_xsd_token(self):
@@ -1514,7 +1514,7 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_token"))
         self.assertEqual(val, valx)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_token("Dies ist ein string mit $onderzeichen\"\nund anderen Dingen")
 
     def test_xsd_unsignedByte(self):
@@ -1551,13 +1551,13 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_unsignedByte(25) <= Xsd_unsignedByte(25))
         self.assertTrue(Xsd_unsignedByte(25) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedByte(-1)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedByte(256)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedByte("abcd")
 
     def test_xsd_unsignedInt(self):
@@ -1594,13 +1594,13 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_unsignedInt(25) <= Xsd_unsignedInt(25))
         self.assertTrue(Xsd_unsignedInt(25) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedInt(-1)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedInt(4294967296)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedInt("abcd")
 
     def test_xsd_unsignedLong(self):
@@ -1637,13 +1637,13 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_unsignedInt(25) <= Xsd_unsignedInt(25))
         self.assertTrue(Xsd_unsignedInt(25) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedLong(-1)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedLong(18446744073709551616)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedLong("abcd")
 
     def test_xsd_unsignedShort(self):
@@ -1680,13 +1680,13 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertTrue(Xsd_unsignedShort(25) <= Xsd_unsignedShort(25))
         self.assertTrue(Xsd_unsignedShort(25) <= 25)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedShort(-1)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedShort(65536)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedShort("abcd")
 
 

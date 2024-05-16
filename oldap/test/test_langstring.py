@@ -9,7 +9,7 @@ from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
 from oldap.src.helpers.langstring import LangString, LangStringChange
 from oldap.src.enums.language import Language
-from oldap.src.helpers.omaserror import OmasError, OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapError, OldapErrorValue
 
 
 class TestLangstring(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls4['de'], 'deutsch')
         self.assertEqual(ls4[Language.DE], 'deutsch')
         self.assertEqual(ls4['en'], 'english')
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             impossible = ls4['rr']
         self.assertEqual(str(ex.exception), 'Language "rr" is invalid')
 
@@ -45,7 +45,7 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls5[Language.DE], 'deutsch')
         self.assertEqual(ls5['en'], 'english')
         self.assertEqual(ls5['yi'], 'english')
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             impossible = ls5['rr']
         self.assertEqual(str(ex.exception), 'Language "rr" is invalid')
 
@@ -60,7 +60,7 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls6[Language.DE], 'deutsch')
         self.assertEqual(ls6['en'], 'english')
         self.assertEqual(ls6['yi'], 'english')
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             impossible = ls6['rr']
         self.assertEqual(str(ex.exception), 'Language "rr" is invalid')
 
@@ -72,7 +72,7 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls8['en'], 'lukas.rosenthaler@unibas.ch')
         self.assertEqual(ls8['de'], 'lukas.rosenthaler@gmail.com')
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             ls9 = LangString(255)
 
         ls10 = LangString("lukas.rosenthaler@gmail.com")
@@ -104,7 +104,7 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls2[Language.FR], 'français')
 
         ls3 = LangString("english@en", "deutsch@de")
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             ls3['rr'] = 'no way'
 
     def test_langstring_undo(self):
@@ -132,12 +132,12 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls1['de'], 'english')
 
         ls2 = LangString(["english@en", "deutsch@de", "unbekannt"])
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             del ls2['it']
         self.assertEqual(str(ex.exception), 'No language string of language: "it"!')
 
         ls3 = LangString(["english@en", "deutsch@de", "unbekannt"])
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             del ls3['rr']
         self.assertEqual(str(ex.exception), 'No language string of language: "rr"!')
 

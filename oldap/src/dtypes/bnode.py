@@ -3,7 +3,7 @@ from typing import Any
 from pystrict import strict
 from rdflib import BNode
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd_qname import Xsd_QName
 
@@ -33,7 +33,7 @@ class BNode(Xsd_QName):
         """
         super().__init__(value, validate=validate)
         if self.prefix != '_':
-            raise OmasErrorValue('BNode prefix is not "_"')
+            raise OldapErrorValue('BNode prefix is not "_"')
 
     def __repr__(self) -> str:
         """

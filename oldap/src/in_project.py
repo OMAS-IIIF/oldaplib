@@ -13,7 +13,7 @@ from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.helpers.observable_set import ObservableSet
 from oldap.src.enums.permissions import AdminPermission
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorKey
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorKey
 from oldap.src.helpers.serializer import serializer
 import json
 
@@ -71,11 +71,11 @@ class InProjectClass:
                     else:
                         perms.add(AdminPermission('omas:' + permission))
                 except ValueError as err:
-                    raise OmasErrorValue(str(err))
+                    raise OldapErrorValue(str(err))
             elif permission in AdminPermission:
                 perms.add(permission)
             else:
-                raise OmasErrorValue(f'{permission} is not a valid AdminPermission')
+                raise OldapErrorValue(f'{permission} is not a valid AdminPermission')
         return perms
 
     def __bool__(self) -> bool:
@@ -94,7 +94,7 @@ class InProjectClass:
         try:
             return self.__data[key]
         except (KeyError, AttributeError) as err:
-            raise OmasErrorKey(str(err), key)
+            raise OldapErrorKey(str(err), key)
 
     def __setitem__(self, key: Iri | str, value: set[AdminPermission | str] | ObservableSet[AdminPermission]) -> None:
         if not isinstance(key, Iri):
@@ -115,7 +115,7 @@ class InProjectClass:
                 self.__on_change(key, self.__data[key].copy())  ## Action.DELETE
             del self.__data[key]
         else:
-            raise OmasErrorKey(f'Can\'t delete key "{key}" – does not exist')
+            raise OldapErrorKey(f'Can\'t delete key "{key}" – does not exist')
 
     def __iter__(self) -> Iterator[Iri]:
         return iter(self.__data)
@@ -141,14 +141,14 @@ class InProjectClass:
         if other is None:
             return False
         if not isinstance(other, InProjectClass):
-            raise OmasErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
+            raise OldapErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
         return self.__data == other.__data
 
     def __ne__(self, other: Self | None) -> bool:
         if other is None:
             return True
         if not isinstance(other, InProjectClass):
-            raise OmasErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
+            raise OldapErrorValue(f'"Other must be an instance of InProjectClass, not {type(other)}"')
         return self.__data != other.__data
 
     def get(self, key: Iri) -> ObservableSet[AdminPermission] | None:

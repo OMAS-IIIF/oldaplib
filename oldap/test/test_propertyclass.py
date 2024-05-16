@@ -13,7 +13,7 @@ from oldap.src.enums.propertyclassattr import PropClassAttr
 from oldap.src.enums.xsd_datatypes import XsdDatatypes
 from oldap.src.helpers.context import Context
 from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.omaserror import OmasErrorAlreadyExists, OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.project import Project
 from oldap.src.propertyclass import PropertyClass, OwlPropertyType, \
@@ -108,7 +108,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p4.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.DE, Language.FR))
         self.assertEqual(p4.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             p5 = PropertyClass(con=self._connection,
                                project=self._project,
                                property_class_iri=Iri('test:testprop5'),
@@ -214,7 +214,7 @@ class TestPropertyClass(unittest.TestCase):
             property_class_iri=Iri('test:testWrite'),
             datatype=XsdDatatypes.int
         )
-        with self.assertRaises(OmasErrorAlreadyExists) as ex:
+        with self.assertRaises(OldapErrorAlreadyExists) as ex:
             pX.create()
         self.assertEqual(str(ex.exception), 'Property "test:testWrite" already exists.')
 

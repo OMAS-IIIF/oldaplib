@@ -4,7 +4,7 @@ from typing import Self, Type
 from pystrict import strict
 
 from oldap.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -30,14 +30,14 @@ class Xsd_base64Binary(Xsd):
         elif isinstance(value, bytes):
             self.__value = value
         else:
-            OmasErrorValue("Xsd_base64Binary requires bytes parameter")
+            OldapErrorValue("Xsd_base64Binary requires bytes parameter")
         if validate:
             if len(value) % 4 != 0:
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
+                raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
             if not bool(re.match(r'^[A-Za-z0-9+/]+={0,2}$', value.decode('utf-8'))):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
+                raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
             if not XsdValidator.validate(XsdDatatypes.base64Binary, value.decode('utf-8')):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
+                raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
 
     def __str__(self):
         """

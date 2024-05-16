@@ -1,6 +1,6 @@
 import unittest
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.semantic_version import SemanticVersion
 
 
@@ -21,7 +21,7 @@ class TestSemanticVersion(unittest.TestCase):
         self.assertEqual(sv.minor, 2)
         self.assertEqual(sv.patch, 3)
 
-        with self.assertRaises(OmasErrorValue):
+        with self.assertRaises(OldapErrorValue):
             sv = SemanticVersion.fromString("1.2.A")
 
     def test_string_conversion(self):

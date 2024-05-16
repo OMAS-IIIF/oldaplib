@@ -15,7 +15,7 @@ from pathlib import Path
 from oldap.src.enums.permissions import AdminPermission
 from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.omaserror import OmasError, OmasErrorNoPermission
+from oldap.src.helpers.oldaperror import OldapError, OldapErrorNoPermission
 from oldap.src.helpers.context import Context, DEFAULT_CONTEXT
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.helpers.serializer import serializer
@@ -138,14 +138,14 @@ class Connection(IConnection):
             try:
                 payload = jwt.decode(jwt=token, key=Connection.jwtkey, algorithms="HS256")
             except InvalidTokenError:
-                raise OmasError("Wrong credentials")
+                raise OldapError("Wrong credentials")
             self._userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
             self._token = token
             return
         if not isinstance(userId, Xsd_NCName):
             userId = Xsd_NCName(userId)
         if userId is None or credentials is None:
-            raise OmasError("Wrong credentials")
+            raise OldapError("Wrong credentials")
         sparql = UserDataclass.sparql_query(context=context, userId=userId)
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -158,16 +158,16 @@ class Connection(IConnection):
         if res.status_code == 200:
             jsonobj = res.json()
         else:
-            raise OmasError(res.status_code, res.text)
+            raise OldapError(res.status_code, res.text)
         res = QueryProcessor(context=context, query_result=jsonobj)
 
         self._userdata = UserDataclass()
         self._userdata._create_from_queryresult(queryresult=res)
         if not self._userdata.isActive:
-            raise OmasError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
+            raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
         hashed = str(self._userdata.credentials).encode('utf-8')
         if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
-            raise OmasError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
+            raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
 
         expiration = datetime.now() + timedelta(days=1)
         payload = {
@@ -199,14 +199,14 @@ class Connection(IConnection):
         :return: None
         """
         if not self._userdata:
-            raise OmasErrorNoPermission("No permission")
+            raise OldapErrorNoPermission("No permission")
         actor = self._userdata
         sysperms = actor.inProject.get(Xsd_QName('omas:SystemProject'))
         is_root: bool = False
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             is_root = True
         if not is_root:
-            raise OmasErrorNoPermission("No permission")
+            raise OldapErrorNoPermission("No permission")
 
         context = Context(name=self._context_name)
         headers = {
@@ -218,7 +218,7 @@ class Connection(IConnection):
                             headers=headers,
                             data=data)
         if not req.ok:
-            raise OmasError(req.text)
+            raise OldapError(req.text)
 
     def clear_repo(self) -> None:
         """
@@ -243,7 +243,7 @@ class Connection(IConnection):
                             headers=headers,
                             data=data)
         if not req.ok:
-            raise OmasError(req.text)
+            raise OldapError(req.text)
 
     def upload_turtle(self, filename: str, graphname: Optional[str] = None) -> None:
         """
@@ -308,7 +308,7 @@ class Connection(IConnection):
                                 headers=headers,
                                 data=jsondata)
         if not req.ok:
-            raise OmasError(req.text)
+            raise OldapError(req.text)
 
     def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
         """
@@ -319,7 +319,7 @@ class Connection(IConnection):
         :return: Query results or an error message (as text)
         """
         if not self._userdata:
-            raise OmasError("No login")
+            raise OldapError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": format.value,
@@ -342,78 +342,78 @@ class Connection(IConnection):
         :return:
         """
         if not self._userdata:
-            raise OmasError("No login")
+            raise OldapError("No login")
         headers = {
             "Accept": "*/*"
         }
         url = f"{self._server}/repositories/{self._repo}/statements"
         res = requests.post(url, data={"update": query}, headers=headers)
         if not res.ok:
-            raise OmasError(f'Update query failed. Reason: "{res.text}"')
+            raise OldapError(f'Update query failed. Reason: "{res.text}"')
 
     def transaction_start(self) -> None:
         if not self._userdata:
-            raise OmasError("No login")
+            raise OldapError("No login")
         headers = {
             "Accept": "*/*"
         }
         url = f"{self._server}/repositories/{self._repo}/transactions"
         res = requests.post(url, headers=headers)
         if res.headers.get('location') is None:
-            raise OmasError('GraphDB start of transaction failed')
+            raise OldapError('GraphDB start of transaction failed')
         self._transaction_url = res.headers['location']
 
     def transaction_query(self, query: str, result_format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
         if not self._userdata:
-            raise OmasError("No login")
+            raise OldapError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": result_format.value
         }
         if self._transaction_url is None:
-            raise OmasError("No GraphDB transaction started")
+            raise OldapError("No GraphDB transaction started")
         res = requests.post(self._transaction_url, data={'action': 'QUERY', 'query': query}, headers=headers)
         if not res.ok:
-            raise OmasError(f'GraphDB Transaction query failed. Reason: "{res.text}"')
+            raise OldapError(f'GraphDB Transaction query failed. Reason: "{res.text}"')
         return Connection._switcher[result_format](res)
 
     def transaction_update(self, query: str) -> None:
         if not self._userdata:
-            raise OmasError("No login")
+            raise OldapError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": "*/*"
         }
         if self._transaction_url is None:
-            raise OmasError("No GraphDB transaction started")
+            raise OldapError("No GraphDB transaction started")
         res = requests.post(self._transaction_url, data={'action': 'UPDATE', 'update': query}, headers=headers)
         if not res.ok:
-            raise OmasError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
+            raise OldapError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
 
     def transaction_commit(self) -> None:
         if not self._userdata:
-            raise OmasError("No login")
+            raise OldapError("No login")
         headers = {
             "Accept": "*/*"
         }
         if self._transaction_url is None:
-            raise OmasError("No GraphDB transaction started")
+            raise OldapError("No GraphDB transaction started")
         res = requests.put(f'{self._transaction_url}?action=COMMIT', headers=headers)
         if not res.ok:
-            raise OmasError(f'GraphDB transaction commit failed. Reason: "{res.text}"')
+            raise OldapError(f'GraphDB transaction commit failed. Reason: "{res.text}"')
         self._transaction_url = None
 
     def transaction_abort(self) -> None:
         if not self._userdata:
-            raise OmasError("No login")
+            raise OldapError("No login")
         headers = {
             "Accept": "*/*"
         }
         if self._transaction_url is None:
-            raise OmasError("No GraphDB transaction started")
+            raise OldapError("No GraphDB transaction started")
         res = requests.delete(self._transaction_url, headers=headers)
         if not res.ok:
-            raise OmasError(f'GraphDB transaction abort failed. Reason: "{res.text}"')
+            raise OldapError(f'GraphDB transaction abort failed. Reason: "{res.text}"')
         self._transaction_url = None
 
     def in_transaction(self) -> bool:

@@ -3,7 +3,7 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorType
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -41,9 +41,9 @@ class FloatingPoint(Xsd):
             try:
                 self._value = float(value)
             except ValueError as err:
-                raise OmasErrorValue(str(err))
+                raise OldapErrorValue(str(err))
             except TypeError as err:
-                raise OmasErrorType(str(err))
+                raise OldapErrorType(str(err))
 
     def __float__(self) -> float:
         """
@@ -99,7 +99,7 @@ class FloatingPoint(Xsd):
         elif isinstance(other, FloatingPoint):
             return self._value == other._value
         else:
-            raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other)}')
+            raise OldapErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other)}')
 
     def __ne__(self, other: Self | float | int | str | None) -> bool:
         """
@@ -117,7 +117,7 @@ class FloatingPoint(Xsd):
         elif isinstance(other, FloatingPoint):
             return self._value != other._value
         else:
-            raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
+            raise OldapErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
 
     def __lt__(self, other: Self | float | int | str) -> bool:
         """
@@ -133,7 +133,7 @@ class FloatingPoint(Xsd):
         elif isinstance(other, FloatingPoint):
             return self._value < other._value
         else:
-            raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
+            raise OldapErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
 
     def __le__(self, other: Self | float | int | str) -> bool:
         """
@@ -149,7 +149,7 @@ class FloatingPoint(Xsd):
         elif isinstance(other, FloatingPoint):
             return self._value <= other._value
         else:
-            raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
+            raise OldapErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
 
     def __gt__(self, other: Self | float | int | str) -> bool:
         """
@@ -165,7 +165,7 @@ class FloatingPoint(Xsd):
         elif isinstance(other, FloatingPoint):
             return self._value > other._value
         else:
-            raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
+            raise OldapErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
 
     def __ge__(self, other: Self | float | int | str) -> bool:
         """
@@ -181,7 +181,7 @@ class FloatingPoint(Xsd):
         elif isinstance(other, FloatingPoint):
             return self._value >= other._value
         else:
-            raise OmasErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
+            raise OldapErrorValue(f'Cannot compare FloatingPoint("{self._value}") to {type(other).__name__}')
 
     def __hash__(self) -> int:
         """

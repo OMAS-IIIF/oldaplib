@@ -20,8 +20,8 @@ from oldap.src.xsd.xsd_date import Xsd_date
 from oldap.src.xsd.xsd_datetime import Xsd_dateTime
 from oldap.src.xsd.xsd import Xsd
 from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.omaserror import OmasError, OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, \
-    OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound, OmasErrorInconsistency
+from oldap.src.helpers.oldaperror import OldapError, OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, \
+    OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound, OldapErrorInconsistency
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.iconnection import IConnection
 from oldap.src.model import Model
@@ -177,11 +177,11 @@ class Project(Model):
         super().__init__(con)
         self.__creator = creator if creator is not None else con.userIri
         if created and not isinstance(created, Xsd_dateTime):
-            raise OmasErrorValue(f'Created must be "Xsd_dateTime", not "{type(created)}".')
+            raise OldapErrorValue(f'Created must be "Xsd_dateTime", not "{type(created)}".')
         self.__created = created
         self.__contributor = contributor if contributor is not None else con.userIri
         if modified and not isinstance(modified, Xsd_dateTime):
-            raise OmasErrorValue(f'Modified must be "Xsd_dateTime", not "{type(modified)}".')
+            raise OldapErrorValue(f'Modified must be "Xsd_dateTime", not "{type(modified)}".')
         self.__modified = modified
         self.__attributes = {}
 
@@ -198,7 +198,7 @@ class Project(Model):
         if namespaceIri and isinstance(namespaceIri, NamespaceIRI):
             self.__attributes[ProjectAttr.NAMESPACE_IRI] = namespaceIri
         else:
-            raise OmasErrorValue(f'Invalid namespace iri: {namespaceIri}')
+            raise OldapErrorValue(f'Invalid namespace iri: {namespaceIri}')
 
         self.__attributes[ProjectAttr.LABEL] = label if isinstance(label, LangString) else LangString(label)
         self.__attributes[ProjectAttr.LABEL].set_notifier(self.notifier, Xsd_QName(ProjectAttr.LABEL.value))
@@ -209,7 +209,7 @@ class Project(Model):
         # Consistency checks
         #
         if not self.__attributes[ProjectAttr.LABEL]:
-            raise OmasErrorInconsistency(f'Project must have at least one rdfs:label, none given.')
+            raise OldapErrorInconsistency(f'Project must have at least one rdfs:label, none given.')
         if projectStart is not None:
             self.__attributes[ProjectAttr.PROJECT_START] = projectStart if isinstance(projectStart, Xsd_date) else Xsd_date(projectStart)
         else:
@@ -217,7 +217,7 @@ class Project(Model):
         if projectEnd is not None:
             self.__attributes[ProjectAttr.PROJECT_END] = projectEnd if isinstance(projectEnd, Xsd_date) else Xsd_date(projectEnd)
             if self.__attributes[ProjectAttr.PROJECT_END] < self.__attributes[ProjectAttr.PROJECT_START]:
-                raise OmasErrorInconsistency(f'Project start date {projectStart} is after project end date {projectEnd}.')
+                raise OldapErrorInconsistency(f'Project start date {projectStart} is after project end date {projectEnd}.')
 
         #
         # create all the attributes of the class according to the ProjectFields dfinition
@@ -260,13 +260,13 @@ class Project(Model):
         if self.__attributes.get(field) == value:
             return
         if field == ProjectAttr.PROJECT_IRI or field == ProjectAttr.NAMESPACE_IRI or field == ProjectAttr.PROJECT_SHORTNAME:
-            raise OmasErrorImmutable(f'Field {field.value} is immutable.')
+            raise OldapErrorImmutable(f'Field {field.value} is immutable.')
         if field == ProjectAttr.PROJECT_START:
             if self.__attributes.get(ProjectAttr.PROJECT_END) and value >= self.__attributes[ProjectAttr.PROJECT_END]:
-                raise OmasErrorInconsistency('Project start date must be less than project end date.')
+                raise OldapErrorInconsistency('Project start date must be less than project end date.')
         if field == ProjectAttr.PROJECT_END:
             if self.__attributes.get(ProjectAttr.PROJECT_START) and value <= self.__attributes[ProjectAttr.PROJECT_START]:
-                raise OmasErrorInconsistency('Project end date must be greater than project start date.')
+                raise OldapErrorInconsistency('Project end date must be greater than project start date.')
         if self.__attributes.get(field) is None:
             if self.__changeset.get(field) is None:
                 self.__changeset[field] = ProjectAttrChange(None, Action.CREATE)
@@ -428,7 +428,7 @@ class Project(Model):
         jsonobj = con.query(query)
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OmasErrorNotFound(f'Project with IRI/shortname "{projectIri_SName}" not found.')
+            raise OldapErrorNotFound(f'Project with IRI/shortname "{projectIri_SName}" not found.')
         creator: Iri | None = None
         created: Xsd_dateTime | None = None
         contributor: Iri | None = None
@@ -542,14 +542,14 @@ class Project(Model):
         :raises OmasError: All other errors
         """
         if self._con is None:
-            raise OmasError("Cannot create: no connection")
+            raise OldapError("Cannot create: no connection")
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
         #
         result, message = self.check_for_permissions()
         if not result:
-            raise OmasErrorNoPermission(message)
+            raise OldapErrorNoPermission(message)
 
         timestamp = Xsd_dateTime.now()
         indent: int = 0
@@ -591,22 +591,22 @@ class Project(Model):
         self._con.transaction_start()
         try:
             jsonobj = self._con.transaction_query(sparql1)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OmasErrorAlreadyExists(f'A Project with a projectIri "{self.projectIri}" already exists')
+            raise OldapErrorAlreadyExists(f'A Project with a projectIri "{self.projectIri}" already exists')
 
         try:
             self._con.transaction_update(sparql2)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         try:
             self._con.transaction_commit()
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         self.__created = timestamp
@@ -628,7 +628,7 @@ class Project(Model):
         """
         result, message = self.check_for_permissions()
         if not result:
-            raise OmasErrorNoPermission(message)
+            raise OldapErrorNoPermission(message)
 
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
@@ -675,15 +675,15 @@ class Project(Model):
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(Xsd_QName('omas:admin'), self.projectIri, self.modified, timestamp)
             modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.projectIri)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         if timestamp != modtime:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed("Update failed! Timestamp does not match")
+            raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
         try:
             self._con.transaction_commit()
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         self.__modified = timestamp
@@ -698,7 +698,7 @@ class Project(Model):
         """
         result, message = self.check_for_permissions()
         if not result:
-            raise OmasErrorNoPermission(message)
+            raise OldapErrorNoPermission(message)
 
         #
         # TODO: Check if project as any datamodel and/or data. Decline the deletion if this is the case

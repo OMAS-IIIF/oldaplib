@@ -9,7 +9,7 @@ from oldap.src.xsd.iri import Iri
 from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.omaserror import OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorValue, OmasErrorNoPermission, OmasError
+from oldap.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, OldapError
 from oldap.src.enums.permissions import AdminPermission
 from oldap.src.user import User
 from oldap.src.in_project import InProjectClass
@@ -97,7 +97,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_read_unknown_user(self):
-        with self.assertRaises(OmasErrorNotFound) as ex:
+        with self.assertRaises(OldapErrorNotFound) as ex:
             user = User.read(con=self._connection, userId="nosuchuser")
         self.assertEqual(str(ex.exception), 'User "nosuchuser" not found.')
 
@@ -125,7 +125,7 @@ class TestUser(unittest.TestCase):
 
     #  #unittest.skip('Work in progress')
     def test_search_user_injection(self):
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             users = User.search(con=self._connection, userId="fornaro\".}\nSELECT * WHERE {?s ?p ?s})#")
         self.assertEqual(str(ex.exception), 'Invalid string "fornaro".}\nSELECT * WHERE {?s ?p ?s})#" for NCName')
 
@@ -134,7 +134,7 @@ class TestUser(unittest.TestCase):
         users = User.search(con=self._connection, givenName="John\".}\nSELECT * WHERE{?s ?p ?s})#")
         self.assertEqual(len(users), 0)
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             users = User.search(con=self._connection, inProject="omas:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")
         self.assertEqual(str(ex.exception), 'Invalid string for IRI: "omas:HyperHamlet".}\nSELECT * WHERE{?s ?p ?s})#"')
 
@@ -248,7 +248,7 @@ class TestUser(unittest.TestCase):
                                                                AdminPermission.ADMIN_RESOURCES,
                                                                AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView')})
-        with self.assertRaises(OmasErrorAlreadyExists) as ex:
+        with self.assertRaises(OldapErrorAlreadyExists) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'A user with a user ID "fornaro" already exists')
 
@@ -265,7 +265,7 @@ class TestUser(unittest.TestCase):
                                                                AdminPermission.ADMIN_RESOURCES,
                                                                AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView')})
-        with self.assertRaises(OmasErrorAlreadyExists) as ex:
+        with self.assertRaises(OldapErrorAlreadyExists) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'A user with a user IRI "https://orcid.org/0000-0003-1681-4036" already exists')
 
@@ -281,7 +281,7 @@ class TestUser(unittest.TestCase):
                                                                 AdminPermission.ADMIN_RESOURCES,
                                                                 AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView')})
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'One of the projects is not existing!')
 
@@ -297,7 +297,7 @@ class TestUser(unittest.TestCase):
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView'), Xsd_QName('omas:Gaga')})
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
 
@@ -311,7 +311,7 @@ class TestUser(unittest.TestCase):
                     credentials="Entenhausen@for&Ever",
                     inProject={Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView')})
-        with self.assertRaises(OmasErrorNoPermission) as ex:
+        with self.assertRaises(OldapErrorNoPermission) as ex:
             user.create()
         self.assertEqual('Actor has no ADMIN_USERS permission for project omas:HyperHamlet', str(ex.exception), )
 
@@ -324,7 +324,7 @@ class TestUser(unittest.TestCase):
                     credentials="Entenhausen@for&Ever",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView')})
-        with self.assertRaises(OmasError) as ex:
+        with self.assertRaises(OldapError) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'Cannot create: no connection')
 
@@ -345,7 +345,7 @@ class TestUser(unittest.TestCase):
         user2 = User.read(con=self._connection, userId="edison")
         self.assertEqual(user2.userIri, user.userIri)
         user2.delete()
-        with self.assertRaises(OmasErrorNotFound) as ex:
+        with self.assertRaises(OldapErrorNotFound) as ex:
             user = User.read(con=self._connection, userId="edison")
         self.assertEqual(str(ex.exception), 'User "edison" not found.')
 
@@ -353,7 +353,7 @@ class TestUser(unittest.TestCase):
     def test_delete_user_unpriv(self):
         """Delete a user without having the permission should fail"""
         user = User.read(con=self._unpriv, userId="bugsbunny")
-        with self.assertRaises(OmasErrorNoPermission) as ex:
+        with self.assertRaises(OldapErrorNoPermission) as ex:
             user.delete()
         self.assertEqual('Actor has no ADMIN_USERS permission for project omas:HyperHamlet', str(ex.exception))
 
@@ -383,7 +383,7 @@ class TestUser(unittest.TestCase):
         user3 = User.read(con=self._connection, userId="aedison")
         self.assertEqual({Iri('omas:GenericRestricted'), Iri('omas:HyperHamletMember')}, user3.hasPermissions)
         user3.hasPermissions.add(Iri('omas:DoesNotExist'))
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             user3.update()
             self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
         self.assertEqual(InProjectClass({Iri('omas:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES,
@@ -400,7 +400,7 @@ class TestUser(unittest.TestCase):
     def test_update_user_unpriv(self):
         user = User.read(con=self._unpriv, userId="bugsbunny")
         user.credentials = "ChangedPassword"
-        with self.assertRaises(OmasErrorNoPermission) as ex:
+        with self.assertRaises(OldapErrorNoPermission) as ex:
             user.update()
         self.assertEqual('Actor has no ADMIN_USERS permission for project omas:HyperHamlet', str(ex.exception))
 
@@ -668,7 +668,7 @@ class TestUser(unittest.TestCase):
         del user
         user = User.read(con=self._connection, userId="chiquet")
         user.hasPermissions = {Iri('omas:GAGA'), Iri('omas:HyperHamletMember')}
-        with self.assertRaises(OmasErrorValue) as err:
+        with self.assertRaises(OldapErrorValue) as err:
             user.update()
 
     #  #unittest.skip('Work in progress')
@@ -754,7 +754,7 @@ class TestUser(unittest.TestCase):
         user = User.read(con=mycon, userId="speedy")
         user.credentials = "ElRatónMásRápidoDeMéxico"
         user.update()
-        with self.assertRaises(OmasError) as err:
+        with self.assertRaises(OldapError) as err:
             mycon = Connection(server='http://localhost:7200',
                                repo="omas",
                                userId="speedy",
@@ -767,7 +767,7 @@ class TestUser(unittest.TestCase):
                            context_name="DEFAULT")
         user = User.read(con=mycon, userId="speedy")
         user.isActive = False
-        with self.assertRaises(OmasErrorNoPermission) as err:
+        with self.assertRaises(OldapErrorNoPermission) as err:
             user.update()
 
     def test_user_authorizations(self):
@@ -782,7 +782,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('omas:GenericView'), Iri('omas:HyperHamletMember')})
-        with self.assertRaises(OmasErrorNoPermission) as ex:
+        with self.assertRaises(OldapErrorNoPermission) as ex:
             user.create()
 
         user = User(con=self._connection,
@@ -800,9 +800,9 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._unpriv, userId="niederer")
         user.familyName = "Niederer"
         user.inProject[Iri('http://www.salsah.org/version')] = {AdminPermission.ADMIN_CREATE}
-        with self.assertRaises(OmasErrorNoPermission) as ex:
+        with self.assertRaises(OldapErrorNoPermission) as ex:
             user.update()
-        with self.assertRaises(OmasErrorNoPermission) as ex:
+        with self.assertRaises(OldapErrorNoPermission) as ex:
             user.delete()
 
 

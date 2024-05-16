@@ -14,8 +14,8 @@ from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldap.src.xsd.xsd_datetime import Xsd_dateTime
 from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorAlreadyExists, OmasErrorNoPermission, OmasError, \
-    OmasErrorInconsistency, OmasErrorUpdateFailed, OmasErrorImmutable, OmasErrorNotFound
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, OldapError, \
+    OldapErrorInconsistency, OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.iconnection import IConnection
 from oldap.src.model import Model
@@ -78,11 +78,11 @@ class PermissionSet(Model):
         self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = Iri(definedByProject)
 
         if not self.__attributes[PermissionSetAttr.LABEL]:
-            raise OmasErrorInconsistency(f'PermissionSet must have at least one rdfs:label, none given.')
+            raise OldapErrorInconsistency(f'PermissionSet must have at least one rdfs:label, none given.')
         if not self.__attributes[PermissionSetAttr.GIVES_PERMISSION]:
-            raise OmasErrorInconsistency(f'PermissionSet must have at least one omas:givesPermission, none given.')
+            raise OldapErrorInconsistency(f'PermissionSet must have at least one omas:givesPermission, none given.')
         if not self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]:
-            raise OmasErrorInconsistency(f'PermissionSet must have at least one omas:definedByproject, none given.')
+            raise OldapErrorInconsistency(f'PermissionSet must have at least one omas:definedByproject, none given.')
 
         for field in PermissionSetAttr:
             prefix, name = field.value.split(':')
@@ -117,7 +117,7 @@ class PermissionSet(Model):
 
     def __set_value(self: Self, self2: Self, value: PermissionSetAttrTypes, field: PermissionSetAttr) -> None:
         if field == PermissionSetAttr.PERMISSION_SET_IRI and self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI) is not None:
-            OmasErrorAlreadyExists(f'A project IRI already has been assigned: "{repr(self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI))}".')
+            OldapErrorAlreadyExists(f'A project IRI already has been assigned: "{repr(self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI))}".')
         self.__change_setter(field, value)
 
     def __del_value(self: Self, self2: Self, field: PermissionSetAttr) -> None:
@@ -127,7 +127,7 @@ class PermissionSet(Model):
         if self.__attributes[attr] == value:
             return
         if attr in {PermissionSetAttr.PERMISSION_SET_IRI, PermissionSetAttr.DEFINED_BY_PROJECT}:
-            raise OmasErrorImmutable(f'Field {attr.value} is immutable.')
+            raise OldapErrorImmutable(f'Field {attr.value} is immutable.')
         if self.__attributes[attr] is None:
             if self.__changeset.get(attr) is None:
                 self.__changeset[attr] = PermissionSetAttrChange(None, Action.CREATE)
@@ -148,7 +148,7 @@ class PermissionSet(Model):
                     try:
                         self.__attributes[attr] = dtype(value)
                         break;
-                    except OmasErrorValue:
+                    except OldapErrorValue:
                         pass
             else:
                 self.__attributes[attr] = self.__datatypes[attr](value)
@@ -213,11 +213,11 @@ class PermissionSet(Model):
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
-            raise OmasError("Cannot create: no connection")
+            raise OldapError("Cannot create: no connection")
 
         result, message = self.check_for_permissions()
         if not result:
-            raise OmasErrorNoPermission(message)
+            raise OldapErrorNoPermission(message)
 
         context = Context(name=self._con.context_name)
         blank = ''
@@ -254,22 +254,22 @@ class PermissionSet(Model):
         self._con.transaction_start()
         try:
             jsonobj = self._con.transaction_query(sparql1)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OmasErrorAlreadyExists(f'A permission set "{self.permissionSetIri}" already exists')
+            raise OldapErrorAlreadyExists(f'A permission set "{self.permissionSetIri}" already exists')
 
         try:
             self._con.transaction_update(sparql)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         try:
             self._con.transaction_commit()
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         self.__created = timestamp
@@ -294,7 +294,7 @@ class PermissionSet(Model):
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OmasErrorNotFound(f'No permission set "{permissionSetIri}"')
+            raise OldapErrorNotFound(f'No permission set "{permissionSetIri}"')
 
         permissionSetIri: Iri | None = None
         creator: Iri | None = None
@@ -310,7 +310,7 @@ class PermissionSet(Model):
                 try:
                     permissionSetIri = r['permset']
                 except Exception as e:
-                    raise OmasErrorInconsistency(f'Invalid project identifier "{r['o']}".')
+                    raise OldapErrorInconsistency(f'Invalid project identifier "{r['o']}".')
             match str(r['p']):
                 case 'dcterms:creator':
                     creator = r['o']
@@ -394,7 +394,7 @@ class PermissionSet(Model):
     def update(self, indent: int = 0, indent_inc: int = 4):
         result, message = self.check_for_permissions()
         if not result:
-            raise OmasErrorNoPermission(message)
+            raise OldapErrorNoPermission(message)
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
         blank = ''
@@ -441,15 +441,15 @@ class PermissionSet(Model):
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(Xsd_QName('omas:admin'), self.permissionSetIri, self.__modified, timestamp)
             modtime = self.get_modified_by_iri(Xsd_QName('omas:admin'), self.permissionSetIri)
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         if timestamp != modtime:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed("Update failed! Timestamp does not match")
+            raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
         try:
             self._con.transaction_commit()
-        except OmasError:
+        except OldapError:
             self._con.transaction_abort()
             raise
         self.__modified = timestamp
@@ -458,7 +458,7 @@ class PermissionSet(Model):
     def delete(self) -> None:
         result, message = self.check_for_permissions()
         if not result:
-            raise OmasErrorNoPermission(message)
+            raise OldapErrorNoPermission(message)
 
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context

@@ -2,7 +2,7 @@ from typing import Any, Self, Dict
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -28,7 +28,7 @@ class Xsd_boolean(Xsd):
             elif value.lower() in ('no', 'false', 'f', 'n', '0'):
                 self.__value = False
             else:
-                raise OmasErrorValue('No valid string for boolean value.')
+                raise OldapErrorValue('No valid string for boolean value.')
         else:
             self.__value = bool(value)
 

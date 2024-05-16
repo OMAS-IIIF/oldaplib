@@ -2,7 +2,7 @@ import json
 import unittest
 
 from oldap.src.enums.permissions import AdminPermission
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorKey
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorKey
 from oldap.src.helpers.serializer import serializer
 from oldap.src.in_project import InProjectClass
 from oldap.src.xsd.iri import Iri
@@ -23,10 +23,10 @@ class TestInproject(unittest.TestCase):
             p.add(proj)
         self.assertEqual(p, {Iri('test:proj'), Iri('https://gaga.com/test'), Iri('gaga:gugus')})
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             ip = InProjectClass({'test': {'ADMIN_MODEL'}})
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             ip = InProjectClass({'test:proj': {'MODEL_T'}})
 
     def test_get_item(self):
@@ -37,11 +37,11 @@ class TestInproject(unittest.TestCase):
         self.assertEqual(ip['https://gaga.com/test'], {AdminPermission.ADMIN_MODEL})
         self.assertEqual(ip[Iri('gaga:gugus')], set())
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             tmp = ip['gaga']
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             tmp = ip['$<>12']
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             tmp = ip[Xsd_string('test:proj')]
 
     def test_set_item(self):
@@ -55,9 +55,9 @@ class TestInproject(unittest.TestCase):
         ip[Xsd_QName('gaga:gugus')] = {'ADMIN_MODEL'}
         self.assertEqual(ip[Xsd_QName('gaga:gugus')], {AdminPermission.ADMIN_MODEL})
 
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             ip[Xsd_QName('gaga:gugus')] = {'GAGA'}
-        with self.assertRaises(OmasErrorValue) as ex:
+        with self.assertRaises(OldapErrorValue) as ex:
             ip[Xsd_QName('XYZ')] = {'ADMIN_MODEL'}
 
     def test_del_item(self):
@@ -65,10 +65,10 @@ class TestInproject(unittest.TestCase):
                              'https://gaga.com/test': {'ADMIN_MODEL'},
                              Xsd_QName('gaga:gugus'): set()})
         del ip['test:proj']
-        with self.assertRaises(OmasErrorKey) as ex:
+        with self.assertRaises(OldapErrorKey) as ex:
             tmp = ip['test:proj']
 
-        with self.assertRaises(OmasErrorKey) as ex:
+        with self.assertRaises(OldapErrorKey) as ex:
             del ip[Xsd_QName('gaga:blabla')]
 
     def test_str(self):

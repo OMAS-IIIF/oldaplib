@@ -4,7 +4,7 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -37,11 +37,11 @@ class Xsd_dateTime(Xsd):
                 if re.match(
                         r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
                         value) is None:
-                    raise OmasErrorValue(f'DateTime "{value}" not a valid ISO 8601.')
+                    raise OldapErrorValue(f'DateTime "{value}" not a valid ISO 8601.')
             try:
                 self.__value = datetime.fromisoformat(value)
             except ValueError as err:
-                raise OmasErrorValue(str(err))
+                raise OldapErrorValue(str(err))
 
     def __str__(self) -> str:
         """
@@ -74,7 +74,7 @@ class Xsd_dateTime(Xsd):
             if re.match(
                     r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$',
                     str(other)) is None:
-                raise OmasErrorValue(f'DateTime "{other}" not a valid ISO 8601.')
+                raise OldapErrorValue(f'DateTime "{other}" not a valid ISO 8601.')
             other = datetime.fromisoformat(other)
             return self.__value == other
 

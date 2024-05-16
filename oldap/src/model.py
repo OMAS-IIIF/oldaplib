@@ -8,7 +8,7 @@ from oldap.src.xsd.iri import Iri
 from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.helpers.omaserror import OmasError, OmasErrorNotFound
+from oldap.src.helpers.oldaperror import OldapError, OldapErrorNotFound
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.helpers.tools import lprint
 from oldap.src.iconnection import IConnection
@@ -50,7 +50,7 @@ class Model:
             jsonobj = self._con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
-            raise OmasErrorNotFound(f'No resource found with iri "{iri}".')
+            raise OldapErrorNotFound(f'No resource found with iri "{iri}".')
         for r in res:
             return r['modified']
 
@@ -79,7 +79,7 @@ class Model:
             }}
             """
         except Exception as e:
-            raise OmasError(e)
+            raise OldapError(e)
         if self._con.in_transaction():
             self._con.transaction_update(sparql)
         else:

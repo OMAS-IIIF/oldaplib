@@ -4,7 +4,7 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.floatingpoint import FloatingPoint
 from oldap.src.xsd.xsd import Xsd
@@ -28,7 +28,7 @@ class Xsd_double(FloatingPoint):
         if isinstance(value, str):
             if validate:
                 if not re.match("^([-+]?(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?|[Nn]a[Nn]|[-+]?(inf|INF))$", str(value)):
-                    raise OmasErrorValue(f'"{value}" is not convertible to a Xsd_float.')
+                    raise OldapErrorValue(f'"{value}" is not convertible to a Xsd_float.')
             value = float(value)
         super().__init__(value=value, validate=validate)
 

@@ -16,7 +16,7 @@ from oldap.src.enums.resourceclassattr import ResourceClassAttribute
 from oldap.src.enums.xsd_datatypes import XsdDatatypes
 from oldap.src.helpers.context import Context
 from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.omaserror import OmasErrorAlreadyExists
+from oldap.src.helpers.oldaperror import OldapErrorAlreadyExists
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.helpers.semantic_version import SemanticVersion
 from oldap.src.project import Project
@@ -375,7 +375,7 @@ class TestResourceClass(unittest.TestCase):
                            closed=Xsd_boolean(True),
                            properties=properties)
 
-        with self.assertRaises(OmasErrorAlreadyExists) as ex:
+        with self.assertRaises(OldapErrorAlreadyExists) as ex:
             r1.create()
         self.assertEqual(str(ex.exception), 'Object "test:testMyResMinimal" already exists.')
 

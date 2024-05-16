@@ -10,7 +10,7 @@ from typing import List, Callable, Any, Iterable, Set, Self
 from pystrict import strict
 
 from oldap.src.enums.action import Action
-from oldap.src.helpers.omaserror import OmasErrorKey
+from oldap.src.helpers.oldaperror import OldapErrorKey
 from oldap.src.helpers.serializer import serializer
 
 

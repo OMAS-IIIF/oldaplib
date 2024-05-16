@@ -4,7 +4,7 @@ from typing import Self
 from pystrict import strict
 
 from oldap.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -29,9 +29,9 @@ class Xsd_hexBinary(Xsd):
         else:
             if validate:
                 if not bool(re.match(r'^[0-9A-Fa-f]*$', value)) or len(value) % 2 != 0:
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
                 if not XsdValidator.validate(XsdDatatypes.hexBinary, value):
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
             self.__value = value
 
     def __str__(self):

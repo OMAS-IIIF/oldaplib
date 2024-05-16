@@ -2,7 +2,7 @@ import uuid
 from enum import unique, Enum
 from typing import Self
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -66,9 +66,9 @@ class Iri(Xsd):
                 return
             except:
                 pass
-            raise OmasErrorValue(f'Invalid string for IRI: "{value}"')
+            raise OldapErrorValue(f'Invalid string for IRI: "{value}"')
         else:
-            raise OmasErrorValue(f'Invalid value for IRI: "{value}"')
+            raise OldapErrorValue(f'Invalid value for IRI: "{value}"')
     def __str__(self) -> str:
         """
         String representation of the Iri

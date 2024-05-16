@@ -4,7 +4,7 @@ from typing import Self
 from pystrict import strict
 
 from oldap.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -29,9 +29,9 @@ class Xsd_NMTOKEN(Xsd):
         else:
             if validate:
                 if not XsdValidator.validate(XsdDatatypes.NMTOKEN, value):
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
                 if not re.match("^[a-zA-Z_:.][a-zA-Z0-9_.:-]*$", value):
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
             self.__value = value
 
     def __str__(self):

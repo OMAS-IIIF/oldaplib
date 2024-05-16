@@ -4,7 +4,7 @@ from typing import Tuple, Self
 from pystrict import strict
 
 from oldap.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -36,12 +36,12 @@ class Xsd_gYear(Xsd):
         else:
             if validate:
                 if not XsdValidator.validate(XsdDatatypes.gYear, value):
-                    raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:gYear.')
             if not re.match("([+-]?[0-9]{4})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value):
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
+                raise OldapErrorValue(f'Invalid string "{value}" for xsd:gYear.')
             res = re.split("([+-]?[0-9]{4})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
             if len(res) != 8:
-                raise OmasErrorValue(f'Invalid string "{value}" for xsd:gYear.')
+                raise OldapErrorValue(f'Invalid string "{value}" for xsd:gYear.')
             self.__year = int(res[1])
             if res[2] == 'Z':
                 self.__tz = (0, 0)

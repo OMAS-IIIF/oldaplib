@@ -2,7 +2,7 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -31,7 +31,7 @@ class Xsd_integer(Xsd):
             try:
                 self._value = int(value)
             except ValueError as err:
-                raise OmasErrorValue(str(err))
+                raise OldapErrorValue(str(err))
 
     def __str__(self) -> str:
         """
@@ -76,7 +76,7 @@ class Xsd_integer(Xsd):
         elif isinstance(other, int):
             return self._value == other
         else:
-            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+            raise OldapErrorValue(f'Comparison of with {type(other)} not possible')
 
     def __ne__(self, other: Self | int) -> bool:
         """
@@ -93,7 +93,7 @@ class Xsd_integer(Xsd):
         elif isinstance(other, int):
             return self._value != other
         else:
-            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+            raise OldapErrorValue(f'Comparison of with {type(other)} not possible')
 
     def __gt__(self, other: Self | int) -> bool:
         """
@@ -107,7 +107,7 @@ class Xsd_integer(Xsd):
         elif isinstance(other, int):
             return self._value > other
         else:
-            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+            raise OldapErrorValue(f'Comparison of with {type(other)} not possible')
 
     def __ge__(self, other: Self | int) -> bool:
         """
@@ -121,7 +121,7 @@ class Xsd_integer(Xsd):
         elif isinstance(other, int):
             return self._value >= other
         else:
-            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+            raise OldapErrorValue(f'Comparison of with {type(other)} not possible')
 
     def __lt__(self, other: Self | int) -> bool:
         """
@@ -135,7 +135,7 @@ class Xsd_integer(Xsd):
         elif isinstance(other, int):
             return self._value < other
         else:
-            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+            raise OldapErrorValue(f'Comparison of with {type(other)} not possible')
 
     def __le__(self, other: Self | int) -> bool:
         """
@@ -149,7 +149,7 @@ class Xsd_integer(Xsd):
         elif isinstance(other, int):
             return self._value <= other
         else:
-            raise OmasErrorValue(f'Comparison of with {type(other)} not possible')
+            raise OldapErrorValue(f'Comparison of with {type(other)} not possible')
 
     def _as_dict(self) -> dict[str, int]:
         """

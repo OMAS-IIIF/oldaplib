@@ -8,7 +8,7 @@ from oldap.src.project import Project
 from oldap.src.xsd.iri import Iri
 from oldap.src.xsd.xsd_datetime import Xsd_dateTime
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.omaserror import OmasErrorInconsistency, OmasError, OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorInconsistency, OldapError, OldapErrorValue
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.helpers.semantic_version import SemanticVersion
 from oldap.src.iconnection import IConnection
@@ -45,7 +45,7 @@ class DataModel(Model):
         self.__version = SemanticVersion()
 
         if not isinstance(project, Project):
-            raise OmasErrorValue('The project parameter must be a Project instance')
+            raise OldapErrorValue('The project parameter must be a Project instance')
         self._project = project
         context = Context(name=self._con.context_name)
         context[project.projectShortName] = project.namespaceIri
@@ -87,7 +87,7 @@ class DataModel(Model):
                 self.__resclasses_changeset[key] = ResourceClassChange(old_value, Action.MODIFY)
             self.__resclasses[key] = value
         else:
-            raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass (is "{type(value).__name__}")')
+            raise OldapErrorValue(f'"{key}" must be either PropertyClass or ResourceClass (is "{type(value).__name__}")')
 
     def __delitem__(self, key: Iri) -> None:
         if key in self.__propclasses:
@@ -97,7 +97,7 @@ class DataModel(Model):
             self.__resclasses_changeset[key] = ResourceClassChange(self.__resclasses[key], Action.DELETE)
             del self.__resclasses[key]
         else:
-            raise OmasErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
+            raise OldapErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
 
     def get(self, key: Iri) -> PropertyClass | ResourceClass | None:
         if key in self.__propclasses:
@@ -134,13 +134,13 @@ class DataModel(Model):
         elif what in self.__resclasses:
             self.__resclasses_changeset[what] = ResourceClassChange(None, Action.MODIFY)
         else:
-            raise OmasErrorInconsistency(f'No resclass or property "{what}" in datamodel.')
+            raise OldapErrorInconsistency(f'No resclass or property "{what}" in datamodel.')
 
     @classmethod
     def read(cls, con: IConnection,
              project: Project):
         if not isinstance(project, Project):
-            raise OmasErrorValue('The project parameter must be a Project instance')
+            raise OldapErrorValue('The project parameter must be a Project instance')
         cls.__context = Context(name=con.context_name)
         cls.__context[project.projectShortName] = project.namespaceIri
         cls.__context.use(project.projectShortName)
@@ -174,7 +174,7 @@ class DataModel(Model):
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
         version = SemanticVersion.fromString(res[0]['version'])
         if version != cls.__version:
-            raise OmasErrorInconsistency(f'Versionnumber of SHACL ({cls.__version}) and OWL ({version}) do not match')
+            raise OldapErrorInconsistency(f'Versionnumber of SHACL ({cls.__version}) and OWL ({version}) do not match')
         #
         # now get the QNames of all standalone properties within the data model
         #
@@ -235,7 +235,7 @@ class DataModel(Model):
 
         for propiri, propclass in self.__propclasses.items():
             if propclass.internal:
-                raise OmasErrorInconsistency(f"Property class {propclass.property_class_iri} is internal and cannot be used here.")
+                raise OldapErrorInconsistency(f"Property class {propclass.property_class_iri} is internal and cannot be used here.")
             sparql += propclass.create_shacl(timestamp=timestamp, indent=2)
             sparql += '\n'
 
@@ -271,7 +271,7 @@ class DataModel(Model):
             for resiri, resclass in self.__resclasses.items():
                 resclass.set_creation_metadata(timestamp=timestamp)
             self._con.transaction_commit()
-        except OmasError as err:
+        except OldapError as err:
             self._con.transaction_abort()
             raise
 

@@ -5,7 +5,7 @@ from pystrict import strict
 from traceback import format_exc
 
 #@strict
-class OmasError(Exception):
+class OldapError(Exception):
     """
     No special needs besides a special class for errors in OMAS
     """
@@ -13,7 +13,7 @@ class OmasError(Exception):
 
 
 #@strict
-class OmasErrorValue(OmasError):
+class OldapErrorValue(OldapError):
     """
     Raised when an invalid value is passed/processed
     """
@@ -21,7 +21,7 @@ class OmasErrorValue(OmasError):
 
 
 #@strict
-class OmasErrorType(OmasError):
+class OldapErrorType(OldapError):
     """
     Raised when an invalid value is passed/processed
     """
@@ -29,12 +29,12 @@ class OmasErrorType(OmasError):
 
 
 #@strict
-class OmasErrorKey(OmasError):
+class OldapErrorKey(OldapError):
     pass
 
 
 #@strict
-class OmasErrorNotFound(OmasError):
+class OldapErrorNotFound(OldapError):
     """
     Raised when something was not found
     """
@@ -42,7 +42,7 @@ class OmasErrorNotFound(OmasError):
 
 
 #@strict
-class OmasErrorAlreadyExists(OmasError):
+class OldapErrorAlreadyExists(OldapError):
     """
     Raised when something should be created which already exists
     """
@@ -50,7 +50,7 @@ class OmasErrorAlreadyExists(OmasError):
 
 
 #@strict
-class OmasErrorInconsistency(OmasError):
+class OldapErrorInconsistency(OldapError):
     """
     Raised when an inconsistency is encountered
     """
@@ -58,25 +58,25 @@ class OmasErrorInconsistency(OmasError):
 
 
 #@strict
-class OmasErrorUpdateFailed(OmasError):
+class OldapErrorUpdateFailed(OldapError):
     """
     Updating failed for some reason
     """
     pass
 
 #@strict
-class OmasErrorNoPermission(OmasError):
+class OldapErrorNoPermission(OldapError):
     pass
 
 #@strict
-class OmasErrorImmutable(OmasError):
+class OldapErrorImmutable(OldapError):
     pass
 
 #@strict
-class OmasErrorIndex(OmasError):
+class OldapErrorIndex(OldapError):
     pass
 
 #@strict
-class OmasErrorInUse(OmasError):
+class OldapErrorInUse(OldapError):
     pass
 

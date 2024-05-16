@@ -2,7 +2,7 @@ from typing import Self, Optional, Any
 
 from pystrict import strict
 
-from oldap.src.helpers.omaserror import OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapErrorValue
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
@@ -47,15 +47,15 @@ class Xsd_QName(Xsd):
                 try:
                     prefix, fragment = value.split(':')
                 except ValueError as err:
-                    raise OmasErrorValue(f'Invalid string "{value}" for QName')
+                    raise OldapErrorValue(f'Invalid string "{value}" for QName')
                 try:
                     prefix = Xsd_NCName(prefix, validate=validate)
                     fragment = Xsd_NCName(fragment, validate=validate)
-                except OmasErrorValue as err:
-                    raise OmasErrorValue(f'Invalid string "{value}" for QName. Error: {err}')
+                except OldapErrorValue as err:
+                    raise OldapErrorValue(f'Invalid string "{value}" for QName. Error: {err}')
                 self._value = f'{prefix}:{fragment}'
             else:
-                raise OmasErrorValue(f'Invalid value for QName "{value}"')
+                raise OldapErrorValue(f'Invalid value for QName "{value}"')
         else:
             prefix = Xsd_NCName(value, validate=validate)
             fragment = Xsd_NCName(fragment, validate=validate)

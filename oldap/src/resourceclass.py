@@ -7,7 +7,7 @@ from pystrict import strict
 from oldap.src.connection import Connection
 from oldap.src.dtypes.namespaceiri import NamespaceIRI
 from oldap.src.helpers.Notify import Notify
-from oldap.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorInconsistency, OmasErrorUpdateFailed, OmasErrorValue
+from oldap.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorUpdateFailed, OldapErrorValue
 from oldap.src.enums.propertyclassattr import PropClassAttr
 from oldap.src.helpers.query_processor import QueryProcessor
 from oldap.src.enums.resourceclassattr import ResourceClassAttribute
@@ -88,7 +88,7 @@ class ResourceClass(Model, Notify):
         Notify.__init__(self, notifier, notify_data)
 
         if not isinstance(project, Project):
-            raise OmasErrorValue('The project parameter must be a Project instance')
+            raise OldapErrorValue('The project parameter must be a Project instance')
         self._project = project
         context = Context(name=self._con.context_name)
         context[project.projectShortName] = project.namespaceIri
@@ -119,7 +119,7 @@ class ResourceClass(Model, Notify):
                     fixed_prop = Iri(str(prop).removesuffix("Shape"))
                     try:
                         newprop = PropertyClass.read(self._con, self._project, fixed_prop)
-                    except OmasErrorNotFound as err:
+                    except OldapErrorNotFound as err:
                         newprop = fixed_prop
                 elif isinstance(prop, PropertyClass):  # an internal, private property definition
                     if not prop._force_external:
@@ -127,7 +127,7 @@ class ResourceClass(Model, Notify):
                     newprop = prop
                 else:
                     #newprop = None
-                    raise OmasErrorValue(f'Unexpected property type: {type(prop).__name__}')
+                    raise OldapErrorValue(f'Unexpected property type: {type(prop).__name__}')
                 if newprop is not None:
                     self._properties[newprop.property_class_iri] = newprop
                     newprop.set_notifier(self.notifier, newprop.property_class_iri)
@@ -185,7 +185,7 @@ class ResourceClass(Model, Notify):
                 if value is None:
                     try:
                         self._properties[key] = PropertyClass.read(self._con, project=self._project, property_class_iri=key)
-                    except OmasErrorNotFound as err:
+                    except OldapErrorNotFound as err:
                         self._properties[key] = key
                 else:
                     value._internal = self._owlclass_iri  # we need to access the private variable here
@@ -199,14 +199,14 @@ class ResourceClass(Model, Notify):
                 if value is None:
                     try:
                         self._properties[key] = PropertyClass.read(self._con, project=self._project, property_class_iri=key)
-                    except OmasErrorNotFound as err:
+                    except OldapErrorNotFound as err:
                         self._properties[key] = key
                 else:
                     value._internal = self._owlclass_iri  # we need to access the private variable here
                     value._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
         else:
-            raise OmasError(f'Invalid key type {type(key).__name__} of key {key}')
+            raise OldapError(f'Invalid key type {type(key).__name__} of key {key}')
         self.notify()
 
     def __deleter(self, key: ResourceClassAttribute | Iri) -> None:
@@ -321,7 +321,7 @@ class ResourceClass(Model, Notify):
         jsonobj = self._con.query(query)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
-            raise OmasError('Internal Error in "ResourceClass.in_use"')
+            raise OldapError('Internal Error in "ResourceClass.in_use"')
         for r in res:
             if int(r.nresinstances) > 0:
                 return True
@@ -356,7 +356,7 @@ class ResourceClass(Model, Notify):
                 if tmp_owl_class_iri == 'sh:NodeShape':
                     continue
                 if tmp_owl_class_iri != owl_class_iri:
-                    raise OmasError(f'Inconsistent Shape for "{owl_class_iri}": rdf:type="{tmp_owl_class_iri}"')
+                    raise OldapError(f'Inconsistent Shape for "{owl_class_iri}": rdf:type="{tmp_owl_class_iri}"')
             elif attriri == 'sh:property':
                 continue  # processes later – points to a BNode containing
             else:
@@ -395,7 +395,7 @@ class ResourceClass(Model, Notify):
                 if str(val[0]).endswith("Shape"):
                     self._attributes[ResourceClassAttribute.SUBCLASS_OF] = Iri(str(val[0])[:-5], validate=False)
                 else:
-                    raise OmasErrorInconsistency(f'Value "{val[0]}" must end with "Shape".')
+                    raise OldapErrorInconsistency(f'Value "{val[0]}" must end with "Shape".')
             else:
                 attr = ResourceClassAttribute(key)
                 if Iri == self.__datatypes[attr]:
@@ -456,7 +456,7 @@ class ResourceClass(Model, Notify):
             if isinstance(r['value'], Iri) and r['value'] == 'rdf:type':
                 continue
             if not isinstance(r['attriri'], Iri):
-                raise OmasError(f"There is some inconsistency in this shape! ({r['attriri']})")
+                raise OldapError(f"There is some inconsistency in this shape! ({r['attriri']})")
             propnode = r['prop']  # usually a BNode, but may be a reference to a standalone sh:PropertyShape definition
             prop: PropertyClass | Iri
             if isinstance(propnode, Iri):
@@ -467,7 +467,7 @@ class ResourceClass(Model, Notify):
                     propinfos[propnode]: Attributes = {}
                 PropertyClass.process_triple(r, propinfos[propnode])
             else:
-                raise OmasError(f'Unexpected type for propnode in SHACL. Type = "{type(propnode)}".')
+                raise OldapError(f'Unexpected type for propnode in SHACL. Type = "{type(propnode)}".')
         #
         # now we collected all the information from the triple store. Let's process the information into
         # a list of full PropertyClasses or QName's to external definitions
@@ -481,7 +481,7 @@ class ResourceClass(Model, Notify):
                 prop.parse_shacl(attributes=attributes)
                 prop.read_owl()
                 if prop._internal != owlclass_iri:
-                    OmasErrorInconsistency(f'ERRROR ERROR ERROR')
+                    OldapErrorInconsistency(f'ERRROR ERROR ERROR')
                 proplist.append(prop)
         #prop.set_notifier(self.notifier, prop_iri)
         return proplist
@@ -523,17 +523,17 @@ class ResourceClass(Model, Notify):
                 print(f'ERROR ERROR ERROR: Unknown restriction property: "{p}"')
         for bn, pp in propdict.items():
             if pp.get('property_iri') is None:
-                OmasError('Invalid restriction node: No property_iri!')
+                OldapError('Invalid restriction node: No property_iri!')
             property_iri = pp['property_iri']
             prop = [x for x in self._properties if x == property_iri]
             if len(prop) != 1:
-                OmasError(f'Property "{property_iri}" from OWL has no SHACL definition!')
+                OldapError(f'Property "{property_iri}" from OWL has no SHACL definition!')
             self._properties[prop[0]].prop.read_owl()
 
     @classmethod
     def read(cls, con: IConnection, project: Project, owl_class_iri: Iri) -> Self:
         if not isinstance(project, Project):
-            raise OmasErrorValue('The project parameter must be a Project instance')
+            raise OldapErrorValue('The project parameter must be a Project instance')
 
         properties: List[Union[PropertyClass, Iri]] = ResourceClass.__query_resource_props(con=con, project=project, owlclass_iri=owl_class_iri)
         resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, properties=properties)
@@ -660,7 +660,7 @@ class ResourceClass(Model, Notify):
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
-            raise OmasErrorAlreadyExists(f'Cannot create property that was read from triplestore before (property: {self._owlclass_iri}')
+            raise OldapErrorAlreadyExists(f'Cannot create property that was read from triplestore before (property: {self._owlclass_iri}')
         timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
@@ -679,7 +679,7 @@ class ResourceClass(Model, Notify):
         self._con.transaction_start()
         if self.read_modified_shacl(context=context, graph=self._graph) is not None:
             self._con.transaction_abort()
-            raise OmasErrorAlreadyExists(f'Object "{self._owlclass_iri}" already exists.')
+            raise OldapErrorAlreadyExists(f'Object "{self._owlclass_iri}" already exists.')
         self._con.transaction_update(sparql)
         modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
         modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
@@ -688,7 +688,7 @@ class ResourceClass(Model, Notify):
             self.set_creation_metadata(timestamp=timestamp)
         else:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
+            raise OldapErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         with open(filename, 'w') as f:
@@ -874,7 +874,7 @@ class ResourceClass(Model, Notify):
                     if self._properties[prop].get(PropClassAttr.EXCLUSIVE_FOR) is None:
                         continue  # TODO: replace reference in __update_shacl and __update_owl
                     else:
-                        raise OmasErrorInconsistency(f'Property is exclusive – simple reference not allowed')
+                        raise OldapErrorInconsistency(f'Property is exclusive – simple reference not allowed')
             elif change.action == Action.MODIFY:
                 self._properties[prop].update()
             elif change.action == Action.DELETE:
@@ -895,7 +895,7 @@ class ResourceClass(Model, Notify):
             self.__contributor = self._con.userIri
         else:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
+            raise OldapErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
 
     def __delete_shacl(self) -> str:
         sparql = f'#\n# SHALC: Delete "{self._owlclass_iri}" completely\n#\n'
@@ -968,7 +968,7 @@ class ResourceClass(Model, Notify):
         res_onto = QueryProcessor(context, jsonobj)
         if len(res_shacl) > 0 or len(res_onto) > 0:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed(f'Could not delete "{self._owlclass_iri}".')
+            raise OldapErrorUpdateFailed(f'Could not delete "{self._owlclass_iri}".')
         else:
             self._con.transaction_commit()
 

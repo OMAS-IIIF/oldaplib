@@ -27,7 +27,7 @@ from oldap.src.xsd.xsd_qname import Xsd_QName
 from oldap.src.xsd.xsd_ncname import Xsd_NCName
 from oldap.src.xsd.xsd_datetime import Xsd_dateTime
 from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.omaserror import OmasError, OmasErrorNotFound, OmasErrorAlreadyExists, OmasErrorUpdateFailed, OmasErrorValue, OmasErrorInconsistency
+from oldap.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorUpdateFailed, OldapErrorValue, OldapErrorInconsistency
 from oldap.src.enums.propertyclassattr import PropClassAttr
 from oldap.src.helpers.query_processor import RowType, QueryProcessor
 from oldap.src.helpers.semantic_version import SemanticVersion
@@ -176,7 +176,7 @@ class PropertyClass(Model, Notify):
         Notify.__init__(self, notifier, notify_data)
 
         if not isinstance(project, Project):
-            raise OmasErrorValue('The project parameter must be a Project instance')
+            raise OldapErrorValue('The project parameter must be a Project instance')
         self._project = project
         context = Context(name=self._con.context_name)
         context[project.projectShortName] = project.namespaceIri
@@ -196,7 +196,7 @@ class PropertyClass(Model, Notify):
                 try:
                     self._attributes[PropClassAttr.DATATYPE] = XsdDatatypes(datatype)
                 except ValueError as err:
-                    raise OmasErrorValue(str(err))
+                    raise OldapErrorValue(str(err))
         if name is not None:
             self._attributes[PropClassAttr.NAME] = name if isinstance(name, LangString) else LangString(name)
             self._attributes[PropClassAttr.NAME].set_notifier(self.notifier, PropClassAttr.NAME)
@@ -243,15 +243,15 @@ class PropertyClass(Model, Notify):
             if self._attributes.get(PropClassAttr.DATATYPE) is None:
                 self._attributes[PropClassAttr.DATATYPE] = XsdDatatypes.langString
             elif self._attributes[PropClassAttr.DATATYPE] != XsdDatatypes.langString:
-                raise OmasErrorValue(f'Using restriction LANGUAGE_IN requires DATATYPE "rdf:langString", not "{self._attributes[PropClassAttr.DATATYPE].value}"')
+                raise OldapErrorValue(f'Using restriction LANGUAGE_IN requires DATATYPE "rdf:langString", not "{self._attributes[PropClassAttr.DATATYPE].value}"')
         if self._attributes.get(PropClassAttr.DATATYPE) is not None and self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
-            raise OmasErrorInconsistency(f'It\'s not possible to use both DATATYPE="{self._attributes[PropClassAttr.DATATYPE]}" and TO_NODE_IRI={self._attributes[PropClassAttr.TO_NODE_IRI]} restrictions.')
+            raise OldapErrorInconsistency(f'It\'s not possible to use both DATATYPE="{self._attributes[PropClassAttr.DATATYPE]}" and TO_NODE_IRI={self._attributes[PropClassAttr.TO_NODE_IRI]} restrictions.')
 
         # setting property type for OWL which distinguished between Data- and Object-properties
         if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
             self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
             if self._attributes.get(PropClassAttr.DATATYPE) is not None:
-                raise OmasError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
+                raise OldapError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
         else:
             self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
 
@@ -296,7 +296,7 @@ class PropertyClass(Model, Notify):
 
     def __change_setter(self: Self, attr: PropClassAttr, value: PropTypes) -> None:
         if not isinstance(attr, PropClassAttr):
-            raise OmasError(f'Unsupported prop {attr}')
+            raise OldapError(f'Unsupported prop {attr}')
         if self._attributes.get(attr) == value:
             return
         if getattr(value, 'set_notifier', None) is not None:
@@ -449,7 +449,7 @@ class PropertyClass(Model, Notify):
         jsonres = self._con.query(query)
         res = QueryProcessor(jsonres)
         if len(res) != 1:
-            raise OmasError('Internal Error in "propertyClass.in_use"')
+            raise OldapError('Internal Error in "propertyClass.in_use"')
         for r in res:
             if r['nresinstances'] > 0:
                 return True
@@ -474,10 +474,10 @@ class PropertyClass(Model, Notify):
                 try:
                     attributes[attriri].add(r['value'])
                 except AttributeError as err:
-                    raise OmasError(f'Invalid value for attribute {attriri}: {err}.')
+                    raise OldapError(f'Invalid value for attribute {attriri}: {err}.')
             else:
                 if attributes.get(attriri) is not None:
-                    raise OmasError(f'Property attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
+                    raise OldapError(f'Property attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
                 attributes[attriri] = r['value']
 
     @staticmethod
@@ -498,7 +498,7 @@ class PropertyClass(Model, Notify):
         jsonobj = con.query(query)
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OmasErrorNotFound(f'Property "{property_class_iri}" not found.')
+            raise OldapErrorNotFound(f'Property "{property_class_iri}" not found.')
         attributes: Attributes = {}
         for r in res:
             PropertyClass.process_triple(r, attributes)
@@ -516,45 +516,45 @@ class PropertyClass(Model, Notify):
         for key, val in attributes.items():
             if key == 'rdf:type':
                 if val != 'sh:PropertyShape':
-                    raise OmasError(f'Inconsistency, expected "sh:PropertyType", got "{val}".')
+                    raise OldapError(f'Inconsistency, expected "sh:PropertyType", got "{val}".')
                 continue
             elif key == 'sh:path':
                 if isinstance(val, Iri):
                     self._property_class_iri = val
                 else:
-                    raise OmasError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}"')
+                    raise OldapError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}"')
             elif key == 'dcterms:hasVersion':
                 if isinstance(val, Xsd_string):
                     self.__version = SemanticVersion.fromString(str(val))
                 else:
-                    raise OmasError(f'Inconsistency in SHACL "dcterms:hasVersion"')
+                    raise OldapError(f'Inconsistency in SHACL "dcterms:hasVersion"')
             elif key == 'dcterms:creator':
                 if isinstance(val, Iri):
                     self.__creator = val
                 else:
-                    raise OmasError(f'Inconsistency in SHACL "dcterms:creator"')
+                    raise OldapError(f'Inconsistency in SHACL "dcterms:creator"')
             elif key == 'dcterms:created':
                 if isinstance(val, Xsd_dateTime):
                     self.__created = val
                 else:
-                    raise OmasError(f'Inconsistency in SHACL "dcterms:created"')
+                    raise OldapError(f'Inconsistency in SHACL "dcterms:created"')
             elif key == 'dcterms:contributor':
                 if isinstance(val, Iri):
                     self.__contributor = val
                 else:
-                    raise OmasError(f'Inconsistency in SHACL "dcterms:contributor"')
+                    raise OldapError(f'Inconsistency in SHACL "dcterms:contributor"')
             elif key == 'dcterms:modified':
                 if isinstance(val, Xsd_dateTime):
                     self.__modified = val
                 else:
-                    raise OmasError(f'Inconsistency in SHACL "dcterms:modified"')
+                    raise OldapError(f'Inconsistency in SHACL "dcterms:modified"')
             elif key == 'sh:group':
                 pass  # TODO: Process property group correctly.... (at Moment only omas:SystemPropGroup)
             elif key in propkeys:
                 attr = PropClassAttr(key)
                 if self.__datatypes[attr] == Numeric:
                     if not isinstance(val, (Xsd_integer, Xsd_float)):
-                        raise OmasErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
+                        raise OldapErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
                 else:
                     self._attributes[attr] = self.__datatypes[attr](val)
 
@@ -562,7 +562,7 @@ class PropertyClass(Model, Notify):
             self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
             dt = self._attributes.get(PropClassAttr.DATATYPE)
             if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
-                raise OmasError(f'Datatype "{dt}" not valid for OwlObjectProperty')
+                raise OldapError(f'Datatype "{dt}" not valid for OwlObjectProperty')
         else:
             self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
         for attr, value in self._attributes.items():
@@ -604,32 +604,32 @@ class PropertyClass(Model, Notify):
                     self._internal = obj
                 case 'dcterms:creator':
                     if self.__creator != obj:
-                        raise OmasError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}" for property "{self._property_class_iri}".')
+                        raise OldapError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}" for property "{self._property_class_iri}".')
                 case 'dcterms:created':
                     dt = obj
                     if self.__created != dt:
-                        raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__created}" vs "{dt}".')
+                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self.__created}" vs "{dt}".')
                 case 'dcterms:contributor':
                     if self.__creator != obj:
-                        raise OmasError(f'Inconsistency between SHACL and OWL: contributor "{self.__contributor}" vs "{obj}".')
+                        raise OldapError(f'Inconsistency between SHACL and OWL: contributor "{self.__contributor}" vs "{obj}".')
                 case 'dcterms:modified':
                     dt = obj
                     if self.__modified != dt:
-                        raise OmasError(f'Inconsistency between SHACL and OWL: created "{self.__modified}" vs "{dt}".')
+                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self.__modified}" vs "{dt}".')
         #
         # Consistency checks
         #
         if self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
             if not datatype:
-                raise OmasError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
+                raise OldapError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
             if datatype != self._attributes.get(PropClassAttr.DATATYPE).value:
-                raise OmasError(
+                raise OldapError(
                     f'Property "{self._property_class_iri}" has inconsistent datatype definitions: OWL: "{datatype}" vs. SHACL: "{self._attributes[PropClassAttr.DATATYPE].value}"')
         if self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
             if not to_node_iri:
-                raise OmasError(f'OwlObjectProperty "{self._property_class_iri}" has no rdfs:range resource class defined!')
+                raise OldapError(f'OwlObjectProperty "{self._property_class_iri}" has no rdfs:range resource class defined!')
             if to_node_iri != self._attributes.get(PropClassAttr.TO_NODE_IRI):
-                raise OmasError(
+                raise OldapError(
                     f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropClassAttr.TO_NODE_IRI)}".')
 
     @classmethod
@@ -782,7 +782,7 @@ class PropertyClass(Model, Notify):
     def create(self, *,
                indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
-            raise OmasErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
+            raise OldapErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
         timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
@@ -807,33 +807,33 @@ class PropertyClass(Model, Notify):
 
         try:
             self._con.transaction_start()
-        except OmasError as err:
+        except OldapError as err:
             self._con.transaction_abort()
             raise
         try:
             r = self.read_modified_shacl(context=context, graph=self._graph)
-        except OmasError as err:
+        except OldapError as err:
             self._con.transaction_abort()
             raise
         if r is not None:
             self._con.transaction_abort()
-            raise OmasErrorAlreadyExists(f'Property "{self._property_class_iri}" already exists.')
+            raise OldapErrorAlreadyExists(f'Property "{self._property_class_iri}" already exists.')
         try:
             self._con.transaction_update(sparql)
-        except OmasError as err:
+        except OldapError as err:
             self._con.transaction_abort()
             raise
         try:
             modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
             modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
-        except OmasError as err:
+        except OldapError as err:
             self._con.transaction_abort()
             raise
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
         else:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed(f"Update of RDF didn't work!")
+            raise OldapErrorUpdateFailed(f"Update of RDF didn't work!")
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         with open(filename, 'w') as f:
@@ -870,7 +870,7 @@ class PropertyClass(Model, Notify):
                                                                   modified=self.__modified,
                                                                   indent=indent, indent_inc=indent_inc)
                 else:
-                    raise OmasError(f'SHACL property {prop.value} should not have update action "MODIFY" ({PropertyClass.__datatypes[prop]}).')
+                    raise OldapError(f'SHACL property {prop.value} should not have update action "MODIFY" ({PropertyClass.__datatypes[prop]}).')
                 sparql_list.append(sparql)
             else:
                 if change.action == Action.DELETE:
@@ -883,7 +883,7 @@ class PropertyClass(Model, Notify):
                     old_value = change.old_value.toRdf
                     new_value = self._attributes[prop].toRdf
                 else:
-                    raise OmasError(f'An unexpected Action occured: {change.action} for {prop.value}.')
+                    raise OldapError(f'An unexpected Action occured: {change.action} for {prop.value}.')
                 ele = RdfModifyItem(prop.value, old_value, new_value)
                 if self.__datatypes[prop] in {XsdSet, LanguageIn}:
                     sparql += RdfModifyProp.replace_rdfset(action=change.action,
@@ -1021,17 +1021,17 @@ class PropertyClass(Model, Notify):
                                   timestamp=timestamp)
         try:
             self._con.transaction_update(sparql)
-        except OmasError as e:
+        except OldapError as e:
             self._con.transaction_abort()
             raise
         try:
             modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
-        except OmasError as e:
+        except OldapError as e:
             self._con.transaction_abort()
             raise
         try:
             modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
-        except OmasError as e:
+        except OldapError as e:
             self._con.transaction_abort()
             raise
 
@@ -1045,7 +1045,7 @@ class PropertyClass(Model, Notify):
             self._changeset = {}
         else:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} owl={modtime_owl} timestamp={timestamp}')
+            raise OldapErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} owl={modtime_owl} timestamp={timestamp}')
 
     def __delete_shacl(self, *,
                        indent: int = 0, indent_inc: int = 4) -> str:
@@ -1162,7 +1162,7 @@ class PropertyClass(Model, Notify):
         modtime_owl = self.read_modified_owl(context=context, graph='test')
         if modtime_shacl is not None or modtime_owl is not None:
             self._con.transaction_abort()
-            raise OmasErrorUpdateFailed("Deleting Property failed")
+            raise OldapErrorUpdateFailed("Deleting Property failed")
         else:
             self._con.transaction_commit()
 

@@ -3,7 +3,7 @@ from typing import Set, List, Dict, Iterable, Iterator, Self, TypeVar, Generic
 from pystrict import strict
 
 from oldap.src.helpers.Notify import Notify
-from oldap.src.helpers.omaserror import OmasErrorValue, OmasErrorType
+from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
 from oldap.src.helpers.serializer import serializer
 from oldap.src.xsd.xsd import Xsd
 
@@ -52,35 +52,35 @@ class RdfSet(Generic[T], Notify):
         elif isinstance(other, set):
             return self.__data == other
         else:
-            raise OmasErrorValue(f"Comparison between RdfSet and {type(other)} not possible")
+            raise OldapErrorValue(f"Comparison between RdfSet and {type(other)} not possible")
 
     def __gt__(self, other: Self | set[T]) -> bool:
         if isinstance(other, RdfSet):
             return self.__data > other.__data
         if isinstance(other, set):
             return self.__data > other
-        raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
+        raise OldapErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
 
     def __ge__(self, other: Self | set[T]) -> bool:
         if isinstance(other, RdfSet):
             return self.__data >= other.__data
         if isinstance(other, set):
             return self.__data >= other
-        raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
+        raise OldapErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
 
     def __lt__(self, other: Self | set[T]) -> bool:
         if isinstance(other, RdfSet):
             return self.__data < other.__data
         if isinstance(other, set):
             return self.__data < other
-        raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
+        raise OldapErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
 
     def __le__(self, other: Self | set[T]) -> bool:
         if isinstance(other, RdfSet):
             return self.__data <= other.__data
         if isinstance(other, set):
             return self.__data <= other
-        raise OmasErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
+        raise OldapErrorType(f'Cannot compare {type(self).__name__} to {type(other).__name__}')
 
     def __str__(self) -> str:
         return '(' + ", ".join(map(str, self.__data)) + ')'
