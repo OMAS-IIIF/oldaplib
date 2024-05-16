@@ -1,7 +1,7 @@
 import json
 from enum import Enum
 
-from omaslib.src.helpers.serializer import serializer
+from oldap.src.helpers.serializer import serializer
 
 
 @serializer
