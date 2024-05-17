@@ -1,7 +1,7 @@
 import unittest
 
-from oldap.src.helpers.oldaperror import OldapErrorValue
-from oldap.src.helpers.semantic_version import SemanticVersion
+from oldaplib.src.helpers.oldaperror import OldapErrorValue
+from oldaplib.src.helpers.semantic_version import SemanticVersion
 
 
 class TestSemanticVersion(unittest.TestCase):

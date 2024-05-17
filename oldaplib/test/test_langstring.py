@@ -1,15 +1,15 @@
 import unittest
 from datetime import datetime
 
-from oldap.src.enums.propertyclassattr import PropClassAttr
-from oldap.src.enums.action import Action
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.langstring import LangString, LangStringChange
-from oldap.src.enums.language import Language
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorValue
+from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.enums.action import Action
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.helpers.langstring import LangString, LangStringChange
+from oldaplib.src.enums.language import Language
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue
 
 
 class TestLangstring(unittest.TestCase):
@@ -227,33 +227,33 @@ class TestLangstring(unittest.TestCase):
         ls1 = LangString(["english@en", "deutsch@de"])
         ls1.add({Language.FR: "français", Language.ZU: "undefined"})
         del ls1[Language.EN]
-        qlist = ls1.update(graph=Xsd_QName("oldap:test"),
-                           subject=Iri("oldap:subj"),
+        qlist = ls1.update(graph=Xsd_QName("oldaplib:test"),
+                           subject=Iri("oldaplib:subj"),
                            subjectvar="?subj",
-                           field=Xsd_QName("oldap:prop"))
+                           field=Xsd_QName("oldaplib:prop"))
         qstr = " ;\n".join(qlist)
         expected = """INSERT DATA {
-    GRAPH oldap:test {
-        oldap:subj oldap:prop "français"@fr .
+    GRAPH oldaplib:test {
+        oldaplib:subj oldaplib:prop "français"@fr .
     }
 }
  ;
 INSERT DATA {
-    GRAPH oldap:test {
-        oldap:subj oldap:prop "undefined"@zu .
+    GRAPH oldaplib:test {
+        oldaplib:subj oldaplib:prop "undefined"@zu .
     }
 }
  ;
 DELETE DATA {
-    GRAPH oldap:test {
-        oldap:subj oldap:prop "english"@en .
+    GRAPH oldaplib:test {
+        oldaplib:subj oldaplib:prop "english"@en .
     }
 }
 """
         self.assertEqual(qstr, expected)
 
         sstr = ls1.update_shacl(graph=Xsd_NCName("test"),
-                                prop_iri=Iri('oldap:prop'),
+                                prop_iri=Iri('oldaplib:prop'),
                                 attr=PropClassAttr.NAME,
                                 modified=Xsd_dateTime("2023-11-04T12:00:00Z"))
         expected = """# LangString: Process "FR" with Action "create"
@@ -262,7 +262,7 @@ INSERT {
     ?prop sh:name "français"@fr .
 }
 WHERE {
-    BIND(oldap:propShape as ?prop) .
+    BIND(oldaplib:propShape as ?prop) .
     ?prop dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
 };
@@ -272,7 +272,7 @@ INSERT {
     ?prop sh:name "undefined"@zu .
 }
 WHERE {
-    BIND(oldap:propShape as ?prop) .
+    BIND(oldaplib:propShape as ?prop) .
     ?prop dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
 };
@@ -282,7 +282,7 @@ DELETE {
     ?prop sh:name "english"@en .
 }
 WHERE {
-    BIND(oldap:propShape as ?prop) .
+    BIND(oldaplib:propShape as ?prop) .
     ?prop sh:name "english"@en .
     ?prop dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)

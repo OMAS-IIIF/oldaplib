@@ -2,11 +2,11 @@ import uuid
 from enum import unique, Enum
 from typing import Self
 
-from oldap.src.helpers.oldaperror import OldapErrorValue
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd import Xsd
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.helpers.oldaperror import OldapErrorValue
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd import Xsd
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
 @unique

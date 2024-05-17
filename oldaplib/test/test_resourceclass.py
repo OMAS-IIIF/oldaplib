@@ -6,30 +6,30 @@ from enum import Enum
 from pathlib import Path
 from time import sleep
 
-from oldap.src.connection import Connection
-from oldap.src.dtypes.languagein import LanguageIn
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.dtypes.rdfset import RdfSet
-from oldap.src.enums.language import Language
-from oldap.src.enums.propertyclassattr import PropClassAttr
-from oldap.src.enums.resourceclassattr import ResourceClassAttribute
-from oldap.src.enums.xsd_datatypes import XsdDatatypes
-from oldap.src.helpers.context import Context
-from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.oldaperror import OldapErrorAlreadyExists
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.helpers.semantic_version import SemanticVersion
-from oldap.src.project import Project
-from oldap.src.propertyclass import PropClassAttrContainer, PropertyClass, OwlPropertyType
-from oldap.src.resourceclass import ResourceClass
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_boolean import Xsd_boolean
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_decimal import Xsd_decimal
-from oldap.src.xsd.xsd_integer import Xsd_integer
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.connection import Connection
+from oldaplib.src.dtypes.languagein import LanguageIn
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.dtypes.rdfset import RdfSet
+from oldaplib.src.enums.language import Language
+from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.enums.resourceclassattr import ResourceClassAttribute
+from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.semantic_version import SemanticVersion
+from oldaplib.src.project import Project
+from oldaplib.src.propertyclass import PropClassAttrContainer, PropertyClass, OwlPropertyType
+from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 class Graph(Enum):
@@ -117,7 +117,7 @@ class TestResourceClass(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dcterms:shacl'))
         cls._connection.clear_graph(Xsd_QName('dcterms:onto'))
 
-        file = project_root / 'oldap' / 'testdata' / 'connection_test.trig'
+        file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
         cls._project = Project.read(cls._connection, "test")

@@ -4,29 +4,29 @@ from functools import partial
 from typing import Union, List, Dict, Callable, Self
 from pystrict import strict
 
-from oldap.src.connection import Connection
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.helpers.Notify import Notify
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorUpdateFailed, OldapErrorValue
-from oldap.src.enums.propertyclassattr import PropClassAttr
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.enums.resourceclassattr import ResourceClassAttribute
-from oldap.src.helpers.semantic_version import SemanticVersion
-from oldap.src.helpers.tools import RdfModifyRes, RdfModifyItem
-from oldap.src.enums.xsd_datatypes import XsdDatatypes
-from oldap.src.dtypes.bnode import BNode
-from oldap.src.enums.action import Action
-from oldap.src.project import Project
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_boolean import Xsd_boolean
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.context import Context
-from oldap.src.iconnection import IConnection
-from oldap.src.model import Model
-from oldap.src.propertyclass import PropertyClass, Attributes
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.connection import Connection
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorUpdateFailed, OldapErrorValue
+from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.enums.resourceclassattr import ResourceClassAttribute
+from oldaplib.src.helpers.semantic_version import SemanticVersion
+from oldaplib.src.helpers.tools import RdfModifyRes, RdfModifyItem
+from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.dtypes.bnode import BNode
+from oldaplib.src.enums.action import Action
+from oldaplib.src.project import Project
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.model import Model
+from oldaplib.src.propertyclass import PropertyClass, Attributes
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 #
 # Datatype definitions

@@ -9,9 +9,9 @@ from typing import List, Callable, Any, Iterable, Set, Self
 
 from pystrict import strict
 
-from oldap.src.enums.action import Action
-from oldap.src.helpers.oldaperror import OldapErrorKey
-from oldap.src.helpers.serializer import serializer
+from oldaplib.src.enums.action import Action
+from oldaplib.src.helpers.oldaperror import OldapErrorKey
+from oldaplib.src.helpers.serializer import serializer
 
 
 #@strict

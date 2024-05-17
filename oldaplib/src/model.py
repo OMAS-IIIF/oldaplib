@@ -3,15 +3,15 @@ from typing import List, Set, Dict, Tuple, Optional, Any, Union
 
 from pystrict import strict
 
-from oldap.src.helpers.context import Context
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorNotFound
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.helpers.tools import lprint
-from oldap.src.iconnection import IConnection
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.tools import lprint
+from oldaplib.src.iconnection import IConnection
 
 
 #@strict

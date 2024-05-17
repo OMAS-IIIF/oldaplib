@@ -7,25 +7,25 @@ from pystrict import strict
 from typing import List, Dict, Optional, Self
 from datetime import date, datetime
 
-from oldap.src.enums.permissions import AdminPermission
-from oldap.src.helpers.context import Context
-from oldap.src.enums.action import Action
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.helpers.tools import lprint
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.xsd.xsd_date import Xsd_date
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd import Xsd
-from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, \
+from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.enums.action import Action
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.helpers.tools import lprint
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_date import Xsd_date
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd import Xsd
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, \
     OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound, OldapErrorInconsistency
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.iconnection import IConnection
-from oldap.src.model import Model
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.model import Model
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 ProjectAttrTypes = LangString | Xsd | None
 
@@ -61,8 +61,8 @@ class Project(Model):
 
     - `projectIri: Iri | None` [optional]:
       The IRI that uniquely identifies this project. This can be an
-      [Iri](/python_docstrings/datatypes#oldap.src.helpers.datatypes.Iri) instance or a string with either an Iri or Qname
-      [QName](/python_docstrings/datatypes#oldap.src.helpers.datatypes.QName). If the `projectIri` is ommitted,
+      [Iri](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.Iri) instance or a string with either an Iri or Qname
+      [QName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.QName). If the `projectIri` is ommitted,
       a random IRI based on the URN semantics will be generated.
     - `projectShortName: Xsd_NCName | str` [mandatory]:
       The short name of the project that must be a NCName or a string
@@ -72,7 +72,7 @@ class Project(Model):
       A multilingual description of the project (`rdfs:comment`)
     - `namespaceIri: NamespaceIri` [mandatory]:
        The namespace that the project uses for its data and data model. Must be
-       a [NamespaceIRI](/python_docstrings/datatypes#oldap.src.helpers.datatypes.NamespaceIRI).
+       a [NamespaceIRI](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.NamespaceIRI).
     - `projectStart: Xsd_date | date | None` [optional]:
       The start date of the project.  Must be a Python `date` type. If not set,
        the current date will be used.
@@ -81,15 +81,15 @@ class Project(Model):
 
     The class provides the following methods:
 
-    - [Project(...)](/python_docstrings/project#oldap.src.project.Project.__init__)): Constructor
-    - [read(...)](/python_docstrings/project#oldap.src.project.Project.read):
+    - [Project(...)](/python_docstrings/project#oldaplib.src.project.Project.__init__)): Constructor
+    - [read(...)](/python_docstrings/project#oldaplib.src.project.Project.read):
       Read project form triplestore and return a Project-instance
-    - [search(...)](/python_docstrings/project#oldap.src.project.Project.search):
+    - [search(...)](/python_docstrings/project#oldaplib.src.project.Project.search):
       Search a Project in the triplestore
-    - [create(...)](/python_docstrings/project#oldap.src.project.Project.create): Create a new project in the triplestore
-    - [update(...)](/python_docstrings/project#oldap.src.project.Project.update):
+    - [create(...)](/python_docstrings/project#oldaplib.src.project.Project.create): Create a new project in the triplestore
+    - [update(...)](/python_docstrings/project#oldaplib.src.project.Project.update):
       Write changes to triplestore
-    - [delete(...)](/python_docstrings/project#oldap.src.project.Project.update):
+    - [delete(...)](/python_docstrings/project#oldaplib.src.project.Project.update):
       Delete a project in the triplestore
 
     The class provides the following properties:
@@ -100,16 +100,16 @@ class Project(Model):
     - `projectComment` [read/write]: The projects comment/description as multilingual
       [LangString](/python_docstrings/langstring)
     - `namespaceIri` [read only]: The namespace that the project uses for its data and data model. Must be
-      a [NamespaceIRI](/python_docstrings/datatypes#oldap.src.helpers.datatypes.NamespaceIRI).
+      a [NamespaceIRI](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.NamespaceIRI).
     - `projectStart` [read/write]: The start date of the project. Must be a Python `date` type
     - `projectEnd` [read/write]: The end date of the project. Must be a Python `date` type
     - `creator` [read only]: The creator of the project. Must be a
-      [AnyIRI](/python_docstrings/datatypes#oldap.src.helpers.datatypes.AnyIRI) or
-      [QName](/python_docstrings/datatypes#oldap.src.helpers.datatypes.AnyIRI)
+      [AnyIRI](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.AnyIRI) or
+      [QName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.AnyIRI)
     - `created` [read only]: The creation date of the project. Must be a Python `date` type
     - `contributor` [read only]: The person which made the last changes to the project data. Must be a
-      [AnyIRI](/python_docstrings/datatypes#oldap.src.helpers.datatypes.AnyIRI) or
-      [QName](/python_docstrings/datatypes#oldap.src.helpers.datatypes.AnyIRI)
+      [AnyIRI](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.AnyIRI) or
+      [QName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.AnyIRI)
     - `modified` [read only]: The modification date of the project. Must be a Python `date` type
 
     """

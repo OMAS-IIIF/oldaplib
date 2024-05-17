@@ -4,7 +4,7 @@ from typing import Callable, Self, Any, Iterable, Mapping
 
 from pystrict import strict
 
-from oldap.src.helpers.serializer import serializer
+from oldaplib.src.helpers.serializer import serializer
 
 
 #@strict

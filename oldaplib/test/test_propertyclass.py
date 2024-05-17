@@ -2,29 +2,29 @@ import unittest
 from pathlib import Path
 from time import sleep
 
-from oldap.src.connection import Connection
-from oldap.src.dtypes.languagein import LanguageIn
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.dtypes.rdfset import RdfSet
-from oldap.src.dtypes.xsdset import XsdSet
-from oldap.src.enums.action import Action
-from oldap.src.enums.language import Language
-from oldap.src.enums.propertyclassattr import PropClassAttr
-from oldap.src.enums.xsd_datatypes import XsdDatatypes
-from oldap.src.helpers.context import Context
-from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.project import Project
-from oldap.src.propertyclass import PropertyClass, OwlPropertyType, \
+from oldaplib.src.connection import Connection
+from oldaplib.src.dtypes.languagein import LanguageIn
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.dtypes.rdfset import RdfSet
+from oldaplib.src.dtypes.xsdset import XsdSet
+from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.language import Language
+from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.project import Project
+from oldaplib.src.propertyclass import PropertyClass, OwlPropertyType, \
     PropClassAttrChange
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_boolean import Xsd_boolean
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_decimal import Xsd_decimal
-from oldap.src.xsd.xsd_integer import Xsd_integer
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 def find_project_root(current_path):
@@ -57,7 +57,7 @@ class TestPropertyClass(unittest.TestCase):
 
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
-        file = project_root / 'oldap' / 'testdata' / 'connection_test.trig'
+        file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
         cls._project = Project.read(cls._connection, "test")

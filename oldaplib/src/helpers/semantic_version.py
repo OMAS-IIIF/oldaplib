@@ -1,6 +1,6 @@
 from typing import Self
 
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorValue
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue
 
 
 class SemanticVersion:

@@ -1,13 +1,13 @@
 import json
 import unittest
 
-from oldap.src.enums.permissions import AdminPermission
-from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorKey
-from oldap.src.helpers.serializer import serializer
-from oldap.src.in_project import InProjectClass
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorKey
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.in_project import InProjectClass
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 class TestInproject(unittest.TestCase):

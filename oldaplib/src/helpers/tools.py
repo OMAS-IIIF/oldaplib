@@ -3,12 +3,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List, Tuple, Union
 
-from oldap.src.enums.action import Action
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.enums.action import Action
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 
 def lprint(text: str):

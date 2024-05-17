@@ -10,17 +10,17 @@ from typing import Dict, List, Optional, Callable, Self
 
 from pystrict import strict
 
-from oldap.src.helpers.Notify import Notify
-from oldap.src.enums.action import Action
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.enums.language import Language
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorValue
-from oldap.src.enums.propertyclassattr import PropClassAttr
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.enums.action import Action
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.enums.language import Language
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue
+from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 @dataclass

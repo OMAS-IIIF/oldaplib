@@ -2,22 +2,22 @@ import json
 import unittest
 from pathlib import Path
 
-from oldap.src.connection import Connection
-from oldap.src.dtypes.bnode import BNode
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.dtypes.rdfset import RdfSet
-from oldap.src.dtypes.xsdset import XsdSet
-from oldap.src.enums.language import Language
-from oldap.src.helpers.context import Context
-from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd import Xsd
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_integer import Xsd_integer
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.connection import Connection
+from oldaplib.src.dtypes.bnode import BNode
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.dtypes.rdfset import RdfSet
+from oldaplib.src.dtypes.xsdset import XsdSet
+from oldaplib.src.enums.language import Language
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd import Xsd
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 def find_project_root(current_path):

@@ -3,19 +3,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from time import sleep
 
-from oldap.src.connection import Connection
-from oldap.src.enums.sparql_result_format import SparqlResultFormat
-from oldap.src.helpers.context import Context
-from oldap.src.dtypes.bnode import BNode
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_boolean import Xsd_boolean
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorNotFound
-from oldap.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.connection import Connection
+from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.dtypes.bnode import BNode
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound
+from oldaplib.src.helpers.query_processor import QueryProcessor
 
 def find_project_root(current_path):
     # Climb up the directory hierarchy and check for a marker file
@@ -46,7 +46,7 @@ class TestBasicConnection(unittest.TestCase):
 
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
-        file = project_root / 'oldap' / 'testdata' / 'connection_test.trig'
+        file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
 
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...

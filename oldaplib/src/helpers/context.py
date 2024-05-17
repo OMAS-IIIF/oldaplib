@@ -12,11 +12,11 @@ from typing import Dict, List
 
 from pystrict import strict
 
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.oldaperror import OldapError
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.helpers.oldaperror import OldapError
 
 DEFAULT_CONTEXT = "OMAS_DEFAULT_CONTEXT"
 

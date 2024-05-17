@@ -3,9 +3,9 @@ from typing import Any
 from pystrict import strict
 from rdflib import BNode
 
-from oldap.src.helpers.oldaperror import OldapErrorValue
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.helpers.oldaperror import OldapErrorValue
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
 #@strict

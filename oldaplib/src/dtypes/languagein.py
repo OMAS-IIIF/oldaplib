@@ -3,12 +3,12 @@ from typing import Iterator, Self, Iterable
 
 from pystrict import strict
 
-from oldap.src.dtypes.rdfset import RdfSet
-from oldap.src.enums.language import Language
-from oldap.src.helpers.Notify import Notify
-from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType, OldapErrorKey
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.dtypes.rdfset import RdfSet
+from oldaplib.src.enums.language import Language
+from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorType, OldapErrorKey
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 @serializer

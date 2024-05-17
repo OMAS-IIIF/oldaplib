@@ -2,10 +2,10 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.oldaperror import OldapErrorValue
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd import Xsd
-from oldap.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.helpers.oldaperror import OldapErrorValue
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd import Xsd
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
 
 
 #@strict

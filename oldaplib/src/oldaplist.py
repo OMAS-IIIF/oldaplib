@@ -3,21 +3,21 @@ from enum import Enum, unique
 from functools import partial
 from typing import Self
 
-from oldap.src.enums.action import Action
-from oldap.src.enums.permissions import AdminPermission
-from oldap.src.helpers.context import Context
-from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorInconsistency, OldapErrorImmutable, OldapError, OldapErrorNoPermission, OldapErrorAlreadyExists, \
+from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorInconsistency, OldapErrorImmutable, OldapError, OldapErrorNoPermission, OldapErrorAlreadyExists, \
     OldapErrorNotFound, OldapErrorUpdateFailed, OldapErrorInUse
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.iconnection import IConnection
-from oldap.src.model import Model
-from oldap.src.project import Project
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.model import Model
+from oldaplib.src.project import Project
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 OldapListAttrTypes = LangString | Iri | None
 

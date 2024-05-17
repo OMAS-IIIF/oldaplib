@@ -1,6 +1,6 @@
 from typing import Optional
 
-from oldap.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
 class PropertyClassSingleton(type):

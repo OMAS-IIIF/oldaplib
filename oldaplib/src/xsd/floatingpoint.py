@@ -3,9 +3,9 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd import Xsd
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd import Xsd
 
 
 #@strict

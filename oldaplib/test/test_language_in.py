@@ -1,8 +1,8 @@
 import unittest
 
-from oldap.src.dtypes.languagein import LanguageIn
-from oldap.src.enums.language import Language
-from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType, OldapErrorKey
+from oldaplib.src.dtypes.languagein import LanguageIn
+from oldaplib.src.enums.language import Language
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorType, OldapErrorKey
 
 
 class TestLanguageIn(unittest.TestCase):

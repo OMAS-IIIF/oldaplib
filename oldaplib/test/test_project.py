@@ -3,17 +3,17 @@ from datetime import date
 from pathlib import Path
 from time import sleep
 
-from oldap.src.connection import Connection
-from oldap.src.enums.language import Language
-from oldap.src.helpers.context import Context
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.xsd.xsd_date import Xsd_date
-from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission
-from oldap.src.project import Project
+from oldaplib.src.connection import Connection
+from oldaplib.src.enums.language import Language
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_date import Xsd_date
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission
+from oldaplib.src.project import Project
 
 
 def find_project_root(current_path):
@@ -50,14 +50,14 @@ class Testproject(unittest.TestCase):
 
 
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
-        file = project_root / 'oldap' / 'ontologies' / 'admin.trig'
+        file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 
     @classmethod
     def tearDownClass(cls):
         #cls._connection.clear_graph(Xsd_QName('oldap:admin'))
-        #cls._connection.upload_turtle("oldap/ontologies/admin.trig")
+        #cls._connection.upload_turtle("oldaplib/ontologies/admin.trig")
         #sleep(1)  # upload may take a while...
         pass
 

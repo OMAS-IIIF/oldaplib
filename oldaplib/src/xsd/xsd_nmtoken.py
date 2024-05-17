@@ -3,10 +3,10 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
-from oldap.src.helpers.oldaperror import OldapErrorValue
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd import Xsd
+from oldaplib.src.enums.xsd_datatypes import XsdValidator, XsdDatatypes
+from oldaplib.src.helpers.oldaperror import OldapErrorValue
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd import Xsd
 
 
 #@strict

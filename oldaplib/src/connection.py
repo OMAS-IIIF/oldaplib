@@ -12,17 +12,17 @@ from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
-from oldap.src.enums.permissions import AdminPermission
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorNoPermission
-from oldap.src.helpers.context import Context, DEFAULT_CONTEXT
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.helpers.serializer import serializer
-from oldap.src.iconnection import IConnection
-from oldap.src.enums.sparql_result_format import SparqlResultFormat
-from oldap.src.user_dataclass import UserDataclass
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission
+from oldaplib.src.helpers.context import Context, DEFAULT_CONTEXT
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
+from oldaplib.src.user_dataclass import UserDataclass
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 #
 # For bootstrapping the whole tripel store, the following SPARQL has to be executed within the GraphDB

@@ -2,13 +2,13 @@ import unittest
 from pathlib import Path
 from time import sleep
 
-from oldap.src.ObjectFactory import ResourceInstanceFactory
-from oldap.src.connection import Connection
-from oldap.src.helpers.context import Context
-from oldap.src.helpers.langstring import LangString
-from oldap.src.project import Project
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.ObjectFactory import ResourceInstanceFactory
+from oldaplib.src.connection import Connection
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.project import Project
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
 def find_project_root(current_path):
@@ -46,19 +46,19 @@ class TestObjectFactory(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:onto'))
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
 
-        file = project_root / 'oldap' / 'ontologies' / 'admin.trig'
+        file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 
-        file = project_root / 'oldap' / 'testdata' / 'objectfactory_test.trig'
+        file = project_root / 'oldaplib' / 'testdata' / 'objectfactory_test.trig'
         cls._connection.upload_turtle(file)
 
         sleep(1)  # upload may take a while...
 
     @classmethod
     def tearDownClass(cls):
-        #cls._connection.clear_graph(Xsd_QName('oldap:admin'))
-        #cls._connection.upload_turtle("oldap/ontologies/admin.trig")
+        #cls._connection.clear_graph(Xsd_QName('oldaplib:admin'))
+        #cls._connection.upload_turtle("oldaplib/ontologies/admin.trig")
         #sleep(1)  # upload may take a while...
         pass
 

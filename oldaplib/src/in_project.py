@@ -8,13 +8,13 @@ from typing import Dict, Callable, Set, Self, ItemsView, KeysView, Iterator
 
 from pystrict import strict
 
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.helpers.observable_set import ObservableSet
-from oldap.src.enums.permissions import AdminPermission
-from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorKey
-from oldap.src.helpers.serializer import serializer
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.helpers.observable_set import ObservableSet
+from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorKey
+from oldaplib.src.helpers.serializer import serializer
 import json
 
 

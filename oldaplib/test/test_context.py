@@ -1,10 +1,10 @@
 import unittest
 
-from oldap.src.helpers.context import Context
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.helpers.oldaperror import OldapError
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.helpers.oldaperror import OldapError
 
 
 class TestContext(unittest.TestCase):

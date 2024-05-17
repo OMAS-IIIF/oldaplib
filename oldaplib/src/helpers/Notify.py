@@ -3,10 +3,10 @@ from typing import Callable
 
 from pystrict import strict
 
-from oldap.src.enums.permissionsetattr import PermissionSetAttr
-from oldap.src.xsd.iri import Iri
-from oldap.src.enums.propertyclassattr import PropClassAttr
-from oldap.src.enums.resourceclassattr import ResourceClassAttribute
+from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.enums.resourceclassattr import ResourceClassAttribute
 
 
 #@strict

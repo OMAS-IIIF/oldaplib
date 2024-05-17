@@ -1,13 +1,13 @@
 from enum import unique, Enum
 
-from oldap.src.connection import Connection
-from oldap.src.helpers.langstring import LangString
-from oldap.src.iconnection import IConnection
-from oldap.src.model import Model
-from oldap.src.project import Project
-from oldap.src.resourceclass import ResourceClass
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.connection import Connection
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.model import Model
+from oldaplib.src.project import Project
+from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 @unique

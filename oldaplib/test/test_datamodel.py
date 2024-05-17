@@ -2,24 +2,24 @@ import unittest
 from pathlib import Path
 from time import sleep
 
-from oldap.src.connection import Connection
-from oldap.src.datamodel import DataModel, PropertyClassChange, ResourceClassChange
-from oldap.src.dtypes.languagein import LanguageIn
-from oldap.src.helpers.context import Context
-from oldap.src.enums.action import Action
-from oldap.src.dtypes.namespaceiri import NamespaceIRI
-from oldap.src.project import Project
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_boolean import Xsd_boolean
-from oldap.src.xsd.xsd_decimal import Xsd_decimal
-from oldap.src.xsd.xsd_integer import Xsd_integer
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.helpers.langstring import LangString
-from oldap.src.enums.language import Language
-from oldap.src.enums.propertyclassattr import PropClassAttr
-from oldap.src.enums.xsd_datatypes import XsdDatatypes
-from oldap.src.propertyclass import PropertyClass
-from oldap.src.resourceclass import ResourceClass
+from oldaplib.src.connection import Connection
+from oldaplib.src.datamodel import DataModel, PropertyClassChange, ResourceClassChange
+from oldaplib.src.dtypes.languagein import LanguageIn
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.enums.action import Action
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.project import Project
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.enums.language import Language
+from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.resourceclass import ResourceClass
 
 
 def find_project_root(current_path):
@@ -61,7 +61,7 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtest:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtest:onto'))
 
-        file = project_root / 'oldap' / 'testdata' / 'connection_test.trig'
+        file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
 
 
@@ -221,7 +221,8 @@ class TestDataModel(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, self._sysproject)
-        self.assertTrue(set(model.get_propclasses()) == {
+        print(model.get_propclasses())
+        self.assertEqual(set(model.get_propclasses()), {
             Iri("oldap:test"),
             Iri("dcterms:creator"),
             Iri("rdfs:label"),

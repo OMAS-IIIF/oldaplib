@@ -1,8 +1,8 @@
 import json
 import unittest
 
-from oldap.src.helpers.observable_set import ObservableSet
-from oldap.src.helpers.serializer import serializer
+from oldaplib.src.helpers.observable_set import ObservableSet
+from oldaplib.src.helpers.serializer import serializer
 
 
 class TestObservableSet(unittest.TestCase):

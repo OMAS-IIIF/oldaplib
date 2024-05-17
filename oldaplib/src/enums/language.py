@@ -1,6 +1,6 @@
 from enum import Enum, unique
 
-from oldap.src.helpers.serializer import serializer
+from oldaplib.src.helpers.serializer import serializer
 
 
 @unique

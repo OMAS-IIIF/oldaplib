@@ -25,17 +25,17 @@ user = json.loads(jsonstr, object_hook=serializer.decoder_hook)
 
 The User class inherits the following properties from the UserDataclass class:
 
-- _userIri_: IRI of the user, cannot be changed (RDF property `oldap:userIri`)
-- _userId_: User ID as NCName (RDF property `oldap:userId`)
+- _userIri_: IRI of the user, cannot be changed (RDF property `oldaplib:userIri`)
+- _userId_: User ID as NCName (RDF property `oldaplib:userId`)
 - _familyName_: Family name as str (RDF property `foaf:familyName`)
 - _givenName_: Given name or first name as str(RDF property `foaf:givenName`)
-- _credentials_: Credential (password) (RDF property `oldap:credentials`)
-- _isActive_: Is the user active as bool? (RDF property `oldap:isActive`)
-- _inProject_: Membership to projects and administrative permissions for this project (RDF property `oldap:inProject)
-- _hsPermission_: Permissions for data as sets of QNames (RDF property `oldap:hasPermissions`)
+- _credentials_: Credential (password) (RDF property `oldaplib:credentials`)
+- _isActive_: Is the user active as bool? (RDF property `oldaplib:isActive`)
+- _inProject_: Membership to projects and administrative permissions for this project (RDF property `oldaplib:inProject)
+- _hsPermission_: Permissions for data as sets of QNames (RDF property `oldaplib:hasPermissions`)
 
 These properties can be accessed as normal python class properties or using the dictionary syntax. The keys
-are defined in the [UserFields](/python_docstrings/userdataclass/#oldap.src.user_dataclass.UserFields) Enum class.
+are defined in the [UserFields](/python_docstrings/userdataclass/#oldaplib.src.user_dataclass.UserFields) Enum class.
 Example for access as property:
 ```python
 user.familyName = 'Rosenthaler'
@@ -51,7 +51,7 @@ del user[UserFields.GIVEN_NAME]
 
 ## Create a user
 
-A user is created using the method [create()](/python_docstrings/user/#oldap.src.user.User.create) as follows:
+A user is created using the method [create()](/python_docstrings/user/#oldaplib.src.user.User.create) as follows:
 
 ```python
 user = User(con=self._connection,
@@ -70,7 +70,7 @@ user.create()
 - __userIri__ is an optional parameter that allows to give the user a unique IRI. If possible, the
   [ORCID](https://orcid.org) ID should be given. If this parameter is omitted, OLDAP generates a unique IRI from the URN
   namespace for the user.
-- __userId__ must be an [NCName](/python_docstrings/datatypes#oldap.src.helpers.datatypes.NCName)
+- __userId__ must be an [NCName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.NCName)
 - __credentials__ is a password that is converted to a bcrypt hash
 - __inProject__ is a dictionary with the keys being the projects that the user is a member of. The values are
   sets of administrative privileges as defined in [AdminPermissions](/python_docstrings/permissions#AdminPermissions)
@@ -81,7 +81,7 @@ the user in the database, `<User>.create()`has to be called.
 
 ## Reading a user from the database
 
-In order to read all user data from the triple store, the method [read()](/python_docstrings/user/#oldap.src.user.User.read) is used as
+In order to read all user data from the triple store, the method [read()](/python_docstrings/user/#oldaplib.src.user.User.read) is used as
 follows:
 
 ```python
@@ -92,7 +92,7 @@ The `userId` must be known and passed either as string or NCName.
 
 ## Searching for a user in the database
 
-OLDAP allows to search for users within the database. The method [search()](/python_docstrings/user/#oldap.src.user.User.search)
+OLDAP allows to search for users within the database. The method [search()](/python_docstrings/user/#oldaplib.src.user.User.search)
 performs a search. The string given must match in total with the entry in the database. The method accepts also
 several arguments which are combined by a logical AND.
 
@@ -112,7 +112,7 @@ users = User.search(con=self._connection, userId="GAGA")
 
 ## Updating a User
 
-Several properties of a user can be changed using the [update()](/python_docstrings/user/#oldap.src.user.User.update) method. In a first step, the properties
+Several properties of a user can be changed using the [update()](/python_docstrings/user/#oldaplib.src.user.User.update) method. In a first step, the properties
 of a user instance are changed, then the `update()` method writes the changes to the triple store.
 
 The following example exemplifies the procedure:
@@ -132,7 +132,7 @@ The following example exemplifies the procedure:
 
 ## Deleting a User
 
-The method [delete()](/python_docstrings/user/#oldap.src.user.User.delete) deletes the given user from
+The method [delete()](/python_docstrings/user/#oldaplib.src.user.User.delete) deletes the given user from
 the database:
 
 ```python
@@ -145,23 +145,23 @@ import uuid
 from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
-from oldap.src.enums.userdataclassattr import UserAttr
-from oldap.src.helpers.context import Context
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_boolean import Xsd_boolean
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_string import Xsd_string
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorAlreadyExists, OldapErrorNotFound, OldapErrorUpdateFailed, \
+from oldaplib.src.enums.userdataclassattr import UserAttr
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorAlreadyExists, OldapErrorNotFound, OldapErrorUpdateFailed, \
     OldapErrorValue, OldapErrorNoPermission
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.enums.permissions import AdminPermission
-from oldap.src.helpers.tools import str2qname_anyiri, lprint
-from oldap.src.iconnection import IConnection
-from oldap.src.model import Model
-from oldap.src.user_dataclass import UserDataclass
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.helpers.tools import str2qname_anyiri, lprint
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.model import Model
+from oldaplib.src.user_dataclass import UserDataclass
 
 
 # @serializer

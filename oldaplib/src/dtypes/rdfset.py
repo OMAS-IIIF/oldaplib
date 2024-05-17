@@ -2,10 +2,10 @@ from typing import Set, List, Dict, Iterable, Iterator, Self, TypeVar, Generic
 
 from pystrict import strict
 
-from oldap.src.helpers.Notify import Notify
-from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd import Xsd
+from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd import Xsd
 
 T = TypeVar("T")
 

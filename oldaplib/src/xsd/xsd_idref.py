@@ -1,7 +1,7 @@
 from pystrict import strict
 
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 
 #@strict

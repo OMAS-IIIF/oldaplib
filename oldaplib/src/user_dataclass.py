@@ -39,22 +39,22 @@ from typing import Dict, Self, Set, Tuple, Any
 
 import bcrypt
 
-from oldap.src.enums.userdataclassattr import UserAttr
-from oldap.src.helpers.context import Context
-from oldap.src.enums.action import Action
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_boolean import Xsd_boolean
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_string import Xsd_string
-from oldap.src.xsd.xsd import Xsd
-from oldap.src.helpers.observable_set import ObservableSet
-from oldap.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNotFound
-from oldap.src.enums.permissions import AdminPermission
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.helpers.serializer import serializer
-from oldap.src.in_project import InProjectClass
+from oldaplib.src.enums.userdataclassattr import UserAttr
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.enums.action import Action
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.xsd.xsd import Xsd
+from oldaplib.src.helpers.observable_set import ObservableSet
+from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNotFound
+from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.in_project import InProjectClass
 
 
 UserAttrTypes = Xsd | ObservableSet[Iri] | InProjectClass | str | bool | None

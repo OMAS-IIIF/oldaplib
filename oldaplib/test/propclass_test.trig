@@ -18,9 +18,9 @@ test:shacl {
             sh:path test:testWriteIt ;
             dcterms:hasVersion "0.1.0"^^xsd:string ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-05-17T00:31:38.981092"^^xsd:dateTime ;
+            dcterms:created "2024-05-17T18:42:38.298855"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-17T00:31:38.981092"^^xsd:dateTime ;
+            dcterms:modified "2024-05-17T18:42:38.298855"^^xsd:dateTime ;
             sh:class test:comment ;
             sh:name "Annotations"@en, "Annotationen"@de ;
             sh:description "An annotation"@en ;
@@ -31,7 +31,7 @@ test:onto {
         test:testWriteIt rdf:type owl:ObjectProperty ;
             rdfs:range test:comment ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-05-17T00:31:38.981092"^^xsd:dateTime ;
+            dcterms:created "2024-05-17T18:42:38.298855"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-17T00:31:38.981092"^^xsd:dateTime .
+            dcterms:modified "2024-05-17T18:42:38.298855"^^xsd:dateTime .
 }

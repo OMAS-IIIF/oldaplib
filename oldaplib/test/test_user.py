@@ -2,18 +2,18 @@ import unittest
 from pathlib import Path
 from time import sleep
 
-from oldap.src.connection import Connection
-from oldap.src.helpers.context import Context
-from oldap.src.helpers.tools import str2qname_anyiri
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, OldapError
-from oldap.src.enums.permissions import AdminPermission
-from oldap.src.user import User
-from oldap.src.in_project import InProjectClass
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.connection import Connection
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.tools import str2qname_anyiri
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, OldapError
+from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.user import User
+from oldaplib.src.in_project import InProjectClass
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 def find_project_root(current_path):
     # Climb up the directory hierarchy and check for a marker file
@@ -53,7 +53,7 @@ class TestUser(unittest.TestCase):
         # user.delete()
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
 
-        file = project_root / 'oldap' / 'ontologies' / 'admin.trig'
+        file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 

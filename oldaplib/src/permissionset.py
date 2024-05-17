@@ -5,21 +5,21 @@ from typing import Dict, Self
 
 from pystrict import strict
 
-from oldap.src.enums.permissionsetattr import PermissionSetAttr
-from oldap.src.enums.permissions import AdminPermission, DataPermission
-from oldap.src.helpers.context import Context
-from oldap.src.enums.action import Action
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.oldaperror import OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, OldapError, \
+from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
+from oldaplib.src.enums.permissions import AdminPermission, DataPermission
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.enums.action import Action
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, OldapError, \
     OldapErrorInconsistency, OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.iconnection import IConnection
-from oldap.src.model import Model
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.model import Model
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 PermissionSetAttrTypes = Iri | LangString | DataPermission | None
 

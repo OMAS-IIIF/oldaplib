@@ -10,32 +10,32 @@ from typing import Callable, Self, Iterable
 
 from pystrict import strict
 
-from oldap.src.dtypes.languagein import LanguageIn
-from oldap.src.dtypes.xsdset import XsdSet
-from oldap.src.helpers.Notify import Notify
-from oldap.src.helpers.context import Context
-from oldap.src.enums.action import Action
-from oldap.src.project import Project
-from oldap.src.xsd.floatingpoint import FloatingPoint
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd import Xsd
-from oldap.src.xsd.xsd_boolean import Xsd_boolean
-from oldap.src.xsd.xsd_decimal import Xsd_decimal
-from oldap.src.xsd.xsd_float import Xsd_float
-from oldap.src.xsd.xsd_integer import Xsd_integer
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorUpdateFailed, OldapErrorValue, OldapErrorInconsistency
-from oldap.src.enums.propertyclassattr import PropClassAttr
-from oldap.src.helpers.query_processor import RowType, QueryProcessor
-from oldap.src.helpers.semantic_version import SemanticVersion
-from oldap.src.helpers.tools import RdfModifyItem, RdfModifyProp
-from oldap.src.enums.xsd_datatypes import XsdDatatypes
-from oldap.src.iconnection import IConnection
-from oldap.src.model import Model
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.dtypes.languagein import LanguageIn
+from oldaplib.src.dtypes.xsdset import XsdSet
+from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.enums.action import Action
+from oldaplib.src.project import Project
+from oldaplib.src.xsd.floatingpoint import FloatingPoint
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd import Xsd
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
+from oldaplib.src.xsd.xsd_float import Xsd_float
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorUpdateFailed, OldapErrorValue, OldapErrorInconsistency
+from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.helpers.query_processor import RowType, QueryProcessor
+from oldaplib.src.helpers.semantic_version import SemanticVersion
+from oldaplib.src.helpers.tools import RdfModifyItem, RdfModifyProp
+from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.model import Model
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 @unique
@@ -549,7 +549,7 @@ class PropertyClass(Model, Notify):
                 else:
                     raise OldapError(f'Inconsistency in SHACL "dcterms:modified"')
             elif key == 'sh:group':
-                pass  # TODO: Process property group correctly.... (at Moment only oldap:SystemPropGroup)
+                pass  # TODO: Process property group correctly.... (at Moment only oldaplib:SystemPropGroup)
             elif key in propkeys:
                 attr = PropClassAttr(key)
                 if self.__datatypes[attr] == Numeric:

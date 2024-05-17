@@ -2,17 +2,17 @@ import unittest
 from pathlib import Path
 from time import sleep
 
-from oldap.src.enums.permissionsetattr import PermissionSetAttr
-from oldap.src.permissionset import PermissionSet
-from oldap.src.connection import Connection
-from oldap.src.enums.language import Language
-from oldap.src.enums.permissions import DataPermission
-from oldap.src.helpers.context import Context
-from oldap.src.helpers.langstring import LangString
-from oldap.src.helpers.oldaperror import OldapErrorInconsistency, OldapErrorNotFound, OldapErrorNoPermission, OldapErrorAlreadyExists, OldapErrorImmutable
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
+from oldaplib.src.permissionset import PermissionSet
+from oldaplib.src.connection import Connection
+from oldaplib.src.enums.language import Language
+from oldaplib.src.enums.permissions import DataPermission
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapErrorNotFound, OldapErrorNoPermission, OldapErrorAlreadyExists, OldapErrorImmutable
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 def find_project_root(current_path):
@@ -49,7 +49,7 @@ class TestPermissionSet(unittest.TestCase):
                                  context_name="DEFAULT")
 
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
-        file = project_root / 'oldap' / 'ontologies' / 'admin.trig'
+        file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 

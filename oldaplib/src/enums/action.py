@@ -1,7 +1,7 @@
 from enum import unique, Enum
 from typing import Dict
 
-from oldap.src.helpers.serializer import serializer
+from oldaplib.src.helpers.serializer import serializer
 
 
 @unique

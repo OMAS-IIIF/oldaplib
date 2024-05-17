@@ -2,19 +2,19 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 
-from oldap.src.helpers.context import Context
-from oldap.src.enums.action import Action
-from oldap.src.project import Project
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_datetime import Xsd_dateTime
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.helpers.oldaperror import OldapErrorInconsistency, OldapError, OldapErrorValue
-from oldap.src.helpers.query_processor import QueryProcessor
-from oldap.src.helpers.semantic_version import SemanticVersion
-from oldap.src.iconnection import IConnection
-from oldap.src.model import Model
-from oldap.src.propertyclass import PropertyClass
-from oldap.src.resourceclass import ResourceClass
+from oldaplib.src.helpers.context import Context
+from oldaplib.src.enums.action import Action
+from oldaplib.src.project import Project
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapError, OldapErrorValue
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.semantic_version import SemanticVersion
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.model import Model
+from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.resourceclass import ResourceClass
 
 @dataclass
 class ResourceClassChange:

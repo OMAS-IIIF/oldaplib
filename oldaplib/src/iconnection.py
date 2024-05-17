@@ -3,13 +3,13 @@ from typing import Optional, Any, Dict
 
 from pystrict import strict
 
-from oldap.src.helpers.context import DEFAULT_CONTEXT
-from oldap.src.xsd.iri import Iri
-from oldap.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldap.src.xsd.xsd_qname import Xsd_QName
-from oldap.src.xsd.xsd_ncname import Xsd_NCName
-from oldap.src.enums.sparql_result_format import SparqlResultFormat
-from oldap.src.user_dataclass import UserDataclass
+from oldaplib.src.helpers.context import DEFAULT_CONTEXT
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
+from oldaplib.src.user_dataclass import UserDataclass
 
 
 #@strict

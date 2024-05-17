@@ -4,10 +4,10 @@ from typing import Self
 
 from pystrict import strict
 
-from oldap.src.helpers.oldaperror import OldapErrorValue
-from oldap.src.helpers.serializer import serializer
-from oldap.src.xsd.floatingpoint import FloatingPoint
-from oldap.src.xsd.xsd import Xsd
+from oldaplib.src.helpers.oldaperror import OldapErrorValue
+from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.floatingpoint import FloatingPoint
+from oldaplib.src.xsd.xsd import Xsd
 
 
 #@strict
