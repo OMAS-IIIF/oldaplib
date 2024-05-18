@@ -2,7 +2,7 @@ from enum import unique, Enum
 
 
 @unique
-class ResourceClassAttribute(Enum):
+class ResClassAttribute(Enum):
     SUBCLASS_OF = 'rdfs:subClassOf'
     LABEL = 'rdfs:label'
     COMMENT = 'rdfs:comment'

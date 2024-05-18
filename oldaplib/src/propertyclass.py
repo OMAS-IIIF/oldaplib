@@ -754,21 +754,20 @@ class PropertyClass(Model, Notify):
         mincnt = self._attributes.get(PropClassAttr.MIN_COUNT)
         maxcnt = self._attributes.get(PropClassAttr.MAX_COUNT)
         if mincnt is not None and maxcnt is not None and mincnt == maxcnt:
-            sparql += f' ;\n{blank:{indent*indent_inc}}owl:cardinality {mincnt.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:qualifiedCardinality {mincnt.toRdf}'
         else:
             if mincnt is not None:
-                sparql += f' ;\n{blank:{indent*indent_inc}}owl:minCardinality {mincnt.toRdf}'
+                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality {mincnt.toRdf}'
             if maxcnt is not None:
-                sparql += f' ;\n{blank:{indent*indent_inc}}owl:maxCardinality {maxcnt.toRdf}'
+                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality {maxcnt.toRdf}'
         #
-        # TODO: Add the possibility to use owl:onClass or owl:onDataRage instead of rdfs:range
-        # (NOTE: owl:onClass and owl:onDataRange can be used only in a restriction and are "local" to the use
+        # (NOTE: owl:onClass and owl:onDatatype can be used only in a restriction and are "local" to the use
         # of the property within the given resource. However, rdfs:range is "global" for all use of this property!
         #
-        # if self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
-        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} owl:onDataRange {self._attributes[PropertyClassAttribute.DATATYPE].value}'
-        # elif self._attributes[PropertyClassAttribute.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
-        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}} owl:onClass {self._attributes[PropertyClassAttribute.TO_NODE_IRI]}'
+        if self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDatatype {self._attributes[PropClassAttr.DATATYPE].value}'
+        elif self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._attributes[PropClassAttr.TO_NODE_IRI]}'
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
 

@@ -6,7 +6,7 @@ from pystrict import strict
 from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
-from oldaplib.src.enums.resourceclassattr import ResourceClassAttribute
+from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 
 
 #@strict
@@ -21,8 +21,8 @@ class Notify:
     _data: Enum
 
     def __init__(self,
-                 notifier: Callable[[PropClassAttr | ResourceClassAttribute | PermissionSetAttr | Iri], None] | None = None,
-                 data: PropClassAttr | ResourceClassAttribute | PermissionSetAttr | Iri | None = None):
+                 notifier: Callable[[PropClassAttr | ResClassAttribute | PermissionSetAttr | Iri], None] | None = None,
+                 data: PropClassAttr | ResClassAttribute | PermissionSetAttr | Iri | None = None):
         """
         Constructor of the notifier. Usually, the notifier is only used a base class and not used directly.
         :param notifier: The callable that is to be called by the subclass when an item is beeing chaged

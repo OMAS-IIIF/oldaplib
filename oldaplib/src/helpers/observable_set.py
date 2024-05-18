@@ -171,3 +171,6 @@ class ObservableSet(Set):
         self.__on_change = func
         self.__on_change_data = data
 
+    def changeset_clear(self):
+        pass
+

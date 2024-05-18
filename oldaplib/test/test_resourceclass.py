@@ -12,7 +12,7 @@ from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.dtypes.rdfset import RdfSet
 from oldaplib.src.enums.language import Language
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
-from oldaplib.src.enums.resourceclassattr import ResourceClassAttribute
+from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
@@ -165,11 +165,11 @@ class TestResourceClass(unittest.TestCase):
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
                            properties=properties)
-        self.assertEqual(r1[ResourceClassAttribute.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
+        self.assertEqual(r1[ResClassAttribute.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
         self.assertEqual(r1.label, LangString(["Test resource@en", "Resource de test@fr"]))
-        self.assertEqual(r1[ResourceClassAttribute.COMMENT], LangString("For testing purposes@en"))
+        self.assertEqual(r1[ResClassAttribute.COMMENT], LangString("For testing purposes@en"))
         self.assertEqual(r1.comment, LangString("For testing purposes@en"))
-        self.assertTrue(r1[ResourceClassAttribute.CLOSED])
+        self.assertTrue(r1[ResClassAttribute.CLOSED])
         self.assertTrue(r1.closed)
 
         prop1 = r1[Iri("test:comment")]
@@ -256,6 +256,13 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop3.datatype, XsdDatatypes.string)
         self.assertEqual(prop3.inSet,
                          RdfSet(Xsd_string('red'), Xsd_string('green'), Xsd_string('blue'), Xsd_string('yellow')))
+
+    def test_reading_with_superclass(self):
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:testMyResInherit'))
+        self.assertEqual(r1.owl_class_iri, Iri('test:testMyResInherit'))
+        self.assertEqual({Iri('test:testMyResMinimal')}, {x.owl_class_iri for x in r1.subClassOf})
 
     # @unittest.skip('Work in progress')
     def test_creating(self):
@@ -384,10 +391,10 @@ class TestResourceClass(unittest.TestCase):
         r1 = ResourceClass.read(con=self._connection,
                                 project=self._project,
                                 owl_class_iri=Iri("test:testMyResMinimal"))
-        r1[ResourceClassAttribute.LABEL] = LangString(["Minimal Resource@en", "Kleinste Resource@de"])
-        r1[ResourceClassAttribute.COMMENT] = LangString("Eine Beschreibung einer minimalen Ressource")
-        r1[ResourceClassAttribute.SUBCLASS_OF] = Iri('test:testMyRes')
-        r1[ResourceClassAttribute.CLOSED] = Xsd_boolean(True)
+        r1[ResClassAttribute.LABEL] = LangString(["Minimal Resource@en", "Kleinste Resource@de"])
+        r1[ResClassAttribute.COMMENT] = LangString("Eine Beschreibung einer minimalen Ressource")
+        r1[ResClassAttribute.SUBCLASS_OF] = {Iri('test:testMyRes')}
+        r1[ResClassAttribute.CLOSED] = Xsd_boolean(True)
         #
         # Add an external, shared property defined by its own sh:PropertyShape instance
         #
@@ -415,7 +422,7 @@ class TestResourceClass(unittest.TestCase):
                                 owl_class_iri=Iri("test:testMyResMinimal"))
         self.assertEqual(r2.label, LangString(["Minimal Resource@en", "Kleinste Resource@de"]))
         self.assertEqual(r2.comment, LangString("Eine Beschreibung einer minimalen Ressource"))
-        self.assertEqual(r2.subClassOf, Iri('test:testMyRes'))
+        self.assertEqual(r2.subClassOf, {Iri('test:testMyRes')})
         self.assertTrue(r2.closed)
 
         prop1 = r2[Iri('test:test')]
@@ -475,7 +482,7 @@ class TestResourceClass(unittest.TestCase):
         result = {
             Iri('rdf:type'): Iri('owl:Restriction'),
             Iri('owl:onProperty'): Iri('test:test'),
-            Iri('owl:minCardinality'): Xsd_integer(1)
+            Iri('owl:minQualifiedCardinality'): Xsd_integer(1)
         }
         for r in res:
             p = r['p']
@@ -492,7 +499,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r1[Iri('test:hasText')].languageIn, LanguageIn(Language.EN, Language.DE))
         r1.label[Language.IT] = "La mia risorsa"
         r1.closed = Xsd_boolean(False)
-        r1[ResourceClassAttribute.SUBCLASS_OF] = Iri('test:TopGaga')
+        r1[ResClassAttribute.SUBCLASS_OF] = Iri('test:TopGaga')
         r1[Iri('test:hasText')].name[Language.FR] = "Un Texte Français"
         r1[Iri('test:hasText')].maxCount = Xsd_integer(12)
         r1[Iri('test:hasText')].languageIn = LanguageIn(Language.DE, Language.FR, Language.IT)

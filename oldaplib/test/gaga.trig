@@ -14,9 +14,9 @@ test:shacl {
     test:ProjectShape a sh:NodeShape, test:Project ;
         sh:targetClass test:Project ;
         dcterms:hasVersion "0.1.0"^^xsd:string ;
-        dcterms:created "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+        dcterms:created "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+        dcterms:modified "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         rdfs:label "Project"@en, "Projekt"@de ;
         rdfs:comment "Definiton of a project"@en, "Definition eines Projektes"@de ;
@@ -31,15 +31,15 @@ test:shacl {
                     sh:path test:projectId ;
                     dcterms:hasVersion "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:created "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+                    dcterms:created "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:modified "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+                    dcterms:modified "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
                     sh:datatype rdf:langString ;
                     sh:name "Project ID"@en, "Projekt ID"@de ;
                     sh:description "Unique ID for project"@en, "Eindeutige ID für Projekt"@de ;
                     sh:order "1.0"^^xsd:decimal ;
                     sh:minCount "1"^^xsd:integer ;
-                    sh:languageIn ("fr"^^xsd:string "de"^^xsd:string "en"^^xsd:string "it"^^xsd:string) ;
+                    sh:languageIn ("de"^^xsd:string "en"^^xsd:string "fr"^^xsd:string "it"^^xsd:string) ;
                     sh:uniqueLang "true"^^xsd:boolean ;
             ] ;
         sh:property
@@ -48,15 +48,15 @@ test:shacl {
                     sh:path test:projectName ;
                     dcterms:hasVersion "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:created "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+                    dcterms:created "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:modified "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+                    dcterms:modified "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
                     sh:datatype rdf:langString ;
                     sh:name "Project name"@en, "Projektname"@de ;
                     sh:description "A description of the project"@en, "EineBeschreibung des Projekts"@de ;
                     sh:order "2.0"^^xsd:decimal ;
                     sh:minCount "1"^^xsd:integer ;
-                    sh:languageIn ("fr"^^xsd:string "de"^^xsd:string "en"^^xsd:string "it"^^xsd:string) ;
+                    sh:languageIn ("de"^^xsd:string "en"^^xsd:string "fr"^^xsd:string "it"^^xsd:string) ;
                     sh:uniqueLang "true"^^xsd:boolean ;
             ] .
 
@@ -66,33 +66,35 @@ test:onto {
             rdfs:domain test:Project ;
             rdfs:range rdf:langString ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+            dcterms:created "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-17T18:43:19.264148"^^xsd:dateTime .
+            dcterms:modified "2024-05-19T00:26:17.425760"^^xsd:dateTime .
 
         test:projectName rdf:type owl:DatatypeProperty ;
             rdfs:domain test:Project ;
             rdfs:range rdf:langString ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+            dcterms:created "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-17T18:43:19.264148"^^xsd:dateTime .
+            dcterms:modified "2024-05-19T00:26:17.425760"^^xsd:dateTime .
 
         test:Project rdf:type owl:Class ;
             dcterms:hasVersion "0.1.0"^^xsd:string ;
-            dcterms:created "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+            dcterms:created "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-17T18:43:19.264148"^^xsd:dateTime ;
+            dcterms:modified "2024-05-19T00:26:17.425760"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             rdfs:subClassOf
                 [
                     rdf:type owl:Restriction ;
                     owl:onProperty test:projectId ;
-                owl:minCardinality "1"^^xsd:integer ;
+                    owl:minQualifiedCardinality "1"^^xsd:integer ;
+                    owl:onDatatype rdf:langString ;
                 ] ,
                 [
                     rdf:type owl:Restriction ;
                     owl:onProperty test:projectName ;
-                owl:minCardinality "1"^^xsd:integer ;
+                    owl:minQualifiedCardinality "1"^^xsd:integer ;
+                    owl:onDatatype rdf:langString ;
                 ] .
 }
