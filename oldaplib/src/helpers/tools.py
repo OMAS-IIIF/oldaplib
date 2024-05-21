@@ -5,6 +5,7 @@ from typing import Optional, List, Tuple, Union
 
 from oldaplib.src.enums.action import Action
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -27,8 +28,8 @@ def str2qname_anyiri(s: Xsd_QName | Xsd_anyURI | str) -> Xsd_QName | Xsd_anyURI:
 @dataclass
 class RdfModifyItem:
     property: str
-    old_value: Union[str, None]
-    new_value: Union[str, None]
+    old_value: Xsd | None
+    new_value: Xsd | None
 
 
 class RdfModifyRes:
@@ -47,14 +48,14 @@ class RdfModifyRes:
         if action != Action.CREATE:
             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
             if ele.old_value is not None:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value.toRdf} .\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} ?value .\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         if action != Action.DELETE:
             sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.new_value} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.new_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
@@ -64,7 +65,7 @@ class RdfModifyRes:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({owlclass_iri.toRdf} as ?resource)\n'
         if action != Action.CREATE:
             if ele.old_value is not None:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value.toRdf} .\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} ?value .\n'
         if ele.property != 'dcterms:modified':

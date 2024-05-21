@@ -74,6 +74,10 @@ class Xsd_boolean(Xsd):
         """
         return f'"{str(self.__value).lower()}"^^xsd:boolean'
 
+    @classmethod
+    def fromRdf(cls, rdf: str) -> Self:
+        return cls(rdf)
+
     def _as_dict(self) -> dict[str, str]:
         """
         Used internally for JSON serialization using @serialisation decorator

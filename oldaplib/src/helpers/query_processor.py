@@ -90,7 +90,7 @@ class QueryProcessor:
                             case 'xsd:string':
                                 row[name] = Xsd_string.fromRdf(valobj["value"])
                             case 'xsd:boolean':
-                                row[name] = Xsd_boolean(valobj["value"], validate=False)
+                                row[name] = Xsd_boolean.fromRdf(valobj["value"])
                             case 'xsd:decimal':
                                 row[name] = Xsd_decimal.fromRdf(valobj["value"])
                             case 'xsd:float':
