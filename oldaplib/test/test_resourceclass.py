@@ -262,7 +262,7 @@ class TestResourceClass(unittest.TestCase):
                                 project=self._project,
                                 owl_class_iri=Iri('test:testMyResInherit'))
         self.assertEqual(r1.owl_class_iri, Iri('test:testMyResInherit'))
-        self.assertEqual({Iri('test:testMyResMinimal')}, {x.owl_class_iri for x in r1.subClassOf})
+        self.assertEqual({Iri('test:testMyResMinimal')}, {x for x in r1.superclass})
 
     # @unittest.skip('Work in progress')
     def test_creating(self):

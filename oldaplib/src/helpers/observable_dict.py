@@ -42,6 +42,9 @@ class ObservableDict(UserDict):
     def _as_dict(self):
         return self.data
 
+    def changeset_clear(self):
+        pass
+
 
 if __name__ == "__main__":
     def cb(old: ObservableDict):

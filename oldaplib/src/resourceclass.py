@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from pprint import pprint
-from typing import Union, List, Dict, Callable, Self, Any, TypeVar
+from typing import Union, List, Dict, Callable, Self, Any, TypeVar, Sequence
 from pystrict import strict
 
 from oldaplib.src.connection import Connection
@@ -40,7 +40,8 @@ RC = TypeVar('RC', bound='ResourceClass')
 AttributeTypes = Iri | LangString | Xsd_boolean | ObservableDict[Iri, RC | None] | None
 ResourceClassAttributesContainer = Dict[ResClassAttribute, AttributeTypes]
 Properties = Dict[BNode, Attributes]
-
+SuperclassParam = Iri | str | list[Iri] | tuple[Iri] | set[Iri] | None
+AttributeParams = LangString | Xsd_boolean | SuperclassParam
 
 @dataclass
 class ResourceClassAttributeChange:
@@ -62,7 +63,6 @@ class ResourceClass(Model, Notify):
     _project: Project
     _sysproject: Project = None
     _owlclass_iri: Iri | None
-    _subClassOf: dict[Iri, Self | None]
     _attributes: ResourceClassAttributesContainer
     _properties: dict[Iri, PropertyClass]
     _attr_changeset: dict[ResClassAttribute, ResourceClassAttributeChange]
@@ -74,34 +74,39 @@ class ResourceClass(Model, Notify):
     __version: SemanticVersion
     __from_triplestore: bool
 
-    __datatypes: Dict[ResClassAttribute, Union[Iri, LangString, Xsd_boolean]] = {
+    __datatypes = {
+        ResClassAttribute.SUPERCLASS: ObservableDict,
         ResClassAttribute.LABEL: LangString,
         ResClassAttribute.COMMENT: LangString,
         ResClassAttribute.CLOSED: Xsd_boolean
     }
 
-    # def add_subClassOf(self, value: Iri | str | set[Iri | str]) -> None:
-    #     if not isinstance(value, set):
-    #         value = Iri(value)
-    #         superclass = None
-    #         if value.is_qname and value.prefix == self._project.projectShortName:
-    #                 superclass = ResourceClass.read(self._con, self._project, value)
-    #         self._attributes[ResClassAttribute.SUBCLASS_OF][value] = superclass
-    #     else:
-    #         res = ObservableDict(on_change=self.__cb_subclassof)
-    #         for sc in value:
-    #             val = Iri(sc)
-    #             superclass = None
-    #             if val.is_qname and val.prefix == self._project.projectShortName:
-    #                 superclass = ResourceClass.read(self._con, self._project, val)
-    #             self._attributes[ResClassAttribute.SUBCLASS_OF][val] = superclass
+    def assign_superclass(self, superclass: SuperclassParam) -> ObservableDict[Iri, RC | None]:
+
+        def __check(sc: Any):
+            scval = Iri(sc)
+            sucla = None
+            if scval.is_qname and scval.prefix == self._project.projectShortName:
+                sucla = ResourceClass.read(self._con, self._project, scval)
+            return scval, sucla
+
+        data = ObservableDict()
+        if isinstance(superclass, (list, tuple, set)):
+            for sc in superclass:
+                iri, sucla = __check(sc)
+                data[iri] = sucla
+        else:
+            iri, sucla = __check(superclass)
+            data[iri] = sucla
+        data.set_on_change(self.__sc_changed)
+        return data
 
 
     def __init__(self, *,
                  con: IConnection,
                  project: Project,
                  owlclass_iri: Iri | str | None = None,
-                 subClassOf: set[Self | Iri | str] | Self | Iri | str | None = None,
+                 superclass: SuperclassParam = None,
                  label: LangString | str | None = None,
                  comment: LangString | str | None = None,
                  closed: Xsd_boolean | bool | None = None,
@@ -110,18 +115,20 @@ class ResourceClass(Model, Notify):
                  notify_data: PropClassAttr | None = None):
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
+        self._attr_changeset = {}
+        self._prop_changeset = {}
 
         if not isinstance(project, Project):
             raise OldapErrorValue('The project parameter must be a Project instance')
         self._project = project
         if self._sysproject is None:
             self._sysproject = Project.read(self._con, Xsd_NCName("oldap"))
-        if owlclass_iri and owlclass_iri != Iri('oldap:Thing', validate=False):
-            thingiri = Iri('oldap:Thing', validate=False)
-            thing = ResourceClass.read(self._con, self._project, thingiri)
-            self._subClassOf[thingiri] = thing
-        else:
-            self._subClassOf = {}
+        # if owlclass_iri and owlclass_iri != Iri('oldap:Thing', validate=False):
+        #     thingiri = Iri('oldap:Thing', validate=False)
+        #     thing = ResourceClass.read(self._con, self._project, thingiri)
+        #     self._subClassOf[thingiri] = thing
+        # else:
+        #     self._subClassOf = {}
         context = Context(name=self._con.context_name)
         context[project.projectShortName] = project.namespaceIri
         context.use(project.projectShortName)
@@ -134,8 +141,8 @@ class ResourceClass(Model, Notify):
             self._owlclass_iri = Iri(owlclass_iri)
         else:
             self._owlclass_iri = None
-        if subClassOf is not None:
-            self.add_subClassOf(subClassOf)
+        if superclass is not None:
+            self._attributes[ResClassAttribute.SUPERCLASS] = self.assign_superclass(superclass)
         if label is not None:
             self._attributes[ResClassAttribute.LABEL] = label if isinstance(label, LangString) else LangString(label)
         if comment is not None:
@@ -175,8 +182,6 @@ class ResourceClass(Model, Notify):
         self.__contributor = con.userIri
         self.__modified = None
         self.__version = SemanticVersion()
-        self._attr_changeset = {}
-        self._prop_changeset = {}
         self.__from_triplestore = False
 
     def __get_value(self: Self, attr: ResClassAttribute) -> AttributeTypes | PropertyClass | Iri | None:
@@ -196,7 +201,7 @@ class ResourceClass(Model, Notify):
         else:
             return None
 
-    def __change_setter(self, key: ResClassAttribute | Iri, value: AttributeTypes | PropertyClass | Iri) -> None:
+    def __change_setter(self, key: ResClassAttribute | Iri, value: AttributeParams | PropertyClass | Iri) -> None:
         if not isinstance(key, (ResClassAttribute, Iri)):
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
         if getattr(value, 'set_notifier', None) is not None:
@@ -209,7 +214,10 @@ class ResourceClass(Model, Notify):
                     self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
                 else:
                     self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
-            self._attributes[key] = value
+            if key == ResClassAttribute.SUPERCLASS:
+                self._attributes[key] = self.assign_superclass(value)
+            else:
+                self._attributes[key] = self.__datatypes[key](value)
         elif isinstance(key, Iri):  # Iri
             if self._properties.get(key) is None:  # Property not set -> CREATE action
                 self._prop_changeset[key] = ResourceClassPropertyChange(None, Action.CREATE, False)
@@ -217,7 +225,7 @@ class ResourceClass(Model, Notify):
                     try:
                         self._properties[key] = PropertyClass.read(self._con, project=self._project, property_class_iri=key)
                     except OldapErrorNotFound as err:
-                        self._properties[key] = key
+                        self._properties[key] = Iri(key)
                 else:
                     value._internal = self._owlclass_iri  # we need to access the private variable here
                     value._property_class_iri = key  # we need to access the private variable here
@@ -269,7 +277,7 @@ class ResourceClass(Model, Notify):
         else:
             return None
 
-    def __setitem__(self, key: ResClassAttribute | Iri, value: AttributeTypes | PropertyClass | Iri) -> None:
+    def __setitem__(self, key: ResClassAttribute | Iri, value: AttributeParams | PropertyClass | Iri) -> None:
         self.__change_setter(key, value)
 
     def __delitem__(self, key: ResClassAttribute | Iri) -> None:
@@ -298,23 +306,6 @@ class ResourceClass(Model, Notify):
     @property
     def modified(self) -> Xsd_dateTime | None:
         return self.__modified
-
-    @property
-    def subClassOf(self) -> dict[Iri | Self | None]:
-        return self._subClassOf
-
-    def subClassOf_items(self):
-        return self._subClassOf.items()
-
-    def subClassOf_add(self, iri: Iri, instance: Self | None = None) -> None
-        self._subClassOf[iri] = instance
-
-    def subClassOf_remove(self, iri: Iri) -> None:
-        if iri == Iri('oldap:Thing'):
-            raise OldapErrorKey('Cannot remove "oldap:Thing" class from subClassOf.')
-        if self._subClassOf.get(iri) is None:
-            raise OldapErrorKey(f'The iri {iri} is not part of "subClassOf".')
-        del self._subClassOf[iri]
 
     @property
     def properties(self) -> dict[Iri, PropertyClass]:
@@ -355,6 +346,10 @@ class ResourceClass(Model, Notify):
         elif isinstance(what, Iri):
             self._prop_changeset[what] = ResourceClassPropertyChange(None, Action.MODIFY, True)
         self.notify()
+
+    def __sc_changed(self, oldval: ObservableDict[Iri, RC]):
+        if self._attr_changeset.get(ResClassAttribute.SUPERCLASS) is None:
+            self._attr_changeset[ResClassAttribute.SUPERCLASS] = ResourceClassPropertyChange(oldval, Action.MODIFY, True)
 
     @property
     def in_use(self) -> bool:
@@ -446,8 +441,8 @@ class ResourceClass(Model, Notify):
                 # definitions. All other superlcasses (referencing external ontologies) are only
                 # used in the OWL definitions
                 #
-                if self._attributes.get(ResClassAttribute.SUBCLASS_OF) is None:
-                    self._attributes[ResClassAttribute.SUBCLASS_OF] = ObservableDict(on_change=self.__cb_subclassof)
+                if self._attributes.get(ResClassAttribute.SUPERCLASS) is None:
+                    self._attributes[ResClassAttribute.SUPERCLASS] = ObservableDict(on_change=self.__sc_changed)
                 if str(val[0]).endswith("Shape"):
                     owliri = Iri(str(val[0])[:-5], validate=False)
                     if owliri.prefix == 'oldap':
@@ -456,7 +451,7 @@ class ResourceClass(Model, Notify):
                         superclass = ResourceClass.read(self._con, sysproj, owliri)
                     else:
                         superclass = ResourceClass.read(self._con, self._project, owliri)
-                    self._attributes[ResClassAttribute.SUBCLASS_OF].add(superclass)
+                    self._attributes[ResClassAttribute.SUPERCLASS][owliri] = superclass
                 else:
                     raise OldapErrorInconsistency(f'Value "{val[0]}" must end with "Shape".')
             else:
@@ -608,17 +603,11 @@ class ResourceClass(Model, Notify):
         """
         jsonobj = self._con.query(query2)
         res = QueryProcessor(context=context, query_result=jsonobj)
-        if not self._attributes.get(ResClassAttribute.SUBCLASS_OF):
-            self._attributes[ResClassAttribute.SUBCLASS_OF] = ObservableSet(on_change=self.__cb_subclassof, on_change_data=None)
-        scset = set()
-        for x in self._attributes[ResClassAttribute.SUBCLASS_OF]:  # mixed Iri's and ResourceClasses
-            if isinstance(x, ResourceClass):
-                scset.add(x.owl_class_iri)
-            else:
-                scset.add(x)
+        if not self._attributes.get(ResClassAttribute.SUPERCLASS):
+            self._attributes[ResClassAttribute.SUPERCLASS] = ObservableDict(on_change=self.__sc_changed)
         for r in res:
-            if r['superclass'] not in scset:
-                self._attributes[ResClassAttribute.SUBCLASS_OF].add(r['superclass'])
+            if r['superclass'] not in self._attributes[ResClassAttribute.SUPERCLASS]:
+                self._attributes[ResClassAttribute.SUPERCLASS][r['superclass']] = None
 
     @classmethod
     def read(cls, con: IConnection, project: Project, owl_class_iri: Iri) -> Self:
