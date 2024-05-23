@@ -27,6 +27,12 @@ class ObservableDict(UserDict):
             self.__on_change(self.copy())
         super().__setitem__(key, value)
 
+    def __delitem__(self, key):
+        if self.__on_change:
+            self.__on_change(self.copy())
+        super().__delitem__(key)
+
+
     def copy(self) -> Self:
         return ObservableDict(self.data.copy())
 
@@ -40,6 +46,12 @@ class ObservableDict(UserDict):
 if __name__ == "__main__":
     def cb(old: ObservableDict):
         print("---->CALLBACK", old)
+
+    gugus = ObservableDict()
+    if gugus:
+        print("gugus TRUE")
+    else:
+        print("gugus FALSE")
 
     gaga = ObservableDict({'a': 'AA', 'b': 'BB'}, on_change=cb)
     print(gaga)

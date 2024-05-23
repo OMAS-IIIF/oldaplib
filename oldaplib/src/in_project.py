@@ -24,7 +24,7 @@ class InProjectClass:
     """
     Implements the administrative permission a user has for the projects the user is associated with.
     """
-    __data: Dict[Iri, ObservableSet[AdminPermission]]
+    __data: dict[Iri, ObservableSet[AdminPermission]]
     __on_change: Callable[[Iri, ObservableSet[AdminPermission] | None], None] | None
 
     def __init__(self,

@@ -2,15 +2,17 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from pprint import pprint
-from typing import Union, List, Dict, Callable, Self, Any
+from typing import Union, List, Dict, Callable, Self, Any, TypeVar
 from pystrict import strict
 
 from oldaplib.src.connection import Connection
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.globalconfig import GlobalConfig
 from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.observable_set import ObservableSet
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorUpdateFailed, OldapErrorValue
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorUpdateFailed, \
+    OldapErrorValue, OldapErrorKey
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.enums.resourceclassattr import ResClassAttribute
@@ -34,7 +36,8 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 #
 # Datatype definitions
 #
-AttributeTypes = Iri | LangString | Xsd_boolean | ObservableSet[Iri | Any] | None
+RC = TypeVar('RC', bound='ResourceClass')
+AttributeTypes = Iri | LangString | Xsd_boolean | ObservableDict[Iri, RC | None] | None
 ResourceClassAttributesContainer = Dict[ResClassAttribute, AttributeTypes]
 Properties = Dict[BNode, Attributes]
 
@@ -57,7 +60,9 @@ class ResourceClassPropertyChange:
 class ResourceClass(Model, Notify):
     _graph: Xsd_NCName
     _project: Project
+    _sysproject: Project = None
     _owlclass_iri: Iri | None
+    _subClassOf: dict[Iri, Self | None]
     _attributes: ResourceClassAttributesContainer
     _properties: dict[Iri, PropertyClass]
     _attr_changeset: dict[ResClassAttribute, ResourceClassAttributeChange]
@@ -70,25 +75,27 @@ class ResourceClass(Model, Notify):
     __from_triplestore: bool
 
     __datatypes: Dict[ResClassAttribute, Union[Iri, LangString, Xsd_boolean]] = {
-        ResClassAttribute.SUBCLASS_OF: ObservableSet[Iri | Self],
         ResClassAttribute.LABEL: LangString,
         ResClassAttribute.COMMENT: LangString,
         ResClassAttribute.CLOSED: Xsd_boolean
     }
 
-    def __checkassign_subClassOf(self, value: Any):
-        if not isinstance(value, set):
-            if isinstance(value, ResourceClass):
-                return ObservableSet(value, on_change=self.__cb_subclassof, on_change_data=None)
-            else:
-                return ObservableSet(Iri(value), on_change=self.__cb_subclassof, on_change_data=None)
-        s: set[Iri | ResourceClass] = set()
-        for sc in value:
-            if isinstance(sc, ResourceClass):
-                s.add(sc)
-            else:
-                s.add(Iri(sc))
-        return ObservableSet(s, on_change=self.__cb_subclassof, on_change_data=None)
+    # def add_subClassOf(self, value: Iri | str | set[Iri | str]) -> None:
+    #     if not isinstance(value, set):
+    #         value = Iri(value)
+    #         superclass = None
+    #         if value.is_qname and value.prefix == self._project.projectShortName:
+    #                 superclass = ResourceClass.read(self._con, self._project, value)
+    #         self._attributes[ResClassAttribute.SUBCLASS_OF][value] = superclass
+    #     else:
+    #         res = ObservableDict(on_change=self.__cb_subclassof)
+    #         for sc in value:
+    #             val = Iri(sc)
+    #             superclass = None
+    #             if val.is_qname and val.prefix == self._project.projectShortName:
+    #                 superclass = ResourceClass.read(self._con, self._project, val)
+    #             self._attributes[ResClassAttribute.SUBCLASS_OF][val] = superclass
+
 
     def __init__(self, *,
                  con: IConnection,
@@ -107,6 +114,14 @@ class ResourceClass(Model, Notify):
         if not isinstance(project, Project):
             raise OldapErrorValue('The project parameter must be a Project instance')
         self._project = project
+        if self._sysproject is None:
+            self._sysproject = Project.read(self._con, Xsd_NCName("oldap"))
+        if owlclass_iri and owlclass_iri != Iri('oldap:Thing', validate=False):
+            thingiri = Iri('oldap:Thing', validate=False)
+            thing = ResourceClass.read(self._con, self._project, thingiri)
+            self._subClassOf[thingiri] = thing
+        else:
+            self._subClassOf = {}
         context = Context(name=self._con.context_name)
         context[project.projectShortName] = project.namespaceIri
         context.use(project.projectShortName)
@@ -120,7 +135,7 @@ class ResourceClass(Model, Notify):
         else:
             self._owlclass_iri = None
         if subClassOf is not None:
-            self._attributes[ResClassAttribute.SUBCLASS_OF] = self.__checkassign_subClassOf(subClassOf)
+            self.add_subClassOf(subClassOf)
         if label is not None:
             self._attributes[ResClassAttribute.LABEL] = label if isinstance(label, LangString) else LangString(label)
         if comment is not None:
@@ -194,10 +209,7 @@ class ResourceClass(Model, Notify):
                     self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
                 else:
                     self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
-            if key == ResClassAttribute.SUBCLASS_OF:
-                self._attributes[key] = self.__checkassign_subClassOf(value)
-            else:
-                self._attributes[key] = value
+            self._attributes[key] = value
         elif isinstance(key, Iri):  # Iri
             if self._properties.get(key) is None:  # Property not set -> CREATE action
                 self._prop_changeset[key] = ResourceClassPropertyChange(None, Action.CREATE, False)
@@ -245,10 +257,6 @@ class ResourceClass(Model, Notify):
             del self._properties[key]
         self.notify()
 
-    def __cb_subclassof(self, oldset: ObservableSet[Iri, Self], what: Any):
-        if self._attr_changeset.get(ResClassAttribute.SUBCLASS_OF) is None:
-            self._attr_changeset[ResClassAttribute.SUBCLASS_OF] = ResourceClassAttributeChange(oldset, Action.MODIFY, False)
-        self.notify()
 
     def __getitem__(self, key: ResClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri:
         return self.__getter(key)
@@ -290,6 +298,23 @@ class ResourceClass(Model, Notify):
     @property
     def modified(self) -> Xsd_dateTime | None:
         return self.__modified
+
+    @property
+    def subClassOf(self) -> dict[Iri | Self | None]:
+        return self._subClassOf
+
+    def subClassOf_items(self):
+        return self._subClassOf.items()
+
+    def subClassOf_add(self, iri: Iri, instance: Self | None = None) -> None
+        self._subClassOf[iri] = instance
+
+    def subClassOf_remove(self, iri: Iri) -> None:
+        if iri == Iri('oldap:Thing'):
+            raise OldapErrorKey('Cannot remove "oldap:Thing" class from subClassOf.')
+        if self._subClassOf.get(iri) is None:
+            raise OldapErrorKey(f'The iri {iri} is not part of "subClassOf".')
+        del self._subClassOf[iri]
 
     @property
     def properties(self) -> dict[Iri, PropertyClass]:
@@ -422,7 +447,7 @@ class ResourceClass(Model, Notify):
                 # used in the OWL definitions
                 #
                 if self._attributes.get(ResClassAttribute.SUBCLASS_OF) is None:
-                    self._attributes[ResClassAttribute.SUBCLASS_OF] = ObservableSet(on_change=self.__cb_subclassof, on_change_data=None)
+                    self._attributes[ResClassAttribute.SUBCLASS_OF] = ObservableDict(on_change=self.__cb_subclassof)
                 if str(val[0]).endswith("Shape"):
                     owliri = Iri(str(val[0])[:-5], validate=False)
                     if owliri.prefix == 'oldap':
@@ -799,6 +824,7 @@ class ResourceClass(Model, Notify):
         for item, change in self._attr_changeset.items():
             sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
             if item == ResClassAttribute.SUBCLASS_OF:
+                print(f'#\n# Process "{item.value}" with Action "{change}"\n#\n')
                 #
                 # Superclasses are only added to SHACL if they have been supplied as ResourceClass instance.
                 # Then the subclass inherits all property definitions!!
@@ -807,25 +833,30 @@ class ResourceClass(Model, Notify):
                 #
                 old_set = set(change.old_value) if change.old_value else set()
                 new_set = set(self._attributes[item]) if self._attributes[item] else set()
+                print("old_set:", old_set, "new_set:", new_set)
                 to_be_deleted = old_set - new_set
                 to_be_added = new_set - old_set
-                sparql += f'WITH {self._graph}:shacl\n'
-                if to_be_deleted:
-                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                    for ov in to_be_deleted:
-                        sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:class {ov.toRdf}Shape .\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-                if to_be_added:
-                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                    for nv in to_be_added:
-                        if isinstance(nv, ResourceClass):
-                            sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {nv.owl_class_iri.toRdf}Shape .\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-                sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri.toRdf}Shape as ?res)\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
-                sparql += f'{blank:{indent * indent_inc}}}}'
+                print("to_be_deleted:", to_be_deleted, "to_be_added:", to_be_added)
+                if to_be_deleted or to_be_added:
+                    sparql += f'WITH {self._graph}:shacl\n'
+                    if to_be_deleted:
+                        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                        for ov in to_be_deleted:
+                            if isinstance(ov, ResourceClass):
+                                sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {ov.toRdf}Shape .\n'
+                        sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    if to_be_added:
+                        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                        for nv in to_be_added:
+                            if isinstance(nv, ResourceClass):
+                                sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {nv.owl_class_iri.toRdf}Shape .\n'
+                        sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri.toRdf}Shape as ?res)\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}'
+                    sparql_list.append(sparql)
             else:
                 sparql += RdfModifyRes.shacl(action=change.action,
                                              graph=self._graph,
@@ -834,7 +865,7 @@ class ResourceClass(Model, Notify):
                                                                change.old_value,
                                                                self._attributes[item]),
                                              last_modified=self.__modified)
-            sparql_list.append(sparql)
+                sparql_list.append(sparql)
         #
         # now process properties
         #
@@ -1012,6 +1043,7 @@ class ResourceClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError as err:
+            lprint(sparql)
             self._con.transaction_abort()
             raise
         try:

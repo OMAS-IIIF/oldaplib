@@ -408,13 +408,13 @@ class TestResourceClass(unittest.TestCase):
                            order=Xsd_decimal(1))
         properties: list[PropertyClass | Iri] = [ p1 ]
         sysproject = Project.read(self._connection, "oldap")
-        superclass = ResourceClass.read(con=self._connection,
+        thing = ResourceClass.read(con=self._connection,
                                         project=sysproject,
                                         owl_class_iri=Iri("oldap:Thing"))
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Iri("test:ResWithSuperThing"),
-                           subClassOf={superclass, 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object'},
+                           subClassOf={thing, 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object'},
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
@@ -581,6 +581,71 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r2[Iri('test:hasText')].maxCount, Xsd_integer(12))
         self.assertEqual(r2[Iri('test:hasText')].languageIn, LanguageIn(Language.DE, Language.FR, Language.IT))
         self.assertEqual(r2[Iri('test:hasEnum')].inSet, RdfSet(Xsd_string('L'), Xsd_string('a'), Xsd_string('b')))
+
+    def test_updating_sc_A(self):
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:p1'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["P1"]),
+                           order=Xsd_decimal(1))
+        properties: list[PropertyClass | Iri] = [ p1 ]
+        sysproject = Project.read(self._connection, "oldap")
+        thing = ResourceClass.read(con=self._connection,
+                                        project=sysproject,
+                                        owl_class_iri=Iri("oldap:Thing"))
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:Crazy"),
+                           subClassOf={thing, 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object'},
+                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           properties=properties)
+        r1.create()
+        del r1
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:Crazy'))
+        r1.subClassOf.discard(Iri('http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object'))
+        r1.update()
+        del r1
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:Crazy'))
+        self.assertEqual({thing.owl_class_iri}, {x.owl_class_iri for x in r1.subClassOf})
+
+    def test_updating_sc_B(self):
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:p2'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["P1"]),
+                           order=Xsd_decimal(1))
+        properties: list[PropertyClass | Iri] = [ p1 ]
+        superclass = ResourceClass.read(con=self._connection,
+                                        project=self._project,
+                                        owl_class_iri=Iri("test:testMyRes"))
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:Crazy"),
+                           subClassOf={superclass, 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object'},
+                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           properties=properties)
+        r1.create()
+        del r1
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:Crazy'))
+        r1.subClassOf.discard(superclass)
+        r1.update()
+        del r1
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:Crazy'))
+        self.assertEqual({Iri('http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object')}, {r1.subClassOf})
 
     # @unittest.skip('Work in progress')
     def test_delete_props(self):
