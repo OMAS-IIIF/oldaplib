@@ -603,7 +603,7 @@ class TestResourceClass(unittest.TestCase):
                            project=self._project,
                            property_class_iri=Iri('test:p2'),
                            datatype=XsdDatatypes.string,
-                           name=LangString(["P1"]),
+                           name=LangString(["P2"]),
                            order=Xsd_decimal(1))
         properties: list[PropertyClass | Iri] = [ p1 ]
         r1 = ResourceClass(con=self._connection,
@@ -626,6 +626,37 @@ class TestResourceClass(unittest.TestCase):
                                 project=self._project,
                                 owl_class_iri=Iri('test:CrazyB'))
         self.assertEqual({Iri('http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object')}, set(r1.superclass))
+
+    def test_updateing_sc_C(self):
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:p3'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["P3"]),
+                           order=Xsd_decimal(1))
+        properties: list[PropertyClass | Iri] = [ p1 ]
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:CrazyC"),
+                           superclass={"test:testMyRes", 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object', 'test:testMyResMinimal'},
+                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           properties=properties)
+        r1.create()
+        del r1
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:CrazyC'))
+        del r1.superclass['test:testMyResMinimal']
+        r1.superclass[Iri('http://gugus.com/gaga/wird/nicht/gehen')] = None
+        r1.update()
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:CrazyC'))
+        self.assertEqual({"test:testMyRes",
+                          'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object',
+                          'http://gugus.com/gaga/wird/nicht/gehen'}, set(r1.superclass))
 
     # @unittest.skip('Work in progress')
     def test_delete_props(self):
