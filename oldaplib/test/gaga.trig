@@ -14,9 +14,9 @@ test:shacl {
     test:ProjectShape a sh:NodeShape, test:Project ;
         sh:targetClass test:Project ;
         dcterms:hasVersion "0.1.0"^^xsd:string ;
-        dcterms:created "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+        dcterms:created "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+        dcterms:modified "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         sh:node test:testMyResMinimalShape ;
         rdfs:label "Project"@en, "Projekt"@de ;
@@ -32,15 +32,15 @@ test:shacl {
                     sh:path test:projectId ;
                     dcterms:hasVersion "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:created "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+                    dcterms:created "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:modified "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+                    dcterms:modified "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
                     sh:datatype rdf:langString ;
                     sh:name "Project ID"@en, "Projekt ID"@de ;
                     sh:description "Unique ID for project"@en, "Eindeutige ID für Projekt"@de ;
                     sh:order "1.0"^^xsd:decimal ;
                     sh:minCount "1"^^xsd:integer ;
-                    sh:languageIn ("en"^^xsd:string "it"^^xsd:string "de"^^xsd:string "fr"^^xsd:string) ;
+                    sh:languageIn ("fr"^^xsd:string "it"^^xsd:string "en"^^xsd:string "de"^^xsd:string) ;
                     sh:uniqueLang "true"^^xsd:boolean ;
             ] ;
         sh:property
@@ -49,15 +49,15 @@ test:shacl {
                     sh:path test:projectName ;
                     dcterms:hasVersion "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:created "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+                    dcterms:created "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                    dcterms:modified "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+                    dcterms:modified "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
                     sh:datatype rdf:langString ;
                     sh:name "Project name"@en, "Projektname"@de ;
                     sh:description "A description of the project"@en, "EineBeschreibung des Projekts"@de ;
                     sh:order "2.0"^^xsd:decimal ;
                     sh:minCount "1"^^xsd:integer ;
-                    sh:languageIn ("en"^^xsd:string "it"^^xsd:string "de"^^xsd:string "fr"^^xsd:string) ;
+                    sh:languageIn ("fr"^^xsd:string "it"^^xsd:string "en"^^xsd:string "de"^^xsd:string) ;
                     sh:uniqueLang "true"^^xsd:boolean ;
             ] .
 
@@ -67,23 +67,23 @@ test:onto {
             rdfs:domain test:Project ;
             rdfs:range rdf:langString ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+            dcterms:created "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-21T23:12:14.106786"^^xsd:dateTime .
+            dcterms:modified "2024-05-24T16:17:24.663263"^^xsd:dateTime .
 
         test:projectName rdf:type owl:DatatypeProperty ;
             rdfs:domain test:Project ;
             rdfs:range rdf:langString ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+            dcterms:created "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-21T23:12:14.106786"^^xsd:dateTime .
+            dcterms:modified "2024-05-24T16:17:24.663263"^^xsd:dateTime .
 
         test:Project rdf:type owl:Class ;
             dcterms:hasVersion "0.1.0"^^xsd:string ;
-            dcterms:created "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+            dcterms:created "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-21T23:12:14.106786"^^xsd:dateTime ;
+            dcterms:modified "2024-05-24T16:17:24.663263"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             rdfs:subClassOf test:testMyResMinimal, <http://andromeda.com/cluster1/cepheid_42> ,
                 [

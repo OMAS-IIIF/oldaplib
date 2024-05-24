@@ -392,6 +392,8 @@ class ResourceClass(Model, Notify):
          """
         jsonobj = con.query(query)
         res = QueryProcessor(context, jsonobj)
+        if len(res) == 0:
+            raise OldapErrorNotFound(f'Resource with iri "{owl_class_iri}" does not exist."')
         attributes: Attributes = {}
         for r in res:
             attriri = r['attriri']
@@ -682,13 +684,13 @@ class ResourceClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self.__contributor.toRdf}'
         for attr, value in self._attributes.items():
-            if attr == ResClassAttribute.SUBCLASS_OF:
+            if attr == ResClassAttribute.SUPERCLASS:
                 #
                 # In SHACL, superclasses are only added if we have access to it's SHACL definition, that is,
                 # if it's given as ResourceClass instance.
                 # Superclasses without SHACL definition will be only added to the OWL file for reasoning.
                 #
-                scset = {f'{x.owl_class_iri.toRdf}Shape' for x in value if isinstance(x, ResourceClass)}
+                scset = [f'{iri.toRdf}Shape' for iri, resclass in value.items() if resclass]
                 valstr = ", ".join(scset)
                 if valstr:
                     sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:node {valstr}'
@@ -725,13 +727,8 @@ class ResourceClass(Model, Notify):
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator.toRdf} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor.toRdf} ;\n'
-        if self._attributes.get(ResClassAttribute.SUBCLASS_OF) is not None:
-            sc = set()
-            for x in self._attributes[ResClassAttribute.SUBCLASS_OF]:
-                if isinstance(x, ResourceClass):
-                    sc.add(x.owl_class_iri.toRdf)
-                else:
-                    sc.add(x.toRdf)
+        if self._attributes.get(ResClassAttribute.SUPERCLASS) is not None:
+            sc = {x.toRdf for x in self._attributes[ResClassAttribute.SUPERCLASS].keys()}
             valstr = ", ".join(sc)
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {valstr} ,\n'
         else:
@@ -812,33 +809,34 @@ class ResourceClass(Model, Notify):
         #
         for item, change in self._attr_changeset.items():
             sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
-            if item == ResClassAttribute.SUBCLASS_OF:
-                print(f'#\n# Process "{item.value}" with Action "{change}"\n#\n')
+            if item == ResClassAttribute.SUPERCLASS:
                 #
                 # Superclasses are only added to SHACL if they have been supplied as ResourceClass instance.
                 # Then the subclass inherits all property definitions!!
                 # Other superclasses where we do not have access to a SHACL definition are only added to
                 # OWL in order to allow reasoning.
                 #
-                old_set = set(change.old_value) if change.old_value else set()
-                new_set = set(self._attributes[item]) if self._attributes[item] else set()
-                print("old_set:", old_set, "new_set:", new_set)
+                if change.old_value:
+                    old_set = {iri for iri, data in change.old_value.items() if data}
+                else:
+                    old_set = set()
+                if self._attributes[item]:
+                    new_set = {iri for iri, data in self._attributes[item].items() if data}
+                else:
+                    new_set = set()
                 to_be_deleted = old_set - new_set
                 to_be_added = new_set - old_set
-                print("to_be_deleted:", to_be_deleted, "to_be_added:", to_be_added)
                 if to_be_deleted or to_be_added:
                     sparql += f'WITH {self._graph}:shacl\n'
                     if to_be_deleted:
                         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                         for ov in to_be_deleted:
-                            if isinstance(ov, ResourceClass):
-                                sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {ov.toRdf}Shape .\n'
+                            sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {ov.toRdf}Shape .\n'
                         sparql += f'{blank:{indent * indent_inc}}}}\n'
                     if to_be_added:
                         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                         for nv in to_be_added:
-                            if isinstance(nv, ResourceClass):
-                                sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {nv.owl_class_iri.toRdf}Shape .\n'
+                            sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {nv.toRdf}Shape .\n'
                         sparql += f'{blank:{indent * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri.toRdf}Shape as ?res)\n'
@@ -919,7 +917,7 @@ class ResourceClass(Model, Notify):
             #
             # we only need to add rdfs:subClassOf to the ontology – all other attributes are irrelevant
             #
-            if item == ResClassAttribute.SUBCLASS_OF:
+            if item == ResClassAttribute.SUPERCLASS:
                 sparql = f'#\n# OWL: Process attribute "{item.value}" with Action "{change.action.value}"\n#\n'
                 sparql += f'WITH {self._graph}:onto\n'
                 old_set = set(change.old_value) if change.old_value else set()
@@ -1032,7 +1030,6 @@ class ResourceClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError as err:
-            lprint(sparql)
             self._con.transaction_abort()
             raise
         try:
