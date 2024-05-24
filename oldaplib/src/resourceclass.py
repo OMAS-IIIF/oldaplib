@@ -589,7 +589,7 @@ class ResourceClass(Model, Notify):
             property_iri = pp['property_iri']
             prop = [x for x in self._properties if x == property_iri]
             if len(prop) != 1:
-                OldapError(f'Property "{property_iri}" from OWL has no SHACL definition!')
+                raise OldapError(f'Property "{property_iri}" of "{self._owlclass_iri}" from OWL has no SHACL definition!')
             self._properties[prop[0]].read_owl()
         #
         # now get all the subClassOf of other classes

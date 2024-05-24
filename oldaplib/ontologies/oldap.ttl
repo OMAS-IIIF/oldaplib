@@ -483,7 +483,7 @@ oldap:DataPermission rdf:type owl:Class ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty :modified ;
+            owl:onProperty dcterms:modified ;
             owl:onDatatype xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],

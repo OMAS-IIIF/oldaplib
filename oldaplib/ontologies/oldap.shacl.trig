@@ -466,7 +466,6 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:subClassOf skos:ConceptScheme ;
         sh:property
             [
                 sh:path rdf:type ;
@@ -506,7 +505,6 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:subClassOf skos:ConceptScheme ;
         sh:property
             [
                 sh:path rdf:type ;

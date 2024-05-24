@@ -392,7 +392,7 @@ class TestDataModel(unittest.TestCase):
         page = ResourceClass(con=self._connection,
                              project=self._project,
                              owlclass_iri=Iri("test:Page"),
-                             subClassOf=Iri('oldap:Thing'),
+                             superclass=Iri('oldap:Thing'),
                              label=LangString(["Project@en", "Projekt@de"]),
                              comment=LangString(["A page of a book@en", "Seite eines Buches@de"]),
                              closed=Xsd_boolean(True),
@@ -420,7 +420,7 @@ class TestDataModel(unittest.TestCase):
         book = ResourceClass(con=self._connection,
                              project=self._project,
                              owlclass_iri=Iri('test:Book'),
-                             subClassOf=Iri('oldap:Thing'),
+                             superclass=Iri('oldap:Thing'),
                              label=LangString(["Book@en", "Buch@de"]),
                              closed=Xsd_boolean(True),
                              properties=[title, author, pubDate])
@@ -428,7 +428,7 @@ class TestDataModel(unittest.TestCase):
         person = ResourceClass(con=self._connection,
                                project=self._project,
                                owlclass_iri=Iri('test:Person'),
-                               subClassOf=Iri('oldap:Thing'),
+                               superclass=Iri('oldap:Thing'),
                                label=LangString(["Person@en", "Person@de"]),
                                properties=[title, author, pubDate])
 
