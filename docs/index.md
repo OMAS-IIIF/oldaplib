@@ -37,7 +37,7 @@ tool for data integration, knowledge representation, and semantic web applicatio
   This graph-based model enables flexible and distributed data representation. That is, predicates that connect two
   nodes form the edges of the graph, wheras the nodes are formed by the resources.
 
-There are several serialization formats for RDF-based data, e.g. XML, turtle, trig. With the OMASLIB documentation, we
+There are several serialization formats for RDF-based data, e.g. XML, turtle, trig. With the oldaplib documentation, we
 will use the _trig_ format. This format allows to define prefixes to build IRI's in a systematic way. A base IRI is
 defined which is extended for the different uses. E.g. lets look at the statment that the name of a resource is
 Barak Obama. Written out fully, the statement would look like:

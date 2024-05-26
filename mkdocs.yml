@@ -14,6 +14,7 @@ nav:
       - Project: python_docstrings/project.md
       - User: python_docstrings/user.md
       - UserDataclass class: python_docstrings/userdataclass.md
+      - PermissionSet: python_docstrings/permissionset.md
     - Data modeling:
       - Property class: python_docstrings/propertyclass.md
     - Helper:

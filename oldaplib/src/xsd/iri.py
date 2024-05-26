@@ -6,6 +6,7 @@ from oldaplib.src.helpers.oldaperror import OldapErrorValue
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
@@ -69,6 +70,14 @@ class Iri(Xsd):
             raise OldapErrorValue(f'Invalid string for IRI: "{value}"')
         else:
             raise OldapErrorValue(f'Invalid value for IRI: "{value}"')
+
+    @classmethod
+    def fromPrefixFragment(cls, prefix: Xsd_NCName | str, fragment: Xsd_NCName | str, validate: bool = True) -> Self:
+        prefix = Xsd_NCName(prefix)
+        fragment = Xsd_NCName(fragment)
+        value = Xsd_QName(prefix, fragment, validate)
+        return cls(value)
+
     def __str__(self) -> str:
         """
         String representation of the Iri
@@ -113,6 +122,13 @@ class Iri(Xsd):
         :return:
         """
         return self.__rep == IriRep.QNAME
+
+    @property
+    def as_qname(self) -> Xsd_QName | None:
+        if self.__rep == IriRep.QNAME:
+            return Xsd_QName(self.__value, validate=False)
+        else:
+            return None
 
     @property
     def is_fulliri(self) -> bool:

@@ -9,9 +9,11 @@ from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
 from oldaplib.src.enums.permissions import AdminPermission, DataPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
+from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, OldapError, \
@@ -21,7 +23,7 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
-PermissionSetAttrTypes = Iri | LangString | DataPermission | None
+PermissionSetAttrTypes = Xsd_NCName | LangString | DataPermission | None
 
 @dataclass
 class PermissionSetAttrChange:
@@ -35,7 +37,7 @@ class PermissionSetAttrChange:
 #@strict
 class PermissionSet(Model):
     __datatypes = {
-        PermissionSetAttr.PERMISSION_SET_IRI: Iri,
+        PermissionSetAttr.ID: Xsd_NCName,
         PermissionSetAttr.LABEL: LangString,
         PermissionSetAttr.COMMENT: LangString,
         PermissionSetAttr.GIVES_PERMISSION: DataPermission,
@@ -47,6 +49,8 @@ class PermissionSet(Model):
     __contributor: Iri | None
     __modified: Xsd_dateTime | None
 
+    __permset_iri: Iri | None
+
     __attributes: Dict[PermissionSetAttr, PermissionSetAttrTypes]
 
     __changeset: Dict[PermissionSetAttr, PermissionSetAttrChange]
@@ -57,11 +61,34 @@ class PermissionSet(Model):
                  created: Xsd_dateTime | datetime | str | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
-                 permissionSetIri: Iri | None = None,
+                 id: Xsd_NCName | str,
                  label: LangString | str | None = None,
                  comment: LangString | str | None = None,
                  givesPermission: DataPermission,
                  definedByProject: Iri):
+        """
+        Constructor for a permission set.
+        :param con: Subclass of IConnection
+        :type con: IConnection
+        :param creator: Usually not being used (internal use only)
+        :type creator: Iri | None
+        :param created: Usually not being used (internal use only)
+        :type created: Xsd_dateTime | datetime | str | None
+        :param contributor: Usually not being used (internal use only)
+        :type contributor: Iri | None
+        :param modified: Usually not being used (internal use only)
+        :type modified: Xsd_dateTime | datetime | str | None
+        :param id: A unique identifier for the permission set (unique within the project as given be :definedByProject)
+        :type id: Xsd_NCName | str
+        :param label: A meaninful label for the permission set (several languages allowed)
+        :type label: LangString | str
+        :param comment: A meaningful comment for the permission set (several languages allowed)
+        :type comment: LangString | str
+        :param givesPermission: The permission that this permision set grants
+        :type givesPermission: DataPermission
+        :param definedByProject: The project that defines this permission set
+        :type definedByProject: Iri
+        """
         super().__init__(con)
         self.__creator = Iri(creator) if creator else con.userIri
         self.__created = Xsd_dateTime(created) if created else None
@@ -69,7 +96,7 @@ class PermissionSet(Model):
         self.__modified = Xsd_dateTime(modified) if modified else None
         self.__attributes = {}
 
-        self.__attributes[PermissionSetAttr.PERMISSION_SET_IRI] = Iri(permissionSetIri)
+        self.__attributes[PermissionSetAttr.ID] = Xsd_NCName(id)
         self.__attributes[PermissionSetAttr.LABEL] = LangString(label)
         self.__attributes[PermissionSetAttr.LABEL].set_notifier(self.notifier, PermissionSetAttr.LABEL)
         self.__attributes[PermissionSetAttr.COMMENT] = LangString(comment)
@@ -77,12 +104,17 @@ class PermissionSet(Model):
         self.__attributes[PermissionSetAttr.GIVES_PERMISSION] = givesPermission
         self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = Iri(definedByProject)
 
+        if not self.__attributes[PermissionSetAttr.ID]:
+            raise OldapErrorInconsistency(f'PermissionSet must have a unique ID, none given.')
         if not self.__attributes[PermissionSetAttr.LABEL]:
             raise OldapErrorInconsistency(f'PermissionSet must have at least one rdfs:label, none given.')
         if not self.__attributes[PermissionSetAttr.GIVES_PERMISSION]:
             raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:givesPermission, none given.')
         if not self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]:
-            raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:definedByproject, none given.')
+            raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:definedByProject, none given.')
+
+        project = Project.read(self._con, self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT])
+        self.__permset_iri = Iri.fromPrefixFragment(project.projectShortName, self.__attributes[PermissionSetAttr.ID], validate=False)
 
         for field in PermissionSetAttr:
             prefix, name = field.value.split(':')
@@ -93,6 +125,10 @@ class PermissionSet(Model):
         self.__changeset = {}
 
     def check_for_permissions(self) -> (bool, str):
+        """
+        Internal method to check if a user may modify the permission set.
+        :return: a tuple with a boolean (True, False) and the error message (or "OK")
+        """
         #
         # First we check if the logged-in user ("actor") has the ADMIN_PERMISSION_SETS permission for
         # the given project!
@@ -116,8 +152,8 @@ class PermissionSet(Model):
         return self.__attributes.get(field)
 
     def __set_value(self: Self, self2: Self, value: PermissionSetAttrTypes, field: PermissionSetAttr) -> None:
-        if field == PermissionSetAttr.PERMISSION_SET_IRI and self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI) is not None:
-            OldapErrorAlreadyExists(f'A project IRI already has been assigned: "{repr(self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI))}".')
+        if field == PermissionSetAttr.ID and self.__attributes.get(PermissionSetAttr.ID) is not None:
+            OldapErrorAlreadyExists(f'A permission set ID already has been assigned: "{repr(self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI))}".')
         self.__change_setter(field, value)
 
     def __del_value(self: Self, self2: Self, field: PermissionSetAttr) -> None:
@@ -126,7 +162,7 @@ class PermissionSet(Model):
     def __change_setter(self, attr: PermissionSetAttr, value: PermissionSetAttrTypes) -> None:
         if self.__attributes[attr] == value:
             return
-        if attr in {PermissionSetAttr.PERMISSION_SET_IRI, PermissionSetAttr.DEFINED_BY_PROJECT}:
+        if attr in {PermissionSetAttr.ID, PermissionSetAttr.DEFINED_BY_PROJECT}:
             raise OldapErrorImmutable(f'Field {attr.value} is immutable.')
         if self.__attributes[attr] is None:
             if self.__changeset.get(attr) is None:
@@ -154,7 +190,7 @@ class PermissionSet(Model):
                 self.__attributes[attr] = self.__datatypes[attr](value)
 
     def __str__(self) -> str:
-        res = f'PermissionSet: {self.__attributes[PermissionSetAttr.PERMISSION_SET_IRI]}\n'\
+        res = f'PermissionSet: {self.__attributes[PermissionSetAttr.ID]}\n'\
               f'  Creation: {self.__created} by {self.__creator}\n'\
               f'  Modified: {self.__modified} by {self.__contributor}\n' \
               f'  Label: {self.__attributes.get(PermissionSetAttr.LABEL, "-")}\n' \
@@ -212,6 +248,14 @@ class PermissionSet(Model):
         self.__changeset = {}
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Create the given permission set in the triple store.
+        :param indent: indentation for SPARQL text
+        :type indent: int
+        :param indent_inc: indentation increment for the SPARQL text
+        :type indent_inc: int
+        :return: None
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -228,7 +272,7 @@ class PermissionSet(Model):
         FROM oldap:admin
         WHERE {{
             ?permset a oldap:PermissionSet .
-            FILTER(?permset = {self.permissionSetIri.toRdf})       
+            FILTER(?permset = {self.__permset_iri.toRdf})       
         }}
         """
 
@@ -237,7 +281,7 @@ class PermissionSet(Model):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}} {self.permissionSetIri.toRdf} a oldap:PermissionSet'
+        sparql += f'{blank:{(indent + 2) * indent_inc}} {self.__permset_iri.toRdf} a oldap:PermissionSet'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
@@ -260,7 +304,7 @@ class PermissionSet(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OldapErrorAlreadyExists(f'A permission set "{self.permissionSetIri}" already exists')
+            raise OldapErrorAlreadyExists(f'A permission set "{self.__permset_iri}" already exists')
 
         try:
             self._con.transaction_update(sparql)
@@ -278,15 +322,19 @@ class PermissionSet(Model):
         self.__contributor = self._con.userIri
 
     @classmethod
-    def read(cls, con: IConnection, permissionSetIri: Iri | str) -> Self:
-        permissionSetIri = Iri(permissionSetIri)
+    def read(cls, con: IConnection, id: Xsd_NCName | str, definedByProject: Iri | str) -> Self:
+        id = Xsd_NCName(id)
+        definedByProject = Iri(definedByProject)
+
+        project = Project.read(con, definedByProject)
+        permset_iri = Iri.fromPrefixFragment(project.projectShortName, id, validate=False)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?permset ?p ?o
         FROM oldap:admin
         WHERE {{
-            BIND({permissionSetIri.toRdf} as ?permset)
+            BIND({permset_iri.toRdf} as ?permset)
             ?permset a oldap:PermissionSet .
             ?permset ?p ?o .
         }}
@@ -294,9 +342,9 @@ class PermissionSet(Model):
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OldapErrorNotFound(f'No permission set "{permissionSetIri}"')
+            raise OldapErrorNotFound(f'No permission set "{permset_iri}"')
 
-        permissionSetIri: Iri | None = None
+        permset_iri: Iri | None = None
         creator: Iri | None = None
         created: Xsd_dateTime | None = None
         contributor: Iri | None = None
@@ -306,9 +354,9 @@ class PermissionSet(Model):
         givesPermission: DataPermission | None = None
         definedByProject: Iri | None = None
         for r in res:
-            if not permissionSetIri:
+            if not permset_iri:
                 try:
-                    permissionSetIri = r['permset']
+                    permset_iri = r['permset']
                 except Exception as e:
                     raise OldapErrorInconsistency(f'Invalid project identifier "{r['o']}".')
             match str(r['p']):
@@ -328,8 +376,9 @@ class PermissionSet(Model):
                     givesPermission = DataPermission.from_string(str(r['o']))
                 case 'oldap:definedByProject':
                     definedByProject = r['o']
+        cls.__permset_iri = permset_iri
         return cls(con=con,
-                   permissionSetIri=permissionSetIri,
+                   id=id,
                    creator=creator,
                    created=created,
                    contributor=contributor,
@@ -337,37 +386,45 @@ class PermissionSet(Model):
                    label=label,
                    comment=comment,
                    givesPermission=givesPermission,
-                   definedByProject=Iri(definedByProject))
+                   definedByProject=Iri(definedByProject, validate=False))
 
     @staticmethod
-    def search(con: IConnection,
+    def search(con: IConnection, *,
+               id: str | None = None,
                definedByProject: Iri | str | None = None,
                givesPermission: DataPermission | None = None,
                label: Xsd_string | str | None = None) -> list[Iri]:
+        if definedByProject:
+            definedByProject = Iri(definedByProject)
         label = Xsd_string(label)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
-        sparql += 'SELECT DISTINCT ?permsetIri'
-        # if definedByProject:
-        #     sparql += ' ?definedByProject'
-        # if givesPermission:
-        #     sparql += ' ?givesPermission'
-        # if label:
-        #     sparql += ' ?label'
+        if definedByProject:
+            sparql += 'SELECT DISTINCT ?permsetIri ?namespaceIri ?projectShortName'
+            context = Context(name=con.context_name)
+        else:
+            sparql += 'SELECT DISTINCT ?permsetIri'
         sparql += '\n'
         sparql += 'FROM oldap:admin\n'
         sparql += 'WHERE {\n'
         sparql += '   ?permsetIri rdf:type oldap:PermissionSet .\n'
         if definedByProject:
             sparql += '   ?permsetIri oldap:definedByProject ?definedByProject .\n'
+            sparql += '   ?definedByProject oldap:namespaceIri ?namespaceIri .\n'
+            sparql += '   ?definedByProject oldap:projectShortName ?projectShortName .\n'
         if givesPermission:
             sparql += '   ?permsetIri oldap:givesPermission ?givesPermission .\n'
         if label:
             sparql += '   ?permsetIri rdfs:label ?label .\n'
-        if definedByProject or givesPermission or label:
+        if id or definedByProject or givesPermission or label:
             sparql += '   FILTER('
             use_and = False
+            if id:
+                sparql += f'CONTAINS(STR(?permsetIri), "{Xsd_string.escaping(id)}")'
+                use_and = True
             if definedByProject:
+                if use_and:
+                    sparql += ' && '
                 sparql += f'?definedByProject = {definedByProject.toRdf}'
                 use_and = True
             if givesPermission:
@@ -381,14 +438,19 @@ class PermissionSet(Model):
                 if label.lang:
                     sparql += f'?label = {label.toRdf}'
                 else:
-                    sparql += f'str(?label) = "{Xsd_string.escaping(label.value)}"'
+                    sparql += f'CONTAINS(STR(?label), "{Xsd_string.escaping(label.value)}")'
             sparql += ')\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         permissionSets: list[Iri] = []
         for r in res:
-            permissionSets.append(r['permsetIri'])
+            if definedByProject:
+                #context[r['projectShortName']] = r['namespaceIri']
+                psqname = r['permsetIri'].as_qname or context.iri2qname(str(r['permsetIri']), validate=False)
+                permissionSets.append(psqname or r['permsetIri'])
+            else:
+                permissionSets.append(r['permsetIri'])
         return permissionSets
 
     def update(self, indent: int = 0, indent_inc: int = 4):
@@ -404,18 +466,18 @@ class PermissionSet(Model):
             if attr == PermissionSetAttr.LABEL or attr == PermissionSetAttr.COMMENT:
                 if change.action == Action.MODIFY:
                     sparql_list.extend(self.__attributes[attr].update(graph=Xsd_QName('oldap:admin'),
-                                                                   subject=self.permissionSetIri,
-                                                                   subjectvar='?project',
-                                                                   field=Xsd_QName(attr.value)))
+                                                                      subject=self.__permset_iri,
+                                                                      subjectvar='?project',
+                                                                      field=Xsd_QName(attr.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
                     sparql = self.__attributes[attr].delete(graph=Xsd_QName('oldap:admin'),
-                                                         subject=self.permissionSetIri,
-                                                         field=Xsd_QName(attr.value))
+                                                            subject=self.__permset_iri,
+                                                            field=Xsd_QName(attr.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
                     sparql = self.__attributes[attr].create(graph=Xsd_QName('oldap:admin'),
-                                                         subject=self.permissionSetIri,
-                                                         field=Xsd_QName(attr.value))
+                                                            subject=self.__permset_iri,
+                                                            field=Xsd_QName(attr.value))
                     sparql_list.append(sparql)
                 continue
             sparql = f'{blank:{indent * indent_inc}}# PermissionSet attribute "{attr.value}" with action "{change.action.value}"\n'
@@ -429,7 +491,7 @@ class PermissionSet(Model):
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {self.__attributes[attr].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.permissionSetIri.toRdf} as ?project)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.__permset_iri.toRdf} as ?project)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
@@ -439,8 +501,8 @@ class PermissionSet(Model):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.permissionSetIri, self.__modified, timestamp)
-            modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.permissionSetIri)
+            self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.__permset_iri, self.__modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.__permset_iri)
         except OldapError:
             self._con.transaction_abort()
             raise
@@ -464,8 +526,8 @@ class PermissionSet(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.permissionSetIri.toRdf} a oldap:PermissionSet .
-            {self.permissionSetIri.toRdf} ?prop ?val .
+            {self.__permset_iri.toRdf} a oldap:PermissionSet .
+            {self.__permset_iri.toRdf} ?prop ?val .
         }} 
         """
         # TODO: use transaction for error handling

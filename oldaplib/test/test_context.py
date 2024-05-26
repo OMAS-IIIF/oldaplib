@@ -63,9 +63,7 @@ class TestContext(unittest.TestCase):
         with self.assertRaises(OldapError) as ex:
             qn = context.iri2qname('gaga')
         self.assertEqual(str(ex.exception), 'Invalid string "gaga" for anyURI')
-        with self.assertRaises(OldapError) as ex:
-            qn = context.iri2qname('abc:def')
-        self.assertEqual(str(ex.exception), 'Invalid string "abc:def" for anyURI')
+        self.assertIsNone(context.iri2qname('abc:def'))
         t = Xsd_QName('xml:integer')
         self.assertEqual(context.qname2iri(t), 'http://www.w3.org/XML/1998/namespace#integer')
 

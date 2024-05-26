@@ -24,7 +24,7 @@ Data modeling relies on the notion of *property* and *resource* following the RD
 In a datamodel, resources and properties are pre-defined and form the data model or *ontology*. Datamodels
 are specific to a given project. Each datamodel is stroed in 2 distinct named graphs.
 
-OMASLIB has the following prerequisites:
+oldaplib has the following prerequisites:
 
 ## The Resource Description Frame (RDF) and OLDAP
 
@@ -60,7 +60,7 @@ where
 - _fragment_: an ID or name that consists only of characters, digits and the `_`, `-`. `.`-characters.
   It must start with a character or `_`. Such names are called
   [NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html)'s and will have there own Python datatype
-  within OLDAP ([NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName)).
+  within OLDAP ([NCName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.NCName)).
 
 Examples:
 
@@ -199,7 +199,7 @@ we find that most predicates start with `http://example.org/predicates#` (*Note 
 parts may be defined as ***prefix***, a kind of shortcuts. The prefix must be a XML
 [NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html), that is
 again a string that contains only letters, digits, the `_`, `-`, `.` signs and start with a letter or "_". (See
-[NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName) for Python class). Such a *prefix* defines a `namespace`. Often related
+[NCName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.NCName) for Python class). Such a *prefix* defines a `namespace`. Often related
 definitions of subjects and predicates share a common prefix. They are said to be in the same **Namespace**. With this
 knowledge, out example may further be simplified:
 
@@ -234,7 +234,7 @@ As you will notice in the example above, the URI's in the form `<....>` have bee
 - For the URN-based URI's, there is no QName equivalent, since the URN-path is built using the `:` character.
 
 Both the *prefix* and the *fragment* are *NCName*. Also,  _QName_ has a Python representation
-[QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName). As we understand now, the `xsd:string` to indicate the datatype is
+[QName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.QName). As we understand now, the `xsd:string` to indicate the datatype is
 also a *QName* –– therefore we need to use the prefix definition `@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .`
 
 #### Ontologies and Namespaces
@@ -425,7 +425,7 @@ ex:titlepage rdf:type wrong:Page ;
 The query engine knows that the subject of `wrong:comment` is a book. Therefore, it realises that `ex:titlepage` is
 also a `wrong:Book`. A query for all books will erroneously return also `wrong:titlepage`!
 
-### Named Graphs in OMASLIB
+### Named Graphs in oldaplib
 RDF allows to group statements into named entities called *named graphs*. Thus, using named graphs, a triple becomes in
 fact a quadruple, since, in addition to the subject, predicate and object, it's associated with a graph name as well.
 The graph name can be used in queries. Usually there is
@@ -471,7 +471,7 @@ INSERT DATA {
 }
 ```
 
-`OMASLIB relies on the systematic use of **named graphs** which are used to separate the different areas and projects.`
+`oldaplib relies on the systematic use of **named graphs** which are used to separate the different areas and projects.`
 
 In triple stores, "named graphs" refer to a mechanism for organizing RDF (Resource Description Framework) data into
 separate and distinct graph contexts. Each named graph is identified by a unique name or identifier, and it contains a
@@ -566,7 +566,7 @@ SELECT ?s WHERE { ?s rdf:type my_ns:Catalogue }
 As we learned, a *NCName* is a string that contains only letters, digits, the `_`, `-`, `.` symbols and starts with a
 letter. In order to enforce and validate such strings, the *NCName* class is used. It throws an `OmasErrorValue` if the
 string does not conform to the XML schema for QName. It has the following methods
-(not complete - full documentation from docstrings [NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName)):
+(not complete - full documentation from docstrings [NCName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.NCName)):
 
 - `NCName(value: Self | str)`: The Constructor takes a NCName or a str as parameter. It validates the string to
   conform to the syntax of NCName's as defined by the XML Datatype schema.
@@ -589,7 +589,7 @@ sparql = f"INSERT DATA {{ my_ns:Hero my_ns:hasId {repr(id)} . }}"
 ### QName
 
 A QName has the form `ncname_a:ncname_b` where the *ncname_a* is the *prefix* and the *ncname_b* is the fragment. The
-class QName has the following methods (full documentation from docstrings: [QName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.QName)).
+class QName has the following methods (full documentation from docstrings: [QName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.QName)).
 It throws an `OmasErrorValue` if the string does not conform to the XML scxhema for QName. The following usages are possible:
 
 - `QName(value: Self | str | NCName, fragment: Optional[str | NCName] = None)`: Creates an instance of QName. 
@@ -623,7 +623,7 @@ sparql = f'INSERT DATA {{ {qn2} {qn1} "Wiley E. Coyote" . }}'
 
 This python class represents a XML Schema AnyURI IRI (Note -- not to be confused: Python: Any**I**RI, XML: Any**U**RI !). The constructor
 validates the string to comform the XML AnyURI scheme. Methods (not complete - full documentation from
-docstrings [AnyIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.AnyIRI)):
+docstrings [AnyIRI](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.AnyIRI)):
 
 - `AnyIRI(value: Self | str)`: Takes an AnyIRI or a string and checks for conformance. Throws an `OmasErrorValue` if
   the string does not conform.
@@ -651,7 +651,7 @@ my_iri = AnyIRI("my.dns.com/gaga/test.html")
 
 This python class, which is a subclass of *AnyIRI* represents an IRI that stands for a [namespace](namespace). That is, the iri
 string must have a `#` or `/` as last character. The constructor validates the string to a NamespaceIRI. The methods
-are (not complete - full documentation from docstrings [NamespaceIRI](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NamespaceIRI)):
+are (not complete - full documentation from docstrings [NamespaceIRI](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.NamespaceIRI)):
 
 - `NamespaceIRI(value: Self | str)`: Constructor. Throws an `OmasErrorValue` if the string does not conform.
 - Other methods see *AnyIRI* above.
@@ -669,7 +669,7 @@ my_ns = Namespace("http://this.does.not.work.ch/no_no")
 ### StringLiteral
 
 The *StringLiteral* class is a subclass of the Python standard class *str*. It implements only one special method (not
-complete - full documentation from docstrings [StringLiteral](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.StringLiteral)):
+complete - full documentation from docstrings [StringLiteral](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.StringLiteral)):
 
 - `StringLiteral(value: str)`: Constructur. Just calls the str constructor
 - `repr(strlit)`. Returns the string with encllosed `"` in order to be directly included into  TRIG/SPARQL statemenmts.

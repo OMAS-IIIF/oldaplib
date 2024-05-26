@@ -1,14 +1,14 @@
 # Xsd (base class)
-::: omaslib.src.xsd.xsd
+::: oldaplib.src.xsd.xsd
 
 # FloatingPoint (base class)
-::: omaslib.src.xsd.floatingpoint
+::: oldaplib.src.xsd.floatingpoint
 
 # Iri
-::: omaslib.src.xsd.iri
-::: omaslib.src.xsd.xsd_anyuri
-::: omaslib.src.xsd.xsd_base64binary
-::: omaslib.src.xsd.xsd_boolean
-::: omaslib.src.xsd.xsd_byte
-::: omaslib.src.xsd.xsd_date
-::: omaslib.src.xsd.xsd_datetime
+::: oldaplib.src.xsd.iri
+::: oldaplib.src.xsd.xsd_anyuri
+::: oldaplib.src.xsd.xsd_base64binary
+::: oldaplib.src.xsd.xsd_boolean
+::: oldaplib.src.xsd.xsd_byte
+::: oldaplib.src.xsd.xsd_date
+::: oldaplib.src.xsd.xsd_datetime

@@ -202,7 +202,7 @@ This attribute indicates the ResourceClass the given property should point at. I
 *Datatype*: `PropertyRestrictions`  
 Restrictions is a compound attribute that itself of an instance of the `PropertyRestrictions` class. Property
 restriction are rules that a property and it(s) value(s) must obey. The following restrictions are supported by
-OMASLIB and defines as Enum `PropertyRestrictions(Enum)`:
+oldaplib and defines as Enum `PropertyRestrictions(Enum)`:
 
 - MIN_COUNT (sh:minCount, owl:cardinality, owl:minCardinality, owl:maxCardinality)
 - MAX_COUNT = (sh:maxCount)

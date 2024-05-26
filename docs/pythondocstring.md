@@ -1,9 +1,9 @@
 # Context
-::: omaslib.src.helpers.context
+::: oldaplib.src.helpers.context
 
 # Langstring
-::: omaslib.src.helpers.langstring
+::: oldaplib.src.helpers.langstring
 
 # UserDataclass
-::: omaslib.src.user_dataclass
+::: oldaplib.src.user_dataclass
 

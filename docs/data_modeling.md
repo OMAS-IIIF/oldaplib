@@ -32,7 +32,7 @@ Resource Class has a unique IRI and a set of rules that define which properties 
 ## Data Model
 A data model encompasses all definitions of property and resource classes that are defined for a specific project.
 A data model as well as its constituents (properties, resources) can be created, read, updated and deleted
-(CRUD-Operation) using the methods of the Python classes of OMASLIB. 
+(CRUD-Operation) using the methods of the Python classes of oldaplib. 
 
 # Data Modelling using OMAS
 An OMAS data modell consists of a series of declarations confirming to the SHACL standard within the
@@ -40,11 +40,11 @@ An OMAS data modell consists of a series of declarations confirming to the SHACL
 graph.
 
 ## Naming conventions
-In oder to create unique IRI's, OMASLIB adds the string "Shape" to the IRI's of properties and resources if used
-in context of the SHACL shape definitions. OMASLIB does add this automatically and the user should not be required to
+In oder to create unique IRI's, oldaplib adds the string "Shape" to the IRI's of properties and resources if used
+in context of the SHACL shape definitions. oldaplib does add this automatically and the user should not be required to
 deal with the "...Shape"-IRI's directly.
 
-**IMPORTRANT:** All methods of OMASLIB expect the IRI's to be given *without* the "Shape"-Extension!
+**IMPORTRANT:** All methods of oldaplib expect the IRI's to be given *without* the "Shape"-Extension!
 
 NOTE: TEXT IST SEHR GUT ABER NOCH EIN BISSCHEN UNSTRUKTURIERT. MIR FEHLT NOCH ETWAS DER ROTE FADEN... GRAD AM SCHLUSS
 HAT MAN ETWAS DAS GEFÜHL ES IST EINFACH EIN NAMENSAPPENDIX... ZUSÄTZLICH WÄRE EIN SCHLUSSKALITEL/SCHLUSSWORT SICHER NOCH GUT

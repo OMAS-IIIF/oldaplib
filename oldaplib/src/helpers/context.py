@@ -8,6 +8,7 @@ a metaclass). That is, each instantiation of Context with the same name will poi
 object. This means that the contex *name* uniquely identifies a context and all changes will be
 visible for all contexts with the same name.
 """
+from copy import deepcopy
 from typing import Dict, List
 
 from pystrict import strict
@@ -16,7 +17,7 @@ from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
-from oldaplib.src.helpers.oldaperror import OldapError
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue
 
 DEFAULT_CONTEXT = "OMAS_DEFAULT_CONTEXT"
 
@@ -36,6 +37,32 @@ class ContextSingleton(type):
     def __init__(cls, name, bases, attributes):
         super().__init__(name, bases, attributes)
         cls._cache = {}
+        cls._predefined_context =  {
+            Xsd_NCName('rdf', validate=False): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
+            Xsd_NCName('rdfs', validate=False): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
+            Xsd_NCName('owl', validate=False): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
+            Xsd_NCName('xsd', validate=False): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
+            Xsd_NCName('xml', validate=False): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
+            Xsd_NCName('sh', validate=False): NamespaceIRI('http://www.w3.org/ns/shacl#'),
+            Xsd_NCName('skos', validate=False): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
+            Xsd_NCName('dc', validate=False): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
+            Xsd_NCName('dcterms', validate=False): NamespaceIRI('http://purl.org/dc/terms/'),
+            Xsd_NCName('foaf', validate=False): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
+            Xsd_NCName('oldap', validate=False): NamespaceIRI('http://oldap.org/base#')
+        }
+        cls._predefined_inverse = {
+            NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf', validate=False),
+            NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs', validate=False),
+            NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl', validate=False),
+            NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd', validate=False),
+            NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml', validate=False),
+            NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh', validate=False),
+            NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos', validate=False),
+            NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc', validate=False),
+            NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms', validate=False),
+            NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf', validate=False),
+            NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap', validate=False),
+        }
 
 
 #@strict
@@ -90,32 +117,34 @@ class Context(metaclass=ContextSingleton):
         :param name: Name of the context
         """
         self._name = name
-        self._context = {
-            Xsd_NCName('rdf', validate=False): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
-            Xsd_NCName('rdfs', validate=False): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
-            Xsd_NCName('owl', validate=False): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
-            Xsd_NCName('xsd', validate=False): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
-            Xsd_NCName('xml', validate=False): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
-            Xsd_NCName('sh', validate=False): NamespaceIRI('http://www.w3.org/ns/shacl#'),
-            Xsd_NCName('skos', validate=False): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
-            Xsd_NCName('dc', validate=False): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
-            Xsd_NCName('dcterms', validate=False): NamespaceIRI('http://purl.org/dc/terms/'),
-            Xsd_NCName('foaf', validate=False): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
-            Xsd_NCName('oldap', validate=False): NamespaceIRI('http://oldap.org/base#')
-        }
-        self._inverse = {
-            NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf', validate=False),
-            NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs', validate=False),
-            NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl', validate=False),
-            NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd', validate=False),
-            NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml', validate=False),
-            NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh', validate=False),
-            NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos', validate=False),
-            NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc', validate=False),
-            NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms', validate=False),
-            NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf', validate=False),
-            NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap', validate=False),
-        }
+        self._context = deepcopy(self._predefined_context)
+        self._inverse = deepcopy(self._predefined_inverse)
+        # self._context = {
+        #     Xsd_NCName('rdf', validate=False): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
+        #     Xsd_NCName('rdfs', validate=False): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
+        #     Xsd_NCName('owl', validate=False): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
+        #     Xsd_NCName('xsd', validate=False): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
+        #     Xsd_NCName('xml', validate=False): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
+        #     Xsd_NCName('sh', validate=False): NamespaceIRI('http://www.w3.org/ns/shacl#'),
+        #     Xsd_NCName('skos', validate=False): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
+        #     Xsd_NCName('dc', validate=False): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
+        #     Xsd_NCName('dcterms', validate=False): NamespaceIRI('http://purl.org/dc/terms/'),
+        #     Xsd_NCName('foaf', validate=False): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
+        #     Xsd_NCName('oldap', validate=False): NamespaceIRI('http://oldap.org/base#')
+        # }
+        # self._inverse = {
+        #     NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf', validate=False),
+        #     NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs', validate=False),
+        #     NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl', validate=False),
+        #     NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd', validate=False),
+        #     NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml', validate=False),
+        #     NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh', validate=False),
+        #     NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos', validate=False),
+        #     NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc', validate=False),
+        #     NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms', validate=False),
+        #     NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf', validate=False),
+        #     NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap', validate=False),
+        # }
         self._use = []
 
     def __getitem__(self, prefix: Xsd_NCName | str) -> NamespaceIRI:
@@ -194,13 +223,21 @@ class Context(metaclass=ContextSingleton):
         """
         return self._context.items()
 
-    def iri2qname(self, iri: str | NamespaceIRI, validate: bool = True) -> Xsd_QName | None:
+    def iri2qname(self, iri: str | Xsd_anyURI, validate: bool = True) -> Xsd_QName | None:
         """
         Returns a QName
 
         :param iri: A valid iri (NamespaceIRI or string)
         :return: QName or None
         """
+        if isinstance(iri, Xsd_QName):
+            return Xsd_QName(iri)
+        try:
+            qn = Xsd_QName(iri)
+            if self._context.get(qn.prefix) is None:
+                return None
+        except OldapErrorValue:
+            pass
         if not isinstance(iri, Xsd_anyURI):
             iri = Xsd_anyURI(iri, validate=validate)
         for prefix, trunk in self._context.items():

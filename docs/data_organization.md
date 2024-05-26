@@ -52,7 +52,7 @@ uses distinct named graphs. In order to do so, for each project, the following p
   example the SwissBritNet might use `https://swissbritnet.ch/`. OLDAP may assign automatically a UUID-based
   URN as projectIri.  
   **NOTE**: *The projectIri is immutable and may not be changed after creation. There choose it carefully!*
-- `projectShortName`: The *projectShortName* is a [NCName](/python_docstrings/datatypes#omaslib.src.helpers.datatypes.NCName)
+- `projectShortName`: The *projectShortName* is a [NCName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.NCName)
   that should be a somewhat meaningful shortname for the project. This shortname will be used as `prefix` for
   all project specific elements in RDF. For the SwissBritNet we could choose the projectShortName `sbn`.
 - `namespaceIri`: The `namespaceIri` is a valid IRI that ends with a `#` or `/` character. It is in combination

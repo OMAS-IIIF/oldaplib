@@ -1,1 +1,1 @@
-::: omaslib.src.xsd.xsd_idref
+::: oldaplib.src.xsd.xsd_idref

@@ -467,6 +467,7 @@ class Project(Model):
         label.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.LABEL.value))
         comment.changeset_clear()
         comment.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.COMMENT.value))
+        context[projectShortName] = namespaceIri
         return cls(con=con,
                    creator=creator,
                    created=created,
@@ -613,6 +614,7 @@ class Project(Model):
         self.__creator = self._con.userIri
         self.__modified = timestamp
         self.__contributor = self._con.userIri
+        context[self.__attributes[ProjectAttr.PROJECT_SHORTNAME]] = self.__attributes[ProjectAttr.NAMESPACE_IRI]
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """

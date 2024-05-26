@@ -31,15 +31,17 @@ class Xsd_NCName(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str | None, validate: bool = True):
         """
         Initialize the NCName
         :param value: Either a string conforming to the QName syntax or a NCName
         :type value: Xsd_NCName | str
         :raises OldapErrorValue: If the value is not a valid NCName
         """
-        if isinstance(value, Xsd_NCName):
-            self.__value = str(value)
+        if value is None:
+            self.__value = ""
+        elif isinstance(value, Xsd_NCName):
+            self.__value = value.__value
         else:
             if not bool(re.match(r'^[A-Za-z_][A-Za-z0-9_.-]*$', value)):
                 raise OldapErrorValue(f'Invalid string "{value}" for NCName')
@@ -47,6 +49,9 @@ class Xsd_NCName(Xsd):
                 if not XsdValidator.validate(XsdDatatypes.NCName, value):
                     raise OldapErrorValue(f'Invalid string "{value}" for NCName')
             self.__value = value
+
+    def __bool__(self):
+        return bool(self.__value)
 
     def __repr__(self) -> str:
         """

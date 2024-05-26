@@ -373,15 +373,15 @@ class TestUser(unittest.TestCase):
         user2 = User.read(con=self._connection, userId="edison")
         user2.userId = "aedison"
         user2.familyName = "Edison et al."
-        user2.givenName = "Tholdap"
+        user2.givenName = "Thomas"
         user2.hasPermissions.add(Iri('oldap:GenericRestricted'))
-        user2.hasPermissions.add(Iri('oldap:HyperHamletMember'))
+        user2.hasPermissions.add(Iri('hyha:HyperHamletMember'))
         user2.hasPermissions.remove(Iri('oldap:GenericView'))
         user2.inProject[Iri('oldap:SystemProject')] = {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES}
         user2.inProject[Iri('oldap:HyperHamlet')].remove(AdminPermission.ADMIN_USERS)
         user2.update()
         user3 = User.read(con=self._connection, userId="aedison")
-        self.assertEqual({Iri('oldap:GenericRestricted'), Iri('oldap:HyperHamletMember')}, user3.hasPermissions)
+        self.assertEqual({Iri('oldap:GenericRestricted'), Iri('hyha:HyperHamletMember')}, user3.hasPermissions)
         user3.hasPermissions.add(Iri('oldap:DoesNotExist'))
         with self.assertRaises(OldapErrorValue) as ex:
             user3.update()
@@ -625,11 +625,11 @@ class TestUser(unittest.TestCase):
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet")
-        user.hasPermissions.add(Iri('oldap:HyperHamletMember'))
+        user.hasPermissions.add(Iri('hyha:HyperHamletMember'))
         user.update()
         del user
         user = User.read(con=self._connection, userId="chiquet")
-        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericView'), Iri('oldap:HyperHamletMember')})
+        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
 
     #  #unittest.skip('Work in progress')
     def test_update_user_add_has_permissions(self):
@@ -646,11 +646,11 @@ class TestUser(unittest.TestCase):
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet")
-        user.hasPermissions = {Iri('oldap:GenericView'), Iri('oldap:HyperHamletMember')}
+        user.hasPermissions = {Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')}
         user.update()
         del user
         user = User.read(con=self._connection, userId="chiquet")
-        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericView'), Iri('oldap:HyperHamletMember')})
+        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
 
     #  #unittest.skip('Work in progress')
     def test_update_user_add_bad_has_permissions(self):
@@ -667,7 +667,7 @@ class TestUser(unittest.TestCase):
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet")
-        user.hasPermissions = {Iri('oldap:GAGA'), Iri('oldap:HyperHamletMember')}
+        user.hasPermissions = {Iri('oldap:GAGA'), Iri('hyha:HyperHamletMember')}
         with self.assertRaises(OldapErrorValue) as err:
             user.update()
 
@@ -683,11 +683,11 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={Iri('oldap:GenericView'), Iri('oldap:HyperHamletMember')})
+                    hasPermissions={Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet")
-        user.hasPermissions.discard(Iri('oldap:HyperHamletMember'))
+        user.hasPermissions.discard(Iri('hyha:HyperHamletMember'))
         user.update()
         del user
         user = User.read(con=self._connection, userId="chiquet")
@@ -705,7 +705,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={Iri('oldap:GenericView'), Iri('oldap:HyperHamletMember')})
+                    hasPermissions={Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet")
@@ -713,7 +713,7 @@ class TestUser(unittest.TestCase):
         user.update()
         del user
         user = User.read(con=self._connection, userId="chiquet")
-        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericView'), Iri('oldap:HyperHamletMember')})
+        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
 
     def test_user_update_active(self):
         user = User(con=self._connection,
@@ -727,7 +727,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
                     isActive=False,
-                    hasPermissions={Iri('oldap:GenericView'), Iri('oldap:HyperHamletMember')})
+                    hasPermissions={Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
         user.create()
         del user
         user = User.read(con=self._connection, userId="jrosenthal")
@@ -781,7 +781,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={Iri('oldap:GenericView'), Iri('oldap:HyperHamletMember')})
+                    hasPermissions={Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
         with self.assertRaises(OldapErrorNoPermission) as ex:
             user.create()
 
@@ -795,7 +795,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={Iri('oldap:GenericView'), Iri('oldap:HyperHamletMember')})
+                    hasPermissions={Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
         user.create()
         user = User.read(con=self._unpriv, userId="niederer")
         user.familyName = "Niederer"

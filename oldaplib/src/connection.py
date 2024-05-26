@@ -188,6 +188,34 @@ class Connection(IConnection):
             payload=payload,
             key=Connection.jwtkey,
             algorithm="HS256")
+        #
+        # Get projects and add to Context
+        #
+        sparql = context.sparql_context
+        sparql += """
+        SELECT ?sname ?ns
+        FROM oldap:admin
+        WHERE {
+            ?proj a oldap:Project .
+            ?proj oldap:projectShortName ?sname .
+            ?proj oldap:namespaceIri ?ns .
+        }
+        """
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
+        }
+        data = {
+            'query': sparql,
+        }
+        res = requests.post(url=self._query_url, headers=headers, data=data)
+        if res.status_code == 200:
+            jsonobj = res.json()
+        else:
+            raise OldapError(res.status_code, res.text)
+        res = QueryProcessor(context=context, query_result=jsonobj)
+        for r in res:
+            context[r['sname']] = r['ns']
 
     @property
     def server(self) -> str:

@@ -340,6 +340,11 @@ class TestBasicConnection(unittest.TestCase):
         for r in res:
             self.assertEqual(str(r['o']), "WASELIWAS ISCH DAS DENN AU?")
 
+    def test_context(self):
+        context = Context(name=self._connection.context_name)
+        self.assertEqual("http://oldap.org/base#", self._context['oldap'])
+        self.assertEqual("http://hyperhamlet.unibas.ch/", self._context['hyha'])
+
 
 if __name__ == '__main__':
     unittest.main()
