@@ -323,6 +323,17 @@ class PermissionSet(Model):
 
     @classmethod
     def read(cls, con: IConnection, id: Xsd_NCName | str, definedByProject: Iri | str) -> Self:
+        """
+        Reads a given permission set. The permission set is defined by its ID (which must be unique within
+        one project) and the project IRI.
+        :param con: A Connection object.
+        :type con: IConnection
+        :param id: The ID of the permission set.
+        :type id: Xsd_NCName | str
+        :param definedByProject: Iri of the project
+        :return: A PermissionSet instance
+        :rtype: OldapPermissionSet
+        """
         id = Xsd_NCName(id)
         definedByProject = Iri(definedByProject)
 
@@ -393,7 +404,23 @@ class PermissionSet(Model):
                id: str | None = None,
                definedByProject: Iri | str | None = None,
                givesPermission: DataPermission | None = None,
-               label: Xsd_string | str | None = None) -> list[Iri]:
+               label: Xsd_string | str | None = None) -> list[Iri | Xsd_QName]:
+        """
+        Search for a permission set. At least one of the search criteria is required. Multiple search criteria are
+        combined using a logical AND.
+        :param con: A valid Connection object.
+        :type con: IConnection
+        :param id: Search for the given ID. The given string must be _contained_ in the ID (substring)
+        :type id: str | None
+        :param definedByProject: The project which is responsible for the permission set
+        :type definedByProject: str | None
+        :param givesPermission: The permission that the permission set should grant
+        :type givesPermission: str | None
+        :param label: The label string. The given string must be within at least one language label.
+        :type label: str | None
+        :return: A list or permission set Iri's (possibly as Xsd_QName
+        :rtype: list[Iri | Xsd_QName]
+        """
         if definedByProject:
             definedByProject = Iri(definedByProject)
         label = Xsd_string(label)
@@ -453,7 +480,17 @@ class PermissionSet(Model):
                 permissionSets.append(r['permsetIri'])
         return permissionSets
 
-    def update(self, indent: int = 0, indent_inc: int = 4):
+    def update(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Update a changed permission set
+        :param indent: Internal use (indent of SPARQL text)
+        :type indent: int
+        :param indent_inc: Internal use (indent increment of SPARQL text)
+        :type indent_inc: int
+        :return: None
+        :rtype: None
+        :raises OldapErrorUpdateFailed: Update failed
+        """
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
@@ -518,6 +555,11 @@ class PermissionSet(Model):
         self.__contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
 
     def delete(self) -> None:
+        """
+        Delete the given permission set.
+        :return: None
+        :rtype: None
+        """
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
