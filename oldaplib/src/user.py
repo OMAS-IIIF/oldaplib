@@ -25,14 +25,14 @@ user = json.loads(jsonstr, object_hook=serializer.decoder_hook)
 
 The User class inherits the following properties from the UserDataclass class:
 
-- _userIri_: IRI of the user, cannot be changed (RDF property `oldaplib:userIri`)
-- _userId_: User ID as NCName (RDF property `oldaplib:userId`)
+- _userIri_: IRI of the user, cannot be changed (RDF property `oldap:userIri`)
+- _userId_: User ID as NCName (RDF property `oldap:userId`)
 - _familyName_: Family name as str (RDF property `foaf:familyName`)
 - _givenName_: Given name or first name as str(RDF property `foaf:givenName`)
-- _credentials_: Credential (password) (RDF property `oldaplib:credentials`)
-- _isActive_: Is the user active as bool? (RDF property `oldaplib:isActive`)
-- _inProject_: Membership to projects and administrative permissions for this project (RDF property `oldaplib:inProject)
-- _hsPermission_: Permissions for data as sets of QNames (RDF property `oldaplib:hasPermissions`)
+- _credentials_: Credential (password) (RDF property `oldap:credentials`)
+- _isActive_: Is the user active as bool? (RDF property `oldap:isActive`)
+- _inProject_: Membership to projects and administrative permissions for this project (RDF property `oldap:inProject)
+- _hsPermission_: Permissions for data as sets of QNames (RDF property `oldap:hasPermissions`)
 
 These properties can be accessed as normal python class properties or using the dictionary syntax. The keys
 are defined in the [UserFields](/python_docstrings/userdataclass/#oldaplib.src.user_dataclass.UserFields) Enum class.

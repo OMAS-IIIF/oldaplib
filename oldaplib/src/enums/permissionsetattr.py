@@ -3,7 +3,7 @@ from enum import unique, Enum
 
 @unique
 class PermissionSetAttr(Enum):
-    ID = 'permset:id'  # virtual property, no equivalent in RDF
+    PERMISSION_SET_ID = 'permset:permissionSetId'  # virtual property, no equivalent in RDF
     LABEL = 'rdfs:label'
     COMMENT = 'rdfs:comment'
     GIVES_PERMISSION = 'oldap:givesPermission'

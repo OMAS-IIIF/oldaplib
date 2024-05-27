@@ -62,7 +62,7 @@ class TestPermissionSet(unittest.TestCase):
 
     def test_construct_permissionset(self):
         ps = PermissionSet(con=self._connection,
-                           id="test1_ps",
+                           permissionSetId="test1_ps",
                            label=LangString("testPerm@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
@@ -74,14 +74,14 @@ class TestPermissionSet(unittest.TestCase):
 
         with self.assertRaises(OldapErrorInconsistency):
             ps = PermissionSet(con=self._connection,
-                               id="test2_ps",
+                               permissionSetId="test2_ps",
                                comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                                givesPermission=DataPermission.DATA_UPDATE,
                                definedByProject=Iri('oldap:SystemProject'))
 
     def test_create_permissionset(self):
         ps = PermissionSet(con=self._connection,
-                           id="test3_ps",
+                           permissionSetId="test3_ps",
                            label=LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
@@ -100,7 +100,7 @@ class TestPermissionSet(unittest.TestCase):
 
     def test_create_permset_with_shortname(self):
         ps = PermissionSet(con=self._connection,
-                           id="test4_ps",
+                           permissionSetId="test4_ps",
                            label=LangString("test4@en", "test4@Perm@de"),
                            comment=LangString("Testing a PermissionSet 4@en", "Test eines PermissionSet 4@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
@@ -125,7 +125,7 @@ class TestPermissionSet(unittest.TestCase):
 
     def test_create_permission(self):
         ps = PermissionSet(con=self._connection,
-                           id="testPerm",
+                           permissionSetId="testPerm",
                            label=LangString("testPerm@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
@@ -143,7 +143,7 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
         ps = PermissionSet(con=self._connection,
-                           id="gagaPerm",
+                           permissionSetId="gagaPerm",
                            label=LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
@@ -161,14 +161,14 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
         ps = PermissionSet(con=self._connection,
-                           id="testPerm2",
+                           permissionSetId="testPerm2",
                            label=LangString("testPerm@en", "test@Perm@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
                            definedByProject=Iri('oldap:SystemProject'))
         ps.create()
         ps = PermissionSet(con=self._connection,
-                           id="testPerm2",
+                           permissionSetId="testPerm2",
                            label=LangString("testPerm33@en", "test@Perm33@de"),
                            comment=LangString("Testing a PermissionSet33@en", "Test eines PermissionSet33@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
@@ -179,7 +179,7 @@ class TestPermissionSet(unittest.TestCase):
 
     def test_create_permission_unauthorized(self):
         ps = PermissionSet(con=self._unpriv,
-                           id="testPermUnauth",
+                           permissionSetId="testPermUnauth",
                            label=LangString("testPermUnauth@en", "test@PermUnauth@de"),
                            comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
@@ -216,13 +216,13 @@ class TestPermissionSet(unittest.TestCase):
 
     def test_update_permission_set(self):
         ps = PermissionSet(con=self._connection,
-                           id="testUpdatePerm",
+                           permissionSetId="testUpdatePerm",
                            label=LangString("testUpdatePerm@en", "testVerändernPerm@de"),
                            comment=LangString("Testing update of PermissionSet@en", "Test einer Veränderung eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
                            definedByProject=Iri('oldap:SystemProject'))
         ps.create()
-        psId = ps.id
+        psId = ps.permissionSetId
         del ps
         ps = PermissionSet.read(self._connection, psId, Iri('oldap:SystemProject'))
         ps.label[Language.FR] = "testeModificationPerm"
@@ -249,7 +249,7 @@ class TestPermissionSet(unittest.TestCase):
 
     def test_delete_permission_set(self):
         ps = PermissionSet(con=self._connection,
-                           id="testDeletePerm",
+                           permissionSetId="testDeletePerm",
                            label=LangString("testDeletePerm@en", "testDeletePerm@de"),
                            comment=LangString("Testing deleting a PermissionSet@en", "Test einer Löschung eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,

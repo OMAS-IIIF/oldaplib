@@ -37,7 +37,7 @@ class PermissionSetAttrChange:
 #@strict
 class PermissionSet(Model):
     __datatypes = {
-        PermissionSetAttr.ID: Xsd_NCName,
+        PermissionSetAttr.PERMISSION_SET_ID: Xsd_NCName,
         PermissionSetAttr.LABEL: LangString,
         PermissionSetAttr.COMMENT: LangString,
         PermissionSetAttr.GIVES_PERMISSION: DataPermission,
@@ -61,7 +61,7 @@ class PermissionSet(Model):
                  created: Xsd_dateTime | datetime | str | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
-                 id: Xsd_NCName | str,
+                 permissionSetId: Xsd_NCName | str,
                  label: LangString | str | None = None,
                  comment: LangString | str | None = None,
                  givesPermission: DataPermission,
@@ -78,8 +78,8 @@ class PermissionSet(Model):
         :type contributor: Iri | None
         :param modified: Usually not being used (internal use only)
         :type modified: Xsd_dateTime | datetime | str | None
-        :param id: A unique identifier for the permission set (unique within the project as given be :definedByProject)
-        :type id: Xsd_NCName | str
+        :param permissionSetId: A unique identifier for the permission set (unique within the project as given be :definedByProject)
+        :type permissionSetId: Xsd_NCName | str
         :param label: A meaninful label for the permission set (several languages allowed)
         :type label: LangString | str
         :param comment: A meaningful comment for the permission set (several languages allowed)
@@ -97,7 +97,7 @@ class PermissionSet(Model):
         self.__modified = Xsd_dateTime(modified) if modified else None
         self.__attributes = {}
 
-        self.__attributes[PermissionSetAttr.ID] = Xsd_NCName(id)
+        self.__attributes[PermissionSetAttr.PERMISSION_SET_ID] = Xsd_NCName(permissionSetId)
         self.__attributes[PermissionSetAttr.LABEL] = LangString(label)
         self.__attributes[PermissionSetAttr.LABEL].set_notifier(self.notifier, PermissionSetAttr.LABEL)
         self.__attributes[PermissionSetAttr.COMMENT] = LangString(comment)
@@ -109,7 +109,7 @@ class PermissionSet(Model):
         project = Project.read(self._con, definedByProject)
         self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = project.projectIri
 
-        if not self.__attributes[PermissionSetAttr.ID]:
+        if not self.__attributes[PermissionSetAttr.PERMISSION_SET_ID]:
             raise OldapErrorInconsistency(f'PermissionSet must have a unique ID, none given.')
         if not self.__attributes[PermissionSetAttr.LABEL]:
             raise OldapErrorInconsistency(f'PermissionSet must have at least one rdfs:label, none given.')
@@ -119,7 +119,7 @@ class PermissionSet(Model):
             raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:definedByProject, none given.')
 
         project = Project.read(self._con, self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT])
-        self.__permset_iri = Iri.fromPrefixFragment(project.projectShortName, self.__attributes[PermissionSetAttr.ID], validate=False)
+        self.__permset_iri = Iri.fromPrefixFragment(project.projectShortName, self.__attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
 
         for field in PermissionSetAttr:
             prefix, name = field.value.split(':')
@@ -157,7 +157,7 @@ class PermissionSet(Model):
         return self.__attributes.get(field)
 
     def __set_value(self: Self, self2: Self, value: PermissionSetAttrTypes, field: PermissionSetAttr) -> None:
-        if field == PermissionSetAttr.ID and self.__attributes.get(PermissionSetAttr.ID) is not None:
+        if field == PermissionSetAttr.PERMISSION_SET_ID and self.__attributes.get(PermissionSetAttr.PERMISSION_SET_ID) is not None:
             OldapErrorAlreadyExists(f'A permission set ID already has been assigned: "{repr(self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI))}".')
         self.__change_setter(field, value)
 
@@ -167,7 +167,7 @@ class PermissionSet(Model):
     def __change_setter(self, attr: PermissionSetAttr, value: PermissionSetAttrTypes) -> None:
         if self.__attributes[attr] == value:
             return
-        if attr in {PermissionSetAttr.ID, PermissionSetAttr.DEFINED_BY_PROJECT}:
+        if attr in {PermissionSetAttr.PERMISSION_SET_ID, PermissionSetAttr.DEFINED_BY_PROJECT}:
             raise OldapErrorImmutable(f'Field {attr.value} is immutable.')
         if self.__attributes[attr] is None:
             if self.__changeset.get(attr) is None:
@@ -195,7 +195,7 @@ class PermissionSet(Model):
                 self.__attributes[attr] = self.__datatypes[attr](value)
 
     def __str__(self) -> str:
-        res = f'PermissionSet: {self.__attributes[PermissionSetAttr.ID]}\n'\
+        res = f'PermissionSet: {self.__attributes[PermissionSetAttr.PERMISSION_SET_ID]}\n'\
               f'  Creation: {self.__created} by {self.__creator}\n'\
               f'  Modified: {self.__modified} by {self.__contributor}\n' \
               f'  Label: {self.__attributes.get(PermissionSetAttr.LABEL, "-")}\n' \
@@ -327,25 +327,25 @@ class PermissionSet(Model):
         self.__contributor = self._con.userIri
 
     @classmethod
-    def read(cls, con: IConnection, id: Xsd_NCName | str, definedByProject: Iri | Xsd_NCName | str) -> Self:
+    def read(cls, con: IConnection, permissionSetId: Xsd_NCName | str, definedByProject: Iri | Xsd_NCName | str) -> Self:
         """
         Reads a given permission set. The permission set is defined by its ID (which must be unique within
         one project) and the project IRI.
         :param con: A Connection object.
         :type con: IConnection
-        :param id: The ID of the permission set.
-        :type id: Xsd_NCName | str
+        :param permissionSetId: The ID of the permission set.
+        :type permissionSetId: Xsd_NCName | str
         :param definedByProject: Iri or the shortname of the project
         :type definedByProject: Iri | Xsd_NCName | str
         :return: A PermissionSet instance
         :rtype: OldapPermissionSet
         :raises OldapErrorNot found: If the permission set cannot be found.
         """
-        id = Xsd_NCName(id)
+        id = Xsd_NCName(permissionSetId)
         definedByProject = Iri(definedByProject)
 
         project = Project.read(con, definedByProject)
-        permset_iri = Iri.fromPrefixFragment(project.projectShortName, id, validate=False)
+        permset_iri = Iri.fromPrefixFragment(project.projectShortName, permissionSetId, validate=False)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f"""
@@ -396,7 +396,7 @@ class PermissionSet(Model):
                     definedByProject = r['o']
         cls.__permset_iri = permset_iri
         return cls(con=con,
-                   id=id,
+                   permissionSetId=permissionSetId,
                    creator=creator,
                    created=created,
                    contributor=contributor,
@@ -408,7 +408,7 @@ class PermissionSet(Model):
 
     @staticmethod
     def search(con: IConnection, *,
-               id: str | None = None,
+               permissionSetId: str | None = None,
                definedByProject: Iri | str | None = None,
                givesPermission: DataPermission | None = None,
                label: Xsd_string | str | None = None) -> list[Iri | Xsd_QName]:
@@ -417,8 +417,8 @@ class PermissionSet(Model):
         combined using a logical AND.
         :param con: A valid Connection object.
         :type con: IConnection
-        :param id: Search for the given ID. The given string must be _contained_ in the ID (substring)
-        :type id: str | None
+        :param permissionSetId: Search for the given ID. The given string must be _contained_ in the ID (substring)
+        :type permissionSetId: str | None
         :param definedByProject: The project which is responsible for the permission set
         :type definedByProject: str | None
         :param givesPermission: The permission that the permission set should grant
@@ -450,11 +450,11 @@ class PermissionSet(Model):
             sparql += '   ?permsetIri oldap:givesPermission ?givesPermission .\n'
         if label:
             sparql += '   ?permsetIri rdfs:label ?label .\n'
-        if id or definedByProject or givesPermission or label:
+        if permissionSetId or definedByProject or givesPermission or label:
             sparql += '   FILTER('
             use_and = False
-            if id:
-                sparql += f'CONTAINS(STR(?permsetIri), "{Xsd_string.escaping(id)}")'
+            if permissionSetId:
+                sparql += f'CONTAINS(STR(?permsetIri), "{Xsd_string.escaping(permissionSetId)}")'
                 use_and = True
             if definedByProject:
                 if use_and:
