@@ -385,8 +385,8 @@ class Project(Model):
         Read the project from the triplestore and return an instance of the project
         :param con: A valid Connection object
         :type con: IConnection
-        :param projectIri: The IRI/QName of the project to be read
-        :type projectIri: Xsd_anyURI | Xsd_QName
+        :param projectIri_SName: The IRI or shortname of the project to be read
+        :type projectIri_SName: Iri | Xsd_NCName | str
         :return: Project instance
         :rtype: Project
         :raise: OldapErrorNotFound: project with given Iri not found

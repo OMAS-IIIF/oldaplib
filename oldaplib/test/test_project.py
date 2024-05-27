@@ -76,8 +76,9 @@ class Testproject(unittest.TestCase):
         project = Project.read(con=self._connection, projectIri_SName='http://www.salsah.org/version/2.0/SwissBritNet')
         self.assertEqual(Xsd_NCName("britnet"), project.projectShortName)
 
-        project2 = Project.read(con=self._connection, projectIri_SName='hyha')
-        self.assertEqual(Xsd_NCName("hyha"), project2.projectShortName)
+        project2 = Project.read(con=self._connection, projectIri_SName='britnet')
+        self.assertEqual(Xsd_NCName("britnet"), project2.projectShortName)
+        self.assertEqual(Iri('http://www.salsah.org/version/2.0/SwissBritNet'), project2.projectIri)
 
     # @unittest.skip('Work in progress')
     def test_project_search(self):

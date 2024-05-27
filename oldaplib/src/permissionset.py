@@ -65,7 +65,7 @@ class PermissionSet(Model):
                  label: LangString | str | None = None,
                  comment: LangString | str | None = None,
                  givesPermission: DataPermission,
-                 definedByProject: Iri):
+                 definedByProject: Iri | Xsd_NCName):
         """
         Constructor for a permission set.
         :param con: Subclass of IConnection
@@ -86,8 +86,9 @@ class PermissionSet(Model):
         :type comment: LangString | str
         :param givesPermission: The permission that this permision set grants
         :type givesPermission: DataPermission
-        :param definedByProject: The project that defines this permission set
-        :type definedByProject: Iri
+        :param definedByProject: The project that defines this permission set (either the IRI or the shortname)
+        :type definedByProject: Iri | Xsd_NCName
+        :raises OldapErrorNoFound: Given project does not exist
         """
         super().__init__(con)
         self.__creator = Iri(creator) if creator else con.userIri
@@ -102,7 +103,11 @@ class PermissionSet(Model):
         self.__attributes[PermissionSetAttr.COMMENT] = LangString(comment)
         self.__attributes[PermissionSetAttr.COMMENT].set_notifier(self.notifier, PermissionSetAttr.COMMENT)
         self.__attributes[PermissionSetAttr.GIVES_PERMISSION] = givesPermission
-        self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = Iri(definedByProject)
+        #
+        # get the project IRI
+        #
+        project = Project.read(self._con, definedByProject)
+        self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = project.projectIri
 
         if not self.__attributes[PermissionSetAttr.ID]:
             raise OldapErrorInconsistency(f'PermissionSet must have a unique ID, none given.')
@@ -322,7 +327,7 @@ class PermissionSet(Model):
         self.__contributor = self._con.userIri
 
     @classmethod
-    def read(cls, con: IConnection, id: Xsd_NCName | str, definedByProject: Iri | str) -> Self:
+    def read(cls, con: IConnection, id: Xsd_NCName | str, definedByProject: Iri | Xsd_NCName | str) -> Self:
         """
         Reads a given permission set. The permission set is defined by its ID (which must be unique within
         one project) and the project IRI.
@@ -330,9 +335,11 @@ class PermissionSet(Model):
         :type con: IConnection
         :param id: The ID of the permission set.
         :type id: Xsd_NCName | str
-        :param definedByProject: Iri of the project
+        :param definedByProject: Iri or the shortname of the project
+        :type definedByProject: Iri | Xsd_NCName | str
         :return: A PermissionSet instance
         :rtype: OldapPermissionSet
+        :raises OldapErrorNot found: If the permission set cannot be found.
         """
         id = Xsd_NCName(id)
         definedByProject = Iri(definedByProject)

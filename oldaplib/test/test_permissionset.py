@@ -79,6 +79,7 @@ class TestPermissionSet(unittest.TestCase):
                                givesPermission=DataPermission.DATA_UPDATE,
                                definedByProject=Iri('oldap:SystemProject'))
 
+    def test_create_permissionset(self):
         ps = PermissionSet(con=self._connection,
                            id="test3_ps",
                            label=LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"),
@@ -97,6 +98,17 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
         self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
+    def test_create_permset_with_shortname(self):
+        ps = PermissionSet(con=self._connection,
+                           id="test4_ps",
+                           label=LangString("test4@en", "test4@Perm@de"),
+                           comment=LangString("Testing a PermissionSet 4@en", "Test eines PermissionSet 4@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject='britnet')
+        ps.create()
+        ps = PermissionSet.read(self._connection, "test4_ps", Iri('http://www.salsah.org/version/2.0/SwissBritNet'))
+        self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
+        self.assertEqual(ps.label, LangString("test4@en", "test4@Perm@de"))
 
     # @unittest.skip('Work in progress')
     def test_read_permission_A(self):
