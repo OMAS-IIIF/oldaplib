@@ -1,4 +1,4 @@
-# About
+# Introduction
 
 OLDAP is a library of Python classes that allows to create data models for RDF based linked data systems.
 It uses RDF, RDFS, OWL and SHACL to define consistent data models for projects that are to be based on RDF.

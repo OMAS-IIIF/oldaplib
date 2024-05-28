@@ -52,36 +52,42 @@ uses distinct named graphs. In order to do so, for each project, the following p
   example the SwissBritNet might use `https://swissbritnet.ch/`. OLDAP may assign automatically a UUID-based
   URN as projectIri.  
   **NOTE**: *The projectIri is immutable and may not be changed after creation. There choose it carefully!*
-- `projectShortName`: The *projectShortName* is a [NCName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.NCName)
+- `projectShortName`: The *projectShortName* is a [NCName](/python_docstrings/xsd/xsd_ncname)
   that should be a somewhat meaningful shortname for the project. This shortname will be used as `prefix` for
-  all project specific elements in RDF. For the SwissBritNet we could choose the projectShortName `sbn`.
-- `namespaceIri`: The `namespaceIri` is a valid IRI that ends with a `#` or `/` character. It is in combination
+  all project specific elements in RDF. E.g., or the SwissBritNet we could choose the projectShortName `sbn`.
+- `namespaceIri`: The `namespaceIri` is a valid IRI that must end with a `#` or `/` character. It is in combination
   with the *projectShortName* used to define prefixes: `PREFIX 'projectShortName': <'namespaceIRI'>`. For our
   example let's assume a *namespaceIri* `https://swissbritnet.ch/namespace#`. THus, a prefix definition would
   look like `PREFIX sbn: <https://swissbritnet.ch/namespace#>`.
-- `label`: Informative data containing the human readable name of the Project, e.g. "SwissBritNet"
-- `comment`: Informative data containing a brief description of the project, it's purpose etc.
-- `projectStart`: Informative data containing the date whe the project has started/will start.
-- `projectEnd`: Informative data containing the date whe the project will be finished.
+- `label`: Informative data containing the human readable name of the Project, e.g. "SwissBritNet". You can add several
+  language specific labels (but only one per language)
+- `comment`: Informative data containing a brief description of the project, it's purpose etc. You can add language
+  specific comments (one per language)
+- `projectStart`: Informative data containing the date whe the project has started/will start. The date must have the
+  format `YYYY-MM-DD`. If no `projectStart^is given, the current date is picked.
+- `projectEnd`: Informative data containing the date whe the project will be finished. This is an optional element
+  that also has the format `YYYY-MM-DD` and indicates when the project will end. It must be after the `projectStart`date!
 
-For each project, **3** *named graphs* will be used:
+For each project, **4** *named graphs* will be used (where `[projectShortName]`will be replaced by the actual
+projectShortName:
 
-- `projectShortName:shacl`: This graph contains all the SHACL definition of the project specific data modeling
-- `projectShortName:onto`: This graph contains the OWL ontology definition in order to allow reasoning on the
+- `[projectShortName]:shacl`: This graph contains all the SHACL definition of the project specific data modeling
+- `[projectShortName]:onto`: This graph contains the OWL ontology definition in order to allow reasoning on the
   projects data
-- `projectShortName:data`: This graphs contains al the projects data
+- `[projectShortName]:lists`: This graph contains all the hierarchical lists (theasauri) associated with the given project
+- `[projectShortName]:data`: This graphs contains al the projects data
 
 
 ### System Project
 
-The *System Project* (IRI: `omas:SystemProject`) is a special project that is required for OLDAP to implement authentication,
-user management and access control. It contains all the necessary data models and data for this purpose, again
-in specific named graphs. It uses the following `http://omas.org/base#` as *namespaceIri* and `omas` as
-*projectShortName*. The following named graphs are used:
+The *System Project* (IRI: `oldap:SystemProject`, projectShortName: `oldap`) is a special project that is required for
+OLDAP to implement authentication, user management and access control. It contains all the necessary data models and
+data for this purpose, again  in specific named graphs. It uses the following `http://oldap.org/base#` as *namespaceIri*
+and `oldap` as *projectShortName*. The following named graphs are used:
 
-- `omas:shacl`: Contains the SHACL definition for system specific data models.
-- `omas:onto`: Contains the OWL declarations
-- `omas:admin`: Contains all data (instances of system classes) that are necessary for OLDAP to function
+- `oldap:shacl`: Contains the SHACL definition for system specific data models.
+- `oldap:onto`: Contains the OWL declarations
+- `oldap:admin`: Contains all data (instances of system classes) that are necessary for OLDAP to function
   properly.
 
 ***IMPORTANT***: **Data and definitions from the system project must never be changed directly in the
@@ -96,7 +102,7 @@ the access permission to the data. For a more thorough discussion of the permiss
 A User is defined with the following properties:
 
 - `userIri`: A unique IRI describing the User. It is highly recommended to use the [ORCID](https://orcid.org)-Id as
-  *userIri*. If a user doesn't have an ORCID, the *userIri* can me omitted and OLDAP will assign a UUID based URN.
+  *userIri*. If a user doesn't have an ORCID, the *userIri* can me omitted and OLDAP will assign a UUID-based URN.
 - `userID`: The *userId* is a NCName that is used as shortname or nickname. It must also must be unique (which is
   enforced by OLDAP – it does not allow a user to be added with as *userId* already in use). The userId is used
   to identify the user at login etc.
@@ -118,18 +124,19 @@ A User is defined with the following properties:
     - `ADMIN_RESOURCES`: Change permissions amd ownership of data items ("*resources*).
     - `ADMIN_MODEL`: Extend or change the data model for the given project.
     - `ADMIN_CREATE`: Create now data items ("resources") in the context of the given project.
+    - `ADMIN_LISTS`: Create, modify and delete lists and list nodes
 - `hasPermissions`: Define the *Permission Sets* a user is associated with. For more information about the role of
   *permission sets* see the chapter [Permission Concept](/permission_concept). The *permission sets* are items defined
   in the `omas:admin` graph and can be added/modified/deleted by a user that has the `ADMIN_PERMISSION_SETS` permission
   for the given project.  
 
-  For a detailed description of the format of this field please see the description of the [User class](/user).
+  For a detailed description of the format of this field please see the description of the [User class](/python_docstrings/user).
 
 ## Permission Set
 
 A *permission set* is the link between the user and a data item that defines how a user is allowed to access a specific
-data item. A permission set is an item that is defined withing the `omas:admin`-graph and has the class
-`omas:PermissionSet`. User with the appropriate administrative permission may add/modify/delete permisson sets.
+data item. A permission set is an item that is defined withing the `oldap:admin`-graph and has the class
+`oldap:PermissionSet`. User with the appropriate administrative permission may add/modify/delete permisson sets.
 The permission sets are both associated with data items/resources and user (see [Permission Concept](/permission_concept))
 The following permissions are defined:
 
@@ -151,5 +158,18 @@ and `DATA_RESTRICTED` etc. Thus, `DATA_PERMISSIONS` encompasses all other permis
 **NOTE (B)**: *The owner of a data item/resource -- that is the user that created the item -- always has all permissions
 even if there are no explicit permissions associated.*  
 
-**NOTE (C)**: *A user associated with the *System project* having there the `ADMIN_OLDAP` privilege also has full
-access to all resources.
+**NOTE (C)**: *A user associated with the __System project__ having there the `ADMIN_OLDAP` privilege also has full
+access to all resources.*
+
+A Permission Set is defined by the following properties:
+
+- `permissionSetId`: An project-unique ID identifying the permission set. The ID is a [NCName](/python_docstrings/xsd/xsd_ncname)
+  that must be unique within the project. It's used to identify/access/modify the Permission Set.
+- `label`: Informative data containing the human readable name of the permission set. You can add several language
+  specific labels (but only one per language)
+- `comment`: Informative data containing a brief description of the permission set, it's purpose etc. You can add several
+  language specific comments (one per language)
+- `givesPermission`: The permission that this permission set grants (see above).
+- `definedByproject`: The project that the permission set is defined in. This parameter can either be the
+  [IRI](/python_docstrings/xsd/iri) of the project, or the `projectShortName` given as
+  [NCName](/python_docstrings/xsd/xsd_ncname).

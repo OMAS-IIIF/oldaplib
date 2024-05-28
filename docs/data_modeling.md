@@ -1,9 +1,25 @@
 # Data Modeling
 
-## Properties (predicates)
+OLDAP is based on [Semantic Web](https://en.wikipedia.org/wiki/Semantic_Web)-technologies as described in the
+[Introduction](/#introduction).
 
-NOTE: ZUERST VIELLEICHT: WAS IST EINE PROPERTY? ODER STEHT DAS SCHON OBEN? WENN JA -> REFERENZ DADRAUF? ODER: WISO KOMMT HIER GENAU PROPERTIES?
-PROPERTIES ARE IMPORTENT BECAUSE OF ...
+## Namespaces and Prefixes
+
+In the Resource Description Framework(RDF), everything that is not a literal is denoted by a unique URN (**U**niform
+**R**esource **N**ame). However, since writing/reading long URI's is combersume, the notion of `perfixes` and
+`namespaces` have been introduced. A `namespace` is a URN that ends with a `#`- or `/ `-character. In these cases, a
+[NCName](https://www.w3.org/TR/xmlschema-2/#NCName) can be _appended_ to such a URN. A NCName represents an
+non-colonized name, which is simply a name that does not contain colons. An NCName  value must start with either a
+letter or underscore ( `_` ) and may contain only letters, digits, underscores ( `_` ), hyphens ( `-` ), and periods ( `. `).
+
+A `prefix` is a shortname (which must also follow the NCName rules) that stands for a namespace. If the prefix is
+known to the system, a URN built ontopa namespace can be abbreviated with `prefx:name`. As an example we
+define the namespae that should be used for the resources and predicates in a given project as follows:
+
+```
+```
+
+## Properties (predicates)
 
 Predicates or properties can be defined NOTE: BE DISTINGUISHED? in to different flavours. Usually the private properties are preferred and
 standalone properties should only be used if this results in significant advantages for the data model. Each property
