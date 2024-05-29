@@ -7,6 +7,7 @@ from oldaplib.src.model import Model
 from oldaplib.src.project import Project
 from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
@@ -49,14 +50,13 @@ class OldapListNode(Model):
 
     def __init__(self, *,
                  con: IConnection,
-                 **kwargs):
-        super().__init__(connection=con)
-        if self.__system is None:
-            self.__system = Project.read(con, 'oldap')
-        if self.__listnodeclass is None:
-            self.__listnodeclass = ResourceClass.read(con, self.__system, Iri('oldap:OldapListNode'))
-        print(self.__system)
-        print(self.__listnodeclass)
+                 project: Project,
+                 creator: Iri | None = None,
+                 created: Xsd_dateTime | None = None,
+                 contributor: Iri | None = None,
+                 modified: Xsd_dateTime | None = None,
+                 oldapListIri: Iri | str | None = None,
+                 prefLabel: LangString | str | None = None,):
 
 if __name__ == '__main__':
     con = Connection(server='http://localhost:7200',
