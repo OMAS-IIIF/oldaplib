@@ -104,7 +104,7 @@ class ResourceClass(Model, Notify):
 
     def __init__(self, *,
                  con: IConnection,
-                 project: Project,
+                 project: Project | Iri | Xsd_NCName | str,
                  owlclass_iri: Iri | str | None = None,
                  superclass: SuperclassParam = None,
                  label: LangString | str | None = None,
@@ -118,9 +118,10 @@ class ResourceClass(Model, Notify):
         self._attr_changeset = {}
         self._prop_changeset = {}
 
-        if not isinstance(project, Project):
-            raise OldapErrorValue('The project parameter must be a Project instance')
-        self._project = project
+        if isinstance(project, Project):
+            self._project = project
+        else:
+            self._project = Project.read(self._con, project)
         if self._sysproject is None:
             self._sysproject = Project.read(self._con, Xsd_NCName("oldap"))
         # if owlclass_iri and owlclass_iri != Iri('oldap:Thing', validate=False):
@@ -130,9 +131,9 @@ class ResourceClass(Model, Notify):
         # else:
         #     self._subClassOf = {}
         context = Context(name=self._con.context_name)
-        context[project.projectShortName] = project.namespaceIri
-        context.use(project.projectShortName)
-        self._graph = project.projectShortName
+        context[self._project.projectShortName] = self._project.namespaceIri
+        context.use(self._project.projectShortName)
+        self._graph = self._project.projectShortName
         self._attributes = {}
 
         if isinstance(owlclass_iri, Iri):

@@ -72,13 +72,6 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
         self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
-        with self.assertRaises(OldapErrorInconsistency):
-            ps = PermissionSet(con=self._connection,
-                               permissionSetId="test2_ps",
-                               comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
-                               givesPermission=DataPermission.DATA_UPDATE,
-                               definedByProject=Iri('oldap:SystemProject'))
-
     def test_create_permissionset(self):
         ps = PermissionSet(con=self._connection,
                            permissionSetId="test3_ps",
@@ -142,6 +135,7 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
         self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
+    def test_create_permission_strange_label(self):
         ps = PermissionSet(con=self._connection,
                            permissionSetId="gagaPerm",
                            label=LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"),
@@ -160,6 +154,20 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
         self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
+    def test_create_permission_no_label(self):
+        ps = PermissionSet(con=self._connection,
+                           permissionSetId="gagaPerm2",
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject=Iri('oldap:SystemProject'))
+        ps.create()
+        del ps
+        ps = PermissionSet.read(self._connection, "gagaPerm2", 'oldap:SystemProject')
+        self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
+        self.assertIsNone(ps.label)
+        self.assertIsNone(ps.comment)
+        self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
+
+    def test_create_permission_duplicate(self):
         ps = PermissionSet(con=self._connection,
                            permissionSetId="testPerm2",
                            label=LangString("testPerm@en", "test@Perm@de"),

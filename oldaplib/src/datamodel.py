@@ -38,19 +38,20 @@ class DataModel(Model):
 
     def __init__(self, *,
                  con: IConnection,
-                 project: Project,
+                 project: Project | Iri | Xsd_NCName | str,
                  propclasses: list[PropertyClass] | None = None,
                  resclasses: list[ResourceClass] | None = None) -> None:
         super().__init__(con)
         self.__version = SemanticVersion()
 
-        if not isinstance(project, Project):
-            raise OldapErrorValue('The project parameter must be a Project instance')
-        self._project = project
+        if isinstance(project, Project):
+            self._project = project
+        else:
+            self._project = Project.read(self._con, project)
         context = Context(name=self._con.context_name)
-        context[project.projectShortName] = project.namespaceIri
-        context.use(project.projectShortName)
-        self.__graph = project.projectShortName
+        context[self._project.projectShortName] = self._project.namespaceIri
+        context.use(self._project.projectShortName)
+        self.__graph = self._project.projectShortName
 
         self.__propclasses = {}
         if propclasses is not None:

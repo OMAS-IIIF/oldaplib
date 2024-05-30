@@ -48,11 +48,11 @@ class Iri(Xsd):
             self.__value = str(value)
             self.__rep = IriRep.QNAME
             return
-        elif isinstance(value, Xsd_anyURI):
+        if isinstance(value, Xsd_anyURI):
             self.__value = str(value)
             self.__rep = IriRep.FULL
             return
-        elif isinstance(value, str):
+        if isinstance(value, str):
             try:
                 tmp = Xsd_QName(value, validate=validate)
                 self.__value = str(value)
@@ -162,4 +162,6 @@ class Iri(Xsd):
 
 
 if __name__ == '__main__':
-    iri = Iri("oldap:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")
+    #iri = Iri("oldap:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")
+    iri = Iri(None)
+    print(iri)

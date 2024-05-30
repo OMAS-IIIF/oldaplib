@@ -98,28 +98,27 @@ class PermissionSet(Model):
         self.__attributes = {}
 
         self.__attributes[PermissionSetAttr.PERMISSION_SET_ID] = Xsd_NCName(permissionSetId)
-        self.__attributes[PermissionSetAttr.LABEL] = LangString(label)
-        self.__attributes[PermissionSetAttr.LABEL].set_notifier(self.notifier, PermissionSetAttr.LABEL)
-        self.__attributes[PermissionSetAttr.COMMENT] = LangString(comment)
-        self.__attributes[PermissionSetAttr.COMMENT].set_notifier(self.notifier, PermissionSetAttr.COMMENT)
+        if label:
+            self.__attributes[PermissionSetAttr.LABEL] = LangString(label)
+            self.__attributes[PermissionSetAttr.LABEL].set_notifier(self.notifier, PermissionSetAttr.LABEL)
+        if comment:
+            self.__attributes[PermissionSetAttr.COMMENT] = LangString(comment)
+            self.__attributes[PermissionSetAttr.COMMENT].set_notifier(self.notifier, PermissionSetAttr.COMMENT)
         self.__attributes[PermissionSetAttr.GIVES_PERMISSION] = givesPermission
         #
         # get the project IRI
         #
         project = Project.read(self._con, definedByProject)
         self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = project.projectIri
+        self.__permset_iri = Iri.fromPrefixFragment(project.projectShortName, self.__attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
 
         if not self.__attributes[PermissionSetAttr.PERMISSION_SET_ID]:
             raise OldapErrorInconsistency(f'PermissionSet must have a unique ID, none given.')
-        if not self.__attributes[PermissionSetAttr.LABEL]:
-            raise OldapErrorInconsistency(f'PermissionSet must have at least one rdfs:label, none given.')
         if not self.__attributes[PermissionSetAttr.GIVES_PERMISSION]:
             raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:givesPermission, none given.')
         if not self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]:
             raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:definedByProject, none given.')
 
-        project = Project.read(self._con, self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT])
-        self.__permset_iri = Iri.fromPrefixFragment(project.projectShortName, self.__attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
 
         for field in PermissionSetAttr:
             prefix, name = field.value.split(':')
@@ -169,7 +168,7 @@ class PermissionSet(Model):
             return
         if attr in {PermissionSetAttr.PERMISSION_SET_ID, PermissionSetAttr.DEFINED_BY_PROJECT}:
             raise OldapErrorImmutable(f'Field {attr.value} is immutable.')
-        if self.__attributes[attr] is None:
+        if self.__attributes.get(attr) is None:
             if self.__changeset.get(attr) is None:
                 self.__changeset[attr] = PermissionSetAttrChange(None, Action.CREATE)
         else:
@@ -291,7 +290,8 @@ class PermissionSet(Model):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.LABEL.value} {self.label.toRdf}'
+        if self.label:
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.LABEL.value} {self.label.toRdf}'
         if self.comment:
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.COMMENT.value} {self.comment.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.GIVES_PERMISSION.value} oldap:{self.givesPermission.name}'

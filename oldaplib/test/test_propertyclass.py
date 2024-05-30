@@ -84,6 +84,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropClassAttr.ORDER), Xsd_decimal(5))
 
+    def test_propertyclass_tonode_constructor(self):
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            toNodeIri=Iri('test:Person'),
@@ -91,6 +92,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.get(PropClassAttr.TO_NODE_IRI), Xsd_QName('test:Person'))
         self.assertEqual(p2.get(PropClassAttr.MAX_COUNT), Xsd_integer(1))
 
+    def test_propertyclass_datatype_constructor(self):
         p3 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:testprop3'),
@@ -100,6 +102,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p3.get(PropClassAttr.IN), {Xsd_string('yes'), Xsd_string('may be'), Xsd_string('no')})
         self.assertEqual(p3.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
 
+    def test_propertyclass_languagein_constructor(self):
         p4 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:testprop4'),
@@ -108,12 +111,23 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p4.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.DE, Language.FR))
         self.assertEqual(p4.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
 
+    def test_propertyclass_inconsistent_constructor(self):
         with self.assertRaises(OldapErrorValue):
             p5 = PropertyClass(con=self._connection,
                                project=self._project,
                                property_class_iri=Iri('test:testprop5'),
                                datatype=XsdDatatypes.string,
                                languageIn=LanguageIn(Language.EN, Language.DE, Language.FR))
+
+    def test_propertyclass_projectsn_constructor(self):
+        p6 = PropertyClass(con=self._connection,
+                           project="test",
+                           property_class_iri=Iri('test:testprop6'),
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR))
+        self.assertEqual(p6.property_class_iri, Xsd_QName('test:testprop6'))
+        self.assertEqual(p6.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.DE, Language.FR))
+        self.assertEqual(p6.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
+
 
     # @unittest.skip('Work in progress')
     def test_propertyclass_read_shacl(self):

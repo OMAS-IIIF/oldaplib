@@ -55,59 +55,43 @@ class OldapList(Model):
     __graph: Xsd_NCName
 
     __attributes: dict[OldapListAttr, OldapListAttrTypes]
-
     __changeset: dict[OldapListAttr, OldapListAttrChange]
 
     def __init__(self, *,
                  con: IConnection,
-                 project: Project,
+                 project: Project | Iri | Xsd_NCName | str,
                  creator: Iri | None = None,
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
                  oldapListIri: Iri | str | None = None,
-                 inScheme: Iri | str,
-                 broaderTransitive: Iri | str | None = None,
-                 nextNode: Iri | str | None = None,
-                 leftIndex: int | None = None,
-                 rightIndex: int | None = None,
-                 notation: Xsd_string | str | None = None,
-                 note: LangString | str | None = None,
                  prefLabel: LangString | str | None = None,
-                 altLabel: LangString | str | None = None,
-                 definition: LangString | str | None = None,
-                 changeNote: Xsd_string | str | None = None):
+                 definition: LangString | str | None = None):
         super().__init__(con)
-        if not isinstance(project, Project):
-            raise OldapErrorValue('The project parameter must be a Project instance')
-        self.__project = project
+        if isinstance(project, Project):
+            self.__project = project
+        else:
+            self.__project = Project.read(self._con, project)
+
         context = Context(name=self._con.context_name)
         context[project.projectShortName] = project.namespaceIri
         context.use(project.projectShortName)
         self.__graph = project.projectShortName
 
-        self.__creator = creator if creator is not None else con.userIri
-        if created and not isinstance(created, Xsd_dateTime):
-            raise OldapErrorValue(f'Created must be "Xsd_dateTime", not "{type(created)}".')
-        self.__created = created
-        self.__contributor = contributor if contributor is not None else con.userIri
-        if modified and not isinstance(modified, Xsd_dateTime):
-            raise OldapErrorValue(f'Modified must be "Xsd_dateTime", not "{type(modified)}".')
-        self.__modified = modified
+        self.__creator = Iri(creator) if creator else con.userIri
+        self.__created = Xsd_dateTime(created) if created else None
+        self.__contributor = Iri(contributor) if contributor else con.userIri
+        self.__modified = Xsd_dateTime(modified) if modified else None
         self.__attributes = {}
 
-        if oldapListIri:
-            if not isinstance(oldapListIri, Iri):
-                self.__attributes[OldapListAttr.OLDAPLIST_IRI] = Iri(oldapListIri)
-            else:
-                self.__attributes[OldapListAttr.OLDAPLIST_IRI] = oldapListIri
-        else:
-            self.__attributes[OldapListAttr.OLDAPLIST_IRI] = Iri()
+        self.__attributes[OldapListAttr.OLDAPLIST_IRI] = Iri(oldapListIri)
 
-        self.__attributes[OldapListAttr.PREF_LABEL] = prefLabel if isinstance(prefLabel, LangString) else LangString(prefLabel)
-        self.__attributes[OldapListAttr.PREF_LABEL].set_notifier(self.notifier, Iri(OldapListAttr.PREF_LABEL.value))
-        self.__attributes[OldapListAttr.DEFINITION] = definition if isinstance(definition, LangString) else LangString(definition)
-        self.__attributes[OldapListAttr.DEFINITION].set_notifier(self.notifier, Iri(OldapListAttr.DEFINITION.value))
+        if prefLabel:
+            self.__attributes[OldapListAttr.PREF_LABEL] = LangString(prefLabel)
+            self.__attributes[OldapListAttr.PREF_LABEL].set_notifier(self.notifier, Iri(OldapListAttr.PREF_LABEL.value))
+        if definition:
+            self.__attributes[OldapListAttr.DEFINITION] = LangString(definition)
+            self.__attributes[OldapListAttr.DEFINITION].set_notifier(self.notifier, Iri(OldapListAttr.DEFINITION.value))
 
         #
         # Consistency checks
@@ -404,7 +388,8 @@ class OldapList(Model):
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListAttr.PREF_LABEL.value} {self.prefLabel.toRdf}'
+        if self.prefLabel:
+            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListAttr.PREF_LABEL.value} {self.prefLabel.toRdf}'
         if self.definition:
             sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListAttr.DEFINITION.value} {self.definition.toRdf}'
         sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'

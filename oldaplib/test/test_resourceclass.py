@@ -206,6 +206,48 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop4[PropClassAttr.IN],
                          RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
+
+    def test_constructor_projectns(self):
+        p1 = PropertyClass(con=self._connection,
+                           project="test",
+                           property_class_iri=Iri('test:testpropns'),
+                           subPropertyOf=Iri('test:comment'),
+                           datatype=XsdDatatypes.langString,
+                           name=LangString(["Test property@en", "Testprädikat@de"]),
+                           description=LangString("A property for testing...@en"),
+                           maxCount=Xsd_integer(1),
+                           uniqueLang=Xsd_boolean(True),
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
+                           order=Xsd_decimal(5))
+
+        p2 = PropertyClass(con=self._connection,
+                           project="test",
+                           property_class_iri=Iri('test:enumpropns'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["Test enum@en", "Enumerationen@de"]),
+                           maxCount=Xsd_integer(1),
+                           minCount=Xsd_integer(1),
+                           inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")),
+                           order=Xsd_decimal(6))
+
+        properties: list[PropertyClass | Iri] = [
+            p1, p2
+        ]
+
+        r1 = ResourceClass(con=self._connection,
+                           project="test",
+                           owlclass_iri=Iri("test:TestResource"),
+                           label=LangString(["Test resource@en", "Resource de test@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           properties=properties)
+        self.assertEqual(r1[ResClassAttribute.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
+        self.assertEqual(r1.label, LangString(["Test resource@en", "Resource de test@fr"]))
+        self.assertEqual(r1[ResClassAttribute.COMMENT], LangString("For testing purposes@en"))
+        self.assertEqual(r1.comment, LangString("For testing purposes@en"))
+        self.assertTrue(r1[ResClassAttribute.CLOSED])
+        self.assertTrue(r1.closed)
+
     # @unittest.skip('Work in progress')
     def test_reading(self):
         r1 = ResourceClass.read(con=self._connection,

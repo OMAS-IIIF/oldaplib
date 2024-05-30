@@ -148,7 +148,7 @@ class PropertyClass(Model, Notify):
 
     def __init__(self, *,
                  con: IConnection,
-                 project: Project,
+                 project: Project | Iri | Xsd_NCName | str,
                  property_class_iri: Iri | str | None = None,
                  subPropertyOf: Iri | str | None = None,
                  toNodeIri: Iri | str | None = None,
@@ -175,13 +175,14 @@ class PropertyClass(Model, Notify):
         Model.__init__(self, con)
         Notify.__init__(self, notifier, notify_data)
 
-        if not isinstance(project, Project):
-            raise OldapErrorValue('The project parameter must be a Project instance')
-        self._project = project
+        if isinstance(project, Project):
+            self._project = project
+        else:
+            self._project = Project.read(self._con, project)
         context = Context(name=self._con.context_name)
-        context[project.projectShortName] = project.namespaceIri
-        context.use(project.projectShortName)
-        self._graph = project.projectShortName
+        context[self._project.projectShortName] = self._project.namespaceIri
+        context.use(self._project.projectShortName)
+        self._graph = self._project.projectShortName
 
         self._property_class_iri = Iri(property_class_iri)
         self._attributes: PropClassAttrContainer = {}

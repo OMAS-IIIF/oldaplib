@@ -10,6 +10,9 @@
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix oldap: <http://oldap.org/base#> .
 @prefix test: <http://oldap.org/test#> .
+@prefix hyha: <http://hyperhamlet.unibas.ch/> .
+@prefix britnet: <http://www.salsah.org/version/2.0/SwissBritNet#> .
+@prefix dmtest: <http://oldap.org/dmtest#> .
 test:shacl {
 
         # PropertyClass.create_shacl()
@@ -18,9 +21,9 @@ test:shacl {
             sh:path test:testWriteIt ;
             dcterms:hasVersion "0.1.0"^^xsd:string ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-05-19T00:18:06.660375"^^xsd:dateTime ;
+            dcterms:created "2024-05-31T00:14:56.168748"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-19T00:18:06.660375"^^xsd:dateTime ;
+            dcterms:modified "2024-05-31T00:14:56.168748"^^xsd:dateTime ;
             sh:class test:comment ;
             sh:name "Annotations"@en, "Annotationen"@de ;
             sh:description "An annotation"@en ;
@@ -31,7 +34,7 @@ test:onto {
         test:testWriteIt rdf:type owl:ObjectProperty ;
             rdfs:range test:comment ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2024-05-19T00:18:06.660375"^^xsd:dateTime ;
+            dcterms:created "2024-05-31T00:14:56.168748"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2024-05-19T00:18:06.660375"^^xsd:dateTime .
+            dcterms:modified "2024-05-31T00:14:56.168748"^^xsd:dateTime .
 }
