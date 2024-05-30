@@ -208,8 +208,6 @@ class Project(Model):
         #
         # Consistency checks
         #
-        if not self.__attributes[ProjectAttr.LABEL]:
-            raise OldapErrorInconsistency(f'Project must have at least one rdfs:label, none given.')
         if projectStart is not None:
             self.__attributes[ProjectAttr.PROJECT_START] = projectStart if isinstance(projectStart, Xsd_date) else Xsd_date(projectStart)
         else:

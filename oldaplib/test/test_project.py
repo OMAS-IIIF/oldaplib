@@ -226,24 +226,6 @@ class Testproject(unittest.TestCase):
         self.assertIsNone(project.comment)
 
 
-    def test_project_empty_label(self):
-        with self.assertRaises(OldapErrorInconsistency):
-            project = Project(con=self._connection,
-                              projectShortName="updatetest",
-                              namespaceIri=NamespaceIRI("http://unitest.org/project/updatetest#"),
-                              projectStart=Xsd_date(2024, 1, 1),
-                              projectEnd=Xsd_date(2025, 12, 31)
-                              )
-        with self.assertRaises(OldapErrorInconsistency):
-            project = Project(con=self._connection,
-                              projectShortName="updatetest",
-                              label=LangString(),
-                              namespaceIri=NamespaceIRI("http://unitest.org/project/updatetest#"),
-                              projectStart=Xsd_date(2024, 1, 1),
-                              projectEnd=Xsd_date(2025, 12, 31)
-                              )
-
-
     # @unittest.skip('Work in progress')
     def test_project_modify(self):
         project = Project(con=self._connection,

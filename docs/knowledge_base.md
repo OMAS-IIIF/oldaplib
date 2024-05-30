@@ -20,9 +20,10 @@ Data modeling relies on the notion of *property* and *resource* following the RD
 - ***Resource*** is the digital equivalent to a real world object or an abstract thing like an event, a location
   etc. A Resource may have *properties* that define the properties of the subject.
 - ***Property*** is a predicate defining some data associated with the resource.
+- ***Literal*** is a vlaue that stands for itself like a number or a name.
 
-In a datamodel, resources and properties are pre-defined and form the data model or *ontology*. Datamodels
-are specific to a given project. Each datamodel is stroed in 2 distinct named graphs.
+In a data model, resources and properties are pre-defined and form the data model or *ontology*. Datamodels
+are specific to a given project. Each data model is stored in 2 distinct named graphs.
 
 oldaplib has the following prerequisites:
 
@@ -43,8 +44,8 @@ subject - predicate - object .
 ```
 
 In order to uniquely identify the 3 parts,
-[Uniform Resource Identifier](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier) (URI) or *IRI's* (which are
-URI's but allowing international characters) are used. The syntax of a URI/IRI is as follows:
+[Uniform Resource Names](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier) (URN) or *IRI's* (which are
+URN's but allowing international characters) are used. The syntax of a URN/IRI is as follows:
 ```text
 scheme ":" ["//" authority] path ["?" query] ["#" fragment]
 ```
@@ -74,20 +75,22 @@ We are using the [TRIG](https://en.wikipedia.org/wiki/TriG_(syntax))-format to r
 information about this serialization format see also the
 [W3C-article](https://www.w3.org/TR/2023/WD-rdf12-trig-20231104/).
 
-The TRIG-format requires URI's to be enclosed in `<`, `>` brackets. For a RDF statement/triple, the following rules
-apply:
+The TRIG-format requires URN's to be enclosed in `<`, `>` brackets. If a `namespace` with a `prefix` (see
+W3C [Vocabularies](https://www.w3.org/TR/rdf11-concepts/#vocabularies)) is being used,
+a URN may be given with a shorthand notation `prefix:name` without `<`, `>`brackets.
+For a RDF statement/triple, the following rules apply:
 
 #### Subject
 
-A subject is **always** represented as URI. If several statements apply to the _same_ subject, the _same_ URI must be
-used. Thus, the subject-URI uniquely identifies a real world instance of an object or concept. The URI *may*
+A subject is **always** represented as URN. If several statements apply to the _same_ subject, the _same_ URN must be
+used. Thus, the subject-URN uniquely identifies a real world instance of an object or concept. The URN *may*
 resolve – if entered to a webbrowser – to a web page describing the object/concept. But this resolution is absolutely
 not required!
 
 #### Predicate
 
 The predicate describes a property of the subject. In order to use predicates in a consistent way, predicates are also
-identified by URI's. The predicate must be used in a consistent manner. Usually the exact meaning of the predicates is
+identified by URN's. The predicate must be used in a consistent manner. Usually the exact meaning of the predicates is
 defined in accompanying documents or – even – better directly within the data using RDF-Schema. RDF-Schema has two
 predefined properties, `rdfs:label` and `rdfs:comment` for documentation purposes.
 
@@ -110,13 +113,13 @@ mydata:Person a owl:class ;
     ...
 ```
 
-It is important to note that a given predicate may expect either a _literal value_ or the _URI_ of another subject
+It is important to note that a given predicate may expect either a _literal value_ or the _URN_ of another subject
 as _object_ (see below). Thus, predicates that point to another subject describe some form a _relation_
 between 2 subjects!
 
 #### Subject
 
-The Subject may come either as _literal value_, e.g. a number or a string, or it may be a _URI_ which identifies
+The Subject may come either as _literal value_, e.g. a number or a string, or it may be a _URN_ which identifies
 another subject.
 
 In RDF, literal values do have a _datatype_ which conforms to the datatypes defined by
@@ -194,7 +197,7 @@ TRIG format has some tools to simplify these statements drastically and make the
 #### Prefixes, Namespaces and QNames
 
 <a name="namespace"></a>
-Usually, URI's are named in a systematic way. Related "things" may share a commen "base"-URI. In our example above
+Usually, URN's are named in a systematic way. Related "things" may share a commen "base"-URI. In our example above
 we find that most predicates start with `http://example.org/predicates#` (*Note the `#` at the end!*). These common
 parts may be defined as ***prefix***, a kind of shortcuts. The prefix must be a XML
 [NCName](https://docs.oracle.com/cd/E19509-01/820-6712/ghqhl/index.html), that is

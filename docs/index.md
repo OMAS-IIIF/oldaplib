@@ -107,8 +107,8 @@ interoperability in linked data applications.
 #### Key Purposes
 
 1. **Data Validation:** SHACL enables the definition of rules and conditions that RDF data must satisfy,
-encompassing aspects like data types, cardinality, and value ranges. This ensures that data conforms to the desired
-structure and integrity.
+   encompassing aspects like data types, cardinality, and value ranges. This ensures that data conforms to the desired
+   structure and integrity.
 
 2. **Interoperability:** SHACL promotes interoperability by allowing data consumers to understand and expect specific
    shapes or structures within RDF data. This ensures that different data sources can be integrated and processed
