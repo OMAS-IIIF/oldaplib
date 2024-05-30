@@ -66,8 +66,17 @@ class OldapList(Model):
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
                  oldapListIri: Iri | str | None = None,
+                 inScheme: Iri | str,
+                 broaderTransitive: Iri | str | None = None,
+                 nextNode: Iri | str | None = None,
+                 leftIndex: int | None = None,
+                 rightIndex: int | None = None,
+                 notation: Xsd_string | str | None = None,
+                 note: LangString | str | None = None,
                  prefLabel: LangString | str | None = None,
-                 definition: LangString | str | None = None):
+                 altLabel: LangString | str | None = None,
+                 definition: LangString | str | None = None,
+                 changeNote: Xsd_string | str | None = None):
         super().__init__(con)
         if not isinstance(project, Project):
             raise OldapErrorValue('The project parameter must be a Project instance')
