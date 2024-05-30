@@ -342,7 +342,6 @@ class PermissionSet(Model):
         :raises OldapErrorNot found: If the permission set cannot be found.
         """
         id = Xsd_NCName(permissionSetId)
-        definedByProject = Iri(definedByProject)
 
         project = Project.read(con, definedByProject)
         permset_iri = Iri.fromPrefixFragment(project.projectShortName, permissionSetId, validate=False)
