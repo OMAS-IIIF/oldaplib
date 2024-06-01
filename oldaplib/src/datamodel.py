@@ -41,7 +41,11 @@ class DataModel(Model):
                  project: Project | Iri | Xsd_NCName | str,
                  propclasses: list[PropertyClass] | None = None,
                  resclasses: list[ResourceClass] | None = None) -> None:
-        super().__init__(con)
+        super().__init__(connection=con,
+                         creator=con.userIri,
+                         created=None,
+                         contributor=con.userIri,
+                         modified=None)
         self.__version = SemanticVersion()
 
         if isinstance(project, Project):

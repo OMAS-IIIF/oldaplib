@@ -115,10 +115,6 @@ class PropertyClass(Model, Notify):
     # The following attributes of this class cannot be set explicitely by the used
     # They are automatically managed by the OMAS system
     #
-    __creator: Iri | None
-    __created: Xsd_dateTime | None
-    __contributor: Iri | None
-    __modified: Xsd_dateTime | None
     __version: SemanticVersion
     __from_triplestore: bool
 
@@ -172,7 +168,12 @@ class PropertyClass(Model, Notify):
                  lessThanOrEquals: Iri | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None):
-        Model.__init__(self, con)
+        Model.__init__(self,
+                       connection=con,
+                       creator=None,
+                       created=None,
+                       contributor=None,
+                       modified=None)
         Notify.__init__(self, notifier, notify_data)
 
         if isinstance(project, Project):
@@ -276,10 +277,6 @@ class PropertyClass(Model, Notify):
         self._test_in_use = False
         self._internal = None
         self._force_external = False
-        self.__creator = None
-        self.__created = None
-        self.__contributor = None
-        self.__modified = None
         self.__version = SemanticVersion()
         self.__from_triplestore = False
 
@@ -361,22 +358,6 @@ class PropertyClass(Model, Notify):
     @property
     def version(self) -> SemanticVersion:
         return self.__version
-
-    @property
-    def creator(self) -> Iri | None:
-        return self.__creator
-
-    @property
-    def created(self) -> Xsd_dateTime | None:
-        return self.__created
-
-    @property
-    def contributor(self) -> Iri | None:
-        return self.__contributor
-
-    @property
-    def modified(self) -> Xsd_dateTime | None:
-        return self.__modified
 
     @property
     def changeset(self) -> dict[PropClassAttr, PropClassAttrChange]:
@@ -531,22 +512,22 @@ class PropertyClass(Model, Notify):
                     raise OldapError(f'Inconsistency in SHACL "dcterms:hasVersion"')
             elif key == 'dcterms:creator':
                 if isinstance(val, Iri):
-                    self.__creator = val
+                    self._creator = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "dcterms:creator"')
             elif key == 'dcterms:created':
                 if isinstance(val, Xsd_dateTime):
-                    self.__created = val
+                    self._created = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "dcterms:created"')
             elif key == 'dcterms:contributor':
                 if isinstance(val, Iri):
-                    self.__contributor = val
+                    self._contributor = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "dcterms:contributor"')
             elif key == 'dcterms:modified':
                 if isinstance(val, Xsd_dateTime):
-                    self.__modified = val
+                    self._modified = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "dcterms:modified"')
             elif key == 'sh:group':
@@ -604,19 +585,19 @@ class PropertyClass(Model, Notify):
                 case 'rdfs:domain':
                     self._internal = obj
                 case 'dcterms:creator':
-                    if self.__creator != obj:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: creator "{self.__creator}" vs "{obj}" for property "{self._property_class_iri}".')
+                    if self._creator != obj:
+                        raise OldapError(f'Inconsistency between SHACL and OWL: creator "{self._creator}" vs "{obj}" for property "{self._property_class_iri}".')
                 case 'dcterms:created':
                     dt = obj
-                    if self.__created != dt:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self.__created}" vs "{dt}".')
+                    if self._created != dt:
+                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self._created}" vs "{dt}".')
                 case 'dcterms:contributor':
-                    if self.__creator != obj:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: contributor "{self.__contributor}" vs "{obj}".')
+                    if self._creator != obj:
+                        raise OldapError(f'Inconsistency between SHACL and OWL: contributor "{self._contributor}" vs "{obj}".')
                 case 'dcterms:modified':
                     dt = obj
-                    if self.__modified != dt:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self.__modified}" vs "{dt}".')
+                    if self._modified != dt:
+                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self._modified}" vs "{dt}".')
         #
         # Consistency checks
         #
@@ -773,10 +754,10 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def set_creation_metadata(self, timestamp: Xsd_dateTime):
-        self.__created = timestamp
-        self.__creator = self._con.userIri
-        self.__modified = timestamp
-        self.__contributor = self._con.userIri
+        self._created = timestamp
+        self._creator = self._con.userIri
+        self._modified = timestamp
+        self._contributor = self._con.userIri
         self.__from_triplestore = True
 
     def create(self, *,
@@ -867,7 +848,7 @@ class PropertyClass(Model, Notify):
                                                                   owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
                                                                   attr=prop,
-                                                                  modified=self.__modified,
+                                                                  modified=self._modified,
                                                                   indent=indent, indent_inc=indent_inc)
                 else:
                     raise OldapError(f'SHACL property {prop.value} should not have update action "MODIFY" ({PropertyClass.__datatypes[prop]}).')
@@ -891,35 +872,35 @@ class PropertyClass(Model, Notify):
                                                            owlclass_iri=owlclass_iri,
                                                            pclass_iri=self._property_class_iri,
                                                            ele=ele,
-                                                           last_modified=self.__modified)
+                                                           last_modified=self._modified)
                 else:
                     sparql += RdfModifyProp.shacl(action=change.action,
                                                   graph=self._graph,
                                                   owlclass_iri=owlclass_iri,
                                                   pclass_iri=self._property_class_iri,
                                                   ele=ele,
-                                                  last_modified=self.__modified)
+                                                  last_modified=self._modified)
                 sparql_list.append(sparql)
 
         #
         # Updating the timestamp and contributor ID
         #
         sparql = f'#\n# Update/add dcterms:contributor in {self._graph}:shacl\n#\n'
-        sparql += RdfModifyProp.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
+        sparql += RdfModifyProp.shacl(action=Action.REPLACE if self._contributor else Action.CREATE,
                                       graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:contributor', f'{self.__contributor.toRdf}', f'{self._con.userIri.toRdf}'),
-                                      last_modified=self.__modified)
+                                      ele=RdfModifyItem('dcterms:contributor', f'{self._contributor.toRdf}', f'{self._con.userIri.toRdf}'),
+                                      last_modified=self._modified)
         sparql_list.append(sparql)
 
         sparql = f'#\n# Update/add dcterms:modified in {self._graph}:shacl\n#\n'
-        sparql += RdfModifyProp.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
+        sparql += RdfModifyProp.shacl(action=Action.REPLACE if self._modified else Action.CREATE,
                                       graph=self._graph,
                                       owlclass_iri=owlclass_iri,
                                       pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:modified', f'{self.__modified.toRdf}', f'{timestamp.toRdf}'),
-                                      last_modified=self.__modified)
+                                      ele=RdfModifyItem('dcterms:modified', f'{self._modified.toRdf}', f'{timestamp.toRdf}'),
+                                      last_modified=self._modified)
         sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
@@ -948,7 +929,7 @@ class PropertyClass(Model, Notify):
                                              owlclass_iri=owlclass_iri,
                                              pclass_iri=self._property_class_iri,
                                              ele=ele,
-                                             last_modified=self.__modified,
+                                             last_modified=self._modified,
                                              indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
 
@@ -964,7 +945,7 @@ class PropertyClass(Model, Notify):
                                              owlclass_iri=owlclass_iri,
                                              pclass_iri=self._property_class_iri,
                                              ele=ele,
-                                             last_modified=self.__modified,
+                                             last_modified=self._modified,
                                              indent=indent, indent_inc=indent_inc)
 
                 sparql_list.append(sparql)
@@ -975,7 +956,7 @@ class PropertyClass(Model, Notify):
         sparql = f'#\n# Update/add dcterms:contributor {self._graph}:onto\n#\n'
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self.__contributor.toRdf}\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self._contributor.toRdf}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self._con.userIri.toRdf}\n'
@@ -983,7 +964,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql_list.append(sparql)
 
@@ -998,7 +979,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql_list.append(sparql)
 
@@ -1037,8 +1018,8 @@ class PropertyClass(Model, Notify):
 
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
-            self.__modified = timestamp
-            self.__contributor = self._con.userIri
+            self._modified = timestamp
+            self._contributor = self._con.userIri
             for prop, change in self._changeset.items():
                 if change.action == Action.MODIFY:
                     self._attributes[prop].changeset_clear()
@@ -1076,7 +1057,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
@@ -1098,7 +1079,7 @@ class PropertyClass(Model, Notify):
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
@@ -1136,7 +1117,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}BIND({self._property_class_iri} as ?propnode)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 

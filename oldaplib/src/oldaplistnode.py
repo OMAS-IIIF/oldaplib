@@ -65,19 +65,23 @@ class OldapListNode(Model):
     def __init__(self, *,
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str,
+                 oldapListNodeId: Xsd_NCName | str,
+                 inScheme: Iri | str,
+                 leftIndex: int,
+                 rightIndex: int,
                  creator: Iri | None = None,
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
-                 oldapListNodeId: Xsd_NCName | str,
-                 inScheme: Iri | str,
                  broaderTransitive: Iri | str | None = None,
                  nextNode: Iri | str | None = None,
-                 leftIndex: int,
-                 rightIndex: int,
                  prefLabel: LangString | str | None = None,
                  definition: LangString | str | None = None):
-        super().__init__(con)
+        super().__init__(connection=con,
+                         creator=creator,
+                         created=created,
+                         contributor=contributor,
+                         modified=modified)
         if isinstance(project, Project):
             self.__project = project
         else:
@@ -87,10 +91,6 @@ class OldapListNode(Model):
         context.use(project.projectShortName)
         self.__graph = project.projectShortName
 
-        self.__creator = Iri(creator) if creator else con.userIri
-        self.__created = Xsd_dateTime(created) if created else None
-        self.__contributor = Iri(contributor) if contributor else con.userIri
-        self.__modified = Xsd_dateTime(modified) if modified else None
         self.__attributes = {}
 
         self._graph = project.projectShortName

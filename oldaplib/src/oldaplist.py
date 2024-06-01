@@ -47,10 +47,6 @@ class OldapList(Model):
         OldapListAttr.DEFINITION: LangString,
     }
 
-    __creator: Iri | None
-    __created: Xsd_dateTime | None
-    __contributor: Iri | None
-    __modified: Xsd_dateTime | None
     __project: Project
     __graph: Xsd_NCName
     __oldaplist_iri: Iri
@@ -68,7 +64,11 @@ class OldapList(Model):
                  modified: Xsd_dateTime | None = None,
                  prefLabel: LangString | str | None = None,
                  definition: LangString | str | None = None):
-        super().__init__(con)
+        super().__init__(connection=con,
+                         creator=creator,
+                         created=created,
+                         contributor=contributor,
+                         modified=modified)
         if isinstance(project, Project):
             self.__project = project
         else:
@@ -77,10 +77,6 @@ class OldapList(Model):
         context = Context(name=self._con.context_name)
         self.__graph = self.__project.projectShortName
 
-        self.__creator = Iri(creator) if creator else con.userIri
-        self.__created = Xsd_dateTime(created) if created else None
-        self.__contributor = Iri(contributor) if contributor else con.userIri
-        self.__modified = Xsd_dateTime(modified) if modified else None
         self.__attributes = {}
 
         self.__attributes[OldapListAttr.OLDAPLIST_ID] = Xsd_NCName(oldapListId)
@@ -164,8 +160,8 @@ class OldapList(Model):
 
     def __str__(self):
         res = f'OldapList: {self.__attributes[OldapListAttr.OLDAPLIST_ID]} ({self.__oldaplist_iri})\n'\
-              f'  Creation: {self.__created} by {self.__creator}\n'\
-              f'  Modified: {self.__modified} by {self.__contributor}\n'\
+              f'  Creation: {self._created} by {self._creator}\n'\
+              f'  Modified: {self._modified} by {self._contributor}\n'\
               f'  Preferred label: {self.__attributes.get(OldapListAttr.PREF_LABEL)}\n'\
               f'  Definition: {self.__attributes.get(OldapListAttr.DEFINITION)}'
         return res
@@ -211,15 +207,6 @@ class OldapList(Model):
         :rtype: Iri | None
         """
         return self.__contributor
-
-    @property
-    def modified(self) -> Xsd_dateTime | None:
-        """
-        Modification date of the OldapList.
-        :return: Modification date of the OldapList.
-        :rtype: Xsd_dateTime | None
-        """
-        return self.__modified
 
     @property
     def changeset(self) -> dict[OldapListAttr, OldapListAttrChange]:
@@ -409,10 +396,10 @@ class OldapList(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        self.__created = timestamp
-        self.__creator = self._con.userIri
-        self.__modified = timestamp
-        self.__contributor = self._con.userIri
+        self._created = timestamp
+        self._creator = self._con.userIri
+        self._modified = timestamp
+        self._contributor = self._con.userIri
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         result, message = self.check_for_permissions()
@@ -464,8 +451,8 @@ class OldapList(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        self.__modified = timestamp
-        self.__contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
+        self._modified = timestamp
+        self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
 
     def delete(self) -> None:
         """

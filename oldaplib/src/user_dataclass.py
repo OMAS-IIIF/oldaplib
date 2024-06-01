@@ -125,20 +125,16 @@ class UserDataclass:
         UserAttr.HAS_PERMISSIONS: ObservableSet[Iri]
     }
 
-    _creator: Iri | None
-    _created: Xsd_dateTime | None
-    _contributor: Iri | None
-    _modified: Xsd_dateTime | None
+    _ud_creator: Iri | None
+    _ud_created: Xsd_dateTime | None
+    _ud_contributor: Iri | None
+    _ud_modified: Xsd_dateTime | None
 
     __attr: Dict[UserAttr, UserAttrTypes]
 
     __changeset: Dict[UserAttr, UserAttrChange]
 
     def __init__(self, *,
-                 creator: Iri | str | None = None,
-                 created: Xsd_dateTime | datetime | str | None = None,
-                 contributor: Iri | str | None = None,
-                 modified: Xsd_dateTime | datetime | str | None = None,
                  userIri: Iri | str | None = None,
                  userId: Xsd_NCName | str | None = None,
                  familyName: Xsd_string | str | None = None,
@@ -164,6 +160,10 @@ class UserDataclass:
         """
         self.__attr = {}
         self.__changeset = {}
+        self._ud_creator = None
+        self._ud_created = None
+        self._ud_contributor = None
+        self._ud_modified = None
         if inProject:
             inProjectTmp = InProjectClass(inProject, self.__inProject_cb)
         else:
@@ -174,10 +174,6 @@ class UserDataclass:
             salt = bcrypt.gensalt()
             credentials = Xsd_string(bcrypt.hashpw(str(credentials).encode('utf-8'), salt).decode('utf-8'))
 
-        self._creator = Iri(creator) if creator else None
-        self._created = Xsd_dateTime(created) if created is not None else None
-        self._contributor = Iri(contributor) if contributor else None
-        self._modified = Xsd_dateTime(modified) if modified else None
         self.__attr[UserAttr.USER_IRI] = Iri(userIri) if userIri else None
         self.__attr[UserAttr.USER_ID] = Xsd_NCName(userId) if userId else None
         self.__attr[UserAttr.FAMILY_NAME] = Xsd_string(familyName) if familyName else None
@@ -233,10 +229,10 @@ class UserDataclass:
             admin_permissions[str(proj)] = [str(x.value) for x in permissions]
         return \
             f'Userdata for {self.__attr[UserAttr.USER_IRI]}:\n' \
-            f'  Creator: {self._creator}\n' \
-            f'  Created at: {self._created}\n' \
-            f'  Modified by: {self._contributor}\n' \
-            f'  Modified at: {self._modified}\n' \
+            f'  Creator: {self._ud_creator}\n' \
+            f'  Created at: {self._ud_created}\n' \
+            f'  Modified by: {self._ud_contributor}\n' \
+            f'  Modified at: {self._ud_modified}\n' \
             f'  User id: {self.__attr[UserAttr.USER_ID]}\n' \
             f'  Family name: {str(self.__attr[UserAttr.FAMILY_NAME])}\n' \
             f'  Given name: {str(self.__attr[UserAttr.GIVEN_NAME])}\n' \
@@ -320,24 +316,24 @@ class UserDataclass:
             self.__changeset[UserAttr.IN_PROJECT] = UserAttrChange(old, Action.MODIFY)
 
     @property
-    def creator(self) -> Iri | None:
-        return self._creator
-
-    @property
-    def created(self) -> Xsd_dateTime | None:
-        return self._created
-
-    @property
-    def contributor(self) -> Iri | None:
-        return self._contributor
-
-    @property
-    def modified(self) -> Xsd_dateTime | None:
-        return self._modified
-
-    @modified.setter
-    def modified(self, value: Xsd_dateTime) -> None:
-        self._modified = value
+    # def creator(self) -> Iri | None:
+    #     return self._ud_creator
+    #
+    # @property
+    # def created(self) -> Xsd_dateTime | None:
+    #     return self._ud_created
+    #
+    # @property
+    # def contributor(self) -> Iri | None:
+    #     return self._ud_contributor
+    #
+    # @property
+    # def modified(self) -> Xsd_dateTime | None:
+    #     return self._ud_modified
+    #
+    # @modified.setter
+    # def modified(self, value: Xsd_dateTime) -> None:
+    #     self._ud_modified = value
 
     def add_project_permission(self, project: Iri | str, permission: AdminPermission | None) -> None:
         """
@@ -420,28 +416,30 @@ class UserDataclass:
         """
         return sparql
 
-    def _create_from_queryresult(self, queryresult: QueryProcessor) -> None:
+    def _create_from_queryresult(self, queryresult: QueryProcessor) -> dict[str, Xsd]:
         """
         Create a user from a queryresult created by the method
         :param queryresult:
         :type queryresult: QueryProcessor
-        :return: None
+        :return: Metadata (created, creator etc.)
+        :rtype: dict[str, Xsd]
         :raises OldapErrorNotFound: Given user not found!
         """
         in_project: Dict[str, Set[AdminPermission]] | None = None
         if len(queryresult) == 0:
             raise OldapErrorNotFound("Given user not found!")
+        metadata: dict[str, Xsd] = {}
         for r in queryresult:
             match str(r.get('prop')):
                 case 'dcterms:creator':
-                    self._creator = r['val']
+                    metadata['creator']= r['val']
                     self.__attr[UserAttr.USER_IRI] = r['user']
                 case 'dcterms:created':
-                    self._created = r['val']
+                    metadata['created']= r['val']
                 case 'dcterms:contributor':
-                    self._contributor = r['val']
+                    metadata['contributor']= r['val']
                 case 'dcterms:modified':
-                    self._modified = r['val']
+                    metadata['modified']= r['val']
                 case 'oldap:userId':
                     self.__attr[UserAttr.USER_ID] = r['val']
                 case 'foaf:familyName':
@@ -467,9 +465,8 @@ class UserDataclass:
                         # self.__fields[UserFields.IN_PROJECT][str(r['proj'])].add(AdminPermission(str(r['rval'])))
         if in_project:
             self.__attr[UserAttr.IN_PROJECT] = InProjectClass(in_project, on_change=self.__inProject_cb)
-        if not isinstance(self._modified, Xsd_dateTime):
-            raise OldapErrorValue(f"Modified field is {type(self._modified)} and not datetime!!!!")
         self.clear_changeset()
+        return metadata
 
     def _sparql_update(self, indent: int = 0, indent_inc: int = 4) -> Tuple[str | None, int, str]:
         """

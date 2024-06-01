@@ -123,13 +123,7 @@ class Project(Model):
         ProjectAttr.PROJECT_END: Xsd_date,
     }
 
-    __creator: Iri | None
-    __created: Xsd_dateTime | None
-    __contributor: Iri | None
-    __modified: Xsd_dateTime | None
-
     __attributes: dict[ProjectAttr, ProjectAttrTypes]
-
     __changeset: dict[ProjectAttr, ProjectAttrChange]
 
     def __init__(self, *,
@@ -174,15 +168,11 @@ class Project(Model):
         :type projectEnd: Python date
         :raises OldapErrorValue: Invalid parameter supplied
         """
-        super().__init__(con)
-        self.__creator = creator if creator is not None else con.userIri
-        if created and not isinstance(created, Xsd_dateTime):
-            raise OldapErrorValue(f'Created must be "Xsd_dateTime", not "{type(created)}".')
-        self.__created = created
-        self.__contributor = contributor if contributor is not None else con.userIri
-        if modified and not isinstance(modified, Xsd_dateTime):
-            raise OldapErrorValue(f'Modified must be "Xsd_dateTime", not "{type(modified)}".')
-        self.__modified = modified
+        super().__init__(connection=con,
+                         created=created,
+                         creator=creator,
+                         modified=modified,
+                         contributor=contributor)
         self.__attributes = {}
 
         if projectIri:
@@ -313,43 +303,6 @@ class Project(Model):
         if self.__attributes.get(attr) is not None:
             self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
             del self.__attributes[attr]
-
-
-    @property
-    def creator(self) -> Iri | None:
-        """
-        The creator of the project.
-        :return: Iri of the creator of the project.
-        :rtype: Iri | None
-        """
-        return self.__creator
-
-    @property
-    def created(self) -> Xsd_dateTime | None:
-        """
-        The creation date of the project.
-        :return: Creation date of the project.
-        :rtype: Xsd_dateTime | None
-        """
-        return self.__created
-
-    @property
-    def contributor(self) -> Iri | None:
-        """
-        The contributor of the project as Iri.
-        :return: Iri of the contributor of the project.
-        :rtype: Iri | None
-        """
-        return self.__contributor
-
-    @property
-    def modified(self) -> Xsd_dateTime | None:
-        """
-        Modification date of the project.
-        :return: Modification date of the project.
-        :rtype: Xsd_dateTime | None
-        """
-        return self.__modified
 
     @property
     def changeset(self) -> Dict[ProjectAttr, ProjectAttrChange]:
@@ -608,10 +561,10 @@ class Project(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        self.__created = timestamp
-        self.__creator = self._con.userIri
-        self.__modified = timestamp
-        self.__contributor = self._con.userIri
+        self._created = timestamp
+        self._creator = self._con.userIri
+        self._modified = timestamp
+        self._contributor = self._con.userIri
         context[self.__attributes[ProjectAttr.PROJECT_SHORTNAME]] = self.__attributes[ProjectAttr.NAMESPACE_IRI]
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -686,8 +639,8 @@ class Project(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        self.__modified = timestamp
-        self.__contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
+        self._modified = timestamp
+        self._contributor = self._con.userIri
 
     def delete(self) -> None:
         """

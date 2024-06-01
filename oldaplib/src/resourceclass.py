@@ -67,10 +67,6 @@ class ResourceClass(Model, Notify):
     _properties: dict[Iri, PropertyClass]
     _attr_changeset: dict[ResClassAttribute, ResourceClassAttributeChange]
     _prop_changeset: dict[Iri, ResourceClassPropertyChange]
-    __creator: Iri | None
-    __created: Xsd_dateTime | None
-    __contributor: Iri | None
-    __modified: Xsd_dateTime | None
     __version: SemanticVersion
     __from_triplestore: bool
 
@@ -113,7 +109,12 @@ class ResourceClass(Model, Notify):
                  properties: List[PropertyClass | Iri] | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None):
-        Model.__init__(self, con)
+        Model.__init__(self,
+                       connection=con,
+                       creator=con.userIri,
+                       created=None,
+                       contributor=con.userIri,
+                       modified=None)
         Notify.__init__(self, notifier, notify_data)
         self._attr_changeset = {}
         self._prop_changeset = {}
@@ -178,10 +179,6 @@ class ResourceClass(Model, Notify):
                 partial(ResourceClass.__set_value, attr=attr),
                 partial(ResourceClass.__del_value, attr=attr)))
 
-        self.__creator = con.userIri
-        self.__created = None
-        self.__contributor = con.userIri
-        self.__modified = None
         self.__version = SemanticVersion()
         self.__from_triplestore = False
 
@@ -291,22 +288,6 @@ class ResourceClass(Model, Notify):
     @property
     def version(self) -> SemanticVersion:
         return self.__version
-
-    @property
-    def creator(self) -> Iri | None:
-        return self.__creator
-
-    @property
-    def created(self) -> Xsd_dateTime | None:
-        return self.__created
-
-    @property
-    def contributor(self) -> Iri | None:
-        return self.__contributor
-
-    @property
-    def modified(self) -> Xsd_dateTime | None:
-        return self.__modified
 
     @property
     def properties(self) -> dict[Iri, PropertyClass]:
@@ -431,13 +412,13 @@ class ResourceClass(Model, Notify):
             if key == 'dcterms:hasVersion':
                 self.__version = SemanticVersion.fromString(val[0])
             elif key == 'dcterms:creator':
-                self.__creator = val[0]
+                self._creator = val[0]
             elif key == 'dcterms:created':
-                self.__created = val[0]
+                self._created = val[0]
             elif key == 'dcterms:contributor':
-                self.__contributor = val[0]
+                self._contributor = val[0]
             elif key == 'dcterms:modified':
-                self.__modified = val[0]
+                self._modified = val[0]
             elif key == 'sh:node':
                 #
                 # we expect sh:node only if the superclass is also defined as SHACL and we can read it's
@@ -678,12 +659,12 @@ class ResourceClass(Model, Notify):
         sparql += f'{blank:{(indent + 1)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:targetClass {self._owlclass_iri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:hasVersion {self.__version.toRdf}'
-        self.__created = timestamp
+        self._created = timestamp
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:creator {self.__creator.toRdf}'
-        self.__modified = timestamp
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:creator {self._creator.toRdf}'
+        self._modified = timestamp
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self.__contributor.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self._contributor.toRdf}'
         for attr, value in self._attributes.items():
             if attr == ResClassAttribute.SUPERCLASS:
                 #
@@ -725,9 +706,9 @@ class ResourceClass(Model, Notify):
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owlclass_iri} rdf:type owl:Class ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion {self.__version.toRdf} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf} ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self.__creator.toRdf} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._creator.toRdf} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf} ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self.__contributor.toRdf} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._contributor.toRdf} ;\n'
         if self._attributes.get(ResClassAttribute.SUPERCLASS) is not None:
             sc = {x.toRdf for x in self._attributes[ResClassAttribute.SUPERCLASS].keys()}
             valstr = ", ".join(sc)
@@ -745,10 +726,10 @@ class ResourceClass(Model, Notify):
         return sparql
 
     def set_creation_metadata(self, timestamp: Xsd_dateTime):
-        self.__created = timestamp
-        self.__creator = self._con.userIri
-        self.__modified = timestamp
-        self.__contributor = self._con.userIri
+        self._created = timestamp
+        self._creator = self._con.userIri
+        self._modified = timestamp
+        self._contributor = self._con.userIri
         self.__from_triplestore = True
 
 
@@ -842,7 +823,7 @@ class ResourceClass(Model, Notify):
                     sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri.toRdf}Shape as ?res)\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
                     sparql += f'{blank:{indent * indent_inc}}}}'
                     sparql_list.append(sparql)
             else:
@@ -852,7 +833,7 @@ class ResourceClass(Model, Notify):
                                              ele=RdfModifyItem(item.value,
                                                                change.old_value,
                                                                self._attributes[item]),
-                                             last_modified=self.__modified)
+                                             last_modified=self._modified)
                 sparql_list.append(sparql)
         #
         # now process properties
@@ -867,7 +848,7 @@ class ResourceClass(Model, Notify):
                                                  ele=RdfModifyItem('sh:property',
                                                                    change.old_value,
                                                                    Iri(f'{prop}Shape')),
-                                                 last_modified=self.__modified)
+                                                 last_modified=self._modified)
                     sparql_list.append(sparql)
             elif change.action == Action.DELETE:
                 if change.old_value.internal is not None:
@@ -881,26 +862,26 @@ class ResourceClass(Model, Notify):
                                                  ele=RdfModifyItem('sh:property',
                                                                    None if change.old_value is None else Iri(f'{change.old_value.property_class_iri}Shape'),
                                                                    Iri(f'{prop}Shape')),
-                                                 last_modified=self.__modified)
+                                                 last_modified=self._modified)
                     sparql_list.append(sparql)
 
         #
         # Updating the timestamp and contributor ID
         #
         sparql = f'#\n# Update/add dcterms:contributor\n#\n'
-        sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__contributor else Action.CREATE,
+        sparql += RdfModifyRes.shacl(action=Action.REPLACE if self._contributor else Action.CREATE,
                                      graph=self._graph,
                                      owlclass_iri=self._owlclass_iri,
-                                     ele=RdfModifyItem('dcterms:contributor', self.__contributor, self._con.userIri),
-                                     last_modified=self.__modified)
+                                     ele=RdfModifyItem('dcterms:contributor', self._contributor, self._con.userIri),
+                                     last_modified=self._modified)
         sparql_list.append(sparql)
 
         sparql = f'#\n# Update/add dcterms:modified\n#\n'
-        sparql += RdfModifyRes.shacl(action=Action.REPLACE if self.__modified else Action.CREATE,
+        sparql += RdfModifyRes.shacl(action=Action.REPLACE if self._modified else Action.CREATE,
                                      graph=self._graph,
                                      owlclass_iri=self._owlclass_iri,
-                                     ele=RdfModifyItem('dcterms:modified', self.__modified, timestamp),
-                                     last_modified=self.__modified)
+                                     ele=RdfModifyItem('dcterms:modified', self._modified, timestamp),
+                                     last_modified=self._modified)
         sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
@@ -944,7 +925,7 @@ class ResourceClass(Model, Notify):
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri.toRdf} as ?res)\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self.__modified.toRdf})\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
 
@@ -973,19 +954,19 @@ class ResourceClass(Model, Notify):
         # Updating the timestamp and contributor ID
         #
         sparql = f'#\n# Update/add dcterms:contributor\n#\n'
-        sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__contributor else Action.CREATE,
+        sparql += RdfModifyRes.onto(action=Action.REPLACE if self._contributor else Action.CREATE,
                                     graph=self._graph,
                                     owlclass_iri=self._owlclass_iri,
-                                    ele=RdfModifyItem('dcterms:contributor', self.__contributor, self._con.userIri),
-                                    last_modified=self.__modified)
+                                    ele=RdfModifyItem('dcterms:contributor', self._contributor, self._con.userIri),
+                                    last_modified=self._modified)
         sparql_list.append(sparql)
 
         sparql = f'#\n# Update/add dcterms:modified\n#\n'
-        sparql += RdfModifyRes.onto(action=Action.REPLACE if self.__modified else Action.CREATE,
+        sparql += RdfModifyRes.onto(action=Action.REPLACE if self._modified else Action.CREATE,
                                     graph=self._graph,
                                     owlclass_iri=self._owlclass_iri,
-                                    ele=RdfModifyItem('dcterms:modified', self.__modified, timestamp),
-                                    last_modified=self.__modified)
+                                    ele=RdfModifyItem('dcterms:modified', self._modified, timestamp),
+                                    last_modified=self._modified)
         sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
@@ -1042,8 +1023,8 @@ class ResourceClass(Model, Notify):
         if modtime_shacl == timestamp and modtime_owl == timestamp:
             self._con.transaction_commit()
             self.changeset_clear()
-            self.__modified = timestamp
-            self.__contributor = self._con.userIri
+            self._modified = timestamp
+            self._contributor = self._con.userIri
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')

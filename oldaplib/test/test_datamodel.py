@@ -221,7 +221,6 @@ class TestDataModel(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, self._sysproject)
-        print(model.get_propclasses())
         self.assertEqual(set(model.get_propclasses()), {
             Iri("oldap:test"),
             Iri("dcterms:creator"),

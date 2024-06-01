@@ -44,11 +44,6 @@ class PermissionSet(Model):
         PermissionSetAttr.DEFINED_BY_PROJECT: Iri
     }
 
-    __creator: Iri | None
-    __created: Xsd_dateTime | None
-    __contributor: Iri | None
-    __modified: Xsd_dateTime | None
-
     __permset_iri: Iri | None
     __attributes: Dict[PermissionSetAttr, PermissionSetAttrTypes]
     __changeset: Dict[PermissionSetAttr, PermissionSetAttrChange]
@@ -88,11 +83,11 @@ class PermissionSet(Model):
         :type definedByProject: Iri | Xsd_NCName
         :raises OldapErrorNoFound: Given project does not exist
         """
-        super().__init__(con)
-        self.__creator = Iri(creator) if creator else con.userIri
-        self.__created = Xsd_dateTime(created) if created else None
-        self.__contributor = Iri(contributor) if contributor else con.userIri
-        self.__modified = Xsd_dateTime(modified) if modified else None
+        super().__init__(connection=con,
+                         creator=creator,
+                         created=created,
+                         contributor=contributor,
+                         modified=modified)
         self.__attributes = {}
 
         self.__attributes[PermissionSetAttr.PERMISSION_SET_ID] = Xsd_NCName(permissionSetId)
@@ -188,8 +183,8 @@ class PermissionSet(Model):
 
     def __str__(self) -> str:
         res = f'PermissionSet: {self.__attributes[PermissionSetAttr.PERMISSION_SET_ID]}\n'\
-              f'  Creation: {self.__created} by {self.__creator}\n'\
-              f'  Modified: {self.__modified} by {self.__contributor}\n' \
+              f'  Creation: {self._created} by {self._creator}\n'\
+              f'  Modified: {self._modified} by {self._contributor}\n' \
               f'  Label: {self.__attributes.get(PermissionSetAttr.LABEL, "-")}\n' \
               f'  Comment: {self.__attributes.get(PermissionSetAttr.COMMENT, "-")}\n'\
               f'  Permission: {self.__attributes[PermissionSetAttr.GIVES_PERMISSION].name}\n'\
@@ -209,22 +204,6 @@ class PermissionSet(Model):
         if self.__attributes.get(attr) is not None:
             self.__changeset[attr] = PermissionSetAttrChange(self.__attributes[attr], Action.DELETE)
             del self.__attributes[attr]
-
-    @property
-    def creator(self) -> Xsd_anyURI | None:
-        return self.__creator
-
-    @property
-    def created(self) -> datetime | None:
-        return self.__created
-
-    @property
-    def contributor(self) -> Xsd_anyURI | None:
-        return self.__contributor
-
-    @property
-    def modified(self) -> datetime | None:
-        return self.__modified
 
     def notifier(self, what: PermissionSetAttr) -> None:
         self.__changeset[what] = PermissionSetAttrChange(None, Action.MODIFY)
@@ -314,10 +293,10 @@ class PermissionSet(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        self.__created = timestamp
-        self.__creator = self._con.userIri
-        self.__modified = timestamp
-        self.__contributor = self._con.userIri
+        self._created = timestamp
+        self._creator = self._con.userIri
+        self._modified = timestamp
+        self._contributor = self._con.userIri
 
     @classmethod
     def read(cls,
@@ -543,7 +522,7 @@ class PermissionSet(Model):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.__permset_iri, self.__modified, timestamp)
+            self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.__permset_iri, self._modified, timestamp)
             modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.__permset_iri)
         except OldapError:
             self._con.transaction_abort()
@@ -556,8 +535,8 @@ class PermissionSet(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        self.__modified = timestamp
-        self.__contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
+        self._modified = timestamp
+        self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
 
     def delete(self) -> None:
         """

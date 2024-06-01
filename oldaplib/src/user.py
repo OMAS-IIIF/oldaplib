@@ -216,12 +216,13 @@ class User(Model, UserDataclass):
         """
         if userIri is None:
             userIri = Iri()
-        Model.__init__(self, connection=con)
+        Model.__init__(self,
+                       connection=con,
+                       creator=creator,
+                       created=created,
+                       contributor=contributor,
+                       modified=modified)
         UserDataclass.__init__(self,
-                               creator=creator,
-                               created=created,
-                               contributor=contributor,
-                               modified=modified,
                                userIri=userIri,
                                userId=userId,
                                familyName=familyName,
@@ -429,7 +430,11 @@ class User(Model, UserDataclass):
         if len(res) == 0:
             raise OldapErrorNotFound(f'User "{userId}" not found.')
         instance = cls(con=con)
-        instance._create_from_queryresult(res)
+        metadata = instance._create_from_queryresult(res)
+        instance._creator = metadata['creator']
+        instance._created = metadata['created']
+        instance._contributor = metadata['contributor']
+        instance._modified = metadata['modified']
         return instance
 
     @staticmethod
@@ -585,7 +590,7 @@ class User(Model, UserDataclass):
         except OldapError:
             self._con.transaction_abort()
             raise
-        self.modified = timestamp
+        self._modified = timestamp
 
 
 if __name__ == '__main__':
