@@ -180,34 +180,6 @@ class OldapList(Model):
             self.__changeset[attr] = OldapListAttrChange(self.__attributes[attr], Action.DELETE)
             del self.__attributes[attr]
 
-
-    @property
-    def creator(self) -> Iri | None:
-        """
-        The creator of the OldapList.
-        :return: Iri of the creator of the OldapList.
-        :rtype: Iri | None
-        """
-        return self.__creator
-
-    @property
-    def created(self) -> Xsd_dateTime | None:
-        """
-        The creation date of the OldapList.
-        :return: Creation date of the OldapList.
-        :rtype: Xsd_dateTime | None
-        """
-        return self.__created
-
-    @property
-    def contributor(self) -> Iri | None:
-        """
-        The contributor of the OldapList as Iri.
-        :return: Iri of the contributor of the OldapList.
-        :rtype: Iri | None
-        """
-        return self.__contributor
-
     @property
     def changeset(self) -> dict[OldapListAttr, OldapListAttrChange]:
         """

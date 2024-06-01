@@ -179,6 +179,27 @@ class OldapListNode(Model):
             else:
                 self.__attributes[attr] = value
 
+    def __str__(self):
+        res = f'OldapList: {self.__attributes[OldapListNodeAttr.OLDAPLIST_ID]} ({self.__oldaplist_iri})\n'\
+              f'  Creation: {self._created} by {self._creator}\n'\
+              f'  Modified: {self._modified} by {self._contributor}\n'\
+              f'  Preferred label: {self.__attributes.get(OldapListNodeAttr.PREF_LABEL)}\n'\
+              f'  Definition: {self.__attributes.get(OldapListNodeAttr.DEFINITION)}'
+        return res
+
+    def __getitem__(self, attr: OldapListNodeAttr) -> OldapListNodeAttrTypes:
+        return self.__attributes[attr]
+
+    def get(self, attr: OldapListNodeAttr) -> OldapListNodeAttrTypes:
+        return self.__attributes.get(attr)
+
+    def __setitem__(self, attr: OldapListNodeAttr, value: OldapListNodeAttrTypes) -> None:
+        self.__change_setter(attr, value)
+
+    def __delitem__(self, attr: OldapListNodeAttr) -> None:
+        if self.__attributes.get(attr) is not None:
+            self.__changeset[attr] = OldapListNodeAttrChange(self.__attributes[attr], Action.DELETE)
+            del self.__attributes[attr]
 
 if __name__ == '__main__':
     con = Connection(server='http://localhost:7200',
