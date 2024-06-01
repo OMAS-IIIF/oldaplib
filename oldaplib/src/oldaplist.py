@@ -35,14 +35,14 @@ class OldapListAttr(Enum):
     """
     This enum class represents the fields used in the project model
     """
-    OLDAPLIST_IRI = 'oldap:oldapListIri'  # virtual property, repents the RDF subject
+    OLDAPLIST_ID = 'oldap:oldapListId'  # virtual property, repents the RDF subject
     PREF_LABEL = 'skos:prefLabel'
     DEFINITION = 'skos:definition'
 
 class OldapList(Model):
 
     __datatypes = {
-        OldapListAttr.OLDAPLIST_IRI: Iri,
+        OldapListAttr.OLDAPLIST_ID: Xsd_NCName,
         OldapListAttr.PREF_LABEL: LangString,
         OldapListAttr.DEFINITION: LangString,
     }
@@ -53,6 +53,7 @@ class OldapList(Model):
     __modified: Xsd_dateTime | None
     __project: Project
     __graph: Xsd_NCName
+    __oldaplist_iri: Iri
 
     __attributes: dict[OldapListAttr, OldapListAttrTypes]
     __changeset: dict[OldapListAttr, OldapListAttrChange]
@@ -60,11 +61,11 @@ class OldapList(Model):
     def __init__(self, *,
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str,
+                 oldapListId: Xsd_NCName | str,
                  creator: Iri | None = None,
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
-                 oldapListIri: Iri | str | None = None,
                  prefLabel: LangString | str | None = None,
                  definition: LangString | str | None = None):
         super().__init__(con)
@@ -74,9 +75,7 @@ class OldapList(Model):
             self.__project = Project.read(self._con, project)
 
         context = Context(name=self._con.context_name)
-        context[project.projectShortName] = project.namespaceIri
-        context.use(project.projectShortName)
-        self.__graph = project.projectShortName
+        self.__graph = self.__project.projectShortName
 
         self.__creator = Iri(creator) if creator else con.userIri
         self.__created = Xsd_dateTime(created) if created else None
@@ -84,7 +83,10 @@ class OldapList(Model):
         self.__modified = Xsd_dateTime(modified) if modified else None
         self.__attributes = {}
 
-        self.__attributes[OldapListAttr.OLDAPLIST_IRI] = Iri(oldapListIri)
+        self.__attributes[OldapListAttr.OLDAPLIST_ID] = Xsd_NCName(oldapListId)
+        self.__oldaplist_iri = Iri.fromPrefixFragment(self.__project.projectShortName,
+                                                      self.__attributes[OldapListAttr.OLDAPLIST_ID],
+                                                      validate=False)
 
         if prefLabel:
             self.__attributes[OldapListAttr.PREF_LABEL] = LangString(prefLabel)
@@ -92,13 +94,6 @@ class OldapList(Model):
         if definition:
             self.__attributes[OldapListAttr.DEFINITION] = LangString(definition)
             self.__attributes[OldapListAttr.DEFINITION].set_notifier(self.notifier, Iri(OldapListAttr.DEFINITION.value))
-
-        #
-        # Consistency checks
-        #
-        if not self.__attributes[OldapListAttr.PREF_LABEL]:
-            raise OldapErrorInconsistency(f'Project must have at least one skos:prefLabel, none given.')
-
         #
         # create all the attributes of the class according to the OldapListAttr definition
         #
@@ -147,7 +142,7 @@ class OldapList(Model):
     def __change_setter(self, attr: OldapListAttr, value: OldapListAttrTypes) -> None:
         if self.__attributes.get(attr) == value:
             return
-        if attr == OldapListAttr.OLDAPLIST_IRI:
+        if attr == OldapListAttr.OLDAPLIST_ID:
             raise OldapErrorImmutable(f'Field {attr.value} is immutable.')
         if self.__attributes.get(attr) is None:
             if self.__changeset.get(attr) is None:
@@ -168,7 +163,7 @@ class OldapList(Model):
                 self.__attributes[attr] = value
 
     def __str__(self):
-        res = f'OldapList: {self.__attributes[OldapListAttr.OLDAPLIST_IRI]}\n'\
+        res = f'OldapList: {self.__attributes[OldapListAttr.OLDAPLIST_ID]} ({self.__oldaplist_iri})\n'\
               f'  Creation: {self.__created} by {self.__creator}\n'\
               f'  Modified: {self.__modified} by {self.__contributor}\n'\
               f'  Preferred label: {self.__attributes.get(OldapListAttr.PREF_LABEL)}\n'\
@@ -253,14 +248,17 @@ class OldapList(Model):
         self.__changeset[attr] = OldapListAttrChange(self.__attributes[attr], Action.MODIFY)
 
     @classmethod
-    def read(cls, con: IConnection, project: Project, oldapListIri: Iri | str) -> Self:
-        oldapListIri = Iri(oldapListIri)
+    def read(cls,
+             con: IConnection,
+             project: Project | Iri | Xsd_NCName | str,
+             oldapListId: Xsd_NCName | str) -> Self:
+        if not isinstance(project, Project):
+            project = Project.read(con, project)
+        oldapListId = Xsd_NCName(oldapListId)
+        oldaplist_iri = Iri.fromPrefixFragment(project.projectShortName, oldapListId, validate=False)
 
         context = Context(name=con.context_name)
-        if not isinstance(project, Project):
-            raise OldapErrorValue('The project parameter must be a Project instance')
-        context[project.projectShortName] = project.namespaceIri
-        context.use(project.projectShortName)
+
         graph = project.projectShortName
 
         query = context.sparql_context
@@ -268,18 +266,17 @@ class OldapList(Model):
             SELECT ?prop ?val
             FROM {graph}:lists
             WHERE {{
-                {oldapListIri.toRdf} ?prop ?val
+                {oldaplist_iri.toRdf} ?prop ?val
             }}
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OldapErrorNotFound(f'OldapList with IRI "{oldapListIri}" not found.')
+            raise OldapErrorNotFound(f'OldapList with IRI "{oldaplist_iri}" not found.')
         creator: Iri | None = None
         created: Xsd_dateTime | None = None
         contributor: Iri | None = None
         modified: Xsd_dateTime | None = None
-        oldapList: Iri | None = None
         prefLabel: LangString | None = None
         definition: LangString | None = None
         for r in res:
@@ -302,31 +299,27 @@ class OldapList(Model):
                     definition.add(r['val'])
         return cls(con=con,
                    project=project,
+                   oldapListId=oldapListId,
                    creator=creator,
                    created=created,
                    contributor=contributor,
                    modified=modified,
-                   oldapListIri=oldapListIri,
                    prefLabel=prefLabel,
                    definition=definition)
 
     @staticmethod
     def search(con: IConnection,
-               project: Project,
+               project: Project | Iri | Xsd_NCName | str,
                prefLabel: Xsd_string | str | None = None,
                definition: str | None = None) -> list[Iri]:
-        context = Context(name=con.context_name)
         if not isinstance(project, Project):
-            raise OldapErrorValue('The project parameter must be a Project instance')
-        context[project.projectShortName] = project.namespaceIri
-        context.use(project.projectShortName)
+            project = Project.read(con, project)
+        context = Context(name=con.context_name)
         graph = project.projectShortName
 
         prefLabel = Xsd_string(prefLabel)
         if not isinstance(project, Project):
             raise OldapErrorValue('The project parameter must be a Project instance')
-        context[project.projectShortName] = project.namespaceIri
-        context.use(project.projectShortName)
         graph = project.projectShortName
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?list\n'
@@ -375,7 +368,7 @@ class OldapList(Model):
         FROM {self.__graph}:lists
         WHERE {{
             ?list a oldap:OldapList .
-            FILTER(?list = {self.oldapListIri.toRdf})
+            FILTER(?list = {self.__oldaplist_iri.toRdf})
         }}
         """
 
@@ -383,7 +376,7 @@ class OldapList(Model):
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.oldapListIri.toRdf} a oldap:OldapList'
+        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldaplist_iri.toRdf} a oldap:OldapList'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
@@ -404,7 +397,7 @@ class OldapList(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OldapErrorAlreadyExists(f'A list with a oldapListIri "{self.oldapListIri}" already exists')
+            raise OldapErrorAlreadyExists(f'A list with a oldapListIri "{self.__oldaplist_iri}" already exists')
 
         try:
             self._con.transaction_update(sparql2)
@@ -435,7 +428,7 @@ class OldapList(Model):
             if field == OldapListAttr.PREF_LABEL or field == OldapListAttr.DEFINITION:
                 if change.action == Action.MODIFY:
                     sparql_list.extend(self.__attributes[field].update(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                                       subject=self.oldapListIri,
+                                                                       subject=self.__oldaplist_iri,
                                                                        subjectvar='?list',
                                                                        field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
@@ -443,12 +436,12 @@ class OldapList(Model):
                     #                                          subject=self.oldapListIri,
                     #                                          field=Xsd_QName(field.value))
                     sparql = self.__changeset[field].old_value.delete(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                                      subject=self.oldapListIri,
+                                                                      subject=self.__oldaplist_iri,
                                                                       field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
                     sparql = self.__attributes[field].create(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                             subject=self.oldapListIri,
+                                                             subject=self.__oldaplist_iri,
                                                              field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
 
@@ -458,8 +451,8 @@ class OldapList(Model):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.oldapListIri, self.modified, timestamp)
-            modtime = self.get_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.oldapListIri)
+            self.set_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__oldaplist_iri, self.modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__oldaplist_iri)
         except OldapError:
             self._con.transaction_abort()
             raise
@@ -501,8 +494,8 @@ class OldapList(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.oldapListIri.toRdf} a oldap:OldapList .
-            {self.oldapListIri.toRdf} ?prop ?val .
+            {self.__oldaplist_iri.toRdf} a oldap:OldapList .
+            {self.__oldaplist_iri.toRdf} ?prop ?val .
         }} 
         """
         # TODO: use transaction for error handling

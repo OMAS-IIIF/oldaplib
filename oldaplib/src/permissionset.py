@@ -50,22 +50,20 @@ class PermissionSet(Model):
     __modified: Xsd_dateTime | None
 
     __permset_iri: Iri | None
-
     __attributes: Dict[PermissionSetAttr, PermissionSetAttrTypes]
-
     __changeset: Dict[PermissionSetAttr, PermissionSetAttrChange]
 
     def __init__(self, *,
                  con: IConnection,
+                 definedByProject: Project | Iri | Xsd_NCName | str,
+                 permissionSetId: Xsd_NCName | str,
+                 givesPermission: DataPermission,
                  creator: Iri | str |None = None,
                  created: Xsd_dateTime | datetime | str | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
-                 permissionSetId: Xsd_NCName | str,
                  label: LangString | str | None = None,
-                 comment: LangString | str | None = None,
-                 givesPermission: DataPermission,
-                 definedByProject: Iri | Xsd_NCName):
+                 comment: LangString | str | None = None):
         """
         Constructor for a permission set.
         :param con: Subclass of IConnection
@@ -108,17 +106,12 @@ class PermissionSet(Model):
         #
         # get the project IRI
         #
-        project = Project.read(self._con, definedByProject)
+        if isinstance(definedByProject, Project):
+            project = definedByProject
+        else:
+            project = Project.read(self._con, definedByProject)
         self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = project.projectIri
         self.__permset_iri = Iri.fromPrefixFragment(project.projectShortName, self.__attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
-
-        if not self.__attributes[PermissionSetAttr.PERMISSION_SET_ID]:
-            raise OldapErrorInconsistency(f'PermissionSet must have a unique ID, none given.')
-        if not self.__attributes[PermissionSetAttr.GIVES_PERMISSION]:
-            raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:givesPermission, none given.')
-        if not self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]:
-            raise OldapErrorInconsistency(f'PermissionSet must have at least one oldap:definedByProject, none given.')
-
 
         for field in PermissionSetAttr:
             prefix, name = field.value.split(':')
@@ -327,7 +320,10 @@ class PermissionSet(Model):
         self.__contributor = self._con.userIri
 
     @classmethod
-    def read(cls, con: IConnection, permissionSetId: Xsd_NCName | str, definedByProject: Iri | Xsd_NCName | str) -> Self:
+    def read(cls,
+             con: IConnection,
+             permissionSetId: Xsd_NCName | str,
+             definedByProject: Project | Iri | Xsd_NCName | str) -> Self:
         """
         Reads a given permission set. The permission set is defined by its ID (which must be unique within
         one project) and the project IRI.
@@ -343,7 +339,10 @@ class PermissionSet(Model):
         """
         id = Xsd_NCName(permissionSetId)
 
-        project = Project.read(con, definedByProject)
+        if isinstance(definedByProject, Project):
+            project = definedByProject
+        else:
+            project = Project.read(con, definedByProject)
         permset_iri = Iri.fromPrefixFragment(project.projectShortName, permissionSetId, validate=False)
         context = Context(name=con.context_name)
         sparql = context.sparql_context

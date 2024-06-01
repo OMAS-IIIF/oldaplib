@@ -1,8 +1,14 @@
+from dataclasses import dataclass
 from enum import unique, Enum
+from functools import partial
+from typing import Self
 
 from oldaplib.src.connection import Connection
+from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorValue
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorImmutable
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.project import Project
@@ -11,6 +17,18 @@ from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_string import Xsd_string
+
+
+OldapListNodeAttrTypes = int | Xsd_NCName | LangString | Iri | None
+
+
+@dataclass
+class OldapListNodeAttrChange:
+    """
+    A dataclass used to represent the changes made to a field.
+    """
+    old_value: OldapListNodeAttrTypes
+    action: Action
 
 
 @unique
@@ -27,9 +45,10 @@ class OldapListNodeAttr(Enum):
     PREF_LABEL = 'skos:prefLabel'
     DEFINITION = 'skos:definition'
 
+
 class OldapListNode(Model):
     __datatypes = {
-        OldapListNodeAttr.OLDAPLISTNODE_IRI: Iri,
+        OldapListNodeAttr.OLDAPLISTNODE_ID: Xsd_NCName,
         OldapListNodeAttr.IN_SCHEME: Iri,
         OldapListNodeAttr.BROADER_TRANSITIVE: Iri,
         OldapListNodeAttr.NEXT_NODE: Iri,
@@ -50,7 +69,7 @@ class OldapListNode(Model):
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
-                 oldapListNodeIri: Iri | str | None = None,
+                 oldapListNodeId: Xsd_NCName | str,
                  inScheme: Iri | str,
                  broaderTransitive: Iri | str | None = None,
                  nextNode: Iri | str | None = None,
@@ -59,6 +78,15 @@ class OldapListNode(Model):
                  prefLabel: LangString | str | None = None,
                  definition: LangString | str | None = None):
         super().__init__(con)
+        if isinstance(project, Project):
+            self.__project = project
+        else:
+            self.__project = Project.read(self._con, project)
+        context = Context(name=self._con.context_name)
+        context[project.projectShortName] = project.namespaceIri
+        context.use(project.projectShortName)
+        self.__graph = project.projectShortName
+
         self.__creator = Iri(creator) if creator else con.userIri
         self.__created = Xsd_dateTime(created) if created else None
         self.__contributor = Iri(contributor) if contributor else con.userIri
@@ -69,7 +97,7 @@ class OldapListNode(Model):
         if not isinstance(project, Project):
             raise OldapErrorValue('The project parameter must be a Project instance')
         self.__project = project
-        self.__attributes[OldapListNodeAttr.OLDAPLISTNODE_IRI] = Iri(oldapListNodeIri)
+        self.__attributes[OldapListNodeAttr.OLDAPLISTNODE_ID] = Iri(oldapListNodeId)
         self.__attributes[OldapListNodeAttr.IN_SCHEME] = Iri(inScheme)
         if broaderTransitive:
             self.__attributes[OldapListNodeAttr.BROADER_TRANSITIVE] = Iri(broaderTransitive)
@@ -77,11 +105,79 @@ class OldapListNode(Model):
             self.__attributes[OldapListNodeAttr.NEXT_NODE] = Iri(nextNode)
         self.__attributes[OldapListNodeAttr.LEFT_INDEX] = leftIndex
         self.__attributes[OldapListNodeAttr.RIGHT_INDEX] = rightIndex
-        self.__attributes[OldapListNodeAttr.PREF_LABEL] = LangString(prefLabel)
-        self.__attributes[OldapListNodeAttr.PREF_LABEL].set_notifier(self.notifier, Iri(OldapListNodeAttr.PREF_LABEL.value))
-        self.__attributes[OldapListNodeAttr.DEFINITION] = LangString(definition)
-        self.__attributes[OldapListNodeAttr.DEFINITION].set_notifier(self.notifier, Iri(OldapListNodeAttr.DEFINITION.value))
+        if prefLabel:
+            self.__attributes[OldapListNodeAttr.PREF_LABEL] = LangString(prefLabel)
+            self.__attributes[OldapListNodeAttr.PREF_LABEL].set_notifier(self.notifier, Iri(OldapListNodeAttr.PREF_LABEL.value))
+        if definition:
+            self.__attributes[OldapListNodeAttr.DEFINITION] = LangString(definition)
+            self.__attributes[OldapListNodeAttr.DEFINITION].set_notifier(self.notifier, Iri(OldapListNodeAttr.DEFINITION.value))
+        #
+        # create all the attributes of the class according to the OldapListAttr definition
+        #
+        for attr in OldapListNodeAttr:
+            prefix, name = attr.value.split(':')
+            setattr(OldapListNode, name, property(
+                partial(OldapListNode.__get_value, attr=attr),
+                partial(OldapListNode.__set_value, attr=attr),
+                partial(OldapListNode.__del_value, attr=attr)))
+        self.__changeset = {}
 
+    def check_for_permissions(self) -> (bool, str):
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            #
+            # user has root privileges!
+            #
+            return True, "OK – IS ROOT"
+        else:
+            if len(self.inProject) == 0:
+                return False, f'Actor has no ADMIN_LISTS permission for user {self.userId}.'
+            allowed: list[Iri] = []
+            for proj in self.inProject.keys():
+                if actor.inProject.get(proj) is None:
+                    return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
+                else:
+                    if AdminPermission.ADMIN_LISTS not in actor.inProject.get(proj):
+                        return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
+            return True, "OK"
+
+    def __get_value(self: Self, attr: OldapListNodeAttr) -> OldapListNodeAttrTypes | None:
+        return self.__attributes.get(attr)
+
+    def __set_value(self: Self, value: OldapListNodeAttrTypes, attr: OldapListNodeAttr) -> None:
+        self.__change_setter(attr, value)
+
+    def __del_value(self: Self, attr: OldapListNodeAttr) -> None:
+        self.__changeset[attr] = OldapListNodeAttrChange(self.__attributes[attr], Action.DELETE)
+        del self.__attributes[attr]
+
+    def __change_setter(self, attr: OldapListNodeAttr, value: OldapListNodeAttrTypes) -> None:
+        if self.__attributes.get(attr) == value:
+            return
+        if attr in {OldapListNodeAttr.OLDAPLIST_ID, OldapListNodeAttr.IN_SCHEME}:
+            raise OldapErrorImmutable(f'Field {attr.value} is immutable.')
+        if self.__attributes.get(attr) is None:
+            if self.__changeset.get(attr) is None:
+                self.__changeset[attr] = OldapListNodeAttrChange(None, Action.CREATE)
+        else:
+            if value is None:
+                if self.__changeset.get(attr) is None:
+                    self.__changeset[attr] = OldapListNodeAttrChange(self.__attributes[attr], Action.DELETE)
+            else:
+                if self.__changeset.get(attr) is None:
+                    self.__changeset[attr] = OldapListNodeAttrChange(self.__attributes[attr], Action.REPLACE)
+        if value is None:
+            del self.__attributes[attr]
+        else:
+            if not isinstance(value, self.__datatypes[attr]):
+                self.__attributes[attr] = self.__datatypes[attr](value)
+            else:
+                self.__attributes[attr] = value
 
 
 if __name__ == '__main__':

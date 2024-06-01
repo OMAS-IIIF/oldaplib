@@ -12,6 +12,7 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList, OldapListAttr
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
@@ -63,106 +64,132 @@ class TestOldapList(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
-    def test_constructor(self):
+    def test_constructor_project_shortname(self):
         oldaplist = OldapList(con=self._connection,
-                              project=self._project,
+                              project="test",
+                              oldapListId="TestList",
                               prefLabel="TestList",
                               definition="A list for testing...")
-        iri = oldaplist.oldapListIri
+        self.assertEqual(Xsd_NCName('TestList'), oldaplist.oldapListId)
         self.assertEqual(LangString("TestList"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
 
-    def test_create_read(self):
+    def test_constructor_project_object(self):
         oldaplist = OldapList(con=self._connection,
                               project=self._project,
-                              prefLabel="TestList",
+                              oldapListId="TestList2",
+                              prefLabel="TestList2",
+                              definition="A list for testing...")
+        self.assertEqual(Xsd_NCName('TestList2'), oldaplist.oldapListId)
+        self.assertEqual(LangString("TestList2"), oldaplist.prefLabel)
+        self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
+
+    def test_create_read_project_id(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestList_B",
+                              prefLabel="TestList_B",
                               definition="A list for testing...")
         oldaplist.create()
-        iri = oldaplist.oldapListIri
+        del oldaplist
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestList_B")
+        self.assertEqual("TestList_B", oldaplist.oldapListId)
+        self.assertEqual(LangString("TestList_B"), oldaplist.prefLabel)
+        self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
+
+    def test_create_read_project_object(self):
+        oldaplist = OldapList(con=self._connection,
+                              project=self._project,
+                              oldapListId="TestList_A",
+                              prefLabel="TestList_A",
+                              definition="A list for testing...")
+        oldaplist.create()
         del oldaplist
         oldaplist = OldapList.read(con=self._connection,
                                    project=self._project,
-                                   oldapListIri=iri)
-        self.assertEqual(iri, oldaplist.oldapListIri)
-        self.assertEqual(LangString("TestList"), oldaplist.prefLabel)
+                                   oldapListId="TestList_A")
+        self.assertEqual("TestList_A", oldaplist.oldapListId)
+        self.assertEqual(LangString("TestList_A"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
 
     def test_update_A(self):
         oldaplist = OldapList(con=self._connection,
                               project=self._project,
+                              oldapListId="TestUpdateListA",
                               prefLabel="TestUpdateListA",
                               definition="A list for testing updates...")
         oldaplist.create()
-        iri = oldaplist.oldapListIri
         del oldaplist
         oldaplist = OldapList.read(con=self._connection,
                                    project=self._project,
-                                   oldapListIri=iri)
-        self.assertEqual(iri, oldaplist.oldapListIri)
+                                   oldapListId="TestUpdateListA")
+        self.assertEqual("TestUpdateListA", oldaplist.oldapListId)
 
         oldaplist.prefLabel[Language.FR] = "TestesDeModifications"
         oldaplist.definition = LangString("Test-A@en", "test-B@fr", "test-C@de")
         oldaplist.update()
         oldaplist = OldapList.read(con=self._connection,
                                    project=self._project,
-                                   oldapListIri=iri)
+                                   oldapListId="TestUpdateListA")
         self.assertEqual(oldaplist.prefLabel, LangString("TestUpdateListA@en", "TestesDeModifications@fr"))
         self.assertEqual(oldaplist.definition, LangString("Test-A@en", "test-B@fr", "test-C@de"))
 
         with self.assertRaises(OldapErrorImmutable):
-            oldaplist.oldapListIri = Iri("https://gaga.gaga/gaga")
+            oldaplist.oldapListId = "Gagagag"
 
     def test_update_B(self):
         oldaplist = OldapList(con=self._connection,
-                              project=self._project,
+                              project="test",
+                              oldapListId="TestUpdateListB",
                               prefLabel="TestUpdateListB")
         oldaplist.create()
-        iri = oldaplist.oldapListIri
         del oldaplist
         oldaplist = OldapList.read(con=self._connection,
                                    project=self._project,
-                                   oldapListIri=iri)
+                                   oldapListId="TestUpdateListB")
         oldaplist.definition=LangString("Test-A@en", "test-B@fr", "test-C@de")
         oldaplist.update()
         oldaplist = OldapList.read(con=self._connection,
                                    project=self._project,
-                                   oldapListIri=iri)
+                                   oldapListId="TestUpdateListB")
         self.assertEqual(oldaplist.definition, LangString("Test-A@en", "test-B@fr", "test-C@de"))
 
     def test_update_C(self):
         oldaplist = OldapList(con=self._connection,
                               project=self._project,
+                              oldapListId="TestUpdateListC",
                               prefLabel="TestUpdateListC",
                               definition="A list for testing updates...")
         oldaplist.create()
-        iri = oldaplist.oldapListIri
         del oldaplist
         oldaplist = OldapList.read(con=self._connection,
                                    project=self._project,
-                                   oldapListIri=iri)
+                                   oldapListId="TestUpdateListC")
         del oldaplist.definition
         oldaplist.update()
         oldaplist = OldapList.read(con=self._connection,
                                    project=self._project,
-                                   oldapListIri=iri)
+                                   oldapListId="TestUpdateListC")
         self.assertFalse(oldaplist.get(OldapListAttr.DEFINITION))
 
     def test_delete(self):
         oldaplist = OldapList(con=self._connection,
                               project=self._project,
+                              oldapListId="TestDeleteList",
                               prefLabel="TestDeleteList",
                               definition="A list for testing deletes...")
         oldaplist.create()
-        iri = oldaplist.oldapListIri
         del oldaplist
         oldaplist = OldapList.read(con=self._connection,
                                    project=self._project,
-                                   oldapListIri=iri)
+                                   oldapListId="TestDeleteList")
         oldaplist.delete()
         with self.assertRaises(OldapErrorNotFound) as ex:
             oldaplist = OldapList.read(con=self._connection,
                                        project=self._project,
-                                       oldapListIri=iri)
+                                       oldapListId="TestDeleteList")
 
 
 if __name__ == '__main__':
