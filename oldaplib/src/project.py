@@ -4,9 +4,10 @@ from enum import unique, Enum
 from functools import partial
 
 from pystrict import strict
-from typing import List, Dict, Optional, Self
+from typing import List, Dict, Optional, Self, Any
 from datetime import date, datetime
 
+from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
@@ -21,10 +22,10 @@ from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, \
-    OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound, OldapErrorInconsistency
+    OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound, OldapErrorInconsistency, OldapErrorType
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model
+from oldaplib.src.model import Model, AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
 ProjectAttrTypes = LangString | Xsd | None
@@ -38,17 +39,19 @@ class ProjectAttrChange:
     action: Action
 
 @unique
-class ProjectAttr(Enum):
+class ProjectAttr(AttributeClass):
     """
     This enum class represents the fields used in the project model
+    order: (QName, mandatory, immutable, datatype)
     """
-    PROJECT_IRI = 'oldap:projectIri'  # virtual property, repents the RDF subject
-    PROJECT_SHORTNAME = 'oldap:projectShortName'
-    LABEL = 'rdfs:label'
-    COMMENT = 'rdfs:comment'
-    NAMESPACE_IRI = 'oldap:namespaceIri'
-    PROJECT_START = 'oldap:projectStart'
-    PROJECT_END = 'oldap:projectEnd'
+    PROJECT_IRI = ('oldap:projectIri', False, True, Iri)  # virtual property, repents the RDF subject
+    PROJECT_SHORTNAME = ('oldap:projectShortName', True, True, Xsd_NCName)
+    LABEL = ('rdfs:label', False, False, LangString)
+    COMMENT = ('rdfs:comment', False, False, LangString)
+    NAMESPACE_IRI = ('oldap:namespaceIri', True, True, NamespaceIRI)
+    PROJECT_START = ('oldap:projectStart', False, False, Xsd_date)
+    PROJECT_END = ('oldap:projectEnd', False, False, Xsd_date)
+
 
 #@strict
 class Project(Model):
@@ -113,18 +116,9 @@ class Project(Model):
     - `modified` [read only]: The modification date of the project. Must be a Python `date` type
 
     """
-    __datatypes = {
-        ProjectAttr.PROJECT_IRI: Iri,
-        ProjectAttr.PROJECT_SHORTNAME: Xsd_NCName,
-        ProjectAttr.LABEL: LangString,
-        ProjectAttr.COMMENT: LangString,
-        ProjectAttr.NAMESPACE_IRI: NamespaceIRI,
-        ProjectAttr.PROJECT_START: Xsd_date,
-        ProjectAttr.PROJECT_END: Xsd_date,
-    }
 
-    __attributes: dict[ProjectAttr, ProjectAttrTypes]
-    __changeset: dict[ProjectAttr, ProjectAttrChange]
+    #_attributes: dict[ProjectAttr, ProjectAttrTypes]
+    #__changeset: dict[ProjectAttr, ProjectAttrChange]
 
     def __init__(self, *,
                  con: IConnection,
@@ -132,13 +126,7 @@ class Project(Model):
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
-                 projectIri: Iri | str | None = None,
-                 projectShortName: Xsd_NCName | str,
-                 namespaceIri: NamespaceIRI,
-                 label: LangString | str | None = None,
-                 comment: LangString | str | None = None,
-                 projectStart: Xsd_date | None = None,
-                 projectEnd: Xsd_date | None = None):
+                 **kwargs):
         """
         Constructs a new Project
         :param con: [Connection](/python_docstrings/iconnection) instance
@@ -173,50 +161,38 @@ class Project(Model):
                          creator=creator,
                          modified=modified,
                          contributor=contributor)
-        self.__attributes = {}
 
-        if projectIri:
-            if not isinstance(projectIri, Iri):
-                self.__attributes[ProjectAttr.PROJECT_IRI] = Iri(projectIri)
-            else:
-                self.__attributes[ProjectAttr.PROJECT_IRI] = projectIri
-        else:
-            self.__attributes[ProjectAttr.PROJECT_IRI] = Iri()
-
-        self.__attributes[ProjectAttr.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
-
-        if namespaceIri and isinstance(namespaceIri, NamespaceIRI):
-            self.__attributes[ProjectAttr.NAMESPACE_IRI] = namespaceIri
-        else:
-            raise OldapErrorValue(f'Invalid namespace iri: {namespaceIri}')
-
-        self.__attributes[ProjectAttr.LABEL] = label if isinstance(label, LangString) else LangString(label)
-        self.__attributes[ProjectAttr.LABEL].set_notifier(self.notifier, Xsd_QName(ProjectAttr.LABEL.value))
-        self.__attributes[ProjectAttr.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
-        self.__attributes[ProjectAttr.COMMENT].set_notifier(self.notifier, Xsd_QName(ProjectAttr.COMMENT.value))
-        self.__attributes[ProjectAttr.PROJECT_SHORTNAME] = projectShortName if isinstance(projectShortName, Xsd_NCName) else Xsd_NCName(projectShortName)
+        self.set_attributes(kwargs, ProjectAttr)
         #
         # Consistency checks
         #
-        if projectStart is not None:
-            self.__attributes[ProjectAttr.PROJECT_START] = projectStart if isinstance(projectStart, Xsd_date) else Xsd_date(projectStart)
-        else:
-            self.__attributes[ProjectAttr.PROJECT_START] = Xsd_date()
-        if projectEnd is not None:
-            self.__attributes[ProjectAttr.PROJECT_END] = projectEnd if isinstance(projectEnd, Xsd_date) else Xsd_date(projectEnd)
-            if self.__attributes[ProjectAttr.PROJECT_END] < self.__attributes[ProjectAttr.PROJECT_START]:
-                raise OldapErrorInconsistency(f'Project start date {projectStart} is after project end date {projectEnd}.')
-
+        if not self._attributes.get(ProjectAttr.PROJECT_IRI):
+            self._attributes[ProjectAttr.PROJECT_IRI] = Iri()
+        if not self._attributes.get(ProjectAttr.PROJECT_START):
+            self._attributes[ProjectAttr.PROJECT_START] = Xsd_date()
+        if self._attributes.get(ProjectAttr.PROJECT_END):
+            self.check_consistency(ProjectAttr.PROJECT_END, self._attributes[ProjectAttr.PROJECT_END])
+        if self._attributes.get(ProjectAttr.PROJECT_START):
+            self.check_consistency(ProjectAttr.PROJECT_START, self._attributes[ProjectAttr.PROJECT_START])
         #
         # create all the attributes of the class according to the ProjectFields dfinition
         #
         for attr in ProjectAttr:
-            prefix, name = attr.value.split(':')
-            setattr(Project, name, property(
-                partial(Project.__get_value, attr=attr),
-                partial(Project.__set_value, attr=attr),
-                partial(Project.__del_value, attr=attr)))
-        self.__changeset = {}
+            setattr(Project, attr.value.fragment, property(
+                partial(Project._get_value, attr=attr),
+                partial(Project._set_value, attr=attr),
+                partial(Project._del_value, attr=attr)))
+        self._changeset = {}
+
+    def check_consistency(self, attr: ProjectAttr, value: Any) -> None:
+        if attr == ProjectAttr.PROJECT_END:
+            if self._attributes.get(ProjectAttr.PROJECT_START) and value < self._attributes[ProjectAttr.PROJECT_START]:
+                raise OldapErrorInconsistency(f'Project start date {self._attributes[ProjectAttr.PROJECT_START]} is after project end date {value}.')
+
+        if attr == ProjectAttr.PROJECT_START:
+            if self._attributes.get(ProjectAttr.PROJECT_END) and value > self._attributes[ProjectAttr.PROJECT_END]:
+                raise OldapErrorInconsistency(f'Project start date {value} is after project end date {self._attributes[ProjectAttr.PROJECT_END]}.')
+
 
     def check_for_permissions(self) -> (bool, str):
         actor = self._con.userdata
@@ -226,109 +202,14 @@ class Project(Model):
         else:
             return False, "No permission to create a new project."
 
-    def __get_value(self: Self, attr: ProjectAttr) -> ProjectAttrTypes | None:
-        tmp = self.__attributes.get(attr)
-        if not tmp:
-            return None
-        return tmp
-
-    def __set_value(self: Self, value: ProjectAttrTypes, attr: ProjectAttr) -> None:
-        self.__change_setter(attr, value)
-
-    def __del_value(self: Self, attr: ProjectAttr) -> None:
-        self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
-        del self.__attributes[attr]
-
-    #
-    # this private method handles the setting of a field. Whenever a field is being
-    # set or modified, this method is called. It also puts the original value and the
-    # action into the changeset.
-    #
-    def __change_setter(self, field: ProjectAttr, value: ProjectAttrTypes) -> None:
-        if self.__attributes.get(field) == value:
-            return
-        if field == ProjectAttr.PROJECT_IRI or field == ProjectAttr.NAMESPACE_IRI or field == ProjectAttr.PROJECT_SHORTNAME:
-            raise OldapErrorImmutable(f'Field {field.value} is immutable.')
-        if field == ProjectAttr.PROJECT_START:
-            if self.__attributes.get(ProjectAttr.PROJECT_END) and value >= self.__attributes[ProjectAttr.PROJECT_END]:
-                raise OldapErrorInconsistency('Project start date must be less than project end date.')
-        if field == ProjectAttr.PROJECT_END:
-            if self.__attributes.get(ProjectAttr.PROJECT_START) and value <= self.__attributes[ProjectAttr.PROJECT_START]:
-                raise OldapErrorInconsistency('Project end date must be greater than project start date.')
-        if self.__attributes.get(field) is None:
-            if self.__changeset.get(field) is None:
-                self.__changeset[field] = ProjectAttrChange(None, Action.CREATE)
-        else:
-            if value is None:
-                if self.__changeset.get(field) is None:
-                    self.__changeset[field] = ProjectAttrChange(self.__attributes[field], Action.DELETE)
-            else:
-                if self.__changeset.get(field) is None:
-                    self.__changeset[field] = ProjectAttrChange(self.__attributes[field], Action.REPLACE)
-        if value is None:
-            del self.__attributes[field]
-        else:
-            if not isinstance(value, self.__datatypes[field]):
-                self.__attributes[field] = self.__datatypes[field](value)
-            else:
-                self.__attributes[field] = value
-
-    def __str__(self) -> str:
-        """
-        String representation of the project. This is a multiline string for the human reader.
-        :return: str
-        """
-        res = f'Project: {self.__attributes[ProjectAttr.PROJECT_IRI]}\n'\
-              f'  Creation: {self.__created} by {self.__creator}\n'\
-              f'  Modified: {self.__modified} by {self.__contributor}\n'\
-              f'  Label: {self.__attributes[ProjectAttr.LABEL]}\n'\
-              f'  Comment: {self.__attributes[ProjectAttr.COMMENT]}\n'\
-              f'  ShortName: {self.__attributes[ProjectAttr.PROJECT_SHORTNAME]}\n'\
-              f'  Namespace IRI: {self.__attributes[ProjectAttr.NAMESPACE_IRI]}\n'\
-              f'  Project start: {self.__attributes[ProjectAttr.PROJECT_START]}\n'
-        if self.__attributes.get(ProjectAttr.PROJECT_END) is not None:
-            res += f'  Project end: {self.__attributes[ProjectAttr.PROJECT_END]}\n'
-        return res
-
-    def __getitem__(self, attr: ProjectAttr) -> ProjectAttrTypes:
-        return self.__attributes[attr]
-
-    def get(self, attr: ProjectAttr) -> ProjectAttrTypes:
-        return self.__attributes.get(attr)
-
-    def __setitem__(self, attr: ProjectAttr, value: ProjectAttrTypes) -> None:
-        self.__change_setter(attr, value)
-
-    def __delitem__(self, attr: ProjectAttr) -> None:
-        if self.__attributes.get(attr) is not None:
-            self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
-            del self.__attributes[attr]
-
-    @property
-    def changeset(self) -> Dict[ProjectAttr, ProjectAttrChange]:
-        """
-        Return the changeset, that is dicst with information about all properties that have benn changed.
-        This method is only for internal use or debugging...
-        :return: A dictionary of all changes
-        :rtype: Dict[ProjectAttr, ProjectAttrChange]
-        """
-        return self.__changeset
-
-    def clear_changeset(self) -> None:
-        """
-        Clear the changeset. This method is only for internal use or debugging...
-        :return: None
-        """
-        self.__changeset = {}
-
     def notifier(self, fieldname: Xsd_QName) -> None:
         """
         This method is called when a field is being changed.
         :param fieldname: Fieldname of the field being modified
         :return: None
         """
-        field = ProjectAttr(fieldname)
-        self.__changeset[field] = ProjectAttrChange(self.__attributes[field], Action.MODIFY)
+        attr = ProjectAttr.from_value(fieldname)
+        self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
 
     @classmethod
     def read(cls, con: IConnection, projectIri_SName: Iri | Xsd_NCName | str) -> Self:
@@ -528,15 +409,8 @@ class Project(Model):
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:projectShortName {self.projectShortName.toRdf}'
-        if self.label:
-            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:label {self.label.toRdf}'
-        if self.comment:
-            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}rdfs:comment {self.comment.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:namespaceIri {self.namespaceIri.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:projectStart {self.projectStart.toRdf}'
-        if self.projectEnd is not None:
-            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:projectEnd {self.projectEnd.toRdf}'
+        for attr, value in self._attributes.items():
+            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
         sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -565,7 +439,7 @@ class Project(Model):
         self._creator = self._con.userIri
         self._modified = timestamp
         self._contributor = self._con.userIri
-        context[self.__attributes[ProjectAttr.PROJECT_SHORTNAME]] = self.__attributes[ProjectAttr.NAMESPACE_IRI]
+        context[self._attributes[ProjectAttr.PROJECT_SHORTNAME]] = self._attributes[ProjectAttr.NAMESPACE_IRI]
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -587,22 +461,22 @@ class Project(Model):
         context = Context(name=self._con.context_name)
         blank = ''
         sparql_list = []
-        for field, change in self.__changeset.items():
+        for field, change in self._changeset.items():
             if field == ProjectAttr.LABEL or field == ProjectAttr.COMMENT:
                 if change.action == Action.MODIFY:
-                    sparql_list.extend(self.__attributes[field].update(graph=Xsd_QName('oldap:admin'),
-                                                                       subject=self.projectIri,
-                                                                       subjectvar='?project',
-                                                                       field=Xsd_QName(field.value)))
+                    sparql_list.extend(self._attributes[field].update(graph=Xsd_QName('oldap:admin'),
+                                                                      subject=self.projectIri,
+                                                                      subjectvar='?project',
+                                                                      field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    sparql = self.__changeset[field].old_value.delete(graph=Xsd_QName('oldap:admin'),
+                    sparql = self._changeset[field].old_value.delete(graph=Xsd_QName('oldap:admin'),
                                                                       subject=self.projectIri,
                                                                       field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
-                    sparql = self.__attributes[field].create(graph=Xsd_QName('oldap:admin'),
-                                                             subject=self.projectIri,
-                                                             field=Xsd_QName(field.value))
+                    sparql = self._attributes[field].create(graph=Xsd_QName('oldap:admin'),
+                                                            subject=self.projectIri,
+                                                            field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 continue
             sparql = f'{blank:{indent * indent_inc}}# Project field "{field.value}" with action "{change.action.value}"\n'
@@ -613,7 +487,7 @@ class Project(Model):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self.__attributes[field].toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self._attributes[field].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.projectIri.toRdf} as ?project)\n'

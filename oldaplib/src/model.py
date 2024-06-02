@@ -1,18 +1,29 @@
+from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Set, Dict, Tuple, Optional, Any, Union
+from enum import Enum
+from typing import List, Set, Dict, Tuple, Optional, Any, Union, Self
 
 from pystrict import strict
 
+from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorType, OldapErrorImmutable
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
 
+@dataclass
+class AttributeChange:
+    """
+    A dataclass used to represent the changes made to a field.
+    """
+    old_value: Any
+    action: Action
 
 #@strict
 class Model:
@@ -22,6 +33,8 @@ class Model:
     _created: Xsd_dateTime | None
     _contributor: Iri | None
     _modified: Xsd_dateTime | None
+    _attributes: dict[Enum, Any]
+    _changeset: dict[AttributeClass, AttributeChange]
 
     def __init__(self, *,
                  connection: IConnection,
@@ -43,14 +56,103 @@ class Model:
         self._created = created
         self._contributor = contributor
         self._modified = modified
+        self._attributes = {}
 
         self._changed = set()
 
-    def has_changed(self) -> bool:
-        if self._changed:
-            return True
+    def check_consistency(self, attr: AttributeClass, value: Any) -> None:
+        pass
+
+    def __str__(self) -> str:
+        res = f'Creation: {self._created} by {self._creator}\n'
+        res += f'Modified: {self._modified} by {self._contributor}\n'
+        for attr, value in self._attributes.items():
+            res += f'{attr} ({attr.value}): {value}\n'
+        return res
+
+    def __getitem__(self, attr: AttributeClass) -> Any:
+        return self._attributes[attr]
+
+    def get(self, attr: AttributeClass) -> Any:
+        return self._attributes.get(attr)
+
+    def __setitem__(self, attr: AttributeClass, value: Any) -> None:
+        self._change_setter(attr, value)
+
+    def __delitem__(self, attr: AttributeClass) -> None:
+        if self._attributes.get(attr) is not None:
+            self._changeset[attr] = AttributeChange(self._attributes[attr], Action.DELETE)
+            del self._attributes[attr]
+
+    def set_attributes(self, arguments: dict[str, Any], Attributes: type[Enum]) -> None:
+        for name, value in arguments.items():
+            attr = Attributes.from_name(name)
+            self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value)
+            if hasattr(self._attributes[attr], 'set_notifier'):
+                self._attributes[attr].set_notifier(self.notifier, attr.value)
+        for attr in Attributes:
+            if attr.mandatory and not self._attributes.get(attr):
+                raise OldapErrorType(f'Mandatory parameter {attr.name} is missing.')
+
+    def _get_value(self: Self, attr: AttributeClass) -> Any | None:
+        tmp = self._attributes.get(attr)
+        if not tmp:
+            return None
+        return tmp
+
+    def _set_value(self: Self, value: Any, attr: AttributeClass) -> None:
+        self._change_setter(attr, value)
+
+    def _del_value(self: Self, attr: AttributeClass) -> None:
+        self._changeset[attr] = AttributeChange(self._attributes[attr], Action.DELETE)
+        del self._attributes[attr]
+
+    def _change_setter(self, attr: AttributeClass, value: Any) -> None:
+        if self._attributes.get(attr) == value:
+            return
+        if attr.immutable:
+            raise OldapErrorImmutable(f'Attribute {attr.value} is immutable.')
+        self.check_consistency(attr, value)
+        # if field == ProjectAttr.PROJECT_START:
+        #     if self._attributes.get(ProjectAttr.PROJECT_END) and value >= self._attributes[ProjectAttr.PROJECT_END]:
+        #         raise OldapErrorInconsistency('Project start date must be less than project end date.')
+        # if field == ProjectAttr.PROJECT_END:
+        #     if self._attributes.get(ProjectAttr.PROJECT_START) and value <= self._attributes[ProjectAttr.PROJECT_START]:
+        #         raise OldapErrorInconsistency('Project end date must be greater than project start date.')
+        if self._attributes.get(attr) is None:
+            if self._changeset.get(attr) is None:
+                self._changeset[attr] = AttributeChange(None, Action.CREATE)
         else:
-            return False
+            if value is None:
+                if self._changeset.get(attr) is None:
+                    self._changeset[attr] = AttributeChange(self._attributes[attr], Action.DELETE)
+            else:
+                if self._changeset.get(attr) is None:
+                    self._changeset[attr] = AttributeChange(self._attributes[attr], Action.REPLACE)
+        if value is None:
+            del self._attributes[attr]
+        else:
+            if not isinstance(value, attr.datatype):
+                self._attributes[attr] = attr.datatype(value)
+            else:
+                self._attributes[attr] = value
+
+    @property
+    def changeset(self) -> Dict[AttributeClass, AttributeChange]:
+        """
+        Return the changeset, that is dicst with information about all properties that have benn changed.
+        This method is only for internal use or debugging...
+        :return: A dictionary of all changes
+        :rtype: Dict[ProjectAttr, ProjectAttrChange]
+        """
+        return self._changeset
+
+    def clear_changeset(self) -> None:
+        """
+        Clear the changeset. This method is only for internal use or debugging...
+        :return: None
+        """
+        self._changeset = {}
 
     @property
     def creator(self) -> Iri | None:
