@@ -30,20 +30,12 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 
 ProjectAttrTypes = LangString | Xsd | None
 
-@dataclass
-class ProjectAttrChange:
-    """
-    A dataclass used to represent the changes made to a field.
-    """
-    old_value: ProjectAttrTypes
-    action: Action
-
 @unique
 class ProjectAttr(AttributeClass):
     """
     This enum class represents the fields used in the project model
-    order: (QName, mandatory, immutable, datatype)
     """
+    # order: (QName, mandatory, immutable, datatype)
     PROJECT_IRI = ('oldap:projectIri', False, True, Iri)  # virtual property, repents the RDF subject
     PROJECT_SHORTNAME = ('oldap:projectShortName', True, True, Xsd_NCName)
     LABEL = ('rdfs:label', False, False, LangString)
@@ -51,6 +43,25 @@ class ProjectAttr(AttributeClass):
     NAMESPACE_IRI = ('oldap:namespaceIri', True, True, NamespaceIRI)
     PROJECT_START = ('oldap:projectStart', False, False, Xsd_date)
     PROJECT_END = ('oldap:projectEnd', False, False, Xsd_date)
+
+
+class IriOrNCName:
+
+    def __init__(self, value: Iri | Xsd_NCName | str):
+        self.__projectIri: Iri | None = None
+        self.__shortname: Xsd_NCName | None = None
+        if isinstance(value, Iri):
+            self.__projectIri = value
+        elif isinstance(value, Xsd_NCName):
+            self.__shortname = Xsd_NCName(value)
+        else:
+            if ':' in str(value):  # must be IRI or QName
+                self.__projectIri = Iri(value)
+            else:
+                self.__shortname = Xsd_NCName(value)
+
+    def value(self) -> tuple[Xsd_NCName| None, Iri | None]:
+        return self.__shortname, self.__projectIri
 
 
 #@strict
@@ -212,7 +223,7 @@ class Project(Model):
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
 
     @classmethod
-    def read(cls, con: IConnection, projectIri_SName: Iri | Xsd_NCName | str) -> Self:
+    def read(cls, con: IConnection, projectIri_SName: IriOrNCName | Iri | Xsd_NCName | str) -> Self:
         """
         Read the project from the triplestore and return an instance of the project
         :param con: A valid Connection object
@@ -227,17 +238,20 @@ class Project(Model):
         context = Context(name=con.context_name)
         query = context.sparql_context
 
-        projectIri: Iri | None = None
-        shortname: Xsd_NCName | None = None
-        if isinstance(projectIri_SName, Iri):
-            projectIri = projectIri_SName
-        elif isinstance(projectIri_SName, Xsd_NCName):
-            shortname = Xsd_NCName(projectIri_SName)
-        else:
-            if ':' in str(projectIri_SName):  # must be IRI or QName
-                projectIri = Iri(projectIri_SName)
-            else:
-                shortname = Xsd_NCName(projectIri_SName)
+        if not isinstance(projectIri_SName, IriOrNCName):
+            projectIri_SName = IriOrNCName(projectIri_SName)
+        shortname, projectIri = projectIri_SName.value()
+        # projectIri: Iri | None = None
+        # shortname: Xsd_NCName | None = None
+        # if isinstance(projectIri_SName, Iri):
+        #     projectIri = projectIri_SName
+        # elif isinstance(projectIri_SName, Xsd_NCName):
+        #     shortname = Xsd_NCName(projectIri_SName)
+        # else:
+        #     if ':' in str(projectIri_SName):  # must be IRI or QName
+        #         projectIri = Iri(projectIri_SName)
+        #     else:
+        #         shortname = Xsd_NCName(projectIri_SName)
         if projectIri is not None:
             query += f"""
                 SELECT ?prop ?val

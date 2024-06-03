@@ -44,3 +44,7 @@ class AttributeClass(Enum):
             if member._name == name:
                 return member
         raise ValueError(f"No member with name {name} found")
+
+    @property
+    def to_rdf(self) -> str:
+        return self._value.toRdf

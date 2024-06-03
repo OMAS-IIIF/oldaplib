@@ -1,14 +1,18 @@
 from enum import unique, Enum
 
+from oldaplib.src.enums.attributeclass import AttributeClass
+from oldaplib.src.enums.permissions import DataPermission
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.project import IriOrNCName
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+
 
 @unique
-class PermissionSetAttr(Enum):
-    PERMISSION_SET_ID = 'permset:permissionSetId'  # virtual property, no equivalent in RDF
-    LABEL = 'rdfs:label'
-    COMMENT = 'rdfs:comment'
-    GIVES_PERMISSION = 'oldap:givesPermission'
-    DEFINED_BY_PROJECT = 'oldap:definedByProject'
-
-    @property
-    def toRdf(self):
-        return self.value
+class PermissionSetAttr(AttributeClass):
+    # order: (QName, mandatory, immutable, datatype)
+    PERMISSION_SET_ID = ('virtual:permissionSetId', True, True, Xsd_NCName)  # virtual property, no equivalent in RDF
+    DEFINED_BY_PROJECT = ('oldap:definedByProject', True, False, IriOrNCName)
+    GIVES_PERMISSION = ('oldap:givesPermission', True, False, DataPermission)
+    LABEL = ('rdfs:label', False, False, LangString)
+    COMMENT = ('rdfs:comment', False, False, LangString)

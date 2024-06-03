@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from typing import Dict, Self
+from typing import Dict, Self, Any
 
 from pystrict import strict
 
@@ -9,7 +9,8 @@ from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
 from oldaplib.src.enums.permissions import AdminPermission, DataPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
-from oldaplib.src.project import Project
+from oldaplib.src.helpers.tools import lprint
+from oldaplib.src.project import Project, ProjectAttr
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -20,45 +21,33 @@ from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorAlreadyEx
     OldapErrorInconsistency, OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model
+from oldaplib.src.model import Model, AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
 PermissionSetAttrTypes = Xsd_NCName | LangString | DataPermission | None
 
-@dataclass
-class PermissionSetAttrChange:
-    """
-    A dataclass used to represent the changes made to a field.
-    """
-    old_value: PermissionSetAttrTypes
-    action: Action
+# @dataclass
+# class PermissionSetAttrChange:
+#     """
+#     A dataclass used to represent the changes made to a field.
+#     """
+#     old_value: PermissionSetAttrTypes
+#     action: Action
 
 
 #@strict
 class PermissionSet(Model):
-    __datatypes = {
-        PermissionSetAttr.PERMISSION_SET_ID: Xsd_NCName,
-        PermissionSetAttr.LABEL: LangString,
-        PermissionSetAttr.COMMENT: LangString,
-        PermissionSetAttr.GIVES_PERMISSION: DataPermission,
-        PermissionSetAttr.DEFINED_BY_PROJECT: Iri
-    }
 
     __permset_iri: Iri | None
-    __attributes: Dict[PermissionSetAttr, PermissionSetAttrTypes]
-    __changeset: Dict[PermissionSetAttr, PermissionSetAttrChange]
+    __project: Project | None
 
     def __init__(self, *,
                  con: IConnection,
-                 definedByProject: Project | Iri | Xsd_NCName | str,
-                 permissionSetId: Xsd_NCName | str,
-                 givesPermission: DataPermission,
                  creator: Iri | str |None = None,
                  created: Xsd_dateTime | datetime | str | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
-                 label: LangString | str | None = None,
-                 comment: LangString | str | None = None):
+                 **kwargs):
         """
         Constructor for a permission set.
         :param con: Subclass of IConnection
@@ -88,33 +77,46 @@ class PermissionSet(Model):
                          created=created,
                          contributor=contributor,
                          modified=modified)
-        self.__attributes = {}
+        self.__project = None
+        self.set_attributes(kwargs, PermissionSetAttr)
+        #
+        # Consistency checks
+        #
+        if self._attributes.get(PermissionSetAttr.DEFINED_BY_PROJECT):
+            self.check_consistency(PermissionSetAttr.DEFINED_BY_PROJECT, self._attributes[PermissionSetAttr.DEFINED_BY_PROJECT])
 
-        self.__attributes[PermissionSetAttr.PERMISSION_SET_ID] = Xsd_NCName(permissionSetId)
-        if label:
-            self.__attributes[PermissionSetAttr.LABEL] = LangString(label)
-            self.__attributes[PermissionSetAttr.LABEL].set_notifier(self.notifier, PermissionSetAttr.LABEL)
-        if comment:
-            self.__attributes[PermissionSetAttr.COMMENT] = LangString(comment)
-            self.__attributes[PermissionSetAttr.COMMENT].set_notifier(self.notifier, PermissionSetAttr.COMMENT)
-        self.__attributes[PermissionSetAttr.GIVES_PERMISSION] = givesPermission
+        # self.__attributes[PermissionSetAttr.PERMISSION_SET_ID] = Xsd_NCName(permissionSetId)
+        # if label:
+        #     self.__attributes[PermissionSetAttr.LABEL] = LangString(label)
+        #     self.__attributes[PermissionSetAttr.LABEL].set_notifier(self.notifier, PermissionSetAttr.LABEL)
+        # if comment:
+        #     self.__attributes[PermissionSetAttr.COMMENT] = LangString(comment)
+        #     self.__attributes[PermissionSetAttr.COMMENT].set_notifier(self.notifier, PermissionSetAttr.COMMENT)
+        # self.__attributes[PermissionSetAttr.GIVES_PERMISSION] = givesPermission
         #
         # get the project IRI
         #
-        if isinstance(definedByProject, Project):
-            project = definedByProject
-        else:
-            project = Project.read(self._con, definedByProject)
-        self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = project.projectIri
-        self.__permset_iri = Iri.fromPrefixFragment(project.projectShortName, self.__attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
+        # if isinstance(definedByProject, Project):
+        #     project = definedByProject
+        # else:
+        #     project = Project.read(self._con, definedByProject)
+        # self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = project.projectIri
 
-        for field in PermissionSetAttr:
-            prefix, name = field.value.split(':')
-            setattr(PermissionSet, name, property(
-                partial(self.__get_value, field=field),
-                partial(self.__set_value, field=field),
-                partial(self.__del_value, field=field)))
+        self.__permset_iri = Iri.fromPrefixFragment(self.__project.projectShortName, self._attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
+
+        for attr in PermissionSetAttr:
+            setattr(PermissionSet, attr.value.fragment, property(
+                partial(PermissionSet._get_value, attr=attr),
+                partial(PermissionSet._set_value, attr=attr),
+                partial(PermissionSet._del_value, attr=attr)))
         self.__changeset = {}
+
+    def check_consistency(self, attr: PermissionSetAttr, value: Any) -> None:
+        if attr == PermissionSetAttr.DEFINED_BY_PROJECT:
+            if not isinstance(value, Project):
+                self.__project = Project.read(self._con, value)
+                self._attributes[attr] = self.__project.projectIri
+
 
     def check_for_permissions(self) -> (bool, str):
         """
@@ -151,77 +153,11 @@ class PermissionSet(Model):
     def __del_value(self: Self, self2: Self, field: PermissionSetAttr) -> None:
         del self.__attributes[field]
 
-    def __change_setter(self, attr: PermissionSetAttr, value: PermissionSetAttrTypes) -> None:
-        if self.__attributes[attr] == value:
-            return
-        if attr in {PermissionSetAttr.PERMISSION_SET_ID, PermissionSetAttr.DEFINED_BY_PROJECT}:
-            raise OldapErrorImmutable(f'Field {attr.value} is immutable.')
-        if self.__attributes.get(attr) is None:
-            if self.__changeset.get(attr) is None:
-                self.__changeset[attr] = PermissionSetAttrChange(None, Action.CREATE)
-        else:
-            if value is None:
-                if self.__changeset.get(attr) is None:
-                    self.__changeset[attr] = PermissionSetAttrChange(self.__attributes[attr], Action.DELETE)
-            else:
-                if self.__changeset.get(attr) is None:
-                    self.__changeset[attr] = PermissionSetAttrChange(self.__attributes[attr], Action.REPLACE)
 
-        if value is None:
-            del self.__attributes[attr]
-        else:
-            if isinstance(self.__datatypes[attr], set):
-                dtypes = list(self.__datatypes[attr])
-                for dtype in dtypes:
-                    try:
-                        self.__attributes[attr] = dtype(value)
-                        break;
-                    except OldapErrorValue:
-                        pass
-            else:
-                self.__attributes[attr] = self.__datatypes[attr](value)
-
-    def __str__(self) -> str:
-        res = f'PermissionSet: {self.__attributes[PermissionSetAttr.PERMISSION_SET_ID]}\n'\
-              f'  Creation: {self._created} by {self._creator}\n'\
-              f'  Modified: {self._modified} by {self._contributor}\n' \
-              f'  Label: {self.__attributes.get(PermissionSetAttr.LABEL, "-")}\n' \
-              f'  Comment: {self.__attributes.get(PermissionSetAttr.COMMENT, "-")}\n'\
-              f'  Permission: {self.__attributes[PermissionSetAttr.GIVES_PERMISSION].name}\n'\
-              f'  By project: {self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT]}\n'
-        return res
-
-    def __getitem__(self, attr: PermissionSetAttr) -> PermissionSetAttrTypes:
-        return self.__attributes[attr]
-
-    def get(self, attr: PermissionSetAttr) -> PermissionSetAttrTypes:
-        return self.__attributes.get(attr)
-
-    def __setitem__(self, attr: PermissionSetAttr, value: PermissionSetAttrTypes) -> None:
-        self.__change_setter(attr, value)
-
-    def __delitem__(self, attr: PermissionSetAttr) -> None:
-        if self.__attributes.get(attr) is not None:
-            self.__changeset[attr] = PermissionSetAttrChange(self.__attributes[attr], Action.DELETE)
-            del self.__attributes[attr]
 
     def notifier(self, what: PermissionSetAttr) -> None:
-        self.__changeset[what] = PermissionSetAttrChange(None, Action.MODIFY)
+        self.__changeset[what] = AttributeChange(None, Action.MODIFY)
 
-    @property
-    def changeset(self) -> Dict[PermissionSetAttr, PermissionSetAttrChange]:
-        """
-        Return the changeset, that is dicst with information about all properties that have benn changed.
-        :return: A dictionary of all changes
-        """
-        return self.__changeset
-
-    def clear_changeset(self) -> None:
-        """
-        Clear the changeset.
-        :return: None
-        """
-        self.__changeset = {}
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -262,14 +198,11 @@ class PermissionSet(Model):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        if self.label:
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.LABEL.value} {self.label.toRdf}'
-        if self.comment:
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.COMMENT.value} {self.comment.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.GIVES_PERMISSION.value} oldap:{self.givesPermission.name}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{PermissionSetAttr.DEFINED_BY_PROJECT.value} {self.definedByProject.toRdf}'
-
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        for attr, value in self._attributes.items():
+            if attr.value.prefix == 'virtual':
+                continue
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         self._con.transaction_start()
@@ -486,17 +419,17 @@ class PermissionSet(Model):
         for attr, change in self.__changeset.items():
             if attr == PermissionSetAttr.LABEL or attr == PermissionSetAttr.COMMENT:
                 if change.action == Action.MODIFY:
-                    sparql_list.extend(self.__attributes[attr].update(graph=Xsd_QName('oldap:admin'),
+                    sparql_list.extend(self._attributes[attr].update(graph=Xsd_QName('oldap:admin'),
                                                                       subject=self.__permset_iri,
                                                                       subjectvar='?project',
                                                                       field=Xsd_QName(attr.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    sparql = self.__attributes[attr].delete(graph=Xsd_QName('oldap:admin'),
+                    sparql = self._attributes[attr].delete(graph=Xsd_QName('oldap:admin'),
                                                             subject=self.__permset_iri,
                                                             field=Xsd_QName(attr.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
-                    sparql = self.__attributes[attr].create(graph=Xsd_QName('oldap:admin'),
+                    sparql = self._attributes[attr].create(graph=Xsd_QName('oldap:admin'),
                                                             subject=self.__permset_iri,
                                                             field=Xsd_QName(attr.value))
                     sparql_list.append(sparql)
@@ -509,7 +442,7 @@ class PermissionSet(Model):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {self.__attributes[attr].toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {self._attributes[attr].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.__permset_iri.toRdf} as ?project)\n'

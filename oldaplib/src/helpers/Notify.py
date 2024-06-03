@@ -3,10 +3,7 @@ from typing import Callable
 
 from pystrict import strict
 
-from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
 from oldaplib.src.xsd.iri import Iri
-from oldaplib.src.enums.propertyclassattr import PropClassAttr
-from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 
 
 #@strict
@@ -17,12 +14,12 @@ class Notify:
     as of type LangString or PropertyRestriction to notify PropertyClass that something has changed,
     e.g. the change of value
     """
-    _notifier: Callable[[PropClassAttr], None]
+    _notifier: Callable[[Enum | Iri], None]
     _data: Enum
 
     def __init__(self,
-                 notifier: Callable[[PropClassAttr | ResClassAttribute | PermissionSetAttr | Iri], None] | None = None,
-                 data: PropClassAttr | ResClassAttribute | PermissionSetAttr | Iri | None = None):
+                 notifier: Callable[[Enum | Iri], None] | None = None,
+                 data: Enum | Iri | None = None):
         """
         Constructor of the notifier. Usually, the notifier is only used a base class and not used directly.
         :param notifier: The callable that is to be called by the subclass when an item is beeing chaged

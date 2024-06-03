@@ -57,8 +57,7 @@ class Model:
         self._contributor = contributor
         self._modified = modified
         self._attributes = {}
-
-        self._changed = set()
+        self._changeset = {}
 
     def check_consistency(self, attr: AttributeClass, value: Any) -> None:
         pass
