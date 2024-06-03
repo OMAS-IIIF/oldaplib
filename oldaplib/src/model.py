@@ -88,7 +88,7 @@ class Model:
             attr = Attributes.from_name(name)
             self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value)
             if hasattr(self._attributes[attr], 'set_notifier'):
-                self._attributes[attr].set_notifier(self.notifier, attr.value)
+                self._attributes[attr].set_notifier(self.notifier, attr)
         for attr in Attributes:
             if attr.mandatory and not self._attributes.get(attr):
                 raise OldapErrorType(f'Mandatory parameter {attr.name} is missing.')

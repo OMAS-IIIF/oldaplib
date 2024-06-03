@@ -250,7 +250,7 @@ class TestPermissionSet(unittest.TestCase):
             ps[PermissionSetAttr.DEFINED_BY_PROJECT] = Iri('oldap:HyperHamlet')
 
         ps = PermissionSet.read(self._unpriv, psId, Iri('oldap:SystemProject'))
-        ps.comment[Language.FR] = "gagagaga"
+        ps.comment = LangString("gagagaga@fr")
         with self.assertRaises(OldapErrorNoPermission):
             ps.update()
 

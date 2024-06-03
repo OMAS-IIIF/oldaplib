@@ -24,16 +24,6 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model, AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
-PermissionSetAttrTypes = Xsd_NCName | LangString | DataPermission | None
-
-# @dataclass
-# class PermissionSetAttrChange:
-#     """
-#     A dataclass used to represent the changes made to a field.
-#     """
-#     old_value: PermissionSetAttrTypes
-#     action: Action
-
 
 #@strict
 class PermissionSet(Model):
@@ -85,23 +75,6 @@ class PermissionSet(Model):
         if self._attributes.get(PermissionSetAttr.DEFINED_BY_PROJECT):
             self.check_consistency(PermissionSetAttr.DEFINED_BY_PROJECT, self._attributes[PermissionSetAttr.DEFINED_BY_PROJECT])
 
-        # self.__attributes[PermissionSetAttr.PERMISSION_SET_ID] = Xsd_NCName(permissionSetId)
-        # if label:
-        #     self.__attributes[PermissionSetAttr.LABEL] = LangString(label)
-        #     self.__attributes[PermissionSetAttr.LABEL].set_notifier(self.notifier, PermissionSetAttr.LABEL)
-        # if comment:
-        #     self.__attributes[PermissionSetAttr.COMMENT] = LangString(comment)
-        #     self.__attributes[PermissionSetAttr.COMMENT].set_notifier(self.notifier, PermissionSetAttr.COMMENT)
-        # self.__attributes[PermissionSetAttr.GIVES_PERMISSION] = givesPermission
-        #
-        # get the project IRI
-        #
-        # if isinstance(definedByProject, Project):
-        #     project = definedByProject
-        # else:
-        #     project = Project.read(self._con, definedByProject)
-        # self.__attributes[PermissionSetAttr.DEFINED_BY_PROJECT] = project.projectIri
-
         self.__permset_iri = Iri.fromPrefixFragment(self.__project.projectShortName, self._attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
 
         for attr in PermissionSetAttr:
@@ -109,14 +82,13 @@ class PermissionSet(Model):
                 partial(PermissionSet._get_value, attr=attr),
                 partial(PermissionSet._set_value, attr=attr),
                 partial(PermissionSet._del_value, attr=attr)))
-        self.__changeset = {}
+        self._changeset = {}
 
     def check_consistency(self, attr: PermissionSetAttr, value: Any) -> None:
         if attr == PermissionSetAttr.DEFINED_BY_PROJECT:
             if not isinstance(value, Project):
                 self.__project = Project.read(self._con, value)
                 self._attributes[attr] = self.__project.projectIri
-
 
     def check_for_permissions(self) -> (bool, str):
         """
@@ -142,22 +114,8 @@ class PermissionSet(Model):
                     return False, f'Actor has no ADMIN_PERMISSION_SETS permission for project {self.definedByProject}'
             return True, "OK"
 
-    def __get_value(self: Self, self2: Self, field: PermissionSetAttr) -> PermissionSetAttrTypes | None:
-        return self.__attributes.get(field)
-
-    def __set_value(self: Self, self2: Self, value: PermissionSetAttrTypes, field: PermissionSetAttr) -> None:
-        if field == PermissionSetAttr.PERMISSION_SET_ID and self.__attributes.get(PermissionSetAttr.PERMISSION_SET_ID) is not None:
-            OldapErrorAlreadyExists(f'A permission set ID already has been assigned: "{repr(self.__attributes.get(PermissionSetAttr.PERMISSION_SET_IRI))}".')
-        self.__change_setter(field, value)
-
-    def __del_value(self: Self, self2: Self, field: PermissionSetAttr) -> None:
-        del self.__attributes[field]
-
-
-
     def notifier(self, what: PermissionSetAttr) -> None:
-        self.__changeset[what] = AttributeChange(None, Action.MODIFY)
-
+        self._changeset[what] = AttributeChange(None, Action.MODIFY)
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -416,22 +374,22 @@ class PermissionSet(Model):
         blank = ''
         sparql_list = []
 
-        for attr, change in self.__changeset.items():
+        for attr, change in self._changeset.items():
             if attr == PermissionSetAttr.LABEL or attr == PermissionSetAttr.COMMENT:
                 if change.action == Action.MODIFY:
                     sparql_list.extend(self._attributes[attr].update(graph=Xsd_QName('oldap:admin'),
                                                                       subject=self.__permset_iri,
                                                                       subjectvar='?project',
-                                                                      field=Xsd_QName(attr.value)))
+                                                                      field=attr.value))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    sparql = self._attributes[attr].delete(graph=Xsd_QName('oldap:admin'),
+                    sparql = self._changeset[attr].old_value.delete(graph=Xsd_QName('oldap:admin'),
                                                             subject=self.__permset_iri,
-                                                            field=Xsd_QName(attr.value))
+                                                            field=attr.value)
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
                     sparql = self._attributes[attr].create(graph=Xsd_QName('oldap:admin'),
                                                             subject=self.__permset_iri,
-                                                            field=Xsd_QName(attr.value))
+                                                            field=attr.value)
                     sparql_list.append(sparql)
                 continue
             sparql = f'{blank:{indent * indent_inc}}# PermissionSet attribute "{attr.value}" with action "{change.action.value}"\n'
