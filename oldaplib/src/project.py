@@ -1,48 +1,26 @@
-import uuid
-from dataclasses import dataclass
-from enum import unique, Enum
 from functools import partial
 
-from pystrict import strict
-from typing import List, Dict, Optional, Self, Any
+from typing import List, Self, Any
 from datetime import date, datetime
 
-from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.projectattr import ProjectAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
-from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_date import Xsd_date
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
-from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, \
-    OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound, OldapErrorInconsistency, OldapErrorType
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorAlreadyExists, OldapErrorNoPermission, \
+    OldapErrorUpdateFailed, OldapErrorNotFound, OldapErrorInconsistency
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model, AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
-
-ProjectAttrTypes = LangString | Xsd | None
-
-@unique
-class ProjectAttr(AttributeClass):
-    """
-    This enum class represents the fields used in the project model
-    """
-    # order: (QName, mandatory, immutable, datatype)
-    PROJECT_IRI = ('oldap:projectIri', False, True, Iri)  # virtual property, repents the RDF subject
-    PROJECT_SHORTNAME = ('oldap:projectShortName', True, True, Xsd_NCName)
-    LABEL = ('rdfs:label', False, False, LangString)
-    COMMENT = ('rdfs:comment', False, False, LangString)
-    NAMESPACE_IRI = ('oldap:namespaceIri', True, True, NamespaceIRI)
-    PROJECT_START = ('oldap:projectStart', False, False, Xsd_date)
-    PROJECT_END = ('oldap:projectEnd', False, False, Xsd_date)
 
 
 class IriOrNCName:
@@ -213,13 +191,12 @@ class Project(Model):
         else:
             return False, "No permission to create a new project."
 
-    def notifier(self, fieldname: Xsd_QName) -> None:
+    def notifier(self, attr: ProjectAttr) -> None:
         """
         This method is called when a field is being changed.
         :param fieldname: Fieldname of the field being modified
         :return: None
         """
-        attr = ProjectAttr.from_value(fieldname)
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
 
     @classmethod

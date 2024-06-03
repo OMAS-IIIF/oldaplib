@@ -10,7 +10,8 @@ from oldaplib.src.enums.permissions import AdminPermission, DataPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.helpers.tools import lprint
-from oldaplib.src.project import Project, ProjectAttr
+from oldaplib.src.project import Project
+from oldaplib.src.enums.projectattr import ProjectAttr
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
