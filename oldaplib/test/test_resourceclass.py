@@ -20,7 +20,8 @@ from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.project import Project
-from oldaplib.src.propertyclass import PropClassAttrContainer, PropertyClass, OwlPropertyType
+from oldaplib.src.propertyclass import PropClassAttrContainer, PropertyClass
+from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean

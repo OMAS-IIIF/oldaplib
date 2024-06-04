@@ -1,8 +1,22 @@
 from enum import unique, Enum
+from typing import Self
+
+from oldaplib.src.dtypes.languagein import LanguageIn
+from oldaplib.src.dtypes.xsdset import XsdSet
+from oldaplib.src.enums.attributeclass import AttributeClass
+from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.numeric import Numeric
+from oldaplib.src.enums.owlpropertytype import OwlPropertyType
+from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 @unique
-class PropClassAttr(Enum):
+class PropClassAttr(AttributeClass):
     """
     Enumeration of all the attributes of a property. Please note that the `Oldap:restriction` attribute
     itself is a complex onbject defining restrictions to the property.
@@ -21,25 +35,47 @@ class PropClassAttr(Enum):
     - `PropertyClassAttribute.DESCRIPTION`: Description of the property. The literal is a string that may
       have attached a language id.
     """
-    SUBPROPERTY_OF = 'rdfs:subPropertyOf'
-    PROPERTY_TYPE = 'rdf:type'
-    TO_NODE_IRI = 'sh:class'
-    DATATYPE = 'sh:datatype'
-    NAME = 'sh:name'
-    DESCRIPTION = 'sh:description'
-    ORDER = 'sh:order'
-    MIN_COUNT = 'sh:minCount'  # used also for OWL ontology
-    MAX_COUNT = 'sh:maxCount'  # used also for OWL ontology
-    LANGUAGE_IN = 'sh:languageIn'
-    UNIQUE_LANG = 'sh:uniqueLang'
-    IN = 'sh:in'
-    MIN_LENGTH = 'sh:minLength'
-    MAX_LENGTH = 'sh:maxLength'
-    PATTERN = 'sh:pattern'
-    MIN_EXCLUSIVE = 'sh:minExclusive'
-    MIN_INCLUSIVE = 'sh:minInclusive'
-    MAX_EXCLUSIVE = 'sh:maxExclusive'
-    MAX_INCLUSIVE = 'sh:maxInclusive'
-    LESS_THAN = 'sh:lessThan'
-    LESS_THAN_OR_EQUALS = 'sh:lessThanOrEquals'
+    # order: (QName, mandatory, immutable, datatype)
+    SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri)
+    TYPE = ('rdf:type', False, False, OwlPropertyType)
+    CLASS = ('sh:class', False, False, Iri)
+    DATATYPE = ('sh:datatype', False, False, XsdDatatypes)
+    NAME = ('sh:name', False, False, LangString)
+    DESCRIPTION = ('sh:description', False, False, LangString)
+    ORDER = ('sh:order', False, False, Xsd_decimal)
+    MIN_COUNT = ('sh:minCount', False, False, Xsd_integer)  # used also for OWL ontology
+    MAX_COUNT = ('sh:maxCount', False, False,  Xsd_integer) # used also for OWL ontology
+    LANGUAGE_IN = ('sh:languageIn', False, False, LanguageIn)
+    UNIQUE_LANG = ('sh:uniqueLang', False, False, Xsd_boolean)
+    IN = ('sh:in', False, False, XsdSet)
+    MIN_LENGTH = ('sh:minLength', False, False, Xsd_integer)
+    MAX_LENGTH = ('sh:maxLength', False, False, Xsd_integer)
+    PATTERN = ('sh:pattern', False, False, Xsd_string)
+    MIN_EXCLUSIVE = ('sh:minExclusive', False, False, Numeric)
+    MIN_INCLUSIVE = ('sh:minInclusive', False, False, Numeric)
+    MAX_EXCLUSIVE = ('sh:maxExclusive', False, False, Numeric)
+    MAX_INCLUSIVE = ('sh:maxInclusive', False, False, Numeric)
+    LESS_THAN = ('sh:lessThan', False, False, Iri)
+    LESS_THAN_OR_EQUALS = ('sh:lessThanOrEquals', False, False, Iri)
+
+
+    @classmethod
+    def from_name(cls, name: str) -> Self:
+        if name == 'inSet':
+            name = 'in'
+        if name == 'toClass':
+            name = 'class'
+        for member in cls:
+            if member._name == name:
+                return member
+        raise ValueError(f"No member with name {name} found")
+
+    @property
+    def toRdf(self) -> str:
+        if self.value == 'sh:inSet':
+            return 'sh:in'
+        elif self.value == 'sh:toClass':
+            return 'sh:class'
+        else:
+            return self.value.toRdf
 

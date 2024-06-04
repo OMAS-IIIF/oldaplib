@@ -15,9 +15,10 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue
 from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.model import AttributeChange
 from oldaplib.src.project import Project
-from oldaplib.src.propertyclass import PropertyClass, OwlPropertyType, \
-    PropClassAttrChange
+from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -87,9 +88,9 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_tonode_constructor(self):
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
-                           toNodeIri=Iri('test:Person'),
+                           toClass=Iri('test:Person'),
                            maxCount=1)
-        self.assertEqual(p2.get(PropClassAttr.TO_NODE_IRI), Xsd_QName('test:Person'))
+        self.assertEqual(p2.get(PropClassAttr.CLASS), Xsd_QName('test:Person'))
         self.assertEqual(p2.get(PropClassAttr.MAX_COUNT), Xsd_integer(1))
 
     def test_propertyclass_datatype_constructor(self):
@@ -149,8 +150,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p1.subPropertyOf)
         self.assertEqual(p1[PropClassAttr.ORDER], Xsd_decimal(2))
         self.assertEqual(p1.order, Xsd_decimal(2))
-        self.assertEqual(p1.get(PropClassAttr.PROPERTY_TYPE), OwlPropertyType.OwlDataProperty)
-        self.assertEqual(p1.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(p1.get(PropClassAttr.TYPE), OwlPropertyType.OwlDataProperty)
+        self.assertEqual(p1.type, OwlPropertyType.OwlDataProperty)
         self.assertEqual(p1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(p1.created, Xsd_dateTime("2023-11-04T12:00:00Z"))
 
@@ -163,10 +164,9 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("Property shape for testing purposes"))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.string)
         self.assertEqual(p2[PropClassAttr.ORDER], Xsd_decimal(3))
-        self.assertEqual(p2[PropClassAttr.PROPERTY_TYPE], OwlPropertyType.OwlDataProperty)
+        self.assertEqual(p2[PropClassAttr.TYPE], OwlPropertyType.OwlDataProperty)
 
         p3 = PropertyClass.read(con=self._connection,
-                                #graph=Xsd_NCName('test'),
                                 project=self._project,
                                 property_class_iri=Iri('test:enum'))
         self.assertEqual(p3[PropClassAttr.IN],
@@ -180,7 +180,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Iri('test:testWrite'),
-            toNodeIri=Iri('test:comment'),
+            toClass=Iri('test:comment'),
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
             inSet=RdfSet(Iri("http://www.test.org/comment1"), Iri("http://www.test.org/comment2")),
@@ -191,7 +191,7 @@ class TestPropertyClass(unittest.TestCase):
                                 project=self._project,
                                 property_class_iri=Iri('test:testWrite'))
         self.assertEqual(p1.property_class_iri, Iri('test:testWrite'))
-        self.assertEqual(p1[PropClassAttr.TO_NODE_IRI], Iri('test:comment'))
+        self.assertEqual(p1[PropClassAttr.CLASS], Iri('test:comment'))
         self.assertEqual(p1[PropClassAttr.NAME], LangString("Annotations@en"))
         self.assertEqual(p1[PropClassAttr.DESCRIPTION], LangString("An annotation@en"))
         self.assertEqual(p1[PropClassAttr.IN],
@@ -306,7 +306,7 @@ class TestPropertyClass(unittest.TestCase):
             #graph=Xsd_NCName('test'),
             project=self._project,
             property_class_iri=Iri('test:testUndo'),
-            toNodeIri=Iri('test:testUndo42'),
+            toClass=Iri('test:testUndo42'),
             minCount=Xsd_integer(1),
             maxCount=Xsd_integer(1),
             order=Xsd_decimal(11)
@@ -320,7 +320,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.maxCount, Xsd_integer(7))
         self.assertEqual(p1.order, Xsd_decimal(7))
         p1.undo()
-        self.assertEqual(p1.toNodeIri, Iri('test:testUndo42'))
+        self.assertEqual(p1.toClass, Iri('test:testUndo42'))
         self.assertEqual(p1.minCount, Xsd_integer(1))
         self.assertEqual(p1.maxCount, Xsd_integer(1))
         self.assertEqual(p1.order, Xsd_decimal(11))
@@ -353,13 +353,13 @@ class TestPropertyClass(unittest.TestCase):
         p1.minCount = Xsd_integer(1)
         self.maxDiff = None
         self.assertEqual(p1.changeset, {
-            PropClassAttr.ORDER: PropClassAttrChange(Xsd_decimal(11), Action.REPLACE, True),
-            PropClassAttr.NAME: PropClassAttrChange(None, Action.MODIFY, True),
+            PropClassAttr.ORDER: AttributeChange(Xsd_decimal(11), Action.REPLACE),
+            PropClassAttr.NAME: AttributeChange(None, Action.MODIFY),
             # PropClassAttr.LANGUAGE_IN: PropClassAttrChange(LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT), Action.REPLACE, True),
-            PropClassAttr.SUBPROPERTY_OF: PropClassAttrChange(Iri('test:masterProp'), Action.REPLACE, True),
-            PropClassAttr.UNIQUE_LANG: PropClassAttrChange(Xsd_boolean(True), Action.REPLACE, True),
-            PropClassAttr.IN: PropClassAttrChange(None, Action.CREATE, True),
-            PropClassAttr.MIN_COUNT: PropClassAttrChange(Xsd_integer(10), Action.REPLACE, True),
+            PropClassAttr.SUBPROPERTY_OF: AttributeChange(Iri('test:masterProp'), Action.REPLACE),
+            PropClassAttr.UNIQUE_LANG: AttributeChange(Xsd_boolean(True), Action.REPLACE),
+            PropClassAttr.IN: AttributeChange(None, Action.CREATE),
+            PropClassAttr.MIN_COUNT: AttributeChange(Xsd_integer(10), Action.REPLACE),
         })
         p1.update()
         self.assertEqual(p1.changeset, {})
@@ -370,7 +370,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.property_class_iri, Iri('test:testUpdate'))
         self.assertEqual(p2.subPropertyOf, Iri('test:masterProp2'))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.langString)
-        self.assertIsNone(p2.get(PropClassAttr.TO_NODE_IRI))
+        self.assertIsNone(p2.get(PropClassAttr.CLASS))
         self.assertEqual(p2[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("An annotation@en"))
         self.assertEqual(p2[PropClassAttr.LANGUAGE_IN], LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
@@ -401,11 +401,11 @@ class TestPropertyClass(unittest.TestCase):
         p1.inSet = RdfSet(Xsd_string("gaga"), Xsd_string("is was"))
         self.maxDiff = None
         self.assertEqual(p1.changeset, {
-            PropClassAttr.ORDER: PropClassAttrChange(Xsd_decimal(11), Action.REPLACE, True),
-            PropClassAttr.NAME: PropClassAttrChange(None, Action.MODIFY, True),
-            PropClassAttr.LANGUAGE_IN: PropClassAttrChange(LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT), Action.REPLACE, True),
-            PropClassAttr.UNIQUE_LANG: PropClassAttrChange(Xsd_boolean(True), Action.REPLACE, True),
-            PropClassAttr.IN: PropClassAttrChange(None, Action.CREATE, True),
+            PropClassAttr.ORDER: AttributeChange(Xsd_decimal(11), Action.REPLACE),
+            PropClassAttr.NAME: AttributeChange(None, Action.MODIFY),
+            PropClassAttr.LANGUAGE_IN: AttributeChange(LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT), Action.REPLACE),
+            PropClassAttr.UNIQUE_LANG: AttributeChange(Xsd_boolean(True), Action.REPLACE),
+            PropClassAttr.IN: AttributeChange(None, Action.CREATE),
         })
         p1.update()
         self.assertEqual(p1.changeset, {})
@@ -416,7 +416,7 @@ class TestPropertyClass(unittest.TestCase):
                                 property_class_iri=Iri('test:testUpdate2'))
         self.assertEqual(p2.property_class_iri, Iri('test:testUpdate2'))
         self.assertEqual(p2.datatype, XsdDatatypes.langString)
-        self.assertIsNone(p2.toNodeIri)
+        self.assertIsNone(p2.toClass)
         self.assertEqual(p2.name, LangString(["Annotations@en", "Annotationen@de"]))
         self.assertEqual(p2.description, LangString("An annotation@en"))
         self.assertEqual(p2.languageIn,
@@ -449,7 +449,6 @@ class TestPropertyClass(unittest.TestCase):
         p1.update()
 
         p2 = PropertyClass.read(con=self._connection,
-                                #graph=Xsd_NCName('test'),
                                 project=self._project,
                                 property_class_iri=Iri('test:testDelete'))
         self.assertIsNone(p2.name)
@@ -518,7 +517,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Iri('test:testDeleteIt2'),
-            toNodeIri=Iri('test:comment'),
+            toClass=Iri('test:comment'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
             inSet=XsdSet(Iri('test:gaga1'), Iri('test:gaga2'), Iri('test:gaga3')),
@@ -557,7 +556,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Iri('test:testWriteIt'),
-            toNodeIri=Iri('test:comment'),
+            toClass=Iri('test:comment'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
             maxCount=Xsd_integer(1),

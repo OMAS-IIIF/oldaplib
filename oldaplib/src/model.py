@@ -12,7 +12,7 @@ from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorType, OldapErrorImmutable
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorType, OldapErrorImmutable, OldapErrorValue
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
@@ -86,7 +86,10 @@ class Model:
     def set_attributes(self, arguments: dict[str, Any], Attributes: type[Enum]) -> None:
         for name, value in arguments.items():
             attr = Attributes.from_name(name)
-            self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value)
+            try:
+                self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value)
+            except ValueError as err:
+                raise OldapErrorValue(err)
             if hasattr(self._attributes[attr], 'set_notifier'):
                 self._attributes[attr].set_notifier(self.notifier, attr)
         for attr in Attributes:
@@ -105,6 +108,8 @@ class Model:
     def _del_value(self: Self, attr: AttributeClass) -> None:
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.DELETE)
         del self._attributes[attr]
+        if hasattr(self, "notify"):
+            self.notify()
 
     def _change_setter(self, attr: AttributeClass, value: Any) -> None:
         if self._attributes.get(attr) == value:
@@ -112,12 +117,6 @@ class Model:
         if attr.immutable:
             raise OldapErrorImmutable(f'Attribute {attr.value} is immutable.')
         self.check_consistency(attr, value)
-        # if field == ProjectAttr.PROJECT_START:
-        #     if self._attributes.get(ProjectAttr.PROJECT_END) and value >= self._attributes[ProjectAttr.PROJECT_END]:
-        #         raise OldapErrorInconsistency('Project start date must be less than project end date.')
-        # if field == ProjectAttr.PROJECT_END:
-        #     if self._attributes.get(ProjectAttr.PROJECT_START) and value <= self._attributes[ProjectAttr.PROJECT_START]:
-        #         raise OldapErrorInconsistency('Project end date must be greater than project start date.')
         if self._attributes.get(attr) is None:
             if self._changeset.get(attr) is None:
                 self._changeset[attr] = AttributeChange(None, Action.CREATE)
@@ -135,6 +134,10 @@ class Model:
                 self._attributes[attr] = attr.datatype(value)
             else:
                 self._attributes[attr] = value
+            if hasattr(self._attributes[attr], 'set_notifier') and hasattr(self, 'notifier'):
+                self._attributes[attr].set_notifier(self.notifier, attr)
+        if hasattr(self, "notify"):
+            self.notify()
 
     @property
     def changeset(self) -> Dict[AttributeClass, AttributeChange]:

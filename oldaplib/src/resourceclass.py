@@ -319,7 +319,7 @@ class ResourceClass(Model, Notify):
         self._attr_changeset = {}
         for prop, change in self._prop_changeset.items():
             if change.action == Action.MODIFY:
-                self._properties[prop].changeset_clear()
+                self._properties[prop].clear_changeset()
         self._prop_changeset = {}
 
     def notifier(self, what: ResClassAttribute | Iri):

@@ -7,12 +7,15 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 class AttributeClass(Enum):
     def __new__(cls, value: Xsd_QName | str, mandatory: bool, immutable: bool, datatype: Type):
         member = object.__new__(cls)
-        member._value = Xsd_QName(value)
+        member._value = Xsd_QName(value, validate=False)
         member._name = member._value.fragment  # Extract fragment for example
         member._mandatory = mandatory
         member._immutable = immutable
         member._datatype = datatype
         return member
+
+    def __str__(self) -> str:
+        return str(self.value)
 
     @property
     def value(self) -> Xsd_QName:

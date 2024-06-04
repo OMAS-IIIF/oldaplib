@@ -126,7 +126,7 @@ class DataModel(Model):
     def changeset_clear(self) -> None:
         for prop, change in self.__propclasses_changeset.items():
             if change.action == Action.MODIFY:
-                self.__propclasses[prop].changeset_clear()
+                self.__propclasses[prop].clear_changeset()
         self.__propclasses_changeset = {}
         for res, change in self.__resclasses_changeset.items():
             if change.action == Action.MODIFY:

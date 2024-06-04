@@ -4,23 +4,20 @@
 """
 from copy import deepcopy
 from dataclasses import dataclass
-from enum import Enum, unique
+from datetime import datetime
 from functools import partial
-from typing import Callable, Self, Iterable
-
-from pystrict import strict
+from typing import Callable, Self, Any
 
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet
+from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
+from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.project import Project
-from oldaplib.src.xsd.floatingpoint import FloatingPoint
 from oldaplib.src.xsd.iri import Iri
-from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
-from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_float import Xsd_float
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -34,56 +31,12 @@ from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.helpers.tools import RdfModifyItem, RdfModifyProp
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model
+from oldaplib.src.model import Model, AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
-
-
-@unique
-class OwlPropertyType(Enum):
-    """
-    Enumeration of the two types of RDF properties that OWL distinguishes
-    """
-    OwlDataProperty = 'owl:DatatypeProperty'
-    OwlObjectProperty = 'owl:ObjectProperty'
-
-    @property
-    def toRdf(self):
-        return self.value
-
-
-
-
-class Numeric:
-    """
-    This class represents a numeric value that eiter can be a subclass of Xsd_integer (and it's subclasses) or
-    a subclass of FloatingPoint (and it's subclasses). FLoatingPoint is the superclass of all XML Schema datatypes
-    with a floating point content (e.g. Xsd_float, Xsd_decimal etc.)
-    """
-    def __new__(cls, value: Xsd_integer | int | FloatingPoint | float | str):
-        if isinstance(value, (Xsd_integer, int)):
-            return Xsd_integer(value)
-        elif isinstance(value, (FloatingPoint, float)):
-            return Xsd_float(value)
-        else:
-            try:
-                return Xsd_integer(str(value))
-            except:
-                return Xsd_float(str(value))
-
 
 PropTypes = Iri | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | XsdSet | Numeric | None
 PropClassAttrContainer = dict[PropClassAttr, PropTypes]
 Attributes = dict[Iri, PropTypes]
-
-
-@dataclass
-class PropClassAttrChange:
-    """
-    Used for recording changes of the attributes of the property
-    """
-    old_value: PropTypes
-    action: Action
-    test_in_use: bool
 
 
 #@strict
@@ -108,7 +61,6 @@ class PropertyClass(Model, Notify):
     _internal: Iri | None
     _force_external: bool
     _attributes: PropClassAttrContainer
-    _changeset: dict[PropClassAttr, PropClassAttrChange]
     _test_in_use: bool
     _notifier: Callable[[type], None] | None
     #
@@ -118,62 +70,23 @@ class PropertyClass(Model, Notify):
     __version: SemanticVersion
     __from_triplestore: bool
 
-    __datatypes: dict[PropClassAttr, type] = {
-        PropClassAttr.SUBPROPERTY_OF: Iri,
-        PropClassAttr.PROPERTY_TYPE: OwlPropertyType,
-        PropClassAttr.TO_NODE_IRI: Iri,
-        PropClassAttr.DATATYPE: XsdDatatypes,
-        PropClassAttr.NAME: LangString,
-        PropClassAttr.DESCRIPTION: LangString,
-        PropClassAttr.ORDER: Xsd_decimal,
-        PropClassAttr.MIN_COUNT: Xsd_integer,
-        PropClassAttr.MAX_COUNT: Xsd_integer,
-        PropClassAttr.LANGUAGE_IN: LanguageIn,
-        PropClassAttr.UNIQUE_LANG: Xsd_boolean,
-        PropClassAttr.IN: XsdSet,
-        PropClassAttr.MIN_LENGTH: Xsd_integer,
-        PropClassAttr.MAX_LENGTH: Xsd_integer,
-        PropClassAttr.PATTERN: Xsd_string,
-        PropClassAttr.MIN_EXCLUSIVE: Numeric,
-        PropClassAttr.MIN_INCLUSIVE: Numeric,
-        PropClassAttr.MAX_EXCLUSIVE: Numeric,
-        PropClassAttr.MAX_INCLUSIVE: Numeric,
-        PropClassAttr.LESS_THAN: Iri,
-        PropClassAttr.LESS_THAN_OR_EQUALS: Iri
-    }
-
     def __init__(self, *,
                  con: IConnection,
+                 creator: Iri | str | None = None,
+                 created: Xsd_dateTime | datetime | str | None = None,
+                 contributor: Iri | None = None,
+                 modified: Xsd_dateTime | datetime | str | None = None,
                  project: Project | Iri | Xsd_NCName | str,
                  property_class_iri: Iri | str | None = None,
-                 subPropertyOf: Iri | str | None = None,
-                 toNodeIri: Iri | str | None = None,
-                 datatype: XsdDatatypes | str | None = None,
-                 name: LangString | str | None = None,
-                 description: LangString | str | None = None,
-                 order: Xsd_decimal | float | int | None = None,
-                 minCount: Xsd_integer | int | None = None,
-                 maxCount: Xsd_integer | int | None = None,
-                 languageIn: LanguageIn | None = None,
-                 uniqueLang: Xsd_boolean | bool | None = None,
-                 inSet: XsdSet | Iterable[Xsd] | Xsd | None = None,
-                 minLength: Xsd_integer | int | None = None,
-                 maxLength: Xsd_integer | int | None = None,
-                 pattern: Xsd_string | None = None,
-                 minExclusive: Xsd_integer | int | FloatingPoint | float | str | None = None,
-                 maxExclusive: Xsd_integer | int | FloatingPoint | float | str | None = None,
-                 minInclusive: Xsd_integer | int | FloatingPoint | float | str | None = None,
-                 maxInclusive: Xsd_integer | int | FloatingPoint | float | str | None = None,
-                 lessThan: Iri | str | None = None,
-                 lessThanOrEquals: Iri | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
-                 notify_data: PropClassAttr | None = None):
+                 notify_data: PropClassAttr | None = None,
+                 **kwargs):
         Model.__init__(self,
                        connection=con,
-                       creator=None,
-                       created=None,
-                       contributor=None,
-                       modified=None)
+                       creator=creator,
+                       created=created,
+                       contributor=contributor,
+                       modified=modified)
         Notify.__init__(self, notifier, notify_data)
 
         if isinstance(project, Project):
@@ -186,57 +99,7 @@ class PropertyClass(Model, Notify):
         self._graph = self._project.projectShortName
 
         self._property_class_iri = Iri(property_class_iri)
-        self._attributes: PropClassAttrContainer = {}
-        if subPropertyOf is not None:
-            self._attributes[PropClassAttr.SUBPROPERTY_OF] = Iri(subPropertyOf)
-        if toNodeIri is not None:
-            self._attributes[PropClassAttr.TO_NODE_IRI] = Iri(toNodeIri)
-        if datatype is not None:
-            if isinstance(datatype, XsdDatatypes):
-                self._attributes[PropClassAttr.DATATYPE] = datatype
-            else:
-                try:
-                    self._attributes[PropClassAttr.DATATYPE] = XsdDatatypes(datatype)
-                except ValueError as err:
-                    raise OldapErrorValue(str(err))
-        if name is not None:
-            self._attributes[PropClassAttr.NAME] = name if isinstance(name, LangString) else LangString(name)
-            self._attributes[PropClassAttr.NAME].set_notifier(self.notifier, PropClassAttr.NAME)
-        if description is not None:
-            self._attributes[PropClassAttr.DESCRIPTION] = description if isinstance(description, LangString) else LangString(description)
-            self._attributes[PropClassAttr.DESCRIPTION].set_notifier(self.notifier, PropClassAttr.DESCRIPTION)
-        if order is not None:
-            self._attributes[PropClassAttr.ORDER] = Xsd_decimal(order)
-        if minCount is not None:
-            self._attributes[PropClassAttr.MIN_COUNT] = Xsd_integer(minCount)
-        if maxCount is not None:
-            self._attributes[PropClassAttr.MAX_COUNT] = Xsd_integer(maxCount)
-        if languageIn is not None:
-            self._attributes[PropClassAttr.LANGUAGE_IN] = LanguageIn(languageIn)
-            self._attributes[PropClassAttr.LANGUAGE_IN].set_notifier(self.notifier, PropClassAttr.LANGUAGE_IN)
-        if uniqueLang is not None:
-            self._attributes[PropClassAttr.UNIQUE_LANG] = Xsd_boolean(uniqueLang)
-        if inSet is not None:
-            self._attributes[PropClassAttr.IN] = XsdSet(inSet)
-            self._attributes[PropClassAttr.IN].set_notifier(self.notifier, PropClassAttr.IN)
-        if minLength is not None:
-            self._attributes[PropClassAttr.MIN_LENGTH] = Xsd_integer(minLength)
-        if maxLength is not None:
-            self._attributes[PropClassAttr.MAX_LENGTH] = Xsd_integer(maxLength)
-        if pattern is not None:
-            self._attributes[PropClassAttr.PATTERN] = Xsd_string(pattern)
-        if minExclusive is not None:
-            self._attributes[PropClassAttr.MIN_EXCLUSIVE] = Numeric(minExclusive)
-        if maxExclusive is not None:
-            self._attributes[PropClassAttr.MAX_EXCLUSIVE] = Numeric(maxExclusive)
-        if minInclusive is not None:
-            self._attributes[PropClassAttr.MIN_INCLUSIVE] = Numeric(minInclusive)
-        if maxInclusive is not None:
-            self._attributes[PropClassAttr.MAX_INCLUSIVE] = Numeric(maxInclusive)
-        if lessThan is not None:
-            self._attributes[PropClassAttr.LESS_THAN] = Iri(lessThan)
-        if lessThanOrEquals is not None:
-            self._attributes[PropClassAttr.LESS_THAN_OR_EQUALS] = Iri(lessThanOrEquals)
+        self.set_attributes(kwargs, PropClassAttr)
 
         #
         # Consistency checks
@@ -246,85 +109,103 @@ class PropertyClass(Model, Notify):
                 self._attributes[PropClassAttr.DATATYPE] = XsdDatatypes.langString
             elif self._attributes[PropClassAttr.DATATYPE] != XsdDatatypes.langString:
                 raise OldapErrorValue(f'Using restriction LANGUAGE_IN requires DATATYPE "rdf:langString", not "{self._attributes[PropClassAttr.DATATYPE].value}"')
-        if self._attributes.get(PropClassAttr.DATATYPE) is not None and self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
-            raise OldapErrorInconsistency(f'It\'s not possible to use both DATATYPE="{self._attributes[PropClassAttr.DATATYPE]}" and TO_NODE_IRI={self._attributes[PropClassAttr.TO_NODE_IRI]} restrictions.')
+        if self._attributes.get(PropClassAttr.DATATYPE) is not None and self._attributes.get(PropClassAttr.CLASS) is not None:
+            raise OldapErrorInconsistency(f'It\'s not possible to use both DATATYPE="{self._attributes[PropClassAttr.DATATYPE]}" and CLASS={self._attributes[PropClassAttr.CLASS]} restrictions.')
 
         # setting property type for OWL which distinguished between Data- and Object-properties
-        if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
-            self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
+        if self._attributes.get(PropClassAttr.CLASS) is not None:
+            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
             if self._attributes.get(PropClassAttr.DATATYPE) is not None:
                 raise OldapError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
         else:
-            self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
 
         #
         # set the class properties
         #
         for attr in PropClassAttr:
-            prefix, name = attr.value.split(':')
-            if name == 'type':
-                name = 'propertyType'
-            elif name == 'class':
-                name = 'toNodeIri'
-            elif name == 'in':
+            name = attr.value.fragment
+            if name == 'in':
                 name = 'inSet'
+            elif name == 'class':
+                name = 'toClass'
             setattr(PropertyClass, name, property(
-                partial(PropertyClass.__get_value, attr=attr),
-                partial(PropertyClass.__set_value, attr=attr),
-                partial(PropertyClass.__del_value, attr=attr)))
+                partial(PropertyClass._get_value, attr=attr),
+                partial(PropertyClass._set_value, attr=attr),
+                partial(PropertyClass._del_value, attr=attr)))
 
-        self._changeset = {}  # initialize changeset to empty set
         self._test_in_use = False
         self._internal = None
         self._force_external = False
         self.__version = SemanticVersion()
         self.__from_triplestore = False
 
-    def __get_value(self: Self, attr: PropClassAttr) -> PropTypes | None:
-        return self._attributes.get(attr)
+    def check_consistency(self, attr: PropClassAttr, value: Any) -> None:
+        if attr == PropClassAttr.CLASS:
+            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+                self._changeset[PropClassAttr.DATATYPE] = AttributeChange(self._attributes[PropClassAttr.DATATYPE], Action.DELETE)
+                del self._attributes[PropClassAttr.DATATYPE]
+            if self._attributes.get(PropClassAttr.CLASS) is not None:
+                self._changeset[PropClassAttr.CLASS] = AttributeChange(self._attributes[PropClassAttr.CLASS], Action.REPLACE)
+            else:
+                self._changeset[PropClassAttr.CLASS] = AttributeChange(None, Action.CREATE)
+            self._attributes[PropClassAttr.CLASS] = value
+        elif attr == PropClassAttr.DATATYPE:
+            if self._attributes.get(PropClassAttr.CLASS) is not None:
+                self._changeset[PropClassAttr.CLASS] = AttributeChange(self._attributes[PropClassAttr.CLASS], Action.DELETE)
+                del self._attributes[PropClassAttr.CLASS]
+            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+                self._changeset[PropClassAttr.DATATYPE] = AttributeChange(self._attributes[PropClassAttr.DATATYPE], Action.REPLACE)
+            else:
+                self._changeset[PropClassAttr.DATATYPE] = AttributeChange(None, Action.CREATE)
+            self._attributes[PropClassAttr.DATATYPE] = value
 
-    def __set_value(self: Self, value: PropTypes, attr: PropClassAttr) -> None:
-        self.__change_setter(attr, value)
+    # def __get_value(self: Self, attr: PropClassAttr) -> PropTypes | None:
+    #     return self._attributes.get(attr)
+    #
+    # def __set_value(self: Self, value: PropTypes, attr: PropClassAttr) -> None:
+    #     self.__change_setter(attr, value)
+    #
+    # def __del_value(self: Self, attr: PropClassAttr) -> None:
+    #     if self._attributes.get(attr) is not None:
+    #         self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.DELETE, True)
+    #         del self._attributes[attr]
+    #         self.notify()
 
-    def __del_value(self: Self, attr: PropClassAttr) -> None:
-        if self._attributes.get(attr) is not None:
-            self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.DELETE, True)
-            del self._attributes[attr]
-            self.notify()
-
-    def __change_setter(self: Self, attr: PropClassAttr, value: PropTypes) -> None:
+    def _change_setter(self: Self, attr: PropClassAttr, value: PropTypes) -> None:
         if not isinstance(attr, PropClassAttr):
             raise OldapError(f'Unsupported prop {attr}')
         if self._attributes.get(attr) == value:
             return
+        super()._change_setter(attr, value)
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, attr)
 
-        if attr == PropClassAttr.TO_NODE_IRI:
-            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
-                self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(self._attributes[PropClassAttr.DATATYPE], Action.DELETE, True)
-                del self._attributes[PropClassAttr.DATATYPE]
-            if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
-                self._changeset[PropClassAttr.TO_NODE_IRI] = PropClassAttrChange(self._attributes[PropClassAttr.TO_NODE_IRI], Action.REPLACE, True)
-            else:
-                self._changeset[PropClassAttr.TO_NODE_IRI] = PropClassAttrChange(None, Action.CREATE, True)
-            self._attributes[PropClassAttr.TO_NODE_IRI] = value
-        elif attr == PropClassAttr.DATATYPE:
-            if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
-                self._changeset[PropClassAttr.TO_NODE_IRI] = PropClassAttrChange(self._attributes[PropClassAttr.TO_NODE_IRI], Action.DELETE, True)
-                del self._attributes[PropClassAttr.TO_NODE_IRI]
-            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
-                self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(self._attributes[PropClassAttr.DATATYPE], Action.REPLACE, True)
-            else:
-                self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(None, Action.CREATE, True)
-            self._attributes[PropClassAttr.DATATYPE] = value
-        else:
-            if self._changeset.get(attr) is None:
-                if self._attributes.get(attr) is not None:
-                    self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.REPLACE, True)
-                else:
-                    self._changeset[attr] = PropClassAttrChange(None, Action.CREATE, True)
-            self._attributes[attr] = self.__datatypes[attr](value)
+        # if attr == PropClassAttr.CLASS:
+        #     if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+        #         self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(self._attributes[PropClassAttr.DATATYPE], Action.DELETE, True)
+        #         del self._attributes[PropClassAttr.DATATYPE]
+        #     if self._attributes.get(PropClassAttr.CLASS) is not None:
+        #         self._changeset[PropClassAttr.CLASS] = PropClassAttrChange(self._attributes[PropClassAttr.CLASS], Action.REPLACE, True)
+        #     else:
+        #         self._changeset[PropClassAttr.CLASS] = PropClassAttrChange(None, Action.CREATE, True)
+        #     self._attributes[PropClassAttr.CLASS] = value
+        # elif attr == PropClassAttr.DATATYPE:
+        #     if self._attributes.get(PropClassAttr.CLASS) is not None:
+        #         self._changeset[PropClassAttr.CLASS] = PropClassAttrChange(self._attributes[PropClassAttr.CLASS], Action.DELETE, True)
+        #         del self._attributes[PropClassAttr.CLASS]
+        #     if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+        #         self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(self._attributes[PropClassAttr.DATATYPE], Action.REPLACE, True)
+        #     else:
+        #         self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(None, Action.CREATE, True)
+        #     self._attributes[PropClassAttr.DATATYPE] = value
+        # else:
+        #     if self._changeset.get(attr) is None:
+        #         if self._attributes.get(attr) is not None:
+        #             self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.REPLACE, True)
+        #         else:
+        #             self._changeset[attr] = PropClassAttrChange(None, Action.CREATE, True)
+        #     self._attributes[attr] = self.__datatypes[attr](value)
         self.notify()
 
     def __len__(self) -> int:
@@ -336,20 +217,20 @@ class PropertyClass(Model, Notify):
             propstr += f' {attr.value}: {value};'
         return propstr
 
-    def __getitem__(self, attr: PropClassAttr) -> PropTypes:
-        return self._attributes[attr]
-
-    def get(self, attr: PropClassAttr) -> PropTypes | None:
-        return self._attributes.get(attr)
-
-    def __setitem__(self, attr: PropClassAttr, value: PropTypes) -> None:
-        self.__change_setter(attr, value)
-
-    def __delitem__(self, attr: PropClassAttr) -> None:
-        if self._attributes.get(attr) is not None:
-            self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.DELETE, True)
-            del self._attributes[attr]
-            self.notify()
+    # def __getitem__(self, attr: PropClassAttr) -> PropTypes:
+    #     return self._attributes[attr]
+    #
+    # def get(self, attr: PropClassAttr) -> PropTypes | None:
+    #     return self._attributes.get(attr)
+    #
+    # def __setitem__(self, attr: PropClassAttr, value: PropTypes) -> None:
+    #     self.__change_setter(attr, value)
+    #
+    # def __delitem__(self, attr: PropClassAttr) -> None:
+    #     if self._attributes.get(attr) is not None:
+    #         self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.DELETE, True)
+    #         del self._attributes[attr]
+    #         self.notify()
 
     @property
     def property_class_iri(self) -> Iri:
@@ -360,18 +241,11 @@ class PropertyClass(Model, Notify):
         return self.__version
 
     @property
-    def changeset(self) -> dict[PropClassAttr, PropClassAttrChange]:
-        return self._changeset
-
-    @property
     def internal(self) -> Iri | None:
         return self._internal
 
     def force_external(self):
         self._force_external = True
-
-    def changeset_clear(self):
-        self._changeset = {}
 
     @property
     def from_triplestore(self) -> bool:
@@ -402,20 +276,15 @@ class PropertyClass(Model, Notify):
                     self._attributes[attr] = self._changeset[attr].old_value
                 del self._changeset[attr]
 
-    def __changeset_clear(self) -> None:
-        for attr, change in self._changeset.items():
-            if change.action == Action.MODIFY:
-                self._attributes[attr].changeset_clear()
-        self._changeset = {}
 
     def notifier(self, attr: PropClassAttr) -> None:
-        if self.__datatypes[attr] in [XsdSet, LanguageIn]:
+        if attr.datatype in [XsdSet, LanguageIn]:
             # we can *not* modify sets, we have to replace them if an item is added or discarded
             if self._changeset.get(attr) is None:
                 tmp = deepcopy(self._attributes[attr])
-                self._changeset[attr] = PropClassAttrChange(tmp, Action.REPLACE, True)
+                self._changeset[attr] = AttributeChange(tmp, Action.REPLACE)
         else:
-            self._changeset[attr] = PropClassAttrChange(None, Action.MODIFY, True)
+            self._changeset[attr] = AttributeChange(None, Action.MODIFY)
         self.notify()
 
     @property
@@ -494,7 +363,7 @@ class PropertyClass(Model, Notify):
         #
         # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
         #
-        propkeys = {Iri(x.value, validate=False) for x in PropClassAttr}
+        propkeys = {Iri(x.value) for x in PropClassAttr}
         for key, val in attributes.items():
             if key == 'rdf:type':
                 if val != 'sh:PropertyShape':
@@ -533,20 +402,20 @@ class PropertyClass(Model, Notify):
             elif key == 'sh:group':
                 pass  # TODO: Process property group correctly.... (at Moment only oldaplib:SystemPropGroup)
             elif key in propkeys:
-                attr = PropClassAttr(key)
-                if self.__datatypes[attr] == Numeric:
+                attr = PropClassAttr.from_value(key.as_qname)
+                if attr.datatype == Numeric:
                     if not isinstance(val, (Xsd_integer, Xsd_float)):
                         raise OldapErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
                 else:
-                    self._attributes[attr] = self.__datatypes[attr](val)
+                    self._attributes[attr] = attr.datatype(val)
 
-        if self._attributes.get(PropClassAttr.TO_NODE_IRI) is not None:
-            self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
+        if self._attributes.get(PropClassAttr.CLASS) is not None:
+            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
             dt = self._attributes.get(PropClassAttr.DATATYPE)
             if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
                 raise OldapError(f'Datatype "{dt}" not valid for OwlObjectProperty')
         else:
-            self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
         for attr, value in self._attributes.items():
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
@@ -572,9 +441,9 @@ class PropertyClass(Model, Notify):
             match attr:
                 case 'rdf:type':
                     if obj == 'owl:DatatypeProperty':
-                        self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlDataProperty
+                        self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
                     elif obj == 'owl:ObjectProperty':
-                        self._attributes[PropClassAttr.PROPERTY_TYPE] = OwlPropertyType.OwlObjectProperty
+                        self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
                 case 'owl:subPropertyOf':
                     self._attributes[PropClassAttr.SUBPROPERTY_OF] = obj
                 case 'rdfs:range':
@@ -601,18 +470,18 @@ class PropertyClass(Model, Notify):
         #
         # Consistency checks
         #
-        if self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
+        if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlDataProperty:
             if not datatype:
                 raise OldapError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
             if datatype != self._attributes.get(PropClassAttr.DATATYPE).value:
                 raise OldapError(
                     f'Property "{self._property_class_iri}" has inconsistent datatype definitions: OWL: "{datatype}" vs. SHACL: "{self._attributes[PropClassAttr.DATATYPE].value}"')
-        if self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
+        if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlObjectProperty:
             if not to_node_iri:
                 raise OldapError(f'OwlObjectProperty "{self._property_class_iri}" has no rdfs:range resource class defined!')
-            if to_node_iri != self._attributes.get(PropClassAttr.TO_NODE_IRI):
+            if to_node_iri != self._attributes.get(PropClassAttr.CLASS):
                 raise OldapError(
-                    f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropClassAttr.TO_NODE_IRI)}".')
+                    f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropClassAttr.CLASS)}".')
 
     @classmethod
     def read(cls, con: IConnection,
@@ -683,7 +552,7 @@ class PropertyClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         for prop, value in self._attributes.items():
-            if prop == PropClassAttr.PROPERTY_TYPE:
+            if prop == PropClassAttr.TYPE:
                 continue
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.toRdf}'
             # if prop != PropClassAttr.RESTRICTIONS:
@@ -711,15 +580,15 @@ class PropertyClass(Model, Notify):
 
     def create_owl_part1(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} rdf:type {self._attributes[PropClassAttr.PROPERTY_TYPE].value}'
+        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} rdf:type {self._attributes[PropClassAttr.TYPE].value}'
         if self._attributes.get(PropClassAttr.SUBPROPERTY_OF):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropClassAttr.SUBPROPERTY_OF].toRdf}'
         if self._internal:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal.toRdf}'
-        if self._attributes.get(PropClassAttr.PROPERTY_TYPE) == OwlPropertyType.OwlDataProperty:
+        if self._attributes.get(PropClassAttr.TYPE) == OwlPropertyType.OwlDataProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.DATATYPE].value}'
-        elif self._attributes.get(PropClassAttr.PROPERTY_TYPE) == OwlPropertyType.OwlObjectProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.TO_NODE_IRI].toRdf}'
+        elif self._attributes.get(PropClassAttr.TYPE) == OwlPropertyType.OwlObjectProperty:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.CLASS].toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
@@ -746,10 +615,10 @@ class PropertyClass(Model, Notify):
         # (NOTE: owl:onClass and owl:onDatatype can be used only in a restriction and are "local" to the use
         # of the property within the given resource. However, rdfs:range is "global" for all use of this property!
         #
-        if self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlDataProperty:
+        if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlDataProperty:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDatatype {self._attributes[PropClassAttr.DATATYPE].value}'
-        elif self._attributes[PropClassAttr.PROPERTY_TYPE] == OwlPropertyType.OwlObjectProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._attributes[PropClassAttr.TO_NODE_IRI]}'
+        elif self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlObjectProperty:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._attributes[PropClassAttr.CLASS]}'
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
 
@@ -843,7 +712,7 @@ class PropertyClass(Model, Notify):
         for prop, change in self._changeset.items():
             sparql = f'#\n# SHACL\n# Process "{prop.value}" with Action "{change.action.value}"\n#\n'
             if change.action == Action.MODIFY:
-                if PropertyClass.__datatypes[prop] == LangString:
+                if prop.datatype == LangString:
                     sparql += self._attributes[prop].update_shacl(graph=self._graph,
                                                                   owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
@@ -851,7 +720,7 @@ class PropertyClass(Model, Notify):
                                                                   modified=self._modified,
                                                                   indent=indent, indent_inc=indent_inc)
                 else:
-                    raise OldapError(f'SHACL property {prop.value} should not have update action "MODIFY" ({PropertyClass.__datatypes[prop]}).')
+                    raise OldapError(f'SHACL property {prop.value} should not have update action "MODIFY" ({prop.datatype}).')
                 sparql_list.append(sparql)
             else:
                 if change.action == Action.DELETE:
@@ -866,7 +735,7 @@ class PropertyClass(Model, Notify):
                 else:
                     raise OldapError(f'An unexpected Action occured: {change.action} for {prop.value}.')
                 ele = RdfModifyItem(prop.value, old_value, new_value)
-                if self.__datatypes[prop] in {XsdSet, LanguageIn}:
+                if prop.datatype in {XsdSet, LanguageIn}:
                     sparql += RdfModifyProp.replace_rdfset(action=change.action,
                                                            graph=self._graph,
                                                            owlclass_iri=owlclass_iri,
@@ -912,10 +781,10 @@ class PropertyClass(Model, Notify):
                    indent: int = 0, indent_inc: int = 4) -> str:
         owl_propclass_attributes = {PropClassAttr.SUBPROPERTY_OF,  # should be in OWL ontology
                                     PropClassAttr.DATATYPE,  # used for rdfs:range in OWL ontology
-                                    PropClassAttr.TO_NODE_IRI}  # used for rdfs:range in OWL ontology
+                                    PropClassAttr.CLASS}  # used for rdfs:range in OWL ontology
         owl_prop = {PropClassAttr.SUBPROPERTY_OF: PropClassAttr.SUBPROPERTY_OF.value,
                     PropClassAttr.DATATYPE: "rdfs:range",
-                    PropClassAttr.TO_NODE_IRI: "rdfs:range"}
+                    PropClassAttr.CLASS: "rdfs:range"}
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
@@ -933,9 +802,9 @@ class PropertyClass(Model, Notify):
                                              indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
 
-            if prop == PropClassAttr.DATATYPE or prop == PropClassAttr.TO_NODE_IRI:
+            if prop == PropClassAttr.DATATYPE or prop == PropClassAttr.CLASS:
                 ele: RdfModifyItem
-                if self._attributes.get(PropClassAttr.TO_NODE_IRI):
+                if self._attributes.get(PropClassAttr.CLASS):
                     ele = RdfModifyItem('rdf:type', 'owl:DatatypeProperty', 'owl:ObjectProperty')
                 else:
                     ele = RdfModifyItem('rdf:type', 'owl:ObjectProperty', 'owl:DatatypeProperty')

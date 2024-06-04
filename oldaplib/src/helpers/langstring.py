@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Callable, Self
 
 from pystrict import strict
 
+from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.enums.action import Action
 from oldaplib.src.xsd.iri import Iri
@@ -18,7 +19,6 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue
-from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
@@ -74,8 +74,8 @@ class LangString(Notify):
 
     def __init__(self, *args: str | Xsd_string | List[str] | Dict[Language | str, str] | Self | None,
                  langstring: str | Xsd_string | List[str] | Dict[Language | str, str] | Self | None = None,
-                 notifier: Optional[Callable[[PropClassAttr], None]] = None,
-                 notify_data: Optional[PropClassAttr] = None):
+                 notifier: Optional[Callable[[AttributeClass], None]] = None,
+                 notify_data: Optional[AttributeClass] = None):
         """
         Implements language dependent strings.
 
@@ -527,7 +527,7 @@ class LangString(Notify):
                      graph: Xsd_NCName,
                      owlclass_iri: Iri | None = None,
                      prop_iri: Iri,
-                     attr: PropClassAttr,
+                     attr: AttributeClass,
                      modified: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         """
@@ -590,7 +590,7 @@ class LangString(Notify):
                      graph: Xsd_NCName,
                      owlclass_iri: Iri | None = None,
                      prop_iri: Iri,
-                     attr: PropClassAttr,
+                     attr: AttributeClass,
                      modified: datetime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         # TODO: Include into unit tests!
