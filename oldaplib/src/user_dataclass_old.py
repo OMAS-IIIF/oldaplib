@@ -70,7 +70,7 @@ class UserAttrChange:
 
 
 @serializer
-class UserDataclass:
+class UserDataclassOld:
     """
     The UserDataclass class implements the main handling of the user data of an oldap user. The
     UserDataclass class is the base class for the User class which implements the CRUD operations
@@ -191,10 +191,10 @@ class UserDataclass:
         #
         for field in UserAttr:
             prefix, name = field.value.split(':')
-            setattr(UserDataclass, name, property(
-                partial(UserDataclass.__get_value, field=field),
-                partial(UserDataclass.__set_value, field=field),
-                partial(UserDataclass.__del_value, field=field)))
+            setattr(UserDataclassOld, name, property(
+                partial(UserDataclassOld.__get_value, field=field),
+                partial(UserDataclassOld.__set_value, field=field),
+                partial(UserDataclassOld.__del_value, field=field)))
         self.clear_changeset()
     #
     # these are the methods for the getter, setter and deleter
@@ -598,8 +598,8 @@ class UserDataclass:
 
 
 if __name__ == "__main__":
-    gaga = UserDataclass()
-    user_dataclass = UserDataclass(
+    gaga = UserDataclassOld()
+    user_dataclass = UserDataclassOld(
         userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
         userId=Xsd_NCName("edison"),
         familyName="Edison",

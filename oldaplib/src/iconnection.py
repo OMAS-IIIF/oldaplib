@@ -1,33 +1,30 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Any, Dict
 
-from pystrict import strict
 
 from oldaplib.src.helpers.context import DEFAULT_CONTEXT
+from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.iri import Iri
-from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
-from oldaplib.src.user_dataclass import UserDataclass
 
 
-#@strict
 class IConnection(ABC):
     _context_name: str
-    _userdata: UserDataclass
+    _userdata: UserData | None
     _token: str | None
     _transaction_url: Optional[str]
 
     @abstractmethod
     def __init__(self, context_name: Optional[str] = DEFAULT_CONTEXT):
         self._context_name = context_name
-        self._userdata = UserDataclass()
+        self._userdata = None
         self._token = None
         self._transaction_url = None
 
     @property
-    def userdata(self) -> UserDataclass:
+    def userdata(self) -> UserData | None:
         return self._userdata
 
     @property

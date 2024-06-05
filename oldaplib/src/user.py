@@ -161,11 +161,11 @@ from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.helpers.tools import str2qname_anyiri, lprint
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
-from oldaplib.src.user_dataclass import UserDataclass
+from oldaplib.src.user_dataclass_old import UserDataclassOld
 
 
 # @serializer
-class User(Model, UserDataclass):
+class User(Model, UserDataclassOld):
     """
     The OLDAP user class is based on the [UserDataclass](/python_docstrings/userdataclass#UserDataclass). It implements together with the UserDataclass
     all the methods ot manage OLDAP users. I also uses the [InProject](/python_docstrings/in_project) class.
@@ -222,15 +222,15 @@ class User(Model, UserDataclass):
                        created=created,
                        contributor=contributor,
                        modified=modified)
-        UserDataclass.__init__(self,
-                               userIri=userIri,
-                               userId=userId,
-                               familyName=familyName,
-                               givenName=givenName,
-                               credentials=credentials,
-                               isActive=isActive,
-                               inProject=inProject,
-                               hasPermissions=hasPermissions)
+        UserDataclassOld.__init__(self,
+                                  userIri=userIri,
+                                  userId=userId,
+                                  familyName=familyName,
+                                  givenName=givenName,
+                                  credentials=credentials,
+                                  isActive=isActive,
+                                  inProject=inProject,
+                                  hasPermissions=hasPermissions)
 
     def check_for_permissions(self) -> (bool, str):
         #
@@ -425,7 +425,7 @@ class User(Model, UserDataclass):
             userId = Xsd_NCName(userId)
 
         context = Context(name=con.context_name)
-        jsonobj = con.query(UserDataclass.sparql_query(context, userId))
+        jsonobj = con.query(UserDataclassOld.sparql_query(context, userId))
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
             raise OldapErrorNotFound(f'User "{userId}" not found.')

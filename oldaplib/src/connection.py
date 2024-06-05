@@ -13,6 +13,7 @@ from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
 from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission
@@ -21,7 +22,6 @@ from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
-from oldaplib.src.user_dataclass import UserDataclass
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
 #
@@ -61,7 +61,6 @@ jwt_format = {
 token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIkMmIkMTIkaldDSloucWRYRTlNU0NQZFVjMHk0Ljlzd1dZSmNnTFpuMGVQdFJUdS83VThxSC9PWFhrQjIiLCJleHAiOiIyMDI0LTExLTA0VDEyOjAwOjAwKzAwOjAwIiwiaWF0IjoiMjAyNC0wMS0xOVQyMzo0MTozMS45NTI5MTkiLCJpc3MiOiJodHRwOi8vb2xkYXAub3JnIn0.Vsc2qamfyeTW6Xz5l2Wca-mFnA5PcLuOoWPVEo__4Z4"
 
 
-#@strict
 class Connection(IConnection):
     """
     Class that implements the connection to an external triple store for oldap.
@@ -100,13 +99,10 @@ class Connection(IConnection):
     _server: str
     _repo: str
     _userId: str
-    #_userdata: UserDataclass  ## IConnection
-    #_context_name: str  ## IConnection
     _store: SPARQLUpdateStore
     _query_url: str
     _update_url: str
     _transaction_url: Optional[str]
-    #_token: str | None
     jwtkey: str = "You have to change this!!! +D&RWG+"
     _switcher = {
         SparqlResultFormat.XML: lambda a: a.text,
@@ -154,7 +150,7 @@ class Connection(IConnection):
             userId = Xsd_NCName(userId)
         if userId is None or credentials is None:
             raise OldapError("Wrong credentials")
-        sparql = UserDataclass.sparql_query(context=context, userId=userId)
+        sparql = UserData.sparql_query(context=context, userId=userId)
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
@@ -169,8 +165,7 @@ class Connection(IConnection):
             raise OldapError(res.status_code, res.text)
         res = QueryProcessor(context=context, query_result=jsonobj)
 
-        self._userdata = UserDataclass()
-        self._userdata._create_from_queryresult(queryresult=res)
+        self._userdata = UserData.from_query(res)
         if not self._userdata.isActive:
             raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
         hashed = str(self._userdata.credentials).encode('utf-8')
