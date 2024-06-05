@@ -128,6 +128,9 @@ class InProjectClass:
             s += f'{k} : {l}\n'
         return s
 
+    def set_on_change(self, func: Callable[[Iri, ObservableSet[AdminPermission] | None], None]):
+        self.__on_change = func
+
     def copy(self) -> Self:
         data_copy: dict[Iri, set[AdminPermission | str] | ObservableSet[AdminPermission]] = {}
         tmp = self.__on_change

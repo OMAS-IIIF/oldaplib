@@ -39,7 +39,7 @@ from typing import Dict, Self, Set, Tuple, Any
 
 import bcrypt
 
-from oldaplib.src.enums.userdataclassattr import UserAttr
+from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.xsd.iri import Iri

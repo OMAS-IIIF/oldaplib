@@ -145,7 +145,7 @@ import uuid
 from datetime import datetime
 from typing import List, Self, Dict, Set, Optional
 
-from oldaplib.src.enums.userdataclassattr import UserAttr
+from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -165,7 +165,7 @@ from oldaplib.src.user_dataclass_old import UserDataclassOld
 
 
 # @serializer
-class User(Model, UserDataclassOld):
+class User(Model):
     """
     The OLDAP user class is based on the [UserDataclass](/python_docstrings/userdataclass#UserDataclass). It implements together with the UserDataclass
     all the methods ot manage OLDAP users. I also uses the [InProject](/python_docstrings/in_project) class.
@@ -177,60 +177,23 @@ class User(Model, UserDataclassOld):
                  created: Xsd_dateTime | str | str | None = None,
                  contributor: Iri | str | None = None,
                  modified: Xsd_dateTime | str | None = None,
-                 userIri: Iri | str | None = None,
-                 userId: Xsd_NCName | str | None = None,
-                 familyName: Xsd_string | str | None = None,
-                 givenName: Xsd_string | str | None = None,
-                 credentials: Xsd_string | str | str | None = None,
-                 isActive: Xsd_boolean | bool | None = None,
-                 inProject: Dict[Iri, Set[AdminPermission]] | None = None,
-                 hasPermissions: Set[Iri] | None = None):
-        """
-        Constructor for the User class
-        :param con: IConnection instance
-        :type con: IConnection | None
-        :param creator: AnyIRI of the creator
-        :type creator: Xsd_anyURI | None
-        :param created: DateTime of the creation of the user
-        :type created: datetime | None
-        :param contributor: AnyIRI of the user that changed the given User instance
-        :type contributor: AnyIRI | None
-        :param modified: Modification of the User
-        :type modified: datetime
-        :param userIri: The IRI of the new user (e.g. the ORCID) If omitted, a unique urn: is created
-        :type userIri: AnyIRI | None
-        :param userId: The UserId that the user types in at login
-        :type userId: Xsd_NCName | None
-        :param familyName: The foaf:familyName of the User to be created
-        :type familyName: str
-        :param givenName: The foaf:givenName of the User to be created
-        :type givenName: str
-        :param credentials: The initial credentials (password) of the user to be created
-        :type credentials: str
-        :param isActive: True if the user is active, False otherwise
-        :type isActive: bool
-        :param inProject: Membership and admin permissions the user has in the given projects
-        :type inProject: InProjectType
-        :param hasPermissions: IConnection to permission sets
-        :type hasPermissions: PermissionSet
-        """
-        if userIri is None:
-            userIri = Iri()
-        Model.__init__(self,
-                       connection=con,
-                       creator=creator,
-                       created=created,
-                       contributor=contributor,
-                       modified=modified)
-        UserDataclassOld.__init__(self,
-                                  userIri=userIri,
-                                  userId=userId,
-                                  familyName=familyName,
-                                  givenName=givenName,
-                                  credentials=credentials,
-                                  isActive=isActive,
-                                  inProject=inProject,
-                                  hasPermissions=hasPermissions)
+                 **kwargs):
+        super().__init__(connection=con,
+                         created=created,
+                         creator=creator,
+                         modified=modified,
+                         contributor=contributor)
+
+        self.set_attributes(kwargs, UserAttr)
+        #
+        # Consistency checks
+        #
+        if not self._attributes.get(UserAttr.USER_IRI):
+            self._attributes[UserAttr.USER_IRI] = Iri()  # create URN as userIri
+        if self._attributes.get(UserAttr.IN_PROJECT):
+            self._attributes[UserAttr.IN_PROJECT].set_on_change(self.__inProject_cb)
+
+
 
     def check_for_permissions(self) -> (bool, str):
         #
