@@ -215,11 +215,6 @@ class User(Model):
                 partial(User._del_value, attr=attr)))
         self.clear_changeset()
 
-    # def check_consistency(self, attr: UserAttr, value: Any) -> None:
-    #     if attr == UserAttr.CREDENTIALS:
-    #         salt = bcrypt.gensalt()
-    #         self._attributes[UserAttr.CREDENTIALS] = Xsd_string(bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8'))
-
     def cleanup_setter(self, attr: UserAttr, value: Any):
         if attr == UserAttr.CREDENTIALS:
             salt = bcrypt.gensalt()
