@@ -96,7 +96,7 @@ class InProjectClass:
         except (KeyError, AttributeError) as err:
             raise OldapErrorKey(str(err), key)
 
-    def __setitem__(self, key: Iri | str, value: set[AdminPermission | str] | ObservableSet[AdminPermission]) -> None:
+    def __setitem__(self, key: Iri | str, value: set[AdminPermission | str] | ObservableSet[AdminPermission] | None) -> None:
         if not isinstance(key, Iri):
             key = Iri(key)
         if self.__data.get(key) is None:
@@ -105,7 +105,10 @@ class InProjectClass:
         else:
             if self.__on_change is not None:
                 self.__on_change(key, self.__data[key].copy())  ## Action.REPLACE Replace all the permission of the given connection to a project
-        self.__data[key] = self.__perms(key, value)
+        if value is None:
+            del self.__data[key]
+        else:
+            self.__data[key] = self.__perms(key, value)
 
     def __delitem__(self, key: Iri | str) -> None:
         if not isinstance(key, Iri):
@@ -128,7 +131,7 @@ class InProjectClass:
             s += f'{k} : {l}\n'
         return s
 
-    def set_on_change(self, func: Callable[[Iri, ObservableSet[AdminPermission] | None], None]):
+    def on_change(self, func: Callable[[Iri, ObservableSet[AdminPermission] | None], None]):
         self.__on_change = func
 
     def copy(self) -> Self:

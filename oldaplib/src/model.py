@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -62,6 +63,9 @@ class Model:
     def check_consistency(self, attr: AttributeClass, value: Any) -> None:
         pass
 
+    def cleanup_setter(self, attr: AttributeClass, value: Any) -> None:
+        pass
+
     def __str__(self) -> str:
         res = f'Creation: {self._created} by {self._creator}\n'
         res += f'Modified: {self._modified} by {self._contributor}\n'
@@ -110,6 +114,7 @@ class Model:
         del self._attributes[attr]
         if hasattr(self, "notify"):
             self.notify()
+        self.cleanup_setter(attr, None)
 
     def _change_setter(self, attr: AttributeClass, value: Any) -> None:
         if self._attributes.get(attr) == value:
@@ -123,10 +128,10 @@ class Model:
         else:
             if value is None:
                 if self._changeset.get(attr) is None:
-                    self._changeset[attr] = AttributeChange(self._attributes[attr], Action.DELETE)
+                    self._changeset[attr] = AttributeChange(deepcopy(self._attributes[attr]), Action.DELETE)
             else:
                 if self._changeset.get(attr) is None:
-                    self._changeset[attr] = AttributeChange(self._attributes[attr], Action.REPLACE)
+                    self._changeset[attr] = AttributeChange(deepcopy(self._attributes[attr]), Action.REPLACE)
         if value is None:
             del self._attributes[attr]
         else:
@@ -138,6 +143,7 @@ class Model:
                 self._attributes[attr].set_notifier(self.notifier, attr)
         if hasattr(self, "notify"):
             self.notify()
+        self.cleanup_setter(attr, value)
 
     @property
     def changeset(self) -> Dict[AttributeClass, AttributeChange]:

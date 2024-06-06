@@ -23,7 +23,7 @@ class ObservableSet(Set):
     called whenever the set changes.
     """
     __on_change: Callable[[Self, Any], None]
-    __on_change_data: Any
+    __on_change_data: Any | None
 
     def __init__(self,
                  setitems: Iterable | None = None,
@@ -167,7 +167,7 @@ class ObservableSet(Set):
     def asSet(self):
         return super().copy()
 
-    def on_change(self, func: Callable[[Self, Any], None], data: Any) -> None:
+    def on_change(self, func: Callable[[Self, Any], None], data: Any | None = None) -> None:
         self.__on_change = func
         self.__on_change_data = data
 

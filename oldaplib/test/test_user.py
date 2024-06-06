@@ -3,6 +3,7 @@ from pathlib import Path
 from time import sleep
 
 from oldaplib.src.connection import Connection
+from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.tools import str2qname_anyiri
 from oldaplib.src.xsd.iri import Iri
@@ -316,19 +317,6 @@ class TestUser(unittest.TestCase):
         self.assertEqual('Actor has no ADMIN_USERS permission for project oldap:HyperHamlet', str(ex.exception), )
 
     #  #unittest.skip('Work in progress')
-    def test_create_user_no_connection(self):
-        """Test that user creation will fail if we do not have the connection"""
-        user = User(userId=Xsd_NCName("brown"),
-                    familyName="Dock",
-                    givenName="Donald",
-                    credentials="Entenhausen@for&Ever",
-                    inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={Iri('oldap:GenericView')})
-        with self.assertRaises(OldapError) as ex:
-            user.create()
-        self.assertEqual(str(ex.exception), 'Cannot create: no connection')
-
-    #  #unittest.skip('Work in progress')
     def test_delete_user(self):
         """Test that user deletion does work"""
         user = User(con=self._connection,
@@ -531,10 +519,12 @@ class TestUser(unittest.TestCase):
                     familyName="Simpson",
                     givenName="Bart",
                     credentials="AtomicPower",
-                    inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
-                        AdminPermission.ADMIN_USERS,
-                        AdminPermission.ADMIN_RESOURCES,
-                        AdminPermission.ADMIN_CREATE},
+                    inProject={
+                        Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                            AdminPermission.ADMIN_USERS,
+                            AdminPermission.ADMIN_RESOURCES,
+                            AdminPermission.ADMIN_CREATE
+                        },
                         Iri('oldap:HyperHamlet'): {
                             AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
                         }

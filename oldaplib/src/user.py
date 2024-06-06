@@ -140,16 +140,20 @@ user3 = User.read(con=self._connection, userId="aedison")
 user3.delete()
 ```
 """
+from functools import partial
+from typing import List, Self, Optional, Any
 
-import uuid
-from datetime import datetime
-from typing import List, Self, Dict, Set, Optional
+import bcrypt
 
+from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.observable_set import ObservableSet
+from oldaplib.src.helpers.tools import lprint
+from oldaplib.src.in_project import InProjectClass
+from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -158,10 +162,8 @@ from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorAlreadyExists,
     OldapErrorValue, OldapErrorNoPermission
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.enums.permissions import AdminPermission
-from oldaplib.src.helpers.tools import str2qname_anyiri, lprint
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model
-from oldaplib.src.user_dataclass_old import UserDataclassOld
+from oldaplib.src.model import Model, AttributeChange
 
 
 # @serializer
@@ -172,7 +174,7 @@ class User(Model):
     """
 
     def __init__(self, *,
-                 con: IConnection | None = None,
+                 con: IConnection,
                  creator: Iri | str | None = None,
                  created: Xsd_dateTime | str | str | None = None,
                  contributor: Iri | str | None = None,
@@ -190,10 +192,48 @@ class User(Model):
         #
         if not self._attributes.get(UserAttr.USER_IRI):
             self._attributes[UserAttr.USER_IRI] = Iri()  # create URN as userIri
+
         if self._attributes.get(UserAttr.IN_PROJECT):
-            self._attributes[UserAttr.IN_PROJECT].set_on_change(self.__inProject_cb)
+            self._attributes[UserAttr.IN_PROJECT].on_change(self.__inProject_cb)
+        else:
+            self._attributes[UserAttr.IN_PROJECT] = InProjectClass(on_change=self.__inProject_cb)
 
+        if self._attributes.get(UserAttr.HAS_PERMISSIONS):
+            self._attributes[UserAttr.HAS_PERMISSIONS].on_change(self.__hasPermission_cb)
+        else:
+            self._attributes[UserAttr.HAS_PERMISSIONS] = ObservableSet(on_change=self.__hasPermission_cb)
 
+        if self._attributes.get(UserAttr.CREDENTIALS):
+            if not str(self._attributes[UserAttr.CREDENTIALS]).startswith(('$2a$', '$2b$', '$2y$')):
+                salt = bcrypt.gensalt()
+                self._attributes[UserAttr.CREDENTIALS] = Xsd_string(bcrypt.hashpw(str(self._attributes[UserAttr.CREDENTIALS]).encode('utf-8'), salt).decode('utf-8'))
+
+        for attr in UserAttr:
+            setattr(User, attr.value.fragment, property(
+                partial(User._get_value, attr=attr),
+                partial(User._set_value, attr=attr),
+                partial(User._del_value, attr=attr)))
+        self.clear_changeset()
+
+    # def check_consistency(self, attr: UserAttr, value: Any) -> None:
+    #     if attr == UserAttr.CREDENTIALS:
+    #         salt = bcrypt.gensalt()
+    #         self._attributes[UserAttr.CREDENTIALS] = Xsd_string(bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8'))
+
+    def cleanup_setter(self, attr: UserAttr, value: Any):
+        if attr == UserAttr.CREDENTIALS:
+            salt = bcrypt.gensalt()
+            self._attributes[UserAttr.CREDENTIALS] = Xsd_string(bcrypt.hashpw(str(value).encode('utf-8'), salt).decode('utf-8'))
+        if attr == UserAttr.IN_PROJECT:
+            if value is None:
+                self._attributes[UserAttr.IN_PROJECT] = InProjectClass(on_change=self.__inProject_cb)
+            else:
+                self._attributes[UserAttr.IN_PROJECT] = InProjectClass(value, on_change=self.__inProject_cb)
+        if attr == UserAttr.HAS_PERMISSIONS:
+            if value is None:
+                self._attributes[UserAttr.HAS_PERMISSIONS] = ObservableSet(on_change=self.__hasPermission_cb)
+            else:
+                self._attributes[UserAttr.HAS_PERMISSIONS] = ObservableSet(value, on_change=self.__hasPermission_cb)
 
     def check_for_permissions(self) -> (bool, str):
         #
@@ -208,7 +248,7 @@ class User(Model):
             #
             return True, "OK – IS ROOT"
         else:
-            if len(self.inProject) == 0:
+            if not self.inProject:
                 return False, f'Actor has no ADMIN_USERS permission for user {self.userId}.'
             allowed: list[Iri] = []
             for proj in self.inProject.keys():
@@ -218,6 +258,40 @@ class User(Model):
                     if AdminPermission.ADMIN_USERS not in actor.inProject.get(proj):
                         return False, f'Actor has no ADMIN_USERS permission for project {proj}'
             return True, "OK..."
+
+    #
+    # Callbacks for the `ObservableSet`class. This is used whenever the `hasPermission`or
+    # `inProject`properties are being modified
+    #
+    def __hasPermission_cb(self, oldset: ObservableSet, data: Any = None) -> None:
+        if self._changeset.get(UserAttr.HAS_PERMISSIONS) is None:
+            self._changeset[UserAttr.HAS_PERMISSIONS] = AttributeChange(oldset, Action.MODIFY)
+
+    def __inProject_cb(self, key: Iri, old: ObservableSet[AdminPermission] | None = None) -> None:
+        if self._changeset.get(UserAttr.IN_PROJECT) is None:
+            old = None
+            if self._attributes.get(UserAttr.IN_PROJECT) is not None:
+                old = self._attributes[UserAttr.IN_PROJECT].copy()
+            self._changeset[UserAttr.IN_PROJECT] = AttributeChange(old, Action.MODIFY)
+
+    def add_project_permission(self, project: Iri | str, permission: AdminPermission | None) -> None:
+        if self._attributes[UserAttr.IN_PROJECT].get(project) is None:
+            if self._changeset.get(UserAttr.IN_PROJECT) is None:
+                self._changeset[UserAttr.IN_PROJECT] = AttributeChange(self._attributes[UserAttr.IN_PROJECT], Action.CREATE)
+            self._attributes[UserAttr.IN_PROJECT][project] = ObservableSet({permission})
+        else:
+            if self._changeset.get(UserAttr.IN_PROJECT) is None:
+                self._changeset[UserAttr.IN_PROJECT] = AttributeChange(self._attributes[UserAttr.IN_PROJECT], Action.MODIFY)
+            self._attributes[UserAttr.IN_PROJECT][project].add(permission)
+
+    def remove_project_permission(self, project: Iri | str, permission: AdminPermission | None) -> None:
+        if not isinstance(project, Iri):
+            project = Iri(project)
+        if self._attributes[UserAttr.IN_PROJECT].get(project) is None:
+            raise OldapErrorValue(f"Project '{project}' does not exist")
+        if self._changeset.get(UserAttr.IN_PROJECT) is None:
+            self._changeset[UserAttr.IN_PROJECT] = AttributeChange(self._attributes[UserAttr.IN_PROJECT], Action.MODIFY)
+        self._attributes[UserAttr.IN_PROJECT][project].remove(permission)
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -260,29 +334,33 @@ class User(Model):
         }}
         """
 
-        projs = [x.toRdf for x in self.inProject.keys()]
-        projslist = ", ".join(projs)
-        proj_test = context.sparql_context
-        proj_test += f"""
-        SELECT ?project
-        FROM oldap:admin
-        WHERE {{
-            ?project a oldap:Project .
-            FILTER(?project IN ({projslist}))
-        }}
-        """
+        proj_test = None
+        if self.inProject:
+            projs = [x.toRdf for x in self.inProject.keys()]
+            projslist = ", ".join(projs)
+            proj_test = context.sparql_context
+            proj_test += f"""
+            SELECT ?project
+            FROM oldap:admin
+            WHERE {{
+                ?project a oldap:Project .
+                FILTER(?project IN ({projslist}))
+            }}
+            """
 
-        perms = [x.toRdf for x in self.hasPermissions]
-        perms = ", ".join(perms)
-        pset_test = context.sparql_context
-        pset_test += f"""
-        SELECT ?permissionset
-        FROM oldap:admin
-        WHERE {{
-            ?permissionset a oldap:PermissionSet .
-            FILTER(?permissionset IN ({perms}))
-        }}
-        """
+        pset_test = None
+        if self.hasPermissions:
+            perms = [x.toRdf for x in self.hasPermissions]
+            perms = ", ".join(perms)
+            pset_test = context.sparql_context
+            pset_test += f"""
+            SELECT ?permissionset
+            FROM oldap:admin
+            WHERE {{
+                ?permissionset a oldap:PermissionSet .
+                FILTER(?permissionset IN ({perms}))
+            }}
+            """
 
         timestamp = Xsd_dateTime.now()
         blank = ''
@@ -338,25 +416,27 @@ class User(Model):
             self._con.transaction_abort()
             raise OldapErrorAlreadyExists(f'A user with a user IRI "{self.userIri}" already exists')
 
-        try:
-            jsonobj = self._con.transaction_query(proj_test)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
-        res = QueryProcessor(context, jsonobj)
-        if len(res) != len(projs):
-            self._con.transaction_abort()
-            raise OldapErrorValue("One of the projects is not existing!")
+        if self.inProject:
+            try:
+                jsonobj = self._con.transaction_query(proj_test)
+            except OldapError:
+                self._con.transaction_abort()
+                raise
+            res = QueryProcessor(context, jsonobj)
+            if len(res) != len(projs):
+                self._con.transaction_abort()
+                raise OldapErrorValue("One of the projects is not existing!")
 
-        try:
-            jsonobj = self._con.transaction_query(pset_test)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
-        res = QueryProcessor(context, jsonobj)
-        if len(res) != len(self.hasPermissions):
-            self._con.transaction_abort()
-            raise OldapErrorValue("One of the permission sets is not existing!")
+        if self.hasPermissions:
+            try:
+                jsonobj = self._con.transaction_query(pset_test)
+            except OldapError:
+                self._con.transaction_abort()
+                raise
+            res = QueryProcessor(context, jsonobj)
+            if len(res) != len(self.hasPermissions):
+                self._con.transaction_abort()
+                raise OldapErrorValue("One of the permission sets is not existing!")
 
         try:
             self._con.transaction_update(sparql)
@@ -384,21 +464,28 @@ class User(Model):
         :return: Self
         :raises OldapErrorNotFound: Required user does ot exist
         """
-        if isinstance(userId, str):
+        if not isinstance(userId, Xsd_NCName):
             userId = Xsd_NCName(userId)
 
         context = Context(name=con.context_name)
-        jsonobj = con.query(UserDataclassOld.sparql_query(context, userId))
+        jsonobj = con.query(UserData.sparql_query(context, userId))
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
             raise OldapErrorNotFound(f'User "{userId}" not found.')
-        instance = cls(con=con)
-        metadata = instance._create_from_queryresult(res)
-        instance._creator = metadata['creator']
-        instance._created = metadata['created']
-        instance._contributor = metadata['contributor']
-        instance._modified = metadata['modified']
-        return instance
+        userdata = UserData.from_query(res)
+        return cls(con=con,
+                   creator=userdata.creator,
+                   created=userdata.created,
+                   contributor=userdata.contributor,
+                   modified=userdata.modified,
+                   userIri=userdata.userIri,
+                   userId=userdata.userId,
+                   familyName=userdata.familyName,
+                   givenName=userdata.givenName,
+                   credentials=userdata.credentials,
+                   isActive=userdata.isActive,
+                   inProject=userdata.inProject,
+                   hasPermissions=userdata.hasPermissions)
 
     @staticmethod
     def search(*, con: IConnection,
@@ -494,7 +581,7 @@ class User(Model):
         # TODO: use transaction for error handling
         self._con.update_query(sparql)
 
-    def update(self) -> None:
+    def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Update an existing user in the triple store. This method writes all changes that have made to the
         user instance to the database.
@@ -507,20 +594,138 @@ class User(Model):
             raise OldapError("Cannot create: no connection")
 
         result, message = self.check_for_permissions()
-        #
-        # Special case: The user should be able to change its own password!
-        #
-        actor = self._con.userdata
-        if actor.userIri == self.userIri and len(self.changeset) == 1 and self.changeset.get(UserAttr.CREDENTIALS):
-            result = True
         if not result:
-            raise OldapErrorNoPermission(message)
+            #
+            # Special case: The user should be able to change its own password!
+            #
+            actor = self._con.userdata
+            if actor.userIri == self.userIri and len(self.changeset) == 1 and self.changeset.get(UserAttr.CREDENTIALS):
+                result = True
+            if not result:
+                raise OldapErrorNoPermission(message)
 
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
+
+        ptest = None
+        ptest_len = 0
+        blank = ''
+        sparql_list = []
+        for field, change in self._changeset.items():
+            if field == UserAttr.HAS_PERMISSIONS or field == UserAttr.IN_PROJECT:
+                continue
+            sparql = f'{blank:{indent * indent_inc}}# User field "{field.value}" with action "{change.action.value}"\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {change.old_value.toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if change.action != Action.DELETE:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {self._attributes[field].toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {change.old_value.toRdf} .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+        if UserAttr.HAS_PERMISSIONS in self._changeset:
+            new_set = self._attributes[UserAttr.HAS_PERMISSIONS]
+            old_set = self._changeset[UserAttr.HAS_PERMISSIONS].old_value
+            added = new_set - old_set
+            removed = old_set - new_set
+            sparql = f'{blank:{indent * indent_inc}}# User field "hasPermission"\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
+            if removed:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                for perm in removed:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasPermissions {perm} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if added:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                for perm in added:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasPermissions {perm} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user a oldap:User .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            if removed or added:
+                sparql_list.append(sparql)
+
+            #
+            # check if existing :PermissionSet's have been given!
+            #
+            if added:
+                ptest = f"""
+                SELECT ?permissionset
+                FROM oldap:admin
+                WHERE {{
+                    ?permissionset a oldap:PermissionSet .
+                    FILTER(?permissionset IN ({added.toRdf}))
+                }}
+                """
+                ptest_len = len(added) if added else 0
+
+        if UserAttr.IN_PROJECT in self._changeset:
+            # first get all keys that must be added, that is that are in NEW but not in OLD:
+            addedprojs = self._attributes[UserAttr.IN_PROJECT].keys() - self._changeset[UserAttr.IN_PROJECT].old_value.keys()
+            deletedprojs = self._changeset[UserAttr.IN_PROJECT].old_value.keys() - self._attributes[UserAttr.IN_PROJECT].keys()
+            changedprojs = self._attributes[UserAttr.IN_PROJECT].keys() & self._changeset[UserAttr.IN_PROJECT].old_value.keys()
+
+            # add projects
+            if addedprojs:
+                sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                for proj in addedprojs:
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} oldap:inProject {proj.toRdf} .\n'
+                    for perm in self._attributes[UserAttr.IN_PROJECT][proj]:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {proj.toRdf}>> oldap:hasAdminPermission {perm.value} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                sparql_list.append(sparql)
+
+            # delete projects
+            if deletedprojs:
+                sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                for proj in deletedprojs:
+                    sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} oldap:inProject {proj.toRdf} .\n'
+                    for perm in self._changeset[UserAttr.IN_PROJECT].old_value[proj]:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {proj.toRdf}>> oldap:hasAdminPermission {perm.value} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                sparql_list.append(sparql)
+
+            if changedprojs:
+                doit = False
+                sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                for proj in changedprojs:
+                    perms = self._attributes[UserAttr.IN_PROJECT][proj] - self._changeset[UserAttr.IN_PROJECT].old_value[proj]
+                    for perm in perms:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {proj.toRdf}>> oldap:hasAdminPermission {perm.value} .\n'
+                        doit = True
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                if doit:
+                    sparql_list.append(sparql)
+
+                doit = False
+                sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                for proj in changedprojs:
+                    perms = self._changeset[UserAttr.IN_PROJECT].old_value[proj] - self._attributes[UserAttr.IN_PROJECT][proj]
+                    for perm in perms:
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {proj.toRdf}>> oldap:hasAdminPermission {perm.value} .\n'
+                        doit = True
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+                if doit:
+                    sparql_list.append(sparql)
+
         sparql = context.sparql_context
-        ptest, ptest_len, tmpsparql = self._sparql_update()
-        sparql += tmpsparql
+        sparql += " ;\n".join(sparql_list)
         self._con.transaction_start()
         try:
             modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri)

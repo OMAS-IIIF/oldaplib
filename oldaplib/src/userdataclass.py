@@ -1,31 +1,27 @@
+from datetime import datetime
 from typing import Self, Set, Iterable
 
 from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
 from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.serializeableset import SerializeableSet
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.in_project import InProjectClass
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
-@serializer
-class SerializeableSet(Set):
-
-    def __init__(self, setitems: Iterable | None = None, *items):
-        if setitems:
-            super().__init__(setitems)
-        else:
-            super().__init__(items)
-
-    def _as_dict(self) -> dict:
-        return {'setitems': list(self)}
 
 
 @serializer
 class UserData:
+    _creator: Iri | None
+    _created: Xsd_dateTime | datetime | None
+    _contributor: Iri | None
+    _modified: Xsd_dateTime | datetime | None
     _userIri: Iri
     _userId: Xsd_NCName
     _familyName: Xsd_string
@@ -35,6 +31,10 @@ class UserData:
     _inProject: InProjectClass
 
     def __init__(self, *,
+                 creator: Iri,
+                 created: Xsd_dateTime,
+                 contributor: Iri,
+                 modified: Xsd_dateTime,
                  userIri: Iri,
                  userId: Xsd_NCName,
                  familyName: Xsd_string,
@@ -43,13 +43,17 @@ class UserData:
                  isActive: Xsd_boolean,
                  inProject: InProjectClass | None = None,
                  hasPermissions: SerializeableSet[Iri] | set[Iri] | None = None):
+        self._creator = creator
+        self._created = created
+        self._contributor = contributor
+        self._modified = modified
         self._userIri = userIri
         self._userId = userId
         self._familyName = familyName
         self._givenName = givenName
         self._credentials = credentials
         self._isActive = isActive
-        self._inProject = inProject
+        self._inProject = inProject or InProjectClass()
         self._hasPermissions = hasPermissions if isinstance(hasPermissions, SerializeableSet) else SerializeableSet(hasPermissions)
 
     def __str__(self) -> str:
@@ -62,6 +66,22 @@ class UserData:
         res += f', inProject: {self._inProject}\n'
         res += f', hasPermissions: {self._hasPermissions}\n'
         return res
+
+    @property
+    def creator(self) -> Iri:
+        return self._creator
+
+    @property
+    def created(self) -> Xsd_dateTime:
+        return self._created
+
+    @property
+    def contributor(self) -> Iri:
+        return self._contributor
+
+    @property
+    def modified(self) -> Xsd_dateTime:
+        return self._modified
 
     @property
     def userIri(self) -> Iri:
@@ -120,6 +140,10 @@ class UserData:
         in_project: dict[str, set[AdminPermission]] | None = None
         if len(queryresult) == 0:
             raise OldapErrorNotFound("Given user not found!")
+        creator: Iri | None = None
+        created: Xsd_dateTime | datetime | None = None
+        contributor: Iri | None = None
+        modified: Xsd_dateTime | datetime | None = None
         userIri: Iri | None = None
         userId: Xsd_NCName | None = None
         familyName: Xsd_string | None = None
@@ -132,12 +156,13 @@ class UserData:
             match str(r.get('prop')):
                 case 'dcterms:creator':
                     userIri = r['user']
+                    creator = r['val']
                 case 'dcterms:created':
-                    pass
+                    created = r['val']
                 case 'dcterms:contributor':
-                    pass
+                    contributor = r['val']
                 case 'dcterms:modified':
-                    pass
+                    modified = r['val']
                 case 'oldap:userId':
                     userId = r['val']
                 case 'foaf:familyName':
@@ -164,8 +189,12 @@ class UserData:
                         if inProjectDict.get(r['proj']) is None:
                             inProjectDict[r['proj']] = set()
                         inProjectDict[r['proj']].add(AdminPermission(str(r['rval'])))
-        inProject = InProjectClass(inProjectDict) if inProjectDict else None
-        return cls(userIri=userIri,
+        inProject = InProjectClass(inProjectDict) if inProjectDict else InProjectClass()
+        return cls(created=created,
+                   creator=creator,
+                   contributor=contributor,
+                   modified=modified,
+                   userIri=userIri,
                    userId=userId,
                    familyName=familyName,
                    givenName=givenName,

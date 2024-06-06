@@ -506,6 +506,7 @@ class Project(Model):
             raise
         self._modified = timestamp
         self._contributor = self._con.userIri
+        self.clear_changeset()
 
     def delete(self) -> None:
         """
