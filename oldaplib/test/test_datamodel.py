@@ -106,7 +106,7 @@ class TestDataModel(unittest.TestCase):
         authors = PropertyClass(con=self._connection,
                                 project=self._dmproject,
                                 property_class_iri=Iri(f'{dm_name}:authors'),
-                                toNodeIri=Iri('oldap:Person'),
+                                toClass=Iri('oldap:Person'),
                                 name=LangString(["Author(s)@en", "Autor(en)@de"]),
                                 description=LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]),
                                 minCount=Xsd_integer(1),
@@ -132,7 +132,7 @@ class TestDataModel(unittest.TestCase):
         inbook = PropertyClass(con=self._connection,
                                project=self._dmproject,
                                property_class_iri=Iri(f'{dm_name}:inbook'),
-                               toNodeIri=Iri(f'{dm_name}:Book'),
+                               toClass=Iri(f'{dm_name}:Book'),
                                name=LangString(["Pagenumber@en", "Seitennummer@de"]),
                                maxCount=Xsd_integer(1),
                                minCount=Xsd_integer(1),
@@ -182,7 +182,7 @@ class TestDataModel(unittest.TestCase):
 
         r1p2 = r1[Iri(f'{dm_name}:authors')]
         self.assertEqual(r1p2.internal, Iri(f'{dm_name}:Book'))
-        self.assertEqual(r1p2.toNodeIri, Iri('oldap:Person'))
+        self.assertEqual(r1p2.toClass, Iri('oldap:Person'))
         self.assertEqual(r1p2.name, LangString(["Author(s)@en", "Autor(en)@de"]))
         self.assertEqual(r1p2.description, LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]))
         self.assertEqual(r1p2.minCount, Xsd_integer(1))
@@ -205,7 +205,7 @@ class TestDataModel(unittest.TestCase):
 
         r2p2 = r2[Iri(f'{dm_name}:inbook')]
         self.assertEqual(r2p2.internal, Iri(f'{dm_name}:Page'))
-        self.assertEqual(r2p2[PropClassAttr.TO_NODE_IRI], Iri(f'{dm_name}:Book'))
+        self.assertEqual(r2p2[PropClassAttr.CLASS], Iri(f'{dm_name}:Book'))
         self.assertEqual(r2p2[PropClassAttr.NAME], LangString(["Pagenumber@en", "Seitennummer@de"]))
         self.assertEqual(r2p2[PropClassAttr.MAX_COUNT], Xsd_integer(1))
         self.assertEqual(r2p2[PropClassAttr.MIN_COUNT], Xsd_integer(1))
@@ -384,7 +384,7 @@ class TestDataModel(unittest.TestCase):
         inBook = PropertyClass(con=self._connection,
                                project=self._project,
                                property_class_iri=Iri('test:pageInBook'),
-                               toNodeIri=Iri('test:Book'),
+                               toClass=Iri('test:Book'),
                                minCount=Xsd_integer(1),
                                maxCount=Xsd_integer(1),
                                order=Xsd_decimal(5))
@@ -407,7 +407,7 @@ class TestDataModel(unittest.TestCase):
         author = PropertyClass(con=self._connection,
                                project=self._project,
                                property_class_iri=Iri('test:author'),
-                               toNodeIri=Iri('test:Person'),
+                               toClass=Iri('test:Person'),
                                order=Xsd_decimal(2))
         pubDate = PropertyClass(con=self._connection,
                                 project=self._project,
