@@ -63,6 +63,9 @@ class Model:
     def check_consistency(self, attr: AttributeClass, value: Any) -> None:
         pass
 
+    def pre_transform(self, attr: AttributeClass, value: Any) -> Any:
+        return value
+
     def cleanup_setter(self, attr: AttributeClass, value: Any) -> None:
         pass
 
@@ -122,6 +125,7 @@ class Model:
         if attr.immutable:
             raise OldapErrorImmutable(f'Attribute {attr.value} is immutable.')
         self.check_consistency(attr, value)
+        value = self.pre_transform(attr, value)
         if self._attributes.get(attr) is None:
             if self._changeset.get(attr) is None:
                 self._changeset[attr] = AttributeChange(None, Action.CREATE)

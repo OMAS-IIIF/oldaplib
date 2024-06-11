@@ -194,7 +194,7 @@ class TestResourceClass(unittest.TestCase):
         prop3 = r1[Iri("test:testprop")]
         self.assertEqual(prop3.internal, Iri('test:TestResource'))
         self.assertEqual(prop3.property_class_iri, Iri("test:testprop"))
-        self.assertEqual(prop3.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop3.type, OwlPropertyType.OwlDataProperty)
         self.assertEqual(prop3.datatype, XsdDatatypes.langString)
         self.assertEqual(prop3.name, LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(prop3.order, Xsd_decimal(5))
@@ -272,7 +272,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
         self.assertEqual(prop1.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop1.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
-        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
         self.assertEqual(prop1.datatype, XsdDatatypes.string)
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop1.minCount, Xsd_integer(1))
@@ -286,7 +286,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
         self.assertEqual(prop2.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop2.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
-        self.assertEqual(prop2.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop2.type, OwlPropertyType.OwlDataProperty)
         self.assertEqual(prop2.datatype, XsdDatatypes.langString)
         self.assertEqual(prop2.name, LangString(["A text@en", "Ein Text@de"]))
         self.assertEqual(prop2.description, LangString("A longer text..."))
@@ -295,7 +295,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.maxCount, Xsd_integer(1))
 
         prop3 = r1[Iri('test:hasEnum')]
-        self.assertEqual(prop3.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop3.type, OwlPropertyType.OwlDataProperty)
         self.assertEqual(prop3.datatype, XsdDatatypes.string)
         self.assertEqual(prop3.inSet,
                          RdfSet(Xsd_string('red'), Xsd_string('green'), Xsd_string('blue'), Xsd_string('yellow')))
@@ -325,7 +325,7 @@ class TestResourceClass(unittest.TestCase):
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:testtwo'),
-                           toNodeIri=Iri('test:testMyRes'),
+                           toClass=Iri('test:testMyRes'),
                            name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
                            description=LangString("An exclusive property for testing...@en"),
                            minCount=Xsd_integer(1),
@@ -373,7 +373,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.description, LangString("This is a test property@de"))
         self.assertIsNone(prop1.subPropertyOf)
         self.assertEqual(prop1.order, Xsd_decimal(2))
-        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
         self.assertEqual(prop1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop1.created, Xsd_dateTime("2023-11-04T12:00:00Z"))
 
@@ -385,7 +385,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop2.datatype, XsdDatatypes.string)
         self.assertEqual(prop2.order, Xsd_decimal(3))
-        self.assertEqual(prop2.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop2.type, OwlPropertyType.OwlDataProperty)
 
         prop3 = r2[Iri("test:testone")]
         self.assertEqual(prop3.internal, Iri("test:TestResource"))
@@ -402,7 +402,7 @@ class TestResourceClass(unittest.TestCase):
         prop4 = r2[Iri("test:testtwo")]
         self.assertEqual(prop4.internal, Iri("test:TestResource"))
         self.assertEqual(prop4.property_class_iri, Iri("test:testtwo"))
-        self.assertEqual(prop4.toNodeIri, Iri('test:testMyRes'))
+        self.assertEqual(prop4.toClass, Iri('test:testMyRes'))
         self.assertEqual(prop4.name, LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]))
         self.assertEqual(prop4.description, LangString("An exclusive property for testing...@en"))
         self.assertEqual(prop4.minCount, Xsd_integer(1))
@@ -496,7 +496,7 @@ class TestResourceClass(unittest.TestCase):
         #
         p = PropertyClass(con=self._connection,
                           project=self._project,
-                          toNodeIri=Iri('test:Person'),
+                          toClass=Iri('test:Person'),
                           maxCount=Xsd_integer(1))
         r1[Iri('dcterms:creator')] = p
 
@@ -525,13 +525,13 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop1.datatype, XsdDatatypes.string)
         self.assertEqual(prop1.order, Xsd_decimal(3))
-        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
 
         prop2 = r2[Iri('dcterms:creator')]
         self.assertEqual(prop2.internal, Xsd_QName("test:testMyResMinimal"))
-        self.assertEqual(prop2.toNodeIri, Xsd_QName('test:Person'))
+        self.assertEqual(prop2.toClass, Xsd_QName('test:Person'))
         self.assertEqual(prop2.maxCount, Xsd_integer(1))
-        self.assertEqual(prop1.propertyType, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
 
         prop3 = r2[Iri('test:color')]
         self.assertEqual(prop3.internal, Xsd_QName("test:testMyResMinimal"))
@@ -719,7 +719,7 @@ class TestResourceClass(unittest.TestCase):
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:propB'),
-                           toNodeIri=Iri('test:testMyRes'),
+                           toClass=Iri('test:testMyRes'),
                            name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
                            description=LangString("An exclusive property for testing...@en"),
                            minCount=Xsd_integer(1),
@@ -786,7 +786,7 @@ class TestResourceClass(unittest.TestCase):
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:deleteB'),
-                           toNodeIri=Iri('test:testMyRes'),
+                           toClass=Iri('test:testMyRes'),
                            name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
                            description=LangString("A property for testing...@en"),
                            minCount=Xsd_integer(1),

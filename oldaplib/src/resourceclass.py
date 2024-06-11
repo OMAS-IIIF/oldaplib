@@ -7,6 +7,7 @@ from pystrict import strict
 
 from oldaplib.src.connection import Connection
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.globalconfig import GlobalConfig
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.observable_dict import ObservableDict
@@ -29,7 +30,7 @@ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model
+from oldaplib.src.model import Model, AttributeChange
 from oldaplib.src.propertyclass import PropertyClass, Attributes
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
@@ -43,11 +44,11 @@ Properties = Dict[BNode, Attributes]
 SuperclassParam = Iri | str | list[Iri] | tuple[Iri] | set[Iri] | None
 AttributeParams = LangString | Xsd_boolean | SuperclassParam
 
-@dataclass
-class ResourceClassAttributeChange:
-    old_value: Union[AttributeTypes, PropertyClass, Iri, None]
-    action: Action
-    test_in_use: bool
+# @dataclass
+# class ResourceClassAttributeChange:
+#     old_value: Union[AttributeTypes, PropertyClass, Iri, None]
+#     action: Action
+#     test_in_use: bool
 
 
 @dataclass
@@ -65,7 +66,7 @@ class ResourceClass(Model, Notify):
     _owlclass_iri: Iri | None
     _attributes: ResourceClassAttributesContainer
     _properties: dict[Iri, PropertyClass]
-    _attr_changeset: dict[ResClassAttribute, ResourceClassAttributeChange]
+    #_attr_changeset: dict[ResClassAttribute, ResourceClassAttributeChange]
     _prop_changeset: dict[Iri, ResourceClassPropertyChange]
     __version: SemanticVersion
     __from_triplestore: bool
@@ -102,13 +103,14 @@ class ResourceClass(Model, Notify):
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str,
                  owlclass_iri: Iri | str | None = None,
-                 superclass: SuperclassParam = None,
-                 label: LangString | str | None = None,
-                 comment: LangString | str | None = None,
-                 closed: Xsd_boolean | bool | None = None,
+                 #superclass: SuperclassParam = None,
+                 #label: LangString | str | None = None,
+                 #comment: LangString | str | None = None,
+                 #closed: Xsd_boolean | bool | None = None,
                  properties: List[PropertyClass | Iri] | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
-                 notify_data: PropClassAttr | None = None):
+                 notify_data: PropClassAttr | None = None,
+                 **kwargs):
         Model.__init__(self,
                        connection=con,
                        creator=con.userIri,
@@ -116,7 +118,7 @@ class ResourceClass(Model, Notify):
                        contributor=con.userIri,
                        modified=None)
         Notify.__init__(self, notifier, notify_data)
-        self._attr_changeset = {}
+        #self._attr_changeset = {}
         self._prop_changeset = {}
 
         if isinstance(project, Project):
@@ -125,17 +127,11 @@ class ResourceClass(Model, Notify):
             self._project = Project.read(self._con, project)
         if self._sysproject is None:
             self._sysproject = Project.read(self._con, Xsd_NCName("oldap"))
-        # if owlclass_iri and owlclass_iri != Iri('oldap:Thing', validate=False):
-        #     thingiri = Iri('oldap:Thing', validate=False)
-        #     thing = ResourceClass.read(self._con, self._project, thingiri)
-        #     self._subClassOf[thingiri] = thing
-        # else:
-        #     self._subClassOf = {}
+
         context = Context(name=self._con.context_name)
         context[self._project.projectShortName] = self._project.namespaceIri
         context.use(self._project.projectShortName)
         self._graph = self._project.projectShortName
-        self._attributes = {}
 
         if isinstance(owlclass_iri, Iri):
             self._owlclass_iri = owlclass_iri
@@ -143,14 +139,22 @@ class ResourceClass(Model, Notify):
             self._owlclass_iri = Iri(owlclass_iri)
         else:
             self._owlclass_iri = None
-        if superclass is not None:
-            self._attributes[ResClassAttribute.SUPERCLASS] = self.assign_superclass(superclass)
-        if label is not None:
-            self._attributes[ResClassAttribute.LABEL] = label if isinstance(label, LangString) else LangString(label)
-        if comment is not None:
-            self._attributes[ResClassAttribute.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
-        if closed is not None:
-            self._attributes[ResClassAttribute.CLOSED] = closed if isinstance(closed, Xsd_boolean) else Xsd_boolean(closed)
+        new_kwargs: dict[str, Any] = {}
+        for name, value in kwargs.items():
+            if name == ResClassAttribute.SUPERCLASS.value.fragment:
+                new_kwargs[name] = self.assign_superclass(value)
+            else:
+                new_kwargs[name] = value
+        self.set_attributes(new_kwargs, ResClassAttribute)
+
+        # if superclass is not None:
+        #     self._attributes[ResClassAttribute.SUPERCLASS] = self.assign_superclass(superclass)
+        # if label is not None:
+        #     self._attributes[ResClassAttribute.LABEL] = label if isinstance(label, LangString) else LangString(label)
+        # if comment is not None:
+        #     self._attributes[ResClassAttribute.COMMENT] = comment if isinstance(comment, LangString) else LangString(comment)
+        # if closed is not None:
+        #     self._attributes[ResClassAttribute.CLOSED] = closed if isinstance(closed, Xsd_boolean) else Xsd_boolean(closed)
         self._properties = {}
         if properties is not None:
             for prop in properties:
@@ -173,49 +177,57 @@ class ResourceClass(Model, Notify):
                     newprop.set_notifier(self.notifier, newprop.property_class_iri)
 
         for attr in ResClassAttribute:
-            prefix, name = attr.value.split(':')
-            setattr(ResourceClass, name, property(
-                partial(ResourceClass.__get_value, attr=attr),
-                partial(ResourceClass.__set_value, attr=attr),
-                partial(ResourceClass.__del_value, attr=attr)))
+            #prefix, name = attr.value.split(':')
+            setattr(ResourceClass, attr.value.fragment, property(
+                partial(ResourceClass._get_value, attr=attr),
+                partial(ResourceClass._set_value, attr=attr),
+                partial(ResourceClass._del_value, attr=attr)))
 
+        self._test_in_use = False
         self.__version = SemanticVersion()
         self.__from_triplestore = False
 
-    def __get_value(self: Self, attr: ResClassAttribute) -> AttributeTypes | PropertyClass | Iri | None:
-        return self.__getter(attr)
+    # def __get_value(self: Self, attr: ResClassAttribute) -> AttributeTypes | PropertyClass | Iri | None:
+    #     return self.__getter(attr)
+    #
+    # def __set_value(self: Self, value: AttributeTypes | PropertyClass | Iri, attr: ResClassAttribute) -> None:
+    #     self.__change_setter(attr, value)
+    #
+    # def __del_value(self: Self, attr: ResClassAttribute) -> None:
+    #     self.__deleter(attr)
 
-    def __set_value(self: Self, value: AttributeTypes | PropertyClass | Iri, attr: ResClassAttribute) -> None:
-        self.__change_setter(attr, value)
+    # def __getter(self, key: ResClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri:
+    #     if isinstance(key, ResClassAttribute):
+    #         return self._attributes.get(key)
+    #     elif isinstance(key, Iri):
+    #         return self._properties.get(key)
+    #     else:
+    #         return None
 
-    def __del_value(self: Self, attr: ResClassAttribute) -> None:
-        self.__deleter(attr)
-
-    def __getter(self, key: ResClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri:
-        if isinstance(key, ResClassAttribute):
-            return self._attributes.get(key)
-        elif isinstance(key, Iri):
-            return self._properties.get(key)
+    def pre_transform(self, attr: AttributeClass, value: Any) -> Any:
+        if attr == ResClassAttribute.SUPERCLASS:
+            return self.assign_superclass(value)
         else:
-            return None
+            return value
 
-    def __change_setter(self, key: ResClassAttribute | Iri, value: AttributeParams | PropertyClass | Iri) -> None:
+    def _change_setter(self, key: ResClassAttribute | Iri, value: AttributeParams | PropertyClass | Iri) -> None:
         if not isinstance(key, (ResClassAttribute, Iri)):
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, key)
         if isinstance(key, ResClassAttribute):
-            if self._attributes.get(key) is None:  # Attribute not yet set
-                self._attr_changeset[key] = ResourceClassAttributeChange(None, Action.CREATE, False)  # TODO: Check if "check_in_use" must be set
-            else:
-                if self._attr_changeset.get(key) is None:  # Only first change is recorded
-                    self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
-                else:
-                    self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
-            if key == ResClassAttribute.SUPERCLASS:
-                self._attributes[key] = self.assign_superclass(value)
-            else:
-                self._attributes[key] = self.__datatypes[key](value)
+            super()._change_setter(key, value)
+            # if self._attributes.get(key) is None:  # Attribute not yet set
+            #     self._attr_changeset[key] = ResourceClassAttributeChange(None, Action.CREATE, False)  # TODO: Check if "check_in_use" must be set
+            # else:
+            #     if self._attr_changeset.get(key) is None:  # Only first change is recorded
+            #         self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
+            #     else:
+            #         self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.REPLACE, False)  # TODO: Check if "check_in_use" must be set
+            # if key == ResClassAttribute.SUPERCLASS:
+            #     self._attributes[key] = self.assign_superclass(value)
+            # else:
+            #     self._attributes[key] = self.__datatypes[key](value)
         elif isinstance(key, Iri):  # Iri
             if self._properties.get(key) is None:  # Property not set -> CREATE action
                 self._prop_changeset[key] = ResourceClassPropertyChange(None, Action.CREATE, False)
@@ -246,26 +258,32 @@ class ResourceClass(Model, Notify):
             raise OldapError(f'Invalid key type {type(key).__name__} of key {key}')
         self.notify()
 
-    def __deleter(self, key: ResClassAttribute | Iri) -> None:
-        if not isinstance(key, (ResClassAttribute, Iri)):
-            raise ValueError(f'Invalid key type {type(key).__name__} of key {key}')
-        if isinstance(key, ResClassAttribute):
-            if self._attr_changeset.get(key) is None:
-                self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
-            else:
-                self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.DELETE, False)
-            del self._attributes[key]
-        elif isinstance(key, Iri):
-            if self._prop_changeset.get(key) is None:
-                self._prop_changeset[key] = ResourceClassPropertyChange(self._properties[key], Action.DELETE, False)
-            else:
-                self._prop_changeset[key] = ResourceClassPropertyChange(self._prop_changeset[key].old_value, Action.DELETE, False)
-            del self._properties[key]
-        self.notify()
+    # def __deleter(self, key: ResClassAttribute | Iri) -> None:
+    #     if not isinstance(key, (ResClassAttribute, Iri)):
+    #         raise ValueError(f'Invalid key type {type(key).__name__} of key {key}')
+    #     if isinstance(key, ResClassAttribute):
+    #         if self._attr_changeset.get(key) is None:
+    #             self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
+    #         else:
+    #             self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.DELETE, False)
+    #         del self._attributes[key]
+    #     elif isinstance(key, Iri):
+    #         if self._prop_changeset.get(key) is None:
+    #             self._prop_changeset[key] = ResourceClassPropertyChange(self._properties[key], Action.DELETE, False)
+    #         else:
+    #             self._prop_changeset[key] = ResourceClassPropertyChange(self._prop_changeset[key].old_value, Action.DELETE, False)
+    #         del self._properties[key]
+    #     self.notify()
 
 
     def __getitem__(self, key: ResClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri:
-        return self.__getter(key)
+        if isinstance(key, ResClassAttribute):
+            return super().__getitem__(key)
+        elif isinstance(key, Iri):
+            return self._properties.get(key)
+        else:
+            return None
+        #return self.__getter(key)
 
     def get(self, key: ResClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri | None:
         if isinstance(key, ResClassAttribute):
@@ -276,10 +294,25 @@ class ResourceClass(Model, Notify):
             return None
 
     def __setitem__(self, key: ResClassAttribute | Iri, value: AttributeParams | PropertyClass | Iri) -> None:
-        self.__change_setter(key, value)
+        self._change_setter(key, value)
 
     def __delitem__(self, key: ResClassAttribute | Iri) -> None:
-        self.__deleter(key)
+        if not isinstance(key, (ResClassAttribute, Iri)):
+            raise ValueError(f'Invalid key type {type(key).__name__} of key {key}')
+        if isinstance(key, ResClassAttribute):
+            super().__delitem__(key)
+            # if self._attr_changeset.get(key) is None:
+            #     self._attr_changeset[key] = ResourceClassAttributeChange(self._attributes[key], Action.DELETE, False)
+            # else:
+            #     self._attr_changeset[key] = ResourceClassAttributeChange(self._attr_changeset[key].old_value, Action.DELETE, False)
+            # del self._attributes[key]
+        elif isinstance(key, Iri):
+            if self._prop_changeset.get(key) is None:
+                self._prop_changeset[key] = ResourceClassPropertyChange(self._properties[key], Action.DELETE, False)
+            else:
+                self._prop_changeset[key] = ResourceClassPropertyChange(self._prop_changeset[key].old_value, Action.DELETE, False)
+            del self._properties[key]
+        self.notify()
 
     @property
     def owl_class_iri(self) -> Iri:
@@ -303,9 +336,7 @@ class ResourceClass(Model, Notify):
         blank = ' '
         indent = 2
         s = f'Shape: {self._owlclass_iri}Shape\n'
-        s += f'{blank:{indent*1}}Attributes:\n'
-        for attr, value in self._attributes.items():
-            s += f'{blank:{indent*2}}{attr.value} = {value}\n'
+        s += super().__str__()
         s += f'{blank:{indent*1}}Properties:\n'
         sorted_properties = sorted(self._properties.items(), key=lambda prop: prop[1].order if prop[1].order is not None else 9999)
         for qname, prop in sorted_properties:
@@ -313,10 +344,11 @@ class ResourceClass(Model, Notify):
         return s
 
     def changeset_clear(self) -> None:
-        for attr, change in self._attr_changeset.items():
-            if change.action == Action.MODIFY:
-                self._attributes[attr].changeset_clear()
-        self._attr_changeset = {}
+        super().clear_changeset()
+        # for attr, change in self._attr_changeset.items():
+        #     if change.action == Action.MODIFY:
+        #         self._attributes[attr].changeset_clear()
+        # self._attr_changeset = {}
         for prop, change in self._prop_changeset.items():
             if change.action == Action.MODIFY:
                 self._properties[prop].clear_changeset()
@@ -324,14 +356,14 @@ class ResourceClass(Model, Notify):
 
     def notifier(self, what: ResClassAttribute | Iri):
         if isinstance(what, ResClassAttribute):
-            self._attr_changeset[what] = ResourceClassAttributeChange(None, Action.MODIFY, True)
+            self._changeset[what] = AttributeChange(None, Action.MODIFY)
         elif isinstance(what, Iri):
             self._prop_changeset[what] = ResourceClassPropertyChange(None, Action.MODIFY, True)
         self.notify()
 
     def __sc_changed(self, oldval: ObservableDict[Iri, RC]):
-        if self._attr_changeset.get(ResClassAttribute.SUPERCLASS) is None:
-            self._attr_changeset[ResClassAttribute.SUPERCLASS] = ResourceClassPropertyChange(oldval, Action.MODIFY, True)
+        if self._changeset.get(ResClassAttribute.SUPERCLASS) is None:
+            self._changeset[ResClassAttribute.SUPERCLASS] = AttributeChange(oldval, Action.MODIFY)
 
     @property
     def in_use(self) -> bool:
@@ -439,15 +471,19 @@ class ResourceClass(Model, Notify):
                 else:
                     raise OldapErrorInconsistency(f'Value "{val[0]}" must end with "Shape".')
             else:
-                attr = ResClassAttribute(key)
-                if Iri == self.__datatypes[attr]:
-                    self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
-                elif XsdDatatypes == self.__datatypes[attr]:
-                    self._attributes[attr] = XsdDatatypes(str(val[0]))
-                elif LangString == self.__datatypes[attr]:
-                    self._attributes[attr] = LangString(val)
-                elif Xsd_boolean == self.__datatypes[attr]:
-                    self._attributes[attr] = Xsd_boolean(val[0])
+                attr = ResClassAttribute.from_value(key.as_qname)
+                if attr.datatype == LangString:
+                    self._attributes[attr] = attr.datatype(val)
+                else:
+                    self._attributes[attr] = attr.datatype(val[0])
+                # if Iri == attr.datatype:
+                #     self._attributes[attr] = val[0]  # is already QName or AnyIRI from preprocessing
+                # elif XsdDatatypes == attr.datatype:
+                #     self._attributes[attr] = XsdDatatypes(str(val[0]))
+                # elif LangString == attr.datatype:
+                #     self._attributes[attr] = LangString(val)
+                # elif Xsd_boolean == attr.datatype:
+                #     self._attributes[attr] = Xsd_boolean(val[0])
                 if getattr(self._attributes[attr], 'set_notifier', None) is not None:
                     self._attributes[attr].set_notifier(self.notifier, attr)
 
@@ -781,7 +817,7 @@ class ResourceClass(Model, Notify):
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
     def __update_shacl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
-        if not self._attr_changeset and not self._prop_changeset:
+        if not self._changeset and not self._prop_changeset:
             return ''
         blank = ''
         sparql_list = []
@@ -789,7 +825,7 @@ class ResourceClass(Model, Notify):
         #
         # First process attributes
         #
-        for item, change in self._attr_changeset.items():
+        for item, change in self._changeset.items():
             sparql = f'#\n# Process "{item.value}" with Action "{change.action.value}"\n#\n'
             if item == ResClassAttribute.SUPERCLASS:
                 #
@@ -888,14 +924,14 @@ class ResourceClass(Model, Notify):
         return sparql
 
     def __update_owl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
-        if not self._attr_changeset and not self._prop_changeset:
+        if not self._changeset and not self._prop_changeset:
             return ''
         blank = ''
         sparql_list = []
         #
         # Adapt OWL for changing *attributes* (where only rdfs:subClassOf is relevant...)
         #
-        for item, change in self._attr_changeset.items():
+        for item, change in self._changeset.items():
             #
             # we only need to add rdfs:subClassOf to the ontology – all other attributes are irrelevant
             #

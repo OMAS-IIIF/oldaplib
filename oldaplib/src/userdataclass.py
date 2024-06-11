@@ -31,10 +31,10 @@ class UserData:
     _inProject: InProjectClass
 
     def __init__(self, *,
-                 creator: Iri,
-                 created: Xsd_dateTime,
-                 contributor: Iri,
-                 modified: Xsd_dateTime,
+                 creator: Iri | None = None,
+                 created: Xsd_dateTime | None = None,
+                 contributor: Iri | None = None,
+                 modified: Xsd_dateTime | None = None,
                  userIri: Iri,
                  userId: Xsd_NCName,
                  familyName: Xsd_string,
