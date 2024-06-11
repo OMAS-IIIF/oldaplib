@@ -9,7 +9,8 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmutable
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.oldaplist import OldapList, OldapListAttr
+from oldaplib.src.oldaplist import OldapList
+from oldaplib.src.enums.oldaplistattr import OldapListAttr
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
@@ -126,6 +127,8 @@ class TestOldapList(unittest.TestCase):
                                    project=self._project,
                                    oldapListId="TestUpdateListA")
         self.assertEqual("TestUpdateListA", oldaplist.oldapListId)
+        self.assertEqual(LangString("TestUpdateListA"), oldaplist.prefLabel)
+        self.assertEqual(LangString("A list for testing updates..."), oldaplist.definition)
 
         oldaplist.prefLabel[Language.FR] = "TestesDeModifications"
         oldaplist.definition = LangString("Test-A@en", "test-B@fr", "test-C@de")

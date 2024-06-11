@@ -1,17 +1,16 @@
-from dataclasses import dataclass
-from enum import Enum, unique
 from functools import partial
 from typing import Self
 
 from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.oldaplistattr import OldapListAttr
 from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorInconsistency, OldapErrorImmutable, OldapError, OldapErrorNoPermission, OldapErrorAlreadyExists, \
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapError, OldapErrorNoPermission, OldapErrorAlreadyExists, \
     OldapErrorNotFound, OldapErrorUpdateFailed, OldapErrorInUse
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model
+from oldaplib.src.model import Model, AttributeChange
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -21,49 +20,22 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 
 OldapListAttrTypes = LangString | Iri | None
 
-@dataclass
-class OldapListAttrChange:
-    """
-    A dataclass used to represent the changes made to a field.
-    """
-    old_value: OldapListAttrTypes
-    action: Action
-
-
-@unique
-class OldapListAttr(Enum):
-    """
-    This enum class represents the fields used in the project model
-    """
-    OLDAPLIST_ID = 'oldap:oldapListId'  # virtual property, repents the RDF subject
-    PREF_LABEL = 'skos:prefLabel'
-    DEFINITION = 'skos:definition'
 
 class OldapList(Model):
-
-    __datatypes = {
-        OldapListAttr.OLDAPLIST_ID: Xsd_NCName,
-        OldapListAttr.PREF_LABEL: LangString,
-        OldapListAttr.DEFINITION: LangString,
-    }
 
     __project: Project
     __graph: Xsd_NCName
     __oldaplist_iri: Iri
 
-    __attributes: dict[OldapListAttr, OldapListAttrTypes]
-    __changeset: dict[OldapListAttr, OldapListAttrChange]
-
     def __init__(self, *,
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str,
-                 oldapListId: Xsd_NCName | str,
+                 #oldapListId: Xsd_NCName | str,
                  creator: Iri | None = None,
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
-                 prefLabel: LangString | str | None = None,
-                 definition: LangString | str | None = None):
+                 **kwargs):
         super().__init__(connection=con,
                          creator=creator,
                          created=created,
@@ -77,29 +49,17 @@ class OldapList(Model):
         context = Context(name=self._con.context_name)
         self.__graph = self.__project.projectShortName
 
-        self.__attributes = {}
+        self.set_attributes(kwargs, OldapListAttr)
 
-        self.__attributes[OldapListAttr.OLDAPLIST_ID] = Xsd_NCName(oldapListId)
         self.__oldaplist_iri = Iri.fromPrefixFragment(self.__project.projectShortName,
-                                                      self.__attributes[OldapListAttr.OLDAPLIST_ID],
+                                                      self._attributes[OldapListAttr.OLDAPLIST_ID],
                                                       validate=False)
-
-        if prefLabel:
-            self.__attributes[OldapListAttr.PREF_LABEL] = LangString(prefLabel)
-            self.__attributes[OldapListAttr.PREF_LABEL].set_notifier(self.notifier, Iri(OldapListAttr.PREF_LABEL.value))
-        if definition:
-            self.__attributes[OldapListAttr.DEFINITION] = LangString(definition)
-            self.__attributes[OldapListAttr.DEFINITION].set_notifier(self.notifier, Iri(OldapListAttr.DEFINITION.value))
-        #
-        # create all the attributes of the class according to the OldapListAttr definition
-        #
         for attr in OldapListAttr:
-            prefix, name = attr.value.split(':')
-            setattr(OldapList, name, property(
-                partial(OldapList.__get_value, attr=attr),
-                partial(OldapList.__set_value, attr=attr),
-                partial(OldapList.__del_value, attr=attr)))
-        self.__changeset = {}
+            #prefix, name = attr.value.split(':')
+            setattr(OldapList, attr.value.fragment, property(
+                partial(OldapList._get_value, attr=attr),
+                partial(OldapList._set_value, attr=attr),
+                partial(OldapList._del_value, attr=attr)))
 
     def check_for_permissions(self) -> (bool, str):
         #
@@ -125,86 +85,14 @@ class OldapList(Model):
                         return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
             return True, "OK"
 
-    def __get_value(self: Self, attr: OldapListAttr) -> OldapListAttrTypes | None:
-        return self.__attributes.get(attr)
-
-    def __set_value(self: Self, value: OldapListAttrTypes, attr: OldapListAttr) -> None:
-        self.__change_setter(attr, value)
-
-    def __del_value(self: Self, attr: OldapListAttr) -> None:
-        self.__changeset[attr] = OldapListAttrChange(self.__attributes[attr], Action.DELETE)
-        del self.__attributes[attr]
-
-    def __change_setter(self, attr: OldapListAttr, value: OldapListAttrTypes) -> None:
-        if self.__attributes.get(attr) == value:
-            return
-        if attr == OldapListAttr.OLDAPLIST_ID:
-            raise OldapErrorImmutable(f'Field {attr.value} is immutable.')
-        if self.__attributes.get(attr) is None:
-            if self.__changeset.get(attr) is None:
-                self.__changeset[attr] = OldapListAttrChange(None, Action.CREATE)
-        else:
-            if value is None:
-                if self.__changeset.get(attr) is None:
-                    self.__changeset[attr] = OldapListAttrChange(self.__attributes[attr], Action.DELETE)
-            else:
-                if self.__changeset.get(attr) is None:
-                    self.__changeset[attr] = OldapListAttrChange(self.__attributes[attr], Action.REPLACE)
-        if value is None:
-            del self.__attributes[attr]
-        else:
-            if not isinstance(value, self.__datatypes[attr]):
-                self.__attributes[attr] = self.__datatypes[attr](value)
-            else:
-                self.__attributes[attr] = value
-
-    def __str__(self):
-        res = f'OldapList: {self.__attributes[OldapListAttr.OLDAPLIST_ID]} ({self.__oldaplist_iri})\n'\
-              f'  Creation: {self._created} by {self._creator}\n'\
-              f'  Modified: {self._modified} by {self._contributor}\n'\
-              f'  Preferred label: {self.__attributes.get(OldapListAttr.PREF_LABEL)}\n'\
-              f'  Definition: {self.__attributes.get(OldapListAttr.DEFINITION)}'
-        return res
-
-    def __getitem__(self, attr: OldapListAttr) -> OldapListAttrTypes:
-        return self.__attributes[attr]
-
-    def get(self, attr: OldapListAttr) -> OldapListAttrTypes:
-        return self.__attributes.get(attr)
-
-    def __setitem__(self, attr: OldapListAttr, value: OldapListAttrTypes) -> None:
-        self.__change_setter(attr, value)
-
-    def __delitem__(self, attr: OldapListAttr) -> None:
-        if self.__attributes.get(attr) is not None:
-            self.__changeset[attr] = OldapListAttrChange(self.__attributes[attr], Action.DELETE)
-            del self.__attributes[attr]
-
-    @property
-    def changeset(self) -> dict[OldapListAttr, OldapListAttrChange]:
-        """
-        Return the changeset, that is dicst with information about all properties that have benn changed.
-        This method is only for internal use or debugging...
-        :return: A dictionary of all changes
-        :rtype: Dict[ProjectAttr, ProjectAttrChange]
-        """
-        return self.__changeset
-
-    def clear_changeset(self) -> None:
-        """
-        Clear the changeset. This method is only for internal use or debugging...
-        :return: None
-        """
-        self.__changeset = {}
-
-    def notifier(self, attrname: Iri) -> None:
+    def notifier(self, attr: OldapListAttr) -> None:
         """
         This method is called when a field is being changed.
         :param fieldname: Fieldname of the field being modified
         :return: None
         """
-        attr = OldapListAttr(attrname)
-        self.__changeset[attr] = OldapListAttrChange(self.__attributes[attr], Action.MODIFY)
+        #attr = OldapListAttr.from_value(attrname)
+        self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
 
     @classmethod
     def read(cls,
@@ -383,25 +271,22 @@ class OldapList(Model):
         blank = ''
         sparql_list = []
 
-        for field, change in self.__changeset.items():
+        for field, change in self._changeset.items():
             if field == OldapListAttr.PREF_LABEL or field == OldapListAttr.DEFINITION:
                 if change.action == Action.MODIFY:
-                    sparql_list.extend(self.__attributes[field].update(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                                       subject=self.__oldaplist_iri,
-                                                                       subjectvar='?list',
-                                                                       field=Xsd_QName(field.value)))
+                    sparql_list.extend(self._attributes[field].update(graph=Xsd_QName(f'{self.__graph}:lists'),
+                                                                      subject=self.__oldaplist_iri,
+                                                                      subjectvar='?list',
+                                                                      field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    # sparql = self.__attributes[field].delete(graph=Xsd_QName(f'{self.__graph}:lists'),
-                    #                                          subject=self.oldapListIri,
-                    #                                          field=Xsd_QName(field.value))
-                    sparql = self.__changeset[field].old_value.delete(graph=Xsd_QName(f'{self.__graph}:lists'),
+                    sparql = self._changeset[field].old_value.delete(graph=Xsd_QName(f'{self.__graph}:lists'),
                                                                       subject=self.__oldaplist_iri,
                                                                       field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
-                    sparql = self.__attributes[field].create(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                             subject=self.__oldaplist_iri,
-                                                             field=Xsd_QName(field.value))
+                    sparql = self._attributes[field].create(graph=Xsd_QName(f'{self.__graph}:lists'),
+                                                            subject=self.__oldaplist_iri,
+                                                            field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
 
         sparql = context.sparql_context
