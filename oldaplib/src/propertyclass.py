@@ -6,6 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
+from pprint import pprint
 from typing import Callable, Self, Any
 
 from oldaplib.src.dtypes.languagein import LanguageIn
@@ -63,6 +64,7 @@ class PropertyClass(Model, Notify):
     _attributes: PropClassAttrContainer
     _test_in_use: bool
     _notifier: Callable[[type], None] | None
+
     #
     # The following attributes of this class cannot be set explicitely by the used
     # They are automatically managed by the OMAS system
@@ -98,7 +100,7 @@ class PropertyClass(Model, Notify):
         context.use(self._project.projectShortName)
         self._graph = self._project.projectShortName
 
-        self._property_class_iri = Iri(property_class_iri)
+        self._property_class_iri = Iri(property_class_iri) if property_class_iri else None
         self.set_attributes(kwargs, PropClassAttr)
 
         #
@@ -160,18 +162,6 @@ class PropertyClass(Model, Notify):
                 self._changeset[PropClassAttr.DATATYPE] = AttributeChange(None, Action.CREATE)
             self._attributes[PropClassAttr.DATATYPE] = value
 
-    # def __get_value(self: Self, attr: PropClassAttr) -> PropTypes | None:
-    #     return self._attributes.get(attr)
-    #
-    # def __set_value(self: Self, value: PropTypes, attr: PropClassAttr) -> None:
-    #     self.__change_setter(attr, value)
-    #
-    # def __del_value(self: Self, attr: PropClassAttr) -> None:
-    #     if self._attributes.get(attr) is not None:
-    #         self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.DELETE, True)
-    #         del self._attributes[attr]
-    #         self.notify()
-
     def _change_setter(self: Self, attr: PropClassAttr, value: PropTypes) -> None:
         if not isinstance(attr, PropClassAttr):
             raise OldapError(f'Unsupported prop {attr}')
@@ -181,33 +171,6 @@ class PropertyClass(Model, Notify):
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, attr)
 
-        # if attr == PropClassAttr.CLASS:
-        #     if self._attributes.get(PropClassAttr.DATATYPE) is not None:
-        #         self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(self._attributes[PropClassAttr.DATATYPE], Action.DELETE, True)
-        #         del self._attributes[PropClassAttr.DATATYPE]
-        #     if self._attributes.get(PropClassAttr.CLASS) is not None:
-        #         self._changeset[PropClassAttr.CLASS] = PropClassAttrChange(self._attributes[PropClassAttr.CLASS], Action.REPLACE, True)
-        #     else:
-        #         self._changeset[PropClassAttr.CLASS] = PropClassAttrChange(None, Action.CREATE, True)
-        #     self._attributes[PropClassAttr.CLASS] = value
-        # elif attr == PropClassAttr.DATATYPE:
-        #     if self._attributes.get(PropClassAttr.CLASS) is not None:
-        #         self._changeset[PropClassAttr.CLASS] = PropClassAttrChange(self._attributes[PropClassAttr.CLASS], Action.DELETE, True)
-        #         del self._attributes[PropClassAttr.CLASS]
-        #     if self._attributes.get(PropClassAttr.DATATYPE) is not None:
-        #         self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(self._attributes[PropClassAttr.DATATYPE], Action.REPLACE, True)
-        #     else:
-        #         self._changeset[PropClassAttr.DATATYPE] = PropClassAttrChange(None, Action.CREATE, True)
-        #     self._attributes[PropClassAttr.DATATYPE] = value
-        # else:
-        #     if self._changeset.get(attr) is None:
-        #         if self._attributes.get(attr) is not None:
-        #             self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.REPLACE, True)
-        #         else:
-        #             self._changeset[attr] = PropClassAttrChange(None, Action.CREATE, True)
-        #     self._attributes[attr] = self.__datatypes[attr](value)
-        self.notify()
-
     def __len__(self) -> int:
         return len(self._attributes)
 
@@ -216,21 +179,6 @@ class PropertyClass(Model, Notify):
         for attr, value in self._attributes.items():
             propstr += f' {attr.value}: {value};'
         return propstr
-
-    # def __getitem__(self, attr: PropClassAttr) -> PropTypes:
-    #     return self._attributes[attr]
-    #
-    # def get(self, attr: PropClassAttr) -> PropTypes | None:
-    #     return self._attributes.get(attr)
-    #
-    # def __setitem__(self, attr: PropClassAttr, value: PropTypes) -> None:
-    #     self.__change_setter(attr, value)
-    #
-    # def __delitem__(self, attr: PropClassAttr) -> None:
-    #     if self._attributes.get(attr) is not None:
-    #         self._changeset[attr] = PropClassAttrChange(self._attributes[attr], Action.DELETE, True)
-    #         del self._attributes[attr]
-    #         self.notify()
 
     @property
     def property_class_iri(self) -> Iri:
@@ -355,7 +303,7 @@ class PropertyClass(Model, Notify):
             PropertyClass.process_triple(r, attributes)
         return attributes
 
-    def parse_shacl(self, attributes: Attributes) -> None:
+    def parse_shacl(self, attributes: Attributes) -> tuple[Iri, Xsd_integer | None, Xsd_integer | None] | None:
         """
         Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
         :return:
@@ -363,6 +311,9 @@ class PropertyClass(Model, Notify):
         #
         # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
         #
+        refprop: Iri | None = None
+        minCount: Xsd_integer | None = None
+        maxCount: Xsd_integer | None = None
         propkeys = {Iri(x.value) for x in PropClassAttr}
         for key, val in attributes.items():
             if key == 'rdf:type':
@@ -399,6 +350,15 @@ class PropertyClass(Model, Notify):
                     self._modified = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "dcterms:modified"')
+            elif key == 'sh:node':
+                if str(val).endswith("Shape"):
+                    refprop = Iri(str(val)[:-5], validate=False)
+                else:
+                    refprop = val
+            elif key == 'sh:minCount':
+                minCount = val
+            elif key == 'sh:maxCount':
+                maxCount = val
             elif key == 'sh:group':
                 pass  # TODO: Process property group correctly.... (at Moment only oldaplib:SystemPropGroup)
             elif key in propkeys:
@@ -408,6 +368,12 @@ class PropertyClass(Model, Notify):
                         raise OldapErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
                 else:
                     self._attributes[attr] = attr.datatype(val)
+
+        if refprop:
+            # if len(self._attributes) != 0:
+            #     print("======>", self._attributes)
+            #     raise OldapErrorNotFound(f'Definition of referenceproperty {refprop} has inconsistent properties.')
+            return (refprop, minCount, maxCount)
 
         if self._attributes.get(PropClassAttr.CLASS) is not None:
             self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
@@ -420,6 +386,7 @@ class PropertyClass(Model, Notify):
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
         self.__from_triplestore = True
+        return (refprop, minCount, maxCount)
 
     def read_owl(self):
         context = Context(name=self._con.context_name)
@@ -485,7 +452,7 @@ class PropertyClass(Model, Notify):
 
     @classmethod
     def read(cls, con: IConnection,
-             project: Project,
+             project: Project | Iri | Xsd_NCName | str,
              property_class_iri: Iri) -> Self:
         property = cls(con=con, project=project, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, property._graph, property_class_iri)
@@ -596,21 +563,24 @@ class PropertyClass(Model, Notify):
         sparql += ' .\n'
         return sparql
 
-    def create_owl_part2(self, indent: int = 0, indent_inc: int = 4) -> str:
+    def create_owl_part2(self, *,
+                         minCount: Xsd_integer | None = None,
+                         maxCount: Xsd_integer | None = None,
+                         indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri.toRdf}'
 
-        mincnt = self._attributes.get(PropClassAttr.MIN_COUNT)
-        maxcnt = self._attributes.get(PropClassAttr.MAX_COUNT)
-        if mincnt is not None and maxcnt is not None and mincnt == maxcnt:
-            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:qualifiedCardinality {mincnt.toRdf}'
+        #mincnt = self._attributes.get(PropClassAttr.MIN_COUNT)
+        #maxcnt = self._attributes.get(PropClassAttr.MAX_COUNT)
+        if minCount and maxCount  and minCount == maxCount:
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:qualifiedCardinality {minCount.toRdf}'
         else:
-            if mincnt is not None:
-                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality {mincnt.toRdf}'
-            if maxcnt is not None:
-                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality {maxcnt.toRdf}'
+            if minCount:
+                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality {minCount.toRdf}'
+            if maxCount:
+                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality {maxCount.toRdf}'
         #
         # (NOTE: owl:onClass and owl:onDatatype can be used only in a restriction and are "local" to the use
         # of the property within the given resource. However, rdfs:range is "global" for all use of this property!

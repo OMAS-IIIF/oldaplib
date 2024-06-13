@@ -142,7 +142,8 @@ class DataModel(Model):
             raise OldapErrorInconsistency(f'No resclass or property "{what}" in datamodel.')
 
     @classmethod
-    def read(cls, con: IConnection,
+    def read(cls,
+             con: IConnection,
              project: Project):
         if not isinstance(project, Project):
             raise OldapErrorValue('The project parameter must be a Project instance')

@@ -15,13 +15,14 @@ from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 from oldaplib.src.helpers.semantic_version import SemanticVersion
-from oldaplib.src.helpers.tools import RdfModifyRes, RdfModifyItem
+from oldaplib.src.helpers.tools import RdfModifyRes, RdfModifyItem, lprint
 from oldaplib.src.dtypes.bnode import BNode
 from oldaplib.src.enums.action import Action
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.context import Context
@@ -41,10 +42,35 @@ SuperclassParam = Iri | str | list[Iri] | tuple[Iri] | set[Iri] | None
 AttributeParams = LangString | Xsd_boolean | SuperclassParam
 
 
+class HasProperty:
+    __property: PropertyClass | Iri
+    __minCount: Xsd_integer | None
+    __maxCount: Xsd_integer | None
+
+    def __init__(self, prop: PropertyClass | Iri, minCount=None, maxCount=None):
+        self.__property = prop
+        self.__minCount = Xsd_integer(minCount) if minCount else None
+        self.__maxCount = Xsd_integer(maxCount) if maxCount else None
+
+    @property
+    def prop(self) -> PropertyClass:
+        return self.__property
+
+    @property
+    def minCount(self) -> Xsd_integer:
+        return self.__minCount
+
+    @property
+    def maxCount(self) -> Xsd_integer:
+        return self.__maxCount
+
+    def __hash__(self) -> int:
+        return self.prop.__hash__()
+
 
 @dataclass
 class ResourceClassPropertyChange:
-    old_value: Union[PropertyClass, Iri, None]
+    old_value: Union[HasProperty, None]
     action: Action
     test_in_use: bool
 
@@ -56,7 +82,7 @@ class ResourceClass(Model, Notify):
     _sysproject: Project = None
     _owlclass_iri: Iri | None
     _attributes: ResourceClassAttributesContainer
-    _properties: dict[Iri, PropertyClass]
+    _properties: dict[Iri, HasProperty]
     _prop_changeset: dict[Iri, ResourceClassPropertyChange]
     __version: SemanticVersion
     __from_triplestore: bool
@@ -86,7 +112,7 @@ class ResourceClass(Model, Notify):
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str,
                  owlclass_iri: Iri | str | None = None,
-                 properties: List[PropertyClass | Iri] | None = None,
+                 hasproperties: List[HasProperty] | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
                  **kwargs):
@@ -97,7 +123,6 @@ class ResourceClass(Model, Notify):
                        contributor=con.userIri,
                        modified=None)
         Notify.__init__(self, notifier, notify_data)
-        #self._attr_changeset = {}
         self._prop_changeset = {}
 
         if isinstance(project, Project):
@@ -127,24 +152,24 @@ class ResourceClass(Model, Notify):
         self.set_attributes(new_kwargs, ResClassAttribute)
 
         self._properties = {}
-        if properties is not None:
-            for prop in properties:
-                newprop: PropertyClass | Iri | None = None
-                if isinstance(prop, Iri):  # Reference to an external, standalone property definition
-                    fixed_prop = Iri(str(prop).removesuffix("Shape"))
+        if hasproperties is not None:
+            for hasprop in hasproperties:
+                newprop: HasProperty | None = None
+                if isinstance(hasprop.prop, Iri):  # Reference to an external, standalone property definition
+                    fixed_prop = Iri(str(hasprop.prop).removesuffix("Shape"))
                     try:
-                        newprop = PropertyClass.read(self._con, self._project, fixed_prop)
+                        newprop = HasProperty(PropertyClass.read(self._con, self._project, fixed_prop), hasprop.minCount, hasprop.maxCount)
                     except OldapErrorNotFound as err:
-                        newprop = fixed_prop
-                elif isinstance(prop, PropertyClass):  # an internal, private property definition
-                    if not prop._force_external:
-                        prop._internal = owlclass_iri
-                    newprop = prop
+                        newprop = HasProperty(fixed_prop, hasprop.minCount, hasprop.maxCount)
+                elif isinstance(hasprop.prop, PropertyClass):  # an internal, private property definition
+                    if not hasprop.prop._force_external:
+                        hasprop.prop._internal = owlclass_iri
+                    newprop = hasprop
                 else:
-                    raise OldapErrorValue(f'Unexpected property type: {type(prop).__name__}')
+                    raise OldapErrorValue(f'Unexpected property type: {type(hasprop.prop).__name__}')
                 if newprop is not None:
-                    self._properties[newprop.property_class_iri] = newprop
-                    newprop.set_notifier(self.notifier, newprop.property_class_iri)
+                    self._properties[newprop.prop.property_class_iri] = newprop
+                    newprop.prop.set_notifier(self.notifier, newprop.prop.property_class_iri)
 
         for attr in ResClassAttribute:
             setattr(ResourceClass, attr.value.fragment, property(
@@ -162,24 +187,25 @@ class ResourceClass(Model, Notify):
         else:
             return value
 
-    def _change_setter(self, key: ResClassAttribute | Iri, value: AttributeParams | PropertyClass | Iri) -> None:
+    def _change_setter(self, key: ResClassAttribute | Iri, value: AttributeParams | HasProperty) -> None:
         if not isinstance(key, (ResClassAttribute, Iri)):
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, key)
         if isinstance(key, ResClassAttribute):
             super()._change_setter(key, value)
-        elif isinstance(key, Iri):  # Iri
+        elif isinstance(key, Iri):  # Iri, we add a HasProperty instance
             if self._properties.get(key) is None:  # Property not set -> CREATE action
                 self._prop_changeset[key] = ResourceClassPropertyChange(None, Action.CREATE, False)
-                if value is None:
+                if value is None:  # we just ad a reference to an existing (!) standalone property!
                     try:
-                        self._properties[key] = PropertyClass.read(self._con, project=self._project, property_class_iri=key)
+                        p = PropertyClass.read(self._con, project=self._project, property_class_iri=key)
+                        self._properties[key] = HasProperty(p)
                     except OldapErrorNotFound as err:
-                        self._properties[key] = Iri(key)
+                        self._properties[key] = HasProperty(Iri(key))
                 else:
-                    value._internal = self._owlclass_iri  # we need to access the private variable here
-                    value._property_class_iri = key  # we need to access the private variable here
+                    value.prop._internal = self._owlclass_iri  # we need to access the private variable here
+                    value.prop._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
             else:  # REPLACE action
                 if self._prop_changeset.get(key) is None:
@@ -188,18 +214,19 @@ class ResourceClass(Model, Notify):
                     self._prop_changeset[key] = ResourceClassPropertyChange(self._prop_changeset[key].old_value, Action.REPLACE, True)
                 if value is None:
                     try:
-                        self._properties[key] = PropertyClass.read(self._con, project=self._project, property_class_iri=key)
+                        p = PropertyClass.read(self._con, project=self._project, property_class_iri=key)
+                        self._properties[key] = HasProperty(p)
                     except OldapErrorNotFound as err:
-                        self._properties[key] = key
+                        self._properties[key] = HasProperty(Iri(key))
                 else:
-                    value._internal = self._owlclass_iri  # we need to access the private variable here
+                    value.prop._internal = self._owlclass_iri  # we need to access the private variable here
                     value._property_class_iri = key  # we need to access the private variable here
-                    self._properties[key] = value
+                    self.prop._properties[key] = value
         else:
             raise OldapError(f'Invalid key type {type(key).__name__} of key {key}')
         self.notify()
 
-    def __getitem__(self, key: ResClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri:
+    def __getitem__(self, key: ResClassAttribute | Iri) -> AttributeTypes | HasProperty | Iri:
         if isinstance(key, ResClassAttribute):
             return super().__getitem__(key)
         elif isinstance(key, Iri):
@@ -207,7 +234,7 @@ class ResourceClass(Model, Notify):
         else:
             return None
 
-    def get(self, key: ResClassAttribute | Iri) -> AttributeTypes | PropertyClass | Iri | None:
+    def get(self, key: ResClassAttribute | Iri) -> AttributeTypes | HasProperty | Iri | None:
         if isinstance(key, ResClassAttribute):
             return self._attributes.get(key)
         elif isinstance(key, Iri):
@@ -215,7 +242,7 @@ class ResourceClass(Model, Notify):
         else:
             return None
 
-    def __setitem__(self, key: ResClassAttribute | Iri, value: AttributeParams | PropertyClass | Iri) -> None:
+    def __setitem__(self, key: ResClassAttribute | Iri, value: AttributeParams | HasProperty) -> None:
         self._change_setter(key, value)
 
     def __delitem__(self, key: ResClassAttribute | Iri) -> None:
@@ -240,7 +267,7 @@ class ResourceClass(Model, Notify):
         return self.__version
 
     @property
-    def properties(self) -> dict[Iri, PropertyClass]:
+    def properties(self) -> dict[Iri, HasProperty]:
         return self._properties
 
     def properties_items(self):
@@ -256,8 +283,8 @@ class ResourceClass(Model, Notify):
         s += super().__str__()
         s += f'{blank:{indent*1}}Properties:\n'
         sorted_properties = sorted(self._properties.items(), key=lambda prop: prop[1].order if prop[1].order is not None else 9999)
-        for qname, prop in sorted_properties:
-            s += f'{blank:{indent*2}}{qname} = {prop}\n'
+        for qname, hasprop in sorted_properties:
+            s += f'{blank:{indent*2}}{qname} = {hasprop.prop} (minCount={hasprop.minCount}, maxCount={hasprop.maxCount}\n'
         return s
 
     def changeset_clear(self) -> None:
@@ -396,7 +423,7 @@ class ResourceClass(Model, Notify):
         self.changeset_clear()
 
     @staticmethod
-    def __query_resource_props(con: IConnection, project: Project, owlclass_iri: Iri) -> List[PropertyClass | Iri]:
+    def __query_resource_props(con: IConnection, project: Project, owlclass_iri: Iri) -> List[HasProperty | Iri]:
         """
         This method queries and returns a list of properties defined in a sh:NodeShape. The properties may be
         given "inline" as BNode or may be a reference to an external sh:PropertyShape. These external shapes will be
@@ -437,9 +464,9 @@ class ResourceClass(Model, Notify):
         # NOTE: some of the nodes may actually be QNames referencing shapes defines as "standalone" sh:PropertyShape's.
         #
         for r in res:
-            if isinstance(r['value'], Iri) and r['value'] == 'rdf:type':
+            if r.get('value') and isinstance(r['value'], Iri) and r['value'] == 'rdf:type':
                 continue
-            if not isinstance(r['attriri'], Iri):
+            if r.get('attriri') and not isinstance(r['attriri'], Iri):
                 raise OldapError(f"There is some inconsistency in this shape! ({r['attriri']})")
             propnode = r['prop']  # usually a BNode, but may be a reference to a standalone sh:PropertyShape definition
             prop: PropertyClass | Iri
@@ -456,17 +483,22 @@ class ResourceClass(Model, Notify):
         # now we collected all the information from the triple store. Let's process the information into
         # a list of full PropertyClasses or QName's to external definitions
         #
-        proplist: List[Iri | PropertyClass] = []
+        proplist: List[HasProperty] = []
         for prop_iri, attributes in propinfos.items():
             if isinstance(attributes, Iri):
-                proplist.append(prop_iri)
+                proplist.append(HasProperty(prop_iri))
             else:
                 prop = PropertyClass(con=con, project=project)
-                prop.parse_shacl(attributes=attributes)
-                prop.read_owl()
-                if prop._internal != owlclass_iri:
-                    OldapErrorInconsistency(f'ERRROR ERROR ERROR')
-                proplist.append(prop)
+                t = prop.parse_shacl(attributes=attributes)
+                if t[0]:
+                    prop = PropertyClass.read(con, project, t[0])
+                    prop.force_external()
+                    proplist.append(HasProperty(prop, t[1], t[2]))
+                else:
+                    prop.read_owl()
+                    if prop._internal != owlclass_iri:
+                        OldapErrorInconsistency(f'ERRROR ERROR ERROR')
+                    proplist.append(HasProperty(prop, t[1], t[2]))
         return proplist
 
     def __read_owl(self):
@@ -512,7 +544,7 @@ class ResourceClass(Model, Notify):
             prop = [x for x in self._properties if x == property_iri]
             if len(prop) != 1:
                 raise OldapError(f'Property "{property_iri}" of "{self._owlclass_iri}" from OWL has no SHACL definition!')
-            self._properties[prop[0]].read_owl()
+            self._properties[prop[0]].prop.read_owl()
         #
         # now get all the subClassOf of other classes
         #
@@ -538,11 +570,11 @@ class ResourceClass(Model, Notify):
         if not isinstance(project, Project):
             raise OldapErrorValue('The project parameter must be a Project instance')
 
-        properties: List[Union[PropertyClass, Iri]] = ResourceClass.__query_resource_props(con=con, project=project, owlclass_iri=owl_class_iri)
-        resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, properties=properties)
-        for prop in properties:
-            if isinstance(prop, PropertyClass):
-                prop.set_notifier(resclass.notifier, prop.property_class_iri)
+        hasproperties: List[Union[PropertyClass, Iri]] = ResourceClass.__query_resource_props(con=con, project=project, owlclass_iri=owl_class_iri)
+        resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, hasproperties=hasproperties)
+        for hasprop in hasproperties:
+            if isinstance(hasprop, PropertyClass):
+                hasprop.set_notifier(resclass.notifier, hasprop.property_class_iri)
         attributes = ResourceClass.__query_shacl(con, project=project, owl_class_iri=owl_class_iri)
         resclass._parse_shacl(attributes=attributes)
         resclass.__read_owl()
@@ -624,14 +656,25 @@ class ResourceClass(Model, Notify):
         sparql += f'\n{blank:{(indent + 4) * indent_inc}}sh:path rdf:type'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
 
-        for iri, p in self._properties.items():
-            if p.internal is not None:
+        for iri, hp in self._properties.items():
+            if hp.prop.internal is not None:
                 sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property'
                 sparql += f'\n{blank:{(indent + 3)*indent_inc}}[\n'
-                sparql += p.property_node_shacl(timestamp=timestamp, indent=4)
+                sparql += hp.prop.property_node_shacl(timestamp=timestamp, indent=4)
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
             else:
-                sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property {iri}Shape'
+
+                if hp.minCount or hp.maxCount:
+                    sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property'
+                    sparql += f'\n{blank:{(indent + 3) * indent_inc}}['
+                    sparql += f'\n{blank:{(indent + 4) * indent_inc}}sh:node {iri}Shape'
+                    if hp.minCount:
+                        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:minCount {hp.minCount.toRdf}'
+                    if hp.maxCount:
+                        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:maxCount {hp.maxCount.toRdf}'
+                    sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
+                else:
+                    sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property {iri}Shape'
         if len(self._properties) > 0:
             sparql += ' .\n'
         return sparql
@@ -639,9 +682,9 @@ class ResourceClass(Model, Notify):
     def create_owl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4):
         blank = ''
         sparql = ''
-        for iri, p in self._properties.items():
-            if not p.from_triplestore:
-                sparql += p.create_owl_part1(timestamp, indent + 2) + '\n'
+        for iri, hp in self._properties.items():
+            if not hp.prop.from_triplestore:
+                sparql += hp.prop.create_owl_part1(timestamp, indent + 2) + '\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owlclass_iri} rdf:type owl:Class ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion {self.__version.toRdf} ;\n'
@@ -657,7 +700,7 @@ class ResourceClass(Model, Notify):
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf\n'
         i = 0
         for iri, p in self._properties.items():
-            sparql += p.create_owl_part2(indent + 4)
+            sparql += hp.prop.create_owl_part2(minCount=hp.minCount, maxCount=hp.maxCount, indent=(indent + 4))
             if i < len(self._properties) - 1:
                 sparql += ' ,\n'
             else:
@@ -778,16 +821,16 @@ class ResourceClass(Model, Notify):
         #
         # now process properties
         #
-        for prop, change in self._prop_changeset.items():
+        for propiri, change in self._prop_changeset.items():
             if change.action in {Action.CREATE, Action.REPLACE}:  # do nothing for Action.MODIFY here
-                if self._properties[prop].internal is None:
+                if self._properties[propiri].prop.internal is None:
                     sparql = f'#\n# Process "QName" with action "{change.action.value}"\n#\n'
                     sparql += RdfModifyRes.shacl(action=change.action,
                                                  graph=self._graph,
                                                  owlclass_iri=self._owlclass_iri,
                                                  ele=RdfModifyItem('sh:property',
                                                                    change.old_value,
-                                                                   Iri(f'{prop}Shape')),
+                                                                   Iri(f'{propiri}Shape')),
                                                  last_modified=self._modified)
                     sparql_list.append(sparql)
             elif change.action == Action.DELETE:
@@ -801,7 +844,7 @@ class ResourceClass(Model, Notify):
                                                  owlclass_iri=self._owlclass_iri,
                                                  ele=RdfModifyItem('sh:property',
                                                                    None if change.old_value is None else Iri(f'{change.old_value.property_class_iri}Shape'),
-                                                                   Iri(f'{prop}Shape')),
+                                                                   Iri(f'{propiri}Shape')),
                                                  last_modified=self._modified)
                     sparql_list.append(sparql)
 
@@ -869,8 +912,8 @@ class ResourceClass(Model, Notify):
                 sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
 
-        for prop, change in self._prop_changeset.items():
-            sparql = f'#\n# OWL: Process property "{prop}" with Action "{change.action.value}"\n#\n'
+        for propiri, change in self._prop_changeset.items():
+            sparql = f'#\n# OWL: Process property "{propiri}" with Action "{change.action.value}"\n#\n'
             sparql += f'WITH {self._graph}:onto\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
@@ -880,7 +923,7 @@ class ResourceClass(Model, Notify):
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?res rdfs:subClassOf\n'
-                sparql += self._properties[prop].create_owl_part2(indent=2)
+                sparql += self._properties[propiri].create_owl_part2(indent=2)
                 sparql += '\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'

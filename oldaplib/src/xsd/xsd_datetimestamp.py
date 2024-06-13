@@ -17,7 +17,7 @@ class Xsd_dateTimeStamp(Xsd):
     """
     __value: datetime
 
-    def __init__(self, value: datetime | Self | str, validate: bool = True):
+    def __init__(self, value: datetime | Self | str | None = None, validate: bool = True):
         """
         Constructor for the Xsd_dateTimeStamp instance
         :param value: A Xsd_dateTimeStamp instance, or a datetime object or a string
@@ -25,7 +25,9 @@ class Xsd_dateTimeStamp(Xsd):
         :type value: datetime | Self | str
         :raises OldapErrorValue: If the value is not a datetimestamp object
         """
-        if isinstance(value, Xsd_dateTimeStamp):
+        if value is None:
+            self.__value = datetime.now()
+        elif isinstance(value, Xsd_dateTimeStamp):
             self.__value = value.__value
         elif isinstance(value, datetime):
             self.__value = value

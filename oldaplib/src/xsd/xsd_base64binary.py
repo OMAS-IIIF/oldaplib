@@ -29,15 +29,15 @@ class Xsd_base64Binary(Xsd):
             self.__value = value.__value
         elif isinstance(value, bytes):
             self.__value = value
+            if validate:
+                if len(value) % 4 != 0:
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
+                if not bool(re.match(r'^[A-Za-z0-9+/]+={0,2}$', value.decode('utf-8'))):
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
+                if not XsdValidator.validate(XsdDatatypes.base64Binary, value.decode('utf-8')):
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
         else:
             OldapErrorValue("Xsd_base64Binary requires bytes parameter")
-        if validate:
-            if len(value) % 4 != 0:
-                raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
-            if not bool(re.match(r'^[A-Za-z0-9+/]+={0,2}$', value.decode('utf-8'))):
-                raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
-            if not XsdValidator.validate(XsdDatatypes.base64Binary, value.decode('utf-8')):
-                raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
 
     def __str__(self):
         """

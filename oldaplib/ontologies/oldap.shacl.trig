@@ -54,7 +54,6 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:minCount "1"^^xsd:integer ;
         sh:datatype rdf:langString ;
         sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true ;
@@ -114,8 +113,6 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:minCount "1"^^xsd:integer ;
-        sh:maxCount "1"^^xsd:integer ;
         sh:class :User ;
         sh:group :SystemPropGroup .
 
@@ -129,8 +126,6 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:minCount "1"^^xsd:integer ;
-        sh:maxCount "1"^^xsd:integer ;
         sh:datatype xsd:dateTime ;
         sh:group :SystemPropGroup .
 
@@ -144,8 +139,6 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:minCount "1"^^xsd:integer ;
-        sh:maxCount "1"^^xsd:integer ;
         sh:class :User ;
         sh:group :SystemPropGroup .
 
@@ -154,15 +147,34 @@
     #
     :modifiedShape a sh:PropertyShape ;
         sh:path dcterms:modified ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:minCount "1"^^xsd:integer ;
-        sh:maxCount "1"^^xsd:integer ;
         sh:datatype xsd:dateTime ;
         sh:group :SystemPropGroup .
+
+    :familyNameShape a sh:PropertyShape ;
+        sh:path foaf:familyName ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:datatype xsd:string ;
+        sh:name "Family name"@en, "Familiennamen"@de, "Nom de famillie"@fr, "Nome della famiglia"@it ;
+        sh:description "The family name of some person."@en ;
+        sh:group :FoafGroup .
+
+    :givenNameShape a sh:PropertyShape ;
+        sh:path foaf:givenName ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:datatype xsd:string ;
+        sh:name "Given name"@en, "Vornamen"@de, "Pénom"@fr, "Nome"@it ;
+        sh:description "The given name of some person"@en ;
+        sh:group :FoafGroup .
 
     #
     # SHACL definition of the oldap:AdminPermission class. The AdminPermission instances are attached as
@@ -386,6 +398,8 @@
                 sh:maxLength "32"^^xsd:integer ;
                 sh:datatype xsd:NCName ;
             ] ;
+        sh:property foaf:familyName ;
+        sh:property foaf:givenName ;
         sh:property
             [
                 sh:path :credentials ;
@@ -399,33 +413,33 @@
                 sh:name "Password"@en, "Passwort"@de, "Mot de passe"@fr, "Password"@it ;
                 sh:description "Password for user."@en ;
             ] ;
-        sh:property
-            [
-                sh:path foaf:familyName ;
-                dcterms:hasVersion "1.0.0"^^xsd:string ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount "1"^^xsd:integer ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:datatype xsd:string ;
-                sh:name "Family name"@en, "Familiennamen"@de, "Nom de famillie"@fr, "Nome della famiglia"@it ;
-                sh:description "The family name of some person."@en ;
-            ] ;
-        sh:property
-            [
-                sh:path foaf:givenName ;
-                dcterms:hasVersion "1.0.0"^^xsd:string ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:minCount "1"^^xsd:integer ;
-                sh:datatype xsd:string ;
-                sh:name "Given name"@en, "Vornamen"@de, "Pénom"@fr, "Nome"@it ;
-                sh:description "The given name of some person"@en ;
-            ] ;
+        #sh:property
+        #    [
+        #        sh:path foaf:familyName ;
+        #        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        #        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        #        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        #        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        #        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        #        sh:minCount "1"^^xsd:integer ;
+        #        sh:maxCount "1"^^xsd:integer ;
+        #        sh:datatype xsd:string ;
+        #        sh:name "Family name"@en, "Familiennamen"@de, "Nom de famillie"@fr, "Nome della famiglia"@it ;
+        #        sh:description "The family name of some person."@en ;
+        #    ] ;
+        #sh:property
+        #    [
+        #        sh:path foaf:givenName ;
+        #        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        #        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        #        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        #        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        #        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        #        sh:minCount "1"^^xsd:integer ;
+        #        sh:datatype xsd:string ;
+        #        sh:name "Given name"@en, "Vornamen"@de, "Pénom"@fr, "Nome"@it ;
+        #        sh:description "The given name of some person"@en ;
+        #    ] ;
         sh:property
             [
                 sh:path :inProject ;

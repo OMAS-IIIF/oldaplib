@@ -77,7 +77,6 @@ class TestPropertyClass(unittest.TestCase):
                           datatype=XsdDatatypes.string,
                           name=LangString(["Test property@en", "Testprädikat@de"]),
                           description=LangString("A property for testing...@"),
-                          maxCount=1,
                           order=Xsd_decimal(5))
         self.assertEqual(p.property_class_iri, Iri('test:testprop'))
         self.assertEqual(p.get(PropClassAttr.SUBPROPERTY_OF), Iri('test:comment'))
@@ -88,10 +87,8 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_tonode_constructor(self):
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
-                           toClass=Iri('test:Person'),
-                           maxCount=1)
+                           toClass=Iri('test:Person'))
         self.assertEqual(p2.get(PropClassAttr.CLASS), Xsd_QName('test:Person'))
-        self.assertEqual(p2.get(PropClassAttr.MAX_COUNT), Xsd_integer(1))
 
     def test_propertyclass_datatype_constructor(self):
         p3 = PropertyClass(con=self._connection,
@@ -140,8 +137,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.datatype, XsdDatatypes.langString)
         self.assertTrue(p1.get(PropClassAttr.UNIQUE_LANG))
         self.assertTrue(p1.uniqueLang)
-        self.assertEqual(p1.get(PropClassAttr.MAX_COUNT), Xsd_integer(1))
-        self.assertEqual(p1.maxCount, Xsd_integer(1))
         self.assertEqual(p1.get(PropClassAttr.NAME), LangString(["comment@en", "Kommentar@de"]))
         self.assertEqual(p1.name, LangString(["comment@en", "Kommentar@de"]))
         self.assertEqual(p1.get(PropClassAttr.DESCRIPTION), LangString("This is a test property@de"))
@@ -159,7 +154,6 @@ class TestPropertyClass(unittest.TestCase):
                                 project=self._project,
                                 property_class_iri=Iri('test:test'))
         self.assertEqual(p2.property_class_iri, Iri('test:test'))
-        self.assertEqual(p2[PropClassAttr.MIN_COUNT], Xsd_integer(1))
         self.assertEqual(p2[PropClassAttr.NAME], LangString("Test"))
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("Property shape for testing purposes"))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.string)
@@ -307,22 +301,14 @@ class TestPropertyClass(unittest.TestCase):
             project=self._project,
             property_class_iri=Iri('test:testUndo'),
             toClass=Iri('test:testUndo42'),
-            minCount=Xsd_integer(1),
-            maxCount=Xsd_integer(1),
             order=Xsd_decimal(11)
         )
         p1.toNodeIri = Iri('test:UP4014')
-        del p1.minCount
-        p1.maxCount = Xsd_integer(7)
         p1.order = Xsd_decimal(7)
         self.assertEqual(p1.toNodeIri, Iri('test:UP4014'))
-        self.assertIsNone(p1.minCount)
-        self.assertEqual(p1.maxCount, Xsd_integer(7))
         self.assertEqual(p1.order, Xsd_decimal(7))
         p1.undo()
         self.assertEqual(p1.toClass, Iri('test:testUndo42'))
-        self.assertEqual(p1.minCount, Xsd_integer(1))
-        self.assertEqual(p1.maxCount, Xsd_integer(1))
         self.assertEqual(p1.order, Xsd_decimal(11))
 
 
@@ -338,8 +324,6 @@ class TestPropertyClass(unittest.TestCase):
             description=LangString("An annotation@en"),
             languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
             uniqueLang=Xsd_boolean(True),
-            maxCount=Xsd_integer(1),
-            minCount=Xsd_integer(10),
             order=Xsd_decimal(11)
         )
         p1.create()
@@ -350,7 +334,6 @@ class TestPropertyClass(unittest.TestCase):
         p1[PropClassAttr.UNIQUE_LANG] = Xsd_boolean(False)
         p1[PropClassAttr.IN] = RdfSet(Xsd_string("gaga"), Xsd_string("is was"))
         p1.order = Xsd_decimal(22)
-        p1.minCount = Xsd_integer(1)
         self.maxDiff = None
         self.assertEqual(p1.changeset, {
             PropClassAttr.ORDER: AttributeChange(Xsd_decimal(11), Action.REPLACE),
@@ -359,7 +342,6 @@ class TestPropertyClass(unittest.TestCase):
             PropClassAttr.SUBPROPERTY_OF: AttributeChange(Iri('test:masterProp'), Action.REPLACE),
             PropClassAttr.UNIQUE_LANG: AttributeChange(Xsd_boolean(True), Action.REPLACE),
             PropClassAttr.IN: AttributeChange(None, Action.CREATE),
-            PropClassAttr.MIN_COUNT: AttributeChange(Xsd_integer(10), Action.REPLACE),
         })
         p1.update()
         self.assertEqual(p1.changeset, {})
@@ -389,8 +371,6 @@ class TestPropertyClass(unittest.TestCase):
             datatype=XsdDatatypes.langString,
             languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
             uniqueLang=Xsd_boolean(True),
-            maxCount=Xsd_integer(1),
-            minCount=Xsd_integer(0),
             order=Xsd_decimal(11)
         )
         p1.create()
@@ -435,14 +415,11 @@ class TestPropertyClass(unittest.TestCase):
             description=LangString("An annotation@en"),
             languageIn=LanguageIn(Language.ZU, Language.CY, Language.SV, Language.RM),
             uniqueLang=Xsd_boolean(True),
-            maxCount=Xsd_integer(1),
-            minCount=Xsd_integer(0),
             inSet=RdfSet(Xsd_string('A'), Xsd_string('B'), Xsd_string('C')),
             order=Xsd_decimal(11)
         )
         p1.create()
         del p1[PropClassAttr.NAME]
-        del p1[PropClassAttr.MAX_COUNT]
         del p1[PropClassAttr.UNIQUE_LANG]
         del p1[PropClassAttr.LANGUAGE_IN]
         del p1[PropClassAttr.IN]
@@ -452,7 +429,6 @@ class TestPropertyClass(unittest.TestCase):
                                 project=self._project,
                                 property_class_iri=Iri('test:testDelete'))
         self.assertIsNone(p2.name)
-        self.assertIsNone(p2.maxCount)
         self.assertIsNone(p2.uniqueLang)
         self.assertIsNone(p2.languageIn)
         self.assertIsNone(p2.inSet)
@@ -483,8 +459,6 @@ class TestPropertyClass(unittest.TestCase):
             description=LangString("An annotation@en"),
             languageIn=LanguageIn(Language.ZU, Language.CY, Language.SV, Language.RM),
             uniqueLang=Xsd_boolean(True),
-            maxCount=Xsd_integer(1),
-            minCount=Xsd_integer(0),
             order=Xsd_decimal(11)
         )
         p1.create()
@@ -521,8 +495,6 @@ class TestPropertyClass(unittest.TestCase):
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
             inSet=XsdSet(Iri('test:gaga1'), Iri('test:gaga2'), Iri('test:gaga3')),
-            maxCount=Xsd_integer(1),
-            minCount=Xsd_integer(0),
             order=Xsd_decimal(11)
         )
         p1.create()
@@ -559,8 +531,6 @@ class TestPropertyClass(unittest.TestCase):
             toClass=Iri('test:comment'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
-            maxCount=Xsd_integer(1),
-            minCount=Xsd_integer(0),
         )
         p1.write_as_trig('propclass_test.trig')
 

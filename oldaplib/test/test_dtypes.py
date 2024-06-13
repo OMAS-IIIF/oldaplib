@@ -9,11 +9,14 @@ from oldaplib.src.dtypes.rdfset import RdfSet
 from oldaplib.src.dtypes.xsdset import XsdSet
 from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_float import Xsd_float
+from oldaplib.src.xsd.xsd_int import Xsd_int
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -218,6 +221,16 @@ class MyTestCase(unittest.TestCase):
 
         with self.assertRaises(OldapErrorValue) as err:
             val = Xsd_string("This is a test", "gaga")
+
+    def test_numeric(self):
+        n1 = Numeric(1.0)
+        self.assertIsInstance(n1, Xsd_float)
+        n2 = Numeric(Xsd_float(1.0))
+        self.assertIsInstance(n2, Xsd_float)
+        n3 = Numeric(42)
+        self.assertIsInstance(n3, Xsd_integer)
+        n4 = Numeric(Xsd_integer(42))
+        self.assertIsInstance(n4, Xsd_integer)
 
 
 

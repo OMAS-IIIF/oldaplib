@@ -49,7 +49,6 @@ oldap:admin {
         sh:datatype rdf:langString ;
         sh:uniqueLang true ;
         sh:languageIn ("de"^^xsd:string "fr"^^xsd:string "en"^^xsd:string) ;
-        sh:maxCount "1"^^xsd:integer ;
         sh:order "2"^^xsd:decimal ;
         dcterms:hasVersion "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -62,7 +61,6 @@ oldap:admin {
         sh:name "Test" ;
         sh:description "Property shape for testing purposes";
         sh:datatype xsd:string ;
-        sh:minCount "1"^^xsd:integer ;
         sh:order "3"^^xsd:decimal ;
         dcterms:hasVersion "1.0.0" ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -95,7 +93,12 @@ oldap:admin {
             [
                 sh:path rdf:type ;
             ] ;
-        sh:property :testShape ;
+        sh:property
+            [
+                sh:node :testShape ;
+                sh:minCount "1"^^xsd:integer ;
+                sh:maxCount "1"^^xsd:integer ;
+            ] ;
         sh:property
             [
                 sh:path :hasText ;
@@ -244,7 +247,7 @@ oldap:admin {
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty :test ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
             ],
             [
                 rdf:type owl:Restriction ;

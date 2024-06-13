@@ -25,7 +25,7 @@ class OldapList(Model):
 
     __project: Project
     __graph: Xsd_NCName
-    __oldaplist_iri: Iri
+    __oldapList_iri: Iri
 
     def __init__(self, *,
                  con: IConnection,
@@ -51,11 +51,10 @@ class OldapList(Model):
 
         self.set_attributes(kwargs, OldapListAttr)
 
-        self.__oldaplist_iri = Iri.fromPrefixFragment(self.__project.projectShortName,
+        self.__oldapList_iri = Iri.fromPrefixFragment(self.__project.projectShortName,
                                                       self._attributes[OldapListAttr.OLDAPLIST_ID],
                                                       validate=False)
         for attr in OldapListAttr:
-            #prefix, name = attr.value.split(':')
             setattr(OldapList, attr.value.fragment, property(
                 partial(OldapList._get_value, attr=attr),
                 partial(OldapList._set_value, attr=attr),
@@ -215,7 +214,7 @@ class OldapList(Model):
         FROM {self.__graph}:lists
         WHERE {{
             ?list a oldap:OldapList .
-            FILTER(?list = {self.__oldaplist_iri.toRdf})
+            FILTER(?list = {self.__oldapList_iri.toRdf})
         }}
         """
 
@@ -223,9 +222,9 @@ class OldapList(Model):
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldaplist_iri.toRdf} a oldap:OldapList'
+        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldapList_iri.toRdf} a oldap:OldapList'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creationDate {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         if self.prefLabel:
@@ -244,7 +243,7 @@ class OldapList(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OldapErrorAlreadyExists(f'A list with a oldapListIri "{self.__oldaplist_iri}" already exists')
+            raise OldapErrorAlreadyExists(f'A list with a oldapListIri "{self.__oldapList_iri}" already exists')
 
         try:
             self._con.transaction_update(sparql2)
@@ -275,17 +274,17 @@ class OldapList(Model):
             if field == OldapListAttr.PREF_LABEL or field == OldapListAttr.DEFINITION:
                 if change.action == Action.MODIFY:
                     sparql_list.extend(self._attributes[field].update(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                                      subject=self.__oldaplist_iri,
+                                                                      subject=self.__oldapList_iri,
                                                                       subjectvar='?list',
                                                                       field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
                     sparql = self._changeset[field].old_value.delete(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                                      subject=self.__oldaplist_iri,
-                                                                      field=Xsd_QName(field.value))
+                                                                     subject=self.__oldapList_iri,
+                                                                     field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
                     sparql = self._attributes[field].create(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                            subject=self.__oldaplist_iri,
+                                                            subject=self.__oldapList_iri,
                                                             field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
 
@@ -295,8 +294,8 @@ class OldapList(Model):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__oldaplist_iri, self.modified, timestamp)
-            modtime = self.get_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__oldaplist_iri)
+            self.set_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__oldapList_iri, self.modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__oldapList_iri)
         except OldapError:
             self._con.transaction_abort()
             raise
@@ -338,8 +337,8 @@ class OldapList(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.__oldaplist_iri.toRdf} a oldap:OldapList .
-            {self.__oldaplist_iri.toRdf} ?prop ?val .
+            {self.__oldapList_iri.toRdf} a oldap:OldapList .
+            {self.__oldapList_iri.toRdf} ?prop ?val .
         }} 
         """
         # TODO: use transaction for error handling

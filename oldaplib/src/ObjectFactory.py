@@ -7,10 +7,13 @@ from pystrict import strict
 from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency, \
+    OldapErrorNoPermission
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.project import Project
@@ -23,6 +26,7 @@ from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_byte import Xsd_byte
 from oldaplib.src.xsd.xsd_date import Xsd_date
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
 from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_double import Xsd_double
 from oldaplib.src.xsd.xsd_duration import Xsd_duration
@@ -58,9 +62,10 @@ from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 ValueType = Xsd | LangString | list[Xsd]
 
 #@strict
-class ResourceInstance(Model):
+class ResourceInstance:
     _iri: Iri
     _values: dict[str, Xsd | LangString | list[Xsd | LangString]]
+    _graph: Xsd_NCName
 
     @staticmethod
     def convert2datatype(value: Any, datatype: XsdDatatypes) -> Xsd | LangString:
@@ -80,9 +85,9 @@ class ResourceInstance(Model):
             case XsdDatatypes.duration:
                 return Xsd_duration(value)
             case XsdDatatypes.dateTime:
-                return Xsd_date(value)
-            case XsdDatatypes.dateTimeStamp:
                 return Xsd_dateTime(value)
+            case XsdDatatypes.dateTimeStamp:
+                return Xsd_dateTimeStamp(value)
             case XsdDatatypes.time:
                 return Xsd_time(value)
             case XsdDatatypes.date:
@@ -153,9 +158,9 @@ class ResourceInstance(Model):
     def __init__(self, *,
                  iri: Iri | None = None,
                  **kwargs):
-        super().__init__(self.connection)
         self._iri = iri or Iri()
         self._values = {}
+        self._graph = self.project.projectShortName
         #
         # get and transform values
         #
@@ -177,13 +182,13 @@ class ResourceInstance(Model):
                 partial(ResourceInstance.__del_value, attr=prop_iri.fragment)))
 
         if not self._values.get('creator'):
-            self._values['creator'] = self._con.userIri
-        if not self._values.get('created'):
-            self._values['created'] = Xsd_dateTime()
-        if not self._values.get('contributor'):
-            self._values['contributor'] = self._con.userIri
-        if not self._values.get('modified'):
-            self._values['modified'] = Xsd_dateTime()
+            self._values['createdBy'] = self._con.userIri
+        if not self._values.get('createdBy'):
+            self._values['creationDate'] = Xsd_dateTime()
+        if not self._values.get('lastModifiedBy'):
+            self._values['lastModifiedBy'] = self._con.userIri
+        if not self._values.get('lastModificationDate'):
+            self._values['lastModificationDate'] = Xsd_dateTimeStamp()
         #
         # consistency and conformance tests
         #
@@ -309,6 +314,31 @@ class ResourceInstance(Model):
                 if not b:
                     raise OldapErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{other_value}".')
 
+    def check_for_permissions(self) -> (bool, str):
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            #
+            # user has root privileges!
+            #
+            return True, "OK – IS ROOT"
+        else:
+            if len(self.inProject) == 0:
+                return False, f'Actor has no ADMIN_CREATE permission for user {self.userId}.'
+            allowed: list[Iri] = []
+            for proj in self.inProject.keys():
+                if actor.inProject.get(proj) is None:
+                    return False, f'Actor has no ADMIN_CREATE permission for project {proj}'
+                else:
+                    if AdminPermission.ADMIN_CREATE not in actor.inProject.get(proj):
+                        return False, f'Actor has no ADMIN_CREATE permission for project {proj}'
+            return True, "OK"
+
+
     def __get_value(self: Self, attr: str) -> ValueType | None:
         tmp = self._values.get(attr)
         if not tmp:
@@ -323,6 +353,33 @@ class ResourceInstance(Model):
         #self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
         del self._values[attr]
 
+    def create(self, indent: int = 0, indent_inc: int = 4):
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
+        timestamp = Xsd_dateTimeStamp()
+        indent: int = 0
+        indent_inc: int = 4
+
+        blank = ''
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{'
+
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} a {self._graph}:{self.name}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:createdBy {self._con.userIri.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:created {timestamp.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:lastModifiedBy {self._con.userIri.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:lastModificationDate {timestamp.toRdf}'
+
+        for propname, value in self._values.items():
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{self._graph}:{propname} {value.toRdf}'
+        sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        print(sparql)
+
 
 #@strict
 class ResourceInstanceFactory:
@@ -330,20 +387,30 @@ class ResourceInstanceFactory:
     _project: Project
     _datamodel: DataModel
 
-    def __init__(self, con: IConnection, project: Project):
+    def __init__(self,
+                 con: IConnection,
+                 project: Project | Iri | Xsd_NCName | str):
         self._con = con
-        self._project = project
+        if isinstance(project, Project):
+            self._project = project
+        else:
+            self._project = Project.read(self._con, project)
+
         self._datamodel = DataModel.read(con=self._con, project=self._project)
 
-    def createObjectInstance(self, classiri: Iri, name: str) -> Type:  ## ToDo: Get name automatically from IRI
+    def createObjectInstance(self, name: Xsd_NCName | str) -> Type:  ## ToDo: Get name automatically from IRI
+        classiri = Xsd_QName(self._project.projectShortName, name)
         resclass = self._datamodel.get(classiri)
+        if not isinstance(name, Xsd_NCName):
+            name = Xsd_NCName(name)
         if resclass is None:
             raise OldapErrorNotFound(f'Given Resource Class "{classiri}" not found.')
-        return type(name, (ResourceInstance,), {
-            'connection': self._con,
+        return type(str(name), (ResourceInstance,), {
+            '_con': self._con,
             'project': self._project,
-            'classiri': classiri,
-            'properties': resclass.properties})
+            'name': name,
+            'properties': resclass.properties,
+            'superclass': resclass.superclass})
 
 
 
