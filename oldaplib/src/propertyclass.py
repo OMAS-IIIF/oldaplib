@@ -506,9 +506,11 @@ class PropertyClass(Model, Notify):
     def property_node_shacl(self, *,
                             timestamp: Xsd_dateTime,
                             bnode: Xsd_QName | None = None,
+                            minCount: Xsd_integer | None = None,
+                            maxCount: Xsd_integer | None = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{(indent + 1) * indent_inc}}# PropertyClass.property_node_shacl()'
+        sparql = f'{blank:{(indent + 1) * indent_inc}}# >>PropertyClass.property_node_shacl()'
         if bnode:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}} {bnode} sh:path {self._property_class_iri.toRdf}'
         else:
@@ -522,6 +524,10 @@ class PropertyClass(Model, Notify):
             if prop == PropClassAttr.TYPE:
                 continue
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.toRdf}'
+        if minCount:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:minCount {minCount.toRdf}'
+        if maxCount:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:maxCount {maxCount.toRdf}'
             # if prop != PropClassAttr.RESTRICTIONS:
             #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
             # else:
@@ -532,16 +538,21 @@ class PropertyClass(Model, Notify):
     def create_shacl(self, *,
                      timestamp: Xsd_dateTime,
                      owlclass_iri: Iri | None = None,
+                     minCount: Xsd_integer | None = None,
+                     maxCount: Xsd_integer | None = None,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'\n{blank:{indent * indent_inc}}# PropertyClass.create_shacl()'
-        if owlclass_iri is None:
+        if owlclass_iri is None:  # standalone property! Therefor no minCount, maxCount!
             sparql += f'\n{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
-            sparql += self.property_node_shacl(timestamp=timestamp, indent=indent, indent_inc=indent_inc)
+            sparql += self.property_node_shacl(timestamp=timestamp,
+                                               indent=indent, indent_inc=indent_inc)
         else:
             bnode = Xsd_QName('_:propnode')
             sparql += f'\n{blank:{indent * indent_inc}}{owlclass_iri}Shape sh:property {bnode} .\n'
-            sparql += self.property_node_shacl(timestamp=timestamp, bnode=bnode, indent=indent, indent_inc=indent_inc)
+            sparql += self.property_node_shacl(timestamp=timestamp, bnode=bnode,
+                                               minCount=minCount, maxCount=maxCount,
+                                               indent=indent, indent_inc=indent_inc)
         sparql += ' .\n'
         return sparql
 
@@ -572,8 +583,6 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri.toRdf}'
 
-        #mincnt = self._attributes.get(PropClassAttr.MIN_COUNT)
-        #maxcnt = self._attributes.get(PropClassAttr.MAX_COUNT)
         if minCount and maxCount  and minCount == maxCount:
             sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:qualifiedCardinality {minCount.toRdf}'
         else:
@@ -599,7 +608,10 @@ class PropertyClass(Model, Notify):
         self._contributor = self._con.userIri
         self.__from_triplestore = True
 
+
     def create(self, *,
+               minCount: Xsd_integer | None = None,
+               maxCount: Xsd_integer | None = None,
                indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
             raise OldapErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
@@ -610,12 +622,14 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
-        if self._internal is not None:
+        if self._internal is not None:  # internal property, add minCount, maxCount if defined
             sparql += self.create_shacl(timestamp=timestamp,
                                         owlclass_iri=self._internal,
+                                        minCount=minCount, maxCount=maxCount,
                                         indent=2)
-        else:
-            sparql += self.create_shacl(timestamp=timestamp, indent=2)
+        else:  # external standalone (reusable) property -> no minCount, maxCount
+            sparql += self.create_shacl(timestamp=timestamp,
+                                        indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
@@ -664,7 +678,7 @@ class PropertyClass(Model, Notify):
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:shacl {{\n')
             if self._internal is not None:
-                f.write(self.create_shacl(timestamp=timestamp, owlclass_iri=self._internal, indent=2))
+                f.write(self.create_shacl(timestamp=timestamp, owlclass_iri=self._internal,indent=2))
             else:
                 f.write(self.create_shacl(timestamp=timestamp, indent=2))
             f.write(f'{blank:{indent * indent_inc}}}}\n')
@@ -867,8 +881,8 @@ class PropertyClass(Model, Notify):
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} owl={modtime_owl} timestamp={timestamp}')
 
-    def __delete_shacl(self, *,
-                       indent: int = 0, indent_inc: int = 4) -> str:
+    def delete_shacl(self, *,
+                     indent: int = 0, indent_inc: int = 4) -> str:
         #
         # TODO: Test here if property is in use
         #
@@ -926,24 +940,24 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def delete_owl_subclass_str(self, *,
-                                owlclass_iri: Xsd_QName,
-                                indent: int = 0, indent_inc: int = 4):
+                                owlclass_iri: Iri,
+                                indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri.toRdf} rdfs:subClassOf ?propnode .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri.toRdf} rdfs:subClassOf ?propnode .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {self._property_class_iri.toRdf} .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 
-    def __delete_owl(self, *,
-                     indent: int = 0, indent_inc: int = 4) -> str:
+    def delete_owl(self, *,
+                   indent: int = 0, indent_inc: int = 4) -> str:
         owlclass_iri = self._internal
         blank = ''
         sparql_list = []
@@ -971,9 +985,9 @@ class PropertyClass(Model, Notify):
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
 
-        sparql += self.__delete_shacl()
+        sparql += self.delete_shacl()
         sparql += ' ;\n'
-        sparql += self.__delete_owl()
+        sparql += self.delete_owl()
 
         self.__from_triplestore = False
         self._con.transaction_start()

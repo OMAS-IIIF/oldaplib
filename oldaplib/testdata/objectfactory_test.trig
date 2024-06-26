@@ -43,7 +43,16 @@ test:shacl {
             [
                 sh:path rdf:type ;
             ] ;
-        sh:property foaf:familyName,  foaf:givenName .
+        sh:property [
+                sh:node foaf:familyName ;
+                sh:minCount "1"^^xsd:integer ;
+                sh:maxCount "1"^^xsd:integer ;
+            ] ;
+        sh:property
+            [
+                sh:node foaf:givenName ;
+                sh:minCount "1"^^xsd:integer ;
+            ] .
 
         test:PageShape a sh:NodeShape, test:Page ;
             sh:targetClass test:Page ;
@@ -686,6 +695,7 @@ test:shacl {
 
 
 }
+
 test:onto {
     test:ontology owl:type owl:Ontology ;
     owl:versionInfo "0.1.0"^^xsd:string .
