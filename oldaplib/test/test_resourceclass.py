@@ -520,17 +520,17 @@ class TestResourceClass(unittest.TestCase):
         p = PropertyClass(con=self._connection,
                           project=self._project,
                           toClass=Iri('test:Person'))
-        r1[Iri('dcterms:creator')] = HasProperty(prop=p, maxCount=Xsd_integer(1))
+        r1[Iri('dcterms:contributor')] = HasProperty(prop=p, maxCount=Xsd_integer(1))
 
         r1.update()
         del r1
         r2 = ResourceClass.read(con=self._connection,
                                 project=self._project,
                                 owl_class_iri=Iri("test:testMyResMinimalB"))
-        prop1 = r2[Iri('dcterms:creator')].prop
+        prop1 = r2[Iri('dcterms:contributor')].prop
         self.assertEqual(prop1.internal, Xsd_QName("test:testMyResMinimalB"))
         self.assertEqual(prop1.toClass, Xsd_QName('test:Person'))
-        self.assertEqual(r2[Iri('dcterms:creator')].maxCount, Xsd_integer(1))
+        self.assertEqual(r2[Iri('dcterms:contributor')].maxCount, Xsd_integer(1))
         self.assertEqual(prop1.type, OwlPropertyType.OwlObjectProperty)
 
     # @unittest.skip('Work in progress')

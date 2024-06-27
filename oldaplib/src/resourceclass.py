@@ -944,10 +944,10 @@ class ResourceClass(Model, Notify):
                             sparql2 = f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
                             sparql2 += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
                             sparql2 += self._properties[propiri].prop.create_shacl(timestamp=timestamp,
-                                                                                 owlclass_iri=self._properties[propiri].prop.internal,
-                                                                                 minCount=self._properties[propiri].minCount,
-                                                                                 maxCount=self._properties[propiri].maxCount,
-                                                                                 indent=2)
+                                                                                   owlclass_iri=self._properties[propiri].prop.internal,
+                                                                                   minCount=self._properties[propiri].minCount,
+                                                                                   maxCount=self._properties[propiri].maxCount,
+                                                                                   indent=2)
                             sparql2 += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                             sparql2 += f'{blank:{indent* indent_inc}}}}\n'
                             sparql_list.append(sparql2)
