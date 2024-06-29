@@ -370,9 +370,6 @@ class PropertyClass(Model, Notify):
                     self._attributes[attr] = attr.datatype(val)
 
         if refprop:
-            # if len(self._attributes) != 0:
-            #     print("======>", self._attributes)
-            #     raise OldapErrorNotFound(f'Definition of referenceproperty {refprop} has inconsistent properties.')
             return (refprop, minCount, maxCount)
 
         if self._attributes.get(PropClassAttr.CLASS) is not None:
@@ -528,11 +525,6 @@ class PropertyClass(Model, Notify):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:minCount {minCount.toRdf}'
         if maxCount:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:maxCount {maxCount.toRdf}'
-            # if prop != PropClassAttr.RESTRICTIONS:
-            #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.value if isinstance(value, Enum) else value}'
-            # else:
-            #     sparql += self._attributes[PropClassAttr.RESTRICTIONS].create_shacl(indent + 1, indent_inc)
-        #sparql += f' .\n'
         return sparql
 
     def create_shacl(self, *,

@@ -43,8 +43,6 @@ class PropClassAttr(AttributeClass):
     NAME = ('sh:name', False, False, LangString)
     DESCRIPTION = ('sh:description', False, False, LangString)
     ORDER = ('sh:order', False, False, Xsd_decimal)
-    #MIN_COUNT = ('sh:minCount', False, False, Xsd_integer)  # used also for OWL ontology
-    #MAX_COUNT = ('sh:maxCount', False, False,  Xsd_integer) # used also for OWL ontology
     LANGUAGE_IN = ('sh:languageIn', False, False, LanguageIn)
     UNIQUE_LANG = ('sh:uniqueLang', False, False, Xsd_boolean)
     IN = ('sh:in', False, False, XsdSet)

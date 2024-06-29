@@ -722,13 +722,6 @@ class ResourceClass(Model, Notify):
     def create_shacl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
-        # for iri, p in self._properties.items():
-        #     if p.internal is None and not p.from_triplestore:
-        #         #sparql += p.create_shacl(timestamp=timestamp)
-        #         sparql += f'{blank:{(indent + 2)*indent_inc}}{iri}Shape a sh:PropertyShape ;\n'
-        #         sparql += p.property_node_shacl(timestamp=timestamp, indent=3) + " .\n"
-        #         sparql += "\n"
-
         sparql += f'{blank:{(indent + 1)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:targetClass {self._owlclass_iri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:hasVersion {self.__version.toRdf}'
@@ -1097,7 +1090,6 @@ class ResourceClass(Model, Notify):
                                     maxCount: Xsd_integer | None = None,
                                     indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        #sparql = context.sparql_context
         sparql = f'INSERT DATA {{\n'
         sparql += f'    GRAPH {self._graph}:onto {{\n'
         sparql += f'{blank:{indent * indent_inc}}{self._owlclass_iri} rdfs:subClassOf [\n'
@@ -1256,59 +1248,6 @@ class ResourceClass(Model, Notify):
     def update(self) -> None:
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
-        #
-        # First we process the changes regarding the properties
-        #
-        #for prop, change in self._prop_changeset.items():
-        # print("*****>", str(prop), change)
-        # if change.action == Action.CREATE:
-        #     if isinstance(self._properties[prop].prop, Iri):  # -> reference to an external, foreign property!
-        #         self.__add_new_property_ref(context=context,
-        #                                     iri=self._properties[prop].prop,
-        #                                     minCount=self._properties[prop].minCount,
-        #                                     maxCount=self._properties[prop].maxCount)
-        #     elif isinstance(self._properties[prop].prop, PropertyClass):  # -> we have the PropertyClass available
-        #         if self._properties[prop].prop.from_triplestore:  # --> the property is already existing...
-        #             if self._properties[prop].prop.internal:
-        #                 raise OldapErrorInconsistency(f'Property "{prop}" is defined as internal and cannot be reused!')
-        #             self.__add_new_property_ref(context=context,
-        #                                         iri=self._properties[prop].prop.property_class_iri,
-        #                                         minCount=self._properties[prop].minCount,
-        #                                         maxCount=self._properties[prop].maxCount)
-        #         else:  # -> it's a new property,  not yet in the triple store. First create it...
-        #             if self._properties[prop].prop._force_external:
-        #                 # create a standalone property and the reference it!
-        #                 self._properties[prop].prop.create()
-        #                 self.__add_new_property_ref(context=context,
-        #                                             iri=self._properties[prop].prop.property_class_iri,
-        #                                             minCount=self._properties[prop].minCount,
-        #                                             maxCount=self._properties[prop].maxCount)
-        #             else:
-        #                 # Create an internal property (Bnode) and add minCount, maxCount
-        #                 self._properties[prop].prop.create(minCount=self._properties[prop].minCount,
-        #                                                    maxCount=self._properties[prop].maxCount)
-        #     if self._properties[prop].prop.internal is not None:
-        #         print("====---->", str(self._properties[prop]))
-        #         self._properties[prop].prop.create()
-        #     else:
-        #         print("++++++++>", str(self._properties[prop]))
-        #
-        #         # TODO: Add here the OWL rdfs:subClassOf to the owl ontology
-        # elif change.action == Action.REPLACE:
-        #     if change.old_value.prop.internal is not None:
-        #         change.old_value.prop.delete()
-        #     if not self._properties[prop].prop.from_triplestore:
-        #         self._properties[prop].prop.create()
-        #     else:
-        #         if self._properties[prop].prop.get(PropClassAttr.EXCLUSIVE_FOR) is None:
-        #             continue  # TODO: replace reference in __update_shacl and __update_owl
-        #         else:
-        #             raise OldapErrorInconsistency(f'Property is exclusive – simple reference not allowed')
-        # elif change.action == Action.MODIFY:
-        #     self._properties[prop].prop.update()
-        # elif change.action == Action.DELETE:
-        #     if change.old_value.prop.internal is not None:
-        #         change.old_value.prop.delete()
         sparql = context.sparql_context
         sparql += self.__update_shacl(timestamp=timestamp)
         sparql += ' ;\n'

@@ -263,8 +263,6 @@ class DataModel(Model):
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n'
-        #sparql += f'{blank:{(indent + 2) * indent_inc}}owl:imports <http://www.w3.org/2004/02/skos/core> ;\n'
-        #sparql += f'{blank:{(indent + 2) * indent_inc}}owl:imports oldap:ontology .\n'
         sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
@@ -326,8 +324,6 @@ class DataModel(Model):
             f.write(f'{blank:{indent * indent_inc}}{self.__graph}:onto {{\n')
             f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n')
             f.write(f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n')
-            # f.write(f'{blank:{(indent + 2) * indent_inc}}owl:imports <http://www.w3.org/2004/02/skos/core> ;\n')
-            # f.write(f'{blank:{(indent + 2) * indent_inc}}owl:imports oldap:ontology .\n')
             f.write('\n')
             for iri, prop in self.__propclasses.items():
                 f.write(prop.create_owl_part1(timestamp=timestamp, indent=2))
