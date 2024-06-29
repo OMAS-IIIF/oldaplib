@@ -57,6 +57,9 @@ class HasProperty:
         self.__maxCount = Xsd_integer(maxCount) if maxCount else None
         self.__callback = callback
 
+    def __str__(self) -> str:
+        return 'HasProperty: prop=' + str(self.__property)
+
     @property
     def prop(self) -> PropertyClass | Iri:
         return self.__property
@@ -202,8 +205,10 @@ class ResourceClass(Model, Notify):
                 else:
                     raise OldapErrorValue(f'Unexpected property type: {type(hasprop.prop).__name__}')
                 if newprop is not None:
-                    self._properties[newprop.prop.property_class_iri] = newprop
-                    newprop.prop.set_notifier(self.notifier, newprop.prop.property_class_iri)
+                    iri = newprop.prop.property_class_iri if isinstance(newprop.prop, PropertyClass) else newprop.prop
+                    self._properties[iri] = newprop
+                    if isinstance(newprop.prop, PropertyClass):
+                        newprop.prop.set_notifier(self.notifier, newprop.prop.property_class_iri)
 
         for attr in ResClassAttribute:
             setattr(ResourceClass, attr.value.fragment, property(
@@ -472,7 +477,10 @@ class ResourceClass(Model, Notify):
         self.changeset_clear()
 
     @staticmethod
-    def __query_resource_props(con: IConnection, project: Project, owlclass_iri: Iri) -> List[HasProperty | Iri]:
+    def __query_resource_props(con: IConnection,
+                               project: Project,
+                               owlclass_iri: Iri,
+                               sa_props: dict[Iri, PropertyClass] | None = None) -> List[HasProperty | Iri]:
         """
         This method queries and returns a list of properties defined in a sh:NodeShape. The properties may be
         given "inline" as BNode or may be a reference to an external sh:PropertyShape. These external shapes will be
@@ -489,6 +497,28 @@ class ResourceClass(Model, Notify):
         context.use(project.projectShortName)
         graph = project.projectShortName
 
+        #
+        # first we query all the properties that part of this resource
+        #
+        # There may be several ways to defines these properties:
+        #
+        # A. sh:property <iri> ;
+        #    Reference to an external property without any additional information. The property may be a foreign
+        #    property (e.g. cidoc:E5_Event) or a standalone property within the given datamodel
+        # B. sh:property [
+        #        sh:node <iri> ;
+        #        sh:maxCount "1"^^xsd:integer
+        #    ]
+        #    Reference to a foreign or standalone property with additional information (sh:minCount, sh:maxCount,
+        #    sh:order, sh:group)
+        # C. sh:property [
+        #        dcterm:creation "..." ;
+        #        ...
+        #        sh:datatype: xsd:string ;
+        #        ...
+        #    ]
+        #    An internal property local to this resource. May not be reused for other resources!
+        #
         query = context.sparql_context
         query += f"""
         SELECT ?prop ?attriri ?value ?oo
@@ -517,7 +547,7 @@ class ResourceClass(Model, Notify):
                 continue
             if r.get('attriri') and not isinstance(r['attriri'], Iri):
                 raise OldapError(f"There is some inconsistency in this shape! ({r['attriri']})")
-            propnode = r['prop']  # usually a BNode, but may be a reference to a standalone sh:PropertyShape definition
+            propnode = r['prop']  # Iri (case A. above) or a BNode (case B. and C. above)
             prop: PropertyClass | Iri
             if isinstance(propnode, Iri):
                 qname = propnode
@@ -535,15 +565,30 @@ class ResourceClass(Model, Notify):
         proplist: List[HasProperty] = []
         for prop_iri, attributes in propinfos.items():
             if isinstance(attributes, Iri):
-                proplist.append(HasProperty(prop=prop_iri))
+                #
+                # Case A.: sh:property <iri> ;
+                #
+                if sa_props and prop_iri in sa_props:
+                    proplist.append(HasProperty(prop=sa_props[prop_iri]))
+                else:
+                    proplist.append(HasProperty(prop=prop_iri))
             else:
                 prop = PropertyClass(con=con, project=project)
                 t = prop.parse_shacl(attributes=attributes)
                 if t[0]:
-                    prop = PropertyClass.read(con, project, t[0])
-                    prop.force_external()
-                    proplist.append(HasProperty(prop=prop, minCount=t[1], maxCount=t[2]))  # TODO: Callback ????
+                    #
+                    # Case B.
+                    #
+                    if sa_props and t[0] in sa_props:
+                        proplist.append(HasProperty(prop=sa_props[t[0]], minCount=t[1], maxCount=t[2]))  # TODO: Callback ????
+                    else:
+                        prop = PropertyClass.read(con, project, t[0])
+                        prop.force_external()
+                        proplist.append(HasProperty(prop=prop, minCount=t[1], maxCount=t[2]))  # TODO: Callback ????
                 else:
+                    #
+                    # Case C.
+                    #
                     prop.read_owl()
                     if prop._internal != owlclass_iri:
                         OldapErrorInconsistency(f'ERRROR ERROR ERROR')
@@ -615,11 +660,18 @@ class ResourceClass(Model, Notify):
                 self._attributes[ResClassAttribute.SUPERCLASS][r['superclass']] = None
 
     @classmethod
-    def read(cls, con: IConnection, project: Project, owl_class_iri: Iri) -> Self:
+    def read(cls,
+             con: IConnection,
+             project: Project,
+             owl_class_iri: Iri,
+             sa_props: dict[Iri, PropertyClass] | None = None) -> Self:
         if not isinstance(project, Project):
             raise OldapErrorValue('The project parameter must be a Project instance')
 
-        hasproperties: List[Union[PropertyClass, Iri]] = ResourceClass.__query_resource_props(con=con, project=project, owlclass_iri=owl_class_iri)
+        hasproperties: List[Union[PropertyClass, Iri]] = ResourceClass.__query_resource_props(con=con,
+                                                                                              project=project,
+                                                                                              owlclass_iri=owl_class_iri,
+                                                                                              sa_props=sa_props)
         resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, hasproperties=hasproperties)
         for hasprop in hasproperties:
             if isinstance(hasprop, PropertyClass):
@@ -706,6 +758,9 @@ class ResourceClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
 
         for iri, hp in self._properties.items():
+            if isinstance(hp.prop, Iri):
+                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {hp.prop.toRdf}'
+                continue
             if hp.prop.internal is not None:
                 sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property'
                 sparql += f'\n{blank:{(indent + 3)*indent_inc}}[\n'
@@ -732,6 +787,8 @@ class ResourceClass(Model, Notify):
         blank = ''
         sparql = ''
         for iri, hp in self._properties.items():
+            if isinstance(hp.prop, Iri):
+                continue
             if not hp.prop.from_triplestore:
                 sparql += hp.prop.create_owl_part1(timestamp, indent + 2) + '\n'
 
@@ -748,8 +805,22 @@ class ResourceClass(Model, Notify):
         else:
             sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf\n'
         i = 0
-        for iri, p in self._properties.items():
-            sparql += hp.prop.create_owl_part2(minCount=hp.minCount, maxCount=hp.maxCount, indent=(indent + 4))
+        for iri, hp in self._properties.items():
+            if isinstance(hp.prop, Iri):
+                sparql += f'{blank:{(indent + 3) * indent_inc}}[\n'
+                sparql += f'{blank:{(indent + 4) * indent_inc}}rdf:type owl:Restriction ;\n'
+                sparql += f'{blank:{(indent + 4) * indent_inc}}owl:onProperty {hp.prop.toRdf}'
+
+                if hp.minCount and hp.maxCount and hp.minCount == hp.maxCount:
+                    sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}owl:qualifiedCardinality {hp.minCount.toRdf}'
+                else:
+                    if hp.minCount:
+                        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}owl:minQualifiedCardinality {hp.minCount.toRdf}'
+                    if hp.maxCount:
+                        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}owl:maxQualifiedCardinality {hp.maxCount.toRdf}'
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
+            else:
+                sparql += hp.prop.create_owl_part2(minCount=hp.minCount, maxCount=hp.maxCount, indent=(indent + 4))
             if i < len(self._properties) - 1:
                 sparql += ' ,\n'
             else:
@@ -835,21 +906,42 @@ class ResourceClass(Model, Notify):
                                     owlclass_iri: Iri,
                                     propclass_iri: Iri,
                                     indent: int = 0,
-                                    indent_inc: int = 4):
+                                    indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
         sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} sh:property ?propnode .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:node {propclass_iri}Shape .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?propnode sh:node {propclass_iri.toRdf}Shape .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?propnode ?p ?v .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}} UNION {{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?propnode = {propclass_iri.toRdf}Shape)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 
+    def __delete_property_ref_onto(self,
+                                   owlclass_iri: Iri,
+                                   propclass_iri: Iri,
+                                   indent: int = 0,
+                                   indent_inc: int = 4) -> str:
+        blank = ''
+        sparql = ''
+        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri.toRdf} rdfs:subClassOf ?propnode .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri} rdfs:subClassOf ?propnode .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode owl:onProperty {propclass_iri.toRdf} .\n'
+        sparql += f'{blank:{indent * indent_inc}}}}'
+        return sparql
 
     def __update_shacl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         if not self._changeset and not self._prop_changeset:
@@ -958,10 +1050,17 @@ class ResourceClass(Model, Notify):
             elif change.action == Action.DELETE:
                 if change.old_value.prop.internal:
                     sparql = change.old_value.prop.delete_shacl()
+                    sparql_list.append(sparql)
+                    sparql = change.old_value.prop.delete_owl()
+                    sparql_list.append(sparql)
                 else:
                     sparql = self.__delete_property_ref_shacl(owlclass_iri=self._owlclass_iri,
                                                               propclass_iri=change.old_value.prop.property_class_iri)
-                sparql_list.append(sparql)
+                    sparql_list.append(sparql)
+                    sparql = self.__delete_property_ref_onto(owlclass_iri=self._owlclass_iri,
+                                                             propclass_iri=change.old_value.prop.property_class_iri)
+                    sparql_list.append(sparql)
+
             elif change.action == Action.MODIFY:
                 sparql = self._properties[propiri].prop.update_shacl(owlclass_iri=self._owlclass_iri,
                                                                      timestamp=timestamp)
@@ -1015,7 +1114,7 @@ class ResourceClass(Model, Notify):
                     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {minCount.toRdf}'
                 if maxCount:
                     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {maxCount.toRdf}'
-
+            sparql += f' ;\n{blank:{indent * indent_inc}}] ###1111'
         else:
             raise OldapErrorInconsistency(f'Property can not be added!')
         sparql += f'{blank:{indent * indent_inc}}] .\n'
@@ -1223,6 +1322,7 @@ class ResourceClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError as err:
+            lprint(sparql)
             self._con.transaction_abort()
             raise
         try:

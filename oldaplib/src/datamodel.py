@@ -194,12 +194,16 @@ class DataModel(Model):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
-        propclasses = []
+        #
+        # now read all standalone properties
+        #
+        propclasses: list[PropertyClass] = []
         for r in res:
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
             propclass = PropertyClass.read(con, project, Iri(propclassiri, validate=False))
             propclasses.append(propclass)
+        sa_props = {x.property_class_iri: x for x in propclasses}
         #
         # now get all resources defined in the data model
         #
@@ -213,11 +217,14 @@ class DataModel(Model):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
+        #
+        # now read all resource classes
+        #
         resclasses = []
         for r in res:
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
-            resclass = ResourceClass.read(con, project, Iri(resclassiri, validate=False))
+            resclass = ResourceClass.read(con, project, Iri(resclassiri, validate=False), sa_props=sa_props)
             resclasses.append(resclass)
         instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses)
         for qname in instance.get_propclasses():

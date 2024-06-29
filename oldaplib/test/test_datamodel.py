@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+from pprint import pprint
 from time import sleep
 
 from oldaplib.src.connection import Connection
@@ -19,7 +20,7 @@ from oldaplib.src.enums.language import Language
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.propertyclass import PropertyClass
-from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.resourceclass import ResourceClass, HasProperty
 
 
 def find_project_root(current_path):
@@ -98,7 +99,6 @@ class TestDataModel(unittest.TestCase):
                               datatype=XsdDatatypes.langString,
                               name=LangString(["Title@en", "Titel@de"]),
                               description=LangString(["Title of book@en", "Titel des Buches@de"]),
-                              minCount=Xsd_integer(1),
                               uniqueLang=Xsd_boolean(True),
                               languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
                               order=Xsd_decimal(1))
@@ -109,7 +109,6 @@ class TestDataModel(unittest.TestCase):
                                 toClass=Iri('oldap:Person'),
                                 name=LangString(["Author(s)@en", "Autor(en)@de"]),
                                 description=LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]),
-                                minCount=Xsd_integer(1),
                                 order=Xsd_decimal(2))
 
         book = ResourceClass(con=self._connection,
@@ -118,15 +117,16 @@ class TestDataModel(unittest.TestCase):
                              label=LangString(["Book@en", "Buch@de"]),
                              comment=LangString("Ein Buch mit Seiten@en"),
                              closed=Xsd_boolean(True),
-                             properties=[title, authors, comment])
+                             hasproperties=[
+                                 HasProperty(prop=title, minCount=Xsd_integer(1)),
+                                 HasProperty(prop=authors, minCount=Xsd_integer(1)),
+                                 HasProperty(prop=comment)])
 
         pagenum = PropertyClass(con=self._connection,
                                 project=self._dmproject,
                                 property_class_iri=Iri(f'{dm_name}:pagenum'),
                                 datatype=XsdDatatypes.int,
                                 name=LangString(["Pagenumber@en", "Seitennummer@de"]),
-                                maxCount=Xsd_integer(1),
-                                minCount=Xsd_integer(1),
                                 order=Xsd_decimal(1))
 
         inbook = PropertyClass(con=self._connection,
@@ -134,8 +134,6 @@ class TestDataModel(unittest.TestCase):
                                property_class_iri=Iri(f'{dm_name}:inbook'),
                                toClass=Iri(f'{dm_name}:Book'),
                                name=LangString(["Pagenumber@en", "Seitennummer@de"]),
-                               maxCount=Xsd_integer(1),
-                               minCount=Xsd_integer(1),
                                order=Xsd_decimal(1))
 
         page = ResourceClass(con=self._connection,
@@ -144,7 +142,10 @@ class TestDataModel(unittest.TestCase):
                              label=LangString(["Page@en", "Seite@de"]),
                              comment=LangString("Page of a book@en"),
                              closed=Xsd_boolean(True),
-                             properties=[pagenum, inbook, comment])
+                             hasproperties=[
+                                 HasProperty(prop=pagenum, maxCount=Xsd_integer(1), minCount=Xsd_integer(1)),
+                                 HasProperty(prop=inbook, maxCount=Xsd_integer(1), minCount=Xsd_integer(1)),
+                                 HasProperty(prop=comment)])
 
         dm = DataModel(con=self._connection,
                        project=self._dmproject,
@@ -171,52 +172,52 @@ class TestDataModel(unittest.TestCase):
         r1 = dm2[Iri(f'{dm_name}:Book')]
 
         r1p1 = r1[Iri(f'{dm_name}:title')]
-        self.assertEqual(r1p1.internal, Iri(f'{dm_name}:Book'))
-        self.assertEqual(r1p1.datatype, XsdDatatypes.langString)
-        self.assertEqual(r1p1.name, LangString(["Title@en", "Titel@de"]))
-        self.assertEqual(r1p1.description, LangString(["Title of book@en", "Titel des Buches@de"]))
-        self.assertEqual(r1p1.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
-        self.assertTrue(r1p1.uniqueLang)
+        self.assertEqual(r1p1.prop.internal, Iri(f'{dm_name}:Book'))
+        self.assertEqual(r1p1.prop.datatype, XsdDatatypes.langString)
+        self.assertEqual(r1p1.prop.name, LangString(["Title@en", "Titel@de"]))
+        self.assertEqual(r1p1.prop.description, LangString(["Title of book@en", "Titel des Buches@de"]))
+        self.assertEqual(r1p1.prop.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertTrue(r1p1.prop.uniqueLang)
         self.assertEqual(r1p1.minCount, Xsd_integer(1))
-        self.assertEqual(r1p1.order, Xsd_decimal(1))
+        self.assertEqual(r1p1.prop.order, Xsd_decimal(1))
 
         r1p2 = r1[Iri(f'{dm_name}:authors')]
-        self.assertEqual(r1p2.internal, Iri(f'{dm_name}:Book'))
-        self.assertEqual(r1p2.toClass, Iri('oldap:Person'))
-        self.assertEqual(r1p2.name, LangString(["Author(s)@en", "Autor(en)@de"]))
-        self.assertEqual(r1p2.description, LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]))
+        self.assertEqual(r1p2.prop.internal, Iri(f'{dm_name}:Book'))
+        self.assertEqual(r1p2.prop.toClass, Iri('oldap:Person'))
+        self.assertEqual(r1p2.prop.name, LangString(["Author(s)@en", "Autor(en)@de"]))
+        self.assertEqual(r1p2.prop.description, LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]))
         self.assertEqual(r1p2.minCount, Xsd_integer(1))
-        self.assertEqual(r1p2.order, Xsd_decimal(2))
+        self.assertEqual(r1p2.prop.order, Xsd_decimal(2))
 
         r1p3 = r1[Iri(f'{dm_name}:comment')]
-        self.assertIsNone(r1p3.internal)
-        self.assertEqual(r1p3.datatype, XsdDatatypes.langString)
-        self.assertEqual(r1p3.name, LangString(["Comment@en", "Kommentar@de"]))
-        self.assertTrue(r1p3.uniqueLang, Xsd_boolean(True))
-        self.assertEqual(r1p3.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertIsNone(r1p3.prop.internal)
+        self.assertEqual(r1p3.prop.datatype, XsdDatatypes.langString)
+        self.assertEqual(r1p3.prop.name, LangString(["Comment@en", "Kommentar@de"]))
+        self.assertTrue(r1p3.prop.uniqueLang, Xsd_boolean(True))
+        self.assertEqual(r1p3.prop.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
         r2 = dm2[Iri(f'{dm_name}:Page')]
         r2p1 = r2[Iri(f'{dm_name}:pagenum')]
-        self.assertEqual(r2p1.internal, Iri(f'{dm_name}:Page'))
-        self.assertEqual(r2p1.datatype, XsdDatatypes.int)
-        self.assertEqual(r2p1.name, LangString(["Pagenumber@en", "Seitennummer@de"]))
+        self.assertEqual(r2p1.prop.internal, Iri(f'{dm_name}:Page'))
+        self.assertEqual(r2p1.prop.datatype, XsdDatatypes.int)
+        self.assertEqual(r2p1.prop.name, LangString(["Pagenumber@en", "Seitennummer@de"]))
         self.assertEqual(r2p1.maxCount, Xsd_integer(1))
         self.assertEqual(r2p1.minCount, Xsd_integer(1))
 
         r2p2 = r2[Iri(f'{dm_name}:inbook')]
-        self.assertEqual(r2p2.internal, Iri(f'{dm_name}:Page'))
-        self.assertEqual(r2p2[PropClassAttr.CLASS], Iri(f'{dm_name}:Book'))
-        self.assertEqual(r2p2[PropClassAttr.NAME], LangString(["Pagenumber@en", "Seitennummer@de"]))
-        self.assertEqual(r2p2[PropClassAttr.MAX_COUNT], Xsd_integer(1))
-        self.assertEqual(r2p2[PropClassAttr.MIN_COUNT], Xsd_integer(1))
-        self.assertEqual(r2p2[PropClassAttr.ORDER], Xsd_decimal(1))
+        self.assertEqual(r2p2.prop.internal, Iri(f'{dm_name}:Page'))
+        self.assertEqual(r2p2.prop[PropClassAttr.CLASS], Iri(f'{dm_name}:Book'))
+        self.assertEqual(r2p2.prop[PropClassAttr.NAME], LangString(["Pagenumber@en", "Seitennummer@de"]))
+        self.assertEqual(r2p2.maxCount, Xsd_integer(1))
+        self.assertEqual(r2p2.minCount, Xsd_integer(1))
+        self.assertEqual(r2p2.prop[PropClassAttr.ORDER], Xsd_decimal(1))
 
         r2p3 = r1[Iri(f'{dm_name}:comment')]
-        self.assertIsNone(r2p3.internal)
-        self.assertEqual(r2p3.datatype, XsdDatatypes.langString)
-        self.assertEqual(r2p3.name, LangString(["Comment@en", "Kommentar@de"]))
-        self.assertTrue(r2p3.uniqueLang, Xsd_boolean(True))
-        self.assertEqual(r2p3.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertIsNone(r2p3.prop.internal)
+        self.assertEqual(r2p3.prop.datatype, XsdDatatypes.langString)
+        self.assertEqual(r2p3.prop.name, LangString(["Comment@en", "Kommentar@de"]))
+        self.assertTrue(r2p3.prop.uniqueLang, Xsd_boolean(True))
+        self.assertEqual(r2p3.prop.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
     # @unittest.skip('Work in progress')
     def test_datamodel_read(self):
@@ -228,7 +229,9 @@ class TestDataModel(unittest.TestCase):
             Iri("rdfs:comment"),
             Iri("dcterms:created"),
             Iri("dcterms:contributor"),
-            Iri("dcterms:modified")
+            Iri("dcterms:modified"),
+            Iri("foaf:givenName"),
+            Iri("foaf:familyName")
         })
         self.assertTrue(set(model.get_resclasses()) == {
             Iri("oldap:Project"),
@@ -254,10 +257,9 @@ class TestDataModel(unittest.TestCase):
         #
         pubyear = PropertyClass(con=self._connection,
                                 project=self._dmproject,
-                                property_class_iri=Xsd_QName(f'{dm_name}:pubYear'),
+                                property_class_iri=Iri(f'{dm_name}:pubYear'),
                                 datatype=XsdDatatypes.gYear,
-                                name=LangString(["Publication Year@en", "Publicationsjahr@de"]),
-                                maxCount=Xsd_integer(1))
+                                name=LangString(["Publication Year@en", "Publicationsjahr@de"]))
         pubyear.force_external()
         dm[Iri(f'{dm_name}:pubYear')] = pubyear
         self.assertEqual({Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE)}, dm.changeset)
@@ -268,7 +270,7 @@ class TestDataModel(unittest.TestCase):
             Iri(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY)
         }, dm.changeset)
 
-        dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].name[Language.FR] = "Ecrivain(s)"
+        dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].prop.name[Language.FR] = "Ecrivain(s)"
         self.assertEqual({
             Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
             Iri(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
@@ -289,11 +291,9 @@ class TestDataModel(unittest.TestCase):
                                  project=self._dmproject,
                                  property_class_iri=Xsd_QName(f'{dm_name}:pageName'),
                                  datatype=XsdDatatypes.string,
-                                 name=LangString(["Page name@en", "Seitenbezeichnung@de"]),
-                                 maxCount=Xsd_integer(1),
-                                 minCount=Xsd_integer(1))
+                                 name=LangString(["Page name@en", "Seitenbezeichnung@de"]))
 
-        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = pagename
+        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = HasProperty(prop=pagename, maxCount=1, minCount=1)
         self.assertEqual({
             Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
             Iri(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
@@ -312,31 +312,36 @@ class TestDataModel(unittest.TestCase):
         dm = DataModel.read(self._connection, self._dmproject)
 
         #
-        # define an external standalone property
+        # define a standalone property and add it to the datamodel
         #
         pubyear = PropertyClass(con=self._connection,
                                 project=self._dmproject,
                                 property_class_iri=Xsd_QName(f'{dm_name}:pubYear'),
                                 datatype=XsdDatatypes.gYear,
-                                name=LangString(["Publication Year@en", "Publicationsjahr@de"]),
-                                maxCount=Xsd_integer(1))
+                                name=LangString(["Publication Year@en", "Publicationsjahr@de"]))
         pubyear.force_external()
-
         dm[Iri(f'{dm_name}:pubYear')] = pubyear
+
+        #
+        # Modify a standalone property
+        #
         dm[Iri(f'{dm_name}:comment')][PropClassAttr.NAME][Language.FR] = 'Commentaire'
-        dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].name[Language.FR] = "Ecrivain(s)"
-        del dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:comment')]
 
+        #
+        # Modify an internal property
+        #
+        dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].prop.name[Language.FR] = "Ecrivain(s)"
+
+        #
+        # Add a new property as internal property
+        #
         pagename = PropertyClass(con=self._connection,
-                                 #graph=dm_name,
                                  project=self._dmproject,
-                                 property_class_iri=Xsd_QName(f'{dm_name}:pageName'),
+                                 property_class_iri=Iri(f'{dm_name}:pageName'),
                                  datatype=XsdDatatypes.string,
-                                 name=LangString(["Page name@en", "Seitenbezeichnung@de"]),
-                                 maxCount=Xsd_integer(1),
-                                 minCount=Xsd_integer(1))
+                                 name=LangString(["Page name@en", "Seitenbezeichnung@de"]))
 
-        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = pagename
+        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = HasProperty(prop=pagename)
 
         dm.update()
 
@@ -345,11 +350,31 @@ class TestDataModel(unittest.TestCase):
         dm = DataModel.read(self._connection, self._dmproject)
         self.assertIsNotNone(dm.get(Iri(f'{dm_name}:pubYear')))
         self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].datatype, XsdDatatypes.gYear)
-        self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].maxCount, 1)
         self.assertEqual(dm[Iri(f'{dm_name}:comment')].name[Language.FR], 'Commentaire')
-        self.assertEqual(dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].name[Language.FR], "Ecrivain(s)")
+        self.assertEqual(dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].prop.name[Language.FR], "Ecrivain(s)")
         self.assertIsNotNone(dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')])
-        self.assertIsNone(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment')))
+
+    def test_datamodel_modify_C(self):
+        dm_name = self._dmproject.projectShortName
+
+        dm = self.generate_a_datamodel(self._dmproject)
+        dm.create()
+        del dm
+
+        dm = DataModel.read(self._connection, self._dmproject)
+
+        #
+        # remove the comment property from the Page resource
+        #
+        del dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:comment')]
+
+        dm.update()
+
+        del dm
+
+        dm = DataModel.read(self._connection, self._dmproject)
+        print(str(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment'))))
+        self.assertIsNone(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment')))  # TODO THIS TEST SHOULD PASS!!!!
 
     def test_write_trig(self):
         pagename = PropertyClass(con=self._connection,
@@ -357,7 +382,6 @@ class TestDataModel(unittest.TestCase):
                                  property_class_iri=Iri('test:pageDesignation'),
                                  datatype=XsdDatatypes.string,
                                  name=LangString("Page designation@en", "Seitenbezeichnung@de"),
-                                 minCount=Xsd_integer(1),
                                  order=Xsd_decimal(1))
         pagenum = PropertyClass(con=self._connection,
                                 project=self._project,
@@ -365,8 +389,6 @@ class TestDataModel(unittest.TestCase):
                                 datatype=XsdDatatypes.positiveInteger,
                                 name=LangString("Pagenumber@en", "Seitennummer@de"),
                                 description=LangString("consecutive numbering of pages@en", "Konsekutive Nummerierung der Seiten@de"),
-                                minCount=Xsd_integer(1),
-                                maxCount=Xsd_integer(1),
                                 order=Xsd_decimal(2))
         pagedescription = PropertyClass(con=self._connection,
                                         project=self._project,
@@ -379,14 +401,11 @@ class TestDataModel(unittest.TestCase):
                                 project=self._project,
                                 property_class_iri=Iri('test:pageContent'),
                                 datatype=XsdDatatypes.string,
-                                maxCount=Xsd_integer(1),
                                 order=Xsd_decimal(4))
         inBook = PropertyClass(con=self._connection,
                                project=self._project,
                                property_class_iri=Iri('test:pageInBook'),
                                toClass=Iri('test:Book'),
-                               minCount=Xsd_integer(1),
-                               maxCount=Xsd_integer(1),
                                order=Xsd_decimal(5))
         page = ResourceClass(con=self._connection,
                              project=self._project,
@@ -395,14 +414,17 @@ class TestDataModel(unittest.TestCase):
                              label=LangString(["Project@en", "Projekt@de"]),
                              comment=LangString(["A page of a book@en", "Seite eines Buches@de"]),
                              closed=Xsd_boolean(True),
-                             properties=[pagename, pagenum, pagedescription, content, inBook])
+                             hasproperties=[
+                                 HasProperty(prop=pagename, minCount=Xsd_integer(1)),
+                                 HasProperty(prop=pagenum, minCount=Xsd_integer(1), maxCount=Xsd_integer(1)),
+                                 HasProperty(prop=pagedescription),
+                                 HasProperty(prop=content, maxCount=Xsd_integer(1)),
+                                 HasProperty(prop=inBook, minCount=Xsd_integer(1), maxCount=Xsd_integer(1))])
 
         title = PropertyClass(con=self._connection,
                               project=self._project,
                               property_class_iri=Iri('test:title'),
                               datatype=XsdDatatypes.string,
-                              minCount=Xsd_integer(1),
-                              maxCount=Xsd_integer(1),
                               order=Xsd_decimal(1))
         author = PropertyClass(con=self._connection,
                                project=self._project,
@@ -413,8 +435,6 @@ class TestDataModel(unittest.TestCase):
                                 project=self._project,
                                 property_class_iri=Iri('test:pubDate'),
                                 datatype=XsdDatatypes.date,
-                                minCount=Xsd_integer(1),
-                                maxCount=Xsd_integer(1),
                                 order=Xsd_decimal(3))
         book = ResourceClass(con=self._connection,
                              project=self._project,
@@ -422,18 +442,23 @@ class TestDataModel(unittest.TestCase):
                              superclass=Iri('oldap:Thing'),
                              label=LangString(["Book@en", "Buch@de"]),
                              closed=Xsd_boolean(True),
-                             properties=[title, author, pubDate])
+                             hasproperties=[
+                                 HasProperty(prop=title),
+                                 HasProperty(prop=author),
+                                 HasProperty(prop=pubDate)])
 
         person = ResourceClass(con=self._connection,
                                project=self._project,
                                owlclass_iri=Iri('test:Person'),
                                superclass=Iri('oldap:Thing'),
                                label=LangString(["Person@en", "Person@de"]),
-                               properties=[title, author, pubDate])
+                               hasproperties=[
+                                   HasProperty(prop=Iri('foaf:familyName'), minCount=Xsd_integer(1), maxCount=Xsd_integer(1)),
+                                   HasProperty(prop=Iri('foaf:givenName'), minCount=Xsd_integer(1))])
 
         dm = DataModel(con=self._connection,
                        project=self._project,
-                       resclasses=[page, book])
+                       resclasses=[page, book, person])
         dm.write_as_trig('gaga.trig')
 
 
