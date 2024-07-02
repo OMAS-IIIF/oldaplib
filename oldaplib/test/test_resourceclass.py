@@ -140,22 +140,20 @@ class TestResourceClass(unittest.TestCase):
                            name=LangString(["Test property@en", "Testprädikat@de"]),
                            description=LangString("A property for testing...@en"),
                            uniqueLang=Xsd_boolean(True),
-                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
-                           order=Xsd_decimal(5))
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:enumprop'),
                            datatype=XsdDatatypes.string,
                            name=LangString(["Test enum@en", "Enumerationen@de"]),
-                           inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")),
-                           order=Xsd_decimal(6))
+                           inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=Iri("test:comment"), maxCount=1),
-            HasProperty(prop=Iri("test:test"), minCount=1),
-            HasProperty(prop=p1, maxCount=1),
-            HasProperty(prop=p2, minCount=1, maxCount=1)
+            HasProperty(prop=Iri("test:comment"), maxCount=1, order=1),
+            HasProperty(prop=Iri("test:test"), minCount=1, order=2),
+            HasProperty(prop=p1, maxCount=1, order=3),
+            HasProperty(prop=p2, minCount=1, maxCount=1, order=4)
         ]
 
         r1 = ResourceClass(con=self._connection,
@@ -174,6 +172,7 @@ class TestResourceClass(unittest.TestCase):
 
         prop1 = r1[Iri("test:comment")].prop
         self.assertEqual(r1[Iri("test:comment")].maxCount, Xsd_integer(1))
+        self.assertEqual(r1[Iri("test:comment")].order, Xsd_decimal(1))
         self.assertIsNotNone(prop1)
         self.assertIsNone(prop1.internal)
         self.assertEqual(prop1.property_class_iri, Iri("test:comment"))
@@ -184,20 +183,20 @@ class TestResourceClass(unittest.TestCase):
 
         prop2 = r1[Iri("test:test")].prop
         self.assertEqual(r1[Iri("test:test")].minCount, Xsd_integer(1))
+        self.assertEqual(r1[Iri("test:test")].order, Xsd_decimal(2))
         self.assertIsNone(prop2.internal)
         self.assertEqual(prop2.property_class_iri, Iri("test:test"))
         self.assertEqual(prop2.datatype, XsdDatatypes.string)
         self.assertEqual(prop2.description, LangString("Property shape for testing purposes"))
-        self.assertEqual(prop2.order, Xsd_decimal(3))
 
         prop3 = r1[Iri("test:testprop")].prop
         self.assertEqual(r1[Iri("test:testprop")].maxCount, Xsd_integer(1))
+        self.assertEqual(r1[Iri("test:testprop")].order, Xsd_decimal(3))
         self.assertEqual(prop3.internal, Iri('test:TestResource'))
         self.assertEqual(prop3.property_class_iri, Iri("test:testprop"))
         self.assertEqual(prop3.type, OwlPropertyType.OwlDataProperty)
         self.assertEqual(prop3.datatype, XsdDatatypes.langString)
         self.assertEqual(prop3.name, LangString(["Test property@en", "Testprädikat@de"]))
-        self.assertEqual(prop3.order, Xsd_decimal(5))
         self.assertEqual(prop3.subPropertyOf, Iri("test:comment"))
         self.assertEqual(prop3.uniqueLang,  Xsd_boolean(True))
         self.assertEqual(prop3.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
@@ -205,6 +204,7 @@ class TestResourceClass(unittest.TestCase):
         prop4 = r1[Iri("test:enumprop")].prop
         self.assertEqual(r1[Iri("test:enumprop")].maxCount, Xsd_integer(1))
         self.assertEqual(r1[Iri("test:enumprop")].minCount, Xsd_integer(1))
+        self.assertEqual(r1[Iri("test:enumprop")].order, Xsd_decimal(4))
         self.assertEqual(prop4[PropClassAttr.IN],
                          RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
@@ -218,19 +218,18 @@ class TestResourceClass(unittest.TestCase):
                            name=LangString(["Test property@en", "Testprädikat@de"]),
                            description=LangString("A property for testing...@en"),
                            uniqueLang=Xsd_boolean(True),
-                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
-                           order=Xsd_decimal(5))
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
         p2 = PropertyClass(con=self._connection,
                            project="test",
                            property_class_iri=Iri('test:enumpropns'),
                            datatype=XsdDatatypes.string,
                            name=LangString(["Test enum@en", "Enumerationen@de"]),
-                           inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")),
-                           order=Xsd_decimal(6))
+                           inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=p1, maxCount=1), HasProperty(prop=p2, minCount=1, maxCount=1)
+            HasProperty(prop=p1, maxCount=1, order=1),
+            HasProperty(prop=p2, minCount=1, maxCount=1, order=2)
         ]
 
         r1 = ResourceClass(con=self._connection,
@@ -274,7 +273,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.datatype, XsdDatatypes.string)
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
         self.assertEqual(r1[Iri('test:test')].minCount, Xsd_integer(1))
-        self.assertEqual(prop1.order, Xsd_decimal(3))
+        self.assertEqual(r1[Iri('test:test')].order, Xsd_decimal(3))
 
         prop2 = r1[Iri('test:hasText')].prop
         self.assertEqual(prop2.internal, Iri('test:testMyRes'))
@@ -288,9 +287,9 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.datatype, XsdDatatypes.langString)
         self.assertEqual(prop2.name, LangString(["A text@en", "Ein Text@de"]))
         self.assertEqual(prop2.description, LangString("A longer text..."))
-        self.assertEqual(prop2.order, Xsd_decimal(1))
         self.assertEqual(r1[Iri('test:hasText')].minCount, Xsd_integer(1))
         self.assertEqual(r1[Iri('test:hasText')].maxCount, Xsd_integer(1))
+        self.assertEqual(r1[Iri('test:hasText')].order, Xsd_decimal(1))
 
         prop3 = r1[Iri('test:hasEnum')].prop
         self.assertEqual(prop3.type, OwlPropertyType.OwlDataProperty)
@@ -315,16 +314,14 @@ class TestResourceClass(unittest.TestCase):
                            name=LangString(["Test property@en", "Testprädikat@de"]),
                            description=LangString("A property for testing...@en"),
                            uniqueLang=Xsd_boolean(True),
-                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
-                           order=Xsd_decimal(1))
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:testtwo'),
                            toClass=Iri('test:testMyRes'),
                            name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
-                           description=LangString("An exclusive property for testing...@en"),
-                           order=Xsd_decimal(2))
+                           description=LangString("An exclusive property for testing...@en"))
 
         p3 = PropertyClass(con=self._connection,
                            project=self._project,
@@ -332,15 +329,14 @@ class TestResourceClass(unittest.TestCase):
                            datatype=XsdDatatypes.int,
                            name=LangString(["E.N.U.M@en"]),
                            description=LangString("An exclusive enum testing...@en"),
-                           inSet=RdfSet(Xsd_integer(1), Xsd_integer(2), Xsd_integer(3)),
-                           order=Xsd_decimal(3))
+                           inSet=RdfSet(Xsd_integer(1), Xsd_integer(2), Xsd_integer(3)))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=Iri("test:comment"), maxCount=1),
-            HasProperty(prop=Iri("test:test"), minCount=1),
-            HasProperty(prop=p1, minCount=1, maxCount=1),
-            HasProperty(prop=p2, minCount=1),
-            HasProperty(prop=p3)
+            HasProperty(prop=Iri("test:comment"), maxCount=1, order=1),
+            HasProperty(prop=Iri("test:test"), minCount=1, order=2),
+            HasProperty(prop=p1, minCount=1, maxCount=1, order=3),
+            HasProperty(prop=p2, minCount=1, order=4),
+            HasProperty(prop=p3, order=5)
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -369,10 +365,10 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.name, LangString(["comment@en", "Kommentar@de"]))
         self.assertEqual(prop1.description, LangString("This is a test property@de"))
         self.assertIsNone(prop1.subPropertyOf)
-        self.assertEqual(prop1.order, Xsd_decimal(2))
         self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
         self.assertEqual(prop1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop1.created, Xsd_dateTime("2023-11-04T12:00:00Z"))
+        self.assertEqual(r2[Iri("test:comment")].order, Xsd_decimal(1))
 
         prop2 = r2[Iri("test:test")].prop
         self.assertIsNone(prop1.internal)
@@ -381,8 +377,8 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.name, LangString("Test"))
         self.assertEqual(prop2.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop2.datatype, XsdDatatypes.string)
-        self.assertEqual(prop2.order, Xsd_decimal(3))
         self.assertEqual(prop2.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(r2[Iri("test:test")].order, Xsd_decimal(2))
 
         prop3 = r2[Iri("test:testone")].prop
         self.assertEqual(prop3.internal, Iri("test:TestResource"))
@@ -394,7 +390,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r2[Iri("test:testone")].maxCount, Xsd_integer(1))
         self.assertEqual(prop3.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
         self.assertTrue(prop3.uniqueLang)
-        self.assertEqual(prop3.order, Xsd_decimal(1))
+        self.assertEqual(r2[Iri("test:testone")].order, Xsd_decimal(3))
 
         prop4 = r2[Iri("test:testtwo")].prop
         self.assertEqual(prop4.internal, Iri("test:TestResource"))
@@ -403,7 +399,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop4.name, LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]))
         self.assertEqual(prop4.description, LangString("An exclusive property for testing...@en"))
         self.assertEqual(r2[Iri("test:testtwo")].minCount, Xsd_integer(1))
-        self.assertEqual(prop4.order, Xsd_decimal(2))
+        self.assertEqual(r2[Iri("test:testtwo")].order, Xsd_decimal(4))
 
         prop5 = r2[Iri("test:testthree")].prop
         self.assertEqual(prop5.inSet, RdfSet(Xsd_integer(1), Xsd_integer(2), Xsd_integer(3)))
@@ -413,9 +409,10 @@ class TestResourceClass(unittest.TestCase):
                            project=self._project,
                            property_class_iri=Iri('test:sctest_prop1'),
                            datatype=XsdDatatypes.string,
-                           name=LangString(["TestProp1"]),
-                           order=Xsd_decimal(1))
-        hasproperties: list[HasProperty] = [ HasProperty(prop=p1) ]
+                           name=LangString(["TestProp1"]))
+        hasproperties: list[HasProperty] = [
+            HasProperty(prop=p1, order=1)
+        ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Iri("test:ResWithSuperclasses"),
@@ -436,9 +433,10 @@ class TestResourceClass(unittest.TestCase):
                            project=self._project,
                            property_class_iri=Iri('test:thingtest_prop1'),
                            datatype=XsdDatatypes.string,
-                           name=LangString(["ThingTestProp1"]),
-                           order=Xsd_decimal(1))
-        hasproperties: list[HasProperty] = [ HasProperty(prop=p1) ]
+                           name=LangString(["ThingTestProp1"]))
+        hasproperties: list[HasProperty] = [
+            HasProperty(prop=p1, order=1)
+        ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Iri("test:ResWithSuperThing"),
@@ -485,7 +483,7 @@ class TestResourceClass(unittest.TestCase):
         #
         # Add an external, shared property defined by its own sh:PropertyShape instance
         #
-        r1[Iri('test:test')] = HasProperty(prop=Iri("test:test"), minCount=1)
+        r1[Iri('test:test')] = HasProperty(prop=Iri("test:test"), minCount=1, order=3)
         r1.update()
         del r1
         r2 = ResourceClass.read(con=self._connection,
@@ -504,7 +502,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.name, LangString("Test"))
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop1.datatype, XsdDatatypes.string)
-        self.assertEqual(prop1.order, Xsd_decimal(3))
+        self.assertEqual(r2[Iri('test:test')].order, Xsd_decimal(3))
         self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
 
     def test_updating_add_int_prop(self):
@@ -547,7 +545,7 @@ class TestResourceClass(unittest.TestCase):
         #
         # Add an external, shared property defined by its own sh:PropertyShape instance
         #
-        r1[Iri('test:test')] = HasProperty(prop=Iri("test:test"), minCount=1)
+        r1[Iri('test:test')] = HasProperty(prop=Iri("test:test"), minCount=1, order=3)
 
         #
         # Adding an internal, private property
@@ -577,12 +575,12 @@ class TestResourceClass(unittest.TestCase):
         prop1 = r2[Iri('test:test')].prop
         self.assertIsNone(prop1.internal)
         self.assertEqual(prop1.property_class_iri, Iri('test:test'))
-        self.assertEqual(r2[Iri('test:test')].minCount, Xsd_integer(1))
         self.assertEqual(prop1.name, LangString("Test"))
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop1.datatype, XsdDatatypes.string)
-        self.assertEqual(prop1.order, Xsd_decimal(3))
         self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(r2[Iri('test:test')].minCount, Xsd_integer(1))
+        self.assertEqual(r2[Iri('test:test')].order, Xsd_decimal(3))
 
         prop2 = r2[Iri('dcterms:creator')].prop
         self.assertEqual(prop2.internal, Xsd_QName("test:testMyResMinimalC"))
@@ -654,7 +652,7 @@ class TestResourceClass(unittest.TestCase):
         r1.closed = Xsd_boolean(False)
         r1[ResClassAttribute.SUPERCLASS] = {Iri('dcterms:TopGaga')}
         r1[Iri('test:hasText')].prop.name[Language.FR] = "Un Texte Français"
-        #r1[Iri('test:hasText')].maxCount = Xsd_integer(12)
+        #r1[Iri('test:hasText')].maxCount = Xsd_integer(12)  # TODO !!!!!!!!!!!!!!!!!!
         r1[Iri('test:hasText')].prop.languageIn = LanguageIn(Language.DE, Language.FR, Language.IT)
         r1[Iri('test:hasEnum')].prop.inSet = RdfSet(Xsd_string('L'), Xsd_string('a'), Xsd_string('b'))
 
@@ -668,7 +666,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual({Iri('dcterms:TopGaga')}, set(r2.superclass))
         self.assertIsNone(r2.superclass[Iri('dcterms:TopGaga')])
         self.assertEqual(r2[Iri('test:hasText')].prop.name, LangString(["A text@en", "Ein Text@de", "Un Texte Français@fr"]))
-        #self.assertEqual(r2[Iri('test:hasText')].maxCount, Xsd_integer(12))
+        #self.assertEqual(r2[Iri('test:hasText')].maxCount, Xsd_integer(12))  # TODO !!!!!!!!!!!!!!!!
         self.assertEqual(r2[Iri('test:hasText')].prop.languageIn, LanguageIn(Language.DE, Language.FR, Language.IT))
         self.assertEqual(r2[Iri('test:hasEnum')].prop.inSet, RdfSet(Xsd_string('L'), Xsd_string('a'), Xsd_string('b')))
 
@@ -677,9 +675,8 @@ class TestResourceClass(unittest.TestCase):
                            project=self._project,
                            property_class_iri=Iri('test:p1'),
                            datatype=XsdDatatypes.string,
-                           name=LangString(["P1"]),
-                           order=Xsd_decimal(1))
-        hasproperties: list[HasProperty] = [HasProperty(prop=p1)]
+                           name=LangString(["P1"]))
+        hasproperties: list[HasProperty] = [HasProperty(prop=p1, order=1)]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Iri("test:Crazy"),
@@ -706,9 +703,8 @@ class TestResourceClass(unittest.TestCase):
                            project=self._project,
                            property_class_iri=Iri('test:p2'),
                            datatype=XsdDatatypes.string,
-                           name=LangString(["P2"]),
-                           order=Xsd_decimal(1))
-        hasproperties: list[HasProperty] = [HasProperty(prop=p1)]
+                           name=LangString(["P2"]))
+        hasproperties: list[HasProperty] = [HasProperty(prop=p1, order=1)]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Iri("test:CrazyB"),
@@ -735,9 +731,8 @@ class TestResourceClass(unittest.TestCase):
                            project=self._project,
                            property_class_iri=Iri('test:p3'),
                            datatype=XsdDatatypes.string,
-                           name=LangString(["P3"]),
-                           order=Xsd_decimal(1))
-        hasproperties: list[HasProperty] = [HasProperty(prop=p1)]
+                           name=LangString(["P3"]))
+        hasproperties: list[HasProperty] = [HasProperty(prop=p1, order=1)]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Iri("test:CrazyC"),
@@ -771,16 +766,14 @@ class TestResourceClass(unittest.TestCase):
                            name=LangString(["Test property@en", "Testprädikat@de"]),
                            description=LangString("A property for testing...@en"),
                            uniqueLang=Xsd_boolean(True),
-                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
-                           order=Xsd_decimal(1))
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:propB'),
                            toClass=Iri('test:testMyRes'),
                            name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
-                           description=LangString("An exclusive property for testing...@en"),
-                           order=Xsd_decimal(2))
+                           description=LangString("An exclusive property for testing...@en"))
 
         p3 = PropertyClass(con=self._connection,
                            project=self._project,
@@ -789,11 +782,11 @@ class TestResourceClass(unittest.TestCase):
                            inSet=RdfSet(Xsd_integer(10), Xsd_integer(20), Xsd_integer(30)))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=Iri("test:comment")),
-            HasProperty(prop=Iri("test:test")),
-            HasProperty(prop=p1, maxCount=Xsd_integer(1), minCount=Xsd_integer(1)),
-            HasProperty(prop=p2, minCount=Xsd_integer(1)),
-            HasProperty(prop=p3),
+            HasProperty(prop=Iri("test:comment"), order=1),
+            HasProperty(prop=Iri("test:test"), order=2),
+            HasProperty(prop=p1, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=3),
+            HasProperty(prop=p2, minCount=Xsd_integer(1), order=4),
+            HasProperty(prop=p3, order=5),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -837,16 +830,14 @@ class TestResourceClass(unittest.TestCase):
                            name=LangString(["Test property@en", "Testprädikat@de"]),
                            description=LangString("A property for testing...@en"),
                            uniqueLang=Xsd_boolean(True),
-                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
-                           order=Xsd_decimal(1))
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:deleteB'),
                            toClass=Iri('test:testMyRes'),
                            name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
-                           description=LangString("A property for testing...@en"),
-                           order=Xsd_decimal(2))
+                           description=LangString("A property for testing...@en"))
 
         p3 = PropertyClass(con=self._connection,
                            project=self._project,
@@ -855,11 +846,11 @@ class TestResourceClass(unittest.TestCase):
                            inSet=RdfSet(Xsd_integer(10), Xsd_integer(20), Xsd_integer(30)))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=Iri("test:comment")),
-            HasProperty(prop=Iri("test:test")),
-            HasProperty(prop=p1, maxCount=Xsd_integer(1), minCount=Xsd_integer(1)),
-            HasProperty(prop=p2, minCount=Xsd_integer(1)),
-            HasProperty(prop=p3)
+            HasProperty(prop=Iri("test:comment"), order=1),
+            HasProperty(prop=Iri("test:test"), order=2),
+            HasProperty(prop=p1, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=3),
+            HasProperty(prop=p2, minCount=Xsd_integer(1), order=4),
+            HasProperty(prop=p3, order=5)
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -893,8 +884,7 @@ class TestResourceClass(unittest.TestCase):
                                    name=LangString(["Project ID@en", "Projekt ID@de"]),
                                    description=LangString(["Unique ID for project@en", "Eindeutige ID für Projekt@de"]),
                                    languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
-                                   uniqueLang=Xsd_boolean(True),
-                                   order=Xsd_decimal(1))
+                                   uniqueLang=Xsd_boolean(True))
         project_name = PropertyClass(con=self._connection,
                                      project=self._project,
                                      property_class_iri=Iri('test:projectName'),
@@ -902,12 +892,11 @@ class TestResourceClass(unittest.TestCase):
                                      name=LangString(["Project name@en", "Projektname@de"]),
                                      description=LangString(["A description of the project@en", "EineBeschreibung des Projekts@de"]),
                                      languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
-                                     uniqueLang=Xsd_boolean(True),
-                                     order=Xsd_decimal(2))
+                                     uniqueLang=Xsd_boolean(True))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=project_id, minCount=Xsd_integer(1)),
-            HasProperty(prop=project_name, minCount=Xsd_integer(1))
+            HasProperty(prop=project_id, minCount=Xsd_integer(1), order=1),
+            HasProperty(prop=project_name, minCount=Xsd_integer(1), order=2)
         ]
         superclass = ResourceClass.read(con=self._connection,
                                         project=self._project,

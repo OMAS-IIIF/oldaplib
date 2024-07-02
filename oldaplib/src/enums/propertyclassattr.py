@@ -42,7 +42,6 @@ class PropClassAttr(AttributeClass):
     DATATYPE = ('sh:datatype', False, False, XsdDatatypes)
     NAME = ('sh:name', False, False, LangString)
     DESCRIPTION = ('sh:description', False, False, LangString)
-    ORDER = ('sh:order', False, False, Xsd_decimal)
     LANGUAGE_IN = ('sh:languageIn', False, False, LanguageIn)
     UNIQUE_LANG = ('sh:uniqueLang', False, False, Xsd_boolean)
     IN = ('sh:in', False, False, XsdSet)

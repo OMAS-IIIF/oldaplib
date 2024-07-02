@@ -202,6 +202,7 @@ class DataModel(Model):
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
             propclass = PropertyClass.read(con, project, Iri(propclassiri, validate=False))
+            propclass.force_external()
             propclasses.append(propclass)
         sa_props = {x.property_class_iri: x for x in propclasses}
         #
@@ -240,9 +241,7 @@ class DataModel(Model):
         sparql = context.sparql_context
 
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
-
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{\n'
-
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:hasVersion {self.__version.toRdf} .\n'
         sparql += '\n'
 

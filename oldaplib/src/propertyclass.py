@@ -19,6 +19,7 @@ from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_float import Xsd_float
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -38,6 +39,13 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 PropTypes = Iri | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | XsdSet | Numeric | None
 PropClassAttrContainer = dict[PropClassAttr, PropTypes]
 Attributes = dict[Iri, PropTypes]
+
+@dataclass
+class HasPropertyData:
+    refprop: Iri | None
+    minCount: Xsd_integer | None
+    maxCount: Xsd_integer | None
+    order: Xsd_decimal | None
 
 
 #@strict
@@ -178,6 +186,7 @@ class PropertyClass(Model, Notify):
         propstr = f'Property: {str(self._property_class_iri)};'
         for attr, value in self._attributes.items():
             propstr += f' {attr.value}: {value};'
+        propstr += f' internal: {self._internal};'
         return propstr
 
     @property
@@ -303,7 +312,7 @@ class PropertyClass(Model, Notify):
             PropertyClass.process_triple(r, attributes)
         return attributes
 
-    def parse_shacl(self, attributes: Attributes) -> tuple[Iri, Xsd_integer | None, Xsd_integer | None] | None:
+    def parse_shacl(self, attributes: Attributes) -> HasPropertyData | None:
         """
         Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
         :return:
@@ -314,6 +323,7 @@ class PropertyClass(Model, Notify):
         refprop: Iri | None = None
         minCount: Xsd_integer | None = None
         maxCount: Xsd_integer | None = None
+        order: Xsd_decimal | None = None
         propkeys = {Iri(x.value) for x in PropClassAttr}
         for key, val in attributes.items():
             if key == 'rdf:type':
@@ -359,6 +369,8 @@ class PropertyClass(Model, Notify):
                 minCount = val
             elif key == 'sh:maxCount':
                 maxCount = val
+            elif key == 'sh:order':
+                order = val
             elif key == 'sh:group':
                 pass  # TODO: Process property group correctly.... (at Moment only oldaplib:SystemPropGroup)
             elif key in propkeys:
@@ -370,7 +382,7 @@ class PropertyClass(Model, Notify):
                     self._attributes[attr] = attr.datatype(val)
 
         if refprop:
-            return (refprop, minCount, maxCount)
+            return HasPropertyData(refprop, minCount, maxCount, order)
 
         if self._attributes.get(PropClassAttr.CLASS) is not None:
             self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
@@ -383,7 +395,7 @@ class PropertyClass(Model, Notify):
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
         self.__from_triplestore = True
-        return (refprop, minCount, maxCount)
+        return HasPropertyData(refprop, minCount, maxCount, order)
 
     def read_owl(self):
         context = Context(name=self._con.context_name)
@@ -505,6 +517,7 @@ class PropertyClass(Model, Notify):
                             bnode: Xsd_QName | None = None,
                             minCount: Xsd_integer | None = None,
                             maxCount: Xsd_integer | None = None,
+                            order: Xsd_decimal | None = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{(indent + 1) * indent_inc}}# >>PropertyClass.property_node_shacl()'
@@ -525,6 +538,8 @@ class PropertyClass(Model, Notify):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:minCount {minCount.toRdf}'
         if maxCount:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:maxCount {maxCount.toRdf}'
+        if order:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:order {order.toRdf}'
         return sparql
 
     def create_shacl(self, *,
@@ -532,6 +547,7 @@ class PropertyClass(Model, Notify):
                      owlclass_iri: Iri | None = None,
                      minCount: Xsd_integer | None = None,
                      maxCount: Xsd_integer | None = None,
+                     order: Xsd_decimal | None = None,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'\n{blank:{indent * indent_inc}}# PropertyClass.create_shacl()'
@@ -543,7 +559,7 @@ class PropertyClass(Model, Notify):
             bnode = Xsd_QName('_:propnode')
             sparql += f'\n{blank:{indent * indent_inc}}{owlclass_iri}Shape sh:property {bnode} .\n'
             sparql += self.property_node_shacl(timestamp=timestamp, bnode=bnode,
-                                               minCount=minCount, maxCount=maxCount,
+                                               minCount=minCount, maxCount=maxCount, order=order,
                                                indent=indent, indent_inc=indent_inc)
         sparql += ' .\n'
         return sparql
@@ -604,6 +620,7 @@ class PropertyClass(Model, Notify):
     def create(self, *,
                minCount: Xsd_integer | None = None,
                maxCount: Xsd_integer | None = None,
+               order: Xsd_integer | None = None,
                indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
             raise OldapErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
@@ -617,7 +634,9 @@ class PropertyClass(Model, Notify):
         if self._internal is not None:  # internal property, add minCount, maxCount if defined
             sparql += self.create_shacl(timestamp=timestamp,
                                         owlclass_iri=self._internal,
-                                        minCount=minCount, maxCount=maxCount,
+                                        minCount=minCount,
+                                        maxCount=maxCount,
+                                        order=order,
                                         indent=2)
         else:  # external standalone (reusable) property -> no minCount, maxCount
             sparql += self.create_shacl(timestamp=timestamp,
@@ -670,7 +689,7 @@ class PropertyClass(Model, Notify):
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:shacl {{\n')
             if self._internal is not None:
-                f.write(self.create_shacl(timestamp=timestamp, owlclass_iri=self._internal,indent=2))
+                f.write(self.create_shacl(timestamp=timestamp, owlclass_iri=self._internal, indent=2))
             else:
                 f.write(self.create_shacl(timestamp=timestamp, indent=2))
             f.write(f'{blank:{indent * indent_inc}}}}\n')

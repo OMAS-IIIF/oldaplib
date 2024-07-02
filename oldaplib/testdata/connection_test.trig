@@ -97,6 +97,7 @@ oldap:admin {
                 sh:node :testShape ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
+                sh:order "3"^^xsd:decimal ;
             ] ;
         sh:property
             [

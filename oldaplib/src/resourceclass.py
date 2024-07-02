@@ -22,6 +22,7 @@ from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.langstring import LangString
@@ -41,24 +42,25 @@ SuperclassParam = Iri | str | list[Iri] | tuple[Iri] | set[Iri] | None
 AttributeParams = LangString | Xsd_boolean | SuperclassParam
 
 
+
 class HasProperty:
     __property: PropertyClass | Iri
     __minCount: Xsd_integer | None
     __maxCount: Xsd_integer | None
+    __order: Xsd_decimal | None
     __callback: Callable[[PropertyClass | Iri], None] | None
 
     def __init__(self, *,
                  prop: PropertyClass | Iri,
-                 minCount = None,
-                 maxCount = None,
+                 minCount=None,
+                 maxCount=None,
+                 order=None,
                  callback: Callable[[PropertyClass | Iri, Xsd_integer | None, Xsd_integer | None], None] = None):
         self.__property = prop
         self.__minCount = Xsd_integer(minCount) if minCount else None
         self.__maxCount = Xsd_integer(maxCount) if maxCount else None
+        self.__order = Xsd_decimal(order) if order else None
         self.__callback = callback
-
-    def __str__(self) -> str:
-        return 'HasProperty: prop=' + str(self.__property)
 
     @property
     def prop(self) -> PropertyClass | Iri:
@@ -86,10 +88,22 @@ class HasProperty:
     @maxCount.setter
     def maxCount(self, maxCount: Xsd_integer | int | None):
         self.__maxCount = Xsd_integer(maxCount) if maxCount else None
+        if self.__callback:
+            self.__callback(self.__property)
+
+    @property
+    def order(self) -> Xsd_decimal | None:
+        return self.__order
+
+    @order.setter
+    def order(self, order: Xsd_decimal | None):
+        self.__order = Xsd_decimal(order) if order else None
+        if self.__callback:
+            self.__callback(self.__property)
 
     def __str__(self):
         res = str(self.__property) if isinstance(self.__property, Iri) else str(self.__property.property_class_iri)
-        res += f' (minCount={self.minCount}, maxCount={self.maxCount})'
+        res += f' (minCount={self.minCount}, maxCount={self.maxCount}, order={self.order})'
         return res
 
     def __hash__(self) -> int:
@@ -192,12 +206,14 @@ class ResourceClass(Model, Notify):
                         newprop = HasProperty(prop=PropertyClass.read(self._con, self._project, fixed_prop),
                                               minCount=hasprop.minCount,
                                               maxCount=hasprop.maxCount,
-                                              callback=self.__cardinality_changed)
+                                              order=hasprop.order,
+                                              callback=self.__has_property_changed)
                     except OldapErrorNotFound as err:
                         newprop = HasProperty(prop=fixed_prop,
                                               minCount=hasprop.minCount,
                                               maxCount=hasprop.maxCount,
-                                              callback=self.__cardinality_changed)
+                                              order=hasprop.order,
+                                              callback=self.__has_property_changed)
                 elif isinstance(hasprop.prop, PropertyClass):  # an internal, private property definition
                     if not hasprop.prop._force_external:
                         hasprop.prop._internal = owlclass_iri
@@ -240,15 +256,15 @@ class ResourceClass(Model, Notify):
                     try:
                         p = PropertyClass.read(self._con, project=self._project, property_class_iri=value.prop)
                         value.prop = p
-                        value.set_callback(self.__cardinality_changed)
+                        value.set_callback(self.__has_property_changed)
                         self._properties[key] = value
                     except OldapErrorNotFound as err:
-                        value.set_callback(self.__cardinality_changed)
+                        value.set_callback(self.__has_property_changed)
                         self._properties[key] = value
                 else:
                     value.prop._internal = self._owlclass_iri  # we need to access the private variable here
                     value.prop._property_class_iri = key  # we need to access the private variable here
-                    value.set_callback(self.__cardinality_changed)
+                    value.set_callback(self.__has_property_changed)
                     self._properties[key] = value
             else:  # REPLACE action
                 if self._prop_changeset.get(key) is None:
@@ -259,15 +275,15 @@ class ResourceClass(Model, Notify):
                     try:
                         p = PropertyClass.read(self._con, project=self._project, property_class_iri=value.prop)
                         value.prop = p
-                        value.set_callback(self.__cardinality_changed)
+                        value.set_callback(self.__has_property_changed)
                         self._properties[key] = value
                     except OldapErrorNotFound as err:
-                        value.set_callback(self.__cardinality_changed)
+                        value.set_callback(self.__has_property_changed)
                         self._properties[key] = value
                 else:
                     value.prop._internal = self._owlclass_iri  # we need to access the private variable here
                     value._property_class_iri = key  # we need to access the private variable here
-                    value.set_callback(self.__cardinality_changed)
+                    value.set_callback(self.__has_property_changed)
                     self.prop._properties[key] = value
         else:
             raise OldapError(f'Invalid key type {type(key).__name__} of key {key}')
@@ -352,10 +368,10 @@ class ResourceClass(Model, Notify):
         if self._changeset.get(ResClassAttribute.SUPERCLASS) is None:
             self._changeset[ResClassAttribute.SUPERCLASS] = AttributeChange(oldval, Action.MODIFY)
 
-    def __cardinality_changed(self,
-                              what: PropertyClass | Iri,
-                              minCount: Xsd_integer | None,
-                              maxCount: Xsd_integer | None) -> None:
+    def __has_property_changed(self,
+                               what: PropertyClass | Iri,
+                               minCount: Xsd_integer | None,
+                               maxCount: Xsd_integer | None) -> None:
         pass
 
 
@@ -574,17 +590,23 @@ class ResourceClass(Model, Notify):
                     proplist.append(HasProperty(prop=prop_iri))
             else:
                 prop = PropertyClass(con=con, project=project)
-                t = prop.parse_shacl(attributes=attributes)
-                if t[0]:
+                haspropdata = prop.parse_shacl(attributes=attributes)
+                if haspropdata.refprop:
                     #
                     # Case B.
                     #
-                    if sa_props and t[0] in sa_props:
-                        proplist.append(HasProperty(prop=sa_props[t[0]], minCount=t[1], maxCount=t[2]))  # TODO: Callback ????
+                    if sa_props and haspropdata.refprop in sa_props:
+                        proplist.append(HasProperty(prop=sa_props[haspropdata.refprop],
+                                                    minCount=haspropdata.minCount,
+                                                    maxCount=haspropdata.maxCount,
+                                                    order=haspropdata.order))  # TODO: Callback ????
                     else:
-                        prop = PropertyClass.read(con, project, t[0])
+                        prop = PropertyClass.read(con, project, haspropdata.refprop)
                         prop.force_external()
-                        proplist.append(HasProperty(prop=prop, minCount=t[1], maxCount=t[2]))  # TODO: Callback ????
+                        proplist.append(HasProperty(prop=prop,
+                                                    minCount=haspropdata.minCount,
+                                                    maxCount=haspropdata.maxCount,
+                                                    order=haspropdata.order))  # TODO: Callback ????
                 else:
                     #
                     # Case C.
@@ -592,7 +614,10 @@ class ResourceClass(Model, Notify):
                     prop.read_owl()
                     if prop._internal != owlclass_iri:
                         OldapErrorInconsistency(f'ERRROR ERROR ERROR')
-                    proplist.append(HasProperty(prop=prop, minCount=t[1], maxCount=t[2]))  # TODO: Callback ????
+                    proplist.append(HasProperty(prop=prop,
+                                                minCount=haspropdata.minCount,
+                                                maxCount=haspropdata.maxCount,
+                                                order=haspropdata.order))  # TODO: Callback ????
         return proplist
 
     def __read_owl(self):
@@ -757,11 +782,14 @@ class ResourceClass(Model, Notify):
             if hp.prop.internal is not None:
                 sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property'
                 sparql += f'\n{blank:{(indent + 3)*indent_inc}}[\n'
-                sparql += hp.prop.property_node_shacl(timestamp=timestamp, minCount=hp.minCount,
-                                                      maxCount=hp.maxCount,indent=4)
+                sparql += hp.prop.property_node_shacl(timestamp=timestamp,
+                                                      minCount=hp.minCount,
+                                                      maxCount=hp.maxCount,
+                                                      order=hp.order,
+                                                      indent=4)
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
             else:
-                if hp.minCount or hp.maxCount:
+                if hp.minCount or hp.maxCount or hp.order:
                     sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property'
                     sparql += f'\n{blank:{(indent + 3) * indent_inc}}['
                     sparql += f'\n{blank:{(indent + 4) * indent_inc}}sh:node {iri}Shape'
@@ -769,6 +797,8 @@ class ResourceClass(Model, Notify):
                         sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:minCount {hp.minCount.toRdf}'
                     if hp.maxCount:
                         sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:maxCount {hp.maxCount.toRdf}'
+                    if hp.order:
+                        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:order {hp.order.toRdf}'
                     sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
                 else:
                     sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property {iri}Shape'
@@ -880,6 +910,7 @@ class ResourceClass(Model, Notify):
                                      iri: Iri,
                                      minCount: Xsd_integer | None = None,
                                      maxCount: Xsd_integer | None = None,
+                                     order: Xsd_decimal | None = None,
                                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'INSERT DATA {{\n'
@@ -890,6 +921,8 @@ class ResourceClass(Model, Notify):
             sparql += f'{blank:{(indent + 1) * indent_inc}}sh:minCount {minCount.toRdf} ;\n'
         if maxCount:
             sparql += f'{blank:{(indent + 1) * indent_inc}}sh:maxCount {maxCount.toRdf}'
+        if order:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}sh:order {order.toRdf}'
         sparql += f'{blank:{indent * indent_inc}}] .\n'
         sparql += f'    }}\n'
         sparql += f'}}\n'
@@ -1001,7 +1034,8 @@ class ResourceClass(Model, Notify):
                     # -> reference to an external, foreign property!
                     sparql = self.__add_new_property_ref_shacl(iri=self._properties[propiri].prop,
                                                                minCount=self._properties[propiri].minCount,
-                                                               maxCount=self._properties[propiri].maxCount)
+                                                               maxCount=self._properties[propiri].maxCount,
+                                                               order=self._properties[propiri].order)
                 elif isinstance(self._properties[propiri].prop, PropertyClass):
                     # -> we have the PropertyClass available
                     if self._properties[propiri].prop.from_triplestore:
@@ -1011,7 +1045,8 @@ class ResourceClass(Model, Notify):
                         sparql = self.__add_new_property_ref_shacl(
                             iri=self._properties[propiri].prop.property_class_iri,
                             minCount=self._properties[propiri].minCount,
-                            maxCount=self._properties[propiri].maxCount)
+                            maxCount=self._properties[propiri].maxCount,
+                            order=self._properties[propiri].order)
                     else:  # -> it's a new property,  not yet in the triple store. First create it...
                         if self._properties[propiri].prop._force_external:
                             # create a standalone property and the reference it!
@@ -1023,7 +1058,8 @@ class ResourceClass(Model, Notify):
                             sparql = self.__add_new_property_ref_shacl(
                                 iri=self._properties[propiri].prop.property_class_iri,
                                 minCount=self._properties[propiri].minCount,
-                                maxCount=self._properties[propiri].maxCount)
+                                maxCount=self._properties[propiri].maxCount,
+                                order=self._properties[propiri].order)
                         else:
                             # Create an internal property (Bnode) and add minCount, maxCount
                             sparql2 = f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
@@ -1032,6 +1068,7 @@ class ResourceClass(Model, Notify):
                                                                                    owlclass_iri=self._properties[propiri].prop.internal,
                                                                                    minCount=self._properties[propiri].minCount,
                                                                                    maxCount=self._properties[propiri].maxCount,
+                                                                                   order=self._properties[propiri].order,
                                                                                    indent=2)
                             sparql2 += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                             sparql2 += f'{blank:{indent* indent_inc}}}}\n'
@@ -1261,7 +1298,6 @@ class ResourceClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError as err:
-            lprint(sparql)
             self._con.transaction_abort()
             raise
         try:
