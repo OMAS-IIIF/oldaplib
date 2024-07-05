@@ -1,28 +1,23 @@
+from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.xsd.floatingpoint import FloatingPoint
+from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_float import Xsd_float
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 
 
-class Numeric:
+class PropRef:
     """
     This class represents a numeric value that eiter can be a subclass of Xsd_integer (and it's subclasses) or
     a subclass of FloatingPoint (and it's subclasses). FLoatingPoint is the superclass of all XML Schema datatypes
     with a floating point content (e.g. Xsd_float, Xsd_decimal etc.)
     """
-    def __new__(cls, value: Xsd_integer | int | FloatingPoint | float | str):
-        if isinstance(value, (Xsd_integer, int)):
-            return Xsd_integer(value)
-        elif isinstance(value, (FloatingPoint, float)):
-            return Xsd_float(value)
-        else:
-            try:
-                return Xsd_integer(str(value))
-            except:
-                return Xsd_float(str(value))
+    def __new__(cls, value: PropertyClass | Iri | str):
+        if isinstance(value, (PropertyClass)):
+            return value
+        elif isinstance(value, (Iri, str)):
+            return Iri(value)
 
 
 if __name__ == '__main__':
-    a = Numeric(1.5)
+    a = PropRef("sh:gaga")
     print(type(a).__name__)
-    b = Numeric(5)
-    print(type(b).__name__)

@@ -182,7 +182,6 @@ class Project(Model):
             if self._attributes.get(ProjectAttr.PROJECT_END) and value > self._attributes[ProjectAttr.PROJECT_END]:
                 raise OldapErrorInconsistency(f'Project start date {value} is after project end date {self._attributes[ProjectAttr.PROJECT_END]}.')
 
-
     def check_for_permissions(self) -> (bool, str):
         actor = self._con.userdata
         sysperms = actor.inProject.get(Iri('oldap:SystemProject'))

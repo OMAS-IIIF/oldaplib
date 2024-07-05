@@ -23,7 +23,8 @@ from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropClassAttrContainer, PropertyClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
-from oldaplib.src.resourceclass import ResourceClass, HasProperty
+from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -150,10 +151,10 @@ class TestResourceClass(unittest.TestCase):
                            inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=Iri("test:comment"), maxCount=1, order=1),
-            HasProperty(prop=Iri("test:test"), minCount=1, order=2),
-            HasProperty(prop=p1, maxCount=1, order=3),
-            HasProperty(prop=p2, minCount=1, maxCount=1, order=4)
+            HasProperty(con=self._connection, prop=Iri("test:comment"), maxCount=1, order=1),
+            HasProperty(con=self._connection, prop=Iri("test:test"), minCount=1, order=2),
+            HasProperty(con=self._connection, prop=p1, maxCount=1, order=3),
+            HasProperty(con=self._connection, prop=p2, minCount=1, maxCount=1, order=4)
         ]
 
         r1 = ResourceClass(con=self._connection,
@@ -228,8 +229,8 @@ class TestResourceClass(unittest.TestCase):
                            inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=p1, maxCount=1, order=1),
-            HasProperty(prop=p2, minCount=1, maxCount=1, order=2)
+            HasProperty(con=self._connection, prop=p1, maxCount=1, order=1),
+            HasProperty(con=self._connection, prop=p2, minCount=1, maxCount=1, order=2)
         ]
 
         r1 = ResourceClass(con=self._connection,
@@ -332,11 +333,11 @@ class TestResourceClass(unittest.TestCase):
                            inSet=RdfSet(Xsd_integer(1), Xsd_integer(2), Xsd_integer(3)))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=Iri("test:comment"), maxCount=1, order=1),
-            HasProperty(prop=Iri("test:test"), minCount=1, order=2),
-            HasProperty(prop=p1, minCount=1, maxCount=1, order=3),
-            HasProperty(prop=p2, minCount=1, order=4),
-            HasProperty(prop=p3, order=5)
+            HasProperty(con=self._connection, prop=Iri("test:comment"), maxCount=1, order=1),
+            HasProperty(con=self._connection, prop=Iri("test:test"), minCount=1, order=2),
+            HasProperty(con=self._connection, prop=p1, minCount=1, maxCount=1, order=3),
+            HasProperty(con=self._connection, prop=p2, minCount=1, order=4),
+            HasProperty(con=self._connection, prop=p3, order=5)
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -411,7 +412,7 @@ class TestResourceClass(unittest.TestCase):
                            datatype=XsdDatatypes.string,
                            name=LangString(["TestProp1"]))
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=p1, order=1)
+            HasProperty(con=self._connection, prop=p1, order=1)
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -435,7 +436,7 @@ class TestResourceClass(unittest.TestCase):
                            datatype=XsdDatatypes.string,
                            name=LangString(["ThingTestProp1"]))
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=p1, order=1)
+            HasProperty(con=self._connection, prop=p1, order=1)
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -455,8 +456,8 @@ class TestResourceClass(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_double_creation(self):
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=Iri("test:comment")),
-            HasProperty(prop=Iri("test:test")),
+            HasProperty(con=self._connection, prop=Iri("test:comment")),
+            HasProperty(con=self._connection, prop=Iri("test:test")),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -483,7 +484,12 @@ class TestResourceClass(unittest.TestCase):
         #
         # Add an external, shared property defined by its own sh:PropertyShape instance
         #
-        r1[Iri('test:test')] = HasProperty(prop=Iri("test:test"), minCount=1, order=3)
+        r1[Iri('test:test')] = HasProperty(con=self._connection,
+                                           prop=Iri("test:test"),
+                                           minCount=1,
+                                           order=3,
+                                           notifier=r1.hp_notifier,
+                                           notify_data=Iri("test:test"))
         r1.update()
         del r1
         r2 = ResourceClass.read(con=self._connection,
@@ -518,7 +524,7 @@ class TestResourceClass(unittest.TestCase):
         p = PropertyClass(con=self._connection,
                           project=self._project,
                           toClass=Iri('test:Person'))
-        r1[Iri('dcterms:contributor')] = HasProperty(prop=p, maxCount=Xsd_integer(1))
+        r1[Iri('dcterms:contributor')] = HasProperty(con=self._connection, prop=p, maxCount=Xsd_integer(1))
 
         r1.update()
         del r1
@@ -545,7 +551,7 @@ class TestResourceClass(unittest.TestCase):
         #
         # Add an external, shared property defined by its own sh:PropertyShape instance
         #
-        r1[Iri('test:test')] = HasProperty(prop=Iri("test:test"), minCount=1, order=3)
+        r1[Iri('test:test')] = HasProperty(con=self._connection, prop=Iri("test:test"), minCount=1, order=3)
 
         #
         # Adding an internal, private property
@@ -553,14 +559,14 @@ class TestResourceClass(unittest.TestCase):
         p = PropertyClass(con=self._connection,
                           project=self._project,
                           toClass=Iri('test:Person'))
-        r1[Iri('dcterms:creator')] = HasProperty(prop=p, maxCount=Xsd_integer(1))
+        r1[Iri('dcterms:creator')] = HasProperty(con=self._connection, prop=p, maxCount=Xsd_integer(1))
 
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            datatype=XsdDatatypes.string,
                            inSet=RdfSet(Xsd_string('A'), Xsd_string('B'), Xsd_string('C'), Xsd_string('D'))
                            )
-        r1[Iri('test:color')] = HasProperty(prop=p2)
+        r1[Iri('test:color')] = HasProperty(con=self._connection,prop=p2)
         r1.update()
         del r1
         r2 = ResourceClass.read(con=self._connection,
@@ -638,6 +644,19 @@ class TestResourceClass(unittest.TestCase):
             v = r['v']
             self.assertEqual(result[p], v)
 
+    # def test_temp(self):
+    #     r1 = ResourceClass.read(con=self._connection,
+    #                             project=self._project,
+    #                             owl_class_iri=Iri("test:testMyRes"))
+    #     r1[Iri('test:hasText')].maxCount = Xsd_integer(12)
+    #     r1.update()
+    #
+    #     r2 = ResourceClass.read(con=self._connection,
+    #                             project=self._project,
+    #                             owl_class_iri=Iri("test:testMyRes"))
+    #     self.assertEqual(r2[Iri('test:hasText')].maxCount, Xsd_integer(12))
+
+
     # @unittest.skip('Work in progress')
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection,
@@ -652,7 +671,7 @@ class TestResourceClass(unittest.TestCase):
         r1.closed = Xsd_boolean(False)
         r1[ResClassAttribute.SUPERCLASS] = {Iri('dcterms:TopGaga')}
         r1[Iri('test:hasText')].prop.name[Language.FR] = "Un Texte Français"
-        #r1[Iri('test:hasText')].maxCount = Xsd_integer(12)  # TODO !!!!!!!!!!!!!!!!!!
+        r1[Iri('test:hasText')].maxCount = Xsd_integer(12)  # TODO !!!!!!!!!!!!!!!!!!
         r1[Iri('test:hasText')].prop.languageIn = LanguageIn(Language.DE, Language.FR, Language.IT)
         r1[Iri('test:hasEnum')].prop.inSet = RdfSet(Xsd_string('L'), Xsd_string('a'), Xsd_string('b'))
 
@@ -666,7 +685,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual({Iri('dcterms:TopGaga')}, set(r2.superclass))
         self.assertIsNone(r2.superclass[Iri('dcterms:TopGaga')])
         self.assertEqual(r2[Iri('test:hasText')].prop.name, LangString(["A text@en", "Ein Text@de", "Un Texte Français@fr"]))
-        #self.assertEqual(r2[Iri('test:hasText')].maxCount, Xsd_integer(12))  # TODO !!!!!!!!!!!!!!!!
+        self.assertEqual(r2[Iri('test:hasText')].maxCount, Xsd_integer(12))  # TODO !!!!!!!!!!!!!!!!
         self.assertEqual(r2[Iri('test:hasText')].prop.languageIn, LanguageIn(Language.DE, Language.FR, Language.IT))
         self.assertEqual(r2[Iri('test:hasEnum')].prop.inSet, RdfSet(Xsd_string('L'), Xsd_string('a'), Xsd_string('b')))
 
@@ -676,7 +695,9 @@ class TestResourceClass(unittest.TestCase):
                            property_class_iri=Iri('test:p1'),
                            datatype=XsdDatatypes.string,
                            name=LangString(["P1"]))
-        hasproperties: list[HasProperty] = [HasProperty(prop=p1, order=1)]
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, prop=p1, order=1)
+        ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Iri("test:Crazy"),
@@ -704,7 +725,9 @@ class TestResourceClass(unittest.TestCase):
                            property_class_iri=Iri('test:p2'),
                            datatype=XsdDatatypes.string,
                            name=LangString(["P2"]))
-        hasproperties: list[HasProperty] = [HasProperty(prop=p1, order=1)]
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, prop=p1, order=1)
+        ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Iri("test:CrazyB"),
@@ -732,7 +755,9 @@ class TestResourceClass(unittest.TestCase):
                            property_class_iri=Iri('test:p3'),
                            datatype=XsdDatatypes.string,
                            name=LangString(["P3"]))
-        hasproperties: list[HasProperty] = [HasProperty(prop=p1, order=1)]
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, prop=p1, order=1)
+        ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Iri("test:CrazyC"),
@@ -782,11 +807,11 @@ class TestResourceClass(unittest.TestCase):
                            inSet=RdfSet(Xsd_integer(10), Xsd_integer(20), Xsd_integer(30)))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=Iri("test:comment"), order=1),
-            HasProperty(prop=Iri("test:test"), order=2),
-            HasProperty(prop=p1, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=3),
-            HasProperty(prop=p2, minCount=Xsd_integer(1), order=4),
-            HasProperty(prop=p3, order=5),
+            HasProperty(con=self._connection, prop=Iri("test:comment"), order=1),
+            HasProperty(con=self._connection, prop=Iri("test:test"), order=2),
+            HasProperty(con=self._connection, prop=p1, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=3),
+            HasProperty(con=self._connection, prop=p2, minCount=Xsd_integer(1), order=4),
+            HasProperty(con=self._connection, prop=p3, order=5),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -846,11 +871,11 @@ class TestResourceClass(unittest.TestCase):
                            inSet=RdfSet(Xsd_integer(10), Xsd_integer(20), Xsd_integer(30)))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=Iri("test:comment"), order=1),
-            HasProperty(prop=Iri("test:test"), order=2),
-            HasProperty(prop=p1, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=3),
-            HasProperty(prop=p2, minCount=Xsd_integer(1), order=4),
-            HasProperty(prop=p3, order=5)
+            HasProperty(con=self._connection, prop=Iri("test:comment"), order=1),
+            HasProperty(con=self._connection, prop=Iri("test:test"), order=2),
+            HasProperty(con=self._connection, prop=p1, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=3),
+            HasProperty(con=self._connection, prop=p2, minCount=Xsd_integer(1), order=4),
+            HasProperty(con=self._connection, prop=p3, order=5)
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -895,8 +920,8 @@ class TestResourceClass(unittest.TestCase):
                                      uniqueLang=Xsd_boolean(True))
 
         hasproperties: list[HasProperty] = [
-            HasProperty(prop=project_id, minCount=Xsd_integer(1), order=1),
-            HasProperty(prop=project_name, minCount=Xsd_integer(1), order=2)
+            HasProperty(con=self._connection, prop=project_id, minCount=Xsd_integer(1), order=1),
+            HasProperty(con=self._connection, prop=project_name, minCount=Xsd_integer(1), order=2)
         ]
         superclass = ResourceClass.read(con=self._connection,
                                         project=self._project,

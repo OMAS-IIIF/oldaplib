@@ -22,6 +22,7 @@ from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_float import Xsd_float
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -42,10 +43,40 @@ Attributes = dict[Iri, PropTypes]
 
 @dataclass
 class HasPropertyData:
-    refprop: Iri | None
-    minCount: Xsd_integer | None
-    maxCount: Xsd_integer | None
-    order: Xsd_decimal | None
+    refprop: Iri | None = None
+    minCount: Xsd_integer | None = None
+    maxCount: Xsd_integer | None = None
+    order: Xsd_decimal | None = None
+    group: Iri | None = None
+
+    def create_shacl(self, indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql = ''
+        if self.minCount is not None:
+            sparql += f' ;\n{blank:{indent * indent_inc}}sh:minCount {self.minCount.toRdf}'
+        if self.maxCount is not None:
+            sparql += f' ;\n{blank:{indent * indent_inc}}sh:maxCount {self.maxCount.toRdf}'
+        if self.order is not None:
+            sparql += f' ;\n{blank:{indent * indent_inc}}sh:order {self.order.toRdf}'
+        if self.group is not None:
+            sparql += f' ;\n{blank:{indent * indent_inc}}sh:group {self.group.toRdf}'
+        return sparql
+
+    def create_owl(self, indent: int = 0, indent_inc: int = 4):
+        def create_owl(self, indent: int = 0, indent_inc: int = 4):
+            blank = ''
+            sparql = ''
+            min_count = Xsd_nonNegativeInteger(int(self.minCount)) if self.minCount else None
+            max_count = Xsd_nonNegativeInteger(int(self.maxCount)) if self.maxCount else None
+
+            if min_count and max_count and min_count == max_count:
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {min_count.toRdf}'
+            else:
+                if min_count:
+                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {min_count.toRdf}'
+                if max_count:
+                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {max_count.toRdf}'
+            return sparql
 
 
 #@strict
@@ -515,9 +546,7 @@ class PropertyClass(Model, Notify):
     def property_node_shacl(self, *,
                             timestamp: Xsd_dateTime,
                             bnode: Xsd_QName | None = None,
-                            minCount: Xsd_integer | None = None,
-                            maxCount: Xsd_integer | None = None,
-                            order: Xsd_decimal | None = None,
+                            haspropdata: HasPropertyData | None = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{(indent + 1) * indent_inc}}# >>PropertyClass.property_node_shacl()'
@@ -534,20 +563,20 @@ class PropertyClass(Model, Notify):
             if prop == PropClassAttr.TYPE:
                 continue
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.toRdf}'
-        if minCount:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:minCount {minCount.toRdf}'
-        if maxCount:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:maxCount {maxCount.toRdf}'
-        if order:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:order {order.toRdf}'
+        if haspropdata:
+            sparql += haspropdata.create_shacl(indent=indent + 1)
+        # if minCount:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:minCount {minCount.toRdf}'
+        # if maxCount:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:maxCount {maxCount.toRdf}'
+        # if order:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:order {order.toRdf}'
         return sparql
 
     def create_shacl(self, *,
                      timestamp: Xsd_dateTime,
                      owlclass_iri: Iri | None = None,
-                     minCount: Xsd_integer | None = None,
-                     maxCount: Xsd_integer | None = None,
-                     order: Xsd_decimal | None = None,
+                     haspropdata: HasPropertyData | None = None,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'\n{blank:{indent * indent_inc}}# PropertyClass.create_shacl()'
@@ -559,7 +588,7 @@ class PropertyClass(Model, Notify):
             bnode = Xsd_QName('_:propnode')
             sparql += f'\n{blank:{indent * indent_inc}}{owlclass_iri}Shape sh:property {bnode} .\n'
             sparql += self.property_node_shacl(timestamp=timestamp, bnode=bnode,
-                                               minCount=minCount, maxCount=maxCount, order=order,
+                                               haspropdata=haspropdata,
                                                indent=indent, indent_inc=indent_inc)
         sparql += ' .\n'
         return sparql
@@ -583,21 +612,20 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def create_owl_part2(self, *,
-                         minCount: Xsd_integer | None = None,
-                         maxCount: Xsd_integer | None = None,
+                         haspropdata: HasPropertyData | None = None,
                          indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri.toRdf}'
 
-        if minCount and maxCount  and minCount == maxCount:
-            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:qualifiedCardinality {minCount.toRdf}'
+        if haspropdata.minCount and haspropdata.maxCount  and haspropdata.minCount == haspropdata.maxCount:
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:qualifiedCardinality {haspropdata.minCount.toRdf}'
         else:
-            if minCount:
-                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality {minCount.toRdf}'
-            if maxCount:
-                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality {maxCount.toRdf}'
+            if haspropdata.minCount:
+                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality {haspropdata.minCount.toRdf}'
+            if haspropdata.maxCount:
+                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality {haspropdata.maxCount.toRdf}'
         #
         # (NOTE: owl:onClass and owl:onDatatype can be used only in a restriction and are "local" to the use
         # of the property within the given resource. However, rdfs:range is "global" for all use of this property!
@@ -618,9 +646,7 @@ class PropertyClass(Model, Notify):
 
 
     def create(self, *,
-               minCount: Xsd_integer | None = None,
-               maxCount: Xsd_integer | None = None,
-               order: Xsd_integer | None = None,
+               haspropdata: HasPropertyData | None = None,
                indent: int = 0, indent_inc: int = 4) -> None:
         if self.__from_triplestore:
             raise OldapErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
@@ -634,9 +660,7 @@ class PropertyClass(Model, Notify):
         if self._internal is not None:  # internal property, add minCount, maxCount if defined
             sparql += self.create_shacl(timestamp=timestamp,
                                         owlclass_iri=self._internal,
-                                        minCount=minCount,
-                                        maxCount=maxCount,
-                                        order=order,
+                                        haspropdata=haspropdata,
                                         indent=2)
         else:  # external standalone (reusable) property -> no minCount, maxCount
             sparql += self.create_shacl(timestamp=timestamp,

@@ -20,7 +20,8 @@ from oldaplib.src.enums.language import Language
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.propertyclass import PropertyClass
-from oldaplib.src.resourceclass import ResourceClass, HasProperty
+from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.hasproperty import HasProperty
 
 
 def find_project_root(current_path):

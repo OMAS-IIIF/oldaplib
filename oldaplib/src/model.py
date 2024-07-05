@@ -92,6 +92,8 @@ class Model:
 
     def set_attributes(self, arguments: dict[str, Any], Attributes: type[Enum]) -> None:
         for name, value in arguments.items():
+            if not value:
+                continue
             attr = Attributes.from_name(name)
             try:
                 self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value)
