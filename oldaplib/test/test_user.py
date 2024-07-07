@@ -719,6 +719,7 @@ class TestUser(unittest.TestCase):
                     isActive=False,
                     hasPermissions={Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
         user.create()
+        self.assertFalse(user.isActive)
         del user
         user = User.read(con=self._connection, userId="jrosenthal")
         self.assertFalse(user.isActive)

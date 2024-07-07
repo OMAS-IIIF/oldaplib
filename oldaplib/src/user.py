@@ -141,6 +141,7 @@ user3.delete()
 ```
 """
 from functools import partial
+from pprint import pprint
 from typing import List, Self, Optional, Any
 
 import bcrypt
@@ -621,7 +622,8 @@ class User(Model):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {change.old_value.toRdf} .\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?user {field.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         if UserAttr.HAS_PERMISSIONS in self._changeset:

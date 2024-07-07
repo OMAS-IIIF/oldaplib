@@ -25,9 +25,9 @@ class HasProperty(Model, Notify):
                  notify_data: Iri | None = None,
                  **kwargs):
         Model.__init__(self, connection=con)
+        Notify.__init__(self, notifier, notify_data)
         self._prop = prop
         self.set_attributes(kwargs, HasPropertyAttr)
-        Notify.__init__(self, notifier, notify_data)
 
         for attr in HasPropertyAttr:
             setattr(HasProperty, attr.value.fragment, property(
@@ -37,7 +37,8 @@ class HasProperty(Model, Notify):
         self._changeset = {}
 
     def __str__(self) -> str:
-        s = f'HasProperty: {self._prop}'
+        iri = self._prop.property_class_iri if isinstance(self._prop, PropertyClass) else self._prop
+        s = f'HasProperty: {iri}\n'
         s += Model.__str__(self)
         return s
 
@@ -62,17 +63,17 @@ class HasProperty(Model, Notify):
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
         self.notify()
 
-    def create_shacl(self, indent: int = 0, indent_inc: int = 4):
+    def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
         if self._attributes.get(HasPropertyAttr.MIN_COUNT, None) is not None:
             sparql += f' ;\n{blank:{indent * indent_inc}}sh:minCount {self._attributes[HasPropertyAttr.MIN_COUNT].toRdf}'
         if self._attributes.get(HasPropertyAttr.MAX_COUNT, None) is not None:
-            sparql += f' ;\n{blank:{indent * indent_inc}}sh:maxCount {self._attributes[HasPropertyAttr.MIN_COUNT].toRdf}'
+            sparql += f' ;\n{blank:{indent * indent_inc}}sh:maxCount {self._attributes[HasPropertyAttr.MAX_COUNT].toRdf}'
         if self._attributes.get(HasPropertyAttr.ORDER, None) is not None:
             sparql += f' ;\n{blank:{indent * indent_inc}}sh:order {self._attributes[HasPropertyAttr.ORDER].toRdf}'
         if self._attributes.get(HasPropertyAttr.GROUP, None) is not None:
-            sparql += f' ;\n{blank:{indent * indent_inc}}sh:group {self._attributes[HasPropertyAttr.GROIP].toRdf}'
+            sparql += f' ;\n{blank:{indent * indent_inc}}sh:group {self._attributes[HasPropertyAttr.GROUP].toRdf}'
         return sparql
 
     def create_owl(self, indent: int = 0, indent_inc: int = 4):
@@ -112,15 +113,15 @@ class HasProperty(Model, Notify):
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}{resclass_iri}Shape sh:property ?prop .\n'
             if isinstance(self._prop, Iri) or self._prop.internal is None:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:node {propclass_iri}.\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:node {propclass_iri}Shape.\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {propclass_iri} .\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
-            sparql = " ;\n".join(sparql_list)
-            return sparql
+        sparql = " ;\n".join(sparql_list)
+        return sparql
 
     def update_owl(self,
                      graph: Xsd_NCName,

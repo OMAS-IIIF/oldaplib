@@ -131,36 +131,21 @@ class ResourceClass(Model, Notify):
         self._properties = {}
         if hasproperties is not None:
             for hasprop in hasproperties:
-                newprop: HasProperty | None = None
                 if isinstance(hasprop.prop, Iri):  # Reference to an external, standalone property definition
                     fixed_prop = Iri(str(hasprop.prop).removesuffix("Shape"))
                     try:
-                        newprop = HasProperty(con=con,
-                                              prop=PropertyClass.read(self._con, self._project, fixed_prop),
-                                              minCount=hasprop.minCount,
-                                              maxCount=hasprop.maxCount,
-                                              order=hasprop.order,
-                                              notifier=self.hp_notifier,
-                                              notify_data=fixed_prop)
+                        hasprop.prop = PropertyClass.read(self._con, self._project, fixed_prop)
                     except OldapErrorNotFound as err:
-                        newprop = HasProperty(con=con,
-                                              prop=fixed_prop,
-                                              minCount=hasprop.minCount,
-                                              maxCount=hasprop.maxCount,
-                                              order=hasprop.order,
-                                              notifier=self.hp_notifier,
-                                              notify_data=fixed_prop)
+                        hasprop.prop = fixed_prop
                 elif isinstance(hasprop.prop, PropertyClass):  # an internal, private property definition
                     if not hasprop.prop._force_external:
                         hasprop.prop._internal = owlclass_iri
-                    newprop = hasprop
                 else:
                     raise OldapErrorValue(f'Unexpected property type: {type(hasprop.prop).__name__}')
-                if newprop is not None:
-                    iri = newprop.prop.property_class_iri if isinstance(newprop.prop, PropertyClass) else newprop.prop
-                    self._properties[iri] = newprop
-                    if isinstance(newprop.prop, PropertyClass):
-                        newprop.prop.set_notifier(self.notifier, newprop.prop.property_class_iri)
+                iri = hasprop.prop.property_class_iri if isinstance(hasprop.prop, PropertyClass) else hasprop.prop
+                self._properties[iri] = hasprop
+                if isinstance(hasprop.prop, PropertyClass):
+                    hasprop.prop.set_notifier(self.notifier, hasprop.prop.property_class_iri)
 
         for attr in ResClassAttribute:
             setattr(ResourceClass, attr.value.fragment, property(
@@ -532,7 +517,8 @@ class ResourceClass(Model, Notify):
                                                     prop=sa_props[haspropdata.refprop],
                                                     minCount=haspropdata.minCount,
                                                     maxCount=haspropdata.maxCount,
-                                                    order=haspropdata.order))  # TODO: Callback ????
+                                                    order=haspropdata.order,
+                                                    group=haspropdata.group))  # TODO: Callback ????
                     else:
                         prop = PropertyClass.read(con, project, haspropdata.refprop)
                         prop.force_external()
@@ -540,7 +526,8 @@ class ResourceClass(Model, Notify):
                                                     prop=prop,
                                                     minCount=haspropdata.minCount,
                                                     maxCount=haspropdata.maxCount,
-                                                    order=haspropdata.order))  # TODO: Callback ????
+                                                    order=haspropdata.order,
+                                                    group=haspropdata.group))  # TODO: Callback ????
                 else:
                     #
                     # Case C.
@@ -552,7 +539,8 @@ class ResourceClass(Model, Notify):
                                                 prop=prop,
                                                 minCount=haspropdata.minCount,
                                                 maxCount=haspropdata.maxCount,
-                                                order=haspropdata.order))  # TODO: Callback ????
+                                                order=haspropdata.order,
+                                                group=haspropdata.group))  # TODO: Callback ????
         return proplist
 
     def __read_owl(self):
@@ -635,9 +623,13 @@ class ResourceClass(Model, Notify):
         resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, hasproperties=hasproperties)
         for hasprop in hasproperties:
             if isinstance(hasprop, HasProperty):  # not an Iri...
-                hasprop.set_notifier(resclass.hp_notifier, hasprop.prop.property_class_iri)
                 if isinstance(hasprop.prop, PropertyClass):
                     hasprop.prop.set_notifier(resclass.notifier, hasprop.prop.property_class_iri)
+                    hasprop.set_notifier(resclass.hp_notifier, hasprop.prop.property_class_iri)
+                elif isinstance(hasprop.prop, Iri):
+                    hasprop.set_notifier(resclass.hp_notifier, hasprop.prop)
+                else:
+                    raise OldapError(f'Invalid datatype: {type(hasprop.prop).__name}')
         attributes = ResourceClass.__query_shacl(con, project=project, owl_class_iri=owl_class_iri)
         resclass._parse_shacl(attributes=attributes)
         resclass.__read_owl()
@@ -714,9 +706,11 @@ class ResourceClass(Model, Notify):
 
         for iri, hp in self._properties.items():
             if isinstance(hp.prop, Iri):
+                # just a property Iri (to some foreign property in an "unknown" ontology...
                 sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {hp.prop.toRdf}'
                 continue
             if hp.prop.internal is not None:
+                # it's an internal property
                 sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property'
                 sparql += f'\n{blank:{(indent + 3)*indent_inc}}[\n'
                 sparql += hp.prop.property_node_shacl(timestamp=timestamp,
@@ -724,16 +718,12 @@ class ResourceClass(Model, Notify):
                                                       indent=4)
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
             else:
-                if hp.minCount or hp.maxCount or hp.order:
+                # it's an external but well known property within the ontolopgy...
+                if hp.minCount or hp.maxCount or hp.order or hp.group:
                     sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property'
                     sparql += f'\n{blank:{(indent + 3) * indent_inc}}['
                     sparql += f'\n{blank:{(indent + 4) * indent_inc}}sh:node {iri}Shape'
-                    if hp.minCount:
-                        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:minCount {hp.minCount.toRdf}'
-                    if hp.maxCount:
-                        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:maxCount {hp.maxCount.toRdf}'
-                    if hp.order:
-                        sparql += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:order {hp.order.toRdf}'
+                    sparql += hp.create_shacl(indent=4)
                     sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
                 else:
                     sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property {iri}Shape'
@@ -1006,8 +996,8 @@ class ResourceClass(Model, Notify):
         #
         for propiri, change in self._hp_prop_changeset.items():
             sparql = self._properties[propiri].update_shacl(self._graph, self._owlclass_iri, propiri)
-            sparql_list.append(sparql)
-
+            if sparql:
+                sparql_list.append(sparql)
 
         #
         # Updating the timestamp and contributor ID
@@ -1168,7 +1158,8 @@ class ResourceClass(Model, Notify):
 
         for propiri, change in self._hp_prop_changeset.items():
             sparql = self._properties[propiri].update_owl(self._graph, self._owlclass_iri, propiri)
-            sparql_list.append(sparql)
+            if sparql:
+                sparql_list.append(sparql)
 
         #
         # Updating the timestamp and contributor ID

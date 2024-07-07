@@ -117,9 +117,9 @@ class TestDataModel(unittest.TestCase):
                              comment=LangString("Ein Buch mit Seiten@en"),
                              closed=Xsd_boolean(True),
                              hasproperties=[
-                                 HasProperty(prop=title, minCount=Xsd_integer(1), order=1),
-                                 HasProperty(prop=authors, minCount=Xsd_integer(1), order=2),
-                                 HasProperty(prop=comment, order=3)])
+                                 HasProperty(con=self._connection, prop=title, minCount=Xsd_integer(1), order=1),
+                                 HasProperty(con=self._connection, prop=authors, minCount=Xsd_integer(1), order=2),
+                                 HasProperty(con=self._connection, prop=comment, order=3)])
 
         pagenum = PropertyClass(con=self._connection,
                                 project=self._dmproject,
@@ -140,9 +140,9 @@ class TestDataModel(unittest.TestCase):
                              comment=LangString("Page of a book@en"),
                              closed=Xsd_boolean(True),
                              hasproperties=[
-                                 HasProperty(prop=pagenum, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=1),
-                                 HasProperty(prop=inbook, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=2),
-                                 HasProperty(prop=comment, order=3)])
+                                 HasProperty(con=self._connection, prop=pagenum, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=1),
+                                 HasProperty(con=self._connection, prop=inbook, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=2),
+                                 HasProperty(con=self._connection, prop=comment, order=3)])
 
         dm = DataModel(con=self._connection,
                        project=self._dmproject,
@@ -291,7 +291,7 @@ class TestDataModel(unittest.TestCase):
                                  datatype=XsdDatatypes.string,
                                  name=LangString(["Page name@en", "Seitenbezeichnung@de"]))
 
-        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = HasProperty(prop=pagename, maxCount=1, minCount=1)
+        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = HasProperty(con=self._connection, prop=pagename, maxCount=1, minCount=1)
         self.assertEqual({
             Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
             Iri(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
@@ -339,7 +339,7 @@ class TestDataModel(unittest.TestCase):
                                  datatype=XsdDatatypes.string,
                                  name=LangString(["Page name@en", "Seitenbezeichnung@de"]))
 
-        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = HasProperty(prop=pagename)
+        dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')] = HasProperty(con=self._connection, prop=pagename)
 
         dm.update()
 
@@ -408,11 +408,11 @@ class TestDataModel(unittest.TestCase):
                              comment=LangString(["A page of a book@en", "Seite eines Buches@de"]),
                              closed=Xsd_boolean(True),
                              hasproperties=[
-                                 HasProperty(prop=pagename, minCount=Xsd_integer(1), order=1),
-                                 HasProperty(prop=pagenum, minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=2),
-                                 HasProperty(prop=pagedescription, order=3),
-                                 HasProperty(prop=content, maxCount=Xsd_integer(1), order=4),
-                                 HasProperty(prop=inBook, minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=5)])
+                                 HasProperty(con=self._connection, prop=pagename, minCount=Xsd_integer(1), order=1),
+                                 HasProperty(con=self._connection, prop=pagenum, minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=2),
+                                 HasProperty(con=self._connection, prop=pagedescription, order=3),
+                                 HasProperty(con=self._connection, prop=content, maxCount=Xsd_integer(1), order=4),
+                                 HasProperty(con=self._connection, prop=inBook, minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=5)])
 
         title = PropertyClass(con=self._connection,
                               project=self._project,
@@ -433,9 +433,9 @@ class TestDataModel(unittest.TestCase):
                              label=LangString(["Book@en", "Buch@de"]),
                              closed=Xsd_boolean(True),
                              hasproperties=[
-                                 HasProperty(prop=title, order=1),
-                                 HasProperty(prop=author, order=2),
-                                 HasProperty(prop=pubDate, order=3)])
+                                 HasProperty(con=self._connection, prop=title, order=1),
+                                 HasProperty(con=self._connection, prop=author, order=2),
+                                 HasProperty(con=self._connection, prop=pubDate, order=3)])
 
         person = ResourceClass(con=self._connection,
                                project=self._project,
@@ -443,8 +443,8 @@ class TestDataModel(unittest.TestCase):
                                superclass=Iri('oldap:Thing'),
                                label=LangString(["Person@en", "Person@de"]),
                                hasproperties=[
-                                   HasProperty(prop=Iri('foaf:familyName'), minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=1),
-                                   HasProperty(prop=Iri('foaf:givenName'), minCount=Xsd_integer(1), order=2)])
+                                   HasProperty(con=self._connection, prop=Iri('foaf:familyName'), minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=1),
+                                   HasProperty(con=self._connection, prop=Iri('foaf:givenName'), minCount=Xsd_integer(1), order=2)])
 
         dm = DataModel(con=self._connection,
                        project=self._project,

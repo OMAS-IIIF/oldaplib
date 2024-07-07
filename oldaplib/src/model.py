@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from pprint import pprint
 from typing import List, Set, Dict, Tuple, Optional, Any, Union, Self
 
 from pystrict import strict
@@ -92,7 +93,7 @@ class Model:
 
     def set_attributes(self, arguments: dict[str, Any], Attributes: type[Enum]) -> None:
         for name, value in arguments.items():
-            if not value:
+            if value is None:
                 continue
             attr = Attributes.from_name(name)
             try:
