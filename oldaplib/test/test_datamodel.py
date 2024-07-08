@@ -374,6 +374,229 @@ class TestDataModel(unittest.TestCase):
         print(str(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment'))))
         self.assertIsNone(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment')))  # TODO THIS TEST SHOULD PASS!!!!
 
+    def test_incremental_generation(self):
+        dm = DataModel(con=self._connection,
+                       project=self._dmproject)
+        dm.create()
+        dm = DataModel.read(self._connection, self._dmproject)
+        dm_name = self._dmproject.projectShortName
+
+        #
+        # add a standalone property
+        #
+        generic_comment = PropertyClass(con=self._connection,
+                                 project=self._dmproject,
+                                 property_class_iri=Iri(f'{dm_name}:genericComment'),
+                                 datatype=XsdDatatypes.string,
+                                 name=LangString(["Generic comment@en", "Allgemeiner Kommentar@de"]))
+        dm[Iri(f'{dm_name}:genericComment')] = generic_comment
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmproject)
+        p1 = dm[Iri(f'{dm_name}:genericComment')]
+        self.assertEqual(p1.datatype, XsdDatatypes.string)
+
+        #
+        # Modifying the property
+        #
+        p1.description = LangString("For testing purposes only@en")
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmproject)
+        p1 = dm[Iri(f'{dm_name}:genericComment')]
+        self.assertEqual(p1.datatype, XsdDatatypes.string)
+        self.assertEqual(p1.description, LangString("For testing purposes only@en"))
+
+        #
+        # Add a resource
+        #
+        titleX = PropertyClass(con=self._connection,
+                               project=self._dmproject,
+                               property_class_iri=Iri(f'{dm_name}:titleX'),
+                               datatype=XsdDatatypes.langString,
+                               name=LangString(["TitleX@en", "TitelX@de"]),
+                               description=LangString(["TitleX of book@en", "TitelX des Buches@de"]),
+                               uniqueLang=Xsd_boolean(True),
+                               languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        authorsX = PropertyClass(con=self._connection,
+                                 project=self._dmproject,
+                                 property_class_iri=Iri(f'{dm_name}:authorsX'),
+                                 toClass=Iri('oldap:Person'),
+                                 name=LangString(["Author(s)X@en", "Autor(en)X@de"]),
+                                 description=LangString(["Writers of the BookX@en", "Schreiber*innen des BuchsX@de"]))
+
+        bookX = ResourceClass(con=self._connection,
+                              project=self._dmproject,
+                              owlclass_iri=Iri(f'{dm_name}:BookX'),
+                              label=LangString(["BookX@en", "BuchX@de"]),
+                              comment=LangString("Ein Buch mit SeitenX@en"),
+                              closed=Xsd_boolean(True),
+                              hasproperties=[
+                                  HasProperty(con=self._connection, prop=titleX, minCount=Xsd_integer(1), order=1),
+                                  HasProperty(con=self._connection, prop=authorsX, minCount=Xsd_integer(1), order=2),
+                                  HasProperty(con=self._connection, prop=Iri(f'{dm_name}:genericComment'), order=3)])
+        dm[Iri(f'{dm_name}:BookX')] = bookX
+        dm.update()
+
+        dm = DataModel.read(self._connection, self._dmproject)
+
+        p1 = dm[Iri(f'{dm_name}:genericComment')]
+        self.assertEqual(p1.datatype, XsdDatatypes.string)
+        self.assertEqual(p1.description, LangString("For testing purposes only@en"))
+
+        r1 = dm[Iri(f'{dm_name}:BookX')]
+
+        r1p1 = r1[Iri(f'{dm_name}:titleX')]
+        self.assertEqual(r1p1.prop.internal, Iri(f'{dm_name}:BookX'))
+        self.assertEqual(r1p1.prop.datatype, XsdDatatypes.langString)
+        self.assertEqual(r1p1.prop.name, LangString(["TitleX@en", "TitelX@de"]))
+        self.assertEqual(r1p1.prop.description, LangString(["TitleX of book@en", "TitelX des Buches@de"]))
+        self.assertEqual(r1p1.prop.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertTrue(r1p1.prop.uniqueLang)
+        self.assertEqual(r1p1.minCount, Xsd_integer(1))
+        self.assertEqual(r1p1.order, Xsd_decimal(1))
+
+        r1p2 = r1[Iri(f'{dm_name}:authorsX')]
+        self.assertEqual(r1p2.prop.internal, Iri(f'{dm_name}:BookX'))
+        self.assertEqual(r1p2.prop.toClass, Iri('oldap:Person'))
+        self.assertEqual(r1p2.prop.name, LangString(["Author(s)X@en", "Autor(en)X@de"]))
+        self.assertEqual(r1p2.prop.description, LangString(["Writers of the BookX@en", "Schreiber*innen des BuchsX@de"]))
+        self.assertEqual(r1p2.minCount, Xsd_integer(1))
+        self.assertEqual(r1p2.order, Xsd_decimal(2))
+
+        r1p3 = r1[Iri(f'{dm_name}:genericComment')]
+        self.assertIsNone(r1p3.prop.internal)
+        self.assertEqual(r1p3.prop.datatype, XsdDatatypes.string)
+        self.assertEqual(r1p3.prop.name, LangString(["Generic comment@en", "Allgemeiner Kommentar@de"]))
+        self.assertEqual(r1p3.order, Xsd_decimal(3))
+
+
+    def test_update_parts(self):
+        dm_name = self._dmproject.projectShortName
+        generic_commentY = PropertyClass(con=self._connection,
+                                         project=self._dmproject,
+                                         property_class_iri=Iri(f'{dm_name}:genericCommentY'),
+                                         datatype=XsdDatatypes.string,
+                                         name=LangString(["Generic commentY@en", "Allgemeiner KommentarY@de"]))
+        generic_commentY.force_external()
+
+        titleY = PropertyClass(con=self._connection,
+                               project=self._dmproject,
+                               property_class_iri=Iri(f'{dm_name}:titleY'),
+                               datatype=XsdDatatypes.langString,
+                               name=LangString(["TitleY@en", "TitelY@de"]),
+                               description=LangString(["TitleY of book@en", "TitelY des Buches@de"]),
+                               uniqueLang=Xsd_boolean(True),
+                               languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        authorsY = PropertyClass(con=self._connection,
+                                 project=self._dmproject,
+                                 property_class_iri=Iri(f'{dm_name}:authorsY'),
+                                 toClass=Iri('oldap:Person'),
+                                 name=LangString(["Author(s)Y@en", "Autor(en)Y@de"]),
+                                 description=LangString(["Writers of the BookY@en", "Schreiber*innen des BuchsY@de"]))
+
+        bookY = ResourceClass(con=self._connection,
+                              project=self._dmproject,
+                              owlclass_iri=Iri(f'{dm_name}:BookY'),
+                              label=LangString(["BookY@en", "BuchY@de"]),
+                              comment=LangString("Ein Buch mit SeitenY@en"),
+                              closed=Xsd_boolean(True),
+                              hasproperties=[
+                                  HasProperty(con=self._connection, prop=titleY, minCount=Xsd_integer(1), order=1),
+                                  HasProperty(con=self._connection, prop=authorsY, minCount=Xsd_integer(1), order=2),
+                                  HasProperty(con=self._connection, prop=generic_commentY, order=3)])
+
+        dm = DataModel(con=self._connection,
+                       project=self._dmproject,
+                       propclasses=[generic_commentY],
+                       resclasses=[bookY])
+        dm.create()
+
+        dm = DataModel.read(self._connection, self._dmproject)
+
+        #
+        # a few check's if the creation of the datamodel worked as expected...
+        #
+        p1 = dm[Iri(f'{dm_name}:genericCommentY')]
+        self.assertEqual(p1.datatype, XsdDatatypes.string)
+        self.assertEqual(p1.name, LangString(["Generic commentY@en", "Allgemeiner KommentarY@de"]))
+        self.assertIsNone(p1.internal)
+
+        r1 = dm[Iri(f'{dm_name}:BookY')]
+
+        r1p1 = r1[Iri(f'{dm_name}:titleY')]
+        self.assertEqual(r1p1.prop.internal, Iri(f'{dm_name}:BookY'))
+        self.assertEqual(r1p1.prop.datatype, XsdDatatypes.langString)
+        self.assertEqual(r1p1.prop.name, LangString(["TitleY@en", "TitelY@de"]))
+        self.assertEqual(r1p1.prop.description, LangString(["TitleY of book@en", "TitelY des Buches@de"]))
+        self.assertEqual(r1p1.prop.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertTrue(r1p1.prop.uniqueLang)
+        self.assertEqual(r1p1.minCount, Xsd_integer(1))
+        self.assertEqual(r1p1.order, Xsd_decimal(1))
+
+        r1p2 = r1[Iri(f'{dm_name}:authorsY')]
+        self.assertEqual(r1p2.prop.internal, Iri(f'{dm_name}:BookY'))
+        self.assertEqual(r1p2.prop.toClass, Iri('oldap:Person'))
+        self.assertEqual(r1p2.prop.name, LangString(["Author(s)Y@en", "Autor(en)Y@de"]))
+        self.assertEqual(r1p2.prop.description, LangString(["Writers of the BookY@en", "Schreiber*innen des BuchsY@de"]))
+        self.assertEqual(r1p2.minCount, Xsd_integer(1))
+        self.assertEqual(r1p2.order, Xsd_decimal(2))
+
+        r1p3 = r1[Iri(f'{dm_name}:genericCommentY')]
+        self.assertIsNone(r1p3.prop.internal)
+        self.assertEqual(r1p3.prop.datatype, XsdDatatypes.string)
+        self.assertEqual(r1p3.prop.name, LangString(["Generic commentY@en", "Allgemeiner KommentarY@de"]))
+        self.assertEqual(r1p3.order, Xsd_decimal(3))
+
+        #
+        # Change name of genericCommentY, accessed by resource BookY
+        #
+        dm[Iri(f'{dm_name}:genericCommentY')].name[Language.IT] = "Commentario"
+
+        #
+        # Add a field to standalone property
+        #
+        dm[Iri(f'{dm_name}:genericCommentY')].description = LangString("DescriptionY@en", "Beschreibung@de")
+
+
+        #
+        # Add a new property
+        #
+        pubDateY = PropertyClass(con=self._connection,
+                                 project=self._project,
+                                 property_class_iri=Iri(f'{dm_name}:pubDateY'),
+                                 datatype=XsdDatatypes.date)
+        dm[Iri(f'{dm_name}:BookY')][Iri(f'{dm_name}:pubDateY')] = HasProperty(con=self._connection, prop=pubDateY)
+
+        #
+        # Delete a property
+        #
+        del dm[Iri(f'{dm_name}:BookY')][Iri(f'{dm_name}:authorsY')]
+
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmproject)
+        r1 = dm[Iri(f'{dm_name}:BookY')]
+        r1p3 = r1[Iri(f'{dm_name}:genericCommentY')]
+        self.assertEqual(r1p3.prop.name, LangString(["Generic commentY@en", "Allgemeiner KommentarY@de", "Commentario@it"]))
+        self.assertEqual(r1p3.prop.description, LangString("DescriptionY@en", "Beschreibung@de"))
+        self.assertIsNotNone(dm[Iri(f'{dm_name}:BookY')][Iri(f'{dm_name}:pubDateY')])
+        self.assertIsNone(dm[Iri(f'{dm_name}:BookY')][Iri(f'{dm_name}:authorsY')])
+
+        #
+        # delete a complete resource
+        #
+        del dm[Iri(f'{dm_name}:BookY')]
+        dm.update()
+        self.assertIsNone(dm.get(Iri(f'{dm_name}:BookY')))
+
+        #
+        # delete standalone property
+        #
+        del dm[Iri(f'{dm_name}:genericCommentY')]
+        dm.update()
+        self.assertIsNone(dm.get(Iri(f'{dm_name}:genericCommentY')))
+
+
     def test_write_trig(self):
         pagename = PropertyClass(con=self._connection,
                                  project=self._project,

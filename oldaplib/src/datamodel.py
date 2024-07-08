@@ -293,7 +293,8 @@ class DataModel(Model):
                 case Action.MODIFY:
                     self.__propclasses[qname].update()
                 case Action.DELETE:
-                    self.__propclasses[qname].delete()
+                    #self.__propclasses[qname].delete()
+                    change.old_value.delete()
         for qname, change in self.__resclasses_changeset.items():
             match (change.action):
                 case Action.CREATE:
@@ -301,7 +302,8 @@ class DataModel(Model):
                 case Action.MODIFY:
                     self.__resclasses[qname].update()
                 case Action.DELETE:
-                    self.__resclasses[qname].delete()
+                    #self.__resclasses[qname].delete()
+                    change.old_value.delete()
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4):
         with open(filename, 'w') as f:
