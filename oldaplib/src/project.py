@@ -30,17 +30,28 @@ class IriOrNCName:
         self.__shortname: Xsd_NCName | None = None
         if isinstance(value, Iri):
             self.__projectIri = value
+            self.__shortname = None
         elif isinstance(value, Xsd_NCName):
             self.__shortname = Xsd_NCName(value)
+            self.__projectIri = None
         else:
             if ':' in str(value):  # must be IRI or QName
                 self.__projectIri = Iri(value)
+                self.__shortname = None
             else:
                 self.__shortname = Xsd_NCName(value)
+                self.__projectIri = None
 
     def value(self) -> tuple[Xsd_NCName| None, Iri | None]:
         return self.__shortname, self.__projectIri
 
+    def __str__(self):
+        if self.__projectIri is not None:
+            return str(self.__projectIri)
+        elif self.__shortname is not None:
+            return str(self.__shortname)
+        else:
+            return "???"
 
 #@strict
 class Project(Model):
@@ -400,6 +411,8 @@ class Project(Model):
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         for attr, value in self._attributes.items():
+            if not value:
+                continue
             sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
         sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'

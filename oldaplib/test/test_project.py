@@ -80,6 +80,11 @@ class Testproject(unittest.TestCase):
         self.assertEqual(Xsd_NCName("britnet"), project2.projectShortName)
         self.assertEqual(Iri('http://www.salsah.org/version/2.0/SwissBritNet'), project2.projectIri)
 
+    def test_project_read_unknown(self):
+        with self.assertRaises(OldapErrorNotFound):
+            project = Project.read(con=self._connection, projectIri_SName='http://www.gaga.org/version/2.0/GAGA')
+
+
     # @unittest.skip('Work in progress')
     def test_project_search(self):
         projects = Project.search(con=self._connection, label="HyperHamlet")
@@ -180,6 +185,15 @@ class Testproject(unittest.TestCase):
                            comment=LangString(["For testing3@en", "Für Tests3@de"]),
                            projectEnd=Xsd_date(2028, 3, 3))
         self.assertEqual(project8.projectStart, date.today())
+
+    def test_project_create_without_label_comment(self):
+        project = Project(con=self._connection,
+                          projectShortName="emptyfieldsXX",
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittest#"),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
+                          )
+        project.create()
 
     def test_project_create_empty_fields(self):
         project = Project(con=self._connection,
