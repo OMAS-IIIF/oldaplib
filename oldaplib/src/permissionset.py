@@ -158,7 +158,7 @@ class PermissionSet(Model):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         for attr, value in self._attributes.items():
-            if attr.value.prefix == 'virtual':
+            if attr.value.prefix == 'virtual' or not value:
                 continue
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}\n'

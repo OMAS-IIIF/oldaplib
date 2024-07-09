@@ -103,6 +103,16 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertEqual(ps.label, LangString("test4@en", "test4@Perm@de"))
 
+    def test_create_prmission_set_without_label(self):
+        ps = PermissionSet(con=self._connection,
+                           permissionSetId="test4_ps",
+                           label=LangString(),
+                           comment=LangString("Testing a PermissionSet 4@en", "Test eines PermissionSet 4@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject='britnet')
+        ps.create()
+        self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
+
     # @unittest.skip('Work in progress')
     def test_read_permission_A(self):
         ps = PermissionSet.read(self._connection, 'GenericView', 'oldap:SystemProject')
