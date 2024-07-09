@@ -264,6 +264,20 @@ class TestPermissionSet(unittest.TestCase):
         with self.assertRaises(OldapErrorNoPermission):
             ps.update()
 
+    def test_update_permissionset_B(self):
+        ps = PermissionSet(con=self._connection,
+                           permissionSetId="testUpdatePerm",
+                           label=LangString("testUpdatePerm@en", "testVerändernPerm@de"),
+                           comment=LangString("Testing update of PermissionSet@en", "Test einer Veränderung eines PermissionSet@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject=Iri('oldap:SystemProject'))
+        ps.create()
+        psId = ps.permissionSetId
+        del ps
+        ps = PermissionSet.read(self._connection, psId, Iri('oldap:SystemProject'))
+        ps.label[Language.IT] = "TEST_ADD_DEL"
+        del ps.label[Language.EN]
+        ps.update()
 
     def test_delete_permission_set(self):
         ps = PermissionSet(con=self._connection,

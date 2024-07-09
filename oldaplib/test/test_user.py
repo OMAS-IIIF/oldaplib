@@ -729,6 +729,13 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="jrosenthal")
         self.assertTrue(user.isActive)
 
+        user.isActive = False
+        user.update()
+        del user
+        user = User.read(con=self._connection, userId="jrosenthal")
+        self.assertFalse(user.isActive)
+
+
     def test_user_password_change(self):
         user = User(con=self._connection,
                     userId=Xsd_NCName("speedy"),
