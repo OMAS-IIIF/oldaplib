@@ -264,6 +264,12 @@ class PermissionSet(Model):
                 case 'oldap:definedByProject':
                     definedByProject = r['o']
         cls.__permset_iri = permset_iri
+        if comment:
+            comment.changeset_clear()
+            comment.set_notifier(cls.notifier, Xsd_QName(PermissionSetAttr.LABEL.value))
+        if label:
+            label.changeset_clear()
+            label.set_notifier(cls.notifier, Xsd_QName(PermissionSetAttr.LABEL.value))
         return cls(con=con,
                    permissionSetId=permissionSetId,
                    creator=creator,
@@ -379,9 +385,9 @@ class PermissionSet(Model):
             if attr == PermissionSetAttr.LABEL or attr == PermissionSetAttr.COMMENT:
                 if change.action == Action.MODIFY:
                     sparql_list.extend(self._attributes[attr].update(graph=Xsd_QName('oldap:admin'),
-                                                                      subject=self.__permset_iri,
-                                                                      subjectvar='?project',
-                                                                      field=attr.value))
+                                                                     subject=self.__permset_iri,
+                                                                     subjectvar='?project',
+                                                                     field=attr.value))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
                     sparql = self._changeset[attr].old_value.delete(graph=Xsd_QName('oldap:admin'),
                                                             subject=self.__permset_iri,

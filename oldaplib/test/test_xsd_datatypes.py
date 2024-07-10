@@ -10,9 +10,12 @@ from oldaplib.src.connection import Connection
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapError, OldapErrorType, OldapErrorIndex
+from oldaplib.src.helpers.propref import PropRef
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.xsd.floatingpoint import FloatingPoint
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd import Xsd
@@ -1688,6 +1691,18 @@ class TestXsdDatatypes(unittest.TestCase):
 
         with self.assertRaises(OldapErrorValue):
             val = Xsd_unsignedShort("abcd")
+
+    def test_numeric(self):
+        n = Numeric(3.14159)
+        self.assertTrue(isinstance(n, FloatingPoint))
+
+        n = Numeric(42)
+        self.assertTrue(isinstance(n, Xsd_integer))
+
+    def test_propref(self):
+        pr = PropRef("gs:test")
+        self.assertTrue(isinstance(pr, Iri))
+
 
 
 if __name__ == '__main__':

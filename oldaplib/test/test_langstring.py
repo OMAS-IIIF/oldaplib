@@ -1,8 +1,10 @@
+import json
 import unittest
 from datetime import datetime
 
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.action import Action
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -10,9 +12,34 @@ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.langstring import LangString, LangStringChange
 from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 class TestLangstring(unittest.TestCase):
+
+    def test_simple_things(self):
+        ls = LangString()
+        self.assertFalse(ls)
+
+        ls = LangString(Xsd_string())
+        self.assertFalse(ls)
+
+        ls = LangString("a@en", Xsd_string(), "b@fr")
+        self.assertEqual(LangString("a@en", "b@fr"), ls)
+
+        ls = LangString({Language.EN: "aaa", Language.FR: ""})
+        self.assertEqual(LangString("aaa@en"), ls)
+
+        ls = LangString({Language.EN: "aaa", Language.FR: Xsd_string()})
+        self.assertEqual(LangString("aaa@en"), ls)
+
+        ls = LangString(Xsd_string('hallo', "en"))
+        self.assertEqual(LangString("hallo@en"), ls)
+        self.assertIsNone(ls.get('zu'))
+        self.assertIsNone(ls.get(Language.ZA))
+
+        with self.assertRaises(OldapError):
+            ls = LangString(3.1515)
 
     def test_langstring_constructor(self):
         LangString.defaultLanguage = Language.ZU
@@ -107,6 +134,9 @@ class TestLangstring(unittest.TestCase):
         with self.assertRaises(OldapError) as ex:
             ls3['rr'] = 'no way'
 
+        with self.assertRaises(OldapError) as ex:
+            ls3[42] = 'no way'
+
     def test_langstring_undo(self):
         LangString.setDefaultLang(Language.ZU)
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
@@ -141,6 +171,9 @@ class TestLangstring(unittest.TestCase):
             del ls3['rr']
         self.assertEqual(str(ex.exception), 'No language string of language: "rr"!')
 
+        with self.assertRaises(OldapError) as ex:
+            del ls3[42]
+
     def test_langstring_str(self):
         LangString.defaultLanguage = Language.ZU
         ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
@@ -149,6 +182,19 @@ class TestLangstring(unittest.TestCase):
         self.assertTrue('"english@en"' in s)
         self.assertTrue('"deutsch@de"' in s)
         self.assertTrue('"unbekannt@zu"' in s)
+
+    def test_langstring_repr(self):
+        ls1 = LangString(["english@en"])
+        s = repr(ls1)
+        self.assertEqual('LangString("english@en")', s)
+
+    def test_langstring_jsonify(self):
+        LangString.defaultLanguage = Language.ZU
+        ls1 = LangString(["english@en", "deutsch@de", "unbekannt"])
+        jsonstr = json.dumps(ls1, default=serializer.encoder_default)
+        ls2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(ls1, ls2)
+
 
     def test_langstring_eq_ne(self):
         LangString.defaultLanguage = Language.ZU
@@ -165,6 +211,11 @@ class TestLangstring(unittest.TestCase):
         ls5 = LangString(["english@en", "deutsch@de", "français@fr", "unbekannt"])
         self.assertFalse(ls1 == ls5)
         self.assertTrue(ls1 != ls5)
+
+        lsa = LangString('aaaa@en')
+        lsb = LangString('aaaa@de')
+        self.assertFalse(lsa == lsb)
+        self.assertTrue(lsa != lsb)
 
     def test_langstring_items(self):
         LangString.defaultLanguage = Language.ZU
@@ -191,6 +242,11 @@ class TestLangstring(unittest.TestCase):
 
     def test_langstring_add(self):
         LangString.defaultLanguage = Language.ZU
+
+        ls0 = LangString(["english@en", "deutsch@de"])
+        ls0.add()
+        self.assertEqual(LangString(["english@en", "deutsch@de"]), ls0)
+
         ls1 = LangString(["english@en", "deutsch@de"])
         ls1.add("français@fr")
         self.assertEqual(ls1, LangString("english@en", "deutsch@de", "français@fr"))
@@ -213,6 +269,19 @@ class TestLangstring(unittest.TestCase):
         self.assertEqual(ls4, LangString("english@en", "deutsch@de", "français@fr", "undefined@zu"))
         self.assertEqual(ls4.changeset, {Language.FR: LangStringChange("französisch", Action.REPLACE),
                                          Language.ZU: LangStringChange(None, Action.CREATE)})
+
+        ls5 = LangString(["english@en", "deutsch@de"])
+        ls5.add("italiano@it", "espagnol@es")
+        self.assertEqual(LangString(["english@en", "deutsch@de", "italiano@it", "espagnol@es"]), ls5)
+
+        ls6 = LangString(["english@en", "deutsch@de"])
+        ls5.add(Xsd_string("italiano","it"), Xsd_string("espagnol", Language.ES))
+        self.assertEqual(LangString(["english@en", "deutsch@de", "italiano@it", "espagnol@es"]), ls5)
+
+        ls7 = LangString(["english@en", "deutsch@de"])
+        with self.assertRaises(OldapErrorValue):
+            ls7.add(77)
+
 
     def test_langstring_undo(self):
         LangString.defaultLanguage = Language.ZU
@@ -289,6 +358,23 @@ WHERE {
 }"""
         self.assertEqual(sstr, expected)
 
-
-
-
+    def test_langstring_delete_shacl(self):
+        LangString.defaultLanguage = Language.ZU
+        ls1 = LangString(["english@en", "deutsch@de"])
+        sparql = ls1.delete_shacl(graph=Xsd_NCName("test"),
+                                  prop_iri=Iri('oldaplib:prop'),
+                                  attr=PropClassAttr.NAME,
+                                  modified=Xsd_dateTime("2023-11-04T12:00:00Z"))
+        expected = """#
+# Deleting the complete LangString data for oldaplib:prop sh:name
+#
+WITH test:shacl
+DELETE {
+    ?prop sh:name ?langval
+}
+WHERE {
+    BIND(oldaplib:propShape as ?prop)
+    ?prop sh:name ?langval
+}
+"""
+        self.assertEqual(expected, sparql)

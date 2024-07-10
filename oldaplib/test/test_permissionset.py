@@ -105,7 +105,7 @@ class TestPermissionSet(unittest.TestCase):
 
     def test_create_prmission_set_without_label(self):
         ps = PermissionSet(con=self._connection,
-                           permissionSetId="test4_ps",
+                           permissionSetId="test5_ps",
                            label=LangString(),
                            comment=LangString("Testing a PermissionSet 4@en", "Test eines PermissionSet 4@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
@@ -266,7 +266,7 @@ class TestPermissionSet(unittest.TestCase):
 
     def test_update_permissionset_B(self):
         ps = PermissionSet(con=self._connection,
-                           permissionSetId="testUpdatePerm",
+                           permissionSetId="testUpdatePermB",
                            label=LangString("testUpdatePerm@en", "testVerändernPerm@de"),
                            comment=LangString("Testing update of PermissionSet@en", "Test einer Veränderung eines PermissionSet@Perm@de"),
                            givesPermission=DataPermission.DATA_UPDATE,
@@ -275,6 +275,7 @@ class TestPermissionSet(unittest.TestCase):
         psId = ps.permissionSetId
         del ps
         ps = PermissionSet.read(self._connection, psId, Iri('oldap:SystemProject'))
+
         ps.label[Language.IT] = "TEST_ADD_DEL"
         del ps.label[Language.EN]
         ps.update()

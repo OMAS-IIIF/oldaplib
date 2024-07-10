@@ -6,6 +6,7 @@ the Language class provides all necessary enumerations.
 """
 from dataclasses import dataclass
 from datetime import datetime
+from pprint import pprint
 from typing import Dict, List, Optional, Callable, Self
 
 from pystrict import strict
@@ -256,8 +257,7 @@ class LangString(Notify):
         :return: Dict that can be serialized
         """
         return {
-            'langstring': [f'"{val}@{lang.value.lower()}"' for lang, val in self._langstring.items()],
-            'priorities': [lang.value.lower() for lang in self.priorities]
+            'langstring': [f'{val}@{lang.name.lower()}' for lang, val in self._langstring.items()],
         }
 
     def get(self, lang: str | Language, default: str = None) -> str:
@@ -494,33 +494,6 @@ class LangString(Notify):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
 
-            # sparql = ''
-            # sparql += f'{blank:{indent * indent_inc}}WITH {graph}\n'
-            # if change.action != Action.CREATE:
-            #     sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-            #     tmpstr = f'"{change.old_value}"'
-            #     if lang != Language.XX:
-            #         tmpstr += "@" + lang.name.lower()
-            #     sparql += f'{blank:{(indent + 1) * indent_inc}}{subjectvar} {repr(field)} {tmpstr} .\n'
-            #     sparql += f'{blank:{indent * indent_inc}}}}\n'
-            #
-            # if change.action != Action.DELETE:
-            #     sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-            #     langstr = f'"{self._langstring[lang]}"'
-            #     if lang != Language.XX:
-            #         langstr += "@" + lang.name.lower()
-            #     sparql += f'{blank:{(indent + 1) * indent_inc}}{subjectvar} {repr(field)} {langstr} .\n'
-            #     sparql += f'{blank:{indent * indent_inc}}}}\n'
-            #
-            # sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            # sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({repr(subject)} as {subjectvar}) .\n'
-            # if change.action != Action.CREATE:
-            #     tmpstr = f'"{change.old_value}"'
-            #     if lang != Language.XX:
-            #         tmpstr += "@" + lang.name.lower()
-            #     sparql += f'{blank:{(indent + 1) * indent_inc}}{subjectvar} {repr(field)} {tmpstr} .\n'
-            # sparql += f'{blank:{indent * indent_inc}}}}'
-            # sparql_list.append(sparql)
         return sparql_list
 
     def update_shacl(self, *,
@@ -615,26 +588,18 @@ class LangString(Notify):
         """
         blank = ''
         sparql = f'#\n# Deleting the complete LangString data for {prop_iri} {attr.value}\n#\n'
-        sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl'
-        sparql += f'{blank:{indent * indent_inc}}DELETE {{'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} ?langval'
-        sparql += f'{blank:{indent * indent_inc}}}}'
-        sparql += f'{blank:{indent * indent_inc}}WHERE {{'
+        sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} ?langval\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         if owlclass_iri:
             sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
         else:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} ?langval'
-        sparql += f'{blank:{indent * indent_inc}}}}'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} ?langval\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
         return sparql
 
-
-if __name__ == '__main__':
-    l0 = LangString()
-    print("l0: ", l0, len(l0))
-    l1 = LangString([])
-    print("l1 : ", l1, len(l1))
-    l2 = LangString([""])
-    print("l2 : ", l2, len(l2))
 

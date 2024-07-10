@@ -143,6 +143,13 @@ class OldapList(Model):
                     if not definition:
                         definition = LangString()
                     definition.add(r['val'])
+        if prefLabel:
+            prefLabel.changeset_clear()
+            prefLabel.set_notifier(cls.notifier, Xsd_QName(OldapListAttr.PREF_LABEL.value))
+        if definition:
+            definition.changeset_clear()
+            definition.set_notifier(cls.notifier, Xsd_QName(OldapListAttr.DEFINITION.value))
+
         return cls(con=con,
                    project=project,
                    oldapListId=oldapListId,

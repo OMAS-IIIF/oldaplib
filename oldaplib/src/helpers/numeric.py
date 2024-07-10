@@ -20,9 +20,3 @@ class Numeric:
             except:
                 return Xsd_float(str(value))
 
-
-if __name__ == '__main__':
-    a = Numeric(1.5)
-    print(type(a).__name__)
-    b = Numeric(5)
-    print(type(b).__name__)

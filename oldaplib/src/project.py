@@ -296,10 +296,12 @@ class Project(Model):
                     projectStart = r['val']
                 case 'oldap:projectEnd':
                     projectEnd = r['val']
-        label.changeset_clear()
-        label.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.LABEL.value))
-        comment.changeset_clear()
-        comment.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.COMMENT.value))
+        if label:
+            label.changeset_clear()
+            label.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.LABEL.value))
+        if comment:
+            comment.changeset_clear()
+            comment.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.COMMENT.value))
         context[projectShortName] = namespaceIri
         return cls(con=con,
                    creator=creator,

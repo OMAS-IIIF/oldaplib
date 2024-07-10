@@ -45,33 +45,3 @@ class ObservableDict(UserDict):
     def changeset_clear(self):
         pass
 
-
-if __name__ == "__main__":
-    def cb(old: ObservableDict):
-        print("---->CALLBACK", old)
-
-    gugus = ObservableDict()
-    if gugus:
-        print("gugus TRUE")
-    else:
-        print("gugus FALSE")
-
-    gaga = ObservableDict({'a': 'AA', 'b': 'BB'}, on_change=cb)
-    print(gaga)
-    jsonstr = json.dumps(gaga, default=serializer.encoder_default)
-    print(jsonstr)
-    gaga2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-    print(type(gaga2), gaga2)
-    gaga2.set_on_change(cb)
-    gaga2['xx'] = 'XXXXXX'
-    print(gaga2)
-    #gugusta: ObservableDict[str] = ObservableDict(cb)
-    # gaga.update({'c': 'CC'})
-    # print(gaga)
-    # print(gaga.get('c'), gaga.get('x'))
-    #
-    # gugus = {'a': 'AAAA', 'b': 'BBBB'}
-    # g = ObservableDict(cb, gugus)
-    # print(g)
-    # for k, v in gaga.items():
-    #     print(k, '->', v)

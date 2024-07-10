@@ -265,6 +265,28 @@ class Testproject(unittest.TestCase):
         self.assertEqual(project.label, LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"]))
         self.assertEqual(project.projectEnd, Xsd_date(2026, 6, 30))
 
+    def test_project_update_B(self):
+        project = Project(con=self._connection,
+                          projectShortName="updatetestB",
+                          label=LangString(["updatetest@en", "updatetest@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/updatetestB#"),
+                          comment=LangString(["For testing@en", "Für Tests@de"]),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
+                          )
+        project.create()
+
+        projectIri = project.projectIri
+        del project
+
+        project = Project.read(con=self._connection, projectIri_SName="updatetestB")
+        project.comment[Language.IT] = "per i test"
+        del project.comment[Language.EN]
+        project.update()
+
+        project = Project.read(con=self._connection, projectIri_SName="updatetestB")
+        self.assertEqual(project.comment, LangString(["Für Tests@de", "per i test@it"]))
+
     def test_project_start_end_consistency(self):
         project = Project(con=self._connection,
                           projectShortName="startendtest",
