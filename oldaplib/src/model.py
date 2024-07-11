@@ -107,10 +107,7 @@ class Model:
                 raise OldapErrorType(f'Mandatory parameter {attr.name} is missing.')
 
     def _get_value(self: Self, attr: AttributeClass) -> Any | None:
-        tmp = self._attributes.get(attr)
-        if not tmp:
-            return None
-        return tmp
+        return self._attributes.get(attr, None)
 
     def _set_value(self: Self, value: Any, attr: AttributeClass) -> None:
         self._change_setter(attr, value)
