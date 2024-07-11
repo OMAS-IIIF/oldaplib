@@ -8,6 +8,7 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.tools import str2qname_anyiri
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, OldapError
@@ -724,17 +725,20 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="jrosenthal")
         self.assertFalse(user.isActive)
         user.isActive = True
+        self.assertIsInstance(user.isActive, Xsd_boolean)
         user.update()
         del user
         user = User.read(con=self._connection, userId="jrosenthal")
         self.assertTrue(user.isActive)
+        self.assertIsInstance(user.isActive, Xsd_boolean)
 
         user.isActive = False
+        self.assertIsInstance(user.isActive, Xsd_boolean)
         user.update()
         del user
         user = User.read(con=self._connection, userId="jrosenthal")
         self.assertFalse(user.isActive)
-
+        self.assertIsInstance(user.isActive, Xsd_boolean)
 
     def test_user_password_change(self):
         user = User(con=self._connection,

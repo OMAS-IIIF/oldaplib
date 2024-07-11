@@ -12,6 +12,7 @@ from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorType, OldapErrorImmutable, OldapErrorValue
@@ -107,7 +108,10 @@ class Model:
                 raise OldapErrorType(f'Mandatory parameter {attr.name} is missing.')
 
     def _get_value(self: Self, attr: AttributeClass) -> Any | None:
-        return self._attributes.get(attr, None)
+        tmp = self._attributes.get(attr)
+        if attr.datatype != Xsd_boolean and not tmp:
+            return None
+        return tmp
 
     def _set_value(self: Self, value: Any, attr: AttributeClass) -> None:
         self._change_setter(attr, value)
