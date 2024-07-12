@@ -11,6 +11,7 @@ from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorImmutable, OldapError, OldapErrorNoPermission, \
     OldapErrorAlreadyExists
 from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.oldaplist import OldapList
@@ -35,10 +36,10 @@ class OldapListNodeAttrChange:
 class OldapListNode(Model):
     __oldapList: OldapList
     __graph: Xsd_NCName
-    __oldapListNode_iri: Iri | None
+    __iri: Iri | None
     __sublist: list[Self] | None
-    __leftIndex: int | None
-    __rightIndex: int | None
+    __leftIndex: Xsd_integer | None
+    __rightIndex: Xsd_integer | None
 
     def __init__(self, *,
                  con: IConnection,
@@ -47,9 +48,6 @@ class OldapListNode(Model):
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
-                 sublist: list[Self] | None = None,
-                 leftIndex: Xsd_integer | int | None = None,
-                 rightIndex: Xsd_integer | int | None = None,
                  **kwargs):
         super().__init__(connection=con,
                          creator=creator,
@@ -62,13 +60,13 @@ class OldapListNode(Model):
 
         self.set_attributes(kwargs, OldapListNodeAttr)
 
-        self.__oldapListNode_iri = Iri.fromPrefixFragment(self.__oldapList.oldapListId,
-                                                      self._attributes[OldapListNodeAttr.OLDAPLISTNODE_ID],
-                                                      validate=False)
+        self.__iri = Iri.fromPrefixFragment(self.__oldapList.oldapListId,
+                                            self._attributes[OldapListNodeAttr.OLDAPLISTNODE_ID],
+                                            validate=False)
 
-        self.__rightIndex = Xsd_integer(rightIndex) if rightIndex is not None else None
-        self.__leftIndex = Xsd_integer(leftIndex) if leftIndex is not None else None
-        self.__sublist = sublist
+        self.__rightIndex = None
+        self.__leftIndex = None
+        self.__sublist = None
 
         #
         # create all the attributes of the class according to the OldapListAttr definition
@@ -103,11 +101,14 @@ class OldapListNode(Model):
                         return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
             return True, "OK"
 
-    def create(self, indent: int = 0, indent_inc: int = 4):
+    @property
+    def iri(self) -> Iri:
+        return self.__iri
+
+    def create_root_node(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
-        timestamp = Xsd_dateTime.now()
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -116,8 +117,12 @@ class OldapListNode(Model):
         if not result:
             raise OldapErrorNoPermission(message)
 
+        self.__leftIndex = Xsd_integer(1)
+        self.__rightIndex = Xsd_integer(2)
+
         context = Context(name=self._con.context_name)
 
+        timestamp = Xsd_dateTime.now()
         blank = ''
         #
         # Sparql to check if list has already eny nodes. If so, root node creation is not possible!
@@ -135,14 +140,14 @@ class OldapListNode(Model):
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldapListNode_iri.toRdf} a oldap:OldapListNode'
+        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a oldap:OldapListNode'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creationDate {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.oldapList_iri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:leftIndex {self.__leftIndex.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex {self.__leftIndex.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex {self.__rightIndex.toRdf}'
         if self.prefLabel:
             sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.PREF_LABEL.value} {self.prefLabel.toRdf}'
         if self.definition:
@@ -172,24 +177,9 @@ class OldapListNode(Model):
             self._con.transaction_abort()
             raise
 
+    def insert_node_right_of(self, leftnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
 
-
-    def create_root_node(self, *,
-                         con: IConnection,
-                         oldapList: OldapList,
-                         **kwargs) -> Self:
-
-        return node
-
-    @classmethod
-    def insert_node_right_of(cls, *,
-                             con: IConnection,
-                             oldapList: OldapList,
-                             **kwargs) -> Self:
-
-        node = cls(con=con, oldapList=oldapList)
-
-        if con is None:
+        if self._con is None:
             raise OldapError("Cannot create: no connection")
 
         timestamp = Xsd_dateTime.now()
@@ -197,11 +187,145 @@ class OldapListNode(Model):
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
         #
-        result, message = node.check_for_permissions()
+        result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
 
-        context = Context(name=con.context_name)
+        context = Context(name=self._con.context_name)
+
+        blank = ''
+        update1 = context.sparql_context
+        update1 += f'{blank:{indent * indent_inc}}DELETE {{'
+        update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
+        update1 += f'\n{blank:{(indent + 2) * indent_inc}}{leftnode.iri.toRdf} oldap:nextNode ?rightNode'
+        update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
+        update1 += f'\n{blank:{indent * indent_inc}}}}'
+        update1 += f'\n{blank:{indent * indent_inc}}INSERT {{'
+        update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
+        update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a oldap:OldapListNode'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creationDate {timestamp.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.oldapList_iri.toRdf}'
+        if self.prefLabel:
+            update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.PREF_LABEL.value} {self.prefLabel.toRdf}'
+        if self.definition:
+            update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.DEFINITION.value} {self.definition.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:leftIndex ?nlindex'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex ?nrindex'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:broaderTransitive ?parent_node'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:nextNode ?rightNode'
+        update1 += f' .\n{blank:{(indent + 2) * indent_inc}}{leftnode.iri.toRdf} oldap:nextNode {self.__iri.toRdf}'
+        update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
+        update1 += f'\n{blank:{indent * indent_inc}}}}'
+        update1 += f'\n{blank:{indent * indent_inc}}WHERE {{'
+        update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
+        update1 += f' \n{blank:{(indent + 2) * indent_inc}}{leftnode.iri.toRdf} oldap:rightIndex ?rindex'
+        update1 += f' ;\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
+        update1 += f'\n{blank:{(indent + 3) * indent_inc}}{leftnode.iri.toRdf} skos:broaderTransitive ?parent_node'
+        update1 += f' .\n{blank:{(indent + 2) * indent_inc}}}}'
+        update1 += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
+        update1 += f'\n{blank:{(indent + 3) * indent_inc}}{leftnode.iri.toRdf} oldap:nextNode ?rightNode'
+        update1 += f' .\n{blank:{(indent + 2) * indent_inc}}}}'
+        update1 += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        update1 += f'\n{blank:{(indent + 1) * indent_inc}}BIND((?rindex + 1) AS ?nlindex)'
+        update1 += f'\n{blank:{(indent + 1) * indent_inc}}BIND((?rindex + 2) AS ?nrindex)'
+        update1 += f'\n{blank:{indent * indent_inc}}}}'
+
+        self._con.transaction_start()
+        try:
+            self._con.transaction_update(update1)
+        except OldapError:
+            lprint(update1)
+            self._con.transaction_abort()
+            raise
+
+        query1 = context.sparql_context
+        query1 += f"""
+        SELECT ?node ?rindex ?lindex    
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                {self.__iri.toRdf} oldap:rightIndex ?rindex ;
+                    oldap:leftIndex ?lindex .
+            }}
+        }}
+        """
+        try:
+            jsonobj = self._con.transaction_query(query1)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        rindex = 0
+        lindex = 0
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            raise OldapError('Insert_node_right_of failed')
+        for row in res:
+            rindex = row['rindex']
+            lindex = row['lindex']
+
+        update2 = context.sparql_context
+        update2 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?node oldap:leftIndex ?lindex .
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?node oldap:leftIndex ?nlindex .
+            }}
+        }}
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                ?node skos:inScheme {self.__oldapList.oldapList_iri.toRdf} ;
+                      oldap:rightIndex ?rindex ;
+                      oldap:leftIndex ?lindex .
+            }}
+            FILTER( ((?lindex + 1) >= {rindex}) && (?node != {self.__iri.toRdf}))
+            BIND((?lindex + 2) AS ?nlindex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update2)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        update3 = context.sparql_context
+        update3 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?node oldap:rightIndex ?rindex .
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?node oldap:rightIndex ?nrindex .
+            }}
+        }}
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                ?node skos:inScheme {self.__oldapList.oldapList_iri.toRdf} ;
+                      oldap:rightIndex ?rindex ;
+                      oldap:leftIndex ?lindex ;
+            }}
+            FILTER( (?rindex >= {lindex}) && (?node != {self.__iri.toRdf}))
+            BIND((?rindex + 2) AS ?nrindex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update3)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
 
 
 if __name__ == '__main__':

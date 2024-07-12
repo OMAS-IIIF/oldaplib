@@ -71,8 +71,24 @@ class TestOldapListNode(unittest.TestCase):
         oldaplist = OldapList.read(con=self._connection,
                                    project="test",
                                    oldapListId="TestList")
-        oln = OldapListNode.create_root_node(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        oln = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        oln.create_root_node()
 
+    def test_create_right_of(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestList2",
+                              prefLabel="TestLis2",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestList2")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
 
 
 if __name__ == '__main__':
