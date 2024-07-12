@@ -1,6 +1,7 @@
 from functools import partial
 from typing import Self
 
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.oldaplistattr import OldapListAttr
 from oldaplib.src.enums.permissions import AdminPermission
@@ -26,11 +27,11 @@ class OldapList(Model):
     __project: Project
     __graph: Xsd_NCName
     __oldapList_iri: Iri
+    __node_namespaceIri: NamespaceIRI
 
     def __init__(self, *,
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str,
-                 #oldapListId: Xsd_NCName | str,
                  creator: Iri | None = None,
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
@@ -54,6 +55,10 @@ class OldapList(Model):
         self.__oldapList_iri = Iri.fromPrefixFragment(self.__project.projectShortName,
                                                       self._attributes[OldapListAttr.OLDAPLIST_ID],
                                                       validate=False)
+        self.__node_namespaceIri = self.__project.namespaceIri.expand(self._attributes[OldapListAttr.OLDAPLIST_ID])
+        context[self._attributes[OldapListAttr.OLDAPLIST_ID]] = self.__node_namespaceIri
+        context.use(self._attributes[OldapListAttr.OLDAPLIST_ID])
+
         for attr in OldapListAttr:
             setattr(OldapList, attr.value.fragment, property(
                 partial(OldapList._get_value, attr=attr),
@@ -160,6 +165,18 @@ class OldapList(Model):
                    prefLabel=prefLabel,
                    definition=definition)
 
+    @property
+    def project(self) -> Project:
+        return self.__project
+
+    @property
+    def node_namespaceIri(self):
+        return self.__node_namespaceIri
+
+    @property
+    def oldapList_iri(self) -> Iri:
+        return self.__oldapList_iri
+
     @staticmethod
     def search(con: IConnection,
                project: Project | Iri | Xsd_NCName | str,
@@ -210,8 +227,8 @@ class OldapList(Model):
             raise OldapErrorNoPermission(message)
 
         timestamp = Xsd_dateTime.now()
-        indent: int = 0
-        indent_inc: int = 4
+        #indent: int = 0
+        #indent_inc: int = 4
 
         context = Context(name=self._con.context_name)
 

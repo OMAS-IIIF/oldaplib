@@ -8,12 +8,16 @@ from oldaplib.src.enums.oldaplistnodeattr import OldapListNodeAttr
 from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorImmutable
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorImmutable, OldapError, OldapErrorNoPermission, \
+    OldapErrorAlreadyExists
+from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
+from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 OldapListNodeAttrTypes = int | Xsd_NCName | LangString | Iri | None
@@ -29,57 +33,43 @@ class OldapListNodeAttrChange:
 
 
 class OldapListNode(Model):
-    __datatypes = {
-        OldapListNodeAttr.OLDAPLISTNODE_ID: Xsd_NCName,
-        OldapListNodeAttr.IN_SCHEME: Iri,
-        OldapListNodeAttr.BROADER_TRANSITIVE: Iri,
-        OldapListNodeAttr.NEXT_NODE: Iri,
-        OldapListNodeAttr.LEFT_INDEX: int,
-        OldapListNodeAttr.RIGHT_INDEX: int,
-        OldapListNodeAttr.PREF_LABEL: LangString,
-        OldapListNodeAttr.DEFINITION: LangString,
-    }
-
-    __project: Project
+    __oldapList: OldapList
     __graph: Xsd_NCName
     __oldapListNode_iri: Iri | None
-    __broaderTransitive: Iri | None
-    __nextNode: Iri | None
+    __sublist: list[Self] | None
     __leftIndex: int | None
     __rightIndex: int | None
 
     def __init__(self, *,
                  con: IConnection,
-                 project: Project | Iri | Xsd_NCName | str,
+                 oldapList: OldapList,
                  creator: Iri | None = None,
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
+                 sublist: list[Self] | None = None,
+                 leftIndex: Xsd_integer | int | None = None,
+                 rightIndex: Xsd_integer | int | None = None,
                  **kwargs):
         super().__init__(connection=con,
                          creator=creator,
                          created=created,
                          contributor=contributor,
                          modified=modified)
-        if isinstance(project, Project):
-            self.__project = project
-        else:
-            self.__project = Project.read(self._con, project)
+        self.__oldapList = oldapList
         context = Context(name=self._con.context_name)
-        context[project.projectShortName] = project.namespaceIri
-        context.use(project.projectShortName)
-        self.__graph = project.projectShortName
+        self.__graph = oldapList.project.projectShortName
 
         self.set_attributes(kwargs, OldapListNodeAttr)
 
-        self.__oldapList_iri = Iri.fromPrefixFragment(self.__project.projectShortName,
+        self.__oldapListNode_iri = Iri.fromPrefixFragment(self.__oldapList.oldapListId,
                                                       self._attributes[OldapListNodeAttr.OLDAPLISTNODE_ID],
                                                       validate=False)
 
-        self.__broaderTransitive = None
-        self.__nextNode = None
-        self.__leftIndex = None
-        self.__rightIndex = None
+        self.__rightIndex = Xsd_integer(rightIndex) if rightIndex is not None else None
+        self.__leftIndex = Xsd_integer(leftIndex) if leftIndex is not None else None
+        self.__sublist = sublist
+
         #
         # create all the attributes of the class according to the OldapListAttr definition
         #
@@ -113,6 +103,106 @@ class OldapListNode(Model):
                         return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
             return True, "OK"
 
+    def create(self, indent: int = 0, indent_inc: int = 4):
+        if self._con is None:
+            raise OldapError("Cannot create: no connection")
+
+        timestamp = Xsd_dateTime.now()
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
+        context = Context(name=self._con.context_name)
+
+        blank = ''
+        #
+        # Sparql to check if list has already eny nodes. If so, root node creation is not possible!
+        #
+        sparql1 = context.sparql_context
+        sparql1 += f"""
+        SELECT ?list
+        FROM {self.__graph}:lists
+        WHERE {{
+            ?listnode a oldap:OldapListNode .
+            ?listnode skos:inScheme {self.__oldapList.oldapList_iri.toRdf}
+        }}
+        """
+
+        sparql2 = context.sparql_context
+        sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
+        sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
+        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldapListNode_iri.toRdf} a oldap:OldapListNode'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creationDate {timestamp.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.oldapList_iri.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:leftIndex {self.__leftIndex.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex {self.__leftIndex.toRdf}'
+        if self.prefLabel:
+            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.PREF_LABEL.value} {self.prefLabel.toRdf}'
+        if self.definition:
+            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.DEFINITION.value} {self.definition.toRdf}'
+        sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql2 += f'{blank:{indent * indent_inc}}}}\n'
+
+        self._con.transaction_start()
+        try:
+            jsonobj = self._con.transaction_query(sparql1)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        if len(res) > 0:
+            self._con.transaction_abort()
+            raise OldapErrorAlreadyExists(f'A root node for "{self.__oldapList.oldapList_iri}" already exists')
+
+        try:
+            self._con.transaction_update(sparql2)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+
+
+    def create_root_node(self, *,
+                         con: IConnection,
+                         oldapList: OldapList,
+                         **kwargs) -> Self:
+
+        return node
+
+    @classmethod
+    def insert_node_right_of(cls, *,
+                             con: IConnection,
+                             oldapList: OldapList,
+                             **kwargs) -> Self:
+
+        node = cls(con=con, oldapList=oldapList)
+
+        if con is None:
+            raise OldapError("Cannot create: no connection")
+
+        timestamp = Xsd_dateTime.now()
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        result, message = node.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
+        context = Context(name=con.context_name)
+
 
 if __name__ == '__main__':
     con = Connection(server='http://localhost:7200',
@@ -120,4 +210,4 @@ if __name__ == '__main__':
                      userId="rosenth",
                      credentials="RioGrande",
                      context_name="DEFAULT")
-    oln = OldapListNode(con=con)
+    oln = OldapListNode.create_root_node(con=con, oldapListNodeId="first")

@@ -74,6 +74,7 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual(Xsd_NCName('TestList'), oldaplist.oldapListId)
         self.assertEqual(LangString("TestList"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
+        self.assertEqual(NamespaceIRI("http://oldap.org/test/TestList#"), oldaplist.node_namespaceIri)
 
     def test_constructor_project_object(self):
         oldaplist = OldapList(con=self._connection,
@@ -84,6 +85,7 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual(Xsd_NCName('TestList2'), oldaplist.oldapListId)
         self.assertEqual(LangString("TestList2"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
+        self.assertEqual(NamespaceIRI("http://oldap.org/test/TestList2#"), oldaplist.node_namespaceIri)
 
     def test_create_read_project_id(self):
         oldaplist = OldapList(con=self._connection,
@@ -99,6 +101,7 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual("TestList_B", oldaplist.oldapListId)
         self.assertEqual(LangString("TestList_B"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
+        self.assertEqual(NamespaceIRI("http://oldap.org/test/TestList_B#"), oldaplist.node_namespaceIri)
 
     def test_create_read_project_object(self):
         oldaplist = OldapList(con=self._connection,
@@ -114,6 +117,7 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual("TestList_A", oldaplist.oldapListId)
         self.assertEqual(LangString("TestList_A"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
+        self.assertEqual(NamespaceIRI("http://oldap.org/test/TestList_A#"), oldaplist.node_namespaceIri)
 
     def test_update_A(self):
         oldaplist = OldapList(con=self._connection,

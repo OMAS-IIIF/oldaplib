@@ -5,6 +5,7 @@ from pystrict import strict
 from oldaplib.src.helpers.oldaperror import OldapErrorValue
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 
 #@strict
@@ -31,4 +32,7 @@ class NamespaceIRI(Xsd_anyURI):
 
     def __add__(self, other: str) -> Xsd_anyURI:
         return Xsd_anyURI(self._value + other)
+
+    def expand(self, name: Xsd_NCName):
+        return NamespaceIRI(self.value[:-1] + '/' + name.value + '#')
 
