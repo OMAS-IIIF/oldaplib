@@ -95,7 +95,6 @@ class OldapList(Model):
         :param fieldname: Fieldname of the field being modified
         :return: None
         """
-        #attr = OldapListAttr.from_value(attrname)
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
 
     @classmethod

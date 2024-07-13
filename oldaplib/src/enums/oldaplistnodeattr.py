@@ -14,6 +14,5 @@ class OldapListNodeAttr(AttributeClass):
     """
     # order: (QName, mandatory, immutable, datatype)
     OLDAPLISTNODE_ID = ('oldap:oldapListNodeId', True, True, Xsd_NCName)  # virtual property, represents the RDF subject
-    #IN_SCHEME = ('skos:inScheme', True, True, Iri)
     PREF_LABEL = ('skos:prefLabel', False, False, LangString)
     DEFINITION = ('skos:definition', False, False, LangString)
