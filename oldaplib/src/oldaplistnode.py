@@ -774,3 +774,18 @@ class OldapListNode(Model):
             self._con.transaction_abort()
             raise
 
+    def delete_node(self, indent: int = 0, indent_inc: int = 4):
+        if self._con is None:
+            raise OldapError("Cannot create: no connection")
+
+        timestamp = Xsd_dateTime.now()
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
+        context = Context(name=self._con.context_name)
+
