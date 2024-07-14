@@ -417,6 +417,7 @@ class OldapListNode(Model):
             raise
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
+            self._con.transaction_abort()
             raise OldapError('Insert_node_right_of failed')
         for row in res:
             self.__leftIndex = row['lindex']
@@ -512,7 +513,7 @@ class OldapListNode(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
             self._con.transaction_abort()
-            raise OldapError('Insert_node_right_of failed')
+            raise OldapError('Insert_node_left_of failed')
         for row in res:
             rindex = row['rindex']
             lindex = row['lindex']
@@ -579,7 +580,8 @@ class OldapListNode(Model):
             raise
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
-            raise OldapError('Insert_node_right_of failed')
+            self._con.transaction_abort()
+            raise OldapError('Insert_node_left_of failed')
         for row in res:
             self.__leftIndex = row['lindex']
             self.__rightIndex = row['rindex']
@@ -655,15 +657,120 @@ class OldapListNode(Model):
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         update1 += f' \n{blank:{(indent + 2) * indent_inc}}{parentnode.iri.toRdf} oldap:leftIndex ?lindex'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex ?rindex'
-        update1 += f' ;\n{blank:{(indent + 1) * indent_inc}}BIND(?rindex AS ?nlindex)'
-        update1 += f' ;\n{blank:{(indent + 1) * indent_inc}}BIND((?rindex + 1) AS ?nrindex)'
-        update1 += f' ;\n{blank:{(indent + 1) * indent_inc}}BIND((?rindex + 2) AS ?npindex)'
+        update1 += f' ;\n{blank:{(indent + 2) * indent_inc}}BIND(?rindex AS ?nlindex)'
+        update1 += f'\n{blank:{(indent + 2) * indent_inc}}BIND((?rindex + 1) AS ?nrindex)'
+        #update1 += f' ;\n{blank:{(indent + 1) * indent_inc}}BIND((?rindex + 2) AS ?npindex)'
+        update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}}}'
 
         try:
             self._con.transaction_update(update1)
         except OldapError:
             lprint(update1)
+            self._con.transaction_abort()
+            raise
+
+        query2 = context.sparql_context
+        query2 += f"""
+        SELECT ?lindex ?rindex
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                {self.__iri.toRdf} 
+                    oldap:leftIndex ?lindex ;
+                    oldap:rightIndex ?rindex .
+            }}
+        }}
+        """
+        try:
+            jsonobj = self._con.transaction_query(query2)
+        except OldapError:
+            lprint(query2)
+            self._con.transaction_abort()
+            raise
+        rindex = 0
+        lindex = 0
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            self._con.transaction_abort()
+            raise OldapError('Insert_node_below_of failed')
+        for row in res:
+            rindex = row['rindex']
+            lindex = row['lindex']
+
+        update2 = context.sparql_context
+        update2 += f"""
+            DELETE {{
+                GRAPH {self.__graph}:lists {{
+                    ?node oldap:rightIndex ?rindex .
+                }}
+            }}
+            INSERT {{
+                GRAPH {self.__graph}:lists {{
+                    ?node oldap:rightIndex ?nrindex .
+                }}
+            }}
+            WHERE {{
+                GRAPH {self.__graph}:lists {{
+                    ?node skos:inScheme {self.__oldapList.oldapList_iri.toRdf} ;
+                          oldap:leftIndex ?lindex ;
+                          oldap:rightIndex ?rindex .
+                }}
+                FILTER((?node != {self.__iri.toRdf}) && (?rindex >= {lindex}))
+                BIND((?rindex + 2) AS ?nrindex)
+            }}
+        """
+        try:
+            self._con.transaction_update(update2)
+        except OldapError:
+            lprint(update2)
+            self._con.transaction_abort()
+            raise
+
+        update3 = context.sparql_context
+        update3 += f"""
+            DELETE {{
+                GRAPH {self.__graph}:lists {{
+                    ?node oldap:leftIndex ?lindex .
+                }}
+            }}
+            INSERT {{
+                GRAPH {self.__graph}:lists {{
+                    ?node oldap:leftIndex ?nlindex .
+                }}
+            }}
+            WHERE {{
+                GRAPH {self.__graph}:lists {{
+                    ?node skos:inScheme {self.__oldapList.oldapList_iri.toRdf} ;
+                          oldap:leftIndex ?lindex ;
+                          oldap:rightIndex ?rindex .
+                }}
+                FILTER((?node != {self.__iri.toRdf}) && (?lindex >= {rindex}))
+                BIND((?lindex + 2) AS ?nlindex)
+            }}
+        """
+        try:
+            self._con.transaction_update(update3)
+        except OldapError:
+            lprint(update3)
+            self._con.transaction_abort()
+            raise
+
+        try:
+            jsonobj = self._con.transaction_query(query2)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            self._con.transaction_abort()
+            raise OldapError('Insert_node_below_of failed')
+        for row in res:
+            self.__leftIndex = row['lindex']
+            self.__rightIndex = row['rindex']
+
+        try:
+            self._con.transaction_commit()
+        except OldapError:
             self._con.transaction_abort()
             raise
 

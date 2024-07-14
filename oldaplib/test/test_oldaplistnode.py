@@ -251,6 +251,176 @@ class TestOldapListNode(unittest.TestCase):
         self.assertEqual(Xsd_integer(5), olC.leftIndex)
         self.assertEqual(Xsd_integer(6), olC.rightIndex)
 
+    def test_insert_below_of_A(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListE",
+                              prefLabel="TestListE",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListE")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+        olAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_AA")
+        olAA.insert_node_below_of(parentnode=olA)
+        self.assertEqual(Xsd_integer(2), olAA.leftIndex)
+        self.assertEqual(Xsd_integer(3), olAA.rightIndex)
+
+        #
+        # Now reread the nodes and check
+        #
+        olA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_A")
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(4), olA.rightIndex)
+
+        olAA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_AA")
+        self.assertEqual(Xsd_integer(2), olAA.leftIndex)
+        self.assertEqual(Xsd_integer(3), olAA.rightIndex)
+
+        olB = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_B")
+        self.assertEqual(Xsd_integer(5), olB.leftIndex)
+        self.assertEqual(Xsd_integer(6), olB.rightIndex)
+
+        olC = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_C")
+        self.assertEqual(Xsd_integer(7), olC.leftIndex)
+        self.assertEqual(Xsd_integer(8), olC.rightIndex)
+
+    def test_insert_below_of_B(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListF",
+                              prefLabel="TestListF",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListF")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+        self.assertEqual(Xsd_integer(4), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(5), olBA.rightIndex)
+
+        #
+        # Now reread the nodes and check
+        #
+        olA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_A")
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_B")
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(6), olB.rightIndex)
+
+        olBA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_BA")
+        self.assertEqual(Xsd_integer(4), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(5), olBA.rightIndex)
+
+        olC = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_C")
+        self.assertEqual(Xsd_integer(7), olC.leftIndex)
+        self.assertEqual(Xsd_integer(8), olC.rightIndex)
+
+    def test_insert_below_of_C(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListG",
+                              prefLabel="TestListG",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListG")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+        olCA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_CA")
+        olCA.insert_node_below_of(parentnode=olC)
+        self.assertEqual(Xsd_integer(6), olCA.leftIndex)
+        self.assertEqual(Xsd_integer(7), olCA.rightIndex)
+
+        #
+        # Now reread the nodes and check
+        #
+        olA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_A")
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_B")
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_C")
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(8), olC.rightIndex)
+
+        olCA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_CA")
+        self.assertEqual(Xsd_integer(6), olCA.leftIndex)
+        self.assertEqual(Xsd_integer(7), olCA.rightIndex)
 
 
 if __name__ == '__main__':
