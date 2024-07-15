@@ -9,7 +9,7 @@ from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorImmutable, OldapError, OldapErrorNoPermission, \
-    OldapErrorAlreadyExists, OldapErrorInconsistency
+    OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorNotFound
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
@@ -153,6 +153,8 @@ class OldapListNode(Model):
         definition: LangString | None = None
         leftIndex: Xsd_integer | None = None
         rightIndex: Xsd_integer | None = None
+        if len(res) == 0:
+            raise OldapErrorNotFound(f'Node with id "{oldapListNodeId}" not found.')
         for r in res:
             match str(r.get('prop')):
                 case 'dcterms:creator':
@@ -592,7 +594,7 @@ class OldapListNode(Model):
             self._con.transaction_abort()
             raise
 
-    def insert_node_below_of(self, parentnode: Self, indent: int = 0, indent_inc: int = 4):
+    def insert_node_below_of(self, parentnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -774,7 +776,7 @@ class OldapListNode(Model):
             self._con.transaction_abort()
             raise
 
-    def delete_node(self, indent: int = 0, indent_inc: int = 4):
+    def delete_node(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -788,4 +790,129 @@ class OldapListNode(Model):
             raise OldapErrorNoPermission(message)
 
         context = Context(name=self._con.context_name)
+        query1 = context.sparql_context
+        query1 += f"""
+        SELECT ?node
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                ?node skos:broaderTransitive {self.__iri.toRdf}
+            }}
+        }}
+        """
+        self._con.transaction_start()
+
+        try:
+            jsonobj = self._con.transaction_query(query1)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        if len(res) > 0:
+            self._con.transaction_abort()
+            raise OldapErrorInconsistency(f'Cannot delete node with skos:broaderTransitive pointing to it!')
+
+        query2 = context.sparql_context
+        query2 += f"""
+        SELECT ?lindex ?rindex
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                {self.__iri.toRdf}
+                    oldap:leftIndex ?lindex ;
+                    oldap:rightIndex ?rindex .
+            }}
+        }}
+        """
+        try:
+            jsonobj = self._con.transaction_query(query2)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        lindex = 0
+        rindex = 0
+        if len(res) != 1:
+            self._con.transaction_abort()
+            raise OldapErrorInconsistency(f"Couldn't get node to delete")
+        for r in res:
+            lindex = r['lindex']
+            rindex = r['rindex']
+
+        update1 = context.sparql_context
+        update1 += f"""
+        DELETE 
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                {self.__iri.toRdf} ?p ?o
+            }}
+        }}
+        """
+        try:
+            self._con.transaction_update(update1)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        update2 = context.sparql_context
+        update2 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?node
+                    oldap:leftIndex ?lindex ;
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?node
+                    oldap:leftIndex ?nlindex ;
+            }}
+        }}
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                ?node
+                    oldap:leftIndex ?lindex ;
+            }}
+            FILTER(?lindex > {lindex})
+            BIND((?lindex - 2) AS ?nlindex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update2)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        update3 = context.sparql_context
+        update3 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?node
+                    oldap:rightIndex ?rindex ;
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?node
+                    oldap:rightIndex ?nrindex ;
+            }}
+        }}
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                ?node
+                    oldap:rightIndex ?rindex ;
+            }}
+            FILTER(?rindex > {rindex})
+            BIND((?rindex - 2) AS ?nrindex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update3)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
 

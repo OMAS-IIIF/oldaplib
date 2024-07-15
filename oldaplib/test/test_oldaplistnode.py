@@ -7,6 +7,7 @@ from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplistnode import OldapListNode
@@ -1033,6 +1034,328 @@ class TestOldapListNode(unittest.TestCase):
                                    oldapListNodeId="Node_CAA")
         self.assertEqual(Xsd_integer(7), olCAA.leftIndex)
         self.assertEqual(Xsd_integer(8), olCAA.rightIndex)
+
+    def test_delete_A(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListQ",
+                              prefLabel="TestListQ",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListQ")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_A")
+        olA.delete_node()
+
+        del olA
+
+        with self.assertRaises(OldapErrorNotFound):
+            olA = OldapListNode.read(con=self._connection,
+                                     oldapList=oldaplist,
+                                     oldapListNodeId="Node_A")
+
+    def test_delete_B(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListR",
+                              prefLabel="TestListR",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListR")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olC.leftIndex)
+        self.assertEqual(Xsd_integer(4), olC.rightIndex)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olA.delete_node()
+        with self.assertRaises(OldapErrorNotFound):
+            olA = OldapListNode.read(con=self._connection,
+                                     oldapList=oldaplist,
+                                     oldapListNodeId="Node_A")
+
+        olB = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_B")
+        self.assertEqual(Xsd_integer(1), olB.leftIndex)
+        self.assertEqual(Xsd_integer(2), olB.rightIndex)
+
+        olC = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_C")
+        self.assertEqual(Xsd_integer(3), olC.leftIndex)
+        self.assertEqual(Xsd_integer(4), olC.rightIndex)
+
+    def test_delete_C(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListS",
+                              prefLabel="TestListS",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListS")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olC.leftIndex)
+        self.assertEqual(Xsd_integer(4), olC.rightIndex)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olB.delete_node()
+        with self.assertRaises(OldapErrorNotFound):
+            olB = OldapListNode.read(con=self._connection,
+                                     oldapList=oldaplist,
+                                     oldapListNodeId="Node_B")
+
+        olA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_A")
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olC = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_C")
+        self.assertEqual(Xsd_integer(3), olC.leftIndex)
+        self.assertEqual(Xsd_integer(4), olC.rightIndex)
+
+    def test_delete_D(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListT",
+                              prefLabel="TestListT",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListT")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olC.leftIndex)
+        self.assertEqual(Xsd_integer(4), olC.rightIndex)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC.delete_node()
+        with self.assertRaises(OldapErrorNotFound):
+            olC = OldapListNode.read(con=self._connection,
+                                     oldapList=oldaplist,
+                                     oldapListNodeId="Node_C")
+
+        olA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_A")
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_B")
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+    def test_delete_E(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListU",
+                              prefLabel="TestListU",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListU")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+        self.assertEqual(Xsd_integer(4), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(5), olBA.rightIndex)
+
+        olA.delete_node()
+        with self.assertRaises(OldapErrorNotFound):
+            olA = OldapListNode.read(con=self._connection,
+                                     oldapList=oldaplist,
+                                     oldapListNodeId="Node_A")
+
+        olB = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_B")
+        self.assertEqual(Xsd_integer(1), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olBA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_BA")
+        self.assertEqual(Xsd_integer(2), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(3), olBA.rightIndex)
+
+        olC = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_C")
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+    def test_delete_F(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListV",
+                              prefLabel="TestListV",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListV")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+        self.assertEqual(Xsd_integer(4), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(5), olBA.rightIndex)
+
+        with self.assertRaises(OldapErrorInconsistency):
+            olB.delete_node()
+
+        olBA.delete_node()
+        with self.assertRaises(OldapErrorNotFound):
+            olBA = OldapListNode.read(con=self._connection,
+                                     oldapList=oldaplist,
+                                     oldapListNodeId="Node_BA")
+
+        olA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_A")
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_B")
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_C")
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+    def test_delete_G(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestListW",
+                              prefLabel="TestListW",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestListW")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+        self.assertEqual(Xsd_integer(4), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(5), olBA.rightIndex)
+
+
+        olC.delete_node()
+        with self.assertRaises(OldapErrorNotFound):
+            olC = OldapListNode.read(con=self._connection,
+                                     oldapList=oldaplist,
+                                     oldapListNodeId="Node_C")
+
+        olA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_A")
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+
+        olB = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_B")
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(6), olB.rightIndex)
+
+        olBA = OldapListNode.read(con=self._connection,
+                                 oldapList=oldaplist,
+                                 oldapListNodeId="Node_BA")
+        self.assertEqual(Xsd_integer(4), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(5), olBA.rightIndex)
 
 
 if __name__ == '__main__':
