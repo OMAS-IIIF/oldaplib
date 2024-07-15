@@ -116,6 +116,16 @@ class OldapListNode(Model):
     def rightIndex(self) -> Xsd_integer | None:
         return self.__rightIndex
 
+    @property
+    def sublist(self) -> list[Self]:
+        return self.__sublist
+
+    def add_node_to_sublist(self, node: Self) -> None:
+        if self.__sublist is None:
+            self.__sublist = [node]
+        else:
+            self.__sublist.append(node)
+
     def notifier(self, attr: OldapListNodeAttr) -> None:
         """
         This method is called when a field is being changed.
@@ -915,4 +925,52 @@ class OldapListNode(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
+
+def get_all_nodes(con: IConnection, oldapList: OldapList) ->list[OldapListNode]:
+    context = Context(name=con.context_name)
+    graph = oldapList.project.projectShortName
+
+    query = context.sparql_context
+    query += f"""    
+    SELECT ?node ?rindex ?lindex ?parent
+    WHERE {{
+        GRAPH {graph}:lists {{
+            ?node skos:inScheme {oldapList.oldapList_iri.toRdf} ;
+                oldap:leftIndex ?lindex ;
+                oldap:rightIndex ?rindex .
+            OPTIONAL {{
+                ?node skos:broaderTransitive ?parent .
+            }}
+        }}
+    }}
+    ORDER BY ?lindex
+    """
+    jsonobj = con.query(query)
+    res = QueryProcessor(context, jsonobj)
+    nodes: list[OldapListNode] = []
+    all_nodes: list[OldapListNode] = []
+    for r in res:
+        nodeiri = r['node']
+        prefix, id = str(nodeiri).split(':')
+        ln = OldapListNode(con=con,
+                           oldapList=oldapList,
+                           oldapListNodeId=Xsd_NCName(id, validate=False),
+                           leftIndex=r['lindex'],
+                           rightIndex=r['rindex'])
+        if r.get('parent') is not None:
+            parent_prefix, parent_id = str(r['parent']).split(':')
+            pnodes = [x for x in all_nodes if x.oldapListNodeId == parent_id]
+            pnodes[0].add_node_to_sublist(ln)
+        else:
+            nodes.append(ln)
+        all_nodes.append(ln)
+    return nodes
+
+def print_sublist(nodes: list[OldapListNode], level: int = 1) -> None:
+    for node in nodes:
+        print(f'{str(node.oldapListNodeId): >{level * 5}} ({node.leftIndex}, {node.rightIndex})')
+        if node.sublist:
+            print_sublist(node.sublist, level + 1)
+
+
 
