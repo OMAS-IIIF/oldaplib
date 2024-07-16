@@ -15,6 +15,7 @@ from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 def find_project_root(current_path):
@@ -197,6 +198,45 @@ class TestOldapList(unittest.TestCase):
             oldaplist = OldapList.read(con=self._connection,
                                        project=self._project,
                                        oldapListId="TestDeleteList")
+
+    def test_search(self):
+        oldaplist = OldapList(con=self._connection,
+                              project=self._project,
+                              oldapListId="animals",
+                              prefLabel=LangString("Animals@en", "Tiere@de", "Animaux@fr"),
+                              definition="A hierarchical list of all animals")
+        oldaplist.create()
+        oldaplist = OldapList(con=self._connection,
+                              project=self._project,
+                              oldapListId="plants",
+                              prefLabel=LangString("Plants@en", "Pflanzen@de"),
+                              definition="A hierarchical list of all plants")
+        oldaplist.create()
+
+        iris = OldapList.search(con=self._connection,
+                                project=self._project,
+                                prefLabel=Xsd_string("Animals", "en"))
+        self.assertEqual(iris, [Iri('test:animals')])
+        iris = OldapList.search(con=self._connection,
+                                project=self._project,
+                                prefLabel=Xsd_string("Pflanzen", "de"))
+        self.assertEqual(iris, [Iri('test:plants')])
+        iris = OldapList.search(con=self._connection,
+                                project=self._project,
+                                prefLabel=Xsd_string("Tiere"))
+        self.assertEqual(iris, [Iri('test:animals')])
+        iris = OldapList.search(con=self._connection,
+                                project=self._project,
+                                prefLabel=Xsd_string("Pilze"))
+        self.assertEqual(iris, [])
+
+        iris = OldapList.search(con=self._connection,
+                                project=self._project,
+                                definition=Xsd_string("hierarchical"))
+        self.assertTrue(Iri('test:animals') in iris)
+        self.assertTrue(Iri('test:plants') in iris)
+
+
 
 
 if __name__ == '__main__':

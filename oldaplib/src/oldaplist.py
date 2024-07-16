@@ -198,7 +198,7 @@ class OldapList(Model):
         if prefLabel:
             sparql += '   ?list skos:prefLabel ?label .\n'
             if prefLabel.lang:
-                sparql += f'   FILTER(?label = "{prefLabel.toRdf}")\n'
+                sparql += f'   FILTER(?label = {prefLabel.toRdf})\n'
             else:
                 sparql += f'   FILTER(STR(?label) = "{Xsd_string.escaping(prefLabel.value)}")\n'
         if definition:
