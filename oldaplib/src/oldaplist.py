@@ -78,10 +78,10 @@ class OldapList(Model):
             #
             return True, "OK – IS ROOT"
         else:
-            if len(self.inProject) == 0:
+            if len(actor.inProject) == 0:
                 return False, f'Actor has no ADMIN_LISTS permission for user {self.userId}.'
             allowed: list[Iri] = []
-            for proj in self.inProject.keys():
+            for proj in actor.inProject.keys():
                 if actor.inProject.get(proj) is None:
                     return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
                 else:

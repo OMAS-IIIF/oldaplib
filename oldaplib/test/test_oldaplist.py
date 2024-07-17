@@ -7,7 +7,7 @@ from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmutable
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmutable, OldapErrorNoPermission
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.enums.oldaplistattr import OldapListAttr
@@ -32,6 +32,7 @@ def find_project_root(current_path):
 class TestOldapList(unittest.TestCase):
 
     _connection: IConnection
+    _unpriv: Connection
 
     @classmethod
     def setUpClass(cls):
@@ -46,6 +47,12 @@ class TestOldapList(unittest.TestCase):
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
+        cls._unpriv = Connection(server='http://localhost:7200',
+                                 repo="oldap",
+                                 userId="fornaro",
+                                 credentials="RioGrande",
+                                 context_name="DEFAULT")
+
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
         file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
@@ -103,6 +110,15 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual(LangString("TestList_B"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
         self.assertEqual(NamespaceIRI("http://oldap.org/test/TestList_B#"), oldaplist.node_namespaceIri)
+
+    def test_create_unpriv(self):
+        oldaplist = OldapList(con=self._unpriv,
+                              project="test",
+                              oldapListId="TestList_Unpriv",
+                              prefLabel="TestList_Unpriv",
+                              definition="A list for testing...")
+        with self.assertRaises(OldapErrorNoPermission) as ex:
+            oldaplist.create()
 
     def test_create_read_project_object(self):
         oldaplist = OldapList(con=self._connection,

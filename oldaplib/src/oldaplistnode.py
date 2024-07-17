@@ -9,7 +9,7 @@ from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorImmutable, OldapError, OldapErrorNoPermission, \
-    OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorNotFound
+    OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorNotFound, OldapErrorUpdateFailed
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
@@ -21,6 +21,7 @@ from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 OldapListNodeAttrTypes = int | Xsd_NCName | LangString | Iri | None
 
@@ -276,6 +277,55 @@ class OldapListNode(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
+
+    def update(self, indent: int = 0, indent_inc: int = 4):
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+        timestamp = Xsd_dateTime.now()
+        context = Context(name=self._con.context_name)
+        blank = ''
+        sparql_list = []
+
+        for field, change in self._changeset.items():
+            if field == OldapListNodeAttr.PREF_LABEL or field == OldapListNodeAttr.DEFINITION:
+                if change.action == Action.MODIFY:
+                    sparql_list.extend(self._attributes[field].update(graph=Xsd_QName(f'{self.__graph}:lists'),
+                                                                      subject=self.__iri,
+                                                                      subjectvar='?list',
+                                                                      field=Xsd_QName(field.value)))
+                if change.action == Action.DELETE or change.action == Action.REPLACE:
+                    sparql = self._changeset[field].old_value.delete(graph=Xsd_QName(f'{self.__graph}:lists'),
+                                                                     subject=self.__iri,
+                                                                     field=Xsd_QName(field.value))
+                    sparql_list.append(sparql)
+                if change.action == Action.CREATE or change.action == Action.REPLACE:
+                    sparql = self._attributes[field].create(graph=Xsd_QName(f'{self.__graph}:lists'),
+                                                            subject=self.__iri,
+                                                            field=Xsd_QName(field.value))
+                    sparql_list.append(sparql)
+
+        sparql = context.sparql_context
+        sparql += " ;\n".join(sparql_list)
+
+        self._con.transaction_start()
+        try:
+            self._con.transaction_update(sparql)
+            self.set_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__iri, self.modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__iri)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        if timestamp != modtime:
+            self._con.transaction_abort()
+            raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        self._modified = timestamp
+        self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
 
     def insert_node_right_of(self, leftnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
 
@@ -925,6 +975,46 @@ class OldapListNode(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
+
+    @staticmethod
+    def search(con: IConnection,
+               oldapList: OldapList,
+               id: Xsd_string | str | None = None,
+               prefLabel: Xsd_string | str | None = None,
+               definition: str | None = None) -> list[Iri]:
+        context = Context(name=con.context_name)
+        graph = oldapList.project.projectShortName
+
+        prefLabel = Xsd_string(prefLabel)
+        sparql = context.sparql_context
+        sparql += 'SELECT DISTINCT ?node\n'
+        sparql += f'FROM {graph}:lists\n'
+        sparql += 'WHERE {\n'
+        sparql += '   ?node a oldap:OldapListNode ;\n'
+        sparql += f'       skos:inScheme {oldapList.oldapList_iri.toRdf} .\n'
+        if prefLabel:
+            sparql += '   ?node skos:prefLabel ?label .\n'
+        if definition:
+            sparql += '   ?node skos:definition ?definition .\n'
+        if id:
+            sparql += f'    FILTER(CONTAINS(STRAFTER(STR(?node)), "{Xsd_string.escaping(id.value)}))"\n'
+        if prefLabel:
+            if prefLabel.lang:
+                sparql += f'   FILTER(?label = {prefLabel.toRdf})\n'
+            else:
+                sparql += f'   FILTER(STR(?label) = "{Xsd_string.escaping(prefLabel.value)}")\n'
+        if definition:
+            sparql += '   ?node skos:definition ?definition .\n'
+            sparql += f'   FILTER(CONTAINS(STR(?definition), "{Xsd_string.escaping(definition.value)}"))\n'
+        sparql += '}\n'
+
+        jsonobj = con.query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        lists: list[Iri] = []
+        if len(res) > 0:
+            for r in res:
+                lists.append(r['node'])
+        return lists
 
 def get_all_nodes(con: IConnection, oldapList: OldapList) ->list[OldapListNode]:
     context = Context(name=con.context_name)
