@@ -364,7 +364,7 @@ class Connection(IConnection):
         if res.status_code == 200:
             return Connection._switcher[format](res)
         else:
-            return res.text
+            raise OldapError(res.text)
 
     def update_query(self, query: str) -> Dict[str,str]:
         """

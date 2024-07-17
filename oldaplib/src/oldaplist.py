@@ -1,4 +1,5 @@
 from functools import partial
+from pprint import pprint
 from typing import Self
 
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -179,40 +180,105 @@ class OldapList(Model):
     @staticmethod
     def search(con: IConnection,
                project: Project | Iri | Xsd_NCName | str,
+               id: Xsd_string | str | None = None,
                prefLabel: Xsd_string | str | None = None,
-               definition: str | None = None) -> list[Iri]:
+               definition: str | None = None,
+               exactMatch: bool = False) -> list[Iri]:
         if not isinstance(project, Project):
             project = Project.read(con, project)
+        id = Xsd_string(id)
+        prefLabel = Xsd_string(prefLabel)
+        definition = Xsd_string(definition)
         context = Context(name=con.context_name)
         graph = project.projectShortName
 
         prefLabel = Xsd_string(prefLabel)
-        if not isinstance(project, Project):
-            raise OldapErrorValue('The project parameter must be a Project instance')
-        graph = project.projectShortName
         sparql = context.sparql_context
-        sparql += 'SELECT DISTINCT ?list\n'
+        sparql += 'SELECT DISTINCT ?node\n'
         sparql += f'FROM {graph}:lists\n'
         sparql += 'WHERE {\n'
-        sparql += '   ?list a oldap:OldapList .\n'
+        sparql += '   ?node a oldap:OldapList .\n'
         if prefLabel:
-            sparql += '   ?list skos:prefLabel ?label .\n'
-            if prefLabel.lang:
-                sparql += f'   FILTER(?label = {prefLabel.toRdf})\n'
-            else:
-                sparql += f'   FILTER(STR(?label) = "{Xsd_string.escaping(prefLabel.value)}")\n'
+            sparql += '   ?node skos:prefLabel ?label .\n'
         if definition:
-            sparql += '   ?list skos:definition ?definition .\n'
-            sparql += f'   FILTER(CONTAINS(STR(?definition), "{Xsd_string.escaping(definition.value)}"))\n'
+            sparql += '   ?node skos:definition ?definition .\n'
+        if id:
+            if exactMatch:
+                sparql += f'    FILTER(STRAFTER(STR(?node), "#") = "{Xsd_string.escaping(id.value)}")\n'
+            else:
+                sparql += f'    FILTER(CONTAINS(STRAFTER(STR(?node), "#"), "{Xsd_string.escaping(id.value)}"))\n'
+        if prefLabel:
+            if prefLabel.lang:
+                if exactMatch:
+                    sparql += f'   FILTER(?label = {prefLabel.toRdf})\n'
+                else:
+                    sparql += f'   FILTER(CONTAINS(?label, {prefLabel.toRdf}))\n'
+            else:
+                if exactMatch:
+                    sparql += f'   FILTER(STR(?label) = "{Xsd_string.escaping(prefLabel.value)}")\n'
+                else:
+                    sparql += f'   FILTER(CONTAINS(STR(?label), "{Xsd_string.escaping(prefLabel.value)}"))\n'
+        if definition:
+            if definition.lang:
+                if exactMatch:
+                    sparql += f'   FILTER(?definition = {definition.toRdf})\n'
+                else:
+                    sparql += f'   FILTER(CONTAINS(?definition, {definition.toRdf}))\n'
+            else:
+                if exactMatch:
+                    sparql += f'   FILTER(STR(?definition) = "{Xsd_string.escaping(definition.value)}")\n'
+                else:
+                    sparql += f'   FILTER(CONTAINS(STR(?definition), "{Xsd_string.escaping(definition.value)}"))\n'
         sparql += '}\n'
 
-        jsonobj = con.query(sparql)
+        try:
+            jsonobj = con.query(sparql)
+        except OldapError as e:
+            return[]
         res = QueryProcessor(context, jsonobj)
         lists: list[Iri] = []
         if len(res) > 0:
             for r in res:
-                lists.append(r['list'])
+                lists.append(r['node'])
         return lists
+
+    # @staticmethod
+    # def search(con: IConnection,
+    #            project: Project | Iri | Xsd_NCName | str,
+    #            prefLabel: Xsd_string | str | None = None,
+    #            definition: str | None = None) -> list[Iri]:
+    #     if not isinstance(project, Project):
+    #         project = Project.read(con, project)
+    #     context = Context(name=con.context_name)
+    #     graph = project.projectShortName
+    #
+    #     prefLabel = Xsd_string(prefLabel)
+    #     if not isinstance(project, Project):
+    #         raise OldapErrorValue('The project parameter must be a Project instance')
+    #     graph = project.projectShortName
+    #     sparql = context.sparql_context
+    #     sparql += 'SELECT DISTINCT ?list\n'
+    #     sparql += f'FROM {graph}:lists\n'
+    #     sparql += 'WHERE {\n'
+    #     sparql += '   ?list a oldap:OldapList .\n'
+    #     if prefLabel:
+    #         sparql += '   ?list skos:prefLabel ?label .\n'
+    #         if prefLabel.lang:
+    #             sparql += f'   FILTER(?label = {prefLabel.toRdf})\n'
+    #         else:
+    #             sparql += f'   FILTER(STR(?label) = "{Xsd_string.escaping(prefLabel.value)}")\n'
+    #     if definition:
+    #         sparql += '   ?list skos:definition ?definition .\n'
+    #         sparql += f'   FILTER(CONTAINS(STR(?definition), "{Xsd_string.escaping(definition.value)}"))\n'
+    #     sparql += '}\n'
+    #
+    #     jsonobj = con.query(sparql)
+    #     res = QueryProcessor(context, jsonobj)
+    #     lists: list[Iri] = []
+    #     if len(res) > 0:
+    #         for r in res:
+    #             lists.append(r['list'])
+    #     return lists
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:

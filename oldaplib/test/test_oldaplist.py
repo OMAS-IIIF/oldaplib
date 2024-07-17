@@ -233,14 +233,28 @@ class TestOldapList(unittest.TestCase):
                                 project=self._project,
                                 prefLabel=Xsd_string("Animals", "en"))
         self.assertEqual(iris, [Iri('test:animals')])
+
+        iris = OldapList.search(con=self._connection,
+                                project=self._project,
+                                prefLabel=Xsd_string("Animals"))
+        self.assertEqual(iris, [Iri('test:animals')])
+
         iris = OldapList.search(con=self._connection,
                                 project=self._project,
                                 prefLabel=Xsd_string("Pflanzen", "de"))
         self.assertEqual(iris, [Iri('test:plants')])
+
         iris = OldapList.search(con=self._connection,
                                 project=self._project,
-                                prefLabel=Xsd_string("Tiere"))
+                                prefLabel=Xsd_string("Tier"))
         self.assertEqual(iris, [Iri('test:animals')])
+
+        iris = OldapList.search(con=self._connection,
+                                project=self._project,
+                                prefLabel=Xsd_string("Tier"),
+                                exactMatch=True)
+        self.assertEqual(iris, [])
+
         iris = OldapList.search(con=self._connection,
                                 project=self._project,
                                 prefLabel=Xsd_string("Pilze"))
