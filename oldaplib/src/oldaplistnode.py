@@ -981,7 +981,11 @@ class OldapListNode(Model):
                oldapList: OldapList,
                id: Xsd_string | str | None = None,
                prefLabel: Xsd_string | str | None = None,
-               definition: str | None = None) -> list[Iri]:
+               definition: str | None = None,
+               exactMatch: bool = False) -> list[Iri]:
+        id = Xsd_string(id)
+        prefLabel = Xsd_string(prefLabel)
+        definition = Xsd_string(definition)
         context = Context(name=con.context_name)
         graph = oldapList.project.projectShortName
 
@@ -997,15 +1001,32 @@ class OldapListNode(Model):
         if definition:
             sparql += '   ?node skos:definition ?definition .\n'
         if id:
-            sparql += f'    FILTER(CONTAINS(STRAFTER(STR(?node)), "{Xsd_string.escaping(id.value)}))"\n'
+            if exactMatch:
+                sparql += f'    FILTER(STRAFTER(STR(?node), "#") = "{Xsd_string.escaping(id.value)}")\n'
+            else:
+                sparql += f'    FILTER(CONTAINS(STRAFTER(STR(?node), "#"), "{Xsd_string.escaping(id.value)}"))\n'
         if prefLabel:
             if prefLabel.lang:
-                sparql += f'   FILTER(?label = {prefLabel.toRdf})\n'
+                if exactMatch:
+                    sparql += f'   FILTER(?label = {prefLabel.toRdf})\n'
+                else:
+                    sparql += f'   FILTER(CONTAINS(?label, {prefLabel.toRdf}))\n'
             else:
-                sparql += f'   FILTER(STR(?label) = "{Xsd_string.escaping(prefLabel.value)}")\n'
+                if exactMatch:
+                    sparql += f'   FILTER(STR(?label) = "{Xsd_string.escaping(prefLabel.value)}")\n'
+                else:
+                    sparql += f'   FILTER(CONTAINS(STR(?label), "{Xsd_string.escaping(prefLabel.value)}"))\n'
         if definition:
-            sparql += '   ?node skos:definition ?definition .\n'
-            sparql += f'   FILTER(CONTAINS(STR(?definition), "{Xsd_string.escaping(definition.value)}"))\n'
+            if definition.lang:
+                if exactMatch:
+                    sparql += f'   FILTER(?definition = {definition.toRdf})\n'
+                else:
+                    sparql += f'   FILTER(CONTAINS(?definition, {definition.toRdf}))\n'
+            else:
+                if exactMatch:
+                    sparql += f'   FILTER(STR(?definition) = "{Xsd_string.escaping(definition.value)}")\n'
+                else:
+                    sparql += f'   FILTER(CONTAINS(STR(?definition), "{Xsd_string.escaping(definition.value)}"))\n'
         sparql += '}\n'
 
         jsonobj = con.query(sparql)

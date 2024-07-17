@@ -13,6 +13,7 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplistnode import OldapListNode, get_all_nodes, print_sublist
 from oldaplib.src.project import Project
+from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
@@ -1441,7 +1442,7 @@ class TestOldapListNode(unittest.TestCase):
         nodes = get_all_nodes(con=self._connection, oldapList=oldaplist)
         print_sublist(nodes)
 
-    def search(self):
+    def test_search(self):
         oldaplist = OldapList(con=self._connection,
                               project="test",
                               oldapListId="TestListY",
@@ -1451,37 +1452,104 @@ class TestOldapListNode(unittest.TestCase):
         oldaplist = OldapList.read(con=self._connection,
                                    project="test",
                                    oldapListId="TestListY")
-        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A",
+                            prefLabel=LangString("Node_A@en", "Neud_A@fr"),
+                            definition=LangString("A node for testing A@en", "Eine Liste zum Testen A@de"))
         olA.create_root_node()
         self.assertEqual(Xsd_integer(1), olA.leftIndex)
         self.assertEqual(Xsd_integer(2), olA.rightIndex)
 
-        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B",
+                            prefLabel=LangString("Node_B@en", "Neud_A@fr"),
+                            definition=LangString("A node for testing B@en", "Eine Liste zum Testen B@de"))
         olB.insert_node_right_of(leftnode=olA)
         self.assertEqual(Xsd_integer(3), olB.leftIndex)
         self.assertEqual(Xsd_integer(4), olB.rightIndex)
 
-        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C",
+                            prefLabel=LangString("Node_C@en", "Neud_C@fr"),
+                            definition=LangString("A node for testing C@en", "Eine Liste zum Testen C@de"))
         olC.insert_node_right_of(leftnode=olB)
         self.assertEqual(Xsd_integer(5), olC.leftIndex)
         self.assertEqual(Xsd_integer(6), olC.rightIndex)
 
-        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA",
+                            prefLabel=LangString("Node_BA@en", "Neud_BA@fr"),
+                            definition=LangString("A node for testing BA@en", "Eine Liste zum Testen BA@de"))
         olBA.insert_node_below_of(parentnode=olB)
         self.assertEqual(Xsd_integer(4), olBA.leftIndex)
         self.assertEqual(Xsd_integer(5), olBA.rightIndex)
 
-        olBAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAA")
+        olBAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAA",
+                            prefLabel=LangString("Node_BAA@en", "Neud_BAA@fr"),
+                            definition=LangString("A node for testing BAA@en", "Eine Liste zum Testen BAA@de"))
         olBAA.insert_node_below_of(parentnode=olBA)
         self.assertEqual(Xsd_integer(5), olBAA.leftIndex)
         self.assertEqual(Xsd_integer(6), olBAA.rightIndex)
 
-        olBAB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAB")
+        olBAB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAB",
+                            prefLabel=LangString("Node_BAB@en", "Neud_BAB@fr"),
+                            definition=LangString("A node for testing BAB@en", "Eine Liste zum Testen BAB@de"))
         olBAB.insert_node_right_of(leftnode=olBAA)
         self.assertEqual(Xsd_integer(7), olBAB.leftIndex)
         self.assertEqual(Xsd_integer(8), olBAB.rightIndex)
 
-        OldapListNode.search(oldapList=oldaplist, prefLabel="TestListY")
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, id="Node_BA", exactMatch=True)
+        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, id="Node_XX", exactMatch=True)
+        self.assertEqual([], irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, id="BA")
+        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="BA@en")
+        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="BA@zu")
+        self.assertEqual([], irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="Neud_BA@fr", exactMatch=True)
+        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="BA@en")
+        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="XX")
+        self.assertEqual([], irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="Neud_BA", exactMatch=True)
+        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
+
+        ##
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="BA@en")
+        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="BA@zu")
+        self.assertEqual([], irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="Eine Liste zum Testen BA@de", exactMatch=True)
+        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="BA@en")
+        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="XX")
+        self.assertEqual([], irilist)
+
+        irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="Eine Liste zum Testen BA", exactMatch=True)
+        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
 
 
 if __name__ == '__main__':
