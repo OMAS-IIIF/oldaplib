@@ -156,10 +156,10 @@ class Testproject(unittest.TestCase):
                                projectEnd=Xsd_date(2024, 3, 2))
 
         project6 = Project(con=self._connection,
-                           projectShortName="unittest3",
-                           label=LangString("unittes\"; SELECT * WHERE {?s ?p ?o}"),
-                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest3#"),
-                           comment=LangString(["For testing3@en", "Für Tests3@de"]),
+                           projectShortName="unittest6",
+                           label=LangString("unittest\"; SELECT * WHERE {?s ?p ?o}"),
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest6#"),
+                           comment=LangString(["For testing6@en", "Für Tests6@de"]),
                            projectStart=Xsd_date(2024, 3, 3),
                            projectEnd=None)
         project6.create()
@@ -167,7 +167,7 @@ class Testproject(unittest.TestCase):
         del project6
 
         project6 = Project.read(con=self._connection, projectIri_SName=projectIri)
-        self.assertEqual(project6.label, LangString("unittes\"; SELECT * WHERE {?s ?p ?o}"))
+        self.assertEqual(project6.label, LangString("unittest\"; SELECT * WHERE {?s ?p ?o}"))
 
         with self.assertRaises(OldapErrorInconsistency) as ex:
             project7 = Project(con=self._connection,
@@ -179,10 +179,10 @@ class Testproject(unittest.TestCase):
                                projectEnd=Xsd_date(2024, 3, 2))
 
         project8 = Project(con=self._connection,
-                           projectShortName="unittest3",
+                           projectShortName="unittest8",
                            label=LangString("unittes\"; SELECT * WHERE {?s ?p ?o}"),
-                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest3#"),
-                           comment=LangString(["For testing3@en", "Für Tests3@de"]),
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest8#"),
+                           comment=LangString(["For testing8@en", "Für Tests3@de"]),
                            projectEnd=Xsd_date(2028, 3, 3))
         self.assertEqual(project8.projectStart, date.today())
 
@@ -210,7 +210,7 @@ class Testproject(unittest.TestCase):
         self.assertIsNone(project.comment)
 
         project = Project(con=self._connection,
-                          projectShortName="emptyfields1",
+                          projectShortName="emptyfields2",
                           label=LangString(["unittest@en", "unittest@de"]),
                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest#"),
                           projectStart=Xsd_date(2024, 1, 1),
@@ -230,7 +230,7 @@ class Testproject(unittest.TestCase):
         self.assertEqual(project.comment[Language.DE], "Kommentar für unittest")
 
         project = Project(con=self._connection,
-                          projectShortName="emptyfields1",
+                          projectShortName="emptyfields3",
                           label=LangString(["unittest@en", "unittest@de"]),
                           comment=[],
                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittest#"),

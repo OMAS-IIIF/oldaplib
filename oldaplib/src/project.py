@@ -3,6 +3,7 @@ from functools import partial
 from typing import List, Self, Any
 from datetime import date, datetime
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.enums.projectattr import ProjectAttr
 from oldaplib.src.helpers.context import Context
@@ -239,7 +240,12 @@ class Project(Model):
         #         projectIri = Iri(projectIri_SName)
         #     else:
         #         shortname = Xsd_NCName(projectIri_SName)
+        cache = CacheSingleton()
         if projectIri is not None:
+            tmp = cache.get(projectIri)
+            if tmp is not None:
+                print("========>FROM CACHE: ", projectIri)
+                return tmp
             query += f"""
                 SELECT ?prop ?val
                 FROM oldap:admin
@@ -248,6 +254,10 @@ class Project(Model):
                 }}
             """
         elif shortname is not None:
+            tmp = cache.get(shortname)
+            if tmp is not None:
+                print("========>FROM CACHE: ", shortname)
+                return tmp
             query += f"""
                 SELECT ?proj ?prop ?val
                 FROM oldap:admin
@@ -445,6 +455,9 @@ class Project(Model):
         self._modified = timestamp
         self._contributor = self._con.userIri
         context[self._attributes[ProjectAttr.PROJECT_SHORTNAME]] = self._attributes[ProjectAttr.NAMESPACE_IRI]
+        cache = CacheSingleton()
+        cache.set(self.projectIri, self)
+        cache.set(self.projectShortName, self)
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -521,6 +534,9 @@ class Project(Model):
         self._modified = timestamp
         self._contributor = self._con.userIri
         self.clear_changeset()
+        cache = CacheSingleton()
+        cache.set(self.projectIri, self)
+        cache.set(self.projectShortName, self)
 
     def delete(self) -> None:
         """
@@ -546,4 +562,8 @@ class Project(Model):
         """
         # TODO: use transaction for error handling
         self._con.update_query(sparql)
+        cache = CacheSingleton()
+        cache.delete(self.projectIri)
+        cache.delete(self.projectShortName)
+
 
