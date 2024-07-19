@@ -146,9 +146,11 @@ from typing import List, Self, Optional, Any
 
 import bcrypt
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.in_project import InProjectClass
@@ -448,9 +450,12 @@ class User(Model):
         self._created = timestamp
         self._contributor = self._con.userIri
         self._modified = timestamp
+        cache = CacheSingleton()
+        cache.set(self.userIri, self)
+
 
     @classmethod
-    def read(cls, con: IConnection, userId: Xsd_NCName | str) -> Self:
+    def read(cls, con: IConnection, userId: IriOrNCName | str) -> Self:
         """
         Reads a User instance from the data in the triple store
         :param con: IConnection instance
@@ -460,8 +465,15 @@ class User(Model):
         :return: Self
         :raises OldapErrorNotFound: Required user does ot exist
         """
-        if not isinstance(userId, Xsd_NCName):
-            userId = Xsd_NCName(userId)
+        if not isinstance(userId, IriOrNCName):
+            userId = IriOrNCName(userId)
+        user_id, user_iri = userId.value()
+        if user_iri is not None:
+            cache = CacheSingleton()
+            tmp = cache.get(user_iri)
+            if tmp is not None:
+                tmp._con = con
+                return tmp
 
         context = Context(name=con.context_name)
         jsonobj = con.query(UserData.sparql_query(context, userId))
@@ -576,6 +588,9 @@ class User(Model):
         """
         # TODO: use transaction for error handling
         self._con.update_query(sparql)
+        cache = CacheSingleton()
+        cache.delete(self.userIri)
+
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -756,6 +771,10 @@ class User(Model):
             self._con.transaction_abort()
             raise
         self._modified = timestamp
+        self._contributor = self._con.userIri
+        cache = CacheSingleton()
+        cache.set(self.userIri, self)
+
 
 
 if __name__ == '__main__':

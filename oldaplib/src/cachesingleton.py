@@ -1,3 +1,4 @@
+from copy import deepcopy
 from threading import Lock
 from typing import Any
 
@@ -14,9 +15,13 @@ class CacheSingleton(metaclass=SingletonMeta):
         self._lock = Lock()
         self._cache = {}
 
+    def __str__(self) -> str:
+        with self._lock:
+            return str(self._cache)
+
     def get(self, key: Iri | Xsd_NCName) -> Any:
         with self._lock:
-            return self._cache.get(key)
+            return deepcopy(self._cache.get(key))
 
     def set(self, key: Iri | Xsd_NCName, value: Any):
         with self._lock:

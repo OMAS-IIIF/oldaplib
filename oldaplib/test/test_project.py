@@ -3,6 +3,7 @@ from datetime import date
 from pathlib import Path
 from time import sleep
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.context import Context
@@ -329,6 +330,7 @@ class Testproject(unittest.TestCase):
                           comment=LangString(["For unauthorized access@en", "Für nicht authorisierten Zugang@de"]),
                           projectStart=Xsd_date(2024, 1, 1),
                           )
+        cache = CacheSingleton()
         with self.assertRaises(OldapErrorNoPermission) as ex:
             project.create()
 
@@ -340,7 +342,7 @@ class Testproject(unittest.TestCase):
                           projectStart=Xsd_date(2024, 1, 1),
                           )
         project.create()
-        projectIri = project.projectIri
+
         project = Project.read(con=self._unpriv, projectIri_SName="unauthorized")
         project.projectEnd = Xsd_date(2025, 12, 31)
         with self.assertRaises(OldapErrorNoPermission) as ex:

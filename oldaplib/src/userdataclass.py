@@ -3,6 +3,7 @@ from typing import Self, Set, Iterable
 
 from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.serializeableset import SerializeableSet
@@ -116,23 +117,43 @@ class UserData:
         return self._hasPermissions
 
     @staticmethod
-    def sparql_query(context: Context, userId: Xsd_NCName) -> str:
+    def sparql_query(context: Context, userId: IriOrNCName) -> str:
+        if not isinstance(userId, IriOrNCName):
+            userId = IriOrNCName(userId)
+        user_id, user_iri = userId.value()
         sparql = context.sparql_context
-        sparql += f"""
-        SELECT ?user ?prop ?val ?proj ?rval
-        FROM oldap:admin
-        WHERE {{
-            {{
-                ?user a oldap:User .
-                ?user oldap:userId {userId.toRdf} .
-                ?user ?prop ?val .
-            }} UNION {{
-                ?user a oldap:User .
-                ?user oldap:userId {userId.toRdf} .
-                <<?user oldap:inProject ?proj>> oldap:hasAdminPermission ?rval
+        if user_id is not None:
+            sparql += f"""
+            SELECT ?user ?prop ?val ?proj ?rval
+            FROM oldap:admin
+            WHERE {{
+                {{
+                    ?user a oldap:User .
+                    ?user oldap:userId {user_id.toRdf} .
+                    ?user ?prop ?val .
+                }} UNION {{
+                    ?user a oldap:User .
+                    ?user oldap:userId {user_id.toRdf} .
+                    <<?user oldap:inProject ?proj>> oldap:hasAdminPermission ?rval
+                }}
             }}
-        }}
-        """
+            """
+        elif user_iri is not None:
+            sparql += f"""
+            SELECT ?user ?prop ?val ?proj ?rval
+            FROM oldap:admin
+            WHERE {{
+                BIND({user_iri.toRdf} as ?user)
+                {{
+                    ?user a oldap:User .
+                    ?user ?prop ?val .
+                }} UNION {{
+                    ?user a oldap:User .
+                    <<?user oldap:inProject ?proj>> oldap:hasAdminPermission ?rval
+                }}
+            }}
+            """
+
         return sparql
 
     @classmethod

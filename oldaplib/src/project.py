@@ -9,6 +9,7 @@ from oldaplib.src.enums.projectattr import ProjectAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -23,36 +24,6 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model, AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
-
-class IriOrNCName:
-
-    def __init__(self, value: Iri | Xsd_NCName | str):
-        self.__projectIri: Iri | None = None
-        self.__shortname: Xsd_NCName | None = None
-        if isinstance(value, Iri):
-            self.__projectIri = value
-            self.__shortname = None
-        elif isinstance(value, Xsd_NCName):
-            self.__shortname = Xsd_NCName(value)
-            self.__projectIri = None
-        else:
-            if ':' in str(value):  # must be IRI or QName
-                self.__projectIri = Iri(value)
-                self.__shortname = None
-            else:
-                self.__shortname = Xsd_NCName(value)
-                self.__projectIri = None
-
-    def value(self) -> tuple[Xsd_NCName| None, Iri | None]:
-        return self.__shortname, self.__projectIri
-
-    def __str__(self):
-        if self.__projectIri is not None:
-            return str(self.__projectIri)
-        elif self.__shortname is not None:
-            return str(self.__shortname)
-        else:
-            return "???"
 
 #@strict
 class Project(Model):
@@ -244,7 +215,7 @@ class Project(Model):
         if projectIri is not None:
             tmp = cache.get(projectIri)
             if tmp is not None:
-                print("========>FROM CACHE: ", projectIri)
+                tmp._con = con
                 return tmp
             query += f"""
                 SELECT ?prop ?val
@@ -256,7 +227,7 @@ class Project(Model):
         elif shortname is not None:
             tmp = cache.get(shortname)
             if tmp is not None:
-                print("========>FROM CACHE: ", shortname)
+                tmp._con = con
                 return tmp
             query += f"""
                 SELECT ?proj ?prop ?val
@@ -455,6 +426,7 @@ class Project(Model):
         self._modified = timestamp
         self._contributor = self._con.userIri
         context[self._attributes[ProjectAttr.PROJECT_SHORTNAME]] = self._attributes[ProjectAttr.NAMESPACE_IRI]
+
         cache = CacheSingleton()
         cache.set(self.projectIri, self)
         cache.set(self.projectShortName, self)
@@ -509,7 +481,8 @@ class Project(Model):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.projectIri.toRdf} as ?project)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = context.sparql_context

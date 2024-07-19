@@ -85,8 +85,20 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.hasPermissions, {Xsd_QName('oldap:GenericView')})
 
     # @unittest.skip('Work in progress')
-    def test_read_user(self):
+    def test_read_user_from_id(self):
         user = User.read(con=self._connection, userId="rosenth")
+        self.assertEqual(user.userId, Xsd_NCName("rosenth"))
+        self.assertEqual(user.userIri, Iri("https://orcid.org/0000-0003-1681-4036"))
+        self.assertEqual(user.familyName, Xsd_string("Rosenthaler"))
+        self.assertEqual(user.givenName, Xsd_string("Lukas"))
+        self.assertEqual(user.inProject, InProjectClass({
+            Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
+            Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
+        }))
+        self.assertEqual(user.hasPermissions, {Iri("oldap:GenericRestricted"), Iri('oldap:GenericView')})
+
+    def test_read_user_from_iri(self):
+        user = User.read(con=self._connection, userId=Iri("https://orcid.org/0000-0003-1681-4036"))
         self.assertEqual(user.userId, Xsd_NCName("rosenth"))
         self.assertEqual(user.userIri, Iri("https://orcid.org/0000-0003-1681-4036"))
         self.assertEqual(user.familyName, Xsd_string("Rosenthaler"))
