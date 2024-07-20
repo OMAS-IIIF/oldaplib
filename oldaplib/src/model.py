@@ -62,6 +62,19 @@ class Model:
         self._attributes = {}
         self._changeset = {}
 
+    def __deepcopy__(self, memo: Dict[int, Any]) -> 'Model':
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        instance._creator = deepcopy(self._creator, memo=memo)
+        instance._created = deepcopy(self._created, memo=memo)
+        instance._contributor = deepcopy(self._contributor, memo=memo)
+        instance._modified = deepcopy(self._modified, memo=memo)
+        instance._attributes = deepcopy(self._attributes, memo=memo)
+        instance._changeset = {}
+
+        return instance
+
     def check_consistency(self, attr: AttributeClass, value: Any) -> None:
         pass
 

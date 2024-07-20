@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from time import sleep
 
@@ -71,6 +72,29 @@ class TestPermissionSet(unittest.TestCase):
         self.assertEqual(ps.label, LangString("testPerm@en", "test@Perm@de"))
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
         self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
+
+    def test_deepcopy_permissionset(self):
+        ps = PermissionSet(con=self._connection,
+                           permissionSetId="test1_ps",
+                           label=LangString("testPerm@en", "test@Perm@de"),
+                           comment=LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"),
+                           givesPermission=DataPermission.DATA_UPDATE,
+                           definedByProject=Iri('oldap:SystemProject'))
+        ps1 = deepcopy(ps)
+        self.assertEqual(ps.permissionSetId, ps1.permissionSetId)
+        self.assertFalse(ps.permissionSetId is ps1.permissionSetId)
+
+        self.assertEqual(ps.label, ps1.label)
+        self.assertFalse(ps.label is ps1.label)
+
+        self.assertEqual(ps.comment, ps1.comment)
+        self.assertFalse(ps.comment is ps1.comment)
+
+        self.assertEqual(ps.givesPermission, ps1.givesPermission)
+
+        self.assertEqual(ps.definedByProject, ps1.definedByProject)
+        self.assertFalse(ps.definedByProject is ps1.definedByProject)
+
 
     def test_create_permissionset(self):
         ps = PermissionSet(con=self._connection,

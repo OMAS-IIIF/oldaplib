@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
@@ -5,6 +6,7 @@ from typing import Dict, Self, Any
 
 from pystrict import strict
 
+from oldaplib.src.connection import Connection
 from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
 from oldaplib.src.enums.permissions import AdminPermission, DataPermission
 from oldaplib.src.helpers.context import Context
@@ -84,6 +86,16 @@ class PermissionSet(Model):
                 partial(PermissionSet._set_value, attr=attr),
                 partial(PermissionSet._del_value, attr=attr)))
         self._changeset = {}
+
+    def __deepcopy__(self, memo):
+        instance = super().__deepcopy__(memo)
+        instance.__permset_iri = deepcopy(self.__permset_iri)
+        # for attr in PermissionSetAttr:
+        #     setattr(instance, attr.value.fragment, property(
+        #         partial(PermissionSet._get_value, attr=attr),
+        #         partial(PermissionSet._set_value, attr=attr),
+        #         partial(PermissionSet._del_value, attr=attr)))
+        return instance
 
     def check_consistency(self, attr: PermissionSetAttr, value: Any) -> None:
         if attr == PermissionSetAttr.DEFINED_BY_PROJECT:
@@ -457,3 +469,19 @@ class PermissionSet(Model):
         # TODO: use transaction for error handling
         self._con.update_query(sparql)
 
+if __name__ == '__main__':
+    context = Context(name="DEFAULT")
+    connection = Connection(server='http://localhost:7200',
+                                 repo="oldap",
+                                 userId="rosenth",
+                                 credentials="RioGrande",
+                                 context_name="DEFAULT")
+    ps = PermissionSet(con=connection,
+                       permissionSetId="test4_ps",
+                       label=LangString("test4@en", "test4@Perm@de"),
+                       comment=LangString("Testing a PermissionSet 4@en", "Test eines PermissionSet 4@Perm@de"),
+                       givesPermission=DataPermission.DATA_UPDATE,
+                       definedByProject='britnet')
+    ps2 = deepcopy(ps)
+    print(ps.definedByProject)
+    print(ps2.definedByProject)
