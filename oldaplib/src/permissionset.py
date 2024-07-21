@@ -6,6 +6,7 @@ from typing import Dict, Self, Any
 
 from pystrict import strict
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
 from oldaplib.src.enums.permissions import AdminPermission, DataPermission
@@ -87,14 +88,9 @@ class PermissionSet(Model):
                 partial(PermissionSet._del_value, attr=attr)))
         self._changeset = {}
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         instance = super().__deepcopy__(memo)
         instance.__permset_iri = deepcopy(self.__permset_iri)
-        # for attr in PermissionSetAttr:
-        #     setattr(instance, attr.value.fragment, property(
-        #         partial(PermissionSet._get_value, attr=attr),
-        #         partial(PermissionSet._set_value, attr=attr),
-        #         partial(PermissionSet._del_value, attr=attr)))
         return instance
 
     def check_consistency(self, attr: PermissionSetAttr, value: Any) -> None:
@@ -201,6 +197,8 @@ class PermissionSet(Model):
         self._creator = self._con.userIri
         self._modified = timestamp
         self._contributor = self._con.userIri
+        cache = CacheSingleton()
+        cache.set(self.__permset_iri, self)
 
     @classmethod
     def read(cls,
@@ -227,6 +225,11 @@ class PermissionSet(Model):
         else:
             project = Project.read(con, definedByProject)
         permset_iri = Iri.fromPrefixFragment(project.projectShortName, permissionSetId, validate=False)
+        cache = CacheSingleton()
+        tmp = cache.get(permset_iri)
+        if tmp is not None:
+            tmp._con = con
+            return tmp
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f"""
@@ -282,16 +285,20 @@ class PermissionSet(Model):
         if label:
             label.changeset_clear()
             label.set_notifier(cls.notifier, Xsd_QName(PermissionSetAttr.LABEL.value))
-        return cls(con=con,
-                   permissionSetId=permissionSetId,
-                   creator=creator,
-                   created=created,
-                   contributor=contributor,
-                   modified=modified,
-                   label=label,
-                   comment=comment,
-                   givesPermission=givesPermission,
-                   definedByProject=Iri(definedByProject, validate=False))
+        instance = cls(con=con,
+                       permissionSetId=permissionSetId,
+                       creator=creator,
+                       created=created,
+                       contributor=contributor,
+                       modified=modified,
+                       label=label,
+                       comment=comment,
+                       givesPermission=givesPermission,
+                       definedByProject=Iri(definedByProject, validate=False))
+        cache = CacheSingleton()
+        cache.set(instance.__permset_iri, instance)
+        return instance
+
 
     @staticmethod
     def search(con: IConnection, *,
@@ -447,6 +454,9 @@ class PermissionSet(Model):
             raise
         self._modified = timestamp
         self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
+        cache = CacheSingleton()
+        cache.set(self.__permset_iri, self)
+
 
     def delete(self) -> None:
         """
@@ -468,6 +478,9 @@ class PermissionSet(Model):
         """
         # TODO: use transaction for error handling
         self._con.update_query(sparql)
+        cache = CacheSingleton()
+        cache.delete(self.__permset_iri)
+
 
 if __name__ == '__main__':
     context = Context(name="DEFAULT")

@@ -182,7 +182,10 @@ class Project(Model):
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
 
     @classmethod
-    def read(cls, con: IConnection, projectIri_SName: IriOrNCName | Iri | Xsd_NCName | str) -> Self:
+    def read(cls,
+             con: IConnection,
+             projectIri_SName: IriOrNCName | Iri | Xsd_NCName | str,
+             ignore_cache: bool = False) -> Self:
         """
         Read the project from the triplestore and return an instance of the project
         :param con: A valid Connection object
@@ -213,10 +216,11 @@ class Project(Model):
         #         shortname = Xsd_NCName(projectIri_SName)
         cache = CacheSingleton()
         if projectIri is not None:
-            tmp = cache.get(projectIri)
-            if tmp is not None:
-                tmp._con = con
-                return tmp
+            if not ignore_cache:
+                tmp = cache.get(projectIri)
+                if tmp is not None:
+                    tmp._con = con
+                    return tmp
             query += f"""
                 SELECT ?prop ?val
                 FROM oldap:admin
@@ -225,10 +229,11 @@ class Project(Model):
                 }}
             """
         elif shortname is not None:
-            tmp = cache.get(shortname)
-            if tmp is not None:
-                tmp._con = con
-                return tmp
+            if not ignore_cache:
+                tmp = cache.get(shortname)
+                if tmp is not None:
+                    tmp._con = con
+                    return tmp
             query += f"""
                 SELECT ?proj ?prop ?val
                 FROM oldap:admin
@@ -284,18 +289,23 @@ class Project(Model):
             comment.changeset_clear()
             comment.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.COMMENT.value))
         context[projectShortName] = namespaceIri
-        return cls(con=con,
-                   creator=creator,
-                   created=created,
-                   contributor=contributor,
-                   modified=modified,
-                   projectIri=projectIri,
-                   projectShortName=projectShortName,
-                   label=label,
-                   namespaceIri=namespaceIri,
-                   comment=comment,
-                   projectStart=projectStart,
-                   projectEnd=projectEnd)
+        instance = cls(con=con,
+                       creator=creator,
+                       created=created,
+                       contributor=contributor,
+                       modified=modified,
+                       projectIri=projectIri,
+                       projectShortName=projectShortName,
+                       label=label,
+                       namespaceIri=namespaceIri,
+                       comment=comment,
+                       projectStart=projectStart,
+                       projectEnd=projectEnd)
+        cache = CacheSingleton()
+        cache.set(instance.projectIri, instance)
+        cache.set(instance.projectShortName, instance)
+        return instance
+
 
     @staticmethod
     def search(con: IConnection,

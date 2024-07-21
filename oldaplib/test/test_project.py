@@ -64,7 +64,7 @@ class Testproject(unittest.TestCase):
 
     # @unittest.skip('Work in progress')
     def test_project_read(self):
-        project = Project.read(con=self._connection, projectIri_SName=Iri("oldap:SystemProject"))
+        project = Project.read(con=self._connection, projectIri_SName=Iri("oldap:SystemProject"), ignore_cache=True)
         self.assertEqual(Xsd_NCName("oldap"), project.projectShortName)
         self.assertEqual(LangString(["System@en",
                                      "System@de",
@@ -74,16 +74,16 @@ class Testproject(unittest.TestCase):
         self.assertEqual(LangString(["Project for system administration@en"]), project.comment)
         self.assertEqual(Xsd_date("2024-01-01"), project.projectStart)
 
-        project = Project.read(con=self._connection, projectIri_SName='http://www.salsah.org/version/2.0/SwissBritNet')
+        project = Project.read(con=self._connection, projectIri_SName='http://www.salsah.org/version/2.0/SwissBritNet', ignore_cache=True)
         self.assertEqual(Xsd_NCName("britnet"), project.projectShortName)
 
-        project2 = Project.read(con=self._connection, projectIri_SName='britnet')
+        project2 = Project.read(con=self._connection, projectIri_SName='britnet', ignore_cache=True)
         self.assertEqual(Xsd_NCName("britnet"), project2.projectShortName)
         self.assertEqual(Iri('http://www.salsah.org/version/2.0/SwissBritNet'), project2.projectIri)
 
     def test_project_read_unknown(self):
         with self.assertRaises(OldapErrorNotFound):
-            project = Project.read(con=self._connection, projectIri_SName='http://www.gaga.org/version/2.0/GAGA')
+            project = Project.read(con=self._connection, projectIri_SName='http://www.gaga.org/version/2.0/GAGA', ignore_cache=True)
 
 
     # @unittest.skip('Work in progress')
@@ -114,7 +114,7 @@ class Testproject(unittest.TestCase):
         self.assertIsNotNone(project.contributor)
         del project
 
-        project2 = Project.read(con=self._connection, projectIri_SName=projectIri)
+        project2 = Project.read(con=self._connection, projectIri_SName=projectIri, ignore_cache=True)
         self.assertEqual("unittest", project2.projectShortName)
         self.assertEqual(LangString(["unittest@en", "unittest@de"]), project2.label)
         self.assertEqual(LangString(["For testing@en", "Für Tests@de"]), project2.comment)
@@ -130,7 +130,7 @@ class Testproject(unittest.TestCase):
                            projectEnd=None)
         project3.create()
         projectIri3 = project3.projectIri
-        project3 = Project.read(con=self._connection, projectIri_SName=projectIri3)
+        project3 = Project.read(con=self._connection, projectIri_SName=projectIri3, ignore_cache=True)
         self.assertEqual("unittest3", project3.projectShortName)
         self.assertEqual(LangString(["unittest3@en", "unittest3@de"]), project3.label)
         self.assertEqual(LangString(["For testing3@en", "Für Tests3@de"]), project3.comment)
@@ -142,7 +142,7 @@ class Testproject(unittest.TestCase):
                            label=LangString("For testing4@en"))
         project4.create()
         projectIri4 = project4.projectIri
-        project4 = Project.read(con=self._connection, projectIri_SName=projectIri4)
+        project4 = Project.read(con=self._connection, projectIri_SName=projectIri4, ignore_cache=True)
         self.assertEqual("unittest4", project4.projectShortName)
         self.assertIsNone(project4.comment)
         self.assertIsNotNone(project4.projectStart)
@@ -167,7 +167,7 @@ class Testproject(unittest.TestCase):
         projectIri = project6.projectIri
         del project6
 
-        project6 = Project.read(con=self._connection, projectIri_SName=projectIri)
+        project6 = Project.read(con=self._connection, projectIri_SName=projectIri, ignore_cache=True)
         self.assertEqual(project6.label, LangString("unittest\"; SELECT * WHERE {?s ?p ?o}"))
 
         with self.assertRaises(OldapErrorInconsistency) as ex:
@@ -207,7 +207,7 @@ class Testproject(unittest.TestCase):
         project.create()
         projectIri = project.projectIri
         del project
-        project = Project.read(con=self._connection, projectIri_SName=projectIri)
+        project = Project.read(con=self._connection, projectIri_SName=projectIri, ignore_cache=True)
         self.assertIsNone(project.comment)
 
         project = Project(con=self._connection,
@@ -220,13 +220,13 @@ class Testproject(unittest.TestCase):
         project.create()
         projectIri = project.projectIri
         del project
-        project = Project.read(con=self._connection, projectIri_SName=projectIri)
+        project = Project.read(con=self._connection, projectIri_SName=projectIri, ignore_cache=True)
         project.comment = LangString("Comment for unittest@en", "Kommentar für unittest@de")
         self.assertEqual(project.comment[Language.EN], "Comment for unittest")
         self.assertEqual(project.comment[Language.DE], "Kommentar für unittest")
         project.update()
         del project
-        project = Project.read(con=self._connection, projectIri_SName=projectIri)
+        project = Project.read(con=self._connection, projectIri_SName=projectIri, ignore_cache=True)
         self.assertEqual(project.comment[Language.EN], "Comment for unittest")
         self.assertEqual(project.comment[Language.DE], "Kommentar für unittest")
 
@@ -256,7 +256,7 @@ class Testproject(unittest.TestCase):
         projectIri = project.projectIri
         del project
 
-        project = Project.read(con=self._connection, projectIri_SName=projectIri)
+        project = Project.read(con=self._connection, projectIri_SName=projectIri, ignore_cache=True)
         project.comment[Language.FR] = "Pour les tests"
         project.comment[Language.DE] = "FÜR DAS TESTEN"
         project.label = LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"])
@@ -280,12 +280,12 @@ class Testproject(unittest.TestCase):
         projectIri = project.projectIri
         del project
 
-        project = Project.read(con=self._connection, projectIri_SName="updatetestB")
+        project = Project.read(con=self._connection, projectIri_SName="updatetestB", ignore_cache=True)
         project.comment[Language.IT] = "per i test"
         del project.comment[Language.EN]
         project.update()
 
-        project = Project.read(con=self._connection, projectIri_SName="updatetestB")
+        project = Project.read(con=self._connection, projectIri_SName="updatetestB", ignore_cache=True)
         self.assertEqual(project.comment, LangString(["Für Tests@de", "per i test@it"]))
 
     def test_project_start_end_consistency(self):
@@ -316,11 +316,11 @@ class Testproject(unittest.TestCase):
         project.create()
         projectIri = project.projectIri
 
-        project = Project.read(con=self._connection, projectIri_SName="deletetest")
+        project = Project.read(con=self._connection, projectIri_SName="deletetest", ignore_cache=True)
         project.delete()
 
         with self.assertRaises(OldapErrorNotFound) as ex:
-            project = Project.read(con=self._connection, projectIri_SName=projectIri)
+            project = Project.read(con=self._connection, projectIri_SName=projectIri, ignore_cache=True)
 
     def test_unauthorized_access(self):
         project = Project(con=self._unpriv,
@@ -343,7 +343,7 @@ class Testproject(unittest.TestCase):
                           )
         project.create()
 
-        project = Project.read(con=self._unpriv, projectIri_SName="unauthorized")
+        project = Project.read(con=self._unpriv, projectIri_SName="unauthorized", ignore_cache=True)
         project.projectEnd = Xsd_date(2025, 12, 31)
         with self.assertRaises(OldapErrorNoPermission) as ex:
             project.update()

@@ -481,19 +481,22 @@ class User(Model):
         if len(res) == 0:
             raise OldapErrorNotFound(f'User "{userId}" not found.')
         userdata = UserData.from_query(res)
-        return cls(con=con,
-                   creator=userdata.creator,
-                   created=userdata.created,
-                   contributor=userdata.contributor,
-                   modified=userdata.modified,
-                   userIri=userdata.userIri,
-                   userId=userdata.userId,
-                   familyName=userdata.familyName,
-                   givenName=userdata.givenName,
-                   credentials=userdata.credentials,
-                   isActive=userdata.isActive,
-                   inProject=userdata.inProject,
-                   hasPermissions=userdata.hasPermissions)
+        instance = cls(con=con,
+                       creator=userdata.creator,
+                       created=userdata.created,
+                       contributor=userdata.contributor,
+                       modified=userdata.modified,
+                       userIri=userdata.userIri,
+                       userId=userdata.userId,
+                       familyName=userdata.familyName,
+                       givenName=userdata.givenName,
+                       credentials=userdata.credentials,
+                       isActive=userdata.isActive,
+                       inProject=userdata.inProject,
+                       hasPermissions=userdata.hasPermissions)
+        cache = CacheSingleton()
+        cache.set(instance.userIri, instance)
+        return instance
 
     @staticmethod
     def search(*, con: IConnection,

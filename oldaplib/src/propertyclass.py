@@ -9,6 +9,7 @@ from functools import partial
 from pprint import pprint
 from typing import Callable, Self, Any
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
@@ -100,7 +101,7 @@ class PropertyClass(Model, Notify):
     _property_class_iri: Iri | None
     _internal: Iri | None
     _force_external: bool
-    _attributes: PropClassAttrContainer
+    #_attributes: PropClassAttrContainer
     _test_in_use: bool
     _notifier: Callable[[type], None] | None
 
@@ -209,6 +210,19 @@ class PropertyClass(Model, Notify):
         super()._change_setter(attr, value)
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, attr)
+
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
+        instance = super().__deepcopy__(memo)
+        instance._graph = deepcopy(self._graph, memo)
+        instance._project = deepcopy(self._project, memo)
+        instance._property_class_iri = deepcopy(self._property_class_iri, memo)
+        instance._internal = deepcopy(self._internal, memo)
+        instance._force_external = self._force_external
+        instance._test_in_use = self._test_in_use
+        instance._notifier = self._notifier
+        instance._data = deepcopy(self._data, memo)
+        return instance
+
 
     def __len__(self) -> int:
         return len(self._attributes)
@@ -499,6 +513,11 @@ class PropertyClass(Model, Notify):
     def read(cls, con: IConnection,
              project: Project | Iri | Xsd_NCName | str,
              property_class_iri: Iri) -> Self:
+        cache = CacheSingleton()
+        tmp = cache.get(property_class_iri)
+        if tmp is not None:
+            tmp._con = con
+            return tmp
         property = cls(con=con, project=project, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, property._graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
@@ -672,7 +691,6 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        self.set_creation_metadata(timestamp)
 
         try:
             self._con.transaction_start()
@@ -703,6 +721,10 @@ class PropertyClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f"Update of RDF didn't work!")
+        self.set_creation_metadata(timestamp)
+        cache = CacheSingleton()
+        cache.set(self._property_class_iri, self)
+
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         with open(filename, 'w') as f:
@@ -915,6 +937,10 @@ class PropertyClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} owl={modtime_owl} timestamp={timestamp}')
+        self._modified = timestamp
+        self._contributor = self._con.userIri
+        cache = CacheSingleton()
+        cache.set(self._property_class_iri, self)
 
     def delete_shacl(self, *,
                      indent: int = 0, indent_inc: int = 4) -> str:
@@ -1034,6 +1060,8 @@ class PropertyClass(Model, Notify):
             raise OldapErrorUpdateFailed("Deleting Property failed")
         else:
             self._con.transaction_commit()
+        cache = CacheSingleton()
+        cache.delete(self._property_class_iri)
 
 
 if __name__ == '__main__':

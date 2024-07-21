@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from time import sleep
 
@@ -80,6 +81,39 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropClassAttr.SUBPROPERTY_OF), Iri('test:comment'))
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
+
+    def test_propertyclass_deepcopy(self):
+        p = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Iri('test:deepcopy'),
+                          subPropertyOf=Iri('test:comment'),
+                          datatype=XsdDatatypes.string,
+                          inSet=XsdSet(Xsd_string("AAA"), Xsd_string("BBB"), Xsd_string("CCC")),
+                          name=LangString(["Deepcopy@en", "Tiefekopie@de"]),
+                          description=LangString("A test for deepcopy...@"))
+        p.force_external()
+        p2 = deepcopy(p)
+        p2.set_notifier(lambda x: x, Iri('test:gaga'))
+        self.assertEqual(p._project.projectIri, p2._project.projectIri)
+        self.assertFalse(p._project.projectIri is p2._project.projectIri)
+        self.assertEqual(p._project.projectShortName, p2._project.projectShortName)
+        self.assertFalse(p._project.projectShortName is p2._project.projectShortName)
+        self.assertFalse(p._project is p2._project)
+        self.assertEqual(p._graph, p2._graph)
+        self.assertFalse(p._graph is p2._graph)
+        self.assertEqual(p._property_class_iri, p2._property_class_iri)
+        self.assertFalse(p._property_class_iri is p2._property_class_iri)
+        self.assertEqual(p._internal, p2._internal)
+        self.assertIsNone(p2._internal)
+        self.assertEqual(p._force_external, p2._force_external)
+        self.assertIsNone(p2.notify(), Iri('test:gaga'))
+        self.assertEqual(p.datatype, p2.datatype)
+        self.assertEqual(p.name, p2.name)
+        self.assertFalse(p.name is p2.name)
+        self.assertEqual(p.description, p2.description)
+        self.assertFalse(p.description is p2.description)
+        self.assertEqual(p.inSet, p2.inSet)
+        self.assertFalse(p.inSet is p2.inSet)
 
     def test_propertyclass_tonode_constructor(self):
         p2 = PropertyClass(con=self._connection,
