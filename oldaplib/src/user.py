@@ -455,7 +455,10 @@ class User(Model):
 
 
     @classmethod
-    def read(cls, con: IConnection, userId: IriOrNCName | str) -> Self:
+    def read(cls,
+             con: IConnection,
+             userId: IriOrNCName | str,
+             ignore_cache: bool = False) -> Self:
         """
         Reads a User instance from the data in the triple store
         :param con: IConnection instance
@@ -469,11 +472,12 @@ class User(Model):
             userId = IriOrNCName(userId)
         user_id, user_iri = userId.value()
         if user_iri is not None:
-            cache = CacheSingleton()
-            tmp = cache.get(user_iri)
-            if tmp is not None:
-                tmp._con = con
-                return tmp
+            if not ignore_cache:
+                cache = CacheSingleton()
+                tmp = cache.get(user_iri)
+                if tmp is not None:
+                    tmp._con = con
+                    return tmp
 
         context = Context(name=con.context_name)
         jsonobj = con.query(UserData.sparql_query(context, userId))
