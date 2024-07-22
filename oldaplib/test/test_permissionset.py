@@ -109,7 +109,7 @@ class TestPermissionSet(unittest.TestCase):
         self.assertIsNotNone(ps.modified)
         self.assertIsNotNone(ps.contributor)
         del ps
-        ps = PermissionSet.read(self._connection, "test3_ps", Iri('oldap:SystemProject'))
+        ps = PermissionSet.read(self._connection, "test3_ps", Iri('oldap:SystemProject'), ignore_cache=True)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertEqual(ps.label, LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"))
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
@@ -123,7 +123,7 @@ class TestPermissionSet(unittest.TestCase):
                            givesPermission=DataPermission.DATA_UPDATE,
                            definedByProject='britnet')
         ps.create()
-        ps = PermissionSet.read(self._connection, "test4_ps", Iri('http://www.salsah.org/version/2.0/SwissBritNet'))
+        ps = PermissionSet.read(self._connection, "test4_ps", Iri('http://www.salsah.org/version/2.0/SwissBritNet'), ignore_cache=True)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertEqual(ps.label, LangString("test4@en", "test4@Perm@de"))
 
@@ -139,16 +139,31 @@ class TestPermissionSet(unittest.TestCase):
 
     # @unittest.skip('Work in progress')
     def test_read_permission_A(self):
-        ps = PermissionSet.read(self._connection, 'GenericView', 'oldap:SystemProject')
+        ps = PermissionSet.read(self._connection, 'GenericView', 'oldap:SystemProject', ignore_cache=True)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_VIEW)  # add assertion here
         self.assertEqual(ps.label, LangString("GenericView@en", "GenericView@de", "GenericView@fr", "GenericView@it"))
         self.assertEqual(ps.definedByProject, Iri('oldap:SystemProject'))
 
     def test_read_permission_B(self):
-        ps = PermissionSet.read(self._connection, 'HyperHamletMember', 'oldap:HyperHamlet')
+        ps = PermissionSet.read(self._connection, 'HyperHamletMember', 'oldap:HyperHamlet', ignore_cache=True)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)  # add assertion here
         self.assertEqual(ps.label, LangString("HyHaUpdate@en", "HyHaUpdate@de", "HyHaUpdate@fr", "HyHaUpdate@it"))
         self.assertEqual(ps.definedByProject, Iri('oldap:HyperHamlet'))
+
+    def test_read_permission_with_cache(self):
+        ps = PermissionSet.read(self._connection, 'HyperHamletMember', 'oldap:HyperHamlet', ignore_cache=True)
+        ps2 = PermissionSet.read(self._connection, 'HyperHamletMember', 'oldap:HyperHamlet')
+        self.assertEqual(ps2.givesPermission, DataPermission.DATA_UPDATE)
+        self.assertEqual(ps.givesPermission, ps2.givesPermission)
+
+        self.assertEqual(ps2.label, LangString("HyHaUpdate@en", "HyHaUpdate@de", "HyHaUpdate@fr", "HyHaUpdate@it"))
+        self.assertEqual(ps.label, ps2.label)
+        self.assertFalse(ps.label is ps2.label)
+
+        self.assertEqual(ps2.definedByProject, Iri('oldap:HyperHamlet'))
+        self.assertEqual(ps.definedByProject, ps2.definedByProject)
+        self.assertFalse(ps.definedByProject is ps2.definedByProject)
+
 
     def test_create_permission(self):
         ps = PermissionSet(con=self._connection,
@@ -163,7 +178,7 @@ class TestPermissionSet(unittest.TestCase):
         self.assertIsNotNone(ps.modified)
         self.assertIsNotNone(ps.contributor)
         del ps
-        ps = PermissionSet.read(self._connection, "testPerm", 'oldap:SystemProject')
+        ps = PermissionSet.read(self._connection, "testPerm", 'oldap:SystemProject', ignore_cache=True)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertEqual(ps.label, LangString("testPerm@en", "test@Perm@de"))
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
@@ -182,7 +197,7 @@ class TestPermissionSet(unittest.TestCase):
         self.assertIsNotNone(ps.modified)
         self.assertIsNotNone(ps.contributor)
         del ps
-        ps = PermissionSet.read(self._connection, "gagaPerm", 'oldap:SystemProject')
+        ps = PermissionSet.read(self._connection, "gagaPerm", 'oldap:SystemProject', ignore_cache=True)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertEqual(ps.label, LangString("\";SELECT * { password ?p ?o . }@en", "test@Perm@de"))
         self.assertEqual(ps.comment, LangString("Testing a PermissionSet@en", "Test eines PermissionSet@Perm@de"))
@@ -195,7 +210,7 @@ class TestPermissionSet(unittest.TestCase):
                            definedByProject=Iri('oldap:SystemProject'))
         ps.create()
         del ps
-        ps = PermissionSet.read(self._connection, "gagaPerm2", 'oldap:SystemProject')
+        ps = PermissionSet.read(self._connection, "gagaPerm2", 'oldap:SystemProject', ignore_cache=True)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)
         self.assertIsNone(ps.label)
         self.assertIsNone(ps.comment)
@@ -266,7 +281,7 @@ class TestPermissionSet(unittest.TestCase):
         ps.create()
         psId = ps.permissionSetId
         del ps
-        ps = PermissionSet.read(self._connection, psId, Iri('oldap:SystemProject'))
+        ps = PermissionSet.read(self._connection, psId, Iri('oldap:SystemProject'), ignore_cache=True)
         ps.label[Language.FR] = "testeModificationPerm"
         ps.givesPermission = DataPermission.DATA_VIEW
         ps.update()
@@ -278,12 +293,12 @@ class TestPermissionSet(unittest.TestCase):
         self.assertIsNone(ps.comment)
         self.assertIsNone(ps.get(PermissionSetAttr.COMMENT))
 
-        ps = PermissionSet.read(self._connection, psId, Iri('oldap:SystemProject'))
+        ps = PermissionSet.read(self._connection, psId, Iri('oldap:SystemProject'), ignore_cache=True)
         ps.comment = LangString("gagagaga@en")
         with self.assertRaises(OldapErrorImmutable):
             ps[PermissionSetAttr.DEFINED_BY_PROJECT] = Iri('oldap:HyperHamlet')
 
-        ps = PermissionSet.read(self._unpriv, psId, Iri('oldap:SystemProject'))
+        ps = PermissionSet.read(self._unpriv, psId, Iri('oldap:SystemProject'), ignore_cache=True)
         ps.comment = LangString("gagagaga@fr")
         with self.assertRaises(OldapErrorNoPermission):
             ps.update()
@@ -298,7 +313,7 @@ class TestPermissionSet(unittest.TestCase):
         ps.create()
         psId = ps.permissionSetId
         del ps
-        ps = PermissionSet.read(self._connection, psId, Iri('oldap:SystemProject'))
+        ps = PermissionSet.read(self._connection, psId, Iri('oldap:SystemProject'), ignore_cache=True)
 
         ps.label[Language.IT] = "TEST_ADD_DEL"
         del ps.label[Language.EN]
@@ -313,11 +328,11 @@ class TestPermissionSet(unittest.TestCase):
                            definedByProject=Iri('oldap:HyperHamlet'))
         ps.create()
         del ps
-        ps = PermissionSet.read(self._connection, "testDeletePerm", Iri('oldap:HyperHamlet'))
+        ps = PermissionSet.read(self._connection, "testDeletePerm", Iri('oldap:HyperHamlet'), ignore_cache=True)
         ps.delete()
 
         with self.assertRaises(OldapErrorNotFound) as ex:
-            project = ps.read(self._connection, "testDeletePerm", Iri('oldap:HyperHamlet'))
+            project = ps.read(self._connection, "testDeletePerm", Iri('oldap:HyperHamlet'), ignore_cache=True)
 
 
 if __name__ == '__main__':
