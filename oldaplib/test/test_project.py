@@ -81,6 +81,13 @@ class Testproject(unittest.TestCase):
         self.assertEqual(Xsd_NCName("britnet"), project2.projectShortName)
         self.assertEqual(Iri('http://www.salsah.org/version/2.0/SwissBritNet'), project2.projectIri)
 
+    def test_project_read_from_cache(self):
+        project = Project.read(con=self._connection, projectIri_SName='britnet', ignore_cache=True)
+        project2 = Project.read(con=self._connection, projectIri_SName='britnet')
+        self.assertFalse(project is project2)
+        self.assertEqual(project.projectShortName, project2.projectShortName)
+        self.assertFalse(project.projectShortName is project2.projectShortName)
+
     def test_project_read_unknown(self):
         with self.assertRaises(OldapErrorNotFound):
             project = Project.read(con=self._connection, projectIri_SName='http://www.gaga.org/version/2.0/GAGA', ignore_cache=True)

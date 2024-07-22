@@ -204,7 +204,8 @@ class PermissionSet(Model):
     def read(cls,
              con: IConnection,
              permissionSetId: Xsd_NCName | str,
-             definedByProject: Project | Iri | Xsd_NCName | str) -> Self:
+             definedByProject: Project | Iri | Xsd_NCName | str,
+             ignore_cache: bool = False) -> Self:
         """
         Reads a given permission set. The permission set is defined by its ID (which must be unique within
         one project) and the project IRI.
@@ -225,11 +226,12 @@ class PermissionSet(Model):
         else:
             project = Project.read(con, definedByProject)
         permset_iri = Iri.fromPrefixFragment(project.projectShortName, permissionSetId, validate=False)
-        cache = CacheSingleton()
-        tmp = cache.get(permset_iri)
-        if tmp is not None:
-            tmp._con = con
-            return tmp
+        if not ignore_cache:
+            cache = CacheSingleton()
+            tmp = cache.get(permset_iri)
+            if tmp is not None:
+                tmp._con = con
+                return tmp
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f"""
