@@ -54,7 +54,8 @@ class ObservableSet(Notify):
         memo[id(self)] = new_copy
         #new_copy.__data = deepcopy(self.__data, memo)
         new_copy.__setdata = set(self.__setdata)
-        new_copy._notifier = deepcopy(self._notifier, memo)
+        #new_copy._notifier = deepcopy(self._notifier, memo)
+        new_copy._notifier = self._notifier
         new_copy._notify_data = deepcopy(self._notify_data, memo)
         return new_copy
 
@@ -114,9 +115,9 @@ class ObservableSet(Notify):
 
     def __and__(self, other: Iterable) -> Self:
         if isinstance(other, ObservableSet):
-            return ObservableSet(self.__setdata.__and__(other.__setdata), self._notifier, self.__data)
+            return ObservableSet(self.__setdata.__and__(other.__setdata), self._notifier, self._notify_data)
         elif isinstance(other, set):
-            return ObservableSet(self.__setdata.__and__(other), self._notifier, self.__data)
+            return ObservableSet(self.__setdata.__and__(other), self._notifier, self._notify_data)
         elif isinstance(other, Iterable):
             return ObservableSet(self.__setdata.__and__(set(other)), self._notifier, self._notify_data)
         else:
@@ -241,7 +242,7 @@ class ObservableSet(Notify):
         self.__old_value = None
 
     def copy(self) -> Self:
-        return ObservableSet(super().copy(), on_change=self._notifier, notify_data=self._notify_data)
+        return ObservableSet(self.__setdata.copy(), notifier=self._notifier, notify_data=self._notify_data)
 
     @property
     def toRdf(self) -> str:
