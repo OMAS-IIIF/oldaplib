@@ -98,7 +98,7 @@ class ObservableSet(Notify):
         pass
 
     def __ior__(self, other: Iterable) -> Self:
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         if isinstance(other, ObservableSet):
             self.__setdata.__ior__(other.__setdata)
         elif isinstance(other, set):
@@ -108,7 +108,7 @@ class ObservableSet(Notify):
         else:
             raise OldapErrorNotImplemented(f'Set.i__or__() not implemented for {type(other).__name__}')
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
         return self
 
@@ -123,7 +123,7 @@ class ObservableSet(Notify):
             raise OldapErrorNotImplemented(f'Set.__and__() not implemented for {type(other).__name__}')
 
     def __iand__(self, other: Iterable) -> Self:
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         if isinstance(other, ObservableSet):
             self.__setdata.__iand__(other.__setdata)
         elif isinstance(other, set):
@@ -133,7 +133,7 @@ class ObservableSet(Notify):
         else:
             raise OldapErrorNotImplemented(f'Set.__iand__() not implemented for {type(other).__name__}')
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
         return self
 
@@ -151,7 +151,7 @@ class ObservableSet(Notify):
             raise OldapErrorNotImplemented(f'Set.__sub__() not implemented for {type(other).__name__}')
 
     def __isub__(self, other: Iterable) -> Self:
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         if isinstance(other, ObservableSet):
             self.__setdata.__isub__(other.__setdata)
         elif isinstance(other, set):
@@ -161,76 +161,72 @@ class ObservableSet(Notify):
         else:
             raise OldapErrorNotImplemented(f'Set.__isub__() not implemented for {type(other).__name__}')
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
         return self
 
     def update(self, items: Iterable):
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         self.__setdata.update(items)
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
 
     def intersection_update(self, items: Iterable):
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         self.__setdata.intersection_update(items)
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
 
     def difference_update(self, items: Iterable):
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         self.__setdata.difference_update(items)
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
 
     def symmetric_difference_update(self, items: Iterable):
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         self.__setdata.symmetric_difference_update(items)
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
 
-    def add(self, item: Any, printit: bool = False) -> None:
-        if printit:
-            print('ADD:', item)
-        #tmp_copy = deepcopy(self.__setdata)
+    def add(self, item: Any) -> None:
         tmp_copy = deepcopy(self)
         self.__setdata.add(item)
         if not self.__old_value:
-            #self.__old_value = ObservableSet(tmp_copy)
             self.__old_value = tmp_copy
         self.notify()
 
     def remove(self, item: Any) -> None:
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         self.__setdata.remove(item)
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
 
     def discard(self, item: Any):
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         self.__setdata.discard(item)
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
 
     def pop(self):
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         item = self.__setdata.pop()
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
         return item
 
     def clear(self) -> None:
-        tmp_copy = deepcopy(self.__setdata)
+        tmp_copy = deepcopy(self)
         self.__setdata.clear()
         if not self.__old_value:
-            self.__old_value = ObservableSet(tmp_copy)
+            self.__old_value = tmp_copy
         self.notify()
 
     @property
@@ -262,5 +258,5 @@ class ObservableSet(Notify):
         return self.__setdata
 
     def clear_changeset(self):
-        old_value = None
+        self.__old_value = None
 

@@ -652,10 +652,21 @@ class User(Model):
             sparql_list.append(sparql)
 
         if UserAttr.HAS_PERMISSIONS in self._changeset:
-            new_set = self._attributes[UserAttr.HAS_PERMISSIONS]
-            old_set = self._changeset[UserAttr.HAS_PERMISSIONS].old_value
-            added = new_set - old_set
-            removed = old_set - new_set
+            added = set()
+            removed = set()
+            if self._changeset[UserAttr.HAS_PERMISSIONS].action == Action.CREATE:
+                added = self._attributes[UserAttr.HAS_PERMISSIONS]
+            elif self._changeset[UserAttr.HAS_PERMISSIONS].action == Action.DELETE:
+                removed = self._changeset[UserAttr.HAS_PERMISSIONS].old_value
+            elif self._changeset[UserAttr.HAS_PERMISSIONS].action == Action.REPLACE:
+                added = self._attributes[UserAttr.HAS_PERMISSIONS]
+                removed = self._changeset[UserAttr.HAS_PERMISSIONS].old_value
+            elif self._changeset[UserAttr.HAS_PERMISSIONS].action == Action.MODIFY:
+                A = self._attributes[UserAttr.HAS_PERMISSIONS]
+                B = self._attributes[UserAttr.HAS_PERMISSIONS].old_value
+                added = A - B
+                removed = B - A
+
             sparql = f'{blank:{indent * indent_inc}}# User field "hasPermission"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
             if removed:
@@ -724,20 +735,34 @@ class User(Model):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
 
-
             if self._changeset[UserAttr.IN_PROJECT].action == Action.MODIFY:
                 in_project_cs = self._attributes[UserAttr.IN_PROJECT].changeset
                 adding = {}
                 deleting = {}
+                delete_completely = set()
                 for proj_iri in in_project_cs.keys():
-                    A = self._attributes[UserAttr.IN_PROJECT][proj_iri] if self._attributes[UserAttr.IN_PROJECT][proj_iri] else ObservableSet()
-                    B = self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value if self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value else ObservableSet()
-                    add_set = A - B
-                    del_set = B - A
-                    if add_set:
-                        adding[proj_iri] = add_set
-                    if del_set:
-                        deleting[proj_iri] = B - A
+                    if in_project_cs[proj_iri].action == Action.CREATE:
+                        adding[proj_iri] = self._attributes[UserAttr.IN_PROJECT][proj_iri]
+                    elif in_project_cs[proj_iri].action == Action.DELETE:
+                        #deleting[proj_iri] = self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value
+                        # we have to completely delete the reference to the project!
+                        deleting[proj_iri] = in_project_cs[proj_iri].old_value
+                        delete_completely.add(proj_iri)
+                    elif in_project_cs[proj_iri].action == Action.REPLACE:
+                        adding[proj_iri] = self._attributes[UserAttr.IN_PROJECT].get(proj_iri) or set()
+                        if self._attributes[UserAttr.IN_PROJECT].get(proj_iri):
+                            deleting[proj_iri] = self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value
+                        else:
+                            deleting[proj_iri] = in_project_cs[proj_iri].old_value
+                    elif in_project_cs[proj_iri].action == Action.MODIFY:
+                        A = self._attributes[UserAttr.IN_PROJECT][proj_iri] if self._attributes[UserAttr.IN_PROJECT].get(proj_iri) else ObservableSet()
+                        B = self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value if self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value else ObservableSet()
+                        add_set = A - B
+                        del_set = B - A
+                        if add_set:
+                            adding[proj_iri] = add_set
+                        if del_set:
+                            deleting[proj_iri] = B - A
 
                 if adding:
                     sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
@@ -759,6 +784,15 @@ class User(Model):
                     sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                     sparql_list.append(sparql)
+
+                if delete_completely:
+                    for proj_iri in delete_completely:
+                        sparql = f"{blank:{indent * indent_inc}}DELETE DATA {{\n"
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} oldap:inProject {proj_iri.toRdf} .\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                        sparql += f'{blank:{indent * indent_inc}}}}\n'
+                        sparql_list.append(sparql)
 
         sparql = context.sparql_context
         sparql += " ;\n".join(sparql_list)

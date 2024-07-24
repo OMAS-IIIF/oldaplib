@@ -422,6 +422,77 @@ class TestUser(unittest.TestCase):
             user.delete()
         self.assertEqual('Actor has no ADMIN_USERS permission for project oldap:HyperHamlet', str(ex.exception))
 
+    def test_update_user_permission_add(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
+                    userId=Xsd_NCName("ampere"),
+                    familyName="Ampère",
+                    givenName="André-Marie",
+                    credentials="Current",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}})
+        user.create()
+        user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
+        user.hasPermissions = {Iri('oldap:GenericRestricted'), Iri('oldap:GenericView')}
+        user.update()
+        user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
+        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericRestricted'), Iri('oldap:GenericView')})
+
+    def test_update_user_permission_delete(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
+                    userId=Xsd_NCName("ampere"),
+                    familyName="Ampère",
+                    givenName="André-Marie",
+                    credentials="Current",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
+        del user.hasPermissions
+        user.update()
+        user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
+        self.assertIsNone(user.hasPermissions)
+
+    def test_update_user_permissions_update_A(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
+                    userId=Xsd_NCName("faraday"),
+                    familyName="Faraday",
+                    givenName="Michael",
+                    credentials="electromagnetism",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="faraday", ignore_cache=True)
+        user.hasPermissions.add(Iri('oldap:GenericRestricted'))
+        user.update()
+        user = User.read(con=self._connection, userId="faraday", ignore_cache=True)
+        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericRestricted'), Iri('oldap:GenericView')})
+
+    def test_update_user_permissions_update_B(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
+                    userId=Xsd_NCName("fourier"),
+                    familyName="Fourier",
+                    givenName="Joseph",
+                    credentials="FrequencyAnalysis",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Iri('oldap:GenericRestricted'), Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="fourier", ignore_cache=True)
+        user.hasPermissions.remove(Iri('oldap:GenericRestricted'))
+        user.update()
+        user = User.read(con=self._connection, userId="fourier", ignore_cache=True)
+        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericView')})
+
     #  #unittest.skip('Work in progress')
     def test_update_user(self):
         user = User(con=self._connection,
@@ -439,6 +510,7 @@ class TestUser(unittest.TestCase):
         user2.userId = "aedison"
         user2.familyName = "Edison et al."
         user2.givenName = "Thomas"
+
         user2.hasPermissions.add(Iri('oldap:GenericRestricted'))
         user2.hasPermissions.add(Iri('hyha:HyperHamletMember'))
         user2.hasPermissions.remove(Iri('oldap:GenericView'))
@@ -452,6 +524,12 @@ class TestUser(unittest.TestCase):
         with self.assertRaises(OldapErrorValue) as ex:
             user3.update()
             self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
+
+        self.assertEqual(user3.inProject[Iri('oldap:HyperHamlet')], {AdminPermission.ADMIN_RESOURCES,
+                                                                     AdminPermission.ADMIN_CREATE,
+                                                                     AdminPermission.ADMIN_LISTS})
+        self.assertEqual(user3.inProject[Iri('oldap:SystemProject')], {AdminPermission.ADMIN_USERS,
+                                                                       AdminPermission.ADMIN_RESOURCES})
         self.assertEqual(InProjectClass({Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES,
                                                                     AdminPermission.ADMIN_CREATE,
                                                                     AdminPermission.ADMIN_LISTS},
@@ -526,12 +604,30 @@ class TestUser(unittest.TestCase):
                     hasPermissions={Iri('oldap:GenericView')})
         user.create()
         user = User.read(con=self._connection, userId="volta", ignore_cache=True)
-        gaga = user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')]
-        gaga.add(AdminPermission.ADMIN_LISTS, True)
+        user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')].add(AdminPermission.ADMIN_LISTS)
         user.update()
         user = User.read(con=self._connection, userId="volta", ignore_cache=True)
         self.assertEqual(user.inProject[Iri('oldap:HyperHamlet')], {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES})
         self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS})
+
+    def test_update_user_in_project_modify_C(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2067"),
+                    userId=Xsd_NCName("curie"),
+                    familyName="Curie",
+                    givenName="Marie",
+                    credentials="Radiation",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                          AdminPermission.ADMIN_RESOURCES},
+                               Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_MODEL}},
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="curie", ignore_cache=True)
+        user.inProject[Iri('oldap:HyperHamlet')].discard(AdminPermission.ADMIN_RESOURCES)
+        user.update()
+        user = User.read(con=self._connection, userId="curie", ignore_cache=True)
+        self.assertEqual(user.inProject[Iri('oldap:HyperHamlet')], {AdminPermission.ADMIN_USERS})
+        self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {AdminPermission.ADMIN_MODEL})
 
     def test_update_user_permissions_C(self):
         user = User(con=self._connection,
@@ -545,7 +641,7 @@ class TestUser(unittest.TestCase):
                     hasPermissions={Iri('oldap:GenericView')})
         user.create()
         user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
-        user.inProject[Iri('oldap:HyperHamlet')].add(AdminPermission.ADMIN_CREATE, True)
+        user.inProject[Iri('oldap:HyperHamlet')].add(AdminPermission.ADMIN_CREATE)
         user.update()
         user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
         self.assertEqual(user.inProject[Iri('oldap:HyperHamlet')], {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE})
@@ -678,7 +774,7 @@ class TestUser(unittest.TestCase):
             }
         ))
 
-    #  #unittest.skip('Work in progress')
+    #@unittest.skip('Work in progress')
     def test_update_user_rm_from_project(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-2553-8814"),
@@ -698,19 +794,15 @@ class TestUser(unittest.TestCase):
                     },
                     hasPermissions={Iri('oldap:GenericView')})
         user.create()
-        del user
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
         user.inProject[Iri('oldap:HyperHamlet')] = None
         user.update()
-        del user
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
-        self.assertEqual(user.inProject, InProjectClass(
-            {
-                Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+        self.assertEqual(user.inProject.get(Iri('oldap:HyperHamlet')), {})
+        self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {
                     AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
-                }
             }
-        ))
+        )
 
     #  #unittest.skip('Work in progress')
     def test_update_user_del_from_project(self):
