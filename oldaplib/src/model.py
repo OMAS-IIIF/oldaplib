@@ -1,32 +1,19 @@
 from copy import deepcopy
-from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
-from pprint import pprint
-from typing import List, Set, Dict, Tuple, Optional, Any, Union, Self
-
-from pystrict import strict
+from typing import Set, Dict, Any, Self
 
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.attributeclass import AttributeClass
+from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.xsd.iri import Iri
-from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorType, OldapErrorImmutable, OldapErrorValue
 from oldaplib.src.helpers.query_processor import QueryProcessor
-from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
 
-@dataclass
-class AttributeChange:
-    """
-    A dataclass used to represent the changes made to a field.
-    """
-    old_value: Any
-    action: Action
 
 #@strict
 class Model:
@@ -82,6 +69,9 @@ class Model:
         return value
 
     def cleanup_setter(self, attr: AttributeClass, value: Any) -> None:
+        pass
+
+    def notifier(self, attr: AttributeClass, value: Any) -> None:
         pass
 
     def __str__(self) -> str:
@@ -181,6 +171,9 @@ class Model:
         Clear the changeset. This method is only for internal use or debugging...
         :return: None
         """
+        for item in self._attributes:
+            if hasattr(self._attributes[item], 'clear_changeset'):
+                self._attributes[item].clear_changeset()
         self._changeset = {}
 
     @property

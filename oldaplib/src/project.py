@@ -21,7 +21,8 @@ from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorAlreadyExists,
     OldapErrorUpdateFailed, OldapErrorNotFound, OldapErrorInconsistency
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model, AttributeChange
+from oldaplib.src.model import Model
+from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
 

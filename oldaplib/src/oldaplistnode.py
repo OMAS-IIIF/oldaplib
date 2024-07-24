@@ -13,7 +13,8 @@ from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorImmutable
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model, AttributeChange
+from oldaplib.src.model import Model
+from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri

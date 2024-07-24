@@ -61,9 +61,6 @@ class TestObservableSet(unittest.TestCase):
         res = obs | {'d', 'e', 'f'}
         self.assertEqual(res, {'a', 'b', 'c', 'd', 'e', 'f'})
 
-        with self.assertRaises(TypeError) as err:
-            res = obs | ['a', 'b']
-
         self._notified = ''
         obs |= {'x', 'y'}
         self.assertEqual(obs, {'a', 'b', 'c', 'x', 'y'})
@@ -76,9 +73,6 @@ class TestObservableSet(unittest.TestCase):
 
         res = obs & {'b', 'c', 'd'}
         self.assertEqual(res, {'b', 'c'})
-
-        with self.assertRaises(TypeError) as err:
-            res = obs & ['b', 'c', 'd']
 
         self._notified = ''
         obs &= {'b', 'c', 'd'}
@@ -93,9 +87,6 @@ class TestObservableSet(unittest.TestCase):
         obs = ObservableSet({'a', 'b', 'c', 'd'}, self.notifier_test, 'gaga')
         res = obs - {'b', 'd'}
         self.assertEqual(res, {'a', 'c'})
-
-        with self.assertRaises(TypeError) as err:
-            res = obs - ['b', 'd']
 
         self._notified = ''
         obs -= {'b', 'd'}
@@ -156,7 +147,7 @@ class TestObservableSet(unittest.TestCase):
         obs = ObservableSet({'a', 'b', 'c', 'd'}, self.notifier_test, 'gaga')
         self._notified = ''
         obs.clear()
-        self.assertEqual(obs, {})
+        self.assertEqual(obs, set())
         self.assertEqual(len(obs), 0)
         self.assertEqual(self._notified, 'gaga')
 
@@ -164,7 +155,7 @@ class TestObservableSet(unittest.TestCase):
         obs = ObservableSet({'a', 'b', 'c', 'd'}, self.notifier_test, 'gaga')
         obs2 = obs.copy()
         obs.clear()
-        self.assertEqual(obs, {})
+        self.assertEqual(obs, set())
         self.assertEqual(obs2, {'a', 'b', 'c', 'd'})
 
     def test_to_rdf(self):

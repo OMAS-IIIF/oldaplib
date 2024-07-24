@@ -80,3 +80,7 @@ class OldapErrorIndex(OldapError):
 class OldapErrorInUse(OldapError):
     pass
 
+class OldapErrorNotImplemented(OldapError):
+    pass
+
+

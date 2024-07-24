@@ -35,7 +35,8 @@ from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.helpers.tools import RdfModifyItem, RdfModifyProp
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model, AttributeChange
+from oldaplib.src.model import Model
+from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
 PropTypes = Iri | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | XsdSet | Numeric | None
@@ -220,7 +221,7 @@ class PropertyClass(Model, Notify):
         instance._force_external = self._force_external
         instance._test_in_use = self._test_in_use
         instance._notifier = self._notifier
-        instance._data = deepcopy(self._data, memo)
+        instance._data = deepcopy(self._notify_data, memo)
         return instance
 
 

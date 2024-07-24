@@ -15,7 +15,7 @@ class Notify:
     e.g. the change of value
     """
     _notifier: Callable[[Enum | Iri], None]
-    _data: Enum
+    _notify_data: Enum | Iri | None
 
     def __init__(self,
                  notifier: Callable[[Enum | Iri], None] | None = None,
@@ -26,11 +26,11 @@ class Notify:
         :param data: Arbitrary data that will be given to the callback
         """
         self._notifier = notifier
-        self._data = data
+        self._notify_data = data
 
     def set_notifier(self,
                      notifier: Callable[[Enum | Iri], None],
-                     data: Enum | Iri |None = None) -> None:
+                     data: Enum | Iri | None = None) -> None:
         """
         Sets the notifier callback function and the data it should return...
         :param notifier: A callable that is to be called by the subclass when an item changes
@@ -38,7 +38,7 @@ class Notify:
         :return: None
         """
         self._notifier = notifier
-        self._data = data
+        self._notify_data = data
 
     def notify(self) -> None:
         """
@@ -46,5 +46,5 @@ class Notify:
         :return: None
         """
         if self._notifier is not None:
-            self._notifier(self._data)
+            self._notifier(self._notify_data)
 

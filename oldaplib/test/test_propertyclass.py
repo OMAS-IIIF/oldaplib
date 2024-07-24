@@ -16,7 +16,7 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue
 from oldaplib.src.helpers.query_processor import QueryProcessor
-from oldaplib.src.model import AttributeChange
+from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType

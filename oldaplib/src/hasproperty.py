@@ -6,7 +6,8 @@ from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model, AttributeChange
+from oldaplib.src.model import Model
+from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.propertyclass import PropertyClass, HasPropertyData
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_decimal import Xsd_decimal

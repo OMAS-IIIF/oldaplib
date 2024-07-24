@@ -28,7 +28,8 @@ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model, AttributeChange
+from oldaplib.src.model import Model
+from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.propertyclass import PropertyClass, Attributes, HasPropertyData
 from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from oldaplib.src.xsd.xsd_string import Xsd_string
