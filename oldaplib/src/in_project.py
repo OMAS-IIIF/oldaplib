@@ -136,6 +136,12 @@ class InProjectClass(Notify):
     def __iter__(self) -> Iterator[Iri]:
         return iter(self.__setdata.items())
 
+    def __contains__(self, key: Iri | str) -> bool:
+        if not isinstance(key, Iri):
+            key = Iri(key)
+        return key in self.__setdata
+
+
     def __str__(self) -> str:
         s = ''
         for k, v in self.__setdata.items():
