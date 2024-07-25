@@ -221,7 +221,7 @@ class PropertyClass(Model, Notify):
         instance._force_external = self._force_external
         instance._test_in_use = self._test_in_use
         instance._notifier = self._notifier
-        instance._data = deepcopy(self._notify_data, memo)
+        instance._notify_data = deepcopy(self._notify_data, memo)
         return instance
 
 
