@@ -127,12 +127,13 @@ class Model:
         self.cleanup_setter(attr, None)
 
     def _change_setter(self, attr: AttributeClass, value: Any) -> None:
-        if self._attributes.get(attr) == value:
-            return
-        if attr.immutable:
-            raise OldapErrorImmutable(f'Attribute {attr.value} is immutable.')
-        self.check_consistency(attr, value)
-        value = self.pre_transform(attr, value)
+        if value is not None:
+            if self._attributes.get(attr) == value:
+                return
+            if attr.immutable:
+                raise OldapErrorImmutable(f'Attribute {attr.value} is immutable.')
+            self.check_consistency(attr, value)
+            value = self.pre_transform(attr, value)
         if self._attributes.get(attr) is None:
             if self._changeset.get(attr) is None:
                 self._changeset[attr] = AttributeChange(None, Action.CREATE)

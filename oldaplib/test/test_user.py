@@ -66,6 +66,28 @@ class TestUser(unittest.TestCase):
     #  @unittest.skip('Work in progress')
     def test_constructor(self):
         user = User(con=self._connection,
+                    userId=Xsd_NCName("testuser_without"),
+                    familyName="TestWithout",
+                    givenName="TestWithout",
+                    credentials="Ein@geheimes&Passw0rt")
+
+        user = User(con=self._connection,
+                    userId=Xsd_NCName("testuser_empty"),
+                    familyName="TestEmpty",
+                    givenName="TestEmpty",
+                    credentials="Ein@geheimes&Passw0rt",
+                    inProject={})
+
+        user = User(con=self._connection,
+                    userId=Xsd_NCName("testuser_empty"),
+                    familyName="TestEmpty",
+                    givenName="TestEmpty",
+                    credentials="Ein@geheimes&Passw0rt",
+                    inProject={Iri('oldap:HyperHamlet'): {}},
+                    hasPermissions={})
+
+
+        user = User(con=self._connection,
                     userId=Xsd_NCName("testuser"),
                     familyName="Test",
                     givenName="Test",
@@ -422,7 +444,7 @@ class TestUser(unittest.TestCase):
             user.delete()
         self.assertEqual('Actor has no ADMIN_USERS permission for project oldap:HyperHamlet', str(ex.exception))
 
-    def test_update_user_permission_add(self):
+    def test_update_user_permission_create(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
                     userId=Xsd_NCName("ampere"),
@@ -453,6 +475,42 @@ class TestUser(unittest.TestCase):
         user.create()
         user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
         del user.hasPermissions
+        user.update()
+        user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
+        self.assertIsNone(user.hasPermissions)
+
+    def test_update_user_permission_set_empty(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
+                    userId=Xsd_NCName("ampere"),
+                    familyName="Ampère",
+                    givenName="André-Marie",
+                    credentials="Current",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
+        user.hasPermissions = []
+        user.update()
+        user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
+        self.assertIsNone(user.hasPermissions)
+
+    def test_update_user_permission_set_None(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2055"),
+                    userId=Xsd_NCName("ampere"),
+                    familyName="Ampère",
+                    givenName="André-Marie",
+                    credentials="Current",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
+        user.hasPermissions = None
         user.update()
         user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
         self.assertIsNone(user.hasPermissions)
