@@ -1,8 +1,10 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from typing import Union, List, Dict, Callable, Self, Any, TypeVar
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.globalconfig import GlobalConfig
@@ -147,6 +149,7 @@ class ResourceClass(Model, Notify):
                 self._properties[iri] = hasprop
                 if isinstance(hasprop.prop, PropertyClass):
                     hasprop.prop.set_notifier(self.notifier, hasprop.prop.property_class_iri)
+                hasprop.set_notifier(self.hp_notifier, hasprop.prop.property_class_iri)
 
         for attr in ResClassAttribute:
             setattr(ResourceClass, attr.value.fragment, property(
@@ -204,6 +207,37 @@ class ResourceClass(Model, Notify):
         else:
             raise OldapError(f'Invalid key type {type(key).__name__} of key {key}')
         self.notify()
+
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
+        if id(self) in memo:
+            return memo[id(self)]
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        Model.__init__(instance,
+                       connection=deepcopy(self._con, memo),
+                       creator=deepcopy(self._creator, memo),
+                       created=deepcopy(self._created, memo),
+                       contributor=deepcopy(self._contributor, memo),
+                       modified=deepcopy(self._modified, memo))
+        Notify.__init__(instance,
+                        notifier=deepcopy(self._notifier, memo),
+                        data=deepcopy(self._notify_data, memo))
+        # Copy internals of Model:
+        instance._attributes = deepcopy(self._attributes, memo)
+        instance._changset = deepcopy(self._changeset, memo)
+
+        instance._graph = deepcopy(self._graph, memo)
+        instance._project = deepcopy(self._project, memo)
+        instance._sysproject = deepcopy(self._sysproject, memo)
+        instance._owlclass_iri = deepcopy(self._owlclass_iri, memo)
+        instance.__version = deepcopy(self.__version, memo)
+        instance._properties = deepcopy(self._properties, memo)
+        instance._prop_changeset = deepcopy(self._prop_changeset, memo)
+        instance._hp_prop_changeset = deepcopy(self._hp_prop_changeset, memo)
+        instance.__from_triplestore = self.__from_triplestore
+        return instance
+
 
     def __getitem__(self, key: ResClassAttribute | Iri) -> AttributeTypes | HasProperty | Iri:
         if isinstance(key, ResClassAttribute):
@@ -613,9 +647,17 @@ class ResourceClass(Model, Notify):
              con: IConnection,
              project: Project,
              owl_class_iri: Iri,
-             sa_props: dict[Iri, PropertyClass] | None = None) -> Self:
+             sa_props: dict[Iri, PropertyClass] | None = None,
+             ignore_cache: bool = False) -> Self:
         if not isinstance(project, Project):
             raise OldapErrorValue('The project parameter must be a Project instance')
+
+        cache = CacheSingleton()
+        if not ignore_cache:
+            tmp = cache.get(owl_class_iri)
+            if tmp is not None:
+                tmp._con = con
+                return tmp
 
         hasproperties: list[HasProperty | Iri] = ResourceClass.__query_resource_props(con=con,
                                                                                       project=project,
@@ -636,6 +678,8 @@ class ResourceClass(Model, Notify):
         resclass.__read_owl()
         resclass.changeset_clear()
 
+        cache = CacheSingleton()
+        cache.set(resclass._owlclass_iri, resclass)
         return resclass
 
     def read_modified_shacl(self, *,
@@ -809,6 +853,8 @@ class ResourceClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
+        cache = CacheSingleton()
+        cache.set(self._owlclass_iri, self)
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         with open(filename, 'w') as f:
@@ -1216,6 +1262,9 @@ class ResourceClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
+        cache = CacheSingleton()
+        cache.set(self._owlclass_iri, self)
+
 
     def __delete_shacl(self) -> str:
         sparql = f'#\n# SHALC: Delete "{self._owlclass_iri}" completely\n#\n'
@@ -1291,5 +1340,8 @@ class ResourceClass(Model, Notify):
             raise OldapErrorUpdateFailed(f'Could not delete "{self._owlclass_iri}".')
         else:
             self._con.transaction_commit()
+        cache = CacheSingleton()
+        cache.delete(self._owlclass_iri)
+
 
 

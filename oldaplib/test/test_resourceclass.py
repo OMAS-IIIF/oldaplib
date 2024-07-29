@@ -2,6 +2,7 @@
 Test data
 """
 import unittest
+from copy import deepcopy
 from enum import Enum
 from pathlib import Path
 from pprint import pprint
@@ -247,11 +248,96 @@ class TestResourceClass(unittest.TestCase):
         self.assertTrue(r1[ResClassAttribute.CLOSED])
         self.assertTrue(r1.closed)
 
+    def test_resourceclass_deepcopy(self):
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:deepc_prop1'),
+                           subPropertyOf=Iri('test:comment'),
+                           datatype=XsdDatatypes.langString,
+                           name=LangString(["Test property@en", "Testprädikat@de"]),
+                           description=LangString("A property for testing...@en"),
+                           uniqueLang=Xsd_boolean(True),
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        p2 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:deepc_prop2'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["Test enum@en", "Enumerationen@de"]),
+                           inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
+
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, prop=Iri("test:comment"), maxCount=1, order=1),
+            HasProperty(con=self._connection, prop=Iri("test:test"), minCount=1, order=2),
+            HasProperty(con=self._connection, prop=p1, maxCount=1, order=3),
+            HasProperty(con=self._connection, prop=p2, minCount=1, maxCount=1, order=4)
+        ]
+
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:TestResourceDeepcopy"),
+                           label=LangString(["Test resource@en", "Resource de test@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           hasproperties=hasproperties)
+        r2 = deepcopy(r1)
+
+        self.assertFalse(r1 is r2)
+        self.assertEqual(r1[ResClassAttribute.LABEL], r2[ResClassAttribute.LABEL])
+        self.assertEqual(r1.label, r2.label)
+        self.assertEqual(r1[ResClassAttribute.COMMENT], r2[ResClassAttribute.COMMENT])
+        self.assertEqual(r1.comment, r2.comment)
+        self.assertTrue(r2[ResClassAttribute.CLOSED])
+        self.assertTrue(r2.closed)
+
+        self.assertEqual(r1[Iri("test:comment")].maxCount, r2[Iri("test:comment")].maxCount)
+        self.assertEqual(r1[Iri("test:comment")].order, r2[Iri("test:comment")].order)
+
+        prop1a = r1[Iri("test:comment")].prop
+        prop1b = r2[Iri("test:comment")].prop
+        self.assertIsNotNone(prop1b)
+        self.assertIsNone(prop1b.internal)
+        self.assertEqual(prop1a.property_class_iri, prop1b.property_class_iri)
+        self.assertEqual(prop1a.datatype, prop1a.datatype)
+        self.assertEqual(prop1a.name, prop1b.name)
+        self.assertEqual(prop1a.description, prop1b.description)
+        self.assertEqual(prop1a.uniqueLang, prop1b.uniqueLang)
+
+        self.assertEqual(r1[Iri("test:test")].minCount, r2[Iri("test:test")].minCount)
+        self.assertEqual(r1[Iri("test:test")].order, r2[Iri("test:test")].order)
+        prop2a = r1[Iri("test:test")].prop
+        prop2b = r2[Iri("test:test")].prop
+        self.assertIsNone(prop2b.internal)
+        self.assertEqual(prop2a.property_class_iri, prop2b.property_class_iri)
+        self.assertEqual(prop2a.datatype, prop2b.datatype)
+        self.assertEqual(prop2a.description, prop2b.description)
+
+        self.assertEqual(r1[Iri("test:deepc_prop1")].maxCount, r2[Iri("test:deepc_prop1")].maxCount)
+        self.assertEqual(r1[Iri("test:deepc_prop1")].order, r2[Iri("test:deepc_prop1")].order)
+        prop3a = r1[Iri("test:deepc_prop1")].prop
+        prop3b = r2[Iri("test:deepc_prop1")].prop
+        self.assertEqual(prop3a.internal, prop3b.internal)
+        self.assertEqual(prop3a.property_class_iri, prop3b.property_class_iri)
+        self.assertEqual(prop3a.type, prop3b.type)
+        self.assertEqual(prop3a.datatype, prop3b.datatype)
+        self.assertEqual(prop3a.name, prop3b.name)
+        self.assertEqual(prop3a.subPropertyOf, prop3b.subPropertyOf)
+        self.assertEqual(prop3a.uniqueLang,  prop3b.uniqueLang)
+        self.assertEqual(prop3a.languageIn, prop3b.languageIn)
+
+        self.assertEqual(r1[Iri("test:deepc_prop2")].maxCount, r2[Iri("test:deepc_prop2")].maxCount)
+        self.assertEqual(r1[Iri("test:deepc_prop2")].minCount, r2[Iri("test:deepc_prop2")].minCount)
+        self.assertEqual(r1[Iri("test:deepc_prop2")].order, r2[Iri("test:deepc_prop2")].order)
+        prop4a = r1[Iri("test:deepc_prop2")].prop
+        prop4b = r2[Iri("test:deepc_prop2")].prop
+        self.assertEqual(prop4a[PropClassAttr.IN], prop4b[PropClassAttr.IN])
+
     # @unittest.skip('Work in progress')
     def test_reading(self):
         r1 = ResourceClass.read(con=self._connection,
                                 project=self._project,
-                                owl_class_iri=Iri('test:testMyRes'))
+                                owl_class_iri=Iri('test:testMyRes'),
+                                ignore_cache=True)
         self.assertEqual(r1.owl_class_iri, Iri('test:testMyRes'))
         self.assertEqual(r1.version, SemanticVersion(1, 0, 0))
         self.assertEqual(r1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
@@ -826,7 +912,7 @@ class TestResourceClass(unittest.TestCase):
 
         r2 = ResourceClass.read(con=self._connection,
                                 project=self._project,
-                                owl_class_iri=Iri("test:TestResourceDelProps"))
+                                owl_class_iri=Iri("test:TestResourceDelProps"), ignore_cache=True)
         del r2[Iri('test:propB')]
         del r2[Iri("test:test")]  # OWL is not yet removed (rdfs:subClassOf is still there)
         del r2[Iri('test:propC')]
@@ -834,7 +920,7 @@ class TestResourceClass(unittest.TestCase):
 
         r3 = ResourceClass.read(con=self._connection,
                                 project=self._project,
-                                owl_class_iri=Iri("test:TestResourceDelProps"))
+                                owl_class_iri=Iri("test:TestResourceDelProps"), ignore_cache=True)
 
         self.assertTrue(check_prop_empty(self._connection, self._context, Graph.SHACL, 'test:testMyResMinimal', 'test:propB'))
         self.assertTrue(check_prop_empty(self._connection, self._context, Graph.ONTO, 'test:testMyResMinimal', 'test:propB'))

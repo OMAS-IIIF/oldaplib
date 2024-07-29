@@ -140,6 +140,7 @@ user3 = User.read(con=self._connection, userId="aedison")
 user3.delete()
 ```
 """
+from copy import deepcopy
 from enum import Enum
 from functools import partial
 from pprint import pprint
@@ -219,6 +220,23 @@ class User(Model):
                 partial(User._set_value, attr=attr),
                 partial(User._del_value, attr=attr)))
         self.clear_changeset()
+
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
+        if id(self) in memo:
+            return memo[id(self)]
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        Model.__init__(instance,
+                       connection=deepcopy(self._con, memo),
+                       creator=deepcopy(self._creator, memo),
+                       created=deepcopy(self._created, memo),
+                       contributor=deepcopy(self._contributor, memo),
+                       modified=deepcopy(self._modified, memo))
+        # Copy internals of Model:
+        instance._attributes = deepcopy(self._attributes, memo)
+        instance._changset = deepcopy(self._changeset, memo)
+        return instance
 
     def cleanup_setter(self, attr: UserAttr, value: Any):
         if attr == UserAttr.CREDENTIALS:
@@ -750,10 +768,11 @@ class User(Model):
                         delete_completely.add(proj_iri)
                     elif in_project_cs[proj_iri].action == Action.REPLACE:
                         adding[proj_iri] = self._attributes[UserAttr.IN_PROJECT].get(proj_iri) or set()
-                        if self._attributes[UserAttr.IN_PROJECT].get(proj_iri):
-                            deleting[proj_iri] = self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value
-                        else:
-                            deleting[proj_iri] = in_project_cs[proj_iri].old_value
+                        deleting[proj_iri] = in_project_cs[proj_iri].old_value
+                        # if self._attributes[UserAttr.IN_PROJECT].get(proj_iri):
+                        #     deleting[proj_iri] = self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value
+                        # else:
+                        #     deleting[proj_iri] = in_project_cs[proj_iri].old_value
                     elif in_project_cs[proj_iri].action == Action.MODIFY:
                         A = self._attributes[UserAttr.IN_PROJECT][proj_iri] if self._attributes[UserAttr.IN_PROJECT].get(proj_iri) else ObservableSet()
                         B = self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value if self._attributes[UserAttr.IN_PROJECT][proj_iri].old_value else ObservableSet()

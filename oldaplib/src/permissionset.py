@@ -90,8 +90,22 @@ class PermissionSet(Model):
         self._changeset = {}
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
-        instance = super().__deepcopy__(memo)
-        instance.__permset_iri = deepcopy(self.__permset_iri)
+        if id(self) in memo:
+            return memo[id(self)]
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        Model.__init__(instance,
+                       connection=deepcopy(self._con, memo),
+                       creator=deepcopy(self._creator, memo),
+                       created=deepcopy(self._created, memo),
+                       contributor=deepcopy(self._contributor, memo),
+                       modified=deepcopy(self._modified, memo))
+        # Copy internals of Model:
+        instance._attributes = deepcopy(self._attributes, memo)
+        instance._changset = deepcopy(self._changeset, memo)
+        instance.__permset_iri = deepcopy(self.__permset_iri, memo)
+        instance.__project = deepcopy(self.__project, memo)
         return instance
 
     def check_consistency(self, attr: PermissionSetAttr, value: Any) -> None:

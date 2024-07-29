@@ -23,9 +23,11 @@ class CacheSingleton(metaclass=SingletonMeta):
         with self._lock:
             return deepcopy(self._cache.get(key))
 
-    def set(self, key: Iri | Xsd_NCName, value: Any):
+    def set(self, key: Iri | Xsd_NCName, value: Any, key2: Iri | Xsd_NCName | None = None) -> None:
         with self._lock:
             self._cache[key] = deepcopy(value)
+            if key2 is not None:
+                self._cache[key2] = self._cache[key]
 
     def delete(self, key: Iri | Xsd_NCName):
         with self._lock:

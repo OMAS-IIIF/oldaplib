@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 from datetime import date
 from pathlib import Path
 from time import sleep
@@ -61,6 +62,25 @@ class Testproject(unittest.TestCase):
         #cls._connection.upload_turtle("oldaplib/ontologies/admin.trig")
         #sleep(1)  # upload may take a while...
         pass
+
+    def test_project_deepcopy(self):
+        project = Project(con=self._connection,
+                          projectShortName="unittest",
+                          label=LangString(["unittest@en", "unittest@de"]),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittest#"),
+                          comment=LangString(["For testing@en", "Für Tests@de"]),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
+                          )
+        project2 = deepcopy(project)
+        self.assertFalse(project is project2)
+        self.assertEqual(project.projectIri, project2.projectIri)
+        self.assertEqual(project.projectShortName, project2.projectShortName)
+        self.assertEqual(project.label, project2.label)
+        self.assertEqual(project.comment, project2.comment)
+        self.assertEqual(project.projectStart, project2.projectStart)
+        self.assertEqual(project.projectEnd, project2.projectEnd)
+
 
     # @unittest.skip('Work in progress')
     def test_project_read(self):

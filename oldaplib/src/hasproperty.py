@@ -1,6 +1,7 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable, Self
+from typing import Callable, Self, Any
 
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
@@ -36,6 +37,27 @@ class HasProperty(Model, Notify):
                 partial(HasProperty._set_value, attr=attr),
                 partial(HasProperty._del_value, attr=attr)))
         self._changeset = {}
+
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
+        if id(self) in memo:
+            return memo[id(self)]
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        Model.__init__(instance,
+                       connection=deepcopy(self._con, memo),
+                       creator=deepcopy(self._creator, memo),
+                       created=deepcopy(self._created, memo),
+                       contributor=deepcopy(self._contributor, memo),
+                       modified=deepcopy(self._modified, memo))
+        Notify.__init__(instance,
+                        notifier=deepcopy(self._notifier, memo),
+                        data=deepcopy(self._notify_data, memo))
+        # Copy internals of Model:
+        instance._attributes = deepcopy(self._attributes, memo)
+        instance._changset = deepcopy(self._changeset, memo)
+        instance._prop = self._prop  # no deepcopy here (????)
+        return instance
 
     def __str__(self) -> str:
         iri = self._prop.property_class_iri if isinstance(self._prop, PropertyClass) else self._prop

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from functools import partial
 
 from typing import List, Self, Any
@@ -157,6 +158,24 @@ class Project(Model):
                 partial(Project._del_value, attr=attr)))
         self._changeset = {}
 
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
+        if id(self) in memo:
+            return memo[id(self)]
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        Model.__init__(instance,
+                       connection=deepcopy(self._con, memo),
+                       creator=deepcopy(self._creator, memo),
+                       created=deepcopy(self._created, memo),
+                       contributor=deepcopy(self._contributor, memo),
+                       modified=deepcopy(self._modified, memo))
+        # Copy internals of Model:
+        instance._attributes = deepcopy(self._attributes, memo)
+        instance._changset = deepcopy(self._changeset, memo)
+        return instance
+
+
     def check_consistency(self, attr: ProjectAttr, value: Any) -> None:
         if attr == ProjectAttr.PROJECT_END:
             if self._attributes.get(ProjectAttr.PROJECT_START) and value < self._attributes[ProjectAttr.PROJECT_START]:
@@ -303,10 +322,8 @@ class Project(Model):
                        projectStart=projectStart,
                        projectEnd=projectEnd)
         cache = CacheSingleton()
-        cache.set(instance.projectIri, instance)
-        cache.set(instance.projectShortName, instance)
+        cache.set(instance.projectIri, instance, instance.projectShortName)
         return instance
-
 
     @staticmethod
     def search(con: IConnection,
@@ -439,8 +456,7 @@ class Project(Model):
         context[self._attributes[ProjectAttr.PROJECT_SHORTNAME]] = self._attributes[ProjectAttr.NAMESPACE_IRI]
 
         cache = CacheSingleton()
-        cache.set(self.projectIri, self)
-        cache.set(self.projectShortName, self)
+        cache.set(self.projectIri, self, self.projectShortName)
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -519,8 +535,7 @@ class Project(Model):
         self._contributor = self._con.userIri
         self.clear_changeset()
         cache = CacheSingleton()
-        cache.set(self.projectIri, self)
-        cache.set(self.projectShortName, self)
+        cache.set(self.projectIri, self, self.projectShortName)
 
     def delete(self) -> None:
         """

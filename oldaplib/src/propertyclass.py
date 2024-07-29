@@ -213,15 +213,32 @@ class PropertyClass(Model, Notify):
             value.set_notifier(self.notifier, attr)
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
-        instance = super().__deepcopy__(memo)
+        if id(self) in memo:
+            return memo[id(self)]
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        Model.__init__(instance,
+                       connection=deepcopy(self._con, memo),
+                       creator=deepcopy(self._creator, memo),
+                       created=deepcopy(self._created, memo),
+                       contributor=deepcopy(self._contributor, memo),
+                       modified=deepcopy(self._modified, memo))
+        Notify.__init__(instance,
+                        notifier=deepcopy(self._notifier, memo),
+                        data=deepcopy(self._notify_data, memo))
+        # Copy internals of Model:
+        instance._attributes = deepcopy(self._attributes, memo)
+        instance._changset = deepcopy(self._changeset, memo)
+        # Copy remaining PropertyClass attributes
         instance._graph = deepcopy(self._graph, memo)
         instance._project = deepcopy(self._project, memo)
         instance._property_class_iri = deepcopy(self._property_class_iri, memo)
         instance._internal = deepcopy(self._internal, memo)
         instance._force_external = self._force_external
         instance._test_in_use = self._test_in_use
-        instance._notifier = self._notifier
-        instance._notify_data = deepcopy(self._notify_data, memo)
+        instance.__from_triplestore = self.__from_triplestore
+        instance.__version = deepcopy(self.__version)
         return instance
 
 
@@ -513,16 +530,21 @@ class PropertyClass(Model, Notify):
     @classmethod
     def read(cls, con: IConnection,
              project: Project | Iri | Xsd_NCName | str,
-             property_class_iri: Iri) -> Self:
+             property_class_iri: Iri,
+             ignore_cache: bool = False) -> Self:
         cache = CacheSingleton()
-        tmp = cache.get(property_class_iri)
-        if tmp is not None:
-            tmp._con = con
-            return tmp
+        if not ignore_cache:
+            tmp = cache.get(property_class_iri)
+            if tmp is not None:
+                tmp._con = con
+                return tmp
         property = cls(con=con, project=project, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, property._graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
         property.read_owl()
+        cache = CacheSingleton()
+        cache.set(property.property_class_iri, property)
+
         return property
 
     def read_modified_shacl(self, *,

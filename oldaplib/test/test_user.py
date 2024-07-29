@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from time import sleep
 
@@ -106,6 +107,25 @@ class TestUser(unittest.TestCase):
             AdminPermission.ADMIN_CREATE
         }}))
         self.assertEqual(user.hasPermissions, {Xsd_QName('oldap:GenericView')})
+
+    def test_user_deepcopy(self):
+        user = User(con=self._connection,
+                    userId=Xsd_NCName("testuser"),
+                    familyName="Test",
+                    givenName="Test",
+                    credentials="Ein@geheimes&Passw0rt",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Xsd_QName('oldap:GenericView')})
+        user2 = deepcopy(user)
+        self.assertFalse(user is user2)
+        self.assertEqual(user.userId, user2.userId)
+        self.assertEqual(user.userIri, user2.userIri)
+        self.assertEqual(user.familyName, user2.familyName)
+        self.assertEqual(user.credentials, user2.credentials)
+        self.assertEqual(user.inProject[Iri('oldap:HyperHamlet')], user2.inProject[Iri('oldap:HyperHamlet')])
+        self.assertEqual(user.hasPermissions, user2.hasPermissions)
 
     # @unittest.skip('Work in progress')
     def test_read_user_from_id(self):
@@ -669,6 +689,25 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS})
 
     def test_update_user_in_project_modify_C(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2067"),
+                    userId=Xsd_NCName("voltaB"),
+                    familyName="VoltaB",
+                    givenName="AlessandroB",
+                    credentials="ElectricTensionB",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                          AdminPermission.ADMIN_RESOURCES},
+                               Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_MODEL}},
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="voltaB", ignore_cache=True)
+        user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')] = {AdminPermission.ADMIN_LISTS}
+        user.update()
+        user = User.read(con=self._connection, userId="voltaB", ignore_cache=True)
+        self.assertEqual(user.inProject[Iri('oldap:HyperHamlet')], {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES})
+        self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {AdminPermission.ADMIN_LISTS})
+
+    def test_update_user_in_project_modify_D(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-9991-2067"),
                     userId=Xsd_NCName("curie"),

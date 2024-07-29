@@ -162,7 +162,8 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_read_shacl(self):
         p1 = PropertyClass.read(con=self._connection,
                                 project=self._project,
-                                property_class_iri=Iri('test:comment'))
+                                property_class_iri=Iri('test:comment'),
+                                ignore_cache=True)
         self.assertEqual(p1.property_class_iri, Iri('test:comment'))
         self.assertEqual(p1.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
         self.assertEqual(p1.datatype, XsdDatatypes.langString)
@@ -181,7 +182,8 @@ class TestPropertyClass(unittest.TestCase):
 
         p2 = PropertyClass.read(con=self._connection,
                                 project=self._project,
-                                property_class_iri=Iri('test:test'))
+                                property_class_iri=Iri('test:test'),
+                                ignore_cache=True)
         self.assertEqual(p2.property_class_iri, Iri('test:test'))
         self.assertEqual(p2[PropClassAttr.NAME], LangString("Test"))
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("Property shape for testing purposes"))
@@ -190,7 +192,8 @@ class TestPropertyClass(unittest.TestCase):
 
         p3 = PropertyClass.read(con=self._connection,
                                 project=self._project,
-                                property_class_iri=Iri('test:enum'))
+                                property_class_iri=Iri('test:enum'),
+                                ignore_cache=True)
         self.assertEqual(p3[PropClassAttr.IN],
                          {"very good", "good", "fair", "insufficient"})
         self.assertEqual(p3[PropClassAttr.IN],
@@ -210,7 +213,8 @@ class TestPropertyClass(unittest.TestCase):
         p1.create()
         p1 = PropertyClass.read(con=self._connection,
                                 project=self._project,
-                                property_class_iri=Iri('test:testWrite'))
+                                property_class_iri=Iri('test:testWrite'),
+                                ignore_cache=True)
         self.assertEqual(p1.property_class_iri, Iri('test:testWrite'))
         self.assertEqual(p1[PropClassAttr.CLASS], Iri('test:comment'))
         self.assertEqual(p1[PropClassAttr.NAME], LangString("Annotations@en"))
@@ -231,7 +235,8 @@ class TestPropertyClass(unittest.TestCase):
         p2.create()
         p2 = PropertyClass.read(con=self._connection,
                                 project=self._project,
-                                property_class_iri=Iri('test:testWrite2'))
+                                property_class_iri=Iri('test:testWrite2'),
+                                ignore_cache=True)
         self.assertEqual(p2.property_class_iri, Iri('test:testWrite2'))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.langString)
         self.assertEqual(p2[PropClassAttr.NAME], LangString("Annotations@en"))
@@ -249,6 +254,27 @@ class TestPropertyClass(unittest.TestCase):
         with self.assertRaises(OldapErrorAlreadyExists) as ex:
             pX.create()
         self.assertEqual(str(ex.exception), 'Property "test:testWrite" already exists.')
+
+    def test_property_cache(self):
+        p1 = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Iri('test:testCache'),
+            toClass=Iri('test:comment'),
+            name=LangString("Annotations@en"),
+            description=LangString("An annotation@en"),
+            inSet=RdfSet(Iri("http://www.test.org/comment1"), Iri("http://www.test.org/comment2"))
+        )
+        p1.create()
+        p2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:testCache'))
+        self.assertFalse(p1 is p2)
+        self.assertEqual(p1.property_class_iri, p2.property_class_iri)
+        self.assertEqual(p1.toClass, p2.toClass)
+        self.assertEqual(p1.name, p2.name)
+        self.assertEqual(p1.description, p2.description)
+        self.assertEqual(p1.inSet, p2.inSet)
 
     # @unittest.skip('Work in progress')
     def test_propertyclass_undo(self):
@@ -355,7 +381,8 @@ class TestPropertyClass(unittest.TestCase):
 
         p2 = PropertyClass.read(con=self._connection,
                                 project=self._project,
-                                property_class_iri=Iri('test:testUpdate'))
+                                property_class_iri=Iri('test:testUpdate'),
+                                ignore_cache=True)
         self.assertEqual(p2.property_class_iri, Iri('test:testUpdate'))
         self.assertEqual(p2.subPropertyOf, Iri('test:masterProp2'))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.langString)
@@ -396,7 +423,8 @@ class TestPropertyClass(unittest.TestCase):
         p2 = PropertyClass.read(con=self._connection,
                                 #graph=Xsd_NCName('test'),
                                 project=self._project,
-                                property_class_iri=Iri('test:testUpdate2'))
+                                property_class_iri=Iri('test:testUpdate2'),
+                                ignore_cache=True)
         self.assertEqual(p2.property_class_iri, Iri('test:testUpdate2'))
         self.assertEqual(p2.datatype, XsdDatatypes.langString)
         self.assertIsNone(p2.toClass)
@@ -428,7 +456,8 @@ class TestPropertyClass(unittest.TestCase):
 
         p2 = PropertyClass.read(con=self._connection,
                                 project=self._project,
-                                property_class_iri=Iri('test:testDelete'))
+                                property_class_iri=Iri('test:testDelete'),
+                                ignore_cache=True)
         self.assertIsNone(p2.name)
         self.assertIsNone(p2.uniqueLang)
         self.assertIsNone(p2.languageIn)
@@ -465,7 +494,8 @@ class TestPropertyClass(unittest.TestCase):
 
         p2 = PropertyClass.read(con=self._connection,
                                 project=self._project,
-                                property_class_iri=Iri('test:testDeleteIt'))
+                                property_class_iri=Iri('test:testDeleteIt'),
+                                ignore_cache=True)
         p2.delete()
         sparql = self._context.sparql_context
         sparql += 'SELECT ?p ?o WHERE { test:testDeleteIt ?p ?o }'
@@ -500,7 +530,8 @@ class TestPropertyClass(unittest.TestCase):
 
         p2 = PropertyClass.read(con=self._connection,
                                 project=self._project,
-                                property_class_iri=Iri('test:testDeleteIt2'))
+                                property_class_iri=Iri('test:testDeleteIt2'),
+                                ignore_cache=True)
         p2.delete()
         sparql = self._context.sparql_context
         sparql += 'SELECT ?p ?o WHERE { test:testDeleteIt2 ?p ?o }'
