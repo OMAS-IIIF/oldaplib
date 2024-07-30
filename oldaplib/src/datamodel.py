@@ -1,7 +1,8 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any, Self
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.project import Project
@@ -15,6 +16,8 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+
 
 @dataclass
 class ResourceClassChange:
@@ -52,9 +55,9 @@ class DataModel(Model):
             self._project = project
         else:
             self._project = Project.read(self._con, project)
-        context = Context(name=self._con.context_name)
-        context[self._project.projectShortName] = self._project.namespaceIri
-        context.use(self._project.projectShortName)
+        self.__context = Context(name=self._con.context_name)
+        self.__context[self._project.projectShortName] = self._project.namespaceIri
+        self.__context.use(self._project.projectShortName)
         self.__graph = self._project.projectShortName
 
         self.__propclasses = {}
@@ -67,6 +70,31 @@ class DataModel(Model):
                 self.__resclasses[r.owl_class_iri] = r
         self.__propclasses_changeset = {}
         self.__resclasses_changeset = {}
+
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
+        if id(self) in memo:
+            return memo[id(self)]
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        Model.__init__(instance,
+                       connection=deepcopy(self._con, memo),
+                       creator=deepcopy(self._creator, memo),
+                       created=deepcopy(self._created, memo),
+                       contributor=deepcopy(self._contributor, memo),
+                       modified=deepcopy(self._modified, memo))
+        # Copy internals of Model:
+        instance._attributes = deepcopy(self._attributes, memo)
+        instance._changset = deepcopy(self._changeset, memo)
+        # Other thins
+        instance.__graph = deepcopy(self.__graph, memo)
+        instance.__context = deepcopy(self.__context, memo)
+        instance.__version = deepcopy(self.__version, memo)
+        instance.__propclasses = deepcopy(self.__propclasses, memo)
+        instance.__resclasses = deepcopy(self.__resclasses, memo)
+        instance.__resclasses_changeset = deepcopy(self.__resclasses_changeset, memo)
+        instance.__propclasses_changeset = deepcopy(self.__propclasses_changeset, memo)
+        return instance
 
     def __getitem__(self, key: Iri) -> PropertyClass | ResourceClass:
         if key in self.__resclasses:
@@ -144,9 +172,18 @@ class DataModel(Model):
     @classmethod
     def read(cls,
              con: IConnection,
-             project: Project):
-        if not isinstance(project, Project):
-            raise OldapErrorValue('The project parameter must be a Project instance')
+             project: Project | Iri | Xsd_NCName | str,
+             ignore_cache: bool = False):
+        if isinstance(project, Project):
+            project = project
+        else:
+            project = Project.read(con, project)
+        cache = CacheSingleton()
+        if not ignore_cache:
+            tmp = cache.get(Xsd_QName(project.projectShortName, 'shacl'))
+            if tmp is not None:
+                tmp._con = con
+                return tmp
         cls.__context = Context(name=con.context_name)
         cls.__context[project.projectShortName] = project.namespaceIri
         cls.__context.use(project.projectShortName)
@@ -232,6 +269,8 @@ class DataModel(Model):
             instance[qname].set_notifier(instance.notifier, qname)
         for qname in instance.get_resclasses():
             instance[qname].set_notifier(instance.notifier, qname)
+        cache.set(Xsd_QName(project.projectShortName, 'shacl'), instance)
+
         return instance
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -284,6 +323,8 @@ class DataModel(Model):
         except OldapError as err:
             self._con.transaction_abort()
             raise
+        cache = CacheSingleton()
+        cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
     def update(self):
         for qname, change in self.__propclasses_changeset.items():
@@ -304,6 +345,8 @@ class DataModel(Model):
                 case Action.DELETE:
                     #self.__resclasses[qname].delete()
                     change.old_value.delete()
+        cache = CacheSingleton()
+        cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4):
         with open(filename, 'w') as f:

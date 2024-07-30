@@ -221,7 +221,7 @@ class ResourceClass(Model, Notify):
                        contributor=deepcopy(self._contributor, memo),
                        modified=deepcopy(self._modified, memo))
         Notify.__init__(instance,
-                        notifier=deepcopy(self._notifier, memo),
+                        notifier=self._notifier,
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)

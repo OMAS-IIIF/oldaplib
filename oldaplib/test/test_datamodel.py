@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from pprint import pprint
 from time import sleep
@@ -12,6 +13,7 @@ from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_date import Xsd_date
 from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -50,7 +52,10 @@ class TestDataModel(unittest.TestCase):
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://oldap.org/test#")
         cls._context['dmtest'] = NamespaceIRI('http://oldap.org/dmtest#')
-        cls._context.use('test', 'dmtest')
+        cls._context['dmtestA'] = NamespaceIRI('http://oldap.org/dmtestA#')
+        cls._context['dmtestB'] = NamespaceIRI('http://oldap.org/dmtestB#')
+        cls._context['dmtestC'] = NamespaceIRI('http://oldap.org/dmtestC#')
+        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="oldap",
@@ -62,6 +67,12 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtest:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtest:onto'))
+        cls._connection.clear_graph(Xsd_QName('dmtestA:shacl'))
+        cls._connection.clear_graph(Xsd_QName('dmtestA:onto'))
+        cls._connection.clear_graph(Xsd_QName('dmtestB:shacl'))
+        cls._connection.clear_graph(Xsd_QName('dmtestB:onto'))
+        cls._connection.clear_graph(Xsd_QName('dmtestC:shacl'))
+        cls._connection.clear_graph(Xsd_QName('dmtestC:onto'))
 
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
@@ -69,9 +80,12 @@ class TestDataModel(unittest.TestCase):
 
         sleep(1)  # upload may take a while...
 
-        cls._project = Project.read(cls._connection, "test")
-        cls._dmproject = Project.read(cls._connection, "dmtest")
-        cls._sysproject = Project.read(cls._connection, "oldap")
+        cls._project = Project.read(cls._connection, "test", ignore_cache=True)
+        cls._dmproject = Project.read(cls._connection, "dmtest", ignore_cache=True)
+        cls._dmprojectA = Project.read(cls._connection, "dmtestA", ignore_cache=True)
+        cls._dmprojectB = Project.read(cls._connection, "dmtestB", ignore_cache=True)
+        cls._dmprojectC = Project.read(cls._connection, "dmtestC", ignore_cache=True)
+        cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
 
 
     def tearDown(self):
@@ -83,7 +97,7 @@ class TestDataModel(unittest.TestCase):
         # define an external standalone property
         #
         comment = PropertyClass(con=self._connection,
-                                project=self._dmproject,
+                                project=project,
                                 property_class_iri=Iri(f'{dm_name}:comment'),
                                 datatype=XsdDatatypes.langString,
                                 name=LangString(["Comment@en", "Kommentar@de"]),
@@ -95,7 +109,7 @@ class TestDataModel(unittest.TestCase):
         # Define the properties for the "Book"
         #
         title = PropertyClass(con=self._connection,
-                              project=self._dmproject,
+                              project=project,
                               property_class_iri=Iri(f'{dm_name}:title'),
                               datatype=XsdDatatypes.langString,
                               name=LangString(["Title@en", "Titel@de"]),
@@ -104,14 +118,14 @@ class TestDataModel(unittest.TestCase):
                               languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
         authors = PropertyClass(con=self._connection,
-                                project=self._dmproject,
+                                project=project,
                                 property_class_iri=Iri(f'{dm_name}:authors'),
                                 toClass=Iri('oldap:Person'),
                                 name=LangString(["Author(s)@en", "Autor(en)@de"]),
                                 description=LangString(["Writers of the Book@en", "Schreiber*innen des Buchs@de"]))
 
         book = ResourceClass(con=self._connection,
-                             project=self._dmproject,
+                             project=project,
                              owlclass_iri=Iri(f'{dm_name}:Book'),
                              label=LangString(["Book@en", "Buch@de"]),
                              comment=LangString("Ein Buch mit Seiten@en"),
@@ -122,19 +136,19 @@ class TestDataModel(unittest.TestCase):
                                  HasProperty(con=self._connection, prop=comment, order=3)])
 
         pagenum = PropertyClass(con=self._connection,
-                                project=self._dmproject,
+                                project=project,
                                 property_class_iri=Iri(f'{dm_name}:pagenum'),
                                 datatype=XsdDatatypes.int,
                                 name=LangString(["Pagenumber@en", "Seitennummer@de"]))
 
         inbook = PropertyClass(con=self._connection,
-                               project=self._dmproject,
+                               project=project,
                                property_class_iri=Iri(f'{dm_name}:inbook'),
                                toClass=Iri(f'{dm_name}:Book'),
                                name=LangString(["Pagenumber@en", "Seitennummer@de"]))
 
         page = ResourceClass(con=self._connection,
-                             project=self._dmproject,
+                             project=project,
                              owlclass_iri=Iri(f'{dm_name}:Page'),
                              label=LangString(["Page@en", "Seite@de"]),
                              comment=LangString("Page of a book@en"),
@@ -145,10 +159,113 @@ class TestDataModel(unittest.TestCase):
                                  HasProperty(con=self._connection, prop=comment, order=3)])
 
         dm = DataModel(con=self._connection,
-                       project=self._dmproject,
+                       project=project,
                        propclasses=[comment],
                        resclasses=[book, page])
         return dm
+
+    def test_datamodel_deepcopy(self):
+        dm_name = self._dmproject.projectShortName
+        dma = self.generate_a_datamodel(self._dmproject)
+        dmb = deepcopy(dma)
+
+        self.assertFalse(dma is dmb)
+
+        p1a = dma[Iri(f'{dm_name}:comment')]
+        p1b = dmb[Iri(f'{dm_name}:comment')]
+        self.assertEqual(p1a.datatype, p1b.datatype)
+        self.assertEqual(p1a.name, p1b.name)
+        self.assertFalse(p1a.name is p1b.name)
+        self.assertEqual(p1a.languageIn, p1b.languageIn)
+        self.assertFalse(p1a.languageIn is p1b.languageIn)
+        self.assertTrue(p1b.uniqueLang)
+
+        r1a = dma[Iri(f'{dm_name}:Book')]
+        r1b = dmb[Iri(f'{dm_name}:Book')]
+        self.assertFalse(r1a is r1b)
+
+        r1p1a = r1a[Iri(f'{dm_name}:title')]
+        r1p1b = r1b[Iri(f'{dm_name}:title')]
+        self.assertFalse(r1p1a is r1p1b)
+        self.assertEqual(r1p1a.prop.internal, r1p1b.prop.internal)
+        self.assertFalse(r1p1a.prop.internal is r1p1b.prop.internal)
+        self.assertEqual(r1p1a.prop.datatype, r1p1b.prop.datatype)
+        self.assertEqual(r1p1a.prop.name, r1p1b.prop.name)
+        self.assertFalse(r1p1a.prop.name is r1p1b.prop.name)
+        self.assertEqual(r1p1a.prop.description, r1p1b.prop.description)
+        self.assertFalse(r1p1a.prop.description is r1p1b.prop.description)
+        self.assertEqual(r1p1a.prop.languageIn, r1p1b.prop.languageIn)
+        self.assertFalse(r1p1a.prop.languageIn is r1p1b.prop.languageIn)
+        self.assertTrue(r1p1b.prop.uniqueLang)
+        self.assertEqual(r1p1a.minCount, r1p1b.minCount)
+        self.assertEqual(r1p1a.order, r1p1b.order)
+
+        r1p2a = r1a[Iri(f'{dm_name}:authors')]
+        r1p2b = r1b[Iri(f'{dm_name}:authors')]
+        self.assertFalse(r1p2a is r1p2b)
+        self.assertEqual(r1p2a.prop.internal, r1p2b.prop.internal)
+        self.assertFalse(r1p2a.prop.internal is r1p2b.prop.internal)
+        self.assertEqual(r1p2a.prop.toClass, r1p2b.prop.toClass)
+        self.assertFalse(r1p2a.prop.toClass is r1p2b.prop.toClass)
+        self.assertEqual(r1p2a.prop.name, r1p2b.prop.name)
+        self.assertFalse(r1p2a.prop.name is r1p2b.prop.name)
+        self.assertEqual(r1p2a.prop.description, r1p2b.prop.description)
+        self.assertFalse(r1p2a.prop.description is r1p2b.prop.description)
+        self.assertEqual(r1p2a.minCount, r1p2b.minCount)
+        self.assertEqual(r1p2a.order, r1p2b.order)
+
+        r1p3a = r1a[Iri(f'{dm_name}:comment')]
+        r1p3b = r1b[Iri(f'{dm_name}:comment')]
+        self.assertFalse(r1p3a is r1p3b)
+        self.assertIsNone(r1p3b.prop.internal)
+        self.assertEqual(r1p3a.prop.datatype, r1p3b.prop.datatype)
+        self.assertEqual(r1p3a.prop.name, r1p3b.prop.name)
+        self.assertFalse(r1p3a.prop.name is r1p3b.prop.name)
+        self.assertTrue(r1p3a.prop.uniqueLang, r1p3b.prop.uniqueLang)
+        self.assertFalse(r1p3a.prop.uniqueLang is r1p3b.prop.uniqueLang)
+        self.assertEqual(r1p3a.prop.languageIn, r1p3b.prop.languageIn)
+        self.assertFalse(r1p3a.prop.languageIn is r1p3b.prop.languageIn)
+        self.assertEqual(r1p3a.order, r1p3b.order)
+
+        r2a = dma[Iri(f'{dm_name}:Page')]
+        r2b = dmb[Iri(f'{dm_name}:Page')]
+        self.assertFalse(r2a is r2b)
+        r2p1a = r2a[Iri(f'{dm_name}:pagenum')]
+        r2p1b = r2b[Iri(f'{dm_name}:pagenum')]
+        self.assertFalse(r2p1a is r2p1b)
+        self.assertEqual(r2p1a.prop.internal, r2p1b.prop.internal)
+        self.assertFalse(r2p1a.prop.internal is r2p1b.prop.internal)
+        self.assertEqual(r2p1a.prop.datatype, r2p1b.prop.datatype)
+        self.assertEqual(r2p1a.prop.name, r2p1b.prop.name)
+        self.assertFalse(r2p1a.prop.name is r2p1b.prop.name)
+        self.assertEqual(r2p1a.maxCount, r2p1b.maxCount)
+        self.assertEqual(r2p1a.minCount, r2p1b.minCount)
+
+        r2p2a = r2a[Iri(f'{dm_name}:inbook')]
+        r2p2b = r2b[Iri(f'{dm_name}:inbook')]
+        self.assertFalse(r2p2a is r2p2b)
+        self.assertEqual(r2p2a.prop.internal, r2p2b.prop.internal)
+        self.assertFalse(r2p2a.prop.internal is r2p2b.prop.internal)
+        self.assertEqual(r2p2a.prop[PropClassAttr.CLASS], r2p2b.prop[PropClassAttr.CLASS])
+        self.assertFalse(r2p2a.prop[PropClassAttr.CLASS] is r2p2b.prop[PropClassAttr.CLASS])
+        self.assertEqual(r2p2a.prop[PropClassAttr.NAME], r2p2b.prop[PropClassAttr.NAME])
+        self.assertFalse(r2p2a.prop[PropClassAttr.NAME] is r2p2b.prop[PropClassAttr.NAME])
+        self.assertEqual(r2p2a.maxCount, r2p2b.maxCount)
+        self.assertEqual(r2p2a.minCount, r2p2b.minCount)
+        self.assertEqual(r2p2a.order, r2p2b.order)
+
+        r2p3a = r1a[Iri(f'{dm_name}:comment')]
+        r2p3b = r1b[Iri(f'{dm_name}:comment')]
+        self.assertFalse(r2p3a is r2p3b)
+        self.assertIsNone(r2p3b.prop.internal)
+        self.assertEqual(r2p3a.prop.datatype, r2p3b.prop.datatype)
+        self.assertEqual(r2p3a.prop.name, r2p3b.prop.name)
+        self.assertFalse(r2p3a.prop.name is r2p3b.prop.name)
+        self.assertTrue(r2p3b.prop.uniqueLang)
+        self.assertEqual(r2p3a.prop.languageIn, r2p3b.prop.languageIn)
+        self.assertFalse(r2p3a.prop.languageIn is r2p3b.prop.languageIn)
+
+
 
     # @unittest.skip('Work in progress')
     def test_datamodel_constructor(self):
@@ -219,7 +336,7 @@ class TestDataModel(unittest.TestCase):
 
     # @unittest.skip('Work in progress')
     def test_datamodel_read(self):
-        model = DataModel.read(self._connection, self._sysproject)
+        model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)
         self.assertEqual(set(model.get_propclasses()), {
             Iri("oldap:test"),
             Iri("dcterms:creator"),
@@ -244,17 +361,17 @@ class TestDataModel(unittest.TestCase):
 
     # @unittest.skip('Work in progress')
     def test_datamodel_modify_A(self):
-        dm_name = self._dmproject.projectShortName
+        dm_name = self._dmprojectA.projectShortName
 
-        dm = self.generate_a_datamodel(self._dmproject)
+        dm = self.generate_a_datamodel(self._dmprojectA)
         dm.create()
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmprojectA, ignore_cache=True)
 
         #
         # define an external standalone property
         #
         pubyear = PropertyClass(con=self._connection,
-                                project=self._dmproject,
+                                project=self._dmprojectA,
                                 property_class_iri=Iri(f'{dm_name}:pubYear'),
                                 datatype=XsdDatatypes.gYear,
                                 name=LangString(["Publication Year@en", "Publicationsjahr@de"]))
@@ -269,6 +386,7 @@ class TestDataModel(unittest.TestCase):
         }, dm.changeset)
 
         dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:authors')].prop.name[Language.FR] = "Ecrivain(s)"
+        self.maxDiff = None
         self.assertEqual({
             Iri(f'{dm_name}:pubYear'): PropertyClassChange(None, Action.CREATE),
             Iri(f'{dm_name}:comment'): PropertyClassChange(None, Action.MODIFY),
@@ -285,8 +403,7 @@ class TestDataModel(unittest.TestCase):
         }, dm.changeset)
 
         pagename = PropertyClass(con=self._connection,
-                                 #graph=dm_name,
-                                 project=self._dmproject,
+                                 project=self._dmprojectA,
                                  property_class_iri=Xsd_QName(f'{dm_name}:pageName'),
                                  datatype=XsdDatatypes.string,
                                  name=LangString(["Page name@en", "Seitenbezeichnung@de"]))
@@ -301,19 +418,19 @@ class TestDataModel(unittest.TestCase):
 
     # @unittest.skip('Work in progress')
     def test_datamodel_modify_B(self):
-        dm_name = self._dmproject.projectShortName
+        dm_name = self._dmprojectB.projectShortName
 
-        dm = self.generate_a_datamodel(self._dmproject)
+        dm = self.generate_a_datamodel(self._dmprojectB)
         dm.create()
         del dm
 
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmprojectB, ignore_cache=True)
 
         #
         # define a standalone property and add it to the datamodel
         #
         pubyear = PropertyClass(con=self._connection,
-                                project=self._dmproject,
+                                project=self._dmprojectB,
                                 property_class_iri=Xsd_QName(f'{dm_name}:pubYear'),
                                 datatype=XsdDatatypes.gYear,
                                 name=LangString(["Publication Year@en", "Publicationsjahr@de"]))
@@ -334,7 +451,7 @@ class TestDataModel(unittest.TestCase):
         # Add a new property as internal property
         #
         pagename = PropertyClass(con=self._connection,
-                                 project=self._dmproject,
+                                 project=self._dmprojectB,
                                  property_class_iri=Iri(f'{dm_name}:pageName'),
                                  datatype=XsdDatatypes.string,
                                  name=LangString(["Page name@en", "Seitenbezeichnung@de"]))
@@ -345,7 +462,7 @@ class TestDataModel(unittest.TestCase):
 
         del dm
 
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmprojectB, ignore_cache=True)
         self.assertIsNotNone(dm.get(Iri(f'{dm_name}:pubYear')))
         self.assertEqual(dm[Iri(f'{dm_name}:pubYear')].datatype, XsdDatatypes.gYear)
         self.assertEqual(dm[Iri(f'{dm_name}:comment')].name[Language.FR], 'Commentaire')
@@ -353,13 +470,13 @@ class TestDataModel(unittest.TestCase):
         self.assertIsNotNone(dm[Iri(f'{dm_name}:Page')][Iri(f'{dm_name}:pageName')])
 
     def test_datamodel_modify_C(self):
-        dm_name = self._dmproject.projectShortName
+        dm_name = self._dmprojectC.projectShortName
 
-        dm = self.generate_a_datamodel(self._dmproject)
+        dm = self.generate_a_datamodel(self._dmprojectC)
         dm.create()
         del dm
 
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmprojectC, ignore_cache=True)
 
         #
         # remove the comment property from the Page resource
@@ -370,7 +487,7 @@ class TestDataModel(unittest.TestCase):
 
         del dm
 
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmprojectC, ignore_cache=True)
         print(str(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment'))))
         self.assertIsNone(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment')))  # TODO THIS TEST SHOULD PASS!!!!
 
@@ -378,7 +495,7 @@ class TestDataModel(unittest.TestCase):
         dm = DataModel(con=self._connection,
                        project=self._dmproject)
         dm.create()
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         dm_name = self._dmproject.projectShortName
 
         #
@@ -391,7 +508,7 @@ class TestDataModel(unittest.TestCase):
                                  name=LangString(["Generic comment@en", "Allgemeiner Kommentar@de"]))
         dm[Iri(f'{dm_name}:genericComment')] = generic_comment
         dm.update()
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         p1 = dm[Iri(f'{dm_name}:genericComment')]
         self.assertEqual(p1.datatype, XsdDatatypes.string)
 
@@ -400,7 +517,7 @@ class TestDataModel(unittest.TestCase):
         #
         p1.description = LangString("For testing purposes only@en")
         dm.update()
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         p1 = dm[Iri(f'{dm_name}:genericComment')]
         self.assertEqual(p1.datatype, XsdDatatypes.string)
         self.assertEqual(p1.description, LangString("For testing purposes only@en"))
@@ -437,7 +554,7 @@ class TestDataModel(unittest.TestCase):
         dm[Iri(f'{dm_name}:BookX')] = bookX
         dm.update()
 
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
 
         p1 = dm[Iri(f'{dm_name}:genericComment')]
         self.assertEqual(p1.datatype, XsdDatatypes.string)
@@ -512,7 +629,7 @@ class TestDataModel(unittest.TestCase):
                        resclasses=[bookY])
         dm.create()
 
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
 
         #
         # a few check's if the creation of the datamodel worked as expected...
@@ -574,7 +691,7 @@ class TestDataModel(unittest.TestCase):
         del dm[Iri(f'{dm_name}:BookY')][Iri(f'{dm_name}:authorsY')]
 
         dm.update()
-        dm = DataModel.read(self._connection, self._dmproject)
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         r1 = dm[Iri(f'{dm_name}:BookY')]
         r1p3 = r1[Iri(f'{dm_name}:genericCommentY')]
         self.assertEqual(r1p3.prop.name, LangString(["Generic commentY@en", "Allgemeiner KommentarY@de", "Commentario@it"]))

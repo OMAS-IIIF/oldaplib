@@ -51,12 +51,12 @@ class HasProperty(Model, Notify):
                        contributor=deepcopy(self._contributor, memo),
                        modified=deepcopy(self._modified, memo))
         Notify.__init__(instance,
-                        notifier=deepcopy(self._notifier, memo),
+                        notifier=self._notifier,
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
-        instance._prop = self._prop  # no deepcopy here (????)
+        instance._prop = deepcopy(self._prop)  # no deepcopy here (????)
         return instance
 
     def __str__(self) -> str:

@@ -225,7 +225,7 @@ class PropertyClass(Model, Notify):
                        contributor=deepcopy(self._contributor, memo),
                        modified=deepcopy(self._modified, memo))
         Notify.__init__(instance,
-                        notifier=deepcopy(self._notifier, memo),
+                        notifier=self._notifier,
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
@@ -328,7 +328,7 @@ class PropertyClass(Model, Notify):
                 return False
 
     @staticmethod
-    def process_triple(r: RowType, attributes: Attributes) -> None:
+    def process_triple(r: RowType, attributes: Attributes, propiri: Iri | None = None) -> None:
         attriri = r['attriri']
         if r['attriri'].fragment == 'languageIn':
             if attributes.get(attriri) is None:
@@ -348,7 +348,7 @@ class PropertyClass(Model, Notify):
                     raise OldapError(f'Invalid value for attribute {attriri}: {err}.')
             else:
                 if attributes.get(attriri) is not None:
-                    raise OldapError(f'Property attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
+                    raise OldapError(f'Property ({propiri}) attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
                 attributes[attriri] = r['value']
 
     @staticmethod
@@ -372,7 +372,7 @@ class PropertyClass(Model, Notify):
             raise OldapErrorNotFound(f'Property "{property_class_iri}" not found.')
         attributes: Attributes = {}
         for r in res:
-            PropertyClass.process_triple(r, attributes)
+            PropertyClass.process_triple(r, attributes, property_class_iri)
         return attributes
 
     def parse_shacl(self, attributes: Attributes) -> HasPropertyData | None:
@@ -542,7 +542,6 @@ class PropertyClass(Model, Notify):
         attributes = PropertyClass.__query_shacl(con, property._graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
         property.read_owl()
-        cache = CacheSingleton()
         cache.set(property.property_class_iri, property)
 
         return property
