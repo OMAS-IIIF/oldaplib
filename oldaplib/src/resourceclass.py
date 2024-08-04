@@ -236,6 +236,11 @@ class ResourceClass(Model, Notify):
         instance._prop_changeset = deepcopy(self._prop_changeset, memo)
         instance._hp_prop_changeset = deepcopy(self._hp_prop_changeset, memo)
         instance.__from_triplestore = self.__from_triplestore
+        #
+        # we have to set the callback for the associated props to the method in the new instance
+        #
+        for iri, hasprop in instance._properties.items():
+            hasprop.set_notifier(instance.hp_notifier, hasprop.prop.property_class_iri)
         return instance
 
 
@@ -323,7 +328,8 @@ class ResourceClass(Model, Notify):
             self._changeset[ResClassAttribute.SUPERCLASS] = AttributeChange(oldval, Action.MODIFY)
 
     def hp_notifier(self, what: Iri):
-        self._hp_prop_changeset[what] = ResourceClassPropertyChange(None, Action.MODIFY, True)
+        if self._hp_prop_changeset.get(what) is None:
+            self._hp_prop_changeset[what] = ResourceClassPropertyChange(None, Action.MODIFY, True)
 
     @property
     def in_use(self) -> bool:
@@ -555,7 +561,14 @@ class ResourceClass(Model, Notify):
                                                     order=haspropdata.order,
                                                     group=haspropdata.group))  # TODO: Callback ????
                     else:
-                        prop = PropertyClass.read(con, project, haspropdata.refprop)
+                        if haspropdata.refprop.is_qname:
+                            if haspropdata.refprop.as_qname.prefix != project.projectShortName:
+                                propproj = Project.read(con=con, projectIri_SName=haspropdata.refprop.as_qname.prefix)
+                            else:
+                                propproj = project
+                        else:
+                            propproj = project
+                        prop = PropertyClass.read(con, propproj, haspropdata.refprop)
                         prop.force_external()
                         proplist.append(HasProperty(con=con,
                                                     prop=prop,
@@ -1237,7 +1250,6 @@ class ResourceClass(Model, Notify):
         sparql += self.__update_shacl(timestamp=timestamp)
         sparql += ' ;\n'
         sparql += self.__update_owl(timestamp=timestamp)
-
         try:
             self._con.transaction_start()
         except OldapError as err:

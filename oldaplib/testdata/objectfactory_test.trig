@@ -44,13 +44,13 @@ test:shacl {
                 sh:path rdf:type ;
             ] ;
         sh:property [
-                sh:node foaf:familyName ;
+                sh:node oldap:familyNameShape ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
             ] ;
         sh:property
             [
-                sh:node foaf:givenName ;
+                sh:node oldap:givenNameShape ;
                 sh:minCount "1"^^xsd:integer ;
             ] .
 

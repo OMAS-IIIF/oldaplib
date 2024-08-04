@@ -7,6 +7,7 @@ from pystrict import strict
 from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
@@ -164,16 +165,16 @@ class ResourceInstance:
         #
         # get and transform values
         #
-        for prop_iri, prop in self.properties.items():
+        for prop_iri, hasprop in self.properties.items():
             if kwargs.get(prop_iri.fragment):
                 value = kwargs[prop_iri.fragment]
                 if isinstance(value, (list, tuple, set)):  # we may have multiple values...
-                    if prop.datatype == XsdDatatypes.langString:
+                    if hasprop.prop.datatype == XsdDatatypes.langString:
                         self._values[prop_iri.fragment] = LangString(value)
                     else:
-                        self._values[prop_iri.fragment] = [self.convert2datatype(x, prop.datatype) for x in value]
+                        self._values[prop_iri.fragment] = [self.convert2datatype(x, hasprop.prop.datatype) for x in value]
                 else:
-                    self._values[prop_iri.fragment] = self.convert2datatype(value, prop.datatype)
+                    self._values[prop_iri.fragment] = self.convert2datatype(value, hasprop.prop.datatype)
 
         for prop_iri in self.properties.keys():
             setattr(ResourceInstance, prop_iri.fragment, property(
@@ -192,22 +193,22 @@ class ResourceInstance:
         #
         # consistency and conformance tests
         #
-        for prop_iri, prop in self.properties.items():
-            if prop.get(PropClassAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
-                if prop[PropClassAttr.MIN_COUNT] > 0 and not self._values.get(prop_iri.fragment):
-                    raise OldapErrorValue(f'Property {prop_iri} with MIN_COUNT={prop[PropClassAttr.MIN_COUNT]} is missing')
+        for prop_iri, hasprop in self.properties.items():
+            if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
+                if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not self._values.get(prop_iri.fragment):
+                    raise OldapErrorValue(f'Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
                 elif isinstance(self._values[prop_iri.fragment], (list, tuple, set)) and len(self._values[prop_iri.fragment]) < 1:
-                    raise OldapErrorValue(f'Property {prop_iri} with MIN_COUNT={prop[PropClassAttr.MIN_COUNT]} is missing')
-            if prop.get(PropClassAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
+                    raise OldapErrorValue(f'Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+            if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
                 if isinstance(self._values.get(prop_iri.fragment), (list, tuple, set)) and len(self._values[prop_iri.fragment]) > prop[PropClassAttr.MAX_COUNT]:
-                    raise OldapErrorValue(f'Property {prop_iri} with MAX_COUNT={prop[PropClassAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
+                    raise OldapErrorValue(f'Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
             else:
                 if self._values.get(prop_iri):
                     if isinstance(self._values.get(prop_iri), (list, tuple, set)):
                         for val in self._values.get(prop_iri.fragment):
-                            self.validate_value(val, prop)
+                            self.validate_value(val, hasprop)
                     else:
-                        self.validate_value(self._values[prop_iri.fragment], prop)
+                        self.validate_value(self._values[prop_iri.fragment], hasprop)
 
     def validate_value(self, value: ValueType, property: PropertyClass):
         if property.get(PropClassAttr.LANGUAGE_IN):  # testing for LANGUAGE_IN conformance
@@ -378,7 +379,7 @@ class ResourceInstance:
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{self._graph}:{propname} {value.toRdf}'
         sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        print(sparql)
+        #print(sparql)
 
 
 #@strict
