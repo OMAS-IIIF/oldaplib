@@ -45,10 +45,12 @@ class ContextSingleton(type):
             Xsd_NCName('xml', validate=False): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
             Xsd_NCName('sh', validate=False): NamespaceIRI('http://www.w3.org/ns/shacl#'),
             Xsd_NCName('skos', validate=False): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
+            Xsd_NCName('schema', validate=False): NamespaceIRI('http://schema.org/'),
             Xsd_NCName('dc', validate=False): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
             Xsd_NCName('dcterms', validate=False): NamespaceIRI('http://purl.org/dc/terms/'),
             Xsd_NCName('foaf', validate=False): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
-            Xsd_NCName('oldap', validate=False): NamespaceIRI('http://oldap.org/base#')
+            Xsd_NCName('oldap', validate=False): NamespaceIRI('http://oldap.org/base#'),
+            Xsd_NCName('shared', validate=False): NamespaceIRI('http://oldap.org/shared#')
         }
         cls._predefined_inverse = {
             NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf', validate=False),
@@ -58,10 +60,12 @@ class ContextSingleton(type):
             NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml', validate=False),
             NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh', validate=False),
             NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos', validate=False),
+            NamespaceIRI('http://schema.org/'): Xsd_NCName('schema', validate=False),
             NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc', validate=False),
             NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms', validate=False),
             NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf', validate=False),
             NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap', validate=False),
+            NamespaceIRI('http://oldap.org/shared#'): Xsd_NCName('shared', validate=False),
         }
 
 
@@ -119,32 +123,6 @@ class Context(metaclass=ContextSingleton):
         self._name = name
         self._context = deepcopy(self._predefined_context)
         self._inverse = deepcopy(self._predefined_inverse)
-        # self._context = {
-        #     Xsd_NCName('rdf', validate=False): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
-        #     Xsd_NCName('rdfs', validate=False): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
-        #     Xsd_NCName('owl', validate=False): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
-        #     Xsd_NCName('xsd', validate=False): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
-        #     Xsd_NCName('xml', validate=False): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
-        #     Xsd_NCName('sh', validate=False): NamespaceIRI('http://www.w3.org/ns/shacl#'),
-        #     Xsd_NCName('skos', validate=False): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
-        #     Xsd_NCName('dc', validate=False): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
-        #     Xsd_NCName('dcterms', validate=False): NamespaceIRI('http://purl.org/dc/terms/'),
-        #     Xsd_NCName('foaf', validate=False): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
-        #     Xsd_NCName('oldap', validate=False): NamespaceIRI('http://oldap.org/base#')
-        # }
-        # self._inverse = {
-        #     NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf', validate=False),
-        #     NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs', validate=False),
-        #     NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl', validate=False),
-        #     NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd', validate=False),
-        #     NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml', validate=False),
-        #     NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh', validate=False),
-        #     NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos', validate=False),
-        #     NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc', validate=False),
-        #     NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms', validate=False),
-        #     NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf', validate=False),
-        #     NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap', validate=False),
-        # }
         self._use = []
 
     def __getitem__(self, prefix: Xsd_NCName | str) -> NamespaceIRI:

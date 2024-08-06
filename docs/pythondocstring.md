@@ -5,5 +5,5 @@
 ::: oldaplib.src.helpers.langstring
 
 # UserDataclass
-::: oldaplib.src.user_dataclass
+::: oldaplib.src.userdataclass
 

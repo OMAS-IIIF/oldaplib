@@ -162,6 +162,11 @@ class ResourceInstance:
         self._iri = iri or Iri()
         self._values = {}
         self._graph = self.project.projectShortName
+        self._superclass_objs = {}
+
+
+        #print("===> name=", self.name)
+        self.oldap_factory = ResourceInstanceFactory(con=self._con, project='oldap')
         #
         # get and transform values
         #
@@ -175,6 +180,19 @@ class ResourceInstance:
                         self._values[prop_iri.fragment] = [self.convert2datatype(x, hasprop.prop.datatype) for x in value]
                 else:
                     self._values[prop_iri.fragment] = self.convert2datatype(value, hasprop.prop.datatype)
+        #
+        # get the instances for the superclasses
+        #
+        if self.superclass:
+            for sc_key, sc in self.superclass.items():
+                sc_iri: Iri = Iri(sc_key)
+                if sc_iri.is_qname:
+                    if sc_iri.prefix == 'oldap':
+                        OldapInstance = self.oldap_factory.createObjectInstance(sc_iri.fragment)
+                        self._superclass_objs[sc_iri.fragment] = OldapInstance(**kwargs)
+                    else:
+                        # TODO: Deal with shared ontologies properly!!!!!!!!!!!
+                        pass
 
         for prop_iri in self.properties.keys():
             setattr(ResourceInstance, prop_iri.fragment, property(
@@ -182,26 +200,27 @@ class ResourceInstance:
                 partial(ResourceInstance.__set_value, attr=prop_iri.fragment),
                 partial(ResourceInstance.__del_value, attr=prop_iri.fragment)))
 
-        if not self._values.get('creator'):
-            self._values['createdBy'] = self._con.userIri
-        if not self._values.get('createdBy'):
-            self._values['creationDate'] = Xsd_dateTime()
-        if not self._values.get('lastModifiedBy'):
-            self._values['lastModifiedBy'] = self._con.userIri
-        if not self._values.get('lastModificationDate'):
-            self._values['lastModificationDate'] = Xsd_dateTimeStamp()
+        if self.name == "Thing":
+            if not self._values.get('createdBy'):
+                self._values['createdBy'] = self._con.userIri
+            if not self._values.get('creationDate'):
+                self._values['creationDate'] = Xsd_dateTime()
+            if not self._values.get('lastModifiedBy'):
+                self._values['lastModifiedBy'] = self._con.userIri
+            if not self._values.get('lastModificationDate'):
+                self._values['lastModificationDate'] = Xsd_dateTimeStamp()
         #
         # consistency and conformance tests
         #
         for prop_iri, hasprop in self.properties.items():
             if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
                 if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not self._values.get(prop_iri.fragment):
-                    raise OldapErrorValue(f'Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+                    raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
                 elif isinstance(self._values[prop_iri.fragment], (list, tuple, set)) and len(self._values[prop_iri.fragment]) < 1:
-                    raise OldapErrorValue(f'Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+                    raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
             if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
                 if isinstance(self._values.get(prop_iri.fragment), (list, tuple, set)) and len(self._values[prop_iri.fragment]) > prop[PropClassAttr.MAX_COUNT]:
-                    raise OldapErrorValue(f'Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
+                    raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
             else:
                 if self._values.get(prop_iri):
                     if isinstance(self._values.get(prop_iri), (list, tuple, set)):
@@ -354,7 +373,14 @@ class ResourceInstance:
         #self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
         del self._values[attr]
 
-    def create(self, indent: int = 0, indent_inc: int = 4):
+    def create_props(self, indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql = ''
+        for propname, value in self._values.items():
+            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{self._graph}:{propname} {value.toRdf}'
+        return sparql
+
+    def create(self, indent: int = 0, indent_inc: int = 4) -> str:
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
@@ -370,16 +396,19 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{'
 
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} a {self._graph}:{self.name}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:createdBy {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:lastModifiedBy {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:lastModificationDate {timestamp.toRdf}'
+        #sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:createdBy {self._con.userIri.toRdf}'
+        #sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:created {timestamp.toRdf}'
+        #sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:lastModifiedBy {self._con.userIri.toRdf}'
+        #sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:lastModificationDate {timestamp.toRdf}'
 
-        for propname, value in self._values.items():
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{self._graph}:{propname} {value.toRdf}'
+        for a, b in self._superclass_objs.items():
+            sparql += b.create_props(indent, indent_inc)
+        sparql += self.create_props(indent, indent_inc)
+        #for propname, value in self._values.items():
+        #    sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{self._graph}:{propname} {value.toRdf}'
         sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        #print(sparql)
+        print(sparql)
 
 
 #@strict
@@ -399,6 +428,9 @@ class ResourceInstanceFactory:
 
         self._datamodel = DataModel.read(con=self._con, project=self._project)
 
+        #self._oldap_project = Project.read(self._con, "oldap")
+        #self._oldap_datamodel = DataModel.read(con=self._con, project=self._oldap_project)
+
     def createObjectInstance(self, name: Xsd_NCName | str) -> Type:  ## ToDo: Get name automatically from IRI
         classiri = Xsd_QName(self._project.projectShortName, name)
         resclass = self._datamodel.get(classiri)
@@ -410,6 +442,8 @@ class ResourceInstanceFactory:
             '_con': self._con,
             'project': self._project,
             'name': name,
+            #'oldap_datamodel': self._oldap_datamodel,
+            'factory': self,
             'properties': resclass.properties,
             'superclass': resclass.superclass})
 

@@ -167,6 +167,7 @@ class TestObjectFactory(unittest.TestCase):
                       unsignedShortProp=Xsd_unsignedShort(20200),
                       unsignedByteProp=Xsd_unsignedByte(202),
                       positiveIntegerProp=Xsd_unsignedByte(202))
+        at.create()
         self.assertEqual(at.stringProp, Xsd_string("A String Prop"))
         self.assertEqual(at.langStringProp, LangString("A LangString@en", "Ein Sprachtext@de"))
         self.assertEqual(at.booleanProp, Xsd_boolean(1))
