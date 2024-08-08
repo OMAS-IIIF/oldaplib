@@ -140,7 +140,6 @@ class DataModel(Model):
         else:
             return None
 
-
     def get_propclasses(self) -> list[Iri]:
         return [x for x in self.__propclasses]
 
@@ -225,6 +224,7 @@ class DataModel(Model):
         query += f"""
         SELECT ?prop
         FROM {cls.__graph}:shacl
+        FROM shared:shacl
         WHERE {{
             ?prop a sh:PropertyShape
         }}

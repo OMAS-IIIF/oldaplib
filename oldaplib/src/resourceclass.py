@@ -563,7 +563,11 @@ class ResourceClass(Model, Notify):
                     else:
                         if haspropdata.refprop.is_qname:
                             if haspropdata.refprop.as_qname.prefix != project.projectShortName:
-                                propproj = Project.read(con=con, projectIri_SName=haspropdata.refprop.as_qname.prefix)
+                                # TODO: the list has to come from outside! Config?? Or read from triplestore? !!!!!!!!!!
+                                if haspropdata.refprop.as_qname.prefix in {'rdfs', 'dcterms', 'schema'}:
+                                    propproj = Project.read(con=con, projectIri_SName='oldap')
+                                else:
+                                    propproj = Project.read(con=con, projectIri_SName=haspropdata.refprop.as_qname.prefix)
                             else:
                                 propproj = project
                         else:

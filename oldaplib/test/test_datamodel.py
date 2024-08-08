@@ -345,8 +345,8 @@ class TestDataModel(unittest.TestCase):
             Iri("dcterms:created"),
             Iri("dcterms:contributor"),
             Iri("dcterms:modified"),
-            Iri("foaf:givenName"),
-            Iri("foaf:familyName")
+            Iri("schema:givenName"),
+            Iri("schema:familyName")
         })
         self.assertTrue(set(model.get_resclasses()) == {
             Iri("oldap:Project"),
@@ -783,8 +783,8 @@ class TestDataModel(unittest.TestCase):
                                superclass=Iri('oldap:Thing'),
                                label=LangString(["Person@en", "Person@de"]),
                                hasproperties=[
-                                   HasProperty(con=self._connection, prop=Iri('foaf:familyName'), minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=1),
-                                   HasProperty(con=self._connection, prop=Iri('foaf:givenName'), minCount=Xsd_integer(1), order=2)])
+                                   HasProperty(con=self._connection, prop=Iri('schema:familyName'), minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=1),
+                                   HasProperty(con=self._connection, prop=Iri('schema:givenName'), minCount=Xsd_integer(1), order=2)])
 
         dm = DataModel(con=self._connection,
                        project=self._project,

@@ -11,6 +11,7 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.helpers.irincname import IriOrNCName
+from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -243,9 +244,11 @@ class Project(Model):
                     return tmp
             query += f"""
                 SELECT ?prop ?val
-                FROM oldap:admin
+                FROM NAMED oldap:admin
                 WHERE {{
-                    {projectIri.toRdf} ?prop ?val
+                    GRAPH oldap:admin {{
+                        {projectIri.toRdf} ?prop ?val
+                    }}
                 }}
             """
         elif shortname is not None:
@@ -256,11 +259,13 @@ class Project(Model):
                     return tmp
             query += f"""
                 SELECT ?proj ?prop ?val
-                FROM oldap:admin
+                FROM NAMED oldap:admin
                 WHERE {{
-                    ?proj a oldap:Project .
-                    ?proj oldap:projectShortName ?shortname .
-                    ?proj ?prop ?val .
+                    GRAPH oldap:admin {{
+                        ?proj a oldap:Project .
+                        ?proj oldap:projectShortName ?shortname .
+                        ?proj ?prop ?val .
+                    }}
                     FILTER(?shortname = {shortname.toRdf})
                 }}
             """
@@ -349,24 +354,21 @@ class Project(Model):
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?project\n'
-        sparql += 'FROM oldap:admin\n'
+        sparql += 'FROM oldap:onto\n'
+        sparql += 'FROM shared:onto\n'
+        sparql += 'FROM NAMED oldap:admin\n'
         sparql += 'WHERE {\n'
-        sparql += '   ?project a oldap:Project .\n'
+        sparql += '    GRAPH oldap:admin {\n'
+        sparql += '        ?project a oldap:Project .\n'
         if label:
-            sparql += '   ?project rdfs:label ?label .\n'
-            sparql += f'   FILTER(CONTAINS(STR(?label), "{Xsd_string.escaping(label.value)}"))\n'
+            sparql += '        ?project rdfs:label ?label .\n'
+            sparql += '    }\n'
+            sparql += f'    FILTER(CONTAINS(STR(?label), "{Xsd_string.escaping(label.value)}"))\n'
         if comment:
-            sparql += '   ?project rdfs:comment ?comment .\n'
-            sparql += f'   FILTER(CONTAINS(STR(?comment), "{Xsd_string.escaping(comment.value)}"))\n'
+            sparql += '        ?project rdfs:comment ?comment .\n'
+            sparql += '    }\n'
+            sparql += f'    FILTER(CONTAINS(STR(?comment), "{Xsd_string.escaping(comment.value)}"))\n'
         sparql += '}\n'
-        # sparql += f"""
-        # SELECT DISTINCT ?project
-        # FROM oldap:admin
-        # WHERE {{
-        #     ?project rdfs:label ?label
-        #     FILTER(STRSTARTS(?label, "{label}"))
-        # }}
-        # """
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         projects: list[Iri] = []
@@ -555,8 +557,10 @@ class Project(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.projectIri.toRdf} a oldap:Project .
-            {self.projectIri.toRdf} ?prop ?val .
+            GRAPH oldap:admin {{
+                {self.projectIri.toRdf} a oldap:Project .
+                {self.projectIri.toRdf} ?prop ?val .
+            }}
         }} 
         """
         # TODO: use transaction for error handling

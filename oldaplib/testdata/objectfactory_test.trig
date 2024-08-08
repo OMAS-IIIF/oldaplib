@@ -5,9 +5,9 @@
 @prefix xml: <http://www.w3.org/XML/1998/namespace#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix schema: <http://schema.org/> .
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix oldap: <http://oldap.org/base#> .
 @prefix test: <http://oldap.org/test#> .
 
@@ -44,13 +44,13 @@ test:shacl {
                 sh:path rdf:type ;
             ] ;
         sh:property [
-                sh:node oldap:familyNameShape ;
+                sh:node schema:familyNameShape ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
             ] ;
         sh:property
             [
-                sh:node oldap:givenNameShape ;
+                sh:node schema:givenNameShape ;
                 sh:minCount "1"^^xsd:integer ;
             ] .
 
@@ -708,13 +708,13 @@ test:onto {
         rdfs:subClassOf oldap:Thing ,
         [
             rdf:type owl:Restriction ;
-            owl:onProperty foaf:familyName ;
+            owl:onProperty schema:familyName ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
             owl:onDatatype xsd:string
         ] ,
         [
             rdf:type owl:Restriction ;
-            owl:onProperty foaf:givenName ;
+            owl:onProperty schema:givenName ;
             owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
             owl:onDatatype xsd:string
         ] .

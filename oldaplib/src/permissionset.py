@@ -350,19 +350,20 @@ class PermissionSet(Model):
         else:
             sparql += 'SELECT DISTINCT ?permsetIri'
         sparql += '\n'
-        sparql += 'FROM oldap:admin\n'
+        sparql += 'FROM NAMED oldap:admin\n'
         sparql += 'WHERE {\n'
-        sparql += '   ?permsetIri rdf:type oldap:PermissionSet .\n'
+        sparql += '   GRAPH oldap:admin {\n'
+        sparql += '       ?permsetIri rdf:type oldap:PermissionSet .\n'
         if definedByProject:
-            sparql += '   ?permsetIri oldap:definedByProject ?definedByProject .\n'
-            sparql += '   ?definedByProject oldap:namespaceIri ?namespaceIri .\n'
-            sparql += '   ?definedByProject oldap:projectShortName ?projectShortName .\n'
+            sparql += '       ?permsetIri oldap:definedByProject ?definedByProject .\n'
+            sparql += '       ?definedByProject oldap:namespaceIri ?namespaceIri .\n'
+            sparql += '       ?definedByProject oldap:projectShortName ?projectShortName .\n'
         if givesPermission:
-            sparql += '   ?permsetIri oldap:givesPermission ?givesPermission .\n'
+            sparql += '       ?permsetIri oldap:givesPermission ?givesPermission .\n'
         if label:
-            sparql += '   ?permsetIri rdfs:label ?label .\n'
+            sparql += '       ?permsetIri rdfs:label ?label .\n'
         if permissionSetId or definedByProject or givesPermission or label:
-            sparql += '   FILTER('
+            sparql += '       FILTER('
             use_and = False
             if permissionSetId:
                 sparql += f'CONTAINS(STR(?permsetIri), "{Xsd_string.escaping(permissionSetId)}")'
@@ -385,6 +386,7 @@ class PermissionSet(Model):
                 else:
                     sparql += f'CONTAINS(STR(?label), "{Xsd_string.escaping(label.value)}")'
             sparql += ')\n'
+        sparql += '    }\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
@@ -489,8 +491,10 @@ class PermissionSet(Model):
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
-            {self.__permset_iri.toRdf} a oldap:PermissionSet .
-            {self.__permset_iri.toRdf} ?prop ?val .
+            GRAPH oldap:admin {{
+                {self.__permset_iri.toRdf} a oldap:PermissionSet .
+                {self.__permset_iri.toRdf} ?prop ?val .
+            }}
         }} 
         """
         # TODO: use transaction for error handling

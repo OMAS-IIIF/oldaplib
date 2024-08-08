@@ -31,6 +31,7 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 """
 PREFIX oldap: <http://oldap.org/base#>
 PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX schema: <http://schema.org/>
 
 INSERT DATA {
 	GRAPH oldap:admin {
@@ -40,8 +41,8 @@ INSERT DATA {
 		    dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
 		    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
 		    dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        	oldap:familyName "Rosenthaler"^^xsd:string ;
-        	oldap:givenName "Lukas"^^xsd:string ;
+        	schema:familyName "Rosenthaler"^^xsd:string ;
+        	schema:givenName "Lukas"^^xsd:string ;
         	oldap:credentials "$2b$12$N00UMBBJG9XfPV6R5NxulOTKi0qRBpypTFe82dKwSdTFrWZS7nat2"^^xsd:string ;
         	oldap:isActive "true"^^xsd:boolean .
 	}
@@ -189,11 +190,15 @@ class Connection(IConnection):
         sparql = context.sparql_context
         sparql += """
         SELECT ?sname ?ns
-        FROM oldap:admin
+        FROM oldap:onto
+        FROM shared:onto
+        FROM NAMED oldap:admin
         WHERE {
-            ?proj a oldap:Project .
-            ?proj oldap:projectShortName ?sname .
-            ?proj oldap:namespaceIri ?ns .
+            GRAPH oldap:admin {
+                ?proj a oldap:Project .
+                ?proj oldap:projectShortName ?sname .
+                ?proj oldap:namespaceIri ?ns .
+            }
         }
         """
         headers = {
@@ -473,7 +478,7 @@ if __name__ == "__main__":
                      repo="oldap",
                      context_name="DEFAULT")
     con.clear_repo()
-    con.upload_turtle("../ontologies/oldap.ttl", "http://oldap.org/base#onto")
-    con.upload_turtle("../ontologies/oldap.shacl.trig")
+    con.upload_turtle("../ontologies/oldap.trig")
+    con.upload_turtle("../ontologies/shared.trig")
     con.upload_turtle("../ontologies/admin.trig")
 

@@ -389,8 +389,8 @@ class User(Model):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:userId {self.userId.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:familyName {self.familyName.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}foaf:givenName {self.givenName.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:familyName {self.familyName.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:givenName {self.givenName.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:credentials {self.credentials.toRdf}'
         activeval = "true" if self.isActive else "false"
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:isActive {activeval}'
@@ -560,21 +560,25 @@ class User(Model):
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?user\n'
-        sparql += 'FROM oldap:admin\n'
+        sparql += 'FROM oldap:onto\n'
+        sparql += 'FROM shared:onto\n'
+        sparql += 'FROM NAMED oldap:admin\n'
         sparql += 'WHERE {\n'
-        sparql += '   ?user a oldap:User .\n'
+        sparql += '   GRAPH oldap:admin {\n'
+        sparql += '       ?user a oldap:User .\n'
         if userId is not None:
-            sparql += '   ?user oldap:userId ?user_id .\n'
-            sparql += f'   FILTER(?user_id = {userId.toRdf})\n'
+            sparql += '       ?user oldap:userId ?user_id .\n'
+            sparql += f'       FILTER(?user_id = {userId.toRdf})\n'
         if familyName is not None:
-            sparql += '   ?user foaf:familyName ?family_name .\n'
-            sparql += f'   FILTER(STR(?family_name) = {familyName.toRdf})\n'
+            sparql += '       ?user schema:familyName ?family_name .\n'
+            sparql += f'       FILTER(STR(?family_name) = {familyName.toRdf})\n'
         if givenName is not None:
-            sparql += '   ?user foaf:givenName ?given_name .\n'
-            sparql += f'   FILTER(STR(?given_name) = {givenName.toRdf})\n'
+            sparql += '       ?user schema:givenName ?given_name .\n'
+            sparql += f'       FILTER(STR(?given_name) = {givenName.toRdf})\n'
         if inProject is not None:
-            sparql += '   ?user oldap:inProject ?project .\n'
-            sparql += f'   FILTER(?project = {inProject.toRdf})\n'
+            sparql += '       ?user oldap:inProject ?project .\n'
+            sparql += f'      FILTER(?project = {inProject.toRdf})\n'
+        sparql += '    }\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
@@ -600,6 +604,7 @@ class User(Model):
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""
+        WITH oldap:admin
         DELETE {{
             <<?user oldap:inProject ?proj>> oldap:hasAdminPermission ?rval .    
         }}

@@ -186,9 +186,9 @@ class UserData:
                     modified = r['val']
                 case 'oldap:userId':
                     userId = r['val']
-                case 'foaf:familyName':
+                case 'schema:familyName':
                     familyName = r['val']
-                case 'foaf:givenName':
+                case 'schema:givenName':
                     givenName = r['val']
                 case 'oldap:credentials':
                     credentials = r['val']

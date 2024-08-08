@@ -10,10 +10,90 @@
 @prefix oldap: <http://oldap.org/base#> .
 
 
-@prefix shared: <http://http://oldap.org/shared#> .
-@prefix : <http://http://oldap.org/shared#> .
+@prefix shared: <http://oldap.org/shared#> .
+@prefix : <http://oldap.org/shared#> .
 
 shared:shacl {
+
+    #
+    # Define the SHACL for OLAPDLIB's use of rdfs:label
+    #
+    rdfs:labelShape a sh:PropertyShape ;
+        sh:path rdfs:label ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" "de" "fr" "it" ) ;
+        sh:uniqueLang true ;
+        sh:name "Label"@en,  "Label"@de, "Label"@fr, "Label"@it ;
+        sh:description "A human readable name for something."@en .
+
+    #
+    # Define SHACl for OLDAPLIB's use rdf:description
+    #
+    rdfs:commentShape a sh:PropertyShape ;
+        sh:path rdfs:comment ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" "de" "fr" "it" ) ;
+        sh:uniqueLang true ;
+        sh:name "Description"@en ;
+        sh:description "A description for something."@en .
+
+        #
+    # Definition of SHACL for OLDAP's use of dcterms:creator. Points an oldap:User .
+    #
+    dcterms:creatorShape a sh:PropertyShape ;
+        sh:path dcterms:creator ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:class oldap:User .
+
+    #
+    # Definitionm of SHACL for OLDAPLIB's use of dcterms:created
+    #
+    dcterms:createdShape a sh:PropertyShape ;
+        sh:path dcterms:created ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:datatype xsd:dateTime .
+
+    #
+    # Define SHACL for OLDAPLIB's use of dcterms:contributer. Points an oldap:User .
+    #
+    dcterms:contributorShape a sh:PropertyShape ;
+        sh:path dcterms:contributor ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:class oldap:User .
+
+    #
+    # Define SHACL of OLDAPLIB's use of dcterms:modified
+    #
+    dcterms:modifiedShape a sh:PropertyShape ;
+        sh:path dcterms:modified ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:datatype xsd:dateTime .
+
 
     schema:familyNameShape a sh:PropertyShape ;
         sh:path schema:familyName ;
@@ -23,8 +103,7 @@ shared:shacl {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:string ;
         sh:name "Family name"@en, "Familiennamen"@de, "Nom de famillie"@fr, "Nome della famiglia"@it ;
-        sh:description "The family name of some person."@en ;
-        sh:group :FoafGroup .
+        sh:description "The family name of some person."@en .
 
     schema:givenNameShape a sh:PropertyShape ;
         sh:path schema:givenName ;
@@ -34,12 +113,54 @@ shared:shacl {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:string ;
         sh:name "Given name"@en, "Vornamen"@de, "Pénom"@fr, "Nome"@it ;
-        sh:description "The given name of some person"@en ;
-        sh:group :FoafGroup .
+        sh:description "The given name of some person"@en .
 
 }
 
 shared:onto {
+
+    rdfs:label a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:range rdf:langString .
+
+    rdfs:comment a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:range rdf:langString .
+
+    dcterms:creator a owl:ObjectProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:range oldap:User .
+
+    dcterms:created a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:range xsd:dateTime .
+
+    dcterms:contributor a owl:ObjectProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:range oldap:User .
+
+    dcterms:modified a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:range xsd:dateTime .
+
 
     schema:familyName a owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;

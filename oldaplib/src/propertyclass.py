@@ -358,6 +358,7 @@ class PropertyClass(Model, Notify):
         query += f"""
         SELECT ?attriri ?value ?oo
         FROM {graph}:shacl
+        FROM shared:shacl
         WHERE {{
             BIND({property_class_iri}Shape AS ?shape)
             ?shape ?attriri ?value .
@@ -471,6 +472,7 @@ class PropertyClass(Model, Notify):
         query1 += f"""
         SELECT ?p ?o
         FROM {self._graph}:onto
+        FROM shared:onto
         WHERE {{
             {self._property_class_iri} ?p ?o
         }}

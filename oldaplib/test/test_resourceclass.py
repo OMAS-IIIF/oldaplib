@@ -100,6 +100,8 @@ def find_project_root(current_path):
 class TestResourceClass(unittest.TestCase):
     _context: Context
     _connection: Connection
+    _project: Project
+    _sysproject: Project
 
     @classmethod
     def setUpClass(cls):
@@ -125,6 +127,8 @@ class TestResourceClass(unittest.TestCase):
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
         cls._project = Project.read(cls._connection, "test")
+        cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
+
 
     @classmethod
     def tearDownClass(cls):
@@ -331,6 +335,134 @@ class TestResourceClass(unittest.TestCase):
         prop4a = r1[Iri("test:deepc_prop2")].prop
         prop4b = r2[Iri("test:deepc_prop2")].prop
         self.assertEqual(prop4a[PropClassAttr.IN], prop4b[PropClassAttr.IN])
+
+    def test_reading_sys(self):
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._sysproject,
+                                owl_class_iri=Iri('oldap:User'),
+                                ignore_cache=True)
+        self.assertEqual(r1.owl_class_iri, Iri('oldap:User'))
+        self.assertEqual(r1.version, SemanticVersion(1, 0, 0))
+        self.assertEqual(r1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(r1.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(r1.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(r1.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+
+        prop1 = r1[Iri('dcterms:creator')]
+        self.assertEqual(prop1.minCount, Xsd_integer(1))
+        self.assertEqual(prop1.maxCount, Xsd_integer(1))
+        self.assertEqual(prop1.prop.property_class_iri, Iri('dcterms:creator'))
+        self.assertEqual(prop1.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop1.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop1.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop1.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop1.prop.toClass, Iri('oldap:User'))
+
+        prop2 = r1[Iri('dcterms:created')]
+        self.assertEqual(prop2.minCount, Xsd_integer(1))
+        self.assertEqual(prop2.maxCount, Xsd_integer(1))
+        self.assertEqual(prop2.prop.property_class_iri, Iri('dcterms:created'))
+        self.assertEqual(prop2.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop2.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop2.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop2.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop2.prop.datatype, XsdDatatypes.dateTime)
+
+        prop3 = r1[Iri('dcterms:contributor')]
+        self.assertEqual(prop3.minCount, Xsd_integer(1))
+        self.assertEqual(prop3.maxCount, Xsd_integer(1))
+        self.assertEqual(prop3.prop.property_class_iri, Iri('dcterms:contributor'))
+        self.assertEqual(prop3.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop3.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop3.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop3.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop3.prop.toClass, Iri('oldap:User'))
+
+        prop4 = r1[Iri('dcterms:modified')]
+        self.assertEqual(prop4.minCount, Xsd_integer(1))
+        self.assertEqual(prop4.maxCount, Xsd_integer(1))
+        self.assertEqual(prop4.prop.property_class_iri, Iri('dcterms:modified'))
+        self.assertEqual(prop4.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop4.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop4.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop4.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop4.prop.datatype, XsdDatatypes.dateTime)
+
+        prop5 = r1[Iri('oldap:userId')]
+        self.assertEqual(prop5.minCount, Xsd_integer(1))
+        self.assertEqual(prop5.maxCount, Xsd_integer(1))
+        self.assertEqual(prop5.prop.property_class_iri, Iri('oldap:userId'))
+        self.assertEqual(prop5.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop5.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop5.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop5.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop5.prop.datatype, XsdDatatypes.NCName)
+        self.assertEqual(prop5.prop.minLength, Xsd_integer(3))
+        self.assertEqual(prop5.prop.maxLength, Xsd_integer(32))
+
+        prop6 = r1[Iri('schema:familyName')]
+        self.assertEqual(prop6.minCount, Xsd_integer(1))
+        self.assertEqual(prop6.maxCount, Xsd_integer(1))
+        self.assertEqual(prop6.prop.property_class_iri, Iri('schema:familyName'))
+        self.assertEqual(prop6.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop6.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop6.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop6.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop6.prop.datatype, XsdDatatypes.string)
+        self.assertEqual(prop6.prop.name, LangString(["Family name@en", "Familiennamen@de", "Nom de famillie@fr", "Nome della famiglia@it"]))
+        self.assertEqual(prop6.prop.description, LangString("The family name of some person.@en"))
+
+        prop7 = r1[Iri('schema:givenName')]
+        self.assertEqual(prop7.minCount, Xsd_integer(1))
+        self.assertEqual(prop7.maxCount, Xsd_integer(1))
+        self.assertEqual(prop7.prop.property_class_iri, Iri('schema:givenName'))
+        self.assertEqual(prop7.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop7.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop7.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop7.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop7.prop.datatype, XsdDatatypes.string)
+        self.assertEqual(prop7.prop.name, LangString(["Given name@en", "Vornamen@de", "Pénom@fr", "Nome@it"]))
+        self.assertEqual(prop7.prop.description, LangString("The given name of some person@en"))
+
+        prop8 = r1[Iri('oldap:credentials')]
+        self.assertEqual(prop8.minCount, Xsd_integer(1))
+        self.assertEqual(prop8.maxCount, Xsd_integer(1))
+        self.assertEqual(prop8.prop.property_class_iri, Iri('oldap:credentials'))
+        self.assertEqual(prop8.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop8.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop8.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop8.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop8.prop.datatype, XsdDatatypes.string)
+        self.assertEqual(prop8.prop.name, LangString(["Password@en", "Passwort@de", "Mot de passe@fr", "Password@it"]))
+        self.assertEqual(prop8.prop.description, LangString("Password for user.@en"))
+
+        prop9 = r1[Iri('oldap:inProject')]
+        self.assertEqual(prop9.prop.property_class_iri, Iri('oldap:inProject'))
+        self.assertEqual(prop9.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop9.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop9.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop9.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop9.prop.toClass, Iri('oldap:Project'))
+
+        prop10 = r1[Iri('oldap:isActive')]
+        self.assertEqual(prop10.minCount, Xsd_integer(1))
+        self.assertEqual(prop10.maxCount, Xsd_integer(1))
+        self.assertEqual(prop10.prop.property_class_iri, Iri('oldap:isActive'))
+        self.assertEqual(prop10.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop10.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop10.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop10.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop10.prop.datatype, XsdDatatypes.boolean)
+        self.assertIsNone(prop10.prop.name)
+        self.assertIsNone(prop10.prop.description)
+
+        prop11 = r1[Iri('oldap:hasPermissions')]
+        self.assertEqual(prop11.prop.property_class_iri, Iri('oldap:hasPermissions'))
+        self.assertEqual(prop11.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop11.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
+        self.assertEqual(prop11.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertEqual(prop11.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
+        self.assertEqual(prop11.prop.toClass, Iri('oldap:PermissionSet'))
 
     # @unittest.skip('Work in progress')
     def test_reading(self):
