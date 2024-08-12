@@ -1,5 +1,7 @@
+import re
 from datetime import datetime
 from functools import partial
+from pprint import pprint
 from typing import Type, Any, Self
 
 from pystrict import strict
@@ -11,14 +13,19 @@ from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.enums.permissions import AdminPermission
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency, \
-    OldapErrorNoPermission
+    OldapErrorNoPermission, OldapError
+from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -60,12 +67,12 @@ from oldaplib.src.xsd.xsd_unsignedint import Xsd_unsignedInt
 from oldaplib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
 from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 
-ValueType = Xsd | LangString | list[Xsd]
+ValueType = LangString | ObservableSet
 
 #@strict
 class ResourceInstance:
     _iri: Iri
-    _values: dict[str, Xsd | LangString | list[Xsd | LangString]]
+    _values: dict[Iri, LangString | ObservableSet]
     _graph: Xsd_NCName
 
     @staticmethod
@@ -164,175 +171,177 @@ class ResourceInstance:
         self._graph = self.project.projectShortName
         self._superclass_objs = {}
 
-
-        #print("===> name=", self.name)
-        self.oldap_factory = ResourceInstanceFactory(con=self._con, project='oldap')
-        #
-        # get and transform values
-        #
-        for prop_iri, hasprop in self.properties.items():
-            if kwargs.get(prop_iri.fragment):
-                value = kwargs[prop_iri.fragment]
-                if isinstance(value, (list, tuple, set)):  # we may have multiple values...
-                    if hasprop.prop.datatype == XsdDatatypes.langString:
-                        self._values[prop_iri.fragment] = LangString(value)
+        def set_values(propclass: dict[Iri, HasProperty]):
+            for prop_iri, hasprop in propclass.items():
+                if kwargs.get(prop_iri.fragment):
+                    value = kwargs[prop_iri.fragment]
+                    if isinstance(value, (list, tuple, set, LangString)):  # we may have multiple values...
+                        if hasprop.prop.datatype == XsdDatatypes.langString:
+                            self._values[prop_iri] = LangString(value,
+                                                                notifier=self.notifier, notify_data=prop_iri)
+                        else:
+                            self._values[prop_iri] = ObservableSet({self.convert2datatype(x, hasprop.prop.datatype) for x in value},
+                                                                   notifier=self.notifier, notify_data=prop_iri)
                     else:
-                        self._values[prop_iri.fragment] = [self.convert2datatype(x, hasprop.prop.datatype) for x in value]
-                else:
-                    self._values[prop_iri.fragment] = self.convert2datatype(value, hasprop.prop.datatype)
-        #
-        # get the instances for the superclasses
-        #
-        if self.superclass:
-            for sc_key, sc in self.superclass.items():
-                sc_iri: Iri = Iri(sc_key)
-                if sc_iri.is_qname:
-                    if sc_iri.prefix == 'oldap':
-                        OldapInstance = self.oldap_factory.createObjectInstance(sc_iri.fragment)
-                        self._superclass_objs[sc_iri.fragment] = OldapInstance(**kwargs)
-                    else:
-                        # TODO: Deal with shared ontologies properly!!!!!!!!!!!
-                        pass
+                        try:
+                            self._values[prop_iri] = ObservableSet({self.convert2datatype(value, hasprop.prop.datatype)})
+                        except TypeError:
+                            self._values[prop_iri] = self.convert2datatype(value, hasprop.prop.datatype)
 
-        for prop_iri in self.properties.keys():
-            setattr(ResourceInstance, prop_iri.fragment, property(
-                partial(ResourceInstance.__get_value, attr=prop_iri.fragment),
-                partial(ResourceInstance.__set_value, attr=prop_iri.fragment),
-                partial(ResourceInstance.__del_value, attr=prop_iri.fragment)))
-
-        if self.name == "Thing":
-            if not self._values.get('createdBy'):
-                self._values['createdBy'] = self._con.userIri
-            if not self._values.get('creationDate'):
-                self._values['creationDate'] = Xsd_dateTime()
-            if not self._values.get('lastModifiedBy'):
-                self._values['lastModifiedBy'] = self._con.userIri
-            if not self._values.get('lastModificationDate'):
-                self._values['lastModificationDate'] = Xsd_dateTimeStamp()
-        #
-        # consistency and conformance tests
-        #
-        for prop_iri, hasprop in self.properties.items():
-            if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
-                if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not self._values.get(prop_iri.fragment):
-                    raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
-                elif isinstance(self._values[prop_iri.fragment], (list, tuple, set)) and len(self._values[prop_iri.fragment]) < 1:
-                    raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
-            if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
-                if isinstance(self._values.get(prop_iri.fragment), (list, tuple, set)) and len(self._values[prop_iri.fragment]) > prop[PropClassAttr.MAX_COUNT]:
-                    raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
-            else:
+            for prop_iri, hasprop in propclass.items():
+                #
+                # Validate
+                #
+                if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
+                    if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not self._values.get(prop_iri):
+                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+                    elif isinstance(self._values[prop_iri], ObservableSet) and len(self._values[prop_iri]) < 1:
+                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+                if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
+                    if isinstance(self._values.get(prop_iri), ObservableSet) and len(self._values[prop_iri]) > hasprop[HasPropertyAttr.MAX_COUNT]:
+                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
                 if self._values.get(prop_iri):
-                    if isinstance(self._values.get(prop_iri), (list, tuple, set)):
-                        for val in self._values.get(prop_iri.fragment):
-                            self.validate_value(val, hasprop)
-                    else:
-                        self.validate_value(self._values[prop_iri.fragment], hasprop)
+                    if self._values.get(prop_iri):
+                        if isinstance(self._values[prop_iri], LangString):
+                            self.validate_value(self._values[prop_iri], hasprop.prop)
+                        else:
+                            if self._values.get(prop_iri):
+                                if isinstance(self._values[prop_iri], ObservableSet):
+                                    for val in self._values[prop_iri]:
+                                        self.validate_value(val, hasprop.prop)
+                                else:
+                                    self.validate_value(self._values[prop_iri], hasprop.prop)
 
-    def validate_value(self, value: ValueType, property: PropertyClass):
+        def process_superclasses(superclass: dict[Iri, ResourceClass]):
+           for sc_iri, sc in superclass.items():
+                if sc.superclass:
+                    process_superclasses(sc.superclass)
+                if sc.owl_class_iri == Iri("oldap:Thing", validate=False):
+                    timestamp = Xsd_dateTimeStamp()
+                    if not self._values.get('oldap:createdBy'):
+                        self._values[Iri('oldap:createdBy', validate=False)] = ObservableSet({self._con.userIri})
+                    if not self._values.get('oldap:creationDate'):
+                        self._values[Iri('oldap:creationDate', validate=False)] = ObservableSet({timestamp})
+                    if not self._values.get('oldap:lastModifiedBy'):
+                        self._values[Iri('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
+                    if not self._values.get('oldap:lastModificationDate'):
+                        self._values[Iri('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
+                set_values(sc.properties)
+
+
+        if self.superclass:
+            process_superclasses(self.superclass)
+
+        set_values(self.properties)
+
+        for propname in self._values.keys():
+            setattr(ResourceInstance, propname.fragment, property(
+                partial(ResourceInstance.__get_value, prefix=propname.prefix, fragment=propname.fragment),
+                partial(ResourceInstance.__set_value, prefix=propname.prefix, fragment=propname.fragment),
+                partial(ResourceInstance.__del_value, prefix=propname.prefix, fragment=propname.fragment)))
+
+    def validate_value(self, values: ValueType, property: PropertyClass):
         if property.get(PropClassAttr.LANGUAGE_IN):  # testing for LANGUAGE_IN conformance
-            if not isinstance(value, LangString):
-                raise OldapErrorInconsistency(f'Property {property} with LANGUAGE_IN requires datatype rdf:langstring.')
-            for lang, dummy in value.items():
+            if not isinstance(values, LangString):
+                raise OldapErrorInconsistency(f'Property {property.property_class_iri} with LANGUAGE_IN requires datatype rdf:langstring, got {type(values).__name__}.')
+            for lang, dummy in values.items():
                 if not lang in property[PropClassAttr.LANGUAGE_IN]:
-                    raise OldapErrorValue(f'Property {property} with LANGUAGE_IN={property[PropClassAttr.LANGUAGE_IN]} has invalid language "{lang.value}"')
+                    raise OldapErrorValue(f'Property {property.property_class_iri} with LANGUAGE_IN={property[PropClassAttr.LANGUAGE_IN]} has invalid language "{lang.value}"')
         if property.get(PropClassAttr.UNIQUE_LANG):
             return  # TODO: LangString does not yet allow multiple entries of the same language...
         if property.get(PropClassAttr.IN):
-            if not value in property[PropClassAttr.IN]:
-                raise OldapErrorValue(f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{value}"')
+            for val in values:
+                if not val in property[PropClassAttr.IN]:
+                    raise OldapErrorValue(f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{val}"')
         if property.get(PropClassAttr.MIN_LENGTH):
-            l = 0
-            try:
-                l = len(value)
-            except TypeError:
-                raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has no length.')
-            if l < property[PropClassAttr.MIN_LENGTH]:
-                raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has length "{len(value)}".')
+            for val in values:
+                l = 0
+                try:
+                    l = len(val)
+                except TypeError:
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has no length.')
+                if l < property[PropClassAttr.MIN_LENGTH]:
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has length "{len(val)}".')
         if property.get(PropClassAttr.MAX_LENGTH):
-            l = 0
-            try:
-                l = len(value)
-            except TypeError:
-                raise OldapErrorInconsistency(f'Property {property} with MAX_LENGTH={property[PropClassAttr.MAX_LENGTH]} has no length.')
-            if l > property[PropClassAttr.MAX_LENGTH]:
-                raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MAX_LENGTH]} has length "{len(value)}".')
+            for val in values:
+                l = 0
+                try:
+                    l = len(val)
+                except TypeError:
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_LENGTH={property[PropClassAttr.MAX_LENGTH]} has no length.')
+                if l > property[PropClassAttr.MAX_LENGTH]:
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MAX_LENGTH]} has length "{len(val)}".')
         if property.get(PropClassAttr.PATTERN):
-            pass  # TODO: regex pattern match!
+            for val in values:
+                if not re.fullmatch(str(property[PropClassAttr.PATTERN]), str(val)):
+                    raise OldapErrorInconsistency(f'Property {property} with PATTERN={property[PropClassAttr.PATTERN]} does not conform ({val}).')
         if property.get(PropClassAttr.MIN_EXCLUSIVE):
-            v: bool | None = None
-            try:
-                v = value > property[PropClassAttr.MIN_EXCLUSIVE]
-            except TypeError:
-                raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} cannot be compared to "{value}".')
-            if not v:
-                raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} has invalid "{value}".')
+            for val in values:
+                v: bool | None = None
+                try:
+                    v = val > property[PropClassAttr.MIN_EXCLUSIVE]
+                except TypeError:
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} cannot be compared to "{val}".')
+                if not v:
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} has invalid "{val}".')
         if property.get(PropClassAttr.MIN_INCLUSIVE):
-            v: bool | None = None
-            try:
-                v = value >= property[PropClassAttr.MIN_INCLUSIVE]
-            except TypeError:
-                raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{value}".')
-            if not v:
-                raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{value}".')
+            for val in values:
+                v: bool | None = None
+                try:
+                    v = val >= property[PropClassAttr.MIN_INCLUSIVE]
+                except TypeError:
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{value}".')
+                if not v:
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{value}".')
         if property.get(PropClassAttr.MAX_EXCLUSIVE):
-            v: bool | None = None
-            try:
-                v = value < property[PropClassAttr.MAX_EXCLUSIVE]
-            except TypeError:
-                raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{value}".')
-            if not v:
-                raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{value}".')
+            for val in values:
+                v: bool | None = None
+                try:
+                    v = val < property[PropClassAttr.MAX_EXCLUSIVE]
+                except TypeError:
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{value}".')
+                if not v:
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{value}".')
         if property.get(PropClassAttr.MAX_INCLUSIVE):
-            v: bool | None = None
-            try:
-                v = value <= property[PropClassAttr.MAX_INCLUSIVE]
-            except TypeError:
-                raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{value}".')
-            if not v:
-                raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{value}".')
+            for val in values:
+                v: bool | None = None
+                try:
+                    v = val <= property[PropClassAttr.MAX_INCLUSIVE]
+                except TypeError:
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{value}".')
+                if not v:
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{value}".')
         if property.get(PropClassAttr.LESS_THAN):
-            other_value = self._values.get(property[PropClassAttr.LESS_THAN])
-            if isinstance(other_value, (list, tuple, list)):
-                for oval in other_value:
-                    b: bool | None = None
-                    try:
-                        b = value < oval
-                    except TypeError:
-                        raise OldapErrorInconsistency(
-                            f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {oval}".')
-                    if not b:
-                        raise OldapErrorInconsistency(
-                            f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{oval}".')
-            else:
+            other_values = self._values.get(property[PropClassAttr.LESS_THAN])
+            if other_values is not None:
                 b: bool | None = None
                 try:
-                    b = value < other_value
+                    min_other_value = min(other_values)
+                    max_value = max(values)
+                    b = max_value < min_other_value
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {other_value}".')
+                    raise OldapErrorInconsistency(
+                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{max_value} / {min_other_value}".')
                 if not b:
-                    raise OldapErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{other_value}".')
-        if property.get(PropClassAttr.LESS_THAN_OR_EQUAL):
-            other_value = self._values.get(property[PropClassAttr.LESS_THAN])
-            if isinstance(other_value, (list, tuple, list)):
-                for oval in other_value:
-                    b: bool | None = None
-                    try:
-                        b = value < oval
-                    except TypeError:
-                        raise OldapErrorInconsistency(
-                            f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {oval}".')
-                    if not b:
-                        raise OldapErrorInconsistency(
-                            f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{oval}".')
-            else:
+                    raise OldapErrorInconsistency(
+                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
+        if property.get(PropClassAttr.LESS_THAN_OR_EQUALS):
+            other_values = self._values.get(property[PropClassAttr.LESS_THAN])
+            if other_values is not None:
                 b: bool | None = None
                 try:
-                    b = value < other_value
+                    min_other_value = min(other_values)
+                    max_value = max(values)
+                    b = max_value <= min_other_value
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{value} / {other_value}".')
+                    raise OldapErrorInconsistency(
+                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} cannot be compared "{max_value} / {min_other_value}".')
                 if not b:
-                    raise OldapErrorInconsistency(f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{value}" NOT LESS_THAN "{other_value}".')
+                    raise OldapErrorInconsistency(
+                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
+
+    def notifier(self, prop: Iri):
+        pass  # TODO: react to change!!!
 
     def check_for_permissions(self) -> (bool, str):
         #
@@ -340,7 +349,7 @@ class ResourceInstance:
         # the given project!
         #
         actor = self._con.userdata
-        sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
+        sysperms = actor.inProject.get(Iri('oldap:SystemProject', validate=False))
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             #
             # user has root privileges!
@@ -358,27 +367,33 @@ class ResourceInstance:
                         return False, f'Actor has no ADMIN_CREATE permission for project {proj}'
             return True, "OK"
 
-
-    def __get_value(self: Self, attr: str) -> ValueType | None:
+    def __get_value(self: Self, prefix: str, fragment: str) -> Xsd | ValueType | None:
+        attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
         tmp = self._values.get(attr)
         if not tmp:
             return None
-        return tmp
+        if isinstance(tmp, ObservableSet):
+            if len(tmp) > 1:
+                return tmp  # return the observable set
+            else:
+                return next(iter(tmp))  # return the single element
+        else:
+            return tmp  # return the single element
 
-    def __set_value(self: Self, value: ValueType, attr: str) -> None:
+    def __set_value(self: Self, value: ValueType, prefix: str, fragment: str) -> None:
+        attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
+        self.validate_value(value, attr)
         self._values[attr] = value
         #self.__change_setter(attr, value)
 
-    def __del_value(self: Self, attr: str) -> None:
+    def __del_value(self: Self, prefix: str, fragment: str) -> None:
         #self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
+        attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
         del self._values[attr]
 
-    def create_props(self, indent: int = 0, indent_inc: int = 4):
-        blank = ''
-        sparql = ''
-        for propname, value in self._values.items():
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{self._graph}:{propname} {value.toRdf}'
-        return sparql
+    @property
+    def iri(self) -> Iri:
+        return self._iri
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> str:
         result, message = self.check_for_permissions()
@@ -386,6 +401,12 @@ class ResourceInstance:
             raise OldapErrorNoPermission(message)
 
         timestamp = Xsd_dateTimeStamp()
+        if self.name == "Thing":
+            self._values[Iri('oldap:createdBy', validate=False)] = ObservableSet({self._con.userIri})
+            self._values[Iri('oldap:creationDate', validate=False)] = ObservableSet({timestamp})
+            self._values[Iri('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
+            self._values[Iri('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
+
         indent: int = 0
         indent_inc: int = 4
 
@@ -396,19 +417,83 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{'
 
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} a {self._graph}:{self.name}'
-        #sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:createdBy {self._con.userIri.toRdf}'
-        #sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:created {timestamp.toRdf}'
-        #sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:lastModifiedBy {self._con.userIri.toRdf}'
-        #sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:lastModificationDate {timestamp.toRdf}'
 
-        for a, b in self._superclass_objs.items():
-            sparql += b.create_props(indent, indent_inc)
-        sparql += self.create_props(indent, indent_inc)
-        #for propname, value in self._values.items():
-        #    sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{self._graph}:{propname} {value.toRdf}'
+        for prop_iri, values in self._values.items():
+            if self.properties.get(prop_iri) and self.properties[prop_iri].prop.datatype == XsdDatatypes.QName:
+                qnames = {f'"{x}"^^xsd:QName' for x in values}
+                qnames_rdf = ', '.join(qnames)
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {qnames_rdf}'
+            else:
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {values.toRdf}'
         sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        print(sparql)
+
+        self._con.transaction_start()
+        try:
+            self._con.transaction_update(sparql)
+        except OldapError as e:
+            self._con.transaction_abort()
+            raise
+        self._con.transaction_commit()
+
+
+    @classmethod
+    def read(cls,
+             con: IConnection,
+             project: Project | Iri | Xsd_NCName | str,
+             iri: Iri) -> Self:
+        if not isinstance(project, Project):
+            project = Project.read(con, project)
+        graph = project.projectShortName
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        sparql += f'''
+SELECT ?predicate ?value
+FROM oldap:onto
+FROM shared:onto
+FROM test:onto
+FROM NAMED oldap:admin
+FROM NAMED test:data
+WHERE {{
+	BIND({iri.toRdf} as ?iri)
+    GRAPH test:data {{
+        ?iri ?predicate ?value .
+        ?iri oldap:grantsPermission ?permset .
+    }}
+    BIND({con.userIri.toRdf} as ?user)
+    GRAPH oldap:admin {{
+    	?user oldap:hasPermissions ?permset .
+    	?permset oldap:givesPermission ?DataPermission .
+    	?DataPermission oldap:permissionValue ?permval .
+    }}
+    FILTER(?permval >= "2"^^xsd:integer)
+}}'''
+        jsonres = con.query(sparql)
+        res = QueryProcessor(context, jsonres)
+        objtype = None
+        kwargs: dict[str, Any] = {}
+        for r in res:
+            if r['predicate'] == 'rdf:type':
+                if r['value'].is_qname:
+                    objtype = r['value'].as_qname.fragment
+                else:
+                    raise OldapErrorInconsistency(f"Expected QName as value, got {r['value']}")
+            else:
+                if r['predicate'].is_qname:
+                    if kwargs.get(r['predicate'].as_qname.fragment):
+                        kwargs[r['predicate'].as_qname.fragment].add(r['value'])
+                    else:
+                        try:
+                            kwargs[r['predicate'].as_qname.fragment] = {r['value']}
+                        except TypeError:
+                            kwargs[r['predicate'].as_qname.fragment] = r['value']
+                else:
+                    raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
+        if objtype is None:
+            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+        if cls.__name__ != objtype:
+            raise OldapErrorInconsistency(f'Expected class {cls.__name__}, got {objtype} instead.')
+        return cls(**kwargs)
 
 
 #@strict
@@ -442,7 +527,6 @@ class ResourceInstanceFactory:
             '_con': self._con,
             'project': self._project,
             'name': name,
-            #'oldap_datamodel': self._oldap_datamodel,
             'factory': self,
             'properties': resclass.properties,
             'superclass': resclass.superclass})

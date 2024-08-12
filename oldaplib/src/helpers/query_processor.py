@@ -131,7 +131,7 @@ class QueryProcessor:
                                 row[name] = Xsd_QName.fromRdf(valobj["value"])
                             case 'xsd:normalizedString':
                                 row[name] = Xsd_normalizedString.fromRdf(valobj["value"])
-                            case 'xsd:token:':
+                            case 'xsd:token':
                                 row[name] = Xsd_token.fromRdf(valobj["value"])
                             case 'xsd:NMTOKEN':
                                 row[name] = Xsd_NMTOKEN.fromRdf(valobj["value"])

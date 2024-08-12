@@ -185,7 +185,7 @@
         schema:familyName "Doe"^^xsd:string ;
         schema:givenName "John"^^xsd:string ;
         :credentials "*"^^xsd:string ;
-        :inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
+        #:inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
         :hasPermissions :GenericRestricted ;
         :isActive true .
 

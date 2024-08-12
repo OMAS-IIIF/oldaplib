@@ -147,6 +147,8 @@ class Connection(IConnection):
             self._userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
             self._token = token
             return
+        if userId is None and credentials is None:
+            userId = Xsd_NCName("unknown", validate=False)
         if not isinstance(userId, Xsd_NCName):
             userId = Xsd_NCName(userId)
         if userId is None or credentials is None:
@@ -169,9 +171,10 @@ class Connection(IConnection):
         self._userdata = UserData.from_query(res)
         if not self._userdata.isActive:
             raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
-        hashed = str(self._userdata.credentials).encode('utf-8')
-        if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
-            raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
+        if userId != "unknown":
+            hashed = str(self._userdata.credentials).encode('utf-8')
+            if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
+                raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
 
         expiration = datetime.now() + timedelta(days=1)
         payload = {

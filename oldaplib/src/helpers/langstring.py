@@ -23,6 +23,8 @@ from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
+GenStr = str | Xsd_string
+GenStrCollection = list[GenStr] | set[GenStr] | tuple[GenStr]
 
 @dataclass
 class LangStringChange:
@@ -73,10 +75,10 @@ class LangString(Notify):
     defaultLanguage: Language = Language.EN
     priorities: list[Language] = [Language.EN, Language.DE, Language.FR]
 
-    def __init__(self, *args: str | Xsd_string | List[str] | Dict[Language | str, str] | Self | None,
-                 langstring: str | Xsd_string | List[str] | Dict[Language | str, str] | Self | None = None,
-                 notifier: Optional[Callable[[AttributeClass], None]] = None,
-                 notify_data: Optional[AttributeClass] = None):
+    def __init__(self, *args: GenStr | GenStrCollection | dict[Language | str, str] | Self | None,
+                 langstring: GenStr | GenStrCollection | dict[Language | str, str] | Self | None = None,
+                 notifier: Callable[[AttributeClass | Iri], None] | None = None,
+                 notify_data: AttributeClass | Iri | None = None):
         """
         Implements language dependent strings.
 
@@ -116,7 +118,7 @@ class LangString(Notify):
                     xstr = Xsd_string(langstring)
                     l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
                     self._langstring[l] = xstr.value
-                elif isinstance(langstring, (list, tuple)):
+                elif isinstance(langstring, (list, tuple, set)):
                     for lstr in langstring:
                         xstr = Xsd_string(lstr)
                         if not xstr:
