@@ -1,7 +1,7 @@
 from enum import unique, Enum
 
 from oldaplib.src.enums.attributeclass import AttributeClass
-from oldaplib.src.enums.permissions import DataPermission
+from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.xsd.iri import Iri

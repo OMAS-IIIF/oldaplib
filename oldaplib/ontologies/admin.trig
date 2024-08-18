@@ -59,7 +59,7 @@
 
     :DATA_EXTEND a :DataPermission ;
         rdfs:label "EXTEND"@en ;
-        rdfs:comment "Allows to extend the data (e.g. adding a comment or annotation or adding data to a filed that has a cardinality greater one)."@en ;
+        rdfs:comment "Allows to extend the data (e.g. adding a comment or annotation or adding data to a field that has a cardinality greater one)."@en ;
         :permissionValue "3"^^xsd:integer .
 
     :DATA_UPDATE a :DataPermission ;
@@ -80,9 +80,9 @@
 
     :SystemProject a :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         :projectShortName "oldap"^^xsd:NCName ;
         :namespaceIri "http://oldap.org/base#"^^xsd:anyURI ;
         rdfs:label "System"@en, "System"@de, "Système"@fr, "Systema"@it ;
@@ -91,9 +91,9 @@
 
     :HyperHamlet a :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         :projectShortName "hyha"^^xsd:NCName ;
         :namespaceIri "http://hyperhamlet.unibas.ch/"^^xsd:anyURI ;
         rdfs:label "HyperHamlet"@en, "HyperHamlet"@de, "HyperHamlet"@fr, "HyperHamlet"@it ;
@@ -102,9 +102,9 @@
 
     <http://www.salsah.org/version/2.0/SwissBritNet> a :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         :projectShortName "britnet"^^xsd:NCName ;
         :namespaceIri "http://www.salsah.org/version/2.0/SwissBritNet#"^^xsd:anyURI ;
         rdfs:label "SwissBritNet"@en ;
@@ -117,27 +117,45 @@
     #
     :GenericRestricted a :PermissionSet ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
         :givesPermission :DATA_RESTRICTED ;
         :definedByProject :SystemProject .
 
     :GenericView a :PermissionSet ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "GenericView"@en, "GenericView"@de, "GenericView"@fr, "GenericView"@it ;
         :givesPermission :DATA_VIEW ;
         :definedByProject :SystemProject .
 
+    :GenericExtend a :PermissionSet ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:label "GenericExtend"@en, "GenericExtend"@de, "GenericExtend"@fr, "GenericExtend"@it ;
+        :givesPermission :DATA_EXTEND ;
+        :definedByProject :SystemProject .
+
+    :GenericUpdate a :PermissionSet ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:label "GenericView"@en, "GenericView"@de, "GenericView"@fr, "GenericView"@it ;
+        :givesPermission :DATA_UPDATE ;
+        :definedByProject :SystemProject .
+
     hyha:HyperHamletMember a :PermissionSet ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:label "HyHaUpdate"@en, "HyHaUpdate"@de, "HyHaUpdate"@fr, "HyHaUpdate"@it ;
         :givesPermission :DATA_UPDATE ;
         :definedByProject :HyperHamlet .
@@ -147,9 +165,9 @@
     #
     <https://orcid.org/0000-0003-1681-4036> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         :userId "rosenth"^^xsd:NCName ;
         schema:familyName "Rosenthaler"^^xsd:string ;
         schema:givenName "Lukas"^^xsd:string ;
@@ -163,9 +181,9 @@
 
     <https://orcid.org/0000-0003-1485-4923> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         :userId "fornaro"^^xsd:NCName ;
         schema:familyName "Fornaro"^^xsd:string ;
         schema:givenName "Peter R."^^xsd:string ;
@@ -178,9 +196,9 @@
 
     <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         :userId "unknown"^^xsd:NCName ;
         schema:familyName "Doe"^^xsd:string ;
         schema:givenName "John"^^xsd:string ;
@@ -191,9 +209,9 @@
 
     <https://orcid.org/0000-0001-9277-3921> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         :userId "bugsbunny"^^xsd:NCName ;
         schema:familyName "Bunny"^^xsd:string ;
         schema:givenName "Bugs"^^xsd:string ;

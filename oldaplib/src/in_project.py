@@ -18,7 +18,7 @@ from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.helpers.observable_set import ObservableSet
-from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorKey
 from oldaplib.src.helpers.serializer import serializer
 import json

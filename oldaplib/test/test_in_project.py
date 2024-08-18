@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorKey
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.in_project import InProjectClass

@@ -5,7 +5,7 @@ from typing import List, Self, Any
 from datetime import date, datetime
 
 from oldaplib.src.cachesingleton import CacheSingleton
-from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.projectattr import ProjectAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action

@@ -7,7 +7,7 @@ from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
 from oldaplib.src.permissionset import PermissionSet
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.language import Language
-from oldaplib.src.enums.permissions import DataPermission
+from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapErrorNotFound, OldapErrorNoPermission, OldapErrorAlreadyExists, OldapErrorImmutable

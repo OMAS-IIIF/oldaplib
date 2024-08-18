@@ -166,7 +166,7 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorAlreadyExists, OldapErrorNotFound, OldapErrorUpdateFailed, \
     OldapErrorValue, OldapErrorNoPermission
 from oldaplib.src.helpers.query_processor import QueryProcessor
-from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
@@ -846,7 +846,7 @@ class User(Model):
             self._con.transaction_abort()
             raise
         if timestamp != modtime:
-            raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
+            raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (timestamp: {timestamp}, modtime: {modtime}).")
         try:
             self._con.transaction_commit()
         except OldapError:

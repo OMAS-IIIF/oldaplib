@@ -264,4 +264,4 @@ class Model:
         if self._con.in_transaction():
             self._con.transaction_update(sparql)
         else:
-            self._con.query(sparql)
+            self._con.update_query(sparql)

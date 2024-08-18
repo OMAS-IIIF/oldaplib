@@ -7,7 +7,7 @@ the Language class provides all necessary enumerations.
 from dataclasses import dataclass
 from datetime import datetime
 from pprint import pprint
-from typing import Dict, List, Optional, Callable, Self
+from typing import Dict, List, Optional, Callable, Self, Iterator
 
 from pystrict import strict
 
@@ -71,6 +71,7 @@ class LangString(Notify):
     _langstring: Dict[Language, str]
     _changeset: Dict[Language, LangStringChange]
     _notifier: Callable[[type], None] | None
+    _iteration: Iterator[Language] | None
 
     defaultLanguage: Language = Language.EN
     priorities: list[Language] = [Language.EN, Language.DE, Language.FR]
@@ -98,6 +99,8 @@ class LangString(Notify):
         super().__init__(notifier, notify_data)
         self._changeset = {}
         self._langstring = {}
+        self._iteration = None
+        #self._iteration = self._langstring.__iter__()
 
         if len(args) <= 1:
             if len(args) == 1:
@@ -246,6 +249,14 @@ class LangString(Notify):
 
     def __repr__(self) -> str:
         return f'LangString({self.__str__()})'
+
+    def __iter__(self) -> Self:
+        self._iteration = self._langstring.__iter__()
+        return self
+
+    def __next__(self):
+        lang = self._iteration.__next__()
+        return Xsd_string(self._langstring[lang], lang)
 
     @property
     def toRdf(self) -> str:
@@ -605,3 +616,9 @@ class LangString(Notify):
         return sparql
 
 
+if __name__ == '__main__':
+    ls = LangString("Deutsch@de", "Français@fr")
+    for l in ls:
+        print(l.toRdf)
+        #print(ls[l].toRdf)
+    print(ls.toRdf)

@@ -1,5 +1,7 @@
 import re
+import threading
 from datetime import datetime
+from enum import Enum, EnumMeta
 from functools import partial
 from pprint import pprint
 from typing import Type, Any, Self
@@ -9,17 +11,20 @@ from pystrict import strict
 from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
-from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.hasproperty import HasProperty
+from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency, \
-    OldapErrorNoPermission, OldapError
+    OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed
 from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.singletonmeta import SingletonMeta
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
@@ -69,11 +74,13 @@ from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 
 ValueType = LangString | ObservableSet
 
+
 #@strict
 class ResourceInstance:
     _iri: Iri
     _values: dict[Iri, LangString | ObservableSet]
     _graph: Xsd_NCName
+    _changeset: dict[Iri, AttributeChange]
 
     @staticmethod
     def convert2datatype(value: Any, datatype: XsdDatatypes) -> Xsd | LangString:
@@ -170,6 +177,7 @@ class ResourceInstance:
         self._values = {}
         self._graph = self.project.projectShortName
         self._superclass_objs = {}
+        self._changeset = {}
 
         def set_values(propclass: dict[Iri, HasProperty]):
             for prop_iri, hasprop in propclass.items():
@@ -201,16 +209,14 @@ class ResourceInstance:
                     if isinstance(self._values.get(prop_iri), ObservableSet) and len(self._values[prop_iri]) > hasprop[HasPropertyAttr.MAX_COUNT]:
                         raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
                 if self._values.get(prop_iri):
-                    if self._values.get(prop_iri):
-                        if isinstance(self._values[prop_iri], LangString):
-                            self.validate_value(self._values[prop_iri], hasprop.prop)
+                    if isinstance(self._values[prop_iri], LangString):
+                        self.validate_value(self._values[prop_iri], hasprop.prop)
+                    else:
+                        if isinstance(self._values[prop_iri], ObservableSet):
+                            for val in self._values[prop_iri]:
+                                self.validate_value(val, hasprop.prop)
                         else:
-                            if self._values.get(prop_iri):
-                                if isinstance(self._values[prop_iri], ObservableSet):
-                                    for val in self._values[prop_iri]:
-                                        self.validate_value(val, hasprop.prop)
-                                else:
-                                    self.validate_value(self._values[prop_iri], hasprop.prop)
+                            self.validate_value(self._values[prop_iri], hasprop.prop)
 
         def process_superclasses(superclass: dict[Iri, ResourceClass]):
            for sc_iri, sc in superclass.items():
@@ -227,6 +233,8 @@ class ResourceInstance:
                     if not self._values.get('oldap:lastModificationDate'):
                         self._values[Iri('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
                 set_values(sc.properties)
+                for iri, prop in sc.properties.items():
+                    self.properties[iri] = prop
 
 
         if self.superclass:
@@ -234,11 +242,12 @@ class ResourceInstance:
 
         set_values(self.properties)
 
-        for propname in self._values.keys():
+        for propname in self.properties.keys():
             setattr(ResourceInstance, propname.fragment, property(
                 partial(ResourceInstance.__get_value, prefix=propname.prefix, fragment=propname.fragment),
                 partial(ResourceInstance.__set_value, prefix=propname.prefix, fragment=propname.fragment),
                 partial(ResourceInstance.__del_value, prefix=propname.prefix, fragment=propname.fragment)))
+        self.clear_changeset()
 
     def validate_value(self, values: ValueType, property: PropertyClass):
         if property.get(PropClassAttr.LANGUAGE_IN):  # testing for LANGUAGE_IN conformance
@@ -380,20 +389,79 @@ class ResourceInstance:
         else:
             return tmp  # return the single element
 
-    def __set_value(self: Self, value: ValueType, prefix: str, fragment: str) -> None:
-        attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
-        self.validate_value(value, attr)
-        self._values[attr] = value
-        #self.__change_setter(attr, value)
+    def __set_value(self: Self, value: ValueType | Xsd | None, prefix: str, fragment: str) -> None:
+        prop_iri = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
+        hasprop = self.properties.get(prop_iri)
+
+        #
+        # Validate
+        #
+        if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
+            if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not value:
+                raise OldapErrorValue(
+                    f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+            elif isinstance(value, (list, tuple, set, ObservableSet)) and len(value) < 1:
+                raise OldapErrorValue(
+                    f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+        if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
+            if isinstance(value, (list, tuple, set, ObservableSet)) and len(value) > hasprop[
+                HasPropertyAttr.MAX_COUNT]:
+                raise OldapErrorValue(
+                    f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(value)})')
+        if value:
+            if isinstance(value, LangString):
+                self.validate_value(value, hasprop.prop)
+            else:
+                if isinstance(value, (list, tuple, set, ObservableSet)):
+                    for val in self._values[prop_iri]:
+                        self.validate_value(val, hasprop.prop)
+                else:
+                    self.validate_value(value, hasprop.prop)
+
+        if not value:
+            self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.DELETE)
+            del self._values[prop_iri]
+        elif isinstance(value, (list, tuple, set, LangString)):  # we may have multiple values...
+            if self._values.get(prop_iri):
+                self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.REPLACE)
+            else:
+                self._changeset[prop_iri] = AttributeChange(None, Action.CREATE)
+            if hasprop.prop.datatype == XsdDatatypes.langString:
+                self._values[prop_iri] = LangString(value, notifier=self.notifier, notify_data=prop_iri)
+            else:
+                self._values[prop_iri] = ObservableSet({
+                    self.convert2datatype(x, hasprop.prop.datatype) for x in value
+                }, notifier=self.notifier, notify_data=prop_iri)
+        else:
+            if self._values.get(prop_iri):
+                self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.REPLACE)
+            else:
+                self._changeset[prop_iri] = AttributeChange(None, Action.CREATE)
+            try:
+                self._values[prop_iri] = ObservableSet({self.convert2datatype(value, hasprop.prop.datatype)})
+            except TypeError:
+                self._values[prop_iri] = self.convert2datatype(value, hasprop.prop.datatype)
 
     def __del_value(self: Self, prefix: str, fragment: str) -> None:
-        #self.__changeset[attr] = ProjectAttrChange(self.__attributes[attr], Action.DELETE)
+        prop_iri = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
+        self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.DELETE)
         attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
         del self._values[attr]
 
     @property
     def iri(self) -> Iri:
         return self._iri
+
+    @property
+    def changeset(self) -> dict[Iri, AttributeChange]:
+        return self._changeset
+
+    def clear_changeset(self) -> None:
+        for item in self._values:
+            if hasattr(self._values[item], 'clear_changeset'):
+                self._values[item].clear_changeset()
+        self._changeset = {}
+
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> str:
         result, message = self.check_for_permissions()
@@ -427,7 +495,6 @@ class ResourceInstance:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {values.toRdf}'
         sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
@@ -451,12 +518,12 @@ class ResourceInstance:
 SELECT ?predicate ?value
 FROM oldap:onto
 FROM shared:onto
-FROM test:onto
+FROM {graph}:onto
 FROM NAMED oldap:admin
-FROM NAMED test:data
+FROM NAMED {graph}:data
 WHERE {{
 	BIND({iri.toRdf} as ?iri)
-    GRAPH test:data {{
+    GRAPH {graph}:data {{
         ?iri ?predicate ?value .
         ?iri oldap:grantsPermission ?permset .
     }}
@@ -466,7 +533,7 @@ WHERE {{
     	?permset oldap:givesPermission ?DataPermission .
     	?DataPermission oldap:permissionValue ?permval .
     }}
-    FILTER(?permval >= "2"^^xsd:integer)
+    FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
 }}'''
         jsonres = con.query(sparql)
         res = QueryProcessor(context, jsonres)
@@ -481,7 +548,10 @@ WHERE {{
             else:
                 if r['predicate'].is_qname:
                     if kwargs.get(r['predicate'].as_qname.fragment):
-                        kwargs[r['predicate'].as_qname.fragment].add(r['value'])
+                        if isinstance(kwargs[r['predicate'].as_qname.fragment], set):
+                            kwargs[r['predicate'].as_qname.fragment].add(r['value'])
+                        else:
+                            kwargs[r['predicate'].as_qname.fragment] = r['value']
                     else:
                         try:
                             kwargs[r['predicate'].as_qname.fragment] = {r['value']}
@@ -493,8 +563,143 @@ WHERE {{
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
         if cls.__name__ != objtype:
             raise OldapErrorInconsistency(f'Expected class {cls.__name__}, got {objtype} instead.')
-        return cls(**kwargs)
+        return cls(iri=iri, **kwargs)
 
+    def update(self, indent: int = 0, indent_inc: int = 4) -> None:
+        #
+        # TODO: Do some permission checking here...
+        #
+
+        context = Context(name=self._con.context_name)
+        blank = ''
+        timestamp = Xsd_dateTimeStamp()
+
+        sparql_list = []
+        required_permission = DataPermission.DATA_EXTEND.numeric.toRdf
+        for field, change in self._changeset.items():
+            if change.action != Action.CREATE:
+                required_permission = DataPermission.DATA_UPDATE.numeric.toRdf
+            sparql = f'# Processing field "{field}"\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:data\n'
+            if change.action != Action.CREATE:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                if isinstance(change.old_value, (ObservableSet, LangString)):
+                    for val in change.old_value:
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?res_iri {field.toRdf} {val.toRdf} .\n'
+                else:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?res_iri {field.toRdf} {change.old_value.toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if change.action != Action.DELETE:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                if isinstance(change.old_value, (ObservableSet, LangString)):
+                    for val in self._values[field]:
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?res_iri {field.toRdf} {val.toRdf} .\n'
+                else:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?res_iri {field.toRdf} {self._values[field].toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._iri.toRdf} as ?res_iri)\n'
+            if change.action != Action.CREATE:
+                if isinstance(change.old_value, (ObservableSet, LangString)):
+                    for val in change.old_value:
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?res_iri {field.toRdf} {val.toRdf} .\n'
+                else:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?res_iri {field.toRdf} {change.old_value.toRdf} .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+
+        sparql = context.sparql_context
+        sparql += f'# Updating resource "{self._iri}"\n'
+        sparql += " ;\n".join(sparql_list)
+
+        permission_query = context.sparql_context
+        permission_query += f'''
+        SELECT (COUNT(?permset) as ?numOfPermsets)
+        FROM oldap:onto
+        FROM shared:onto
+        FROM {self._graph}:onto
+        FROM NAMED oldap:admin
+        FROM NAMED {self._graph}:data
+        WHERE {{
+        	BIND({self._iri.toRdf} as ?iri)
+            GRAPH {self._graph}:data {{
+                ?iri oldap:grantsPermission ?permset .
+            }}
+            BIND({self._con.userIri.toRdf} as ?user)
+            GRAPH oldap:admin {{
+            	?user oldap:hasPermissions ?permset .
+            	?permset oldap:givesPermission ?DataPermission .
+            	?DataPermission oldap:permissionValue ?permval .
+            }}
+            FILTER(?permval >= {required_permission})
+        }}'''
+
+        modtime_update = context.sparql_context
+        modtime_update += f'''
+        WITH {self._graph}:data
+        DELETE {{
+            ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
+            ?res oldap:lastModifiedBy ?contributor .
+        }}
+        INSERT {{
+            ?res oldap:lastModificationDate {timestamp.toRdf} .
+            ?res oldap:lastModifiedBy {self._con.userIri.toRdf} .
+        }}
+        WHERE {{
+            BIND({self._iri.toRdf} as ?res)
+            ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
+            ?res oldap:lastModifiedBy ?contributor .
+        }}
+        '''
+
+        context = Context(name=self._con.context_name)
+        modtime_get = context.sparql_context
+        modtime_get += f"""
+        SELECT ?modified
+        FROM {self._graph}:data
+        WHERE {{
+            {self._iri.toRdf} oldap:lastModificationDate ?modified
+        }}
+        """
+
+
+        self._con.transaction_start()
+        #
+        # Test permission for Action.REPLACE
+        #
+        try:
+            jsonobj = self._con.transaction_query(permission_query)
+            res = QueryProcessor(context, jsonobj)
+            if res[0]['numOfPermsets'] < 1:
+                raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        try:
+            self._con.transaction_update(sparql)
+            self._con.transaction_update(modtime_update)
+            jsonobj = self._con.transaction_query(modtime_get)
+            res = QueryProcessor(context, jsonobj)
+            modtime = res[0]['modified']
+            if timestamp != modtime:
+                raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (modtime={modtime}, timestamp={timestamp}).")
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        #
+        # Test here if the resource has not changed
+        #
+        #if timestamp != modtime:
+        #    self._con.transaction_abort()
+        #    raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        #self._modified = timestamp
+        #self._contributor = self._con.userIri
+        self.clear_changeset()
 
 #@strict
 class ResourceInstanceFactory:

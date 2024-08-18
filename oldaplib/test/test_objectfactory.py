@@ -1,14 +1,18 @@
 import base64
 import unittest
 from pathlib import Path
+from pprint import pprint
 from time import sleep
 
 from oldaplib.src.ObjectFactory import ResourceInstanceFactory
 from oldaplib.src.connection import Connection
+from oldaplib.src.enums.action import Action
+from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue
 from oldaplib.src.project import Project
+from oldaplib.src.user import User
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_base64binary import Xsd_base64Binary
@@ -87,7 +91,6 @@ class TestObjectFactory(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:data'))
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
 
-
         file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
@@ -96,6 +99,10 @@ class TestObjectFactory(unittest.TestCase):
         cls._connection.upload_turtle(file)
 
         sleep(1)  # upload may take a while...
+
+        user = User.read(cls._connection, "rosenth")
+        user.hasPermissions.add(Iri('oldap:GenericUpdate'))
+        user.update()
 
     @classmethod
     def tearDownClass(cls):
@@ -292,6 +299,61 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(at.unsignedShortProp, at2.unsignedShortProp)
         self.assertEqual(at.unsignedByteProp, at2.unsignedByteProp)
         self.assertEqual(at.positiveIntegerProp, at2.positiveIntegerProp)
+
+    def test_value_setter(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("This is a test string@de"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            integerSetter={20200, 30300},
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj2 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        self.assertEqual(obj1.stringSetter, obj2.stringSetter)
+        self.assertEqual(obj1.langStringSetter, obj2.langStringSetter)
+        self.assertIsNone(obj2.booleanSetter)
+        self.assertEqual(obj1.decimalSetter, obj2.decimalSetter)
+        self.assertEqual(obj1.integerSetter, obj2.integerSetter)
+
+        obj2.stringSetter = "This is not a statement!"
+        obj2.langStringSetter = LangString("In Deutsch@de", "En Français@fr")
+        obj2.booleanSetter = True
+        obj2.decimalSetter = {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)}
+        obj2.integerSetter = None
+        self.assertEqual(obj2.stringSetter, "This is not a statement!")
+        self.assertEqual(obj2.langStringSetter, LangString("In Deutsch@de", "En Français@fr"))
+        self.assertTrue(obj2.booleanSetter)
+        self.assertEqual(obj2.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
+        self.assertFalse(obj2.integerSetter)
+        #pprint(obj2.changeset)
+
+        expected_cs = {
+            Iri("test:stringSetter"): AttributeChange(old_value={Xsd_string("This is a test string")}, action=Action.REPLACE),
+            Iri("test:decimalSetter"): AttributeChange(old_value={Xsd_decimal(3.14)}, action=Action.REPLACE),
+            Iri("test:langStringSetter"): AttributeChange(old_value=LangString("This is a test string@de"), action=Action.REPLACE),
+            Iri("test:booleanSetter"): AttributeChange(old_value=None, action=Action.CREATE),
+            Iri("test:integerSetter"): AttributeChange(old_value={20200, 30300}, action=Action.DELETE)}
+        self.assertEqual(obj2.changeset, expected_cs)
+
+        obj3 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        with self.assertRaises(OldapErrorValue):
+            obj3.stringSetter = {"This is not a statement!", "One value too much"}
+        with self.assertRaises(OldapErrorValue):
+            obj3.langStringSetter = LangString("In Deutsch@de", "In Italiano@it")
+        with self.assertRaises(OldapErrorValue):
+            obj3.decimalSetter = {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803), Xsd_decimal(1.0)}
+        with self.assertRaises(OldapErrorValue):
+            obj3.decimalSetter = None
+
+        obj2.update()
+        obj2 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        self.assertEqual(obj2.stringSetter, "This is not a statement!")
+        self.assertEqual(obj2.langStringSetter, LangString("In Deutsch@de", "En Français@fr"))
+        self.assertTrue(obj2.booleanSetter)
+        self.assertEqual(obj2.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
+        self.assertFalse(obj2.integerSetter)
+
 
 
 if __name__ == '__main__':

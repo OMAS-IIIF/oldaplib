@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Self, Set, Iterable
 
-from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound

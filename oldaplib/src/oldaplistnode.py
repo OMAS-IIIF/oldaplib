@@ -5,7 +5,7 @@ from typing import Self
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.oldaplistnodeattr import OldapListNodeAttr
-from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorImmutable, OldapError, OldapErrorNoPermission, \

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
-from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName

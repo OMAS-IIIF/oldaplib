@@ -9,7 +9,8 @@ from pystrict import strict
 from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
-from oldaplib.src.enums.permissions import AdminPermission, DataPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
+from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.helpers.tools import lprint

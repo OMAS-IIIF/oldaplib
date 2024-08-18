@@ -14,7 +14,7 @@ from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, OldapError
-from oldaplib.src.enums.permissions import AdminPermission
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.user import User
 from oldaplib.src.in_project import InProjectClass
 from oldaplib.src.xsd.xsd_string import Xsd_string
