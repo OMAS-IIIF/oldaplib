@@ -349,8 +349,8 @@ class ResourceInstance:
                     raise OldapErrorInconsistency(
                         f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
 
-    def notifier(self, prop: Iri):
-        pass  # TODO: react to change!!!
+    def notifier(self, prop_iri: Iri):
+        self._changeset[prop_iri] = AttributeChange(None, Action.MODIFY)
 
     def check_for_permissions(self) -> (bool, str):
         #
@@ -577,6 +577,8 @@ WHERE {{
         sparql_list = []
         required_permission = DataPermission.DATA_EXTEND.numeric.toRdf
         for field, change in self._changeset.items():
+            if change.action == Action.MODIFY:
+                continue  # will be processed below!
             if change.action != Action.CREATE:
                 required_permission = DataPermission.DATA_UPDATE.numeric.toRdf
             sparql = f'# Processing field "{field}"\n'
@@ -608,49 +610,61 @@ WHERE {{
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
 
+        for field, change in self._changeset.items():
+            if change.action != Action.MODIFY:
+                continue  # has been processed above
+            if self.properties[field].prop.datatype == XsdDatatypes.langString:
+                sparqls = self._values[field].update(graph=f'{self._graph}:data',
+                                                     subject=self._iri,
+                                                     field=field)
+                for lang, lchange in self._values[field].changeset.items():
+                    if lchange.action != Action.CREATE:
+                        required_permission = DataPermission.DATA_UPDATE.numeric.toRdf
+                sparql_list.extend(sparqls)
+
         sparql = context.sparql_context
         sparql += f'# Updating resource "{self._iri}"\n'
         sparql += " ;\n".join(sparql_list)
 
         permission_query = context.sparql_context
         permission_query += f'''
-        SELECT (COUNT(?permset) as ?numOfPermsets)
-        FROM oldap:onto
-        FROM shared:onto
-        FROM {self._graph}:onto
-        FROM NAMED oldap:admin
-        FROM NAMED {self._graph}:data
-        WHERE {{
-        	BIND({self._iri.toRdf} as ?iri)
-            GRAPH {self._graph}:data {{
-                ?iri oldap:grantsPermission ?permset .
-            }}
-            BIND({self._con.userIri.toRdf} as ?user)
-            GRAPH oldap:admin {{
-            	?user oldap:hasPermissions ?permset .
-            	?permset oldap:givesPermission ?DataPermission .
-            	?DataPermission oldap:permissionValue ?permval .
-            }}
-            FILTER(?permval >= {required_permission})
-        }}'''
+SELECT (COUNT(?permset) as ?numOfPermsets)
+FROM oldap:onto
+FROM shared:onto
+FROM {self._graph}:onto
+FROM NAMED oldap:admin
+FROM NAMED {self._graph}:data
+WHERE {{
+    BIND({self._iri.toRdf} as ?iri)
+    GRAPH {self._graph}:data {{
+        ?iri oldap:grantsPermission ?permset .
+    }}
+    BIND({self._con.userIri.toRdf} as ?user)
+    GRAPH oldap:admin {{
+        ?user oldap:hasPermissions ?permset .
+        ?permset oldap:givesPermission ?DataPermission .
+        ?DataPermission oldap:permissionValue ?permval .
+    }}
+    FILTER(?permval >= {required_permission})
+}}'''
 
         modtime_update = context.sparql_context
         modtime_update += f'''
-        WITH {self._graph}:data
-        DELETE {{
-            ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
-            ?res oldap:lastModifiedBy ?contributor .
-        }}
-        INSERT {{
-            ?res oldap:lastModificationDate {timestamp.toRdf} .
-            ?res oldap:lastModifiedBy {self._con.userIri.toRdf} .
-        }}
-        WHERE {{
-            BIND({self._iri.toRdf} as ?res)
-            ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
-            ?res oldap:lastModifiedBy ?contributor .
-        }}
-        '''
+WITH {self._graph}:data
+DELETE {{
+    ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
+    ?res oldap:lastModifiedBy ?contributor .
+}}
+INSERT {{
+    ?res oldap:lastModificationDate {timestamp.toRdf} .
+    ?res oldap:lastModifiedBy {self._con.userIri.toRdf} .
+}}
+WHERE {{
+    BIND({self._iri.toRdf} as ?res)
+    ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
+    ?res oldap:lastModifiedBy ?contributor .
+}}
+'''
 
         context = Context(name=self._con.context_name)
         modtime_get = context.sparql_context
@@ -686,19 +700,13 @@ WHERE {{
         except OldapError:
             self._con.transaction_abort()
             raise
-        #
-        # Test here if the resource has not changed
-        #
-        #if timestamp != modtime:
-        #    self._con.transaction_abort()
-        #    raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
         try:
             self._con.transaction_commit()
         except OldapError:
             self._con.transaction_abort()
             raise
-        #self._modified = timestamp
-        #self._contributor = self._con.userIri
+        self._modified = timestamp
+        self._contributor = self._con.userIri
         self.clear_changeset()
 
 #@strict

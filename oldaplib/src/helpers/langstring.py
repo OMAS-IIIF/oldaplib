@@ -482,7 +482,6 @@ class LangString(Notify):
     def update(self, *,
                graph: Xsd_QName,
                subject: Iri,
-               subjectvar: str,
                field: Xsd_QName,
                indent: int = 0, indent_inc: int = 4) -> List[str]:
         blank = ''

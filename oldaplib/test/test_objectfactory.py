@@ -7,6 +7,7 @@ from time import sleep
 from oldaplib.src.ObjectFactory import ResourceInstanceFactory
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
@@ -316,6 +317,16 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj1.decimalSetter, obj2.decimalSetter)
         self.assertEqual(obj1.integerSetter, obj2.integerSetter)
 
+        #obj3 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        with self.assertRaises(OldapErrorValue):
+            obj2.stringSetter = {"This is not a statement!", "One value too much"}
+        with self.assertRaises(OldapErrorValue):
+            obj2.langStringSetter = LangString("In Deutsch@de", "In Italiano@it")
+        with self.assertRaises(OldapErrorValue):
+            obj2.decimalSetter = {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803), Xsd_decimal(1.0)}
+        with self.assertRaises(OldapErrorValue):
+            obj2.decimalSetter = None
+
         obj2.stringSetter = "This is not a statement!"
         obj2.langStringSetter = LangString("In Deutsch@de", "En Français@fr")
         obj2.booleanSetter = True
@@ -326,7 +337,6 @@ class TestObjectFactory(unittest.TestCase):
         self.assertTrue(obj2.booleanSetter)
         self.assertEqual(obj2.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
         self.assertFalse(obj2.integerSetter)
-        #pprint(obj2.changeset)
 
         expected_cs = {
             Iri("test:stringSetter"): AttributeChange(old_value={Xsd_string("This is a test string")}, action=Action.REPLACE),
@@ -336,16 +346,6 @@ class TestObjectFactory(unittest.TestCase):
             Iri("test:integerSetter"): AttributeChange(old_value={20200, 30300}, action=Action.DELETE)}
         self.assertEqual(obj2.changeset, expected_cs)
 
-        obj3 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
-        with self.assertRaises(OldapErrorValue):
-            obj3.stringSetter = {"This is not a statement!", "One value too much"}
-        with self.assertRaises(OldapErrorValue):
-            obj3.langStringSetter = LangString("In Deutsch@de", "In Italiano@it")
-        with self.assertRaises(OldapErrorValue):
-            obj3.decimalSetter = {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803), Xsd_decimal(1.0)}
-        with self.assertRaises(OldapErrorValue):
-            obj3.decimalSetter = None
-
         obj2.update()
         obj2 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
         self.assertEqual(obj2.stringSetter, "This is not a statement!")
@@ -354,7 +354,20 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj2.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
         self.assertFalse(obj2.integerSetter)
 
-
+    def test_value_modifier(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            integerSetter={-10, 20},
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        obj1.langStringSetter[Language.FR] = "Qu'est-ce que c'est?"
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
 
 if __name__ == '__main__':
     unittest.main()
