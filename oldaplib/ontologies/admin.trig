@@ -220,6 +220,21 @@
         :hasPermissions :GenericView ;
         :isActive false .
 
+    <https://orcid.org/0000-0002-7403-9595> a oldap:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        :userId "habermann"^^xsd:NCName ;
+        schema:familyName "Habermann"^^xsd:string ;
+        schema:givenName "Ina"^^xsd:string ;
+        :credentials "*"^^xsd:string ;
+        :inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
+        :hasPermissions :GenericRestricted ;
+        :isActive true .
+
+    <<<https://orcid.org/0000-0002-7403-9595> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission :ADMIN_RESOURCES .
+
 }
 
 #SELECT *

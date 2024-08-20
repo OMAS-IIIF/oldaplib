@@ -350,6 +350,7 @@ class ResourceInstance:
                         f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
 
     def notifier(self, prop_iri: Iri):
+        self.validate_value(self._values[prop_iri], self.properties[prop_iri])
         self._changeset[prop_iri] = AttributeChange(None, Action.MODIFY)
 
     def check_for_permissions(self) -> (bool, str):
@@ -621,6 +622,16 @@ WHERE {{
                     if lchange.action != Action.CREATE:
                         required_permission = DataPermission.DATA_UPDATE.numeric.toRdf
                 sparql_list.extend(sparqls)
+            else:
+                #
+                # first we rectify the datatype of all "new" values added to the set
+                #
+                newset = {self.convert2datatype(x, self.properties[field].prop.datatype) for x in self._values[field]}
+                self._values[field] = ObservableSet(newset, old_value=self._values[field].old_value, notifier=self.notifier, notify_data=field)
+                sparqls = self._values[field].update_sparql(graph=f'{self._graph}:data',
+                                                            subject=self._iri,
+                                                            field=field)
+                sparql_list.extend(sparqls)
 
         sparql = context.sparql_context
         sparql += f'# Updating resource "{self._iri}"\n'
@@ -675,7 +686,6 @@ WHERE {{
             {self._iri.toRdf} oldap:lastModificationDate ?modified
         }}
         """
-
 
         self._con.transaction_start()
         #

@@ -365,9 +365,13 @@ class TestObjectFactory(unittest.TestCase):
         obj1.create()
         obj1 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
         obj1.langStringSetter[Language.FR] = "Qu'est-ce que c'est?"
+        obj1.integerSetter.add(42)
+        obj1.integerSetter.discard(-10)
         obj1.update()
         obj1 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
         self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
+        self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
+
 
 if __name__ == '__main__':
     unittest.main()

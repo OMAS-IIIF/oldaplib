@@ -256,12 +256,12 @@ class TestPermissionSet(unittest.TestCase):
     # TODO: More testing!!!
     def test_search_permission_sets(self):
         iris = PermissionSet.search(self._connection, label="GenericView")
-        self.assertEqual(len(iris), 1)
-        self.assertEqual(Iri('oldap:GenericView'), iris[0])
+        self.assertEqual(len(iris), 2)
+        self.assertTrue(Iri('oldap:GenericView') in iris)
 
         iris = PermissionSet.search(self._connection, label=Xsd_string("GenericView@de"))
-        self.assertEqual(len(iris), 1)
-        self.assertEqual(Iri('oldap:GenericView'), iris[0])
+        self.assertEqual(len(iris), 2)
+        self.assertTrue(Iri('oldap:GenericView') in iris)
 
         iris = PermissionSet.search(self._connection, definedByProject=Iri("oldap:HyperHamlet"))
         self.assertEqual(len(iris), 1)

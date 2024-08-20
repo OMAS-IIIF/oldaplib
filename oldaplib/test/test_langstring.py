@@ -298,7 +298,6 @@ class TestLangstring(unittest.TestCase):
         del ls1[Language.EN]
         qlist = ls1.update(graph=Xsd_QName("oldaplib:test"),
                            subject=Iri("oldaplib:subj"),
-                           subjectvar="?subj",
                            field=Xsd_QName("oldaplib:prop"))
         qstr = " ;\n".join(qlist)
         expected = """INSERT DATA {

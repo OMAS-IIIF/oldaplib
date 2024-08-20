@@ -425,7 +425,6 @@ class PermissionSet(Model):
                 if change.action == Action.MODIFY:
                     sparql_list.extend(self._attributes[attr].update(graph=Xsd_QName('oldap:admin'),
                                                                      subject=self.__permset_iri,
-                                                                     subjectvar='?project',
                                                                      field=attr.value))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
                     sparql = self._changeset[attr].old_value.delete(graph=Xsd_QName('oldap:admin'),

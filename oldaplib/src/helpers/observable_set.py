@@ -34,7 +34,8 @@ class ObservableSet(Notify):
     def __init__(self,
                  setitems: Self | Iterable | None = None,
                  notifier: Callable[[Enum | Iri], None] | None = None,
-                 notify_data: Iri | None = None) -> None:
+                 notify_data: Iri | None = None,
+                 old_value: Self | None = None) -> None:
         """
         Constructor of the ObservableSet class
 
@@ -42,7 +43,7 @@ class ObservableSet(Notify):
         :param on_change: Callback function to be called when an item is added/removed
         :param on_change_data: data supplied to the callback function
         """
-        self.__old_value = None
+        self.__old_value = old_value
         super().__init__(notifier=notifier, data=notify_data)
         if isinstance(setitems, ObservableSet):
             self.__setdata = setitems.__setdata
@@ -261,3 +262,32 @@ class ObservableSet(Notify):
     def clear_changeset(self):
         self.__old_value = None
 
+    def update_sparql(self, *,
+                      graph: Iri,
+                      subject: Iri,
+                      field: Iri,
+                      indent: int = 0, indent_inc: int = 4) -> list[str]:
+        items_to_add = self.__setdata - self.__old_value.__setdata
+        items_to_delete = self.__old_value.__setdata - self.__setdata
+        blank = ''
+        sparql_list = []
+
+        if items_to_add:
+            sparql = f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+            for item in items_to_add:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {item.toRdf} .'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql_list.append(sparql)
+
+        if items_to_delete:
+            sparql = f'{blank:{indent * indent_inc}}DELETE DATA {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+            for item in items_to_delete:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {item.toRdf} .'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql_list.append(sparql)
+
+        return sparql_list

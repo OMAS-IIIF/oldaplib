@@ -237,8 +237,8 @@ class TestUser(unittest.TestCase):
                           Iri("https://orcid.org/0000-0003-1485-4923"),
                           Iri("https://orcid.org/0000-0001-9277-3921")], users)
 
-        users = User.search(con=self._connection, inProject=Xsd_anyURI("http://www.salsah.org/version/2.0/SwissBritNet"))
-        self.assertEqual([Iri("urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b")], users)
+        users = User.search(con=self._connection, inProject=Iri("http://www.salsah.org/version/2.0/SwissBritNet"))
+        self.assertEqual([Iri("https://orcid.org/0000-0002-7403-9595")], users)
 
         users = User.search(con=self._connection, userId="GAGA")
         self.assertEqual([], users)

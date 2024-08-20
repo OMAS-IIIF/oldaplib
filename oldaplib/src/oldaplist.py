@@ -365,7 +365,6 @@ class OldapList(Model):
                 if change.action == Action.MODIFY:
                     sparql_list.extend(self._attributes[field].update(graph=Xsd_QName(f'{self.__graph}:lists'),
                                                                       subject=self.__oldapList_iri,
-                                                                      subjectvar='?list',
                                                                       field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
                     sparql = self._changeset[field].old_value.delete(graph=Xsd_QName(f'{self.__graph}:lists'),
