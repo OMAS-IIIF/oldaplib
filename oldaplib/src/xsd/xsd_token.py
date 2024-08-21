@@ -73,7 +73,7 @@ class Xsd_token(Xsd):
         :return: Hash value
         :rtype: int
         """
-        return super().__hash__()
+        return hash(str(self))
 
     @classmethod
     def fromRdf(cls, value: str) -> Self:

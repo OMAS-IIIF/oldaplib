@@ -83,7 +83,7 @@ class Xsd_normalizedString(Xsd):
         :return: Hash of the Xsd_normalizedString instance
         :rtype: int
         """
-        return super().__hash__()
+        return hash(str(self))
 
     @property
     def toRdf(self) -> str:

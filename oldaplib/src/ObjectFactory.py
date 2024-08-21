@@ -6,9 +6,6 @@ from functools import partial
 from pprint import pprint
 from typing import Type, Any, Self
 
-from pystrict import strict
-
-from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -24,10 +21,7 @@ from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency, \
     OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed
 from oldaplib.src.helpers.query_processor import QueryProcessor
-from oldaplib.src.helpers.singletonmeta import SingletonMeta
-from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.model import Model
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
@@ -193,7 +187,7 @@ class ResourceInstance:
                     else:
                         try:
                             self._values[prop_iri] = ObservableSet({self.convert2datatype(value, hasprop.prop.datatype)})
-                        except TypeError:
+                        except TypeError as err:
                             self._values[prop_iri] = self.convert2datatype(value, hasprop.prop.datatype)
 
             for prop_iri, hasprop in propclass.items():
@@ -350,7 +344,23 @@ class ResourceInstance:
                         f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
 
     def notifier(self, prop_iri: Iri):
-        self.validate_value(self._values[prop_iri], self.properties[prop_iri])
+        hasprop = self.properties[prop_iri]
+        self.validate_value(self._values[prop_iri], hasprop)
+
+        if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
+            n = len(self._values[prop_iri])
+            if n < hasprop[HasPropertyAttr.MIN_COUNT]:
+                self._values[prop_iri].undo()
+                raise OldapErrorValue(
+                    f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has not enough values (n={n}).')
+
+        if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
+            n = len(self._values[prop_iri])
+            if n > hasprop[HasPropertyAttr.MAX_COUNT]:
+                self._values[prop_iri].undo()
+                raise OldapErrorValue(
+                    f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={n}).')
+
         self._changeset[prop_iri] = AttributeChange(None, Action.MODIFY)
 
     def check_for_permissions(self) -> (bool, str):
@@ -379,16 +389,10 @@ class ResourceInstance:
 
     def __get_value(self: Self, prefix: str, fragment: str) -> Xsd | ValueType | None:
         attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
-        tmp = self._values.get(attr)
-        if not tmp:
-            return None
-        if isinstance(tmp, ObservableSet):
-            if len(tmp) > 1:
-                return tmp  # return the observable set
-            else:
-                return next(iter(tmp))  # return the single element
-        else:
-            return tmp  # return the single element
+        tmp = self._values.get(attr, None)
+        if tmp is not None and str(attr) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate'}:
+            return next(iter(tmp))
+        return tmp
 
     def __set_value(self: Self, value: ValueType | Xsd | None, prefix: str, fragment: str) -> None:
         prop_iri = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
@@ -401,12 +405,11 @@ class ResourceInstance:
             if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not value:
                 raise OldapErrorValue(
                     f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
-            elif isinstance(value, (list, tuple, set, ObservableSet)) and len(value) < 1:
+            elif isinstance(value, (list, tuple, set, ObservableSet)) and len(value) < hasprop[HasPropertyAttr.MIN_COUNT]:
                 raise OldapErrorValue(
-                    f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+                    f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has not enough values')
         if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
-            if isinstance(value, (list, tuple, set, ObservableSet)) and len(value) > hasprop[
-                HasPropertyAttr.MAX_COUNT]:
+            if isinstance(value, (list, tuple, set, ObservableSet)) and len(value) > hasprop[HasPropertyAttr.MAX_COUNT]:
                 raise OldapErrorValue(
                     f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(value)})')
         if value:
@@ -445,6 +448,12 @@ class ResourceInstance:
 
     def __del_value(self: Self, prefix: str, fragment: str) -> None:
         prop_iri = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
+        hasprop = self.properties.get(prop_iri)
+
+        if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
+            if hasprop[HasPropertyAttr.MIN_COUNT] > 0:
+                raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} cannot be deleted.')
+
         self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.DELETE)
         attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
         del self._values[attr]

@@ -142,6 +142,10 @@ class PermissionSet(Model):
     def notifier(self, what: PermissionSetAttr) -> None:
         self._changeset[what] = AttributeChange(None, Action.MODIFY)
 
+    @property
+    def iri(self) -> Iri:
+        return self.__permset_iri
+
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Create the given permission set in the triple store.

@@ -57,6 +57,9 @@ class Xsd_dateTime(Xsd):
         """
         return f'Xsd_dateTime("{self.__value.isoformat()}")'
 
+    def __hash__(self) -> int:
+        return hash(self.__value.isoformat())
+
     def __eq__(self, other: Self | str | None) -> bool:
         """
         Equality test for Xsd_dateTime instance

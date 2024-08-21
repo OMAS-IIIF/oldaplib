@@ -259,6 +259,11 @@ class ObservableSet(Notify):
     def to_set(self) -> set:
         return self.__setdata
 
+    def undo(self) -> None:
+        if self.__old_value:
+            self.__setdata = self.__old_value.to_set()
+        self.__old_value = None
+
     def clear_changeset(self):
         self.__old_value = None
 

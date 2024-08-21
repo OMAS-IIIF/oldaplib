@@ -93,7 +93,7 @@ class Xsd_gDay(Xsd):
         Hash representation of the Xsd_gDay object
         :return: Hash value
         """
-        return super().__hash__()
+        return hash(str(self))
 
     def _as_dict(self) -> dict[str, str]:
         """

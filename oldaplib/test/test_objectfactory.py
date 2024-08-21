@@ -7,11 +7,13 @@ from time import sleep
 from oldaplib.src.ObjectFactory import ResourceInstanceFactory
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorNoPermission
+from oldaplib.src.permissionset import PermissionSet
 from oldaplib.src.project import Project
 from oldaplib.src.user import User
 from oldaplib.src.xsd.iri import Iri
@@ -120,9 +122,9 @@ class TestObjectFactory(unittest.TestCase):
                  author=Iri('test:DouglasAdams', validate=False),
                  pubDate="1995-09-27",
                  grantsPermission=Iri('oldap:GenericView'))
-        self.assertEqual(b.title, Xsd_string("Hitchhiker's Guide to the Galaxy"))
-        self.assertEqual(b.author, Iri('test:DouglasAdams'))
-        self.assertEqual(b.pubDate, "1995-09-27")
+        self.assertEqual(b.title, {Xsd_string("Hitchhiker's Guide to the Galaxy")})
+        self.assertEqual(b.author, {Iri('test:DouglasAdams')})
+        self.assertEqual(b.pubDate, {Xsd_date("1995-09-27")})
         self.assertIsNotNone(b.creationDate)
         self.assertEqual(b.createdBy, Iri('https://orcid.org/0000-0003-1681-4036', validate=False))
         self.assertIsNotNone(b.lastModificationDate)
@@ -151,10 +153,10 @@ class TestObjectFactory(unittest.TestCase):
                   pageDescription=LangString("Cover page of book@en", "Vorderseite des Bucheinschlags@de"),
                   pageInBook="test:Hitchhiker",
                   grantsPermission=Iri('oldap:GenericView'))
-        self.assertEqual(p1.pageDesignation, "Cover")
-        self.assertEqual(p1.pageNum, 1)
+        self.assertEqual(p1.pageDesignation, {"Cover"})
+        self.assertEqual(p1.pageNum, {1})
         self.assertEqual(p1.pageDescription, LangString("Cover page of book@en", "Vorderseite des Bucheinschlags@de"))
-        self.assertEqual(p1.pageInBook, "test:Hitchhiker")
+        self.assertEqual(p1.pageInBook, {"test:Hitchhiker"})
         p1.create()
         p2 = Page.read(con=self._connection, project='test', iri=p1.iri)
         self.assertEqual(p2.pageDesignation, p1.pageDesignation)
@@ -209,51 +211,52 @@ class TestObjectFactory(unittest.TestCase):
                       unsignedByteProp=Xsd_unsignedByte(202),
                       positiveIntegerProp=Xsd_unsignedByte(202),
                       grantsPermission=Iri('oldap:GenericView'))
-        self.assertEqual(at.stringProp, Xsd_string("A String Prop"))
+        self.assertEqual(at.stringProp, {Xsd_string("A String Prop")})
         self.assertEqual(at.langStringProp, LangString("A LangString@en", "Ein Sprachtext@de"))
         self.assertEqual(at.booleanProp, Xsd_boolean(1))
-        self.assertEqual(at.decimalProp, Xsd_decimal(1.5))
-        self.assertEqual(at.floatProp, Xsd_float(1.5))
-        self.assertEqual(at.doubleProp, Xsd_double(1.5))
-        self.assertEqual(at.durationProp, Xsd_duration('PT2M10S'))
-        self.assertEqual(at.dateTimeProp, Xsd_dateTime('2001-10-26T21:32:52'))
-        self.assertEqual(at.dateTimeStampProp, Xsd_dateTimeStamp('2001-10-26T21:32:52Z'))
-        self.assertEqual(at.timeProp, Xsd_time('21:32:52+02:00'))
-        self.assertEqual(at.dateProp, Xsd_date(2025, 12, 31))
-        self.assertEqual(at.gYearMonthProp, Xsd_gYearMonth("2020-03"))
-        self.assertEqual(at.gYearProp, Xsd_gYear("2020"))
-        self.assertEqual(at.gMonthDayProp, Xsd_gMonthDay("--02-21"))
-        self.assertEqual(at.gDayProp, Xsd_gDay("---01"))
-        self.assertEqual(at.gMonthProp, Xsd_gMonth("--10"))
-        self.assertEqual(at.hexBinaryProp, Xsd_hexBinary("1fab17fa"))
-        self.assertEqual(at.base64BinaryProp, Xsd_base64Binary(base64.b64encode(b'Waseliwas soll den das sein?')))
-        self.assertEqual(at.anyURIProp, Xsd_anyURI('http://www.org/test'))
-        self.assertEqual(at.QNameProp, Xsd_QName('prefix:name'))
-        self.assertEqual(at.normalizedStringProp, Xsd_normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen"))
-        self.assertEqual(at.tokenProp, Xsd_token("Dies ist ein string mit $onderzeichen und anderen Dingen"))
-        self.assertEqual(at.languageProp, Xsd_language("de"))
-        self.assertEqual(at.nCNameProp, Xsd_NCName("Xsd_NCName"))
-        self.assertEqual(at.nMTOKENProp, Xsd_NMTOKEN(":ein.Test"))
-        self.assertEqual(at.iDProp, Xsd_ID("anchor"))
-        self.assertEqual(at.iDREFProp, Xsd_IDREF("anchor"))
-        self.assertEqual(at.integerProp, Xsd_integer(1))
-        self.assertEqual(at.nonPositiveIntegerProp, Xsd_nonPositiveInteger(-22))
-        self.assertEqual(at.negativeIntegerProp, Xsd_negativeInteger(-22))
-        self.assertEqual(at.longProp, Xsd_long(505_801))
-        self.assertEqual(at.intProp, Xsd_int(505_801))
-        self.assertEqual(at.shortProp, Xsd_short(-2024))
-        self.assertEqual(at.byteProp, Xsd_byte(100))
-        self.assertEqual(at.nonNegativeIntegerProp, Xsd_nonNegativeInteger(202_203_204))
-        self.assertEqual(at.negativeIntegerProp, Xsd_negativeInteger(-22))
-        self.assertEqual(at.longProp, Xsd_long(505_801))
-        self.assertEqual(at.intProp, Xsd_int(505_801))
-        self.assertEqual(at.shortProp, Xsd_short(-2024))
-        self.assertEqual(at.byteProp, Xsd_byte(100))
-        self.assertEqual(at.unsignedLongProp, Xsd_unsignedLong(202_203_204))
-        self.assertEqual(at.unsignedIntProp, Xsd_unsignedInt(20200))
-        self.assertEqual(at.unsignedShortProp, Xsd_unsignedShort(20200))
-        self.assertEqual(at.unsignedByteProp, Xsd_unsignedByte(202))
-        self.assertEqual(at.positiveIntegerProp, Xsd_positiveInteger(202))
+        self.assertEqual(at.decimalProp, {Xsd_decimal(1.5)})
+        self.assertEqual(at.floatProp, {Xsd_float(1.5)})
+        self.assertEqual(at.doubleProp, {Xsd_double(1.5)})
+        self.assertEqual(at.durationProp, {Xsd_duration('PT2M10S')})
+        self.assertEqual(at.dateTimeProp, {Xsd_dateTime('2001-10-26T21:32:52')})
+        self.assertEqual(at.dateTimeStampProp, {Xsd_dateTimeStamp('2001-10-26T21:32:52Z')})
+        self.assertEqual(at.timeProp, {Xsd_time('21:32:52+02:00')})
+        self.assertEqual(at.dateProp, {Xsd_date(2025, 12, 31)})
+        self.assertEqual(at.gYearMonthProp, {Xsd_gYearMonth("2020-03")})
+        self.assertEqual(at.gYearProp, {Xsd_gYear("2020")})
+        self.assertEqual(at.gMonthDayProp, {Xsd_gMonthDay("--02-21")})
+        self.assertEqual(at.gDayProp, {Xsd_gDay("---01")})
+        self.assertEqual(at.gMonthProp, {Xsd_gMonth("--10")})
+        self.assertEqual(at.hexBinaryProp, {Xsd_hexBinary("1fab17fa")})
+        self.assertEqual(at.base64BinaryProp, {Xsd_base64Binary(base64.b64encode(b'Waseliwas soll den das sein?'))})
+        self.assertEqual(at.anyURIProp, {Xsd_anyURI('http://www.org/test')})
+        self.assertEqual(at.QNameProp, {Xsd_QName('prefix:name')})
+        self.assertEqual(at.normalizedStringProp,
+                         {Xsd_normalizedString("Dies ist ein string mit $onderzeichen\" und anderen Dingen")})
+        self.assertEqual(at.tokenProp, {Xsd_token("Dies ist ein string mit $onderzeichen und anderen Dingen")})
+        self.assertEqual(at.languageProp, {Xsd_language("de")})
+        self.assertEqual(at.nCNameProp, {Xsd_NCName("Xsd_NCName")})
+        self.assertEqual(at.nMTOKENProp, {Xsd_NMTOKEN(":ein.Test")})
+        self.assertEqual(at.iDProp, {Xsd_ID("anchor")})
+        self.assertEqual(at.iDREFProp, {Xsd_IDREF("anchor")})
+        self.assertEqual(at.integerProp, {Xsd_integer(1)})
+        self.assertEqual(at.nonPositiveIntegerProp, {Xsd_nonPositiveInteger(-22)})
+        self.assertEqual(at.negativeIntegerProp, {Xsd_negativeInteger(-22)})
+        self.assertEqual(at.longProp, {Xsd_long(505_801)})
+        self.assertEqual(at.intProp, {Xsd_int(505_801)})
+        self.assertEqual(at.shortProp, {Xsd_short(-2024)})
+        self.assertEqual(at.byteProp, {Xsd_byte(100)})
+        self.assertEqual(at.nonNegativeIntegerProp, {Xsd_nonNegativeInteger(202_203_204)})
+        self.assertEqual(at.negativeIntegerProp, {Xsd_negativeInteger(-22)})
+        self.assertEqual(at.longProp, {Xsd_long(505_801)})
+        self.assertEqual(at.intProp, {Xsd_int(505_801)})
+        self.assertEqual(at.shortProp, {Xsd_short(-2024)})
+        self.assertEqual(at.byteProp, {Xsd_byte(100)})
+        self.assertEqual(at.unsignedLongProp, {Xsd_unsignedLong(202_203_204)})
+        self.assertEqual(at.unsignedIntProp, {Xsd_unsignedInt(20200)})
+        self.assertEqual(at.unsignedShortProp, {Xsd_unsignedShort(20200)})
+        self.assertEqual(at.unsignedByteProp, {Xsd_unsignedByte(202)})
+        self.assertEqual(at.positiveIntegerProp, {Xsd_positiveInteger(202)})
         at.create()
         at2 = AllTypes.read(con=self._connection, project='test', iri=at.iri)
         self.assertEqual(at.stringProp, at2.stringProp)
@@ -332,7 +335,7 @@ class TestObjectFactory(unittest.TestCase):
         obj2.booleanSetter = True
         obj2.decimalSetter = {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)}
         obj2.integerSetter = None
-        self.assertEqual(obj2.stringSetter, "This is not a statement!")
+        self.assertEqual(obj2.stringSetter, {"This is not a statement!"})
         self.assertEqual(obj2.langStringSetter, LangString("In Deutsch@de", "En Français@fr"))
         self.assertTrue(obj2.booleanSetter)
         self.assertEqual(obj2.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
@@ -348,7 +351,7 @@ class TestObjectFactory(unittest.TestCase):
 
         obj2.update()
         obj2 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
-        self.assertEqual(obj2.stringSetter, "This is not a statement!")
+        self.assertEqual(obj2.stringSetter, {"This is not a statement!"})
         self.assertEqual(obj2.langStringSetter, LangString("In Deutsch@de", "En Français@fr"))
         self.assertTrue(obj2.booleanSetter)
         self.assertEqual(obj2.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
@@ -361,16 +364,71 @@ class TestObjectFactory(unittest.TestCase):
                             langStringSetter=LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"),
                             decimalSetter=Xsd_decimal(3.14),
                             integerSetter={-10, 20},
+                            booleanSetter=True,
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
         obj1.create()
         obj1 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
         obj1.langStringSetter[Language.FR] = "Qu'est-ce que c'est?"
         obj1.integerSetter.add(42)
         obj1.integerSetter.discard(-10)
+        obj1.booleanSetter = False
+        with self.assertRaises(OldapErrorValue):
+            obj1.stringSetter.pop()
+        with self.assertRaises(OldapErrorValue):
+            del obj1.stringSetter
         obj1.update()
         obj1 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        self.assertEqual(obj1.stringSetter, {"This is a test string"})
         self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
         self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
+        self.assertFalse(obj1.booleanSetter)
+
+    def test_value_modifier_norights(self):
+        ps = PermissionSet(con=self._connection,
+                           permissionSetId="testNoUpdate",
+                           label=LangString("testNoUpdate@en"),
+                           comment=LangString("Testing PermissionSet@en"),
+                           givesPermission=DataPermission.DATA_VIEW,
+                           definedByProject="test")
+        ps.create()
+
+        user = User(con=self._connection,
+                    userId=Xsd_NCName("factorytestuser"),
+                    familyName="FactoryTest",
+                    givenName="FactoryTest",
+                    credentials="Waseliwas",
+                    inProject={'oldap:Test': {}},
+                    hasPermissions={ps.iri.as_qname},
+                    isActive=True)
+        user.create()
+
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"),
+                            decimalSetter={Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)},
+                            integerSetter={-10, 20},
+                            booleanSetter=True,
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate'), ps.iri})
+        obj1.create()
+
+        unpriv = Connection(server='http://localhost:7200',
+                            repo="oldap",
+                            userId="factorytestuser",
+                            credentials="Waseliwas",
+                            context_name="DEFAULT")
+        factory = ResourceInstanceFactory(con=unpriv, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj = SetterTester.read(con=unpriv, project='test', iri=obj1.iri)
+        self.assertEqual(obj.stringSetter, {"This is a test string"})
+        self.assertEqual(obj.langStringSetter, LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"))
+        self.assertTrue(obj.booleanSetter)
+        self.assertEqual(obj.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
+        self.assertEqual(obj.integerSetter, {-10, 20})
+
+        obj.decimalSetter.discard(Xsd_decimal(3.14159))
+        with self.assertRaises(OldapErrorNoPermission):
+            obj.update()
 
 
 if __name__ == '__main__':
