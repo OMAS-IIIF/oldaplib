@@ -19,7 +19,7 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency, \
-    OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed
+    OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed, OldapErrorInUse
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.project import Project
@@ -363,7 +363,7 @@ class ResourceInstance:
 
         self._changeset[prop_iri] = AttributeChange(None, Action.MODIFY)
 
-    def check_for_permissions(self) -> (bool, str):
+    def check_for_permissions(self, permission: AdminPermission) -> (bool, str):
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -376,16 +376,11 @@ class ResourceInstance:
             #
             return True, "OK – IS ROOT"
         else:
-            if len(self.inProject) == 0:
-                return False, f'Actor has no ADMIN_CREATE permission for user {self.userId}.'
-            allowed: list[Iri] = []
-            for proj in self.inProject.keys():
-                if actor.inProject.get(proj) is None:
-                    return False, f'Actor has no ADMIN_CREATE permission for project {proj}'
-                else:
-                    if AdminPermission.ADMIN_CREATE not in actor.inProject.get(proj):
-                        return False, f'Actor has no ADMIN_CREATE permission for project {proj}'
-            return True, "OK"
+            perms = actor.inProject.get(self.project.projectIri)
+            if permission in perms:
+                return True, "OK",
+            else:
+                return False, f'Actor does not have {permission} in project "{self.project.projectShortName}".'
 
     def __get_value(self: Self, prefix: str, fragment: str) -> Xsd | ValueType | None:
         attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
@@ -473,11 +468,37 @@ class ResourceInstance:
         self._changeset = {}
 
 
-    def data_permission(self, permission: DataPermission):
-        pass
+    def get_data_permission(self, context: Context, permission: DataPermission) -> bool:
+        permission_query = context.sparql_context
+        permission_query += f'''
+        SELECT (COUNT(?permset) as ?numOfPermsets)
+        FROM oldap:onto
+        FROM shared:onto
+        FROM {self._graph}:onto
+        FROM NAMED oldap:admin
+        FROM NAMED {self._graph}:data
+        WHERE {{
+            BIND({self._iri.toRdf} as ?iri)
+            GRAPH {self._graph}:data {{
+                ?iri oldap:grantsPermission ?permset .
+            }}
+            BIND({self._con.userIri.toRdf} as ?user)
+            GRAPH oldap:admin {{
+                ?user oldap:hasPermissions ?permset .
+                ?permset oldap:givesPermission ?DataPermission .
+                ?DataPermission oldap:permissionValue ?permval .
+            }}
+            FILTER(?permval >= {permission.numeric.toRdf})
+        }}'''
+        if self._con.in_transaction():
+            jsonobj = self._con.transaction_query(permission_query)
+        else:
+            jsonobj = self._con.query(permission_query)
+        res = QueryProcessor(context, jsonobj)
+        return res[0]['numOfPermsets'] > 0
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> str:
-        result, message = self.check_for_permissions()
+        result, message = self.check_for_permissions(AdminPermission.ADMIN_CREATE)
         if not result:
             raise OldapErrorNoPermission(message)
 
@@ -579,21 +600,19 @@ WHERE {{
         return cls(iri=iri, **kwargs)
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
-        #
-        # TODO: Do some permission checking here...
-        #
+        admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
         context = Context(name=self._con.context_name)
         blank = ''
         timestamp = Xsd_dateTimeStamp()
 
         sparql_list = []
-        required_permission = DataPermission.DATA_EXTEND.numeric.toRdf
+        required_permission = DataPermission.DATA_EXTEND
         for field, change in self._changeset.items():
             if change.action == Action.MODIFY:
                 continue  # will be processed below!
             if change.action != Action.CREATE:
-                required_permission = DataPermission.DATA_UPDATE.numeric.toRdf
+                required_permission = DataPermission.DATA_UPDATE
             sparql = f'# Processing field "{field}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:data\n'
             if change.action != Action.CREATE:
@@ -632,7 +651,7 @@ WHERE {{
                                                      field=field)
                 for lang, lchange in self._values[field].changeset.items():
                     if lchange.action != Action.CREATE:
-                        required_permission = DataPermission.DATA_UPDATE.numeric.toRdf
+                        required_permission = DataPermission.DATA_UPDATE
                 sparql_list.extend(sparqls)
             else:
                 #
@@ -648,28 +667,6 @@ WHERE {{
         sparql = context.sparql_context
         sparql += f'# Updating resource "{self._iri}"\n'
         sparql += " ;\n".join(sparql_list)
-
-        permission_query = context.sparql_context
-        permission_query += f'''
-SELECT (COUNT(?permset) as ?numOfPermsets)
-FROM oldap:onto
-FROM shared:onto
-FROM {self._graph}:onto
-FROM NAMED oldap:admin
-FROM NAMED {self._graph}:data
-WHERE {{
-    BIND({self._iri.toRdf} as ?iri)
-    GRAPH {self._graph}:data {{
-        ?iri oldap:grantsPermission ?permset .
-    }}
-    BIND({self._con.userIri.toRdf} as ?user)
-    GRAPH oldap:admin {{
-        ?user oldap:hasPermissions ?permset .
-        ?permset oldap:givesPermission ?DataPermission .
-        ?DataPermission oldap:permissionValue ?permval .
-    }}
-    FILTER(?permval >= {required_permission})
-}}'''
 
         modtime_update = context.sparql_context
         modtime_update += f'''
@@ -703,14 +700,10 @@ WHERE {{
         #
         # Test permission for Action.REPLACE
         #
-        try:
-            jsonobj = self._con.transaction_query(permission_query)
-            res = QueryProcessor(context, jsonobj)
-            if res[0]['numOfPermsets'] < 1:
+        if not admin_resources:
+            if not self.get_data_permission(context, required_permission):
+                self._con.transaction_abort()
                 raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
-        except OldapError:
-            self._con.transaction_abort()
-            raise
         try:
             self._con.transaction_update(sparql)
             self._con.transaction_update(modtime_update)
@@ -732,11 +725,52 @@ WHERE {{
         self.clear_changeset()
 
     def delete(self) -> None:
+        admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
+
+        context = Context(name=self._con.context_name)
+        inuse = context.sparql_context
+        inuse = f'''
+        SELECT (COUNT(?res) as ?nres)
+        WHERE {{
+            ?res ?prop {self._iri.toRdf} .
+        }}
+        '''
+
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
+        sparql += f"""
+        DELETE WHERE {{
+            GRAPH {self._graph}:data {{
+                {self._iri.toRdf} ?prop ?val .
+            }}
+        }} 
+        """
+
+        self._con.transaction_start()
+        if not admin_resources:
+            if not self.get_data_permission(context, DataPermission.DATA_DELETE):
+                self._con.transaction_abort()
+                raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
+        try:
+            jsonobj = self._con.transaction_query(inuse)
+            res = QueryProcessor(context, jsonobj)
+            if res[0]['nres'] > 0:
+                raise OldapErrorInUse(f'Resource "{self._iri}" is in use and cannot be deleted.')
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        try:
+            self._con.transaction_update(sparql)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
 
 
-#@strict
 class ResourceInstanceFactory:
     _con: IConnection
     _project: Project

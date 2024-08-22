@@ -12,7 +12,7 @@ from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorNoPermission
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorNoPermission, OldapErrorInUse
 from oldaplib.src.permissionset import PermissionSet
 from oldaplib.src.project import Project
 from oldaplib.src.user import User
@@ -429,6 +429,40 @@ class TestObjectFactory(unittest.TestCase):
         obj.decimalSetter.discard(Xsd_decimal(3.14159))
         with self.assertRaises(OldapErrorNoPermission):
             obj.update()
+
+    def test_delete_rersource(self):
+        project = Project.read(con=self._connection, projectIri_SName='test')
+        factory = ResourceInstanceFactory(con=self._connection, project=project)
+        Book = factory.createObjectInstance('Book')
+        b = Book(title="Hitchhiker's Guide to the Galaxy",
+                 author=Iri('test:DouglasAdams', validate=False),
+                 pubDate="1995-09-27",
+                 grantsPermission=Iri('oldap:GenericView'))
+        b.create()
+        b = Book.read(con=self._connection,
+                       project='test',
+                       iri=b.iri)
+        Page = factory.createObjectInstance('Page')
+        p1 = Page(pageDesignation="Cover",
+                  pageNum=1,
+                  pageDescription=LangString("Cover page of book@en", "Vorderseite des Bucheinschlags@de"),
+                  pageInBook=b.iri,
+                  grantsPermission=Iri('oldap:GenericView'))
+        p1.create()
+
+        with self.assertRaises(OldapErrorInUse):
+            b.delete()
+
+        p1.delete()
+        with self.assertRaises(OldapErrorNotFound):
+            Page.read(con=self._connection,
+                    project='test',
+                    iri=p1.iri)
+        b.delete()
+        with self.assertRaises(OldapErrorNotFound):
+            b = Book.read(con=self._connection,
+                          project='test',
+                          iri=b.iri)
 
 
 if __name__ == '__main__':

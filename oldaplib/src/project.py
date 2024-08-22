@@ -550,7 +550,7 @@ class Project(Model):
             raise OldapErrorNoPermission(message)
 
         #
-        # TODO: Check if project as any datamodel and/or data. Decline the deletion if this is the case
+        # TODO: Check if project has any datamodel and/or data. Decline the deletion if this is the case
         #
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -562,7 +562,6 @@ class Project(Model):
             }}
         }} 
         """
-        # TODO: use transaction for error handling
         self._con.update_query(sparql)
         cache = CacheSingleton()
         cache.delete(self.projectIri)

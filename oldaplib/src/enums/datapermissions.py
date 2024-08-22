@@ -46,12 +46,12 @@ class DataPermission(PermissionWithValue):
     -_DATA_DELETE_: User may delete data
     -_DATA_PERMISSIONS_: User may change the permission of data
     """
-    DATA_RESTRICTED = ('oldap:DATA_RESTRICTED', 1)
-    DATA_VIEW = ('oldap:DATA_VIEW', 2)
-    DATA_EXTEND = ('oldap:DATA_EXTEND', 3)
-    DATA_UPDATE = ('oldap:DATA_UPDATE', 4)
-    DATA_DELETE = ('oldap:DATA_DELETE', 5)
-    DATA_PERMISSIONS = ('oldap:DATA_PERMISSIONS', 6)
+    DATA_RESTRICTED = ('oldap:DATA_RESTRICTED', 1)  # Allow only restricted view of resource data which means that "restricted" fields are not visible
+    DATA_VIEW = ('oldap:DATA_VIEW', 2)  # Allow full view of resource data
+    DATA_EXTEND = ('oldap:DATA_EXTEND', 3)  # Allow to *add* data items to the resource
+    DATA_UPDATE = ('oldap:DATA_UPDATE', 4)  # Allow to *add/modify/delete* data fields of resource
+    DATA_DELETE = ('oldap:DATA_DELETE', 5)  # Allow to delete complete resource
+    DATA_PERMISSIONS = ('oldap:DATA_PERMISSIONS', 6)  # Allow to modify permissions of resource
 
     @property
     def toRdf(self):
