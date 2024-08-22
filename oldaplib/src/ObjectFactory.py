@@ -473,6 +473,9 @@ class ResourceInstance:
         self._changeset = {}
 
 
+    def data_permission(self, permission: DataPermission):
+        pass
+
     def create(self, indent: int = 0, indent_inc: int = 4) -> str:
         result, message = self.check_for_permissions()
         if not result:
@@ -727,6 +730,11 @@ WHERE {{
         self._modified = timestamp
         self._contributor = self._con.userIri
         self.clear_changeset()
+
+    def delete(self) -> None:
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+
 
 #@strict
 class ResourceInstanceFactory:
