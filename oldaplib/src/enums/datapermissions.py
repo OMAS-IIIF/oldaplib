@@ -31,6 +31,25 @@ class PermissionWithValue(Enum):
     def numeric(self) -> Xsd_integer:
         return self._numeric
 
+    def __eq__(self, other: Self) -> bool:
+        return self._numeric == other._numeric
+
+    def __ne__(self, other: Self) -> bool:
+        return self._numeric != other._numeric
+
+    def __gt__(self, other: Self) -> bool:
+        return self._numeric > other._numeric
+
+    def __ge__(self, other: Self) -> bool:
+        return self._numeric >= other._numeric
+
+    def __lt__(self, other: Self) -> bool:
+        return self._numeric < other._numeric
+
+    def __le__(self, other: Self) -> bool:
+        return self._numeric <= other._numeric
+
+
 @unique
 @serializer
 class DataPermission(PermissionWithValue):

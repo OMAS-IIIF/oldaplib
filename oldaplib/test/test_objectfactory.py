@@ -107,6 +107,25 @@ class TestObjectFactory(unittest.TestCase):
         user.hasPermissions.add(Iri('oldap:GenericUpdate'))
         user.update()
 
+        ps = PermissionSet(con=cls._connection,
+                           permissionSetId="testNoUpdate",
+                           label=LangString("testNoUpdate@en"),
+                           comment=LangString("Testing PermissionSet@en"),
+                           givesPermission=DataPermission.DATA_VIEW,
+                           definedByProject="test")
+        ps.create()
+
+        user = User(con=cls._connection,
+                    userId=Xsd_NCName("factorytestuser"),
+                    familyName="FactoryTest",
+                    givenName="FactoryTest",
+                    credentials="Waseliwas",
+                    inProject={'oldap:Test': {}},
+                    hasPermissions={ps.iri.as_qname},
+                    isActive=True)
+        user.create()
+
+
     @classmethod
     def tearDownClass(cls):
         #cls._connection.clear_graph(Xsd_QName('oldaplib:admin'))
@@ -384,23 +403,23 @@ class TestObjectFactory(unittest.TestCase):
         self.assertFalse(obj1.booleanSetter)
 
     def test_value_modifier_norights(self):
-        ps = PermissionSet(con=self._connection,
-                           permissionSetId="testNoUpdate",
-                           label=LangString("testNoUpdate@en"),
-                           comment=LangString("Testing PermissionSet@en"),
-                           givesPermission=DataPermission.DATA_VIEW,
-                           definedByProject="test")
-        ps.create()
-
-        user = User(con=self._connection,
-                    userId=Xsd_NCName("factorytestuser"),
-                    familyName="FactoryTest",
-                    givenName="FactoryTest",
-                    credentials="Waseliwas",
-                    inProject={'oldap:Test': {}},
-                    hasPermissions={ps.iri.as_qname},
-                    isActive=True)
-        user.create()
+        # ps = PermissionSet(con=self._connection,
+        #                    permissionSetId="testNoUpdate",
+        #                    label=LangString("testNoUpdate@en"),
+        #                    comment=LangString("Testing PermissionSet@en"),
+        #                    givesPermission=DataPermission.DATA_VIEW,
+        #                    definedByProject="test")
+        # ps.create()
+        #
+        # user = User(con=self._connection,
+        #             userId=Xsd_NCName("factorytestuser"),
+        #             familyName="FactoryTest",
+        #             givenName="FactoryTest",
+        #             credentials="Waseliwas",
+        #             inProject={'oldap:Test': {}},
+        #             hasPermissions={ps.iri.as_qname},
+        #             isActive=True)
+        # user.create()
 
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         SetterTester = factory.createObjectInstance('SetterTester')
@@ -430,7 +449,7 @@ class TestObjectFactory(unittest.TestCase):
         with self.assertRaises(OldapErrorNoPermission):
             obj.update()
 
-    def test_delete_rersource(self):
+    def test_delete_resource(self):
         project = Project.read(con=self._connection, projectIri_SName='test')
         factory = ResourceInstanceFactory(con=self._connection, project=project)
         Book = factory.createObjectInstance('Book')
@@ -463,6 +482,47 @@ class TestObjectFactory(unittest.TestCase):
             b = Book.read(con=self._connection,
                           project='test',
                           iri=b.iri)
+
+    def test_change_permissions(self):
+        project = Project.read(con=self._connection, projectIri_SName='test')
+
+        ps = PermissionSet(con=self._connection,
+                           permissionSetId="testChangePermission",
+                           label=LangString("testChangePermission@en"),
+                           comment=LangString("Testing PermissionSet@en"),
+                           givesPermission=DataPermission.DATA_PERMISSIONS,
+                           definedByProject="test")
+        ps.create()
+
+        factory = ResourceInstanceFactory(con=self._connection, project=project)
+        Book = factory.createObjectInstance('Book')
+
+        b = Book(title="Hitchhiker's Guide to the Galaxy",
+                 author=Iri('test:DouglasAdams', validate=False),
+                 pubDate="1995-09-27",
+                 grantsPermission=Iri('oldap:GenericView'))
+        b.create()
+        b = Book.read(con=self._connection,
+                      project='test',
+                      iri=b.iri)
+        b.grantsPermission.add('hyha:HyperHamletMember')
+        b.update()
+
+        unpriv = Connection(server='http://localhost:7200',
+                            repo="oldap",
+                            userId="factorytestuser",
+                            credentials="Waseliwas",
+                            context_name="DEFAULT")
+        factory = ResourceInstanceFactory(con=unpriv, project=project)
+        Book = factory.createObjectInstance('Book')
+        b = Book.read(con=self._connection,
+                      project='test',
+                      iri=b.iri)
+        b.grantsPermission.add('oldap:GenericUpdate')
+        with self.assertRaises(OldapErrorNoPermission):
+            b.update()
+
+
 
 
 if __name__ == '__main__':

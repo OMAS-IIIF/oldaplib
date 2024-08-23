@@ -543,9 +543,9 @@ class ResourceInstance:
              con: IConnection,
              project: Project | Iri | Xsd_NCName | str,
              iri: Iri) -> Self:
-        if not isinstance(project, Project):
-            project = Project.read(con, project)
-        graph = project.projectShortName
+        # if not isinstance(project, Project):
+        #     project = Project.read(con, project)
+        graph = cls.project.projectShortName
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f'''
@@ -609,10 +609,13 @@ WHERE {{
         sparql_list = []
         required_permission = DataPermission.DATA_EXTEND
         for field, change in self._changeset.items():
+            if field == 'oldap:grantsPermission':
+                required_permission = DataPermission.DATA_PERMISSIONS
             if change.action == Action.MODIFY:
                 continue  # will be processed below!
             if change.action != Action.CREATE:
-                required_permission = DataPermission.DATA_UPDATE
+                if required_permission < DataPermission.DATA_UPDATE:
+                    required_permission = DataPermission.DATA_UPDATE
             sparql = f'# Processing field "{field}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:data\n'
             if change.action != Action.CREATE:
@@ -651,7 +654,8 @@ WHERE {{
                                                      field=field)
                 for lang, lchange in self._values[field].changeset.items():
                     if lchange.action != Action.CREATE:
-                        required_permission = DataPermission.DATA_UPDATE
+                        if required_permission < DataPermission.DATA_UPDATE:
+                            required_permission = DataPermission.DATA_UPDATE
                 sparql_list.extend(sparqls)
             else:
                 #
