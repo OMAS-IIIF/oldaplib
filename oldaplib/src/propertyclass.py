@@ -12,10 +12,12 @@ from typing import Callable, Self, Any
 from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet
+from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
+from oldaplib.src.helpers.convert2datatype import convert2datatype
 from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
@@ -142,6 +144,15 @@ class PropertyClass(Model, Notify):
         self._graph = self._project.projectShortName
 
         self._property_class_iri = Iri(property_class_iri) if property_class_iri else None
+        datatype = kwargs.get('datatype', None)
+        if datatype and kwargs.get('inSet'):
+            if datatype == XsdDatatypes.langString:
+                kwargs['inSet'] = {convert2datatype(x, XsdDatatypes.string) for x in kwargs['inSet']}
+            else:
+                kwargs['inSet'] = {convert2datatype(x, datatype) for x in kwargs['inSet']}
+        toClass = kwargs.get('toClass', None)
+        if toClass and kwargs.get('inSet'):
+            kwargs['inSet'] = {Iri(x) for x in kwargs['inSet']}
         self.set_attributes(kwargs, PropClassAttr)
 
         #
@@ -182,6 +193,20 @@ class PropertyClass(Model, Notify):
         self._force_external = False
         self.__version = SemanticVersion()
         self.__from_triplestore = False
+
+    def pre_transform(self, attr: AttributeClass, value: Any) -> Any:
+        if attr == PropClassAttr.IN:
+            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+                datatype = self._attributes[PropClassAttr.DATATYPE]
+                if datatype == XsdDatatypes.langString:
+                    return {convert2datatype(x, XsdDatatypes.string) for x in value}
+                else:
+                    return {convert2datatype(x, datatype) for x in value}
+            elif self._attributes.get(PropClassAttr.CLASS) is not None:
+                toClass = self._attributes[PropClassAttr.CLASS]
+                return {Iri(x) for x in value}
+        else:
+            return value
 
     def check_consistency(self, attr: PropClassAttr, value: Any) -> None:
         if attr == PropClassAttr.CLASS:

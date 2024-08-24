@@ -82,6 +82,17 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
 
+    def test_propertyclass_inset_datatypes(self):
+        p = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Iri('test:inset'),
+                          subPropertyOf=Iri('test:comment'),
+                          datatype=XsdDatatypes.string,
+                          inSet={"AAA", "BBB", "CCC"},
+                          name=LangString(["Deepcopy@en", "Tiefekopie@de"]),
+                          description=LangString("A test for deepcopy...@"))
+
+
     def test_propertyclass_deepcopy(self):
         p = PropertyClass(con=self._connection,
                           project=self._project,
@@ -287,44 +298,33 @@ class TestPropertyClass(unittest.TestCase):
             languageIn=LanguageIn(Language.EN, Language.DE),
             uniqueLang=Xsd_boolean(True),
             pattern=Xsd_string('*.'),
-            inSet=RdfSet(Iri("http://www.test.org/comment1"),
-                         Iri("http://www.test.org/comment2"),
-                         Iri("http://www.test.org/comment3"))
         )
         self.assertEqual(p1.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
         self.assertEqual(p1[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))
         self.assertEqual(p1[PropClassAttr.LANGUAGE_IN], LanguageIn(Language.EN, Language.DE))
         self.assertTrue(p1[PropClassAttr.UNIQUE_LANG])
         self.assertEqual(p1[PropClassAttr.PATTERN], '*.')
-        self.assertEqual(p1[PropClassAttr.IN],
-                         RdfSet(Iri("http://www.test.org/comment1"),
-                                Iri("http://www.test.org/comment2"),
-                                Iri("http://www.test.org/comment3")))
 
         p1[PropClassAttr.NAME][Language.FR] = "Annotations en Français"
         del p1[PropClassAttr.NAME][Language.EN]
         p1[PropClassAttr.DESCRIPTION] = LangString("A description@en")
         p1[PropClassAttr.LANGUAGE_IN] = LanguageIn(Language.EN, Language.DE, Language.FR)
-        p1[PropClassAttr.IN] = RdfSet(Iri("http://google.com"), Iri("https://google.com"))
 
         self.assertEqual(p1[PropClassAttr.NAME], LangString(["Annotationen@de", "Annotations en Français@fr"]))
         self.assertEqual(p1[PropClassAttr.LANGUAGE_IN], LanguageIn(Language.EN, Language.DE, Language.FR))
         self.assertTrue(p1[PropClassAttr.UNIQUE_LANG])
         self.assertEqual(p1[PropClassAttr.PATTERN], Xsd_string('*.'))
-        self.assertEqual(p1[PropClassAttr.IN], RdfSet(Iri("http://google.com"), Iri("https://google.com")))
         p1.undo()
         self.assertEqual(p1[PropClassAttr.DATATYPE], XsdDatatypes.langString)
         self.assertEqual(p1[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))
         self.assertEqual(p1[PropClassAttr.LANGUAGE_IN], LanguageIn(Language.EN, Language.DE))
         self.assertTrue(p1[PropClassAttr.UNIQUE_LANG])
         self.assertEqual(p1[PropClassAttr.PATTERN], Xsd_string('*.'))
-        self.assertEqual(p1[PropClassAttr.IN], RdfSet(Iri("http://www.test.org/comment1"), Iri("http://www.test.org/comment2"), Iri("http://www.test.org/comment3")))
 
         p1[PropClassAttr.NAME][Language.FR] = "Annotations en Français"
         del p1[PropClassAttr.NAME][Language.EN]
         p1[PropClassAttr.DESCRIPTION] = LangString("A description@en")
         p1[PropClassAttr.LANGUAGE_IN] = LanguageIn(Language.EN, Language.DE, Language.FR)
-        p1[PropClassAttr.IN] = RdfSet(Iri("https://gaga.com"), Iri("https://gugus.com"))
 
         p1.undo(PropClassAttr.NAME)
         self.assertEqual(p1[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))
@@ -332,21 +332,67 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p1.get(PropClassAttr.DESCRIPTION))
         p1.undo(PropClassAttr.LANGUAGE_IN)
         self.assertEqual(p1[PropClassAttr.LANGUAGE_IN], LanguageIn(Language.EN, Language.DE))
+        self.assertEqual(p1.changeset, {})
+
+        p1 = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Iri('test:testUndo'),
+            toClass=Iri('http://www.test.org/TestObject'),
+            name=LangString(["Annotations@en", "Annotationen@de"]),
+            inSet=XsdSet(Iri("http://www.test.org/comment1"),
+                         Iri("http://www.test.org/comment2"),
+                         Iri("http://www.test.org/comment3")))
+        self.assertEqual(p1.get(PropClassAttr.CLASS), Iri('http://www.test.org/TestObject'))
+        self.assertEqual(p1[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        self.assertEqual(p1[PropClassAttr.IN],
+                         XsdSet(Iri("http://www.test.org/comment1"),
+                                Iri("http://www.test.org/comment2"),
+                                Iri("http://www.test.org/comment3")))
+
+        p1[PropClassAttr.NAME][Language.FR] = "Annotations en Français"
+        del p1[PropClassAttr.NAME][Language.EN]
+        p1[PropClassAttr.DESCRIPTION] = LangString("A description@en")
+        p1[PropClassAttr.IN] = {"http://google.com", "https://google.com"}
+        self.assertEqual(p1[PropClassAttr.NAME], LangString(["Annotationen@de", "Annotations en Français@fr"]))
+        self.assertEqual(p1[PropClassAttr.IN], XsdSet(Iri("http://google.com"), Iri("https://google.com")))
+        p1.undo()
+        self.assertEqual(p1.get(PropClassAttr.CLASS), Iri('http://www.test.org/TestObject'))
+        self.assertEqual(p1[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        self.assertEqual(p1[PropClassAttr.IN],
+                         XsdSet(Iri("http://www.test.org/comment1"),
+                                Iri("http://www.test.org/comment2"),
+                                Iri("http://www.test.org/comment3")))
+
+        p1[PropClassAttr.NAME][Language.FR] = "Annotations en Français"
+        del p1[PropClassAttr.NAME][Language.EN]
+        p1[PropClassAttr.DESCRIPTION] = LangString("A description@en")
+        p1[PropClassAttr.IN] = RdfSet(Iri("https://gaga.com"), Iri("https://gugus.com"))
+
+        p1.undo(PropClassAttr.NAME)
+        self.assertEqual(p1[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        p1.undo(PropClassAttr.DESCRIPTION)
+        self.assertIsNone(p1.get(PropClassAttr.DESCRIPTION))
         p1.undo(PropClassAttr.IN)
         self.assertEqual(p1[PropClassAttr.IN], RdfSet(Iri("http://www.test.org/comment1"), Iri("http://www.test.org/comment2"), Iri("http://www.test.org/comment3")))
         self.assertEqual(p1.changeset, {})
+
 
         p1 = PropertyClass(
             con=self._connection,
             #graph=Xsd_NCName('test'),
             project=self._project,
             property_class_iri=Iri('test:testUndo'),
-            toClass=Iri('test:testUndo42')
+            toClass=Iri('test:testUndo42'),
+            inSet={'test:testUndo42', 'test:UP4014'}
         )
-        p1.toNodeIri = Iri('test:UP4014')
-        self.assertEqual(p1.toNodeIri, Iri('test:UP4014'))
+        p1.toClass = Iri('test:UP4014')
+        p1.inSet.add('test:RGW168')
+        self.assertEqual(p1.toClass, Iri('test:UP4014'))
+        self.assertEqual(p1.inSet, {'test:testUndo42', 'test:UP4014', 'test:RGW168'})
         p1.undo()
         self.assertEqual(p1.toClass, Iri('test:testUndo42'))
+        self.assertEqual(p1.inSet, {'test:testUndo42', 'test:UP4014'})
 
 
     # @unittest.skip('Work in progress')

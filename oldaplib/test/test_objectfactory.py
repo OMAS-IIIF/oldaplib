@@ -114,6 +114,7 @@ class TestObjectFactory(unittest.TestCase):
                            givesPermission=DataPermission.DATA_VIEW,
                            definedByProject="test")
         ps.create()
+        cls._tps = ps.read(cls._connection, "testNoUpdate", "test")
 
         user = User(con=cls._connection,
                     userId=Xsd_NCName("factorytestuser"),
@@ -124,6 +125,7 @@ class TestObjectFactory(unittest.TestCase):
                     hasPermissions={ps.iri.as_qname},
                     isActive=True)
         user.create()
+        cls._tuser = User.read(cls._connection, "factorytestuser")
 
 
     @classmethod
@@ -428,7 +430,7 @@ class TestObjectFactory(unittest.TestCase):
                             decimalSetter={Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)},
                             integerSetter={-10, 20},
                             booleanSetter=True,
-                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate'), ps.iri})
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate'), self._tps.iri})
         obj1.create()
 
         unpriv = Connection(server='http://localhost:7200',

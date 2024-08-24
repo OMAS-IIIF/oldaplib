@@ -16,6 +16,7 @@ from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.convert2datatype import convert2datatype
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency, \
@@ -76,93 +77,93 @@ class ResourceInstance:
     _graph: Xsd_NCName
     _changeset: dict[Iri, AttributeChange]
 
-    @staticmethod
-    def convert2datatype(value: Any, datatype: XsdDatatypes) -> Xsd | LangString:
-        match datatype:
-            case XsdDatatypes.string:
-                return Xsd_string(value)
-            case XsdDatatypes.langString:
-                return LangString(value)
-            case XsdDatatypes.boolean:
-                return Xsd_boolean(value)
-            case XsdDatatypes.decimal:
-                return Xsd_decimal(value)
-            case XsdDatatypes.float:
-                return Xsd_float(value)
-            case XsdDatatypes.double:
-                return Xsd_double(value)
-            case XsdDatatypes.duration:
-                return Xsd_duration(value)
-            case XsdDatatypes.dateTime:
-                return Xsd_dateTime(value)
-            case XsdDatatypes.dateTimeStamp:
-                return Xsd_dateTimeStamp(value)
-            case XsdDatatypes.time:
-                return Xsd_time(value)
-            case XsdDatatypes.date:
-                return Xsd_date(value)
-            case XsdDatatypes.gYearMonth:
-                return Xsd_gYearMonth(value)
-            case XsdDatatypes.gYear:
-                return Xsd_gYear(value)
-            case XsdDatatypes.gMonthDay:
-                return Xsd_gMonthDay(value)
-            case XsdDatatypes.gDay:
-                return Xsd_gDay(value)
-            case XsdDatatypes.gMonth:
-                return Xsd_gMonth(value)
-            case XsdDatatypes.hexBinary:
-                return Xsd_hexBinary(value)
-            case XsdDatatypes.base64Binary:
-                return Xsd_base64Binary(value)
-            case XsdDatatypes.anyURI:
-                return Xsd_anyURI(value)
-            case XsdDatatypes.QName:
-                return Xsd_QName(value)
-            case XsdDatatypes.normalizedString:
-                return Xsd_normalizedString(value)
-            case XsdDatatypes.token:
-                return Xsd_token(value)
-            case XsdDatatypes.language:
-                return Xsd_language(value)
-            case XsdDatatypes.NCName:
-                return Xsd_NCName(value)
-            case XsdDatatypes.NMTOKEN:
-                return Xsd_NMTOKEN(value)
-            case XsdDatatypes.ID:
-                return Xsd_ID(value)
-            case XsdDatatypes.IDREF:
-                return Xsd_IDREF(value)
-            case XsdDatatypes.integer:
-                return Xsd_int(value)
-            case XsdDatatypes.nonPositiveInteger:
-                return Xsd_nonPositiveInteger(value)
-            case XsdDatatypes.negativeInteger:
-                return Xsd_negativeInteger(value)
-            case XsdDatatypes.long:
-                return Xsd_long(value)
-            case XsdDatatypes.int:
-                return Xsd_int(value)
-            case XsdDatatypes.short:
-                return Xsd_short(value)
-            case XsdDatatypes.byte:
-                return Xsd_byte(value)
-            case XsdDatatypes.nonNegativeInteger:
-                return Xsd_nonNegativeInteger(value)
-            case XsdDatatypes.unsignedLong:
-                return Xsd_unsignedLong(value)
-            case XsdDatatypes.unsignedInt:
-                return Xsd_unsignedInt(value)
-            case XsdDatatypes.unsignedShort:
-                return Xsd_unsignedShort(value)
-            case XsdDatatypes.unsignedByte:
-                return Xsd_unsignedByte(value)
-            case XsdDatatypes.positiveInteger:
-                return Xsd_positiveInteger(value)
-            case None:
-                return Iri(value)
-            case _:
-                raise OldapErrorValue(f'Invalid datatype "{datatype}" for value "{value}"')
+    #@staticmethod
+    # def convert2datatype(value: Any, datatype: XsdDatatypes) -> Xsd | LangString:
+    #     match datatype:
+    #         case XsdDatatypes.string:
+    #             return Xsd_string(value)
+    #         case XsdDatatypes.langString:
+    #             return LangString(value)
+    #         case XsdDatatypes.boolean:
+    #             return Xsd_boolean(value)
+    #         case XsdDatatypes.decimal:
+    #             return Xsd_decimal(value)
+    #         case XsdDatatypes.float:
+    #             return Xsd_float(value)
+    #         case XsdDatatypes.double:
+    #             return Xsd_double(value)
+    #         case XsdDatatypes.duration:
+    #             return Xsd_duration(value)
+    #         case XsdDatatypes.dateTime:
+    #             return Xsd_dateTime(value)
+    #         case XsdDatatypes.dateTimeStamp:
+    #             return Xsd_dateTimeStamp(value)
+    #         case XsdDatatypes.time:
+    #             return Xsd_time(value)
+    #         case XsdDatatypes.date:
+    #             return Xsd_date(value)
+    #         case XsdDatatypes.gYearMonth:
+    #             return Xsd_gYearMonth(value)
+    #         case XsdDatatypes.gYear:
+    #             return Xsd_gYear(value)
+    #         case XsdDatatypes.gMonthDay:
+    #             return Xsd_gMonthDay(value)
+    #         case XsdDatatypes.gDay:
+    #             return Xsd_gDay(value)
+    #         case XsdDatatypes.gMonth:
+    #             return Xsd_gMonth(value)
+    #         case XsdDatatypes.hexBinary:
+    #             return Xsd_hexBinary(value)
+    #         case XsdDatatypes.base64Binary:
+    #             return Xsd_base64Binary(value)
+    #         case XsdDatatypes.anyURI:
+    #             return Xsd_anyURI(value)
+    #         case XsdDatatypes.QName:
+    #             return Xsd_QName(value)
+    #         case XsdDatatypes.normalizedString:
+    #             return Xsd_normalizedString(value)
+    #         case XsdDatatypes.token:
+    #             return Xsd_token(value)
+    #         case XsdDatatypes.language:
+    #             return Xsd_language(value)
+    #         case XsdDatatypes.NCName:
+    #             return Xsd_NCName(value)
+    #         case XsdDatatypes.NMTOKEN:
+    #             return Xsd_NMTOKEN(value)
+    #         case XsdDatatypes.ID:
+    #             return Xsd_ID(value)
+    #         case XsdDatatypes.IDREF:
+    #             return Xsd_IDREF(value)
+    #         case XsdDatatypes.integer:
+    #             return Xsd_int(value)
+    #         case XsdDatatypes.nonPositiveInteger:
+    #             return Xsd_nonPositiveInteger(value)
+    #         case XsdDatatypes.negativeInteger:
+    #             return Xsd_negativeInteger(value)
+    #         case XsdDatatypes.long:
+    #             return Xsd_long(value)
+    #         case XsdDatatypes.int:
+    #             return Xsd_int(value)
+    #         case XsdDatatypes.short:
+    #             return Xsd_short(value)
+    #         case XsdDatatypes.byte:
+    #             return Xsd_byte(value)
+    #         case XsdDatatypes.nonNegativeInteger:
+    #             return Xsd_nonNegativeInteger(value)
+    #         case XsdDatatypes.unsignedLong:
+    #             return Xsd_unsignedLong(value)
+    #         case XsdDatatypes.unsignedInt:
+    #             return Xsd_unsignedInt(value)
+    #         case XsdDatatypes.unsignedShort:
+    #             return Xsd_unsignedShort(value)
+    #         case XsdDatatypes.unsignedByte:
+    #             return Xsd_unsignedByte(value)
+    #         case XsdDatatypes.positiveInteger:
+    #             return Xsd_positiveInteger(value)
+    #         case None:
+    #             return Iri(value)
+    #         case _:
+    #             raise OldapErrorValue(f'Invalid datatype "{datatype}" for value "{value}"')
 
     def __init__(self, *,
                  iri: Iri | None = None,
@@ -182,13 +183,13 @@ class ResourceInstance:
                             self._values[prop_iri] = LangString(value,
                                                                 notifier=self.notifier, notify_data=prop_iri)
                         else:
-                            self._values[prop_iri] = ObservableSet({self.convert2datatype(x, hasprop.prop.datatype) for x in value},
+                            self._values[prop_iri] = ObservableSet({convert2datatype(x, hasprop.prop.datatype) for x in value},
                                                                    notifier=self.notifier, notify_data=prop_iri)
                     else:
                         try:
-                            self._values[prop_iri] = ObservableSet({self.convert2datatype(value, hasprop.prop.datatype)})
+                            self._values[prop_iri] = ObservableSet({convert2datatype(value, hasprop.prop.datatype)})
                         except TypeError as err:
-                            self._values[prop_iri] = self.convert2datatype(value, hasprop.prop.datatype)
+                            self._values[prop_iri] = convert2datatype(value, hasprop.prop.datatype)
 
             for prop_iri, hasprop in propclass.items():
                 #
@@ -429,7 +430,7 @@ class ResourceInstance:
                 self._values[prop_iri] = LangString(value, notifier=self.notifier, notify_data=prop_iri)
             else:
                 self._values[prop_iri] = ObservableSet({
-                    self.convert2datatype(x, hasprop.prop.datatype) for x in value
+                    convert2datatype(x, hasprop.prop.datatype) for x in value
                 }, notifier=self.notifier, notify_data=prop_iri)
         else:
             if self._values.get(prop_iri):
@@ -437,9 +438,9 @@ class ResourceInstance:
             else:
                 self._changeset[prop_iri] = AttributeChange(None, Action.CREATE)
             try:
-                self._values[prop_iri] = ObservableSet({self.convert2datatype(value, hasprop.prop.datatype)})
+                self._values[prop_iri] = ObservableSet({convert2datatype(value, hasprop.prop.datatype)})
             except TypeError:
-                self._values[prop_iri] = self.convert2datatype(value, hasprop.prop.datatype)
+                self._values[prop_iri] = convert2datatype(value, hasprop.prop.datatype)
 
     def __del_value(self: Self, prefix: str, fragment: str) -> None:
         prop_iri = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
@@ -661,7 +662,7 @@ WHERE {{
                 #
                 # first we rectify the datatype of all "new" values added to the set
                 #
-                newset = {self.convert2datatype(x, self.properties[field].prop.datatype) for x in self._values[field]}
+                newset = {convert2datatype(x, self.properties[field].prop.datatype) for x in self._values[field]}
                 self._values[field] = ObservableSet(newset, old_value=self._values[field].old_value, notifier=self.notifier, notify_data=field)
                 sparqls = self._values[field].update_sparql(graph=f'{self._graph}:data',
                                                             subject=self._iri,
