@@ -19,11 +19,13 @@ class Xsd_dateTime(Xsd):
 
     def __init__(self, value: datetime | Self | str | None = None, validate: bool = True):
         """
-        Constructor of a Xsd_dateTime instance
+        Constructor of a Xsd_dateTime instance. If no value is given, `datetime.new()` will be used.
         :param value: a Xsd_dateTime instance, Python datetime
         object or a string representation of a datetime in ISO format, or None.
         If the parameter is None or omitted, the current datetime is used.
         :type value: datetime | Self | str | None
+        :param validate: whether to validate the value before instantiation. Validtaion relies on regex pattern.
+        :type validate: bool
         :raises OldapErrorValue: if the parameter cannot be converted to a datetime
         """
         if value is None:
@@ -47,6 +49,7 @@ class Xsd_dateTime(Xsd):
         """
         String representation of the Xsd_dateTime instance in ISO format
         :return: ISO string
+        :rtype: str
         """
         return self.__value.isoformat()
 
@@ -54,10 +57,16 @@ class Xsd_dateTime(Xsd):
         """
         String representation of the Xsd_dateTime instance in ISO format as constructor
         :return: Constructor string representation of the Xsd_dateTime instance in ISO format
+        :rtype: str
         """
         return f'Xsd_dateTime("{self.__value.isoformat()}")'
 
     def __hash__(self) -> int:
+        """
+        Calculates the hash of the Xsd_dateTime instance
+        :return: hash value
+        :rtype: int
+        """
         return hash(self.__value.isoformat())
 
     def __eq__(self, other: Self | str | None) -> bool:
@@ -65,6 +74,7 @@ class Xsd_dateTime(Xsd):
         Equality test for Xsd_dateTime instance
         :param other: Value to compare instance to
         :return: True or False
+        :rtype: bool
         :raises OldapErrorValue: if the parameter cannot be converted to a datetime
         """
         if other is None:
@@ -83,8 +93,9 @@ class Xsd_dateTime(Xsd):
 
     def _as_dict(self) -> dict:
         """
-        Used internall for JSON serialization (@serializer decorator)
+        Used internally for JSON serialization using @serialisation decorator
         :return: dict
+        :rtype: dict
         """
         return {'value': self.__value.isoformat()}
 
@@ -93,6 +104,7 @@ class Xsd_dateTime(Xsd):
         """
         Converts the Xsd_dateTime instance to a RDF string
         :return: RDF string
+        :rtype: str
         """
         return f'"{self.__value.isoformat()}"^^xsd:dateTime'
 
@@ -101,6 +113,7 @@ class Xsd_dateTime(Xsd):
         """
         Converts the Xsd_dateTime instance to a Python datetime object and returns it
         :return: datetime object
+        :rtype: datetime
         """
         return self.__value
 
@@ -109,5 +122,6 @@ class Xsd_dateTime(Xsd):
         """
         Return a Xsd_dateTime instance set to now()
         :return: Xsd_dateTime instance
+        :rtype: Xsd_dateTime
         """
         return cls(datetime.now())

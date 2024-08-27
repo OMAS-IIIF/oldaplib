@@ -20,6 +20,7 @@ class Xsd_boolean(Xsd):
         Constructor of Xsd_boolean
         :param value: Any value that can be interpreted as boolean
         :type value: Any
+        :param validate: Boolean value that determines whether or not the value should be validated (not used!)
         :raises OldapErrorValue: If the value is not a boolean
         """
         if isinstance(value, str):
@@ -36,13 +37,15 @@ class Xsd_boolean(Xsd):
         """
         String representation of Xsd_boolean
         :return: string
+        :rtype: str
         """
         return str(self.__value).lower()
 
     def __repr__(self) -> str:
         """
         String representation of Xsd_boolean as constructor
-        :return:
+        :return: string
+        :rtype: str
         """
         return f"Xsd_boolean('{str(self.__value).lower()}')"
 
@@ -50,6 +53,7 @@ class Xsd_boolean(Xsd):
         """
         Boolean representation of Xsd_boolean
         :return: bool
+        :rtype: bool
         """
         return self.__value
 
@@ -59,6 +63,7 @@ class Xsd_boolean(Xsd):
         :param other: Value to compare with
         :type other: Any
         :return: True or False
+        :rtype: bool
         """
         if other is None:
             return False
@@ -71,6 +76,7 @@ class Xsd_boolean(Xsd):
         """
         String representation of Xsd_boolean for RDF representation
         :return: string for RDF
+        :rtype: str
         """
         return f'"{str(self.__value).lower()}"^^xsd:boolean'
 
@@ -82,6 +88,7 @@ class Xsd_boolean(Xsd):
         """
         Used internally for JSON serialization using @serialisation decorator
         :return: dict
+        :rtype: dict[str, str]
         """
         return {'value': str(self.__value)}
 

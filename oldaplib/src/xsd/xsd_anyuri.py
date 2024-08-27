@@ -16,7 +16,7 @@ class Xsd_anyURI(Xsd):
     """
     # AnyIRI
 
-    Represents a generic IRI (corresonds to the XML datatype [AnyURI](https://www.w3.org/TR/xmlschema11-2/#anyURI).
+    Represents a generic IRI (corresponds to the XML datatype [AnyURI](https://www.w3.org/TR/xmlschema11-2/#anyURI).
     This class is used to represent a generic IRI. This class has the following methods:
 
     - Constructor method `__init__`
@@ -28,6 +28,8 @@ class Xsd_anyURI(Xsd):
     - RDF property `toRdf`
     - Hashing methods `hash(XXX)`
     - information `len(XXX)`, `XXX.append_allowed`
+
+    Validation uses regex patterns (always) and the XsdValidator library (optional)
     """
     _value: str
     _append_allowed: bool
@@ -47,9 +49,12 @@ class Xsd_anyURI(Xsd):
 
     def __init__(self, value: Self | str, validate: bool = True):
         """
-        Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI
+        Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI.
+        If the validate parameter is true, the extensive XsdValidator library will be used.
         :param value: A string or another AnyIRI instance
         :type value: Xsd_anyURI | str
+        :param validate: Whether to validate the IRI against the IRI XML schema
+        :type validate: bool
         :raises OldapErrorValue: The given string is not an IRI
         """
         super().__init__(value)
@@ -80,6 +85,7 @@ class Xsd_anyURI(Xsd):
         """
         Returns the Python representation of the AnyIRI
         :return: Python representation of the AnyIRI
+        :rtype: str
         """
         return f'Xsd_anyURI("{self._value}")'
 
@@ -87,6 +93,7 @@ class Xsd_anyURI(Xsd):
         """
         Returns the string representation of the AnyIRI
         :return: String representation of the AnyIRI
+        :rtype: str
         """
         return f'{self._value}'
 
@@ -96,6 +103,7 @@ class Xsd_anyURI(Xsd):
         :param other: A string/AnyIRI to be compared
         :type other: AnyIRI | None
         :return: True or False
+        :rtype: bool
         """
         if other is None:
             return False
@@ -109,6 +117,7 @@ class Xsd_anyURI(Xsd):
         :param other: A string/AnyIRI to be compared
         :type other: AnyIRI | None
         :return: True or False
+        :rtype: bool
         """
         if other is None:
             return True
@@ -118,6 +127,7 @@ class Xsd_anyURI(Xsd):
         """
         Returns the hash of the AnyIRI
         :return: Hash of the AnyIRI
+        :rtype: int
         """
         return self._value.__hash__()
 
@@ -125,10 +135,16 @@ class Xsd_anyURI(Xsd):
         """
         Returns the number of characters in the AnyIRI
         :return: Number of characters in the AnyIRI
+        :rtype: int
         """
         return len(self._value)
 
     def _as_dict(self) -> dict[str, str]:
+        """
+        Used internally for JSON serialization using @serialisation decorator
+        :return: dict for JSON serializer
+        :rtype: dict[str, str]
+        """
         return {'value': self._value}
 
     @property
@@ -136,6 +152,7 @@ class Xsd_anyURI(Xsd):
         """
         Returns the RDF representation of the AnyIRI
         :return: RDF string
+        :rtype: str
         """
         return f'"{self._value}"^^xsd:anyURI'
 
@@ -144,6 +161,7 @@ class Xsd_anyURI(Xsd):
         """
         Property which is "True" if the AnyURI is ending with "#" or "/"
         :return: True of False
+        :rtype: bool
         """
         return self._append_allowed
 
@@ -152,6 +170,7 @@ class Xsd_anyURI(Xsd):
         """
         Property which returns the AnyIRI value
         :return: string
+        :rtype: str
         """
         return self._value
 

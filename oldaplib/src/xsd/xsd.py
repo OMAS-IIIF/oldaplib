@@ -11,7 +11,7 @@ class Xsd(ABC):
     def __init__(self, value: Self | str, validate: bool = True):
         """
         Initialize the XSD class. Must not be called by subclasses
-        :param value:
+        :param value: The value of the Xsd instance
         """
         pass
 
@@ -52,7 +52,7 @@ class Xsd(ABC):
     @abstractmethod
     def _as_dict(self) -> dict[str, str]:
         """
-        Used for the JSON serialization of the XSD class.
+        Used internally for JSON serialization using @serialisation decorator
         :return:
         """
         pass

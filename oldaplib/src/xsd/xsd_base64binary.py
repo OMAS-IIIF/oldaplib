@@ -20,9 +20,12 @@ class Xsd_base64Binary(Xsd):
 
     def __init__(self, value: Self | bytes, validate: bool = True):
         """
-        Constructor that encodes and decodes binary data using the XML Scheme xsd:base64Binary datatype
+        Constructor that encodes and decodes binary data using the XML Scheme xsd:base64Binary datatype.
+        Validation uses regexp patterns and the XsdValidator library.
         :param value: Either another instance of Xsd_base64Binary or a bytes object
         :type value: Xsd_base64Binary | bytes
+        :param validate: Whether to validate the binary data
+        :type validate: bool
         :raises OldapErrorValue: If the value is not an instance of Xsd_base64Binary or a valid bytes object
         """
         if isinstance(value, Xsd_base64Binary):
@@ -43,6 +46,7 @@ class Xsd_base64Binary(Xsd):
         """
         String representation based on utf-8 encoding
         :return: string
+        :rtype: str
         """
         return self.__value.decode('utf-8')
 
@@ -50,6 +54,7 @@ class Xsd_base64Binary(Xsd):
         """
         String representation based on utf-8 encoding as used for constructor
         :return: string
+        :rtype: str
         """
         return f'Xsd_base64Binary(b"{self.__value.decode('utf-8')}")'
 
@@ -59,6 +64,7 @@ class Xsd_base64Binary(Xsd):
         :param other: Another Xsd_base64Binary instance
         :type other: Xsd_base64Binary | None
         :return: True or False
+        :rtype: bool
         """
         if other is None:
             return False
@@ -68,13 +74,14 @@ class Xsd_base64Binary(Xsd):
         """
         Return the hash value for the object
         :return: Hash value
+        :rtype: int
         """
         return hash(self.__value)
 
     def _as_dict(self) -> dict[str, bytes]:
         """
-        Used of JSON serialization with @serialisation decorator
-        :return:
+        Used internally for JSON serialization using @serialisation decorator
+        :return: dict for JSON serialization
         """
         return {'value': self.__value}
 
@@ -84,6 +91,7 @@ class Xsd_base64Binary(Xsd):
         Converts an Xsd_base64Binary RDF string into an Xsd_base64Binary object
         :param value: RDF string
         :return: Instance of Xsd_base64Binary
+        :rtype: Xsd_base64Binary
         """
         return cls(value.encode('utf-8'), validate=False)
 
@@ -92,6 +100,7 @@ class Xsd_base64Binary(Xsd):
         """
         Converts an Xsd_base64Binary object to an RDF string
         :return: RDF string
+        :rtype: str
         """
         return f'"{self.__value.decode('utf-8')}"^^xsd:base64Binary'
 
@@ -100,6 +109,7 @@ class Xsd_base64Binary(Xsd):
         """
         Converts an Xsd_base64Binary object to a bytes object
         :return: bytes
+        :rtype: bytes
         """
         return self.__value
 

@@ -19,13 +19,15 @@ class Xsd_date(Xsd):
 
     def __init__(self, value: date | Self | str | int | None = None, month: int | None = None, day: int | None = None, validate: bool = True):
         """
-        Constructor of a Xsd_date object
+        Constructor of a Xsd_date object. If no date value is given, the date of "today" will be used.
         :param value: Either the year as int, or an ISO date string, or a Python date value, or a Xsd_date instance
         :type value: date | Self | str | int
         :param month: The month number in the range 1-12 [optional]
         :type month: int
         :param day: The day number in the range 1-31 [optional]
         :type day: int
+        :param validate: Whether to validate the Xsd_date object against the schema
+        :type validate: bool
         :raises OldapErrorValue: If the string passed is not a valid ISO date string
         """
         if value is None:
@@ -53,6 +55,7 @@ class Xsd_date(Xsd):
         """
         String representation of the Xsd_date object as ISO date string
         :return: string
+        :rtype: str
         """
         return self.__value.isoformat()
 
@@ -60,6 +63,7 @@ class Xsd_date(Xsd):
         """
         String representation of the Xsd_date object as ISO date string
         :return: string
+        :rtype: str
         """
         return f'Xsd_date("{self.__value.isoformat()}")'
 
@@ -80,6 +84,7 @@ class Xsd_date(Xsd):
         :param other: another Xsd_date object or ISO string
         :type other: Xsd_date | date | str | None
         :return: True or False
+        :rtype: bool
         :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
@@ -98,6 +103,7 @@ class Xsd_date(Xsd):
         :param other: Value to compare to
         :type other: Xsd_date | date | str | None
         :return: True or False
+        :rtype: bool
         :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
@@ -116,6 +122,7 @@ class Xsd_date(Xsd):
         :param other: Value to compare to
         :type other: Xsd_date | date | str | None
         :return: True or False
+        :rtype: bool
         :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
@@ -134,6 +141,7 @@ class Xsd_date(Xsd):
         :param other: Value to compare to
         :type other: Xsd_date | date | str | None
         :return: True or False
+        :rtype: bool
         :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
@@ -151,6 +159,7 @@ class Xsd_date(Xsd):
         Compare less or equal than for Xsd_date object
         :param other: Value to compare to
         :return: True or False
+        :rtype: bool
         :raises OldapErrorValue: If the input string is not a valid date string
         """
         if other is None:
@@ -167,13 +176,15 @@ class Xsd_date(Xsd):
         """
         Internal method for hashing Xsd_date object
         :return: Hash value
+        :rtype: int
         """
         return hash(self.__value)
 
-    def _as_dict(self) -> dict:
+    def _as_dict(self) -> dict[str, str]:
         """
-        Internal method for converting Xsd_date for the JSON serialization
+        Used internally for JSON serialization using @serialisation decorator
         :return: dict
+        :rtype: dict[str, str]
         """
         return {'value': self.__value.isoformat()}
 
@@ -182,6 +193,7 @@ class Xsd_date(Xsd):
         """
         Internal method for converting Xsd_date for the RDF serialization
         :return: RDF string
+        :rtype: str
         """
         return f'"{self.__value.isoformat()}"^^xsd:date'
 
@@ -190,5 +202,6 @@ class Xsd_date(Xsd):
         """
         Return the internal date instance
         :return: date
+        :rtype: date
         """
         return self.__value

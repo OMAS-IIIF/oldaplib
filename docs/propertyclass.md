@@ -1,63 +1,158 @@
 # PropertyClass
 
+Properties represent and important part of data modelling based on RDF: In triple of the form
+```
+object – predicate – subject
+```
+the _property_ represents the _predicate_. As such, the term _property_ is a sysnonym for _predicate_. However,
+programmers tend to use the term _property_ instead of _predicate_. Programmers also use the term _resource_ for
+the object, since it usually represents a digital _resource_ such as the digital representation (e.g. its metadata)
+of a person, a book, or the URL of a digital facsimile, image, video etc.
+
+In data modelling, a property is more than just a semantic definition: a property carries a lot of information about
+the _subject_. Most of the information contains restrictions that the value of the property must fulfil. These
+restrictions can (and are) validated in OLDAP when instance data is entered or changed. In general, these restrictions
+encompass
+
+- if the associated subject must be a _literal_ value
+  - the data type of the literal
+  - minimal, maximal limits
+  - etc.
+- or if the associated subject must be another object (resource)
+  - What type of resource is allowed?
+
+Restriction are passed to the constructor using the restrictionname. They can be accessed and modified as
+"normal" Python-attributes of the PropertyClass instance!
+
+If a _property_is used within the data modeling of a specific _resource_, a _property_ may carry more
+information, such as
+
+- the cardinality that is allowed/required
+- the order in which the properties should be presented in a GUI
+- etc.
+
+The Python classes "PropertyClass" and "HasPropertyData" are used to represent RDF properties. It is important to note
+that OLDAP distinguished between to use classes of properties:
+
+- _standalone properties_: These are properties that are defined on their own without a direct connection/dependence
+  on a resource. These property-definition may be __re-used__ for different resource classes.
+- _associated properties_: These properties are defined within the context of a resource and can be only used within
+  this specific resource.
+
+Reusing properties for different resources looks like a good idea but should be applied carefully: The property
+definition carries the _semantic meaning_. Therefore, when reusing properties, the semantic meaning _must_ be excately
+the same in all cases!
+
 ## Instantiation
-A `PropertyClass` can be instantiated using the `constructor()` or using the `read()` class method. The first method using
+A `PropertyClass` can be instantiated using the `ProprtyClass(..)`-constructor or the `read()` class method. The first method using
 the  constructor is only used when a *new* property should be created. In all other cases, the read class method is used
 to create the form the data stored in the triple store. Reading combines the information from the
 `<project-prefix>:shacl` and `<project-prefix>:onto`graphs.
 
 ### Constructor
-The following example creates a `PropertyClass` instance using the constructor method.
+The following examples create a _minimal_ `PropertyClass` instance with no restrictions using the constructor method.
+The first example creates a `owl:DatatypeProperty` which points to a _literal value_.
+
+```python
+p1 = PropertyClass(con=self._connection,
+                   project=self._project,
+                   property_class_iri='test:testWrite3',
+                   datatype=XsdDatatypes.string)
+```
+
+The second example create a `owl:ObjectProperty` which points to another resource class.
+
+```python
+p1 = PropertyClass(con=self._connection,
+                   project=self._project,
+                   property_class_iri='test:testWrite3',
+                   toClass='test:MyResClass')
+```
 
 _**NOTE**: It is important to note that
 the instantiation of a `PropertyClass` does **not** create the property in the triple store! This has to be done
 explicitely using the `create()` method_.
 
+## Property restrictions
 
+### toClass (Iri)
+
+This restriction is mandatory for properties that connect to another resource. Only instances of the given ResourceClass
+(or subclasses thereof) are allowed!  
+
+Example:
 ```python
-props: PropertyClassAttributesContainer = {
-    PropertyClassAttribute.SUBPROPERTY_OF: QName('test:comment'),
-    PropertyClassAttribute.DATATYPE: XsdDatatypes.string,
-    PropertyClassAttribute.NAME: LangString(["Test property@en", "Testprädikat@de"]),
-    PropertyClassAttribute.DESCRIPTION: LangString("A property for testing...@en"),
-    PropertyClassAttribute.ORDER: 5,
-}
-p = PropertyClass(con=self._connection,
-                  graph=NCName('test'),
-                  property_class_iri=QName('test:testprop'),
-                  attrs=props)
+p1 = PropertyClass(con=self._connection,
+                   project=self._project,
+                   property_class_iri='test:testWrite3',
+                   toClass='test:MyResClass')
 ```
+This example restricts the value range of this property to instances of MyResClass.
+
+### datatype (XsdDatatypes)
+
+This restriction is mandatory for properties that are used for literal values. It defines the datatype that the literal
+value must have. OLDAP allows most Xsd datatypes.  
+
+Example:
+```python
+p1 = PropertyClass(con=self._connection,
+                   project=self._project,
+                   property_class_iri='test:testWrite3',
+                   datatype=XsdDatatypes.string)
+```
+This property requires Xsd_string data.
 
 The Constructor is defined a follows:
 ```python
- def __init__(self, *,
-               con: Connection,
-               graph: NCName,
-               property_class_iri: Optional[QName] = None,
-               attrs: Optional[PropertyClassAttributesContainer] = None,
-               notifier: Optional[Callable[[PropertyClassAttribute], None]] = None,
-               notify_data: Optional[PropertyClassAttribute] = None):
+    def __init__(self, *,
+                 con: IConnection,
+                 creator: Iri | str | None = None,  # DO NOT USE
+                 created: Xsd_dateTime | datetime | str | None = None,  # Do NOT USE
+                 contributor: Iri | None = None,  # DO NOT USE
+                 modified: Xsd_dateTime | datetime | str | None = None,  # DO NOT USE
+                 project: Project | Iri | Xsd_NCName | str,
+                 property_class_iri: Iri | str | None = None,
+                 notifier: Callable[[PropClassAttr], None] | None = None,  # DO NOT USE
+                 notify_data: PropClassAttr | None = None,  # DO NOT USE
+                 **kwargs):
     pass
 ```
-has the following parameter which must be passed by name:
 
-- _con_:
-  This parameters requires a valid `Connection` instance that is connected to a triple store.
-- _graph_:
-  The graph parameters requires a `NCName` which contains the project prefix.
+_kwargs_ can be additional attributes/restriction to the property
+has the following parameter which must be _passed by name_:
+
+- _con_:  
+  This parameters requires a valid instance of a subclass of IConnection that is connected to a triple store.
 - _property_class_iri_:  
-  This is a QName with the IRI that will identify this property
-- _attrs_:
-  A property may have many attributes which define the characteristics of the property. These attributes are
-  passed as a `Dict` as defined by the data class 
-  ```PropertyClassAttributesContainer = Dict[PropertyClassAttribute, PropTypes]```.
-- _notifier_:
-  An optional parameter which is used to pass a callable that is called whenever something is being changed in the
-  definition of the notifier
-- _notify_data_:
-  An optional `PropertyClassAttribute` that will be passed to the notifier method when called.
+  This is an Iri (fully qualified or as QName) with the IRI that will identify this property
+- _kwargs_:  
+  A property may have many attributes which define the characteristics of the property. The following attributes
+  are allowed:  
+    - _subPropertyOf_: [Iri] A property can be defined as a "subclass" of another property. Thus, the property will be a
+    sub-property of the property given here. Let's assume a property `test:partOf` which defines that something is a
+    part of something else. The property `test:pageOf` is a special case of `test:partOf` in the sense that of course
+    a page of a book is a phyiscal part of that book. Thus, search patterns based on the super-property, e.g.
+    `test:partOf` will also find `test:pageOf`.
+      - _toClass_: [Iri] Defines the resource class the property connects to
+      - _datatype_: [XsdDatatypes] The datatype of the literal the property represents
+      - _name_: [LangString] The human readable name of the property
+      - _description_: [LangString] A description of the semantics of the property
+      - _languageIn_: [LanguageIn] In case of an Xsd_string literal this restricts the languages allowed to those listed here.
+      - _uniqueLang_: [Xsd_boolean] Indicates that each language can occure only once. _**Note**: At the moment OLDAP allows
+        only one item per language for all language sensitive strings (as if _uniqueLang_ is always True). This restriction
+        may be removed in a future version of OLDAP.
+      - _inSet_: [XsdSet] The value must be an element of the given set of valid values.
+      - _minLength_: [Xsd_integer] Minimal length of a string value (currently only for datatype Xsd_string)
+      - _maxLength_: [Xsd_integer] Maximal length of a string value (currently only for datatype Xsd_string)
+      - _pattern_: [Xsd_string] A regex pattern that a string value must conform to
+      - _minExclusive_: [Numeric] The numeric value must be greater than the value of this attribute
+      - _minInclusive_: [Numeric] The numeric value must be greater or equal than the value of this attribute
+      - _maxExclusive_: [Numeric] The numeric value must be less than the value of this attribute
+      - _maxInclusive_, [Numeric] The numeric value must be less or equal than the value of this attribute
+      - _lessThan_: [Iri] The numeric value must be less that the value of the given property
+      - _lessThanOrEquals_: [Iri] The numeric value must be less or equal that the value of the given property
 
-The _notifier_ and _notifier_data_ are for internal use only and should not be used directly!
 
 ### PropertyClass Attributes
 

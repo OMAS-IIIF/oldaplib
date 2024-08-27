@@ -22,6 +22,8 @@ class FloatingPoint(Xsd):
     - Accessor methods `XXX.value`, `float(XX)`
     - Hashing methods `hash(XXX)`
 
+    The validation flag does not have an effect.
+
     """
     _value: float
 
@@ -30,6 +32,8 @@ class FloatingPoint(Xsd):
         Constructor for Floating Point
         :param value: The initial value. May not be None
         :type value: A FloatingPoint value, a float value or a string that can be interpreted as float.
+        :param validate: Whether to validate the initial value
+        :type validate: bool
         :raises OldapErrorValue: If the value is not a float.
         :raises OldapErrorType: If the value is not a float.
         """
@@ -49,6 +53,7 @@ class FloatingPoint(Xsd):
         """
         Returns the value as a float.
         :return: float value of instance
+        :rtype: float
         """
         return self._value
 
@@ -56,6 +61,7 @@ class FloatingPoint(Xsd):
         """
         Returns the value as a string. Special numbers are "NaN", "INF" and "-INF"
         :return: Value converted to string
+        :rtype: str
         """
         match str(self._value):
             case 'nan':
@@ -71,6 +77,7 @@ class FloatingPoint(Xsd):
         """
         Returns the value as constructor statement string
         :return: Constructor statement string
+        :rtype: str
         """
         if math.isnan(self._value):
             valstr = '"NaN"'
@@ -89,6 +96,8 @@ class FloatingPoint(Xsd):
         :param other: The value to compare with
         :type other: Self | float | str | None
         :return: True or False
+        :rtype: bool
+        :raises OldapErrorValue: If the value is not comparable to a float.
         """
         if other is None:
             return False
@@ -107,6 +116,8 @@ class FloatingPoint(Xsd):
         :param other: The value to compare with
         :type other: Self | float | str | None
         :return: True or False
+        :rtype: bool
+        :raises OldapErrorValue: If the value is not comparable to a float.
         """
         if other is None:
             return True
@@ -125,6 +136,8 @@ class FloatingPoint(Xsd):
         :param other: The value to compare with
         :type other: Self | float | str | None
         :return: True or False
+        :rtype: bool
+        :raises OldapErrorValue: If the value is not comparable to a float.
         """
         if isinstance(other, str):
             other = FloatingPoint(other)
@@ -141,6 +154,8 @@ class FloatingPoint(Xsd):
         :param other: The value to compare with
         :type other: Self | float | str
         :return: True or False
+        :rtype: bool
+        :raises OldapErrorValue: If the value is not comparable to a float.
         """
         if isinstance(other, str):
             other = FloatingPoint(other)
@@ -157,6 +172,8 @@ class FloatingPoint(Xsd):
         :param other: The value to compare with
         :type other: Self | float | str
         :return: True or False
+        :rtype: bool
+        :raises OldapErrorValue: If the value is not comparable to a float.
         """
         if isinstance(other, str):
             other = FloatingPoint(other)
@@ -173,6 +190,8 @@ class FloatingPoint(Xsd):
         :param other: The value to compare with
         :type other: Self | float | str
         :return: True or False
+        :rtype: bool
+        :raises OldapErrorValue: If the value is not comparable to a float.
         """
         if isinstance(other, str):
             other = FloatingPoint(other)
@@ -186,7 +205,8 @@ class FloatingPoint(Xsd):
     def __hash__(self) -> int:
         """
         Returns the hash value of the instance
-        :return:
+        :return: Hash value of instance
+        :rtype: int
         """
         return hash(self._value)
 
@@ -194,7 +214,8 @@ class FloatingPoint(Xsd):
     def value(self) -> float:
         """
         Returns the value of the instance
-        :return:
+        :return: Value of instance as float
+        :rtype: float
         """
         return self._value
 
@@ -204,6 +225,7 @@ class FloatingPoint(Xsd):
         :param xsdtype: XML Schema type to use
         :type xsdtype: XML Schema datatype to use (prefix: "xsd" to be used)
         :return: string representation of the instance as RDF
+        :rtype: str
         """
         if math.isnan(self):
             return '"NaN"^^' + xsdtype
@@ -220,13 +242,15 @@ class FloatingPoint(Xsd):
         """
         Converts the instance to a RDF string as xsd:float
         :return: RDF string representation of the instance as RDF
+        :rtype: str
         """
         return self._toRdf('xsd:float')
 
     def _as_dict(self) -> dict:
         """
-        Used by JSON serialization (@serialisation decorator)
+        Used internally for JSON serialization using @serialisation decorator
         :return: Representation of the instance as dict
+        :rtype: dict
         """
         return {'value': self._value}
 

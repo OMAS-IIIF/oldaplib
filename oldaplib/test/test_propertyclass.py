@@ -235,7 +235,6 @@ class TestPropertyClass(unittest.TestCase):
 
         p2 = PropertyClass(
             con=self._connection,
-            #graph=Xsd_NCName('test'),
             project=self._project,
             property_class_iri=Iri('test:testWrite2'),
             name=LangString("Annotations@en"),
@@ -254,6 +253,21 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("An annotation@en"))
         self.assertEqual(p2[PropClassAttr.LANGUAGE_IN],
                          LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        p3 = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Iri('test:testWrite3'),
+            datatype=XsdDatatypes.string,
+            pattern=r"^[\w\.-]+@[a-zA-Z\d-]+(\.[a-zA-Z\d-]+)*\.[a-zA-Z]{2,}$"
+        )
+        p3.create()
+        p3 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:testWrite3'),
+                                ignore_cache=True)
+        self.assertEqual(p3.pattern, r"^[\w\.-]+@[a-zA-Z\d-]+(\.[a-zA-Z\d-]+)*\.[a-zA-Z]{2,}$")
+
 
         pX = PropertyClass(
             con=self._connection,

@@ -5,12 +5,23 @@ usually implemented in a triplestore. The following terms are important:
 
 - ***Project***: A project is defined as a collection of RDF statements that are associated with a certain topic/organisation
   that is called *Project* within OLDAP. *Users* (see below) may be member of one or more projects.  
-  For each project, all data related RDF statements are collected in a *Named Graph* in the triple store.
+  For each project, the RDF statements defining the *datamodel* and the data itself are collected in *Named Graphs* in
+  the triple store. A project definition must include
+  - a unique *shortname* in order to identify the project. The shortname must by an
+    [XSD NCname](https://www.oreilly.com/library/view/xml-schema/0596002521/re82.html). Examples are ```hyha``` for a
+    project called HyperHamlet. The name must be unique within the oldap instance.
+  - a *namespace* that is used as a prefix for project related RDF definitions. A namespace is usually an IRI that ends
+    with a ```#``` or ```/``` character, e.g. ```http://myproject.mylab.myinstitution.edu#``` or
+    ```https://myproject.mylab.myinstitution.edu/```
+  - The graphs for a given project with the shortname _"myname"_ are:
+    - _myname:shacl_: Graph containing the SHACL shapes for the datamodel
+    - _myname:onto_: Graph containing the OWL definitions for the datamodel
+    - _myname:data_: Graph containing all the data instances
 - ***User***: A user is a person who is registered with the system as a user. They gain access by providing their credentials
   (currently a password, though this may change in the future) upon login. Each user is granted specific permissions based on 
   their association with a project. These permissions, known as *administrative permissions*, define what actions a user is 
   authorized to perform within the system.
-- ***Resources*** are used to store data. All Resources are subclasses of `omas:Thing` which implements some
+- ***Resources*** are used to store data. All Resources are subclasses of `oldap:Thing` which implements some
   basic properties like creator, creation date etc. (see below).
 - ***PermissionSet*** is an entity that connects the resources to the user. A permission set holds the
   "DataPermissions" that define the access to the resource.
@@ -29,7 +40,7 @@ oldaplib has the following prerequisites:
 
 ## The Resource Description Frame (RDF) and OLDAP
 
-### What is RDF? (and RDFS, and OWL)
+### What is RDF? (and RDFS?, and OWL?, ...and SHACL?)
 
 RDF was proposed by Tim Berners Lee and is a way to digitally represent information about real world objects or concepts.
 It's also called *Linked Data* because it's main purpose is to represent such objects and their connections to each
@@ -119,8 +130,10 @@ between 2 subjects!
 
 #### Subject
 
-The Subject may come either as _literal value_, e.g. a number or a string, or it may be a _URN_ which identifies
-another subject.
+The Subject may come either as _literal value_, e.g. a number or a string, or it may be a _URN_/_IRI_which
+identifies another object.
+
+##### Literals as Subject
 
 In RDF, literal values do have a _datatype_ which conforms to the datatypes defined by
 [XML Schema](https://www.w3.org/TR/xmlschema-2/). The reason is that originally RDF as expressed as XML (RML/RDF).
@@ -129,6 +142,12 @@ _turtle_ or _TRIG_ (our preferred way).
 
 The datatype is added to the value as `^^xml-scheme-datatype`, e.g. `"This is a string"^^xsd:string` or
 `"2024-02-26"^^xsd:date`. Please note that `xsd` is a _prefix_. Prefixes are discussed further below.
+
+##### URN/IRI as Subject
+
+If the subject is a URN or IRI, the associated _predicate_ (or property) points to another subject given by the
+URN/IRI. __Thus, the given triple establishes a _link_ between two nodes!__ Oldap datamodels require to indicate
+which _type of objects_ (which we will call _Resource Class_ later) are allowed.
 
 ### Putting things together...
 Now let's have a simple (oversimplyfied) example how to express information about things in RDF:
@@ -240,7 +259,40 @@ Both the *prefix* and the *fragment* are *NCName*. Also,  _QName_ has a Python r
 [QName](/python_docstrings/datatypes#oldaplib.src.helpers.datatypes.QName). As we understand now, the `xsd:string` to indicate the datatype is
 also a *QName* –– therefore we need to use the prefix definition `@PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> .`
 
-#### Ontologies and Namespaces
+### Data modelling / data models
+
+A _datamodel_ is a formal description how the "things" that are represented in the database are composed as well as the
+relations inbetween this "things". In a sense, its __data that describes the data__. Data modelling is an important
+feature of all systematic data collections. In the case of RDF, the data model itself is expressed using RDF and
+some predifined subjects and predicates with a specific, well-defined semantic meaning.
+
+Unfortunately – due to the history of RDF – there are two ways for data modelling in the RDF universe which do have
+a different purpose, scope and philosophy: Originally RDF was defined by Tim Berners Lee as a tool to add semantic
+information to the resources on the World Wide Web. The goal was to use semantic reasoning to create more meaningfull
+search results when doing searches on the internet. The
+[Web Ontology Language](https://en.wikipedia.org/wiki/Web_Ontology_Language) (OWL) assumes an _Open World Assumption_ (OWA), meaning
+that the absence of a statement does not imply the statement’s falsity. In other words, if a fact is not known or
+stated, it is not assumed to be false—it may simply be unknown. This contrasts with the _Closed World Assumption_ (CWA),
+often used in traditional databases, where anything not known to be true is assumed false.
+
+The open world assumption is more suitable for the web environment because the web is vast and constantly evolving.
+It is unrealistic to assume that all information is known or can be captured at any given time. By adopting an open
+world model, OWL can accommodate new information as it becomes available, facilitating more flexible and scalable data
+integration across diverse and distributed sources.
+
+Many triple stores include OWL use _reasoning_ which is applying
+[first order logic](https://en.wikipedia.org/wiki/First-order_logic) (also called _predicate logic_) to make implicit
+knowledge explicit while querying the RDF database.
+
+However, in research project strict data modelling is required which allows the validation of the data. E.g., within
+a specific project, we define a thing called _Book_ which must have exactly one _Title_ and may have one or more
+_Authors_ which belong to the category _Person_. OWL is not well suited for such strict data model definition. The
+World Wide Web Consortium (W3C) therefore developed the [Shape Constraint Language](https://www.w3.org/TR/shacl/)
+which itself is based on RDF. SHACL allows the validation of graphs in a RDF network.
+
+_OLDAP_ does support both OWL and SHACL and craeates the necessary OWL- and SHACL-triples in a consistent way.
+
+#### Web Ontology Language
 
 An RDF ontology is a formal description of a given knowledge domain, using RDF. It defines the meaning and the
 relations (**semantics**) of and between objects. In order to do so, specific subjects and predicates have been defined which baer a
@@ -428,6 +480,69 @@ ex:titlepage rdf:type wrong:Page ;
 The query engine knows that the subject of `wrong:comment` is a book. Therefore, it realises that `ex:titlepage` is
 also a `wrong:Book`. A query for all books will erroneously return also `wrong:titlepage`!
 
+#### Shape Constraint Language (SHACL)
+
+Description: The Shape Constraint Language (SHACL) is a W3C standard designed to validate RDF (Resource Description
+Framework) data against a set of conditions or “shapes.” SHACL allows users to define constraints on RDF data,
+specifying what types of nodes should exist, what properties those nodes should have, and the acceptable values for
+those properties. SHACL shapes are essentially schemas for RDF data, describing how data should be structured and what
+data quality rules it should follow.
+
+The primary purpose of SHACL is to ensure that RDF data adheres to a specific structure and quality, making it
+consistent, reliable, and interoperable. SHACL is useful for:
+
+	1.	_Data Validation_: Ensuring that RDF data conforms to expected formats and values, which helps maintain data integrity and quality.
+	2.	_Data Modeling_: Defining expected structures and relationships within RDF datasets, serving as a guideline for data creation and management.
+	3.	_Interoperability_: Promoting consistent data models across different systems, making it easier for applications to understand and process RDF data.
+
+Let’s look at some basic examples to illustrate how SHACL works:
+
+##### Example 1: Validating a Person’s Name and Age
+
+Suppose we have an RDF dataset representing people, and we want to ensure each person has a name (which is a string)
+and an age (which is an integer). We can define a SHACL shape to validate these constraints.  
+
+The SHACL shape:
+```shacl
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/ns#> .
+
+ex:PersonShape
+    a sh:NodeShape ;
+    sh:targetClass ex:Person ;
+    sh:property [
+        sh:path ex:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path ex:age ;
+        sh:datatype xsd:integer ;
+        sh:minCount 1 ;
+    ] .
+```
+
+The RDF data graph:
+```trig
+@prefix ex: <http://example.org/ns#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+ex:JohnDoe rdf:type ex:Person ;
+           ex:name "John Doe" ;
+           ex:age 30 .
+```
+
+- _sh:NodeShape_: Declares a shape that will validate nodes.
+- _targetClass ex:Person_: Specifies that the shape applies to all nodes of type ex:Person.
+- _property_: Describes the properties to validate.
+  - _sh:path_: Indicates the property to be checked (ex:name and ex:age).
+  - _datatype_: Specifies the expected data type (xsd:string for name and xsd:integer for age).
+  - _sh:minCount 1_: Ensures that the property must be present at least once.
+
+Shapes are written in SHACL using RDF syntax (often Turtle). They specify the __expected structure__ of RDF data. The
+SHACL model can be read and interpretd by an application and be used e.g. to generate entry forms and/or to validate the
+data. There are specific tools – sometimes integrated into triple stores – to validate RDF data based on SHACL shapes.
+
 ### Named Graphs in oldaplib
 RDF allows to group statements into named entities called *named graphs*. Thus, using named graphs, a triple becomes in
 fact a quadruple, since, in addition to the subject, predicate and object, it's associated with a graph name as well.
@@ -527,10 +642,12 @@ The Context class implements automatically the following prefixes:
 - `xml`: http://www.w3.org/XML/1998/namespace#
 - `sh`: http://www.w3.org/ns/shacl#
 - `skos`: http://www.w3.org/2004/02/skos/core#
+- `schema`: http://schema.org/
 - `dc`: http://purl.org/dc/elements/1.1/
 - `dcterms`: http://purl.org/dc/terms/
 - `foaf`: http://xmlns.com/foaf/0.1/
-- `omas`: http://omas.org/base#
+- `oldap`: http://oldap.org/base#
+- `shared`: http://oldap.org/shared#
 
 #### Example
 
@@ -559,7 +676,7 @@ PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX omas: <http://omas.org/base#>
+PREFIX oladp: <http://oldap.org/base#>
 PREFIX my_ns: <http://my.own.project.org/my_ns/>
 SELECT ?s WHERE { ?s rdf:type my_ns:Catalogue }
 ```

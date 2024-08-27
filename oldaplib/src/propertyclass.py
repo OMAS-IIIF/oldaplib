@@ -1,6 +1,11 @@
 """
 :Author: Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>
 :Copyright: © Lukas Rosenthaler (2023, 2024)
+
+# Property Class
+
+The class `PropertyClass`and it's helper companion `HasPropertyData` holds the Python representation of a
+RDF property
 """
 from copy import deepcopy
 from dataclasses import dataclass
@@ -126,6 +131,28 @@ class PropertyClass(Model, Notify):
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
                  **kwargs):
+        """
+        Constructor of the PropertyClass
+        :param con: Instance of a subclass of IConnection
+        :type con: IConnection or subclass of IConnection
+        :param creator: Iri of the user that creates the property [DO NOT USE! FOR INTERNAL USE ONLY!]
+        :type creator: Iri | str | None
+        :param created: Creation date [DO NOT USE! FOR INTERNAL USE ONLY!]
+        :type created: Xsd_dateTime | datetime | str | None
+        :param contributor: Iri of the user that modifies a proeprty [DO NOT USE! FOR INTERNAL USE ONLY!]
+        :type contributor: Iri | str | None
+        :param modified: Last modification date [DO NOT USE! FOR INTERNAL USE ONLY!]
+        :type modified: Xsd_dateTime | datetime | str | None
+        :param project: The project the property is associated with
+        :type project: Project | Iri | Xsd_NCName | str
+        :param property_class_iri: The Iri of the property. This parameter can be a fully qualified Iri or q Xsd QName
+        :type property_class_iri: Iri | str | None
+        :param notifier: Notifier callback [DO NOT USE! FOR INTERNAL USE ONLY!]
+        :type notifier: Callable[[PropClassAttr], None] | None
+        :param notify_data: Data for the notifier callback
+        :type notify_data: PropClassAttr | None
+        :param kwargs: Other attributes of the property
+        """
         Model.__init__(self,
                        connection=con,
                        creator=creator,
@@ -635,6 +662,8 @@ class PropertyClass(Model, Notify):
         for prop, value in self._attributes.items():
             if prop == PropClassAttr.TYPE:
                 continue
+            if value is None:
+                continue
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.toRdf}'
         if haspropdata:
             sparql += haspropdata.create_shacl(indent=indent + 1)
@@ -757,6 +786,7 @@ class PropertyClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError as err:
+            print(sparql)
             self._con.transaction_abort()
             raise
         try:
