@@ -15,12 +15,21 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 class LanguageIn(RdfSet[Language], Notify):
     """
     This class implements the SHACL sh:languageIn datatype. It completely validates the input.
-    If the validations failes, an OldapErrorValue is raised.
+    If the validations fail, an OldapErrorValue is raised.
     """
 
     def __init__(self,
                  *args: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str,
                  value: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None = None):
+        """
+        Implementation of the SHACL sh:languageIn datatype. It completely validates the input.
+        :param args: languages to be included
+        :type args: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str
+        :param value: Internal parameter used for serialization/deserialization
+        :type value: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None
+        :raises OldapErrorType: Iterable contains element that is not an instance of "Language"
+        :raises OldapErrorKey: Language not existing
+        """
         nargs = tuple()
         nvalue = None
         if len(args) == 0:
@@ -76,20 +85,25 @@ class LanguageIn(RdfSet[Language], Notify):
 
         super().__init__(*nargs, value=nvalue)
 
-    # def __str__(self):
-    #     langlist = {f'{x.name.lower()}' for x in self}
-    #     return f'({", ".join(langlist)})'
-    #
-    # def __repr__(self):
-    #     langlist = {f'"{x.name.lower()}"' for x in self}
-    #     return 'LanguageIn(' + ", ".join(langlist) + ')'
-
     def __contains__(self, val: Language | str) -> bool:
+        """
+        Tests if the given language is contained in the given language set.
+        :param val: Language to be tested
+        :type val: Language | str
+        :return: True if the given language is contained in the given language set.
+        :rtype: bool
+        """
         if not isinstance(val, Language):
             val = Language[str(val).upper()]
         return super().__contains__(val)
 
-    def add(self, language: Language | Xsd_string | str):
+    def add(self, language: Language | Xsd_string | str) -> None:
+        """
+        Add a language to the given language set.
+        :param language: The Language to be added to the given language set.
+        :type language: Language | Xsd_string | str
+        :return: None
+        """
         if not isinstance(language, Language):
             try:
                 language = Language[str(language).upper()]
@@ -99,7 +113,13 @@ class LanguageIn(RdfSet[Language], Notify):
                 raise OldapErrorKey(str(err))
         super().add(language)
 
-    def discard(self, language: Language | Xsd_string | str):
+    def discard(self, language: Language | Xsd_string | str) -> None:
+        """
+        Remove a language from the given language set.
+        :param language: The Language to be removed from the given language set.
+        :return: None
+        :raises OldapErrorValue: If the given language is not contained in the given language set.
+        """
         if not isinstance(language, Language):
             try:
                 language = Language[str(language).upper()]

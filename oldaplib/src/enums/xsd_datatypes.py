@@ -15,6 +15,7 @@ class XsdDatatypes(Enum):
     Enumeration of the supported xsd datatypes:
 
     - `XsdDatatypes.string` = 'xsd:string'
+    - `XsdDatatypes.langString` = 'rdf:langString'
     - `XsdDatatypes.boolean` = 'xsd:boolean'
     - `XsdDatatypes.decimal` = 'xsd:decimal'
     - `XsdDatatypes.float` = 'xsd:float'

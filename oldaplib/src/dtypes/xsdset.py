@@ -13,6 +13,10 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 
 @serializer
 class XsdSet(RdfSet[Xsd]):
+    """
+    The XsdSet is a subclass of [RdfSet](/python_docstrings/rdfset) that restricts the set values to
+    subclasses of the Xsd class, that is Xsd compatible data types.
+    """
 
     def __init__(self, *args: Iterable[Xsd] | Xsd, value: Iterable[Xsd] | Xsd | None = None):
         #

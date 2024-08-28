@@ -76,11 +76,12 @@ class TestPropertyClass(unittest.TestCase):
                           subPropertyOf=Iri('test:comment'),
                           datatype=XsdDatatypes.string,
                           name=LangString(["Test property@en", "Testprädikat@de"]),
-                          description=LangString("A property for testing...@"))
+                          description={"A property for testing...@en", "Property für Tests@de"})
         self.assertEqual(p.property_class_iri, Iri('test:testprop'))
         self.assertEqual(p.get(PropClassAttr.SUBPROPERTY_OF), Iri('test:comment'))
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
+        self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
 
     def test_propertyclass_inset_datatypes(self):
         p = PropertyClass(con=self._connection,
@@ -150,6 +151,14 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p4.property_class_iri, Xsd_QName('test:testprop4'))
         self.assertEqual(p4.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.DE, Language.FR))
         self.assertEqual(p4.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
+
+        p4a = PropertyClass(con=self._connection,
+                            project=self._project,
+                            property_class_iri=Iri('test:testprop4a'),
+                            languageIn={'en', 'fr'})
+        self.assertEqual(p4a.property_class_iri, Xsd_QName('test:testprop4a'))
+        self.assertEqual(p4a.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.FR))
+        self.assertEqual(p4a.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
 
     def test_propertyclass_inconsistent_constructor(self):
         with self.assertRaises(OldapErrorValue):
