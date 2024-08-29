@@ -26,6 +26,26 @@ PREFIX mypro: <http://myuniiversity.edu/mydep/myinst/myproi#Painting>
 ```
 There is no `@` before the PREFIX keyword and no `.` at the end.
 
+## Datamodel
+
+A data model in OLDAP includes all definitions of resource classes and property classes that are necessary to describe
+the data of a project and to represent the data itself in the database. The data can be validated according to the
+information in the data model, graphical user interfaces can use the data model to dynamically generate input masks,
+etc.
+
+In OLDAP, a project can have exactly one data model, which is identified by the project short names.
+
+The data model contains the definitions of the standalone properties and the resources including the integrated
+properties. The data model in OLDAP is represented by the Python class [DataModel](/python_docstrings/datamodel).
+
+An empty datamodel which can later be extended with standalone properties and resource definition is being created
+as follows:
+
+```python
+dm = DataModel(con=self._connection,
+               project=project)
+```
+
 ## Properties (predicates)
 
 Predicates or properties come in two different flavours: _Standalone_ properties and _private_ properties.

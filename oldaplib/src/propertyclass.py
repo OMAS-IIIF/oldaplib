@@ -6,6 +6,13 @@
 
 The class `PropertyClass`and it's helper companion `HasPropertyData` holds the Python representation of a
 RDF property
+
+## Caching
+
+Datamodels, Resources and properties are being cached in order to avoid the timeconsuming access of the triple
+store for each read. If these classes are modified, the `update()`-method will also update the cache. If one of these
+classes is being deleted from the triple store, the class instance will also be deleted from the cache. The
+cache is implemented using a metaclass based singleton and uses locking to be compatible in a threaded environment.
 """
 from copy import deepcopy
 from dataclasses import dataclass
@@ -222,6 +229,15 @@ class PropertyClass(Model, Notify):
         self.__from_triplestore = False
 
     def pre_transform(self, attr: AttributeClass, value: Any) -> Any:
+        """
+        INTERNAL USE ONLY! Overrides the method pre_transform from the Model class.
+        :param attr: Attribute name
+        :type attr: AttributeClass
+        :param value: The value to be transformed
+        :type value: Any
+        :return: Transformed value
+        :rtype: Any
+        """
         if attr == PropClassAttr.IN:
             if self._attributes.get(PropClassAttr.DATATYPE) is not None:
                 datatype = self._attributes[PropClassAttr.DATATYPE]
@@ -236,6 +252,14 @@ class PropertyClass(Model, Notify):
             return value
 
     def check_consistency(self, attr: PropClassAttr, value: Any) -> None:
+        """
+        INTERNAL USE ONLY! Overrides the method check_consistency from the Model class.
+        :param attr: Attribute name
+        :type attr: AttributeClass
+        :param value: The value to check
+        :type value: Any
+        :return: None
+        """
         if attr == PropClassAttr.CLASS:
             if self._attributes.get(PropClassAttr.DATATYPE) is not None:
                 self._changeset[PropClassAttr.DATATYPE] = AttributeChange(self._attributes[PropClassAttr.DATATYPE], Action.DELETE)
@@ -256,6 +280,15 @@ class PropertyClass(Model, Notify):
             self._attributes[PropClassAttr.DATATYPE] = value
 
     def _change_setter(self: Self, attr: PropClassAttr, value: PropTypes) -> None:
+        """
+        INTERNAL USE ONLY! Overrides the method _change_setter from the Model class.
+        :param attr: Attribute
+        :type attr: AttributeClass
+        :param value: The value to be set
+        :type value: Any
+        :return: None
+        :raises OldapError: If an Attribute is not aa PropClassAttr
+        """
         if not isinstance(attr, PropClassAttr):
             raise OldapError(f'Unsupported prop {attr}')
         if self._attributes.get(attr) == value:
@@ -306,24 +339,56 @@ class PropertyClass(Model, Notify):
 
     @property
     def property_class_iri(self) -> Iri:
+        """
+        Return the Iri identifying the property
+        :return: Iri identifying the property
+        :rtype: Iri
+        """
         return self._property_class_iri
 
     @property
     def version(self) -> SemanticVersion:
+        """
+        Return the version
+        :return: Version
+        :rtype: SemanticVersion
+        """
         return self.__version
 
     @property
     def internal(self) -> Iri | None:
+        """
+        Return the Iri of the ResourceClass, if the property is internal to a ResourceClass.
+        If it is a standalone property, return None
+        :return: Iri of associated ResourceClass or None
+        :rtype: Iri | None
+        """
         return self._internal
 
-    def force_external(self):
+    def force_external(self) -> None:
+        """
+        This method enforced that the property is created as a standalone property not associated with a resource.
+        It must be called immediately after calling the constructor of the property.
+        :return: None
+        """
         self._force_external = True
 
     @property
     def from_triplestore(self) -> bool:
+        """
+        Returns True if the PropertyClass instance was created by the `read()`-classmethod. If the property
+        has been created using the Python constructor.
+        :return: True if read from triple store, otherwise False
+        :rtype: bool
+        """
         return self.__from_triplestore
 
     def undo(self, attr: PropClassAttr | None = None) -> None:
+        """
+        Undo's all changes to the property
+        :param attr: The attribute
+        :return: None
+        """
         if attr is None:
             for p, change in self._changeset.items():
                 if change.action == Action.MODIFY:
@@ -350,6 +415,11 @@ class PropertyClass(Model, Notify):
 
 
     def notifier(self, attr: PropClassAttr) -> None:
+        """
+        INTERNAL USE ONLY! Overrides the method _notifier from the Model class.
+        :param attr: The attribute
+        :return: None
+        """
         if attr.datatype in [XsdSet, LanguageIn]:
             # we can *not* modify sets, we have to replace them if an item is added or discarded
             if self._changeset.get(attr) is None:
@@ -360,7 +430,13 @@ class PropertyClass(Model, Notify):
         self.notify()
 
     @property
-    def in_use(self):
+    def in_use(self) -> bool:
+        """
+        Checks if the property is already been used somewhere. If the property is in use, changing the property
+        attributes may be dangerous.
+        :return: True if the property is in use, otherwise False
+        :rtype: bool
+        """
         context = Context(name=self._con.context_name)
         query = context.sparql_context
         query += f"""
@@ -381,6 +457,13 @@ class PropertyClass(Model, Notify):
 
     @staticmethod
     def process_triple(r: RowType, attributes: Attributes, propiri: Iri | None = None) -> None:
+        """
+        INTERNAL USE ONLY! Used for processing triple while rreading a property.
+        :param r:
+        :param attributes:
+        :param propiri:
+        :return: None
+        """
         attriri = r['attriri']
         if r['attriri'].fragment == 'languageIn':
             if attributes.get(attriri) is None:
@@ -584,8 +667,23 @@ class PropertyClass(Model, Notify):
     @classmethod
     def read(cls, con: IConnection,
              project: Project | Iri | Xsd_NCName | str,
-             property_class_iri: Iri,
+             property_class_iri: Iri | str,
              ignore_cache: bool = False) -> Self:
+        """
+        Rwad a property from the triple store
+        :param con: Instance of a valid connection to the triple store
+        :type con: IConnection or subclass thereof
+        :param project: Project instance, project IRI or project shortname
+        :type project: Project | Iri | Xsd_NCName | str
+        :param property_class_iri: The Iri indentifying the class
+        :type property_class_iri: Iri
+        :param ignore_cache: If True, the data is read from the triple store even if it would be in the cache
+        :type ignore_cache: bool
+        :return: Instance of a property class
+        :rtype: PropertyClass
+        """
+        if not isinstance(property_class_iri, Iri):
+            property_class_iri = Iri(property_class_iri)
         cache = CacheSingleton()
         if not ignore_cache:
             tmp = cache.get(property_class_iri)
@@ -745,6 +843,16 @@ class PropertyClass(Model, Notify):
     def create(self, *,
                haspropdata: HasPropertyData | None = None,
                indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Create the triple store data from a newly constructed PropertyClass instance. Create will throw an
+        [OldapErrorAlreadyExists](/python_docstrings/oldaperror) if the PropertyClass is already existing.
+
+        :param haspropdata: For internal properties, a HasPropertyData instance has to be given here. For external
+               properties, this parameter defaults to None.
+        :param indent: Intendation level for beautifying SPARQL code [default: 0]
+        :param indent_inc: Intendation for beautifying SPARQL code [default: 4]
+        :return: None
+        """
         if self.__from_triplestore:
             raise OldapErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
         timestamp = Xsd_dateTime.now()

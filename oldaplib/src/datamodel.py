@@ -30,6 +30,20 @@ class PropertyClassChange:
     action: Action
 
 class DataModel(Model):
+    """
+    This class implements the representation of a OLDAP datamodel The datamodel itself contains standalone properties
+    and resources with the associated property definitions. A datamodel can be instantiated completeley with all
+    property and resource defintion at once, or it can be instanciated empty and property/resource definition can be
+    added later incrementally.
+
+    An OLDAP datamodel is bound to a project. This means, that a project can have exactely one datamodel. Currently
+    a project is limited to one datamodel. The datamodel uses the namespace defined in the project definition and
+    the project shortname is used for the named graphs:
+
+    - _projectshortname:shacl_ contains the SHACL triples
+    - _projectshortname:onto_ contains the OWL triples
+    - _projectshortname:data_ contains the data
+    """
     __graph: Xsd_NCName
     _project: Project
     __context: Context
@@ -44,6 +58,15 @@ class DataModel(Model):
                  project: Project | Iri | Xsd_NCName | str,
                  propclasses: list[PropertyClass] | None = None,
                  resclasses: list[ResourceClass] | None = None) -> None:
+        """
+        Create a datamodel instance
+        :param con: Valid connection to triple store
+        :type con: IConnection (subclass)
+        :param project: Project instance, project iri or project shortnanme
+        :type project: Project | Iri | Xsd_NCName | str
+        :param propclasses: List of PropertyClass instances (standalone properties) [OPTIONAL]
+        :param resclasses: List of ResourceClass instances [OPTIONAL]
+        """
         super().__init__(connection=con,
                          creator=con.userIri,
                          created=None,
@@ -141,9 +164,18 @@ class DataModel(Model):
             return None
 
     def get_propclasses(self) -> list[Iri]:
+        """
+        Get list of the iri's of the standalone proeprty classes
+        :return: List of Iri's
+        :rtype: list[Iri]
+        """
         return [x for x in self.__propclasses]
 
     def get_resclasses(self) -> list[Iri]:
+        """
+        Get list of the iri's of the resource classes'
+        :return:
+        """
         return [x for x in self.__resclasses]
 
     @property
@@ -173,6 +205,17 @@ class DataModel(Model):
              con: IConnection,
              project: Project | Iri | Xsd_NCName | str,
              ignore_cache: bool = False):
+        """
+        Read the datamodel fromn the given project from the triple store.
+        :param con: Valid connection to the triple store
+        :type con: IConnection or subclass thereof
+        :param project: Project instance, project iri or project shortname
+        :type project: Project | Iri | Xsd_NCName | str
+        :param ignore_cache: If True, read the data from the triple store ifen if the project is in the cache
+        :type ignore_cache: bool
+        :return: Instance of the DataModel
+        :rtype: DataModel
+        """
         if isinstance(project, Project):
             project = project
         else:
@@ -274,6 +317,15 @@ class DataModel(Model):
         return instance
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        If the Instance has been created using the Python constructor, this method writes all the information
+        of the DataModel instance to the triple store.
+        :param indent: internl use
+        :type indent: int
+        :param indent_inc: internal use
+        :type indent_inc: int
+        :return: None
+        """
         timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
@@ -326,7 +378,13 @@ class DataModel(Model):
         cache = CacheSingleton()
         cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
-    def update(self):
+    def update(self) -> None:
+        """
+        After modifing a data model by adding/modifying/deleting properties or resoutce classes, these
+        changes have to be written to the triple store using the update method.
+        :return: None
+        :raises: OldapError or subclass
+        """
         for qname, change in self.__propclasses_changeset.items():
             match(change.action):
                 case Action.CREATE:
@@ -348,7 +406,17 @@ class DataModel(Model):
         cache = CacheSingleton()
         cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
-    def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4):
+    def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Write the complete datamodel in the trig format to a file.
+        :param filename: The path of the file
+        :type filename: str
+        :param indent: Start level of indentation
+        :type indent: int
+        :param indent_inc: Increment (number of characters) of a indentation level
+        :type indent_inc: int
+        :return: None
+        """
         with open(filename, 'w') as f:
             timestamp = Xsd_dateTime.now()
             blank = ''

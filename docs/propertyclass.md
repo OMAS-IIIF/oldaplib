@@ -2,6 +2,8 @@ from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 
 # PropertyClass
 
+For the inline documentation of the PropertyClass click [here](/python_docstrings/propertyclass).
+
 Properties represent and important part of data modelling based on RDF: In triple of the form
 ```
 object – predicate – subject
@@ -61,7 +63,7 @@ A `PropertyClass`-instance is a Python based representation of a property that i
 the triple store. Changes in the triple store or changes in the Python instance are **not** automatically synchronized.
 THe PropertyClass implements the typical CRUD operations (_C_reate, _R_read, _U_pdate and _D_elete)
 
-### Creating
+### Instantiation
 A _PropertyClass_ instance is created using the constructor `PropertyClass()` to create a new Python instance that
 is **not yet" existing in the triple store.
 
@@ -429,11 +431,10 @@ pX = PropertyClass(
 ```
 The above example ensures that the birth date is earlier that the death date.
 
-## Methods of the PropertyClass
 
 
 
-### Modifying attributes (restrictions) of a PropertyClass instance
+## Modifying attributes and restrictions of a PropertyClass instance
 
 The attributes or restrictions can be added/changed/deleted by directly accessing them with their names. For simple
 attributes that just hold a value, the modifications are done as follows:
@@ -442,7 +443,7 @@ prop.minLength = 16  # add/replace prop.minLength attribute
 
 del prop.minLength
 ```
-Complex attributes that are sets or LanguageString, the complete attribute can be replaced, or only one item can
+Complex attributes that are of types _XsdSet_ and _LanguageString_, the complete attribute can be replaced, or only one item can
 be added/replaced deleted:
 ```python
 prop.name = {"My Property@en", "Meine Property@de", "Ma propriété@fr"}  # add/replace prop.name completely
@@ -453,12 +454,38 @@ del prop.name[Language.ZU]  # delete only the Zulu language name
 
 del prop.name  # Delete the attribute prop.name completely
 ```
+Remember, that after such operations onthe attributes, the method `update()` has to be called to write the changes to
+the triple store
 
+## Methods of the PropertyClass
 
 
 ### read()
 
+The `read()`-method is a classmethod that returns a new PropertyClass instance with the data interpreted from the
+triple store. It throws an [OldapError](/python_docstrings/oldaperror) or a subclass thereof if somethong goes wrong.
+
+It is used as follows:
+```python
+p2 = PropertyClass.read(con=self._connection,
+                        project=self._project,
+                        property_class_iri='test:test',
+                        ignore_cache=True)
+```
+The parameters are as follows:
+
+- **con**: _IConnection_: An instance of a subclass of IConnection that has an active connection to the triple store
+- **project**: _Project | Iri | Xsd_NCName | str_: A ProjectClass instance, the iri of a project or the project shortname.
+- **property_class_iri**: _Iri | str_: The Iri that identifies the property.
+- **ignore_cache**: _bool_: If True, force to read from triple store. [Default: False]
+
 ### create()
+
+The `create()` writes the data of a newly constructed PropertyClass instance to the triple store.
+
+```python
+
+```
 
 ### update()
 
