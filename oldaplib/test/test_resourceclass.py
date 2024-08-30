@@ -524,6 +524,14 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual({Iri('test:testMyResMinimal')}, {x for x in r1.superclass})
 
     # @unittest.skip('Work in progress')
+    def test_creating_empty_resource(self):
+        r0 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:TestResourceEmpty"),
+                           label=LangString(["Test property@en", "Testprädikat@de"]))
+
+        r0.create()
+
     def test_creating(self):
         p1 = PropertyClass(con=self._connection,
                            project=self._project,

@@ -789,8 +789,8 @@ class ResourceClass(Model, Notify):
                     sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
                 else:
                     sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property {iri}Shape'
-        if len(self._properties) > 0:
-            sparql += ' .\n'
+        #if len(self._properties) > 0:
+        sparql += ' .\n'
         return sparql
 
     def create_owl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4):
@@ -810,12 +810,15 @@ class ResourceClass(Model, Notify):
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._contributor.toRdf} ;\n'
         if self._attributes.get(ResClassAttribute.SUPERCLASS) is not None:
             sc = {x.toRdf for x in self._attributes[ResClassAttribute.SUPERCLASS].keys()}
-            valstr = ", ".join(sc)
-            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {valstr} ,\n'
+            if Iri('oldap:Thing', validate=False).toRdf not in sc:
+                sc.add(Iri('oldap:Thing', validate=False).toRdf)
         else:
-            sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf\n'
+            sc = {Iri('oldap:Thing', validate=False).toRdf}
+        valstr = ", ".join(sc)
+        sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {valstr}'
         i = 0
         for iri, hp in self._properties.items():
+            sparql += ' ,\n'
             if isinstance(hp.prop, Iri):
                 sparql += f'{blank:{(indent + 3) * indent_inc}}[\n'
                 sparql += f'{blank:{(indent + 4) * indent_inc}}rdf:type owl:Restriction ;\n'
@@ -824,11 +827,8 @@ class ResourceClass(Model, Notify):
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
             else:
                 sparql += hp.prop.create_owl_part2(haspropdata=hp, indent=(indent + 4))
-            if i < len(self._properties) - 1:
-                sparql += ' ,\n'
-            else:
-                sparql += ' .\n'
             i += 1
+        sparql += ' .\n'
         return sparql
 
     def set_creation_metadata(self, timestamp: Xsd_dateTime):
@@ -846,7 +846,7 @@ class ResourceClass(Model, Notify):
         blank = ''
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{#A\n'
+        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
         sparql += self.create_shacl(timestamp=timestamp)
@@ -861,7 +861,12 @@ class ResourceClass(Model, Notify):
         if self.read_modified_shacl(context=context, graph=self._graph) is not None:
             self._con.transaction_abort()
             raise OldapErrorAlreadyExists(f'Object "{self._owlclass_iri}" already exists.')
-        self._con.transaction_update(sparql)
+        try:
+            self._con.transaction_update(sparql)
+        except OldapError:
+            lprint(sparql)
+            self._con.transaction_abort()
+            raise
         modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
         modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
         if modtime_shacl == timestamp and modtime_owl == timestamp:
