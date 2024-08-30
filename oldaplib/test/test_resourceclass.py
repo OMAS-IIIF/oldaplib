@@ -521,16 +521,47 @@ class TestResourceClass(unittest.TestCase):
                                 project=self._project,
                                 owl_class_iri=Iri('test:testMyResInherit'))
         self.assertEqual(r1.owl_class_iri, Iri('test:testMyResInherit'))
-        self.assertEqual({Iri('test:testMyResMinimal')}, {x for x in r1.superclass})
+        self.assertEqual({Iri('test:testMyResMinimal'), Iri('oldap:Thing')}, {x for x in r1.superclass})
 
     # @unittest.skip('Work in progress')
     def test_creating_empty_resource(self):
         r0 = ResourceClass(con=self._connection,
                            project=self._project,
-                           owlclass_iri=Iri("test:TestResourceEmpty"),
-                           label=LangString(["Test property@en", "Testprädikat@de"]))
+                           owlclass_iri=Iri("test:TestResourceEmpty"))
 
         r0.create()
+
+    def test_creating_resource_incremental(self):
+        r0 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:TestResourceIncremental", validate=False))
+        r0.create()
+
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:testIncrementalProp1'),
+                           subPropertyOf=Iri('test:comment'),
+                           datatype=XsdDatatypes.langString,
+                           name=LangString(["Test property@en", "Testprädikat@de"]),
+                           description=LangString("A property for testing incrfemental buildup...@en"),
+                           uniqueLang=Xsd_boolean(True),
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        hp1 = HasProperty(con=self._connection,prop=p1, minCount=1, order=1.0)
+        r0[Iri('test:testIncrementalProp1')] = hp1
+        r0.update()
+
+        r0 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri("test:TestResourceIncremental", validate=False))
+        self.assertEqual(r0.owl_class_iri, Iri("test:TestResourceIncremental", validate=False))
+        self.assertTrue(Iri("oldap:Thing", validate=False) in r0.superclass)
+        hp1 = r0[Iri('test:testIncrementalProp1')]
+        self.assertEqual(hp1.minCount, 1)
+        self.assertIsNone(hp1.maxCount)
+        self.assertEqual(hp1.order, 1.0)
+        self.assertEqual(hp1.prop.property_class_iri, Iri("test:testIncrementalProp1", validate=False))
+        self.assertEqual(hp1.prop.subPropertyOf, Iri("test:comment"))
+        self.assertEqual(hp1.prop.datatype, XsdDatatypes.langString)
 
     def test_creating(self):
         p1 = PropertyClass(con=self._connection,
@@ -653,7 +684,7 @@ class TestResourceClass(unittest.TestCase):
                                 project=self._project,
                                 owl_class_iri=Iri('test:ResWithSuperclasses'))
         s = set(r2.superclass.keys())
-        self.assertEqual({"test:testMyResMinimal", 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object'}, s)
+        self.assertEqual({"oldap:Thing", "test:testMyResMinimal", 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object'}, s)
 
     def test_creating_with_thing_sc(self):
         p1 = PropertyClass(con=self._connection,
@@ -895,7 +926,7 @@ class TestResourceClass(unittest.TestCase):
 
         r1.label[Language.IT] = "La mia risorsa"
         r1.closed = Xsd_boolean(False)
-        r1[ResClassAttribute.SUPERCLASS] = {Iri('dcterms:TopGaga')}
+        r1[ResClassAttribute.SUPERCLASS] = {Iri("oldap:Thing"), Iri('dcterms:TopGaga')}
         r1[Iri('test:hasText')].prop.name[Language.FR] = "Un Texte Français"
         r1[Iri('test:hasText')].maxCount = Xsd_integer(12)  # TODO !!!!!!!!!!!!!!!!!!
         r1[Iri('test:hasText')].prop.languageIn = LanguageIn(Language.DE, Language.FR, Language.IT)
@@ -908,7 +939,7 @@ class TestResourceClass(unittest.TestCase):
                                 owl_class_iri=Iri("test:testMyRes"))
         self.assertEqual(r2.label, LangString(["My Resource@en", "Meine Ressource@de", "Ma Resource@fr", "La mia risorsa@it"]))
         self.assertFalse(r2.closed)
-        self.assertEqual({Iri('dcterms:TopGaga')}, set(r2.superclass))
+        self.assertEqual({Iri("oldap:Thing"), Iri('dcterms:TopGaga')}, set(r2.superclass))
         self.assertIsNone(r2.superclass[Iri('dcterms:TopGaga')])
         self.assertEqual(r2[Iri('test:hasText')].prop.name, LangString(["A text@en", "Ein Text@de", "Un Texte Français@fr"]))
         self.assertEqual(r2[Iri('test:hasText')].maxCount, Xsd_integer(12))  # TODO !!!!!!!!!!!!!!!!
@@ -973,7 +1004,7 @@ class TestResourceClass(unittest.TestCase):
         r1 = ResourceClass.read(con=self._connection,
                                 project=self._project,
                                 owl_class_iri=Iri('test:CrazyB'))
-        self.assertEqual({Iri('http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object')}, set(r1.superclass))
+        self.assertEqual({Iri("oldap:Thing"), Iri('http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object')}, set(r1.superclass))
 
     def test_updateing_sc_C(self):
         p1 = PropertyClass(con=self._connection,
@@ -1003,7 +1034,8 @@ class TestResourceClass(unittest.TestCase):
         r1 = ResourceClass.read(con=self._connection,
                                 project=self._project,
                                 owl_class_iri=Iri('test:CrazyC'))
-        self.assertEqual({"test:testMyRes",
+        self.assertEqual({"oldap:Thing",
+                          "test:testMyRes",
                           'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object',
                           'http://gugus.com/gaga/wird/nicht/gehen'}, set(r1.superclass))
 

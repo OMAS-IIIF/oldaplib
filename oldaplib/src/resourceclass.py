@@ -11,8 +11,9 @@ from oldaplib.src.globalconfig import GlobalConfig
 from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.observable_dict import ObservableDict
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorUpdateFailed, \
-    OldapErrorValue
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, \
+    OldapErrorInconsistency, OldapErrorUpdateFailed, \
+    OldapErrorValue, OldapErrorNotImplemented
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.enums.resourceclassattr import ResClassAttribute
@@ -71,8 +72,18 @@ class ResourceClass(Model, Notify):
         def __check(sc: Any):
             scval = Iri(sc)
             sucla = None
-            if scval.is_qname and scval.prefix == self._project.projectShortName:
-                sucla = ResourceClass.read(self._con, self._project, scval)
+            if scval.is_qname:
+                match scval.prefix:
+                    case self._project.projectShortName:
+                        sucla = ResourceClass.read(self._con, self._project, scval)
+                    case 'oldap':
+                        sucla = ResourceClass.read(self._con, self._sysproject, scval)
+                    case 'shared':
+                        raise OldapErrorNotImplemented("Not yet implemented!")
+                    case _:
+                        # external resource not defined in Oldap
+                        # -> we can not read it -> we pass None -> no "sh:node" in SHACL!
+                        pass
             return scval, sucla
 
         data = ObservableDict()
@@ -129,6 +140,18 @@ class ResourceClass(Model, Notify):
                 new_kwargs[name] = self.assign_superclass(value)
             else:
                 new_kwargs[name] = value
+        #
+        # now we add if necessary the mandatory superclass "oldap:Thing". Every ResourceClass is OLDAP must be
+        # a subclass of "oldap:Thing"!
+        #
+        thing_iri = Iri('oldap:Thing', validate=False)
+        if self._owlclass_iri != thing_iri:
+            if not new_kwargs.get(ResClassAttribute.SUPERCLASS.value.fragment):
+                new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment] = self.assign_superclass(thing_iri)
+            else :
+                if not thing_iri in new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment]:
+                    thing = ResourceClass.read(self._con, self._sysproject, thing_iri)
+                    new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment][thing_iri] = thing
         self.set_attributes(new_kwargs, ResClassAttribute)
 
         self._properties = {}
