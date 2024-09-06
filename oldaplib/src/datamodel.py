@@ -403,6 +403,7 @@ class DataModel(Model):
                 case Action.DELETE:
                     #self.__resclasses[qname].delete()
                     change.old_value.delete()
+        self.changeset_clear()
         cache = CacheSingleton()
         cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 

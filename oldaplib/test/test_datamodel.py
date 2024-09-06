@@ -508,7 +508,7 @@ class TestDataModel(unittest.TestCase):
                                  name=LangString(["Generic comment@en", "Allgemeiner Kommentar@de"]))
         dm[Iri(f'{dm_name}:genericComment')] = generic_comment
         dm.update()
-        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        #dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         p1 = dm[Iri(f'{dm_name}:genericComment')]
         self.assertEqual(p1.datatype, XsdDatatypes.string)
 
@@ -517,7 +517,7 @@ class TestDataModel(unittest.TestCase):
         #
         p1.description = LangString("For testing purposes only@en")
         dm.update()
-        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        #dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         p1 = dm[Iri(f'{dm_name}:genericComment')]
         self.assertEqual(p1.datatype, XsdDatatypes.string)
         self.assertEqual(p1.description, LangString("For testing purposes only@en"))
@@ -554,7 +554,7 @@ class TestDataModel(unittest.TestCase):
         dm[Iri(f'{dm_name}:BookX')] = bookX
         dm.update()
 
-        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        #dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
 
         p1 = dm[Iri(f'{dm_name}:genericComment')]
         self.assertEqual(p1.datatype, XsdDatatypes.string)
