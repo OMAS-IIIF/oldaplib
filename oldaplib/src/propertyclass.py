@@ -1240,8 +1240,8 @@ class PropertyClass(Model, Notify):
         self.__from_triplestore = False
         self._con.transaction_start()
         self._con.transaction_update(sparql)
-        modtime_shacl = self.read_modified_shacl(context=context, graph='test')
-        modtime_owl = self.read_modified_owl(context=context, graph='test')
+        modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
+        modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
         if modtime_shacl is not None or modtime_owl is not None:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed("Deleting Property failed")

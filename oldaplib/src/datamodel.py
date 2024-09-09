@@ -407,6 +407,9 @@ class DataModel(Model):
         cache = CacheSingleton()
         cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
+    def delete(self):
+        pass
+
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Write the complete datamodel in the trig format to a file.
