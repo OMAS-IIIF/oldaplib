@@ -364,6 +364,7 @@ class DataModel(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
+
         try:
             self._con.transaction_start()
             self._con.transaction_update(sparql)

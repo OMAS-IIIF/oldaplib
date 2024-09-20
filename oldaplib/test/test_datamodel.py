@@ -73,6 +73,8 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtestB:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtestC:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtestC:onto'))
+        cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
+        cls._connection.clear_graph(Xsd_QName('hyha:onto'))
 
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
@@ -691,7 +693,6 @@ class TestDataModel(unittest.TestCase):
         del dm[Iri(f'{dm_name}:BookY')][Iri(f'{dm_name}:authorsY')]
 
         dm.update()
-        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         r1 = dm[Iri(f'{dm_name}:BookY')]
         r1p3 = r1[Iri(f'{dm_name}:genericCommentY')]
         self.assertEqual(r1p3.prop.name, LangString(["Generic commentY@en", "Allgemeiner KommentarY@de", "Commentario@it"]))
@@ -709,10 +710,51 @@ class TestDataModel(unittest.TestCase):
         #
         # delete standalone property
         #
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         del dm[Iri(f'{dm_name}:genericCommentY')]
         dm.update()
         self.assertIsNone(dm.get(Iri(f'{dm_name}:genericCommentY')))
 
+
+    def test_update2(self):
+        proj = Project.read(self._connection, "hyha")
+        testProp2 = PropertyClass(con=self._connection,
+                                  project=proj,
+                                  property_class_iri="hyha:testProp2",
+                                  subPropertyOf="hyha:testProp",
+                                  datatype= XsdDatatypes.langString,
+                                  name=["Test Property@en", "Test Feld@de"],
+                                  description=["Test Feld Beschreibung@de"],
+                                  languageIn=["en", "fr", "it", "de"],
+                                  uniqueLang=True,
+                                  inSet=["Kappa", "Gaga", "gugus"],
+                                  minLength=1,
+                                  maxLength=50,
+                                  pattern=r"^[\w\.-]+@[a-zA-Z\d-]+(\.[a-zA-Z\d-]+)*\.[a-zA-Z]{2,}$",
+                                  minExclusive=5.5,
+                                  minInclusive=5.5,
+                                  maxExclusive=5.5,
+                                  maxInclusive=5.5,
+                                  lessThan="hyha:testProp",
+                                  lessThanOrEquals="hyha:testProp")
+
+
+        Sheep = ResourceClass(con=self._connection,
+                              project=proj,
+                              owlclass_iri=Iri("hyha:Sheep"),
+                              label=["Eine Buchseite@de", "A page of a book@en"],
+                              comment=["Eine Buchseite@de","A page of a book@en"],
+                              closed=Xsd_boolean(True),
+                              hasproperties=[
+                                  HasProperty(con=self._connection, prop=testProp2, minCount=Xsd_integer(1), maxCount=3, order=1)])
+        dm = DataModel(con=self._connection,
+                       project=proj,
+                       resclasses=[Sheep])
+        dm.create()
+        dm = DataModel.read(self._connection, proj, ignore_cache=True)
+
+        del dm[Iri('hyha:Sheep')][Iri('hyha:testProp2')]
+        dm.update()
 
     def test_write_trig(self):
         pagename = PropertyClass(con=self._connection,

@@ -616,6 +616,11 @@ class LangString(Notify):
 
 
 if __name__ == '__main__':
+    gaga = LangString(None)
+    if gaga:
+        print(gaga)
+    else:
+        print("Is None")
     ls = LangString("Deutsch@de", "Français@fr")
     for l in ls:
         print(l.toRdf)

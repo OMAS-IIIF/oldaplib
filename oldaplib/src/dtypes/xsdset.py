@@ -59,3 +59,5 @@ class XsdSet(RdfSet[Xsd]):
             self._data.add(item_type(val))
 
 
+if __name__ == "__main__":
+    gaga = XsdSet(None)

@@ -640,14 +640,14 @@ class PropertyClass(Model, Notify):
                 case 'dcterms:created':
                     dt = obj
                     if self._created != dt:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self._created}" vs "{dt}".')
+                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self._created}" vs "{dt}" for property "{self._property_class_iri}".')
                 case 'dcterms:contributor':
                     if self._creator != obj:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: contributor "{self._contributor}" vs "{obj}".')
+                        raise OldapError(f'Inconsistency between SHACL and OWL: contributor "{self._contributor}" vs "{obj}" for property "{self._property_class_iri}".')
                 case 'dcterms:modified':
                     dt = obj
                     if self._modified != dt:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self._modified}" vs "{dt}".')
+                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self._modified}" vs "{dt}" for property "{self._property_class_iri}".')
         #
         # Consistency checks
         #
@@ -760,7 +760,8 @@ class PropertyClass(Model, Notify):
         for prop, value in self._attributes.items():
             if prop == PropClassAttr.TYPE:
                 continue
-            if value is None:
+            if not value and not isinstance(value, bool):
+            #if value is None:
                 continue
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.toRdf}'
         if haspropdata:
