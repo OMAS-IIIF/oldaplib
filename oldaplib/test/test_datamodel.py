@@ -493,6 +493,17 @@ class TestDataModel(unittest.TestCase):
         print(str(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment'))))
         self.assertIsNone(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment')))  # TODO THIS TEST SHOULD PASS!!!!
 
+    def test_datamodel_modify_D(self):
+        dm_name = self._dmproject.projectShortName
+
+        dm = self.generate_a_datamodel(self._dmproject)
+        dm.create()
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        dm[Iri(f'{dm_name}:comment')].name = LangString("Waseliwas@zu")
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        self.assertEqual(dm[Iri(f'{dm_name}:comment')].name, LangString("Waseliwas@zu"))
+
     def test_incremental_generation(self):
         dm = DataModel(con=self._connection,
                        project=self._dmproject)
