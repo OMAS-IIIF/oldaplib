@@ -1,0 +1,1 @@
+::: oldaplib.src.resourceclass

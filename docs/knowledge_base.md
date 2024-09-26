@@ -3,42 +3,39 @@
 OLDAP implements several Python Classes which can be used to build a consistent, project specific data model in RDF,
 usually implemented in a triplestore. The following terms are important:
 
-- ***Project***: A project is defined as a collection of RDF statements that are associated with a certain topic/organisation
+- ***[Project](/python_docstrings/project)***: A project is defined as a collection of RDF statements that are associated with a certain topic/organisation
   that is called *Project* within OLDAP. *Users* (see below) may be member of one or more projects.  
-  For each project, the RDF statements defining the *datamodel* and the data itself are collected in *Named Graphs* in
+  For each project, the RDF statements defining the *datamodel* and the *data itself* are collected in *Named Graphs* in
   the triple store. A project definition must include
-  - a unique *shortname* in order to identify the project. The shortname must by an
+    - a unique *shortname* in order to identify the project. The shortname must by an
     [XSD NCname](https://www.oreilly.com/library/view/xml-schema/0596002521/re82.html). Examples are ```hyha``` for a
     project called HyperHamlet. The name must be unique within the oldap instance.
-  - a *namespace* that is used as a prefix for project related RDF definitions. A namespace is usually an IRI that ends
+    - a *namespace* that is used as a prefix for project related RDF definitions. A namespace is usually an IRI that ends
     with a ```#``` or ```/``` character, e.g. ```http://myproject.mylab.myinstitution.edu#``` or
     ```https://myproject.mylab.myinstitution.edu/```
-  - The graphs for a given project with the shortname _"myname"_ are:
-    - _myname:shacl_: Graph containing the SHACL shapes for the datamodel
-    - _myname:onto_: Graph containing the OWL definitions for the datamodel
-    - _myname:data_: Graph containing all the data instances
-- ***User***: A user is a person who is registered with the system as a user. They gain access by providing their credentials
+    - The graphs for a given project with the shortname _"myname"_ are:
+        - _myname:shacl_: Graph containing the SHACL shapes for the datamodel
+        - _myname:onto_: Graph containing the OWL definitions for the datamodel
+        - _myname:data_: Graph containing all the data instances
+- ***[User](/python_doctrings/user)***: A user is a person who is registered with the system as a user. They gain access by providing their credentials
   (currently a password, though this may change in the future) upon login. Each user is granted specific permissions based on 
   their association with a project. These permissions, known as *administrative permissions*, define what actions a user is 
   authorized to perform within the system.
-- ***Resources*** are used to store data. All Resources are subclasses of `oldap:Thing` which implements some
-  basic properties like creator, creation date etc. (see below).
-- ***PermissionSet*** is an entity that connects the resources to the user. A permission set holds the
-  "DataPermissions" that define the access to the resource.
+- ***[PermissionSet](/python_doctrings/permissionset)*** is an entity that connects the resources to the user. A permission set holds the
+  "DataPermissions" that define the access to the resource. A more in-depth description on how access permissions
+  are implemented visit the chapter [OLDAP Permission Concept](/permission_concept)
+- ***[Datamodel](/python_docstrings/datamodel)*** contains the data definitions. A datamodel defines *templates* to be used to
+  describe the objects or resources in the database. These templates are encoded using both
+  [SHACL](#shape-constraint-language-shacl) and [OWL](#web-ontology-language) in order to support both validation
+  of the data as well as reasoning (predicate logic) for queries. A datamodel contains templates for the description of
+  the objects that are represented in the database. These templates are implemented by the
+  [ResourceClass](/python_docstrings/resourceclass) python class. For each class of real world objects that should
+  be represented in the database, a ResourceClass has to be defined.   
+  A *ResourceClass* also defines the data fields that are *required* and *allowed* to describe the given object. These
+  definitions for the data fields (or properties/predicates) are defined using the
+  [PropertyClass](/python_docstrings/propertyclass) python class.
 
-Data modeling relies on the notion of *property* and *resource* following the RDF standards.
-
-- ***Resource*** is the digital equivalent to a real world object or an abstract thing like an event, a location
-  etc. A Resource may have *properties* that define the properties of the subject.
-- ***Property*** is a predicate defining some data associated with the resource.
-- ***Literal*** is a vlaue that stands for itself like a number or a name.
-
-In a data model, resources and properties are pre-defined and form the data model or *ontology*. Datamodels
-are specific to a given project. Each data model is stored in 2 distinct named graphs.
-
-oldaplib has the following prerequisites:
-
-## The Resource Description Frame (RDF) and OLDAP
+## The Resource Description Framework (RDF) and OLDAP
 
 ### What is RDF? (and RDFS?, and OWL?, ...and SHACL?)
 

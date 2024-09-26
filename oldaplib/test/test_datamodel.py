@@ -823,7 +823,7 @@ class TestDataModel(unittest.TestCase):
         page = ResourceClass(con=self._connection,
                              project=self._project,
                              owlclass_iri=Iri("test:Page"),
-                             superclass=Iri('oldap:Thing'),
+                             #superclass=Iri('oldap:Thing'),  # no longer necessary TODO: Test it!!!!
                              label=LangString(["Project@en", "Projekt@de"]),
                              comment=LangString(["A page of a book@en", "Seite eines Buches@de"]),
                              closed=Xsd_boolean(True),
@@ -860,7 +860,7 @@ class TestDataModel(unittest.TestCase):
         person = ResourceClass(con=self._connection,
                                project=self._project,
                                owlclass_iri=Iri('test:Person'),
-                               superclass=Iri('oldap:Thing'),
+                               #superclass=Iri('oldap:Thing'),  # no longer necessary TODO: Test it!!!!
                                label=LangString(["Person@en", "Person@de"]),
                                hasproperties=[
                                    HasProperty(con=self._connection, prop=Iri('schema:familyName'), minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=1),

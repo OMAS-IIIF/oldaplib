@@ -5,9 +5,9 @@ nav:
   - Documentation:
     - About: 'index.md'
     - Knowledge Foundation for OLDAP: 'knowledge_base.md'
+    - Data Modeling: 'data_modeling.md'
     - Data Organization: 'data_organization.md'
     - Permission Concept: 'permission_concept.md'
-    - Data Modeling: 'data_modeling.md'
     - PropertyClass: 'propertyclass.md'
   - Python Documentation:
     - Admin classes:
@@ -69,7 +69,15 @@ nav:
       - InProject class: python_docstrings/in_project.md
       - Property attribute class: python_docstrings/propertyclassattr.md
 
-theme: material
+markdown_extensions:
+  - pymdownx.highlight:
+      linenums: true
+
+theme:
+  name: material
+  logo: assets/OldapLogo.001.png
+  code:
+    line_numbers: true
 
 plugins:
   - search

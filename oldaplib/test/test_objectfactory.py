@@ -525,7 +525,5 @@ class TestObjectFactory(unittest.TestCase):
             b.update()
 
 
-
-
 if __name__ == '__main__':
     unittest.main()
