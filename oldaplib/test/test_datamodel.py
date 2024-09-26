@@ -55,6 +55,7 @@ class TestDataModel(unittest.TestCase):
         cls._context['dmtestA'] = NamespaceIRI('http://oldap.org/dmtestA#')
         cls._context['dmtestB'] = NamespaceIRI('http://oldap.org/dmtestB#')
         cls._context['dmtestC'] = NamespaceIRI('http://oldap.org/dmtestC#')
+        cls._context['dmtestE'] = NamespaceIRI('http://oldap.org/dmtestE#')
         cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC')
 
         cls._connection = Connection(server='http://localhost:7200',
@@ -73,6 +74,8 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtestB:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtestC:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtestC:onto'))
+        cls._connection.clear_graph(Xsd_QName('dmtestE:shacl'))
+        cls._connection.clear_graph(Xsd_QName('dmtestE:onto'))
         cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
         cls._connection.clear_graph(Xsd_QName('hyha:onto'))
 
@@ -87,6 +90,7 @@ class TestDataModel(unittest.TestCase):
         cls._dmprojectA = Project.read(cls._connection, "dmtestA", ignore_cache=True)
         cls._dmprojectB = Project.read(cls._connection, "dmtestB", ignore_cache=True)
         cls._dmprojectC = Project.read(cls._connection, "dmtestC", ignore_cache=True)
+        cls._dmprojectE = Project.read(cls._connection, "dmtestE", ignore_cache=True)
         cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
 
 
@@ -503,6 +507,29 @@ class TestDataModel(unittest.TestCase):
         dm.update()
         dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         self.assertEqual(dm[Iri(f'{dm_name}:comment')].name, LangString("Waseliwas@zu"))
+
+    def test_datamodel_modify_E(self):
+        dm_name = self._dmprojectE.projectShortName
+
+        dm = self.generate_a_datamodel(self._dmprojectE)
+        dm.create()
+        del dm
+        dm = DataModel.read(self._connection, self._dmprojectE, ignore_cache=True)
+
+        #
+        # Add a new standalone property without name/description
+        #
+        pubyear = PropertyClass(con=self._connection,
+                                project=self._dmprojectE,
+                                property_class_iri=Xsd_QName(f'{dm_name}:pubYearE'),
+                                datatype=XsdDatatypes.gYear,
+                                name=LangString(["Publication YearE@en", "PublicationsjahrE@de"]))
+        pubyear.force_external()
+        dm[Iri(f'{dm_name}:pubYearE')] = pubyear
+
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmprojectE, ignore_cache=True)
+        self.assertIsNotNone(dm.get(Iri(f'{dm_name}:pubYearE')))
 
     def test_incremental_generation(self):
         dm = DataModel(con=self._connection,

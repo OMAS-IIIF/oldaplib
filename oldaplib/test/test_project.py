@@ -123,6 +123,21 @@ class Testproject(unittest.TestCase):
         projects = Project.search(con=self._connection, label="NoExisting")
         self.assertEqual([], projects)
 
+    def test_project_create_simplest(self):
+        project = Project(con=self._connection,
+                          projectShortName="simpleproj",
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/simpleproj#"),
+                          projectStart=Xsd_date(2024, 1, 1),
+                          projectEnd=Xsd_date(2025, 12, 31)
+                          )
+        project.create()
+        self.assertIsNotNone(project.created)
+        self.assertIsNotNone(project.creator)
+        self.assertIsNotNone(project.modified)
+        self.assertIsNotNone(project.contributor)
+        self.assertEqual("simpleproj", project.projectShortName)
+        self.assertEqual("http://unitest.org/project/simpleproj#", project.namespaceIri)
+
     # @unittest.skip('Work in progress')
     def test_project_create(self):
         project = Project(con=self._connection,

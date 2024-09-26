@@ -578,6 +578,7 @@ class PropertyClass(Model, Notify):
                 if attr.datatype == Numeric:
                     if not isinstance(val, (Xsd_integer, Xsd_float)):
                         raise OldapErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
+                    self._attributes[attr] = val
                 else:
                     self._attributes[attr] = attr.datatype(val)
 

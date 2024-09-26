@@ -97,7 +97,7 @@ class Model:
 
     def set_attributes(self, arguments: dict[str, Any], Attributes: type[Enum]) -> None:
         for name, value in arguments.items():
-            if value is None:
+            if not isinstance(value, (bool, Xsd_boolean)) and not value:
                 continue
             attr = Attributes.from_name(name)
             try:

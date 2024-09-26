@@ -281,7 +281,7 @@ class DataModel(Model):
         for r in res:
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
-            propclass = PropertyClass.read(con, project, Iri(propclassiri, validate=False))
+            propclass = PropertyClass.read(con, project, Iri(propclassiri, validate=False), ignore_cache=ignore_cache)
             propclass.force_external()
             propclasses.append(propclass)
         sa_props = {x.property_class_iri: x for x in propclasses}
