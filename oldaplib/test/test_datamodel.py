@@ -731,6 +731,7 @@ class TestDataModel(unittest.TestCase):
         del dm[Iri(f'{dm_name}:BookY')][Iri(f'{dm_name}:authorsY')]
 
         dm.update()
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         r1 = dm[Iri(f'{dm_name}:BookY')]
         r1p3 = r1[Iri(f'{dm_name}:genericCommentY')]
         self.assertEqual(r1p3.prop.name, LangString(["Generic commentY@en", "Allgemeiner KommentarY@de", "Commentario@it"]))
@@ -743,6 +744,7 @@ class TestDataModel(unittest.TestCase):
         #
         del dm[Iri(f'{dm_name}:BookY')]
         dm.update()
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         self.assertIsNone(dm.get(Iri(f'{dm_name}:BookY')))
 
         #
@@ -793,6 +795,34 @@ class TestDataModel(unittest.TestCase):
 
         del dm[Iri('hyha:Sheep')][Iri('hyha:testProp2')]
         dm.update()
+
+    def test_incremental_and_del(self):
+        dm = DataModel(con=self._connection,
+                       project=self._dmproject)
+        dm.create()
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        dm_name = self._dmproject.projectShortName
+
+        bookZZ = ResourceClass(con=self._connection,
+                               project=self._dmproject,
+                               owlclass_iri=Iri(f'{dm_name}:BookZZ'),
+                               label=LangString(["BookZZ@en", "BuchZZ@de"]),
+                               comment=LangString("Ein Buch mit SeitenZZ@en"),
+                               closed=Xsd_boolean(True))
+
+        dm[Iri(f'{dm_name}:BookZZ')] = bookZZ
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+
+        pubDateZ = PropertyClass(con=self._connection,
+                                 project=self._project,
+                                 property_class_iri=Iri(f'{dm_name}:pubDateZ'),
+                                 datatype=XsdDatatypes.date)
+        dm[Iri(f'{dm_name}:BookZZ')][Iri(f'{dm_name}:pubDateZ')] = HasProperty(con=self._connection, prop=pubDateZ)
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        pass
+
 
     def test_write_trig(self):
         pagename = PropertyClass(con=self._connection,

@@ -191,6 +191,7 @@ class DataModel(Model):
             if change.action == Action.MODIFY:
                 self.__resclasses[res].changeset_clear()
         self.__resclasses_changeset = {}
+        self.clear_changeset()
 
     def notifier(self, what: Iri) -> None:
         if what in self.__propclasses:
@@ -314,6 +315,7 @@ class DataModel(Model):
             instance[qname].set_notifier(instance.notifier, qname)
         cache.set(Xsd_QName(project.projectShortName, 'shacl'), instance)
 
+        instance.changeset_clear()
         return instance
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
