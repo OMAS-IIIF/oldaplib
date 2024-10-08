@@ -5,7 +5,18 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
 class AttributeClass(Enum):
+    """
+    The AttributeClass is used as superclass to define the attribute-enums of RDF-classes such as
+    Project, PropertyClass, ResourceClass, User etc.,
+    """
+
     def __new__(cls, value: Xsd_QName | str, mandatory: bool, immutable: bool, datatype: Type):
+        """
+        :param value: The value of the attribute-enum item. Must have the form of a QName!
+        :param mandatory: True, if this attribute is mandatory, False otherwise.
+        :param immutable: True, if the attribute is immutable, False otherwise.
+        :param datatype: The datatype of the attribute-enum item.
+        """
         member = object.__new__(cls)
         member._value = Xsd_QName(value, validate=False)
         member._name = member._value.fragment  # Extract fragment for example
@@ -35,6 +46,11 @@ class AttributeClass(Enum):
 
     @classmethod
     def from_value(cls, value: Xsd_QName | str) -> Self:
+        """
+        Create an instance of the attribute-enum item from a value.
+        :param value: The value as string or Xsd_QName.
+        :return: Attribute enum item.
+        """
         value = Xsd_QName(value)
         for member in cls:
             if member.value == value:
@@ -43,6 +59,11 @@ class AttributeClass(Enum):
 
     @classmethod
     def from_name(cls, name: str) -> Self:
+        """
+        Create an instance of the attribute-enum item from a fragment of the QName of the item
+        :param name:
+        :return:
+        """
         for member in cls:
             if member._name == name:
                 return member

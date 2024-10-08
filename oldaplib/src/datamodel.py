@@ -113,6 +113,7 @@ class DataModel(Model):
         instance.__graph = deepcopy(self.__graph, memo)
         instance.__context = deepcopy(self.__context, memo)
         instance.__version = deepcopy(self.__version, memo)
+        instance._project = deepcopy(self._project, memo)
         instance.__propclasses = deepcopy(self.__propclasses, memo)
         instance.__resclasses = deepcopy(self.__resclasses, memo)
         instance.__resclasses_changeset = deepcopy(self.__resclasses_changeset, memo)
@@ -306,7 +307,10 @@ class DataModel(Model):
         for r in res:
             resnameshacl = str(r['shape'])
             resclassiri = resnameshacl.removesuffix("Shape")
-            resclass = ResourceClass.read(con, project, Iri(resclassiri, validate=False), sa_props=sa_props)
+            # TODO: If ignore cache is not True, _prop_changeset of resourceclass is not empty!
+            # create empty data model -> update -> add resource without property -> add property -> update
+            # _prop_changeset is not empoty after update... ERROR!!!!!!!!!!!!!!!!!!!!!
+            resclass = ResourceClass.read(con, project, Iri(resclassiri, validate=False), sa_props=sa_props, ignore_cache=ignore_cache)
             resclasses.append(resclass)
         instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses)
         for qname in instance.get_propclasses():
@@ -366,7 +370,6 @@ class DataModel(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
-
         try:
             self._con.transaction_start()
             self._con.transaction_update(sparql)
@@ -378,6 +381,9 @@ class DataModel(Model):
         except OldapError as err:
             self._con.transaction_abort()
             raise
+
+        self.clear_changeset()
+
         cache = CacheSingleton()
         cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 

@@ -911,6 +911,9 @@ class PropertyClass(Model, Notify):
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f"Update of RDF didn't work!")
         self.set_creation_metadata(timestamp)
+
+        self.clear_changeset()
+
         cache = CacheSingleton()
         cache.set(self._property_class_iri, self)
 

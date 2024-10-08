@@ -1,10 +1,23 @@
 # Knowledge Foundation for OLDAP
 
-OLDAP implements several Python Classes which can be used to build a consistent, project specific data model in RDF,
+OLDAP stands for **O**pen **L**inked **D**ata **P**latform which is a Python 3.0 framework which helpds to build
+applications based on Open Linked Data standards. It encompasses
+
+- Data modelling
+- Access control and permissions
+- supporting different project and clients in a single instance
+
+OLDAP consists of several components:
+
+- *oldaplib*: A Python library providing the basic classes and methods that interacts with the RDF-based triple store.
+- *oldap-api*: A RESTful API based on oldaplib
+- *oldap-gui*: A svelte based generic GUI (to be available in the future)
+
+OLDAPlib implements several Python Classes which can be used to build a consistent, project specific data model in RDF,
 usually implemented in a triplestore. The following terms are important:
 
 - ***[Project](/python_docstrings/project)***: A project is defined as a collection of RDF statements that are associated with a certain topic/organisation
-  that is called *Project* within OLDAP. *Users* (see below) may be member of one or more projects.  
+  that is called *Project* within OLDAP. [User](/python_doctrings/user) (see below) may be member of one or more projects.  
   For each project, the RDF statements defining the *datamodel* and the *data itself* are collected in *Named Graphs* in
   the triple store. A project definition must include
     - a unique *shortname* in order to identify the project. The shortname must by an

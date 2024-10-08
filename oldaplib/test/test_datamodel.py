@@ -800,7 +800,7 @@ class TestDataModel(unittest.TestCase):
         dm = DataModel(con=self._connection,
                        project=self._dmproject)
         dm.create()
-        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=False)
         dm_name = self._dmproject.projectShortName
 
         bookZZ = ResourceClass(con=self._connection,
@@ -811,8 +811,8 @@ class TestDataModel(unittest.TestCase):
                                closed=Xsd_boolean(True))
 
         dm[Iri(f'{dm_name}:BookZZ')] = bookZZ
-        dm.update()
-        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        #dm.update()
+        #dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
 
         pubDateZ = PropertyClass(con=self._connection,
                                  project=self._project,

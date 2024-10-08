@@ -716,6 +716,7 @@ class ResourceClass(Model, Notify):
         attributes = ResourceClass.__query_shacl(con, project=project, owl_class_iri=owl_class_iri)
         resclass._parse_shacl(attributes=attributes)
         resclass.__read_owl()
+
         resclass.changeset_clear()
 
         cache = CacheSingleton()
@@ -898,6 +899,7 @@ class ResourceClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
+        self.changeset_clear()
         cache = CacheSingleton()
         cache.set(self._owlclass_iri, self)
 
