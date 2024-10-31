@@ -14,7 +14,7 @@ from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue
+from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.project import Project
@@ -55,6 +55,13 @@ class TestPropertyClass(unittest.TestCase):
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
+
+        cls._unpriv = Connection(server='http://localhost:7200',
+                                 repo="oldap",
+                                 userId="fornaro",
+                                 credentials="RioGrande",
+                                 context_name="DEFAULT")
+
 
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
@@ -288,6 +295,19 @@ class TestPropertyClass(unittest.TestCase):
         with self.assertRaises(OldapErrorAlreadyExists) as ex:
             pX.create()
         self.assertEqual(str(ex.exception), 'Property "test:testWrite" already exists.')
+
+    def test_propertyclass_create_nopermission(self):
+        p1 = PropertyClass(
+            con=self._unpriv,
+            project=self._project,
+            property_class_iri=Iri('test:testCreateNoPerm'),
+            toClass=Iri('test:comment'),
+            name=LangString("NoPerm@en"),
+            description=LangString("NoPerm@en")
+        )
+        with self.assertRaises(OldapErrorNoPermission) as ex:
+            p1.create()
+        self.assertEqual(str(ex.exception), 'Actor has no ADMIN_MODEL permission for project "test"')
 
     def test_property_cache(self):
         p1 = PropertyClass(

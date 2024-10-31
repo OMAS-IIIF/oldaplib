@@ -5,6 +5,7 @@ from functools import partial
 from typing import Union, List, Dict, Callable, Self, Any, TypeVar
 
 from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.globalconfig import GlobalConfig
@@ -13,7 +14,7 @@ from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, \
     OldapErrorInconsistency, OldapErrorUpdateFailed, \
-    OldapErrorValue, OldapErrorNotImplemented
+    OldapErrorValue, OldapErrorNotImplemented, OldapErrorNoPermission
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.enums.resourceclassattr import ResClassAttribute
@@ -183,6 +184,29 @@ class ResourceClass(Model, Notify):
         self._test_in_use = False
         self.__version = SemanticVersion()
         self.__from_triplestore = False
+
+    def check_for_permissions(self) -> (bool, str):
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            #
+            # user has root privileges!
+            #
+            return True, "OK – IS ROOT"
+        else:
+            if not self._project:
+                return False, f'Actor has no ADMIN_MODEL permission. Actor not associated with a project.'
+            proj = self._project.projectShortName
+            if actor.inProject.get(proj) is None:
+                return False, f'Actor has no ADMIN_MODEL permission for project "{proj}"'
+            else:
+                if AdminPermission.ADMIN_MODEL not in actor.inProject.get(proj):
+                    return False, f'Actor has no ADMIN_MODEL permission for project "{proj}"'
+            return True, "OK"
 
     def pre_transform(self, attr: AttributeClass, value: Any) -> Any:
         if attr == ResClassAttribute.SUPERCLASS:
@@ -864,6 +888,14 @@ class ResourceClass(Model, Notify):
 
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
+        #
+        # First we check if the logged-in user ("actor") has the permission to create resource for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
         if self.__from_triplestore:
             raise OldapErrorAlreadyExists(f'Cannot create property that was read from triplestore before (property: {self._owlclass_iri}')
         timestamp = Xsd_dateTime.now()
@@ -1278,6 +1310,14 @@ class ResourceClass(Model, Notify):
         return sparql
 
     def update(self) -> None:
+        #
+        # First we check if the logged-in user ("actor") has the permission to update resource for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -1365,6 +1405,14 @@ class ResourceClass(Model, Notify):
         return sparql
 
     def delete(self) -> None:
+        #
+        # First we check if the logged-in user ("actor") has the permission to create resource for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
         timestamp = datetime.now()
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context

@@ -3,13 +3,15 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Any, Self
 
 from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
-from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapError, OldapErrorValue
+from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapError, OldapErrorValue, \
+    OldapErrorNoPermission, OldapErrorNotFound
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.iconnection import IConnection
@@ -93,6 +95,29 @@ class DataModel(Model):
                 self.__resclasses[r.owl_class_iri] = r
         self.__propclasses_changeset = {}
         self.__resclasses_changeset = {}
+
+    def check_for_permissions(self) -> (bool, str):
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            #
+            # user has root privileges!
+            #
+            return True, "OK – IS ROOT"
+        else:
+            if not self._project:
+                return False, f'Actor has no ADMIN_MODEL permission. Actor not associated with a project.'
+            proj = self._project.projectShortName
+            if actor.inProject.get(proj) is None:
+                return False, f'Actor has no ADMIN_MODEL permission for project "{proj}"'
+            else:
+                if AdminPermission.ADMIN_MODEL not in actor.inProject.get(proj):
+                    return False, f'Actor has no ADMIN_MODEL permission for project "{proj}"'
+            return True, "OK"
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         if id(self) in memo:
@@ -245,6 +270,8 @@ class DataModel(Model):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
+        if len(res) == 0:
+            raise OldapErrorNotFound(f'Datamodel "{cls.__graph}:shacl" not found')
         cls.__version = SemanticVersion.fromString(res[0]['version'])
         #
         # now we read the OWL ontology metadata
@@ -259,6 +286,8 @@ class DataModel(Model):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
+        if len(res) == 0:
+            raise OldapErrorNotFound(f'Datamodel "{cls.__graph}:onto" not found')
         version = SemanticVersion.fromString(res[0]['version'])
         if version != cls.__version:
             raise OldapErrorInconsistency(f'Versionnumber of SHACL ({cls.__version}) and OWL ({version}) do not match')
@@ -332,6 +361,14 @@ class DataModel(Model):
         :type indent_inc: int
         :return: None
         """
+        #
+        # First we check if the logged-in user ("actor") has the permission to create resource for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
         timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
@@ -394,6 +431,14 @@ class DataModel(Model):
         :return: None
         :raises: OldapError or subclass
         """
+        #
+        # First we check if the logged-in user ("actor") has the permission to create resource for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
         for qname, change in self.__propclasses_changeset.items():
             match(change.action):
                 case Action.CREATE:
@@ -417,7 +462,29 @@ class DataModel(Model):
         cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
     def delete(self):
-        pass
+        #
+        # First we check if the logged-in user ("actor") has the permission to create resource for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+
+        sparql1 = sparql + f"""DELETE WHERE {{ GRAPH {self.__graph}:shacl {{ ?s ?p ?o }} }}"""
+        sparql2 = sparql + f"""DELETE WHERE {{ GRAPH {self.__graph}:onto {{ ?s ?p ?o }} }}"""
+
+        try:
+            self._con.transaction_start()
+            self._con.transaction_update(sparql1)
+            self._con.transaction_update(sparql2)
+            self._con.transaction_commit()
+        except OldapError as err:
+            self._con.transaction_abort()
+            raise
+
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         """

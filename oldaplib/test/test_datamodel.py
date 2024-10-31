@@ -10,6 +10,7 @@ from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
@@ -811,8 +812,8 @@ class TestDataModel(unittest.TestCase):
                                closed=Xsd_boolean(True))
 
         dm[Iri(f'{dm_name}:BookZZ')] = bookZZ
-        #dm.update()
-        #dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
 
         pubDateZ = PropertyClass(con=self._connection,
                                  project=self._project,
@@ -821,7 +822,14 @@ class TestDataModel(unittest.TestCase):
         dm[Iri(f'{dm_name}:BookZZ')][Iri(f'{dm_name}:pubDateZ')] = HasProperty(con=self._connection, prop=pubDateZ)
         dm.update()
         dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
-        pass
+        test_res = dm[Iri(f'{dm_name}:BookZZ')]
+        self.assertEqual(test_res.label, LangString(["BookZZ@en", "BuchZZ@de"]))
+        self.assertIsInstance(test_res[Iri(f'{dm_name}:pubDateZ')], HasProperty)
+        self.assertEqual(test_res[Iri(f'{dm_name}:pubDateZ')].prop.property_class_iri, Iri(f'{dm_name}:pubDateZ'))
+
+        dm.delete()
+        with self.assertRaises(OldapErrorNotFound):
+            dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
 
 
     def test_write_trig(self):

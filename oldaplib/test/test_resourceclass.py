@@ -18,7 +18,7 @@ from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists
+from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorNoPermission
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.project import Project
@@ -117,6 +117,13 @@ class TestResourceClass(unittest.TestCase):
                                      credentials="RioGrande",
                                      repo="oldap",
                                      context_name="DEFAULT")
+
+        cls._unpriv = Connection(server='http://localhost:7200',
+                                 repo="oldap",
+                                 userId="fornaro",
+                                 credentials="RioGrande",
+                                 context_name="DEFAULT")
+
 
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
@@ -661,6 +668,52 @@ class TestResourceClass(unittest.TestCase):
 
         prop5 = r2[Iri("test:testthree")].prop
         self.assertEqual(prop5.inSet, RdfSet(Xsd_integer(1), Xsd_integer(2), Xsd_integer(3)))
+
+
+    def test_creating_nopermission(self):
+        p1 = PropertyClass(con=self._unpriv,
+                           project=self._project,
+                           property_class_iri=Iri('test:testone_np'),
+                           subPropertyOf=Iri('test:comment'),
+                           datatype=XsdDatatypes.langString,
+                           name=LangString(["Test property@en", "Testprädikat@de"]),
+                           description=LangString("A property for testing...@en"),
+                           uniqueLang=Xsd_boolean(True),
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        p2 = PropertyClass(con=self._unpriv,
+                           project=self._project,
+                           property_class_iri=Iri('test:testtwo_np'),
+                           toClass=Iri('test:testMyRes'),
+                           name=LangString(["Excl. Test property@en", "Exkl. Testprädikat@de"]),
+                           description=LangString("An exclusive property for testing...@en"))
+
+        p3 = PropertyClass(con=self._unpriv,
+                           project=self._project,
+                           property_class_iri=Iri('test:testthree_np'),
+                           datatype=XsdDatatypes.int,
+                           name=LangString(["E.N.U.M@en"]),
+                           description=LangString("An exclusive enum testing...@en"),
+                           inSet=RdfSet(Xsd_integer(1), Xsd_integer(2), Xsd_integer(3)))
+
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._unpriv, prop=Iri("test:comment"), maxCount=1, order=1),
+            HasProperty(con=self._unpriv, prop=Iri("test:test"), minCount=1, order=2),
+            HasProperty(con=self._unpriv, prop=p1, minCount=1, maxCount=1, order=3),
+            HasProperty(con=self._unpriv, prop=p2, minCount=1, order=4),
+            HasProperty(con=self._unpriv, prop=p3, order=5)
+        ]
+        r1 = ResourceClass(con=self._unpriv,
+                           project=self._project,
+                           owlclass_iri=Iri("test:TestResource_np"),
+                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           hasproperties=hasproperties)
+
+        with self.assertRaises(OldapErrorNoPermission):
+            r1.create()
+
 
     def test_creating_with_superclass(self):
         p1 = PropertyClass(con=self._connection,

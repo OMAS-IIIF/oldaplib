@@ -243,15 +243,14 @@ class PropertyClass(Model, Notify):
             #
             return True, "OK – IS ROOT"
         else:
-            if not self.inProject:
+            if not self._project:
                 return False, f'Actor has no ADMIN_MODEL permission. Actor not associated with a project.'
-            allowed: list[Iri] = []
-            for proj in self.inProject.keys():
-                if actor.inProject.get(proj) is None:
-                    return False, f'Actor has no ADMIN_MODEL permission for project {proj}'
-                else:
-                    if AdminPermission.ADMIN_MODEL not in actor.inProject.get(proj):
-                        return False, f'Actor has no ADMIN_MODEL permission for project {proj}'
+            proj = self._project.projectShortName
+            if actor.inProject.get(proj) is None:
+                return False, f'Actor has no ADMIN_MODEL permission for project "{proj}"'
+            else:
+                if AdminPermission.ADMIN_MODEL not in actor.inProject.get(proj):
+                    return False, f'Actor has no ADMIN_MODEL permission for project "{proj}"'
             return True, "OK"
 
 
