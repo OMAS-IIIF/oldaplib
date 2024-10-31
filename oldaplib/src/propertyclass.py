@@ -24,6 +24,7 @@ from typing import Callable, Self, Any
 from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.helpers.Notify import Notify
@@ -42,7 +43,8 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorUpdateFailed, OldapErrorValue, OldapErrorInconsistency
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, \
+    OldapErrorUpdateFailed, OldapErrorValue, OldapErrorInconsistency, OldapErrorNoPermission
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.query_processor import RowType, QueryProcessor
 from oldaplib.src.helpers.semantic_version import SemanticVersion
@@ -227,6 +229,31 @@ class PropertyClass(Model, Notify):
         self._force_external = False
         self.__version = SemanticVersion()
         self.__from_triplestore = False
+
+    def check_for_permissions(self) -> (bool, str):
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        actor = self._con.userdata
+        sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            #
+            # user has root privileges!
+            #
+            return True, "OK – IS ROOT"
+        else:
+            if not self.inProject:
+                return False, f'Actor has no ADMIN_MODEL permission. Actor not associated with a project.'
+            allowed: list[Iri] = []
+            for proj in self.inProject.keys():
+                if actor.inProject.get(proj) is None:
+                    return False, f'Actor has no ADMIN_MODEL permission for project {proj}'
+                else:
+                    if AdminPermission.ADMIN_MODEL not in actor.inProject.get(proj):
+                        return False, f'Actor has no ADMIN_MODEL permission for project {proj}'
+            return True, "OK"
+
 
     def pre_transform(self, attr: AttributeClass, value: Any) -> Any:
         """
@@ -855,6 +882,14 @@ class PropertyClass(Model, Notify):
         :param indent_inc: Intendation for beautifying SPARQL code [default: 4]
         :return: None
         """
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
         if self.__from_triplestore:
             raise OldapErrorAlreadyExists(f'Cannot create property that was read from TS before (property: {self._property_class_iri}')
         timestamp = Xsd_dateTime.now()
@@ -1089,6 +1124,13 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def update(self) -> None:
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
         timestamp = Xsd_dateTime.now()
 
         blank = ''
@@ -1235,6 +1277,14 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def delete(self) -> None:
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
 
