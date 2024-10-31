@@ -189,10 +189,10 @@ class Project(Model):
     def check_for_permissions(self) -> (bool, str):
         actor = self._con.userdata
         sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
-        if sysperms and AdminPermission.ADMIN_MODEL in sysperms:
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
             return True, "OK"
         else:
-            return False, "No permission to chage datamodel."
+            return False, "No permission to create/change a project."
 
     def notifier(self, attr: ProjectAttr) -> None:
         """
