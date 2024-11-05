@@ -6,7 +6,6 @@ import jwt
 import requests
 
 from jwt import InvalidTokenError
-from pystrict import strict
 from typing import Dict, Optional, Any
 from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore

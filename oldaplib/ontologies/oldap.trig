@@ -669,7 +669,7 @@
                 sh:class :PermissionSet ;
             ] .
 
-    :OldapChronolgyStatmentShape a sh:NodeShape, :OldapChronolgyStatment ;
+    :OldapChronolgyStatementShape a sh:NodeShape, :OldapChronolgyStatement ;
         sh:targetClass :OldapListNode ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
@@ -744,7 +744,7 @@
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:class :OldapChronolgyStatment ;
+                sh:class :OldapChronolgyStatement ;
             ] ;
         sh:property
             [
@@ -754,7 +754,7 @@
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:class :OldapChronolgyStatment ;
+                sh:class :OldapChronolgyStatement ;
             ] ;
         sh:property
             [
@@ -776,8 +776,6 @@
                 sh:maxCount "1"^^xsd:integer ;
                 sh:datatype: xsd:decimal ;
             ] .
-
-
 
 }
 
@@ -1058,6 +1056,82 @@
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:domain :OldapListNode ;
         rdfs:range :OldapListNode .
+
+    ###############################################################################
+    # Properties used for :Project
+    ###############################################################################
+
+    :chronoStartJDC rdf:type owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain :OldapChronolgyStatement ;
+        rdfs:range xsd:decimal .
+
+    :chronoStartPrecision rdf:type owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain :OldapChronolgyStatement ;
+        rdfs:range xsd:string .
+
+    :chronoEndJDC rdf:type owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain :OldapChronolgyStatement ;
+        rdfs:range xsd:decimal .
+
+    :chronoEndPrecision rdf:type owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain :OldapChronolgyStatement ;
+        rdfs:range xsd:string .
+
+    :chronoCalendar rdf:type owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain :OldapChronolgyStatement ;
+        rdfs:range xsd:string .
+
+    :chronoBefore rdf:type owl:ObjectProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain :OldapChronolgyStatement ;
+        rdfs:range :OldapChronolgyStatement .
+
+    :chronoAfter rdf:type owl:ObjectProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain :OldapChronolgyStatement ;
+        rdfs:range :OldapChronolgyStatement .
+
+    :chronoMinDelta rdf:type owl:ObjectProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain :OldapChronolgyStatement ;
+        rdfs:range xsd:decimal .
+
+    :chronoMaxDelta rdf:type owl:ObjectProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain :OldapChronolgyStatement ;
+        rdfs:range xsd:decimal .
 
     ###############################################################################
     # Other properties: Deprecated!
@@ -1470,7 +1544,7 @@
                 owl:onProperty skos:definition ;
                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                 owl:onDatatype xsd:string
-            ].
+            ] .
 
     ###  oldap:ontology#OldapThing
     :Thing rdf:type owl:Class ;
@@ -1510,6 +1584,68 @@
                 owl:onClass :PermissionSet
             ] ;
         rdfs:comment "General super class of all things (resources) in tghe OMAS universe"@en .
+
+
+    :OldapChronolgyStatement rdf:type owl:Class ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:subClassOf
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :chronoStartJDC ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:decimal
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :chronoStartPrecision ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:string
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :chronoEndJDC ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:decimal
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :chronoEndPrecision ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:string
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :chronoCalendar ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:string
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :chronoBefore ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onClass :OldapChronolgyStatement
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :chronoAfter ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onClass :OldapChronolgyStatement
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :chronoMinDelta ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:decimal
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty :chronoMaxDelta ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:decimal
+            ] .
 
 }
 

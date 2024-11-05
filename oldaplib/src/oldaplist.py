@@ -243,44 +243,6 @@ class OldapList(Model):
                 lists.append(r['node'])
         return lists
 
-    # @staticmethod
-    # def search(con: IConnection,
-    #            project: Project | Iri | Xsd_NCName | str,
-    #            prefLabel: Xsd_string | str | None = None,
-    #            definition: str | None = None) -> list[Iri]:
-    #     if not isinstance(project, Project):
-    #         project = Project.read(con, project)
-    #     context = Context(name=con.context_name)
-    #     graph = project.projectShortName
-    #
-    #     prefLabel = Xsd_string(prefLabel)
-    #     if not isinstance(project, Project):
-    #         raise OldapErrorValue('The project parameter must be a Project instance')
-    #     graph = project.projectShortName
-    #     sparql = context.sparql_context
-    #     sparql += 'SELECT DISTINCT ?list\n'
-    #     sparql += f'FROM {graph}:lists\n'
-    #     sparql += 'WHERE {\n'
-    #     sparql += '   ?list a oldap:OldapList .\n'
-    #     if prefLabel:
-    #         sparql += '   ?list skos:prefLabel ?label .\n'
-    #         if prefLabel.lang:
-    #             sparql += f'   FILTER(?label = {prefLabel.toRdf})\n'
-    #         else:
-    #             sparql += f'   FILTER(STR(?label) = "{Xsd_string.escaping(prefLabel.value)}")\n'
-    #     if definition:
-    #         sparql += '   ?list skos:definition ?definition .\n'
-    #         sparql += f'   FILTER(CONTAINS(STR(?definition), "{Xsd_string.escaping(definition.value)}"))\n'
-    #     sparql += '}\n'
-    #
-    #     jsonobj = con.query(sparql)
-    #     res = QueryProcessor(context, jsonobj)
-    #     lists: list[Iri] = []
-    #     if len(res) > 0:
-    #         for r in res:
-    #             lists.append(r['list'])
-    #     return lists
-
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OldapError("Cannot create: no connection")
@@ -308,6 +270,9 @@ class OldapList(Model):
         }}
         """
 
+        #
+        # first we create the empty list as an instance of oldap:OldapList
+        #
         blank = ''
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
@@ -323,6 +288,36 @@ class OldapList(Model):
             sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListAttr.DEFINITION.value} {self.definition.toRdf}'
         sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
+
+        #
+        # Now we create a SHACL subclass of oldap:OldapListNode that allows the validation of ListNodes.
+        #
+        sparql3 = context.sparql_context
+        sparql3 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
+        sparql3 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{'
+        sparql3 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldapList_iri}NodeShape a sh:NodeShape, {self.__oldapList_iri}Node'
+        sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self.oldapListId}Node'
+        sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:node oldap:OldapListNodeShape'
+        sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property [ sh:path rdf:type ; ]'
+        sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property ['
+        sparql3 += f'\n{blank:{(indent + 4) * indent_inc}}sh:path skos:inScheme'
+        sparql3 += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:hasValue skos:inScheme {self.__oldapList_iri.toRdf}'
+        sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
+        sparql3 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql3 += f'{blank:{indent * indent_inc}}}}\n'
+
+        print(sparql3)
+
+        sparql4 = context.sparql_context
+        sparql4 += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+        sparql4 += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:onto {{\n'
+        sparql4 += f'{blank:{(indent + 2) * indent_inc}}{self.__oldapList_iri}Node rdf:type owl:Class ;\n'
+        sparql4 += f'{blank:{(indent + 3) * indent_inc}}rdfs:subClassOf OldapListNode .\n'
+        sparql4 += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql4 += f'{blank:{indent * indent_inc}}}}\n'
+
+        print(sparql4)
+
 
         self._con.transaction_start()
         try:
