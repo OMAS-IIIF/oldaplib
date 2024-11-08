@@ -3,9 +3,14 @@ from pathlib import Path
 from pprint import pprint
 from time import sleep
 
+from oldaplib.src.ObjectFactory import ResourceInstanceFactory
 from oldaplib.src.connection import Connection
+from oldaplib.src.datamodel import DataModel
+from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.language import Language
+from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency
@@ -13,7 +18,10 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplistnode import OldapListNode, get_all_nodes, print_sublist
 from oldaplib.src.project import Project
+from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
@@ -54,6 +62,7 @@ class TestOldapListNode(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:onto'))
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:lists'))
+        cls._connection.clear_graph(Xsd_QName('test:data'))
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
         sleep(1)
@@ -1550,6 +1559,81 @@ class TestOldapListNode(unittest.TestCase):
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="Eine Liste zum Testen BA", exactMatch=True)
         self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
+
+    def test_list_node_instances(self):
+        project = Project.read(con=self._connection, projectIri_SName="test")
+
+        oldaplist = OldapList(con=self._connection,
+                              project=project,
+                              oldapListId="TestNodeInstances",
+                              prefLabel="TestNodeInstances",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project="test",
+                                   oldapListId="TestNodeInstances")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A",
+                            prefLabel=LangString("Node_A@en", "Neud_A@fr"),
+                            definition=LangString("A node for testing A@en", "Eine Liste zum Testen A@de"))
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B",
+                            prefLabel=LangString("Node_B@en", "Neud_A@fr"),
+                            definition=LangString("A node for testing B@en", "Eine Liste zum Testen B@de"))
+        olB.insert_node_right_of(leftnode=olA)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C",
+                            prefLabel=LangString("Node_C@en", "Neud_C@fr"),
+                            definition=LangString("A node for testing C@en", "Eine Liste zum Testen C@de"))
+        olC.insert_node_right_of(leftnode=olB)
+
+        dm_name = project.projectShortName
+
+        title = PropertyClass(con=self._connection,
+                              project=project,
+                              property_class_iri=Iri(f'{dm_name}:title'),
+                              datatype=XsdDatatypes.langString,
+                              name=LangString(["Title@en", "Titel@de"]),
+                              description=LangString(["Title of book@en", "Titel des Buches@de"]),
+                              uniqueLang=Xsd_boolean(True),
+                              languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        category = PropertyClass(con=self._connection,
+                                project=project,
+                                property_class_iri=Iri(f'{dm_name}:category'),
+                                toClass=oldaplist.node_class_iri,
+                                name=LangString(["Category@en", "Kategorie@de"]),
+                                description=LangString(["Category@en", "Kategorie@de"]))
+
+        categoryitem = ResourceClass(con=self._connection,
+                                     project=project,
+                                     owlclass_iri=Iri(f'{dm_name}:CategoryItem'),
+                                     label=LangString(["CategoryItem@en", "CategoryItem@de"]),
+                                     comment=LangString("Something with categories@en"),
+                                     closed=Xsd_boolean(True),
+                                     hasproperties=[
+                                         HasProperty(con=self._connection, prop=title, minCount=Xsd_integer(1),
+                                                     order=1),
+                                         HasProperty(con=self._connection, prop=category, minCount=Xsd_integer(1),
+                                                     order=2)])
+        dm = DataModel(con=self._connection,
+                       project=project,
+                       resclasses=[categoryitem])
+        dm.create()
+
+        factory = ResourceInstanceFactory(con=self._connection, project=project)
+        CategoryItem = factory.createObjectInstance("CategoryItem")
+
+        citem1 = CategoryItem(title="Item1@en",
+                              category=olA.iri,
+                              grantsPermission=Iri('oldap:GenericView'))
+        citem1.create()
+
+        testitem = CategoryItem.read(con=self._connection,
+                                     project=project,
+                                     iri=citem1.iri)
+        self.assertEqual(testitem.title, LangString("Item1@en"))
+        self.assertEqual(testitem.category, {olA.iri})
 
 
 if __name__ == '__main__':
