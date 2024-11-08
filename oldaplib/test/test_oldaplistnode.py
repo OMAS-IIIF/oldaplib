@@ -1495,61 +1495,61 @@ class TestOldapListNode(unittest.TestCase):
         self.assertEqual(Xsd_integer(8), olBAB.rightIndex)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, id="Node_BA", exactMatch=True)
-        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
+        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, id="Node_XX", exactMatch=True)
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, id="BA")
-        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="BA@en")
-        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="BA@zu")
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="Neud_BA@fr", exactMatch=True)
-        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
+        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="BA@en")
-        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="XX")
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, prefLabel="Neud_BA", exactMatch=True)
-        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
+        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
 
         ##
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="BA@en")
-        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="BA@zu")
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="Eine Liste zum Testen BA@de", exactMatch=True)
-        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
+        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="BA@en")
-        self.assertTrue(Iri("TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("TestListY:Node_BAB") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="XX")
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, oldapList=oldaplist, definition="Eine Liste zum Testen BA", exactMatch=True)
-        self.assertEqual([Iri("TestListY:Node_BA")], irilist)
+        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
 
 
 if __name__ == '__main__':

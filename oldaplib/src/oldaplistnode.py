@@ -65,7 +65,8 @@ class OldapListNode(Model):
 
         self.set_attributes(kwargs, OldapListNodeAttr)
 
-        self.__iri = Iri.fromPrefixFragment(self.__oldapList.oldapListId,
+        list_node_prefix = Xsd_NCName("L-") + self.__oldapList.oldapListId
+        self.__iri = Iri.fromPrefixFragment(list_node_prefix,
                                             self._attributes[OldapListNodeAttr.OLDAPLISTNODE_ID],
                                             validate=False)
 
@@ -143,7 +144,8 @@ class OldapListNode(Model):
              oldapListNodeId: Xsd_NCName | str):
         oldapListNodeId = Xsd_NCName(oldapListNodeId)
 
-        node_iri = Iri.fromPrefixFragment(oldapList.oldapListId, oldapListNodeId, validate=False)
+        list_node_prefix = Xsd_NCName("L-", validate=False) + oldapList.oldapListId
+        node_iri = Iri.fromPrefixFragment(list_node_prefix, oldapListNodeId, validate=False)
 
         context = Context(name=con.context_name)
         graph = oldapList.project.projectShortName
@@ -272,6 +274,7 @@ class OldapListNode(Model):
             self._con.transaction_update(sparql2)
         except OldapError:
             self._con.transaction_abort()
+            print(sparql2)
             raise
         try:
             self._con.transaction_commit()

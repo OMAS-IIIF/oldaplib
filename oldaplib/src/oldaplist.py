@@ -57,9 +57,15 @@ class OldapList(Model):
         self.__oldapList_iri = Iri.fromPrefixFragment(self.__project.projectShortName,
                                                       self._attributes[OldapListAttr.OLDAPLIST_ID],
                                                       validate=False)
+        #
+        # we will use a special prefix for the ListNodes instances: "<project.namespace_iri>/<list_id>#"
+        # This we create a context as follows:
+        # @PREFIX L-<list-id>: <project.namespace_iri>/<list_id>#
+        #
         self.__node_namespaceIri = self.__project.namespaceIri.expand(self._attributes[OldapListAttr.OLDAPLIST_ID])
-        context[self._attributes[OldapListAttr.OLDAPLIST_ID]] = self.__node_namespaceIri
-        context.use(self._attributes[OldapListAttr.OLDAPLIST_ID])
+        list_node_prefix = Xsd_NCName("L-") + self._attributes[OldapListAttr.OLDAPLIST_ID]
+        context[list_node_prefix] = self.__node_namespaceIri
+        context.use(list_node_prefix)
 
         for attr in OldapListAttr:
             setattr(OldapList, attr.value.fragment, property(
@@ -296,28 +302,23 @@ class OldapList(Model):
         sparql3 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql3 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{'
         sparql3 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldapList_iri}NodeShape a sh:NodeShape, {self.__oldapList_iri}Node'
-        sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self.oldapListId}Node'
+        sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self.__oldapList_iri}Node'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:node oldap:OldapListNodeShape'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property [ sh:path rdf:type ; ]'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property ['
         sparql3 += f'\n{blank:{(indent + 4) * indent_inc}}sh:path skos:inScheme'
-        sparql3 += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:hasValue skos:inScheme {self.__oldapList_iri.toRdf}'
+        sparql3 += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:hasValue {self.__oldapList_iri.toRdf}'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
         sparql3 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql3 += f'{blank:{indent * indent_inc}}}}\n'
-
-        print(sparql3)
 
         sparql4 = context.sparql_context
         sparql4 += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql4 += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:onto {{\n'
         sparql4 += f'{blank:{(indent + 2) * indent_inc}}{self.__oldapList_iri}Node rdf:type owl:Class ;\n'
-        sparql4 += f'{blank:{(indent + 3) * indent_inc}}rdfs:subClassOf OldapListNode .\n'
+        sparql4 += f'{blank:{(indent + 3) * indent_inc}}rdfs:subClassOf oldap:OldapListNode .\n'
         sparql4 += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql4 += f'{blank:{indent * indent_inc}}}}\n'
-
-        print(sparql4)
-
 
         self._con.transaction_start()
         try:
@@ -332,6 +333,8 @@ class OldapList(Model):
 
         try:
             self._con.transaction_update(sparql2)
+            self._con.transaction_update(sparql3)
+            self._con.transaction_update(sparql4)
         except OldapError:
             self._con.transaction_abort()
             raise
