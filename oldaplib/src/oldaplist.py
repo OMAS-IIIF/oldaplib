@@ -30,6 +30,7 @@ class OldapList(Model):
     __graph: Xsd_NCName
     __oldapList_iri: Iri
     __node_namespaceIri: NamespaceIRI
+    __node_class_iri: Iri
 
     def __init__(self, *,
                  con: IConnection,
@@ -59,10 +60,13 @@ class OldapList(Model):
                                                       validate=False)
         #
         # we will use a special prefix for the ListNodes instances: "<project.namespace_iri>/<list_id>#"
+        # This will allow us to have unique ListNode IRI's even if the same ListNode-ID is used for different lists.
+        # (Within a list, the ListNode-ID's must be unique)
         # This we create a context as follows:
         # @PREFIX L-<list-id>: <project.namespace_iri>/<list_id>#
         #
         self.__node_namespaceIri = self.__project.namespaceIri.expand(self._attributes[OldapListAttr.OLDAPLIST_ID])
+        self.__node_class_iri = Iri(f'{self.__oldapList_iri}Node', validate=False)
         list_node_prefix = Xsd_NCName("L-") + self._attributes[OldapListAttr.OLDAPLIST_ID]
         context[list_node_prefix] = self.__node_namespaceIri
         context.use(list_node_prefix)
@@ -104,6 +108,10 @@ class OldapList(Model):
         :return: None
         """
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
+
+    @property
+    def node_class_iri(self) -> Iri:
+        return self.__node_class_iri
 
     @classmethod
     def read(cls,
@@ -301,8 +309,8 @@ class OldapList(Model):
         sparql3 = context.sparql_context
         sparql3 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql3 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{'
-        sparql3 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldapList_iri}NodeShape a sh:NodeShape, {self.__oldapList_iri}Node'
-        sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self.__oldapList_iri}Node'
+        sparql3 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__node_class_iri}Shape a sh:NodeShape, {self.__node_class_iri.toRdf}'
+        sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self.__node_class_iri.toRdf}'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:node oldap:OldapListNodeShape'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property [ sh:path rdf:type ; ]'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property ['
@@ -315,7 +323,7 @@ class OldapList(Model):
         sparql4 = context.sparql_context
         sparql4 += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql4 += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:onto {{\n'
-        sparql4 += f'{blank:{(indent + 2) * indent_inc}}{self.__oldapList_iri}Node rdf:type owl:Class ;\n'
+        sparql4 += f'{blank:{(indent + 2) * indent_inc}}{self.__node_class_iri.toRdf} rdf:type owl:Class ;\n'
         sparql4 += f'{blank:{(indent + 3) * indent_inc}}rdfs:subClassOf oldap:OldapListNode .\n'
         sparql4 += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql4 += f'{blank:{indent * indent_inc}}}}\n'
@@ -421,15 +429,47 @@ class OldapList(Model):
         if len(res) > 0:
             raise OldapErrorInUse(f'List {self.prefLabel} cannot be deleted since there are still nodes.')
 
-        sparql = context.sparql_context
-        sparql += f"""
+        sparql1 = context.sparql_context
+        sparql1 += f"""
         DELETE WHERE {{
-            {self.__oldapList_iri.toRdf} a oldap:OldapList .
-            {self.__oldapList_iri.toRdf} ?prop ?val .
+            GRAPH {self.__graph}:lists {{
+                {self.__oldapList_iri.toRdf} a oldap:OldapList .
+                {self.__oldapList_iri.toRdf} ?prop ?val .
+            }}
         }} 
         """
-        # TODO: use transaction for error handling
-        self._con.update_query(sparql)
+
+        sparql2 = context.sparql_context
+        sparql2 += f"""
+        DELETE WHERE {{
+            GRAPH {self.__graph}:shacl {{
+                {self.__node_class_iri}Shape ?prop ?val .
+            }}
+        }}
+        """
+
+        sparql3 = context.sparql_context
+        sparql3 += f"""
+        DELETE WHERE {{
+            GRAPH {self.__graph}:onto {{
+                {self.__node_class_iri.toRdf} ?prop ?val .
+            }}
+        }}
+        """
+
+        self._con.transaction_start()
+        try:
+            self._con.transaction_update(sparql1)
+            self._con.transaction_update(sparql2)
+            self._con.transaction_update(sparql3)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
 
 
 
