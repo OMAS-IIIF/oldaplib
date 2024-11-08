@@ -363,7 +363,8 @@ class TestDataModel(unittest.TestCase):
             Iri("oldap:AdminPermission"),
             Iri("oldap:DataPermission"),
             Iri("oldap:PermissionSet"),
-            Iri("oldap:Thing")
+            Iri("oldap:Thing"),
+            Iri("oldap:OldapChronolgyStatement")
         })
 
     # @unittest.skip('Work in progress')

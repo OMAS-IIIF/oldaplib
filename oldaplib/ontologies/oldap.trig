@@ -733,7 +733,8 @@
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:minCount "1"^^xsd:string ;
+                sh:minCount "1"^^xsd:integer ;
+                sh:datatype xsd:string ;
                 sh:in ("GREGORIAN"^^xsd:string "JULIAN"^^xsd:string "HEBREW"^^xsd:string "ISLAMIC"^^xsd:string "PERSIAN"^^xsd:string) ;
            ] ;
         sh:property
@@ -764,7 +765,7 @@
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:datatype: xsd:decimal ;
+                sh:datatype xsd:decimal ;
             ] ;
         sh:property
             [
@@ -774,7 +775,7 @@
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:datatype: xsd:decimal ;
+                sh:datatype xsd:decimal ;
             ] .
 
 }
@@ -1117,7 +1118,7 @@
         rdfs:domain :OldapChronolgyStatement ;
         rdfs:range :OldapChronolgyStatement .
 
-    :chronoMinDelta rdf:type owl:ObjectProperty ;
+    :chronoMinDelta rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -1125,7 +1126,7 @@
         rdfs:domain :OldapChronolgyStatement ;
         rdfs:range xsd:decimal .
 
-    :chronoMaxDelta rdf:type owl:ObjectProperty ;
+    :chronoMaxDelta rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
