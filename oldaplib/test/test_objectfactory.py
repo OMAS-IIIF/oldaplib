@@ -4,7 +4,7 @@ from pathlib import Path
 from pprint import pprint
 from time import sleep
 
-from oldaplib.src.ObjectFactory import ResourceInstanceFactory
+from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
