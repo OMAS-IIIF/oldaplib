@@ -1,0 +1,38 @@
+---
+testlist:
+    label: [ Test-list@en, Testliste@de, "liste de test@fr" ]
+    description:
+      - a list for testing lists and listnoded@en
+      - Eine Liste zum Testen des Listenelements und der Listenknoten@de
+    nodes:
+          - node_A:
+              label: [ Node_A@en, Knoten_A@de, Noed_a@fr ]
+              description:
+                - Node A from list testlist
+                - Knoten A von der Liste testliste
+          - node_B:
+              label: [ Node_B@en, Knoten_B@de, Noed_B@fr ]
+              description:
+                - Node A from list testlist
+                - Knoten A von der Liste testliste
+              - nodes:
+                  - node_BA:
+                      - label: [ Node_BA@en, Knoten_BA@de, Noed_BA@fr ]
+                      - description:
+                          - Node BA from list testlist
+                          - Knoten BA von der Liste testliste
+                  - node_BB:
+                      - label: [ Node_BB@en, Knoten_BB@de, Noed_BB@fr ]
+                      - description:
+                          - "Node BB from list testlist"
+                          - "Knoten BB von der Liste testliste"
+                  - node_BC:
+                      - label: [ Node_BC@en, Knoten_BC@de, Noed_BC@fr ]
+                      - description:
+                          - "Node BC from list testlist"
+                          - "Knoten BC von der Liste testliste"
+          - node_C:
+              - label: [ Node_C@en, Knoten_C@de, Noed_C@fr ]
+              - description:
+                  - "Node C from list testlist"
+                  - "Knoten C von der Liste testliste"
