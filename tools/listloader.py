@@ -18,7 +18,12 @@ def main():
     args = parser.parse_args()
     with open(args.filename, 'r') as f:
         obj = yaml.safe_load(f)
-        print(obj)
+        for listid, listdata in obj.items():
+            print("List ID", listid)
+            print("List label:", listdata['label'])
+            print("List description:", listdata['description'])
+            for nodeid, nodedata in listdata['nodes'].items():
+                print("  Node ID", nodeid)
 
 if __name__ == '__main__':
     main()
