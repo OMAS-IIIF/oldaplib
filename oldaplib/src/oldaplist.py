@@ -355,6 +355,7 @@ class OldapList(Model):
         self._creator = self._con.userIri
         self._modified = timestamp
         self._contributor = self._con.userIri
+        self.clear_changeset()
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         result, message = self.check_for_permissions()
@@ -404,6 +405,7 @@ class OldapList(Model):
             raise
         self._modified = timestamp
         self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
+        self.clear_changeset()
 
     def delete(self) -> None:
         """

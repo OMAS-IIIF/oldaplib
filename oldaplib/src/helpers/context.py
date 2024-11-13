@@ -218,10 +218,18 @@ class Context(metaclass=ContextSingleton):
             pass
         if not isinstance(iri, Xsd_anyURI):
             iri = Xsd_anyURI(iri, validate=validate)
-        for prefix, trunk in self._context.items():
-            if str(iri).startswith(str(trunk)):
-                fragment = str(iri)[len(trunk):]
-                return Xsd_QName(prefix, fragment, validate=validate)
+        prefix = None
+        trunk = None
+        matchlen = -1
+        for p, t in self._context.items():
+            if str(iri).startswith(str(t)):
+                if len(str(t)) > matchlen:
+                    prefix = p
+                    trunk = t
+                    matchlen = len(str(t))
+        if matchlen > 0:
+            fragment = str(iri)[len(trunk):]
+            return Xsd_QName(prefix, fragment, validate=validate)
         return None
 
     def qname2iri(self, qname: Xsd_QName | str, validate: bool = True) -> NamespaceIRI:

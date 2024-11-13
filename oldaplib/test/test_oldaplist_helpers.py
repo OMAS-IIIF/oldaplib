@@ -55,6 +55,10 @@ class OldapListHelperTestCase(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:lists'))
         cls._connection.clear_graph(Xsd_QName('test:data'))
+        cls._connection.clear_graph(Xsd_QName('hyha:onto'))
+        cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
+        cls._connection.clear_graph(Xsd_QName('hyha:lists'))
+        cls._connection.clear_graph(Xsd_QName('hyha:data'))
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
         sleep(1)
@@ -66,7 +70,33 @@ class OldapListHelperTestCase(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
-    def test_get_all_nodes(self):
+    def test_get_all_nodes_A(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="hyha",
+                              oldapListId="TestList_HYHA",
+                              prefLabel="TestList_HYHA-label",
+                              definition="TestList_HYHA-definition")
+        oldaplist.create()
+
+        olA = OldapListNode(con=self._connection,
+                            oldapList=oldaplist,
+                            oldapListNodeId="Node_A",
+                            prefLabel=["GUGUSELI@en", "HIHIHI@de"])
+        olA.create_root_node()
+
+        full_list = get_list(con=self._connection, project="hyha", oldapListId="TestList_HYHA")
+        full_list_obj = json.loads(full_list)
+        self.assertEqual(full_list_obj['oldapListId'], 'TestList_HYHA')
+        self.assertEqual(full_list_obj['prefLabel'], ['TestList_HYHA-label@en'])
+        self.assertIsNotNone(full_list_obj['nodes'])
+        self.assertIsInstance(full_list_obj['nodes'], list)
+
+        sorted_nodes = sorted(full_list_obj['nodes'], key=lambda node: node['oldapListNodeId'])
+        self.assertEqual(sorted_nodes[0]['oldapListNodeId'], 'Node_A')
+        self.assertEqual(sorted_nodes[0]['prefLabel'], ["GUGUSELI@en", "HIHIHI@de"])
+
+
+    def test_get_all_nodes_B(self):
         oldaplist = OldapList(con=self._connection,
                               project="test",
                               oldapListId="TestListXX",
