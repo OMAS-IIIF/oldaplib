@@ -272,7 +272,7 @@ class ResourceClass(Model, Notify):
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
-        instance._changset = deepcopy(self._changeset, memo)
+        instance._changeset = deepcopy(self._changeset, memo)
 
         instance._graph = deepcopy(self._graph, memo)
         instance._project = deepcopy(self._project, memo)
