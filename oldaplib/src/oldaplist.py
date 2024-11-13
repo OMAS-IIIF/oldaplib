@@ -1,6 +1,7 @@
+from copy import deepcopy
 from functools import partial
 from pprint import pprint
-from typing import Self
+from typing import Self, Any
 
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.action import Action
@@ -31,6 +32,7 @@ class OldapList(Model):
     __oldapList_iri: Iri
     __node_namespaceIri: NamespaceIRI
     __node_class_iri: Iri
+    nodes: list
 
     def __init__(self, *,
                  con: IConnection,
@@ -45,6 +47,7 @@ class OldapList(Model):
                          created=created,
                          contributor=contributor,
                          modified=modified)
+        nodes = []
         if isinstance(project, Project):
             self.__project = project
         else:
@@ -100,6 +103,33 @@ class OldapList(Model):
                     if AdminPermission.ADMIN_LISTS not in actor.inProject.get(proj):
                         return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
             return True, "OK"
+
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
+        if id(self) in memo:
+            return memo[id(self)]
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        Model.__init__(instance,
+                       connection=deepcopy(self._con, memo),
+                       creator=deepcopy(self._creator, memo),
+                       created=deepcopy(self._created, memo),
+                       contributor=deepcopy(self._contributor, memo),
+                       modified=deepcopy(self._modified, memo))
+
+        # Copy internals of Model:
+        instance._attributes = deepcopy(self._attributes, memo)
+        instance._changeset = deepcopy(self._changeset, memo)
+
+        instance.__graph = deepcopy(self.__graph, memo)
+        instance.__project = deepcopy(self.__project, memo)
+        instance.__oldapList_iri = deepcopy(self.__oldapList_iri, memo)
+        instance.__node_namespaceIri = deepcopy(self.__node_namespaceIri, memo)
+        instance.__node_class_iri = deepcopy(self.__node_class_iri, memo)
+        instance.nodes = deepcopy(self.nodes, memo)
+
+        return instance
+
 
     def notifier(self, attr: OldapListAttr) -> None:
         """

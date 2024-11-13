@@ -93,7 +93,8 @@ def get_list(con: IConnection,
                               project=project,
                               oldapListId=oldapListId)
     nodes = get_nodes_from_list(con, listnode)
-    setattr(listnode, 'nodes', nodes)
+    listnode.nodes = nodes
+    #setattr(listnode, 'nodes', nodes)
     jsonstr = json.dumps(listnode, cls=SpecialEncoder, indent=3)
     return jsonstr
 

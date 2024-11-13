@@ -1,6 +1,7 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
-from typing import Self
+from typing import Self, Any
 
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.oldaplistnodeattr import OldapListNodeAttr
@@ -104,6 +105,33 @@ class OldapListNode(Model):
                     if AdminPermission.ADMIN_LISTS not in actor.inProject.get(proj):
                         return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
             return True, "OK"
+
+
+    def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
+        if id(self) in memo:
+            return memo[id(self)]
+        cls = self.__class__
+        instance = cls.__new__(cls)
+        memo[id(self)] = instance
+        Model.__init__(instance,
+                       connection=deepcopy(self._con, memo),
+                       creator=deepcopy(self._creator, memo),
+                       created=deepcopy(self._created, memo),
+                       contributor=deepcopy(self._contributor, memo),
+                       modified=deepcopy(self._modified, memo))
+
+        # Copy internals of Model:
+        instance._attributes = deepcopy(self._attributes, memo)
+        instance.__oldapList = deepcopy(self.__oldapList, memo)
+        instance.__graph = deepcopy(self.__graph, memo)
+        instance.__iri = deepcopy(self.__iri, memo)
+        instance.__nodes = deepcopy(self.__nodes, memo)
+        instance.__leftIndex = deepcopy(self.__leftIndex, memo)
+        instance.__rightIndex = deepcopy(self.__rightIndex, memo)
+
+        return instance
+
+
 
     @property
     def iri(self) -> Iri:
