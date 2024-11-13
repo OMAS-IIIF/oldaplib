@@ -2,13 +2,12 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Self
 
-from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.oldaplistnodeattr import OldapListNodeAttr
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorImmutable, OldapError, OldapErrorNoPermission, \
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission, \
     OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorNotFound, OldapErrorUpdateFailed
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.tools import lprint
@@ -16,7 +15,6 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.oldaplist import OldapList
-from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
@@ -40,7 +38,7 @@ class OldapListNode(Model):
     __oldapList: OldapList
     __graph: Xsd_NCName
     __iri: Iri | None
-    __sublist: list[Self] | None
+    __nodes: list[Self] | None
     __leftIndex: Xsd_integer | None
     __rightIndex: Xsd_integer | None
 
@@ -72,7 +70,7 @@ class OldapListNode(Model):
 
         self.__leftIndex = leftIndex
         self.__rightIndex = rightIndex
-        self.__sublist = None
+        self.__nodes = None
 
         #
         # create all the attributes of the class according to the OldapListAttr definition
@@ -120,14 +118,14 @@ class OldapListNode(Model):
         return self.__rightIndex
 
     @property
-    def sublist(self) -> list[Self]:
-        return self.__sublist
+    def nodes(self) -> list[Self]:
+        return self.__nodes
 
-    def add_node_to_sublist(self, node: Self) -> None:
-        if self.__sublist is None:
-            self.__sublist = [node]
+    def add_node_to_nodes(self, node: Self) -> None:
+        if self.__nodes is None:
+            self.__nodes = [node]
         else:
-            self.__sublist.append(node)
+            self.__nodes.append(node)
 
     def notifier(self, attr: OldapListNodeAttr) -> None:
         """
@@ -246,7 +244,7 @@ class OldapListNode(Model):
         sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_class_iri}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creationDate {timestamp.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.oldapList_iri.toRdf}'
@@ -357,7 +355,7 @@ class OldapListNode(Model):
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_class_iri}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creationDate {timestamp.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.oldapList_iri.toRdf}'
@@ -520,7 +518,7 @@ class OldapListNode(Model):
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_class_iri}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creationDate {timestamp.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.oldapList_iri.toRdf}'
@@ -705,7 +703,7 @@ class OldapListNode(Model):
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_class_iri}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creationDate {timestamp.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.oldapList_iri.toRdf}'
@@ -1039,52 +1037,5 @@ class OldapListNode(Model):
             for r in res:
                 lists.append(r['node'])
         return lists
-
-def get_all_nodes(con: IConnection, oldapList: OldapList) ->list[OldapListNode]:
-    context = Context(name=con.context_name)
-    graph = oldapList.project.projectShortName
-
-    query = context.sparql_context
-    query += f"""    
-    SELECT ?node ?rindex ?lindex ?parent
-    WHERE {{
-        GRAPH {graph}:lists {{
-            ?node skos:inScheme {oldapList.oldapList_iri.toRdf} ;
-                oldap:leftIndex ?lindex ;
-                oldap:rightIndex ?rindex .
-            OPTIONAL {{
-                ?node skos:broaderTransitive ?parent .
-            }}
-        }}
-    }}
-    ORDER BY ?lindex
-    """
-    jsonobj = con.query(query)
-    res = QueryProcessor(context, jsonobj)
-    nodes: list[OldapListNode] = []
-    all_nodes: list[OldapListNode] = []
-    for r in res:
-        nodeiri = r['node']
-        prefix, id = str(nodeiri).split(':')
-        ln = OldapListNode(con=con,
-                           oldapList=oldapList,
-                           oldapListNodeId=Xsd_NCName(id, validate=False),
-                           leftIndex=r['lindex'],
-                           rightIndex=r['rindex'])
-        if r.get('parent') is not None:
-            parent_prefix, parent_id = str(r['parent']).split(':')
-            pnodes = [x for x in all_nodes if x.oldapListNodeId == parent_id]
-            pnodes[0].add_node_to_sublist(ln)
-        else:
-            nodes.append(ln)
-        all_nodes.append(ln)
-    return nodes
-
-def print_sublist(nodes: list[OldapListNode], level: int = 1) -> None:
-    for node in nodes:
-        print(f'{str(node.oldapListNodeId): >{level * 5}} ({node.leftIndex}, {node.rightIndex})')
-        if node.sublist:
-            print_sublist(node.sublist, level + 1)
-
 
 

@@ -293,7 +293,7 @@ class OldapList(Model):
         sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldapList_iri.toRdf} a oldap:OldapList'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creationDate {timestamp.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         if self.prefLabel:
