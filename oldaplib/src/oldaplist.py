@@ -47,7 +47,7 @@ class OldapList(Model):
                          created=created,
                          contributor=contributor,
                          modified=modified)
-        nodes = []
+        self.nodes = []
         if isinstance(project, Project):
             self.__project = project
         else:

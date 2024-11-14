@@ -1,5 +1,6 @@
 import json
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from pprint import pprint
 from time import sleep
@@ -163,6 +164,86 @@ class OldapListHelperTestCase(unittest.TestCase):
         sorted_nodes_BA = sorted(x_node_BA['nodes'], key=lambda node: node['oldapListNodeId'])
         self.assertEqual(sorted_nodes_BA[0]['oldapListNodeId'], 'Node_BAA')
         self.assertEqual(sorted_nodes_BA[1]['oldapListNodeId'], 'Node_BAB')
+
+    def test_deepcopy(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestDeepCopy",
+                              prefLabel="TestDeepCopy@en",
+                              definition="A list for testing deepcopy()")
+        oldaplist.create()
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A",
+                            prefLabel=["GUGUSELI@en", "HIHIHI@de"],
+                            definition=["A test node named Node_A@en"])
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+        self.assertEqual(LangString("GUGUSELI@en", "HIHIHI@de"), olA.prefLabel)
+        self.assertEqual(LangString("A test node named Node_A@en"), olA.definition)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+        self.assertEqual(Xsd_integer(4), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(5), olBA.rightIndex)
+
+        olBAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAA")
+        olBAA.insert_node_below_of(parentnode=olBA)
+        self.assertEqual(Xsd_integer(5), olBAA.leftIndex)
+        self.assertEqual(Xsd_integer(6), olBAA.rightIndex)
+
+        olBAB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAB")
+        olBAB.insert_node_right_of(leftnode=olBAA)
+        self.assertEqual(Xsd_integer(7), olBAB.leftIndex)
+        self.assertEqual(Xsd_integer(8), olBAB.rightIndex)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        listnode = OldapList.read(con=self._connection,
+                                  project="test",
+                                  oldapListId="TestDeepCopy")
+        listnode.nodes = nodes
+
+        listnode_copy = deepcopy(listnode)
+
+        self.assertEqual(listnode_copy.node_class_iri, listnode.node_class_iri)
+        self.assertEqual(listnode_copy.created, listnode.created)
+        self.assertEqual(listnode_copy.creator, listnode.creator)
+        self.assertEqual(listnode_copy.modified, listnode.modified)
+        self.assertEqual(listnode_copy.contributor, listnode.contributor)
+        self.assertEqual(listnode_copy.prefLabel, listnode.prefLabel)
+        self.assertEqual(listnode_copy.definition, listnode.definition)
+
+        self.assertEqual(len(listnode_copy.nodes), len(listnode.nodes))
+        for i in range(len(listnode_copy.nodes)):
+            self.assertEqual(listnode_copy.nodes[i].iri, listnode.nodes[i].iri)
+            self.assertEqual(listnode_copy.nodes[i].created, listnode.nodes[i].created)
+            self.assertEqual(listnode_copy.nodes[i].creator, listnode.nodes[i].creator)
+            self.assertEqual(listnode_copy.nodes[i].modified, listnode.nodes[i].modified)
+            self.assertEqual(listnode_copy.nodes[i].contributor, listnode.nodes[i].contributor)
+            self.assertEqual(listnode_copy.nodes[i].prefLabel, listnode.nodes[i].prefLabel)
+            self.assertEqual(listnode_copy.nodes[i].definition, listnode.nodes[i].definition)
+            self.assertEqual(listnode_copy.nodes[i].leftIndex, listnode.nodes[i].leftIndex)
+            self.assertEqual(listnode_copy.nodes[i].rightIndex, listnode.nodes[i].rightIndex)
+
+        for i in range(len(listnode_copy.nodes[1].nodes)):
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].iri, listnode.nodes[1].nodes[i].iri)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].created, listnode.nodes[1].nodes[i].created)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].creator, listnode.nodes[1].nodes[i].creator)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].modified, listnode.nodes[1].nodes[i].modified)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].contributor, listnode.nodes[1].nodes[i].contributor)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].prefLabel, listnode.nodes[1].nodes[i].prefLabel)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].definition, listnode.nodes[1].nodes[i].definition)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].leftIndex, listnode.nodes[1].nodes[i].leftIndex)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].rightIndex, listnode.nodes[1].nodes[i].rightIndex)
 
 
 if __name__ == '__main__':
