@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Self, Any
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.oldaplistnodeattr import OldapListNodeAttr
 from oldaplib.src.enums.adminpermissions import AdminPermission
@@ -307,6 +308,9 @@ class OldapListNode(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList.oldapList_iri)
+
 
     def update(self, indent: int = 0, indent_inc: int = 4):
         result, message = self.check_for_permissions()
@@ -355,6 +359,9 @@ class OldapListNode(Model):
             raise
         self._modified = timestamp
         self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
+        self.clear_changeset()
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList.oldapList_iri)
 
     def insert_node_right_of(self, leftnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
 
@@ -519,6 +526,9 @@ class OldapListNode(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
+        self.clear_changeset()
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList.oldapList_iri)
 
     def insert_node_left_of(self, rightnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
@@ -682,6 +692,9 @@ class OldapListNode(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
+        self.clear_changeset()
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList.oldapList_iri)
 
     def insert_node_below_of(self, parentnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
@@ -864,6 +877,9 @@ class OldapListNode(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
+        self.clear_changeset()
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList.oldapList_iri)
 
     def delete_node(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
@@ -1004,6 +1020,9 @@ class OldapListNode(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
+        self.clear_changeset()
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList.oldapList_iri)
 
     @staticmethod
     def search(con: IConnection,

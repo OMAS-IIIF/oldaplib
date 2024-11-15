@@ -12,7 +12,7 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
-from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, get_list
+from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, get_list, ListFormat
 from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
@@ -244,6 +244,87 @@ class OldapListHelperTestCase(unittest.TestCase):
             self.assertEqual(listnode_copy.nodes[1].nodes[i].definition, listnode.nodes[1].nodes[i].definition)
             self.assertEqual(listnode_copy.nodes[1].nodes[i].leftIndex, listnode.nodes[1].nodes[i].leftIndex)
             self.assertEqual(listnode_copy.nodes[1].nodes[i].rightIndex, listnode.nodes[1].nodes[i].rightIndex)
+
+    def test_cache(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="hyha",
+                              oldapListId="TestCache",
+                              prefLabel="TestCache@en",
+                              definition="A list for testing cache")
+        oldaplist.create()
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A",
+                            prefLabel=["GUGUSELI@en", "HIHIHI@de"],
+                            definition=["A test node named Node_A@en"])
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+        self.assertEqual(LangString("GUGUSELI@en", "HIHIHI@de"), olA.prefLabel)
+        self.assertEqual(LangString("A test node named Node_A@en"), olA.definition)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+        self.assertEqual(Xsd_integer(4), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(5), olBA.rightIndex)
+
+        olBAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAA")
+        olBAA.insert_node_below_of(parentnode=olBA)
+        self.assertEqual(Xsd_integer(5), olBAA.leftIndex)
+        self.assertEqual(Xsd_integer(6), olBAA.rightIndex)
+
+        olBAB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAB")
+        olBAB.insert_node_right_of(leftnode=olBAA)
+        self.assertEqual(Xsd_integer(7), olBAB.leftIndex)
+        self.assertEqual(Xsd_integer(8), olBAB.rightIndex)
+
+        listnode = get_list(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
+
+        listnode_copy = get_list(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
+
+        self.assertEqual(listnode_copy.source, 'cache')
+        self.assertEqual(listnode_copy.node_class_iri, listnode.node_class_iri)
+        self.assertEqual(listnode_copy.created, listnode.created)
+        self.assertEqual(listnode_copy.creator, listnode.creator)
+        self.assertEqual(listnode_copy.modified, listnode.modified)
+        self.assertEqual(listnode_copy.contributor, listnode.contributor)
+        self.assertEqual(listnode_copy.prefLabel, listnode.prefLabel)
+        self.assertEqual(listnode_copy.definition, listnode.definition)
+
+        self.assertEqual(len(listnode_copy.nodes), len(listnode.nodes))
+        for i in range(len(listnode_copy.nodes)):
+            self.assertEqual(listnode_copy.nodes[i].iri, listnode.nodes[i].iri)
+            self.assertEqual(listnode_copy.nodes[i].created, listnode.nodes[i].created)
+            self.assertEqual(listnode_copy.nodes[i].creator, listnode.nodes[i].creator)
+            self.assertEqual(listnode_copy.nodes[i].modified, listnode.nodes[i].modified)
+            self.assertEqual(listnode_copy.nodes[i].contributor, listnode.nodes[i].contributor)
+            self.assertEqual(listnode_copy.nodes[i].prefLabel, listnode.nodes[i].prefLabel)
+            self.assertEqual(listnode_copy.nodes[i].definition, listnode.nodes[i].definition)
+            self.assertEqual(listnode_copy.nodes[i].leftIndex, listnode.nodes[i].leftIndex)
+            self.assertEqual(listnode_copy.nodes[i].rightIndex, listnode.nodes[i].rightIndex)
+
+        for i in range(len(listnode_copy.nodes[1].nodes)):
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].iri, listnode.nodes[1].nodes[i].iri)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].created, listnode.nodes[1].nodes[i].created)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].creator, listnode.nodes[1].nodes[i].creator)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].modified, listnode.nodes[1].nodes[i].modified)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].contributor, listnode.nodes[1].nodes[i].contributor)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].prefLabel, listnode.nodes[1].nodes[i].prefLabel)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].definition, listnode.nodes[1].nodes[i].definition)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].leftIndex, listnode.nodes[1].nodes[i].leftIndex)
+            self.assertEqual(listnode_copy.nodes[1].nodes[i].rightIndex, listnode.nodes[1].nodes[i].rightIndex)
+
+        olBAB.delete_node()
+        listnode_del = get_list(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
+        self.assertEqual(listnode_del.source, 'db')
 
 
 if __name__ == '__main__':

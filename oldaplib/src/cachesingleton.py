@@ -32,7 +32,7 @@ class CacheSingleton(metaclass=SingletonMeta):
     def delete(self, key: Iri | Xsd_NCName):
         with self._lock:
             if key in self._cache:
-                del self._cache[key]
+                self._cache.pop(key, None)
 
     def clear(self):
         with self._lock:

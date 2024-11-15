@@ -709,12 +709,12 @@ class ResourceClass(Model, Notify):
     @classmethod
     def read(cls,
              con: IConnection,
-             project: Project,
+             project: Project | Iri | Xsd_NCName | str,
              owl_class_iri: Iri,
              sa_props: dict[Iri, PropertyClass] | None = None,
              ignore_cache: bool = False) -> Self:
         if not isinstance(project, Project):
-            raise OldapErrorValue('The project parameter must be a Project instance')
+            project = Project.read(con, project)
 
         cache = CacheSingleton()
         if not ignore_cache:

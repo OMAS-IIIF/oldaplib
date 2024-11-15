@@ -1,13 +1,16 @@
 import json
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.connection import Connection
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.json_encoder import SpecialEncoder
 from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.oldaperror import OldapErrorNotImplemented
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
@@ -15,6 +18,11 @@ from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+
+class ListFormat(Enum):
+    PYTHON = 'python'
+    JSON = 'json'
+    YAML = 'yaml'
 
 
 def get_nodes_from_list(con: IConnection, oldapList: OldapList) ->list[OldapListNode]:
@@ -88,15 +96,51 @@ def get_nodes_from_list(con: IConnection, oldapList: OldapList) ->list[OldapList
 
 def get_list(con: IConnection,
              project: Project | Iri | Xsd_NCName | str,
-             oldapListId: Xsd_NCName | str):
-    listnode = OldapList.read(con=con,
-                              project=project,
-                              oldapListId=oldapListId)
-    nodes = get_nodes_from_list(con, listnode)
-    listnode.nodes = nodes
-    #setattr(listnode, 'nodes', nodes)
-    jsonstr = json.dumps(listnode, cls=SpecialEncoder, indent=3)
-    return jsonstr
+             oldapListId: Xsd_NCName | str,
+             listformat: ListFormat=ListFormat.JSON,
+             ignore_cache=False) -> OldapList | str:
+
+    def set_con(nodes: list[OldapListNode]) -> None:
+        for node in nodes:
+            node._con = con
+            if node.nodes:
+                set_con(node.nodes)
+
+    #
+    # We need to get the OldapList IRI for aksing the cache...
+    #
+    if not isinstance(project, Project):
+        project = Project.read(con, project)
+    oldapListIri = Iri.fromPrefixFragment(project.projectShortName, Xsd_NCName(oldapListId), validate=False)
+    cache = CacheSingleton()
+    listnode = None
+    if not ignore_cache:
+        listnode = cache.get(oldapListIri)
+        if listnode is not None:
+            # rectify the connection
+            listnode._con = con
+            if listnode.nodes:
+                set_con(listnode.nodes)
+            setattr(listnode, 'source', 'cache')
+    if listnode is None:
+        #
+        # List was not in cache, read it from database
+        #
+        listnode = OldapList.read(con=con,
+                                  project=project,
+                                  oldapListId=oldapListId)
+        nodes = get_nodes_from_list(con, listnode)
+        listnode.nodes = nodes
+        setattr(listnode, 'source', 'db')
+        cache.set(oldapListIri, listnode)
+
+    match listformat:
+        case ListFormat.PYTHON:
+            return listnode
+        case ListFormat.JSON:
+            return json.dumps(listnode, cls=SpecialEncoder, indent=3)
+        case ListFormat.YAML:
+            raise OldapErrorNotImplemented("ListFormat.YAML not yet implemented.")
 
 
 def print_sublist(nodes: list[OldapListNode], level: int = 1) -> None:

@@ -3,6 +3,7 @@ from functools import partial
 from pprint import pprint
 from typing import Self, Any
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.oldaplistattr import OldapListAttr
@@ -436,6 +437,11 @@ class OldapList(Model):
         self._modified = timestamp
         self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
         self.clear_changeset()
+        #
+        # we changed something, therefore we invalidate the list cache
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList_iri)
+
 
     def delete(self) -> None:
         """
@@ -502,6 +508,8 @@ class OldapList(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList_iri)
 
 
 
