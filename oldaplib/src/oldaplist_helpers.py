@@ -1,6 +1,7 @@
 import json
 from enum import Enum
 from pathlib import Path
+from pprint import pprint
 from typing import Any
 
 import yaml
@@ -85,10 +86,10 @@ def get_nodes_from_list(con: IConnection, oldapList: OldapList) ->list[OldapList
             else:
                 ln.prefLabel = LangString(r['prefLabel'])
         if r.get('definition'):
-            if ln.prefLabel:
-                ln.prefLabel.add(r['definition'])
+            if ln.definition:
+                ln.definition.add(r['definition'])
             else:
-                ln.prefLabel = LangString(r['definition'])
+                ln.definition = LangString(r['definition'])
 
         last_nodeiri = nodeiri
     return nodes
@@ -105,6 +106,28 @@ def get_list(con: IConnection,
             node._con = con
             if node.nodes:
                 set_con(node.nodes)
+
+    def make_dict(listnode: OldapList | OldapListNode, listdict: dict) -> None:
+        if isinstance(listnode, OldapList):
+            listdict[str(listnode.oldapListId)] =  {}
+            if listnode.prefLabel:
+                listdict[str(listnode.oldapListId)]['label'] = [str(x) for x in listnode.prefLabel]
+            if listnode.definition:
+                listdict[str(listnode.oldapListId)]['definition'] = [str(x) for x in listnode.definition]
+            if listnode.nodes:
+                listdict[str(listnode.oldapListId)]['nodes'] = {}
+                for node in listnode.nodes:
+                    make_dict(node, listdict[str(listnode.oldapListId)]['nodes'])
+        else:
+            listdict[str(listnode.oldapListNodeId)] =  {}
+            if listnode.prefLabel:
+                listdict[str(listnode.oldapListNodeId)]['label'] = [str(x) for x in listnode.prefLabel]
+            if listnode.definition:
+                listdict[str(listnode.oldapListNodeId)]['definition'] = [str(x) for x in listnode.definition]
+            if listnode.nodes:
+                listdict[str(listnode.oldapListNodeId)]['nodes'] = {}
+                for node in listnode.nodes:
+                    make_dict(node, listdict[str(listnode.oldapListNodeId)]['nodes'])
 
     #
     # We need to get the OldapList IRI for aksing the cache...
@@ -134,13 +157,16 @@ def get_list(con: IConnection,
         setattr(listnode, 'source', 'db')
         cache.set(oldapListIri, listnode)
 
+    print_sublist(listnode.nodes)
     match listformat:
         case ListFormat.PYTHON:
             return listnode
         case ListFormat.JSON:
             return json.dumps(listnode, cls=SpecialEncoder, indent=3)
         case ListFormat.YAML:
-            raise OldapErrorNotImplemented("ListFormat.YAML not yet implemented.")
+            list_dict = {}
+            make_dict(listnode, list_dict)
+            return yaml.dump(list_dict, indent=3)
 
 
 def print_sublist(nodes: list[OldapListNode], level: int = 1) -> None:

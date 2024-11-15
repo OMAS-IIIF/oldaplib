@@ -64,6 +64,8 @@ class OldapListNode(Model):
         self.__graph = oldapList.project.projectShortName
 
         self.set_attributes(kwargs, OldapListNodeAttr)
+        if self._attributes.get(OldapListNodeAttr.PREF_LABEL) is None:
+            self._attributes[OldapListNodeAttr.PREF_LABEL] = LangString(str(self._attributes[OldapListNodeAttr.OLDAPLISTNODE_ID]))
 
         list_node_prefix = Xsd_NCName("L-") + self.__oldapList.oldapListId
         self.__iri = Iri.fromPrefixFragment(list_node_prefix,

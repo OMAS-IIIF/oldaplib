@@ -5,6 +5,8 @@ from pathlib import Path
 from pprint import pprint
 from time import sleep
 
+import yaml
+
 from oldaplib.src.connection import Connection
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.language import Language
@@ -325,6 +327,67 @@ class OldapListHelperTestCase(unittest.TestCase):
         olBAB.delete_node()
         listnode_del = get_list(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
         self.assertEqual(listnode_del.source, 'db')
+
+    def test_yaml(self) -> None:
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestYAML",
+                              prefLabel="TestYAML@en",
+                              definition="A list for testing YAML")
+        oldaplist.create()
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A",
+                            prefLabel=["GUGUSELI@en", "HIHIHI@de"],
+                            definition=["A test node named Node_A@en"])
+        olA.create_root_node()
+        self.assertEqual(Xsd_integer(1), olA.leftIndex)
+        self.assertEqual(Xsd_integer(2), olA.rightIndex)
+        self.assertEqual(LangString("GUGUSELI@en", "HIHIHI@de"), olA.prefLabel)
+        self.assertEqual(LangString("A test node named Node_A@en"), olA.definition)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+        self.assertEqual(Xsd_integer(3), olB.leftIndex)
+        self.assertEqual(Xsd_integer(4), olB.rightIndex)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+        self.assertEqual(Xsd_integer(5), olC.leftIndex)
+        self.assertEqual(Xsd_integer(6), olC.rightIndex)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+        self.assertEqual(Xsd_integer(4), olBA.leftIndex)
+        self.assertEqual(Xsd_integer(5), olBA.rightIndex)
+
+        olBAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAA")
+        olBAA.insert_node_below_of(parentnode=olBA)
+        self.assertEqual(Xsd_integer(5), olBAA.leftIndex)
+        self.assertEqual(Xsd_integer(6), olBAA.rightIndex)
+
+        olBAB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BAB")
+        olBAB.insert_node_right_of(leftnode=olBAA)
+        self.assertEqual(Xsd_integer(7), olBAB.leftIndex)
+        self.assertEqual(Xsd_integer(8), olBAB.rightIndex)
+
+        yaml_list = get_list(con=self._connection, project="test", oldapListId="TestYAML", listformat=ListFormat.YAML)
+        print(yaml_list)
+        obj = yaml.safe_load(yaml_list)
+        pprint(obj)
+        self.assertIsNotNone(obj.get(oldaplist.oldapListId))
+        obj2 = obj[oldaplist.oldapListId]
+        self.assertEqual(LangString(obj2['definition']), oldaplist.definition)
+        self.assertEqual(LangString(obj2['label']), oldaplist.prefLabel)
+        self.assertIsNotNone(obj2['nodes'])
+        for id3, obj3 in obj2['nodes'].items():
+            match id3:
+                case 'Node_A':
+                    print("====>GOT", LangString(obj3['label']))
+                    print("====>EXP", olA.prefLabel)
+                    self.assertEqual(LangString(obj3['label']), olA.prefLabel)
+                case 'Node_B':
+                    self.assertEqual(LangString(obj3['label']), olB.prefLabel)
+                case 'Node_C':
+                    self.assertEqual(LangString(obj3['label']), olC.prefLabel)
 
 
 if __name__ == '__main__':

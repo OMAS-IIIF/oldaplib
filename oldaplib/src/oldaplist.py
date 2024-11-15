@@ -1,3 +1,77 @@
+"""
+# Hierarchical Lists / Thesauri
+
+Hierarchical lists, thesauri, and categories are vital for databases in the humanities as they provide structured
+frameworks for organizing and retrieving complex, multifaceted data. These tools facilitate semantic understanding by
+establishing relationships between terms—such as broader, narrower, or equivalent concepts—allowing researchers to
+navigate datasets intuitively and comprehensively. In disciplines like history, linguistics, and cultural studies,
+where meanings and connections are often context-dependent, thesauri and hierarchical structures enable accurate
+indexing, enhance search precision, and promote interdisciplinary linkages. Moreover, they support the standardization
+and interoperability of data across projects, fostering collaborative research and the integration of diverse datasets
+into unified, accessible knowledge systems.
+
+## OLDAP implementation of Hierarchical Lists / Thesauri
+
+### Modelling based on "Nested Set Model"
+
+Hierarchical lists / thesauri are somehow inbetween the data model and the actual data. The usually remain static, but
+may be extended/changed according to the needs that arise in the course of a research project.
+OLDAP provides a highly efficient implementationm of hierarchical (or flat) lists / thesauri that is optimized for
+retrieval. On the one hand, hierarchical lists are usually defined at the beginning of a project. They are used to
+categorize database objects. For example, the following categories can be used to characterize a means of transport:
+
+- on foot
+- horse
+- carriage
+- railroad
+
+Sub-categories could be assigned to each category, e.g. for railroad
+
+- on foot
+- horse
+- carriage
+    - ox cart
+    - horse-drawn carriage
+- railroad
+    - milk train
+    - regional train
+    - express
+    - special train
+
+Such categories are usually static and do not change. However, the categories may need to be adjusted from
+time to time during the course of a project. This has as consequence that the hierarchical lists must be optimized for
+the search. In OLDAP, the [Nested Set Model](https://en.wikipedia.org/wiki/Nested_set_model) is used to store the
+hierarchical lists. The hierarchical lists are stored in a graph, where each node is a list item. The list items are
+connected to their parent list item by a directed edge. The root list item is the list item with no parent.
+
+## SKOS
+
+The OLDAP implementation relies to a great extent on the skos-vocabulary provided by
+[SKOS](https://www.w3.org/TR/skos-reference/). The implementation is as follows:
+
+### List object
+
+A list object is a `skos:ConceptScheme` with the following properties:
+
+- `skos:prefLabel`: The label (name) of the list. Must be a LangString.
+- `skos:definition`: A description of the list. Must be a LangString.
+- `skos:definition`: A LangString describing the list more verbose.
+
+It identifies a hierarchical list, but is itself not a list item.
+
+### List item object (node)
+
+A list item object is a `skos:Concept` with the following properties:
+
+- `skos:inScheme`: points to the list object
+- `skos:broaderTransitive`: points to the parent node if there is one
+- `skos:prefLabel`: A description of the list item. Must be a LangString.
+- `skos:definition`: A LangString describing the list item more verbose.
+- `oldap:nextNode`: Pointer to the next list item (will be automatically managed by OLDAP)
+- `oldap:leftIndex`: Nested Set Model left value (will be automatically managed by OLDAP)
+- `oldap:rightIndex`: Nested Set Model right value (will be automatically managed by OLDAP)
+
+"""
 from copy import deepcopy
 from functools import partial
 from pprint import pprint
@@ -27,6 +101,9 @@ OldapListAttrTypes = LangString | Iri | None
 
 
 class OldapList(Model):
+    """
+    Implementation of the OLDAP List object. It implements a SKOS ConceptScheme.
+    """
 
     __project: Project
     __graph: Xsd_NCName
@@ -43,6 +120,23 @@ class OldapList(Model):
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
                  **kwargs):
+        """
+        Constructor for OldapList
+        :param con: Active connection to the OLDAP server.
+        :type con: IConnection
+        :param project: a Project object, project short name or IRI.
+        :type project: Project | Iri | Xsd_NCName | st
+        :param creator: Creator IRI (INTERNAL USE ONLY!)
+        :type creator: Iri
+        :param created: creation date (INTERNAL USE ONLY!)
+        :type created: Xsd_dateTime
+        :param contributor: Contributor IRI (INTERNAL USE ONLY!)
+        :type contributor: Iri
+        :param modified: Modification timestamp (INTERNAL USE ONLY!)
+        :type modified: Xsd_dateTime
+        :param kwargs: Further parameters (see enum/oldaplistattr.py)
+        :type kwargs: see enum/oldaplistattr.py
+        """
         super().__init__(connection=con,
                          creator=creator,
                          created=created,
@@ -58,6 +152,8 @@ class OldapList(Model):
         self.__graph = self.__project.projectShortName
 
         self.set_attributes(kwargs, OldapListAttr)
+        if self._attributes.get(OldapListAttr.PREF_LABEL) is None:
+            self._attributes[OldapListAttr.PREF_LABEL] = LangString(str(self._attributes[OldapListAttr.OLDAPLIST_ID]))
 
         self.__oldapList_iri = Iri.fromPrefixFragment(self.__project.projectShortName,
                                                       self._attributes[OldapListAttr.OLDAPLIST_ID],
@@ -82,6 +178,11 @@ class OldapList(Model):
                 partial(OldapList._del_value, attr=attr)))
 
     def check_for_permissions(self) -> (bool, str):
+        """
+        Check the permission of the connected user to manipulate hierarchical lists
+        :return: Tuple with True, if the user has the ADMIN_LISTS permission, False otherwise, and a message
+        :rtype: bool, str
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -149,6 +250,18 @@ class OldapList(Model):
              con: IConnection,
              project: Project | Iri | Xsd_NCName | str,
              oldapListId: Xsd_NCName | str) -> Self:
+        """
+        Read a list from the OLDAP server. This function reads only the list object, but it will _not_ read the
+        nodes belonging to the list.
+        :param con: Active connection to the OLDAP server.
+        :type con: IConnection
+        :param project: a Project object, project short name or IRI.
+        :type project: Project | Iri | Xsd_NCName | str
+        :param oldapListId: An ID that uniquely identifies the list. The name must be unique within a given project. However, different projects may use the same list-ID for identifying there respective lists.
+        :type oldapListId: Xsd_NCName | str. Must be convertible to an NCName.
+        :return: A list object
+        :rtype: OldapList
+        """
         if not isinstance(project, Project):
             project = Project.read(con, project)
         oldapListId = Xsd_NCName(oldapListId)
@@ -230,6 +343,25 @@ class OldapList(Model):
                prefLabel: Xsd_string | str | None = None,
                definition: str | None = None,
                exactMatch: bool = False) -> list[Iri]:
+        """
+        Search for a specific list. The search can be made by given either an ID, a prefLabel or a definition. The
+        required match can either be exact or by substring. If more than one search item is given, the search will
+        combine the results by AND.
+        :param con: Active connection to the OLDAP server.
+        :type con: IConnection
+        :param project: Project object or project short name or IRI.
+        :type project: Project | Iri | Xsd_NCName | str
+        :param id: List ID.
+        :type id: Xsd_string | str | None
+        :param prefLabel: Label of the list. All languages are being searched, if exactMatch is False.
+        :type prefLabel: Xsd_string | str | None
+        :param definition: Definition of the list. All languages are being searched, if exactMatch is False.
+        :type definition: Xsd_string | str | None
+        :param exactMatch: Exact match in search terms
+        :type exactMatch: bool
+        :return: List of hierarchival list's IRI's
+        :rtype: list[Iri]
+        """
         if not isinstance(project, Project):
             project = Project.read(con, project)
         id = Xsd_string(id)
@@ -289,6 +421,18 @@ class OldapList(Model):
         return lists
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Create a new list in the RDF triplestore. The method checks if a list with the same name is already existing
+        :param indent: Start indent fpr beautifying the sparql query (INTERNAL USE/DEBUGGING)
+        :type indent: int
+        :param indent_inc: Indent increment for beautifying the sparql query (INTERNAL USE/DEBUGGING)
+        :type indent_inc: int
+        :return: None object
+        :rtype: None
+        :throws OldapErrorAlreadyExists: If a list with the same name already exists
+        :throws OldapErrorNoPermission: If the logged-in user has no permission to create a list for the given project
+        :throws OldapError: All other error conditions
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
         #
@@ -389,6 +533,17 @@ class OldapList(Model):
         self.clear_changeset()
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Updates the metadata of an hierarchical list
+        :param indent: Start indent for beautifying the sparql query (INTERNAL USE/DEBUGGING)
+        :type indent: int
+        :param indent_inc: Indent increment for beautifying the sparql query (INTERNAL USE/DEBUGGING)
+        :type indent_inc: int
+        :return: None object
+        :rtype: None
+        :throws OldapErrorNoPermission: If the logged-in user has no permission to update a list for the given project
+        :throws OldapError: All other error conditions
+        """
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
@@ -445,10 +600,9 @@ class OldapList(Model):
 
     def delete(self) -> None:
         """
-        Delete the given user from the triplestore
-        :return: None
-        :raises OldapErrorNoPermission: No permission for operation
-        :raises OldapError: generic internal error
+        Deletes a list from the RDF triplestore. The list must have no list items in order to allow the deletion
+        :return: None object
+        :rtype: None
         """
         result, message = self.check_for_permissions()
         if not result:
