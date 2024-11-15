@@ -19,7 +19,7 @@ from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorIncons
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplistnode import OldapListNode
-from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, get_list
+from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, dump_list_to
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass

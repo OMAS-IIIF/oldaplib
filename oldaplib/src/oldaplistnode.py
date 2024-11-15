@@ -152,6 +152,10 @@ class OldapListNode(Model):
     def nodes(self) -> list[Self]:
         return self.__nodes
 
+    @nodes.setter
+    def nodes(self, nodes: list[Self]):
+        self.__nodes = nodes
+
     def add_node_to_nodes(self, node: Self) -> None:
         if self.__nodes is None:
             self.__nodes = [node]

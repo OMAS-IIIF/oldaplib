@@ -95,11 +95,11 @@ def get_nodes_from_list(con: IConnection, oldapList: OldapList) ->list[OldapList
     return nodes
 
 
-def get_list(con: IConnection,
-             project: Project | Iri | Xsd_NCName | str,
-             oldapListId: Xsd_NCName | str,
-             listformat: ListFormat=ListFormat.JSON,
-             ignore_cache=False) -> OldapList | str:
+def dump_list_to(con: IConnection,
+                 project: Project | Iri | Xsd_NCName | str,
+                 oldapListId: Xsd_NCName | str,
+                 listformat: ListFormat=ListFormat.JSON,
+                 ignore_cache=False) -> OldapList | str:
 
     def set_con(nodes: list[OldapListNode]) -> None:
         for node in nodes:
@@ -157,7 +157,6 @@ def get_list(con: IConnection,
         setattr(listnode, 'source', 'db')
         cache.set(oldapListIri, listnode)
 
-    print_sublist(listnode.nodes)
     match listformat:
         case ListFormat.PYTHON:
             return listnode
@@ -199,7 +198,8 @@ def load_list_from_yaml(con: Connection,
                     node.insert_node_below_of(parent)
             oldapnodes.append(node)
             if nodedata.get('nodes'):
-                process_nodes(nodedata['nodes'], oldaplist, node)
+                node.nodes = process_nodes(nodedata['nodes'], oldaplist, node)
+        return oldapnodes
 
     oldaplists: list[OldapList] = []
     with filepath.open() as f:
@@ -215,5 +215,5 @@ def load_list_from_yaml(con: Connection,
             oldaplist.create()
             oldaplists.append(oldaplist)
             if listdata.get('nodes'):
-                process_nodes(listdata['nodes'], oldaplist, None)
+                oldaplist.nodes = process_nodes(listdata['nodes'], oldaplist, None)
     return oldaplists

@@ -13,14 +13,14 @@ testlist:
       node_B:
         label: [ Node_B@en, Knoten_B@de, Noed_B@fr ]
         definition:
-          - Node A from list testlist
-          - Knoten A von der Liste testliste
+          - Node B from list testlist
+          - Knoten B von der Liste testliste
         nodes:
           node_BA:
             label: [ Node_BA@en, Knoten_BA@de, Noed_BA@fr ]
             definition:
-              Node BA from list testlist@en
-              Knoten BA von der Liste testliste@de
+              - Node BA from list testlist@en
+              - Knoten BA von der Liste testliste@de
           node_BB:
             label: [ Node_BB@en, Knoten_BB@de, Noed_BB@fr ]
             definition:
@@ -29,8 +29,8 @@ testlist:
           node_BC:
             label: [ Node_BC@en, Knoten_BC@de, Noed_BC@fr ]
             definition:
-              Node BC from list testlist@en
-              Knoten BC von der Liste testliste@de
+              - Node BC from list testlist@en
+              - Knoten BC von der Liste testliste@de
       node_C:
         label: [ Node_C@en, Knoten_C@de, Noed_C@fr ]
         definition:

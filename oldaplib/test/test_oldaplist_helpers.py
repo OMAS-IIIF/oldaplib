@@ -14,7 +14,8 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
-from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, get_list, ListFormat
+from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, dump_list_to, ListFormat, \
+    load_list_from_yaml
 from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
@@ -87,7 +88,7 @@ class OldapListHelperTestCase(unittest.TestCase):
                             prefLabel=["GUGUSELI@en", "HIHIHI@de"])
         olA.create_root_node()
 
-        full_list = get_list(con=self._connection, project="hyha", oldapListId="TestList_HYHA")
+        full_list = dump_list_to(con=self._connection, project="hyha", oldapListId="TestList_HYHA")
         full_list_obj = json.loads(full_list)
         self.assertEqual(full_list_obj['oldapListId'], 'TestList_HYHA')
         self.assertEqual(full_list_obj['prefLabel'], ['TestList_HYHA-label@en'])
@@ -143,7 +144,7 @@ class OldapListHelperTestCase(unittest.TestCase):
         #nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
         #print_sublist(nodes)
 
-        full_list = get_list(con=self._connection, project="test", oldapListId="TestListXX")
+        full_list = dump_list_to(con=self._connection, project="test", oldapListId="TestListXX")
         full_list_obj = json.loads(full_list)
         self.assertEqual(full_list_obj['oldapListId'], 'TestListXX')
         self.assertEqual(full_list_obj['prefLabel'], ['TestListXX@en'])
@@ -288,9 +289,9 @@ class OldapListHelperTestCase(unittest.TestCase):
         self.assertEqual(Xsd_integer(7), olBAB.leftIndex)
         self.assertEqual(Xsd_integer(8), olBAB.rightIndex)
 
-        listnode = get_list(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
+        listnode = dump_list_to(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
 
-        listnode_copy = get_list(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
+        listnode_copy = dump_list_to(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
 
         self.assertEqual(listnode_copy.source, 'cache')
         self.assertEqual(listnode_copy.node_class_iri, listnode.node_class_iri)
@@ -325,10 +326,10 @@ class OldapListHelperTestCase(unittest.TestCase):
             self.assertEqual(listnode_copy.nodes[1].nodes[i].rightIndex, listnode.nodes[1].nodes[i].rightIndex)
 
         olBAB.delete_node()
-        listnode_del = get_list(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
+        listnode_del = dump_list_to(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
         self.assertEqual(listnode_del.source, 'db')
 
-    def test_yaml(self) -> None:
+    def test_yaml_dump(self) -> None:
         oldaplist = OldapList(con=self._connection,
                               project="test",
                               oldapListId="TestYAML",
@@ -369,10 +370,8 @@ class OldapListHelperTestCase(unittest.TestCase):
         self.assertEqual(Xsd_integer(7), olBAB.leftIndex)
         self.assertEqual(Xsd_integer(8), olBAB.rightIndex)
 
-        yaml_list = get_list(con=self._connection, project="test", oldapListId="TestYAML", listformat=ListFormat.YAML)
-        print(yaml_list)
+        yaml_list = dump_list_to(con=self._connection, project="test", oldapListId="TestYAML", listformat=ListFormat.YAML)
         obj = yaml.safe_load(yaml_list)
-        pprint(obj)
         self.assertIsNotNone(obj.get(oldaplist.oldapListId))
         obj2 = obj[oldaplist.oldapListId]
         self.assertEqual(LangString(obj2['definition']), oldaplist.definition)
@@ -381,14 +380,61 @@ class OldapListHelperTestCase(unittest.TestCase):
         for id3, obj3 in obj2['nodes'].items():
             match id3:
                 case 'Node_A':
-                    print("====>GOT", LangString(obj3['label']))
-                    print("====>EXP", olA.prefLabel)
                     self.assertEqual(LangString(obj3['label']), olA.prefLabel)
+                    self.assertEqual(LangString(obj3['definition']), olA.definition)
                 case 'Node_B':
                     self.assertEqual(LangString(obj3['label']), olB.prefLabel)
+                    for id4, obj4 in obj3['nodes'].items():
+                        self.assertEqual(id4, "Node_BA")
+                        for id5, obj5 in obj4['nodes'].items():
+                            match id5:
+                                case 'Node_BAA':
+                                    self.assertEqual(LangString(obj5['label']), olBAA.prefLabel)
+                                case 'Node_BAB':
+                                    self.assertEqual(LangString(obj5['label']), olBAB.prefLabel)
                 case 'Node_C':
                     self.assertEqual(LangString(obj3['label']), olC.prefLabel)
 
+    def test_yaml_load(self):
+        project_root = find_project_root(__file__)
+        file = project_root / 'oldaplib' / 'testdata' / 'testlist.yml'
+        listnodes = load_list_from_yaml(con=self._connection,
+                                       project='test',
+                                       filepath=file)
+        self.assertEqual(len(listnodes), 1)
+        listnode = listnodes[0]
+        self.assertEqual(listnode.oldapListId, 'testlist')
+        self.assertEqual(listnode.prefLabel, LangString('Test-list@en', 'Testliste@de', "liste de test@fr"))
+        self.assertEqual(listnode.definition, LangString('a list for testing lists and listnoded@en', 'Eine Liste zum Testen des Listenelements und der Listenknoten@de'))
+        self.assertEqual(len(listnode.nodes), 3)
+
+        self.assertEqual(listnode.nodes[0].oldapListNodeId, 'node_A')
+        self.assertEqual(listnode.nodes[0].prefLabel, LangString('Node_A@en', 'Knoten_A@de', 'Noed_a@fr'))
+        self.assertEqual(listnode.nodes[0].definition, LangString('Node A from list testlist@en', 'Knoten A von der Liste testliste@de'))
+        self.assertIsNone(listnode.nodes[0].nodes)
+
+        self.assertEqual(listnode.nodes[1].oldapListNodeId, 'node_B')
+        self.assertEqual(listnode.nodes[1].prefLabel, LangString('Node_B@en', 'Knoten_B@de', 'Noed_B@fr'))
+        self.assertEqual(listnode.nodes[1].definition, LangString('Node B from list testlist', 'Knoten B von der Liste testliste'))
+        self.assertEqual(len(listnode.nodes[1].nodes), 3)
+
+        subnodes = listnode.nodes[1].nodes
+        self.assertEqual(subnodes[0].oldapListNodeId, 'node_BA')
+        self.assertEqual(subnodes[0].prefLabel, LangString('Node_BA@en', 'Knoten_BA@de', 'Noed_BA@fr'))
+        self.assertEqual(subnodes[0].definition, LangString('Node BA from list testlist@en', 'Knoten BA von der Liste testliste@de'))
+
+        self.assertEqual(subnodes[1].oldapListNodeId, 'node_BB')
+        self.assertEqual(subnodes[1].prefLabel, LangString('Node_BB@en', 'Knoten_BB@de', 'Noed_BB@fr'))
+        self.assertEqual(subnodes[1].definition, LangString('Node BB from list testlist@en', 'Knoten BB von der Liste testliste@de'))
+
+        self.assertEqual(subnodes[2].oldapListNodeId, 'node_BC')
+        self.assertEqual(subnodes[2].prefLabel, LangString('Node_BC@en', 'Knoten_BC@de', 'Noed_BC@fr'))
+        self.assertEqual(subnodes[2].definition, LangString('Node BC from list testlist@en', 'Knoten BC von der Liste testliste@de'))
+
+        self.assertEqual(listnode.nodes[2].oldapListNodeId, 'node_C')
+        self.assertEqual(listnode.nodes[2].prefLabel, LangString('Node_C@en', 'Knoten_C@de', 'Noed_C@fr'))
+        self.assertEqual(listnode.nodes[2].definition, LangString('Node C from list testlist@en', 'Knoten C von der Liste testliste@de'))
+        self.assertIsNone(listnode.nodes[2].nodes)
 
 if __name__ == '__main__':
     unittest.main()
