@@ -151,6 +151,20 @@ class Xsd_integer(Xsd):
         else:
             raise OldapErrorValue(f'Comparison of with {type(other)} not possible')
 
+    def __add__(self, other: Self | int) -> Self:
+        return Xsd_integer(self._value + int(other), validate=False)
+
+    def __iadd__(self, other) -> Self:
+        self._value += int(other)
+        return self
+
+    def __sub__(self, other: Self | int) -> Self:
+        return Xsd_integer(self._value - int(other), validate=False)
+
+    def __isub__(self, other: Self | int) -> Self:
+        self._value -= int(other)
+        return self
+
     def _as_dict(self) -> dict[str, int]:
         """
         Internal method for JSON serialization based on @serializer decorator

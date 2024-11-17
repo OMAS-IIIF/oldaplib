@@ -1030,6 +1030,142 @@ class OldapListNode(Model):
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
 
+    def delete_node_recursively(self, indent: int = 0, indent_inc: int = 4) -> None:
+        if self._con is None:
+            raise OldapError("Cannot create: no connection")
+
+        context = Context(name=self._con.context_name)
+        timestamp = Xsd_dateTime.now()
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
+        #
+        # first we get the node info, especialle leftIndex and rightIndex
+        #
+        query1 = context.sparql_context
+        query1 += f"""
+        SELECT ?lindex ?rindex
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                {self.__iri.toRdf}
+                    oldap:leftIndex ?lindex ;
+                    oldap:rightIndex ?rindex .
+            }}
+        }}
+        """
+        self._con.transaction_start()
+        try:
+            jsonobj = self._con.transaction_query(query1)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        lindex = 0
+        rindex = 0
+        if len(res) != 1:
+            self._con.transaction_abort()
+            raise OldapErrorInconsistency(f"Couldn't get node to delete")
+        for r in res:
+            lindex = r['lindex']
+            rindex = r['rindex']
+
+        #
+        # now delete the node and all nodes below
+        #
+        update1 = context.sparql_context
+        update1 += f"""        
+        DELETE {{
+            ?subject ?p ?o
+        }}
+        WHERE {{
+            GRAPH test:lists {{
+                ?subject oldap:leftIndex ?leftIndex ;
+        	        oldap:rightIndex ?rightIndex ;
+        	        skos:inScheme {self.__oldapList.oldapList_iri.toRdf} ;
+        	        ?p ?o .
+    	        FILTER (?leftIndex >= 6 && ?rightIndex <= 15)
+            }}
+        }}
+        """
+        try:
+            self._con.transaction_update(update1)
+        except OldapError:
+            print(update1)
+            self._con.transaction_abort()
+            raise
+
+        #
+        # now adjust all leftIndex'es of the nodes "to the right"
+        #
+        diff: Xsd_integer = rindex - lindex + 1
+        update2 = context.sparql_context
+        update2 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:leftIndex ?oldLeftIndex .
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:leftIndex ?newLeftIndex ;
+                    rdfs:comment "GAGAGAGAGAGAGAGG" .
+            }}
+        }}
+        WHERE {{
+            ?subject oldap:leftIndex ?oldLeftIndex ;
+                skos:inScheme {self.__oldapList.oldapList_iri.toRdf} .
+            FILTER(?oldLeftIndex > {int(lindex)})
+            BIND(?oldLeftIndex - {int(diff)} AS ?newLeftIndex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update2)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        #
+        # now adjust all rightIndex'es of the nodes "to the right"
+        #
+        update3 = context.sparql_context
+        update3 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:rightIndex ?oldRightIndex .
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:rightIndex ?newRightIndex ;
+                    rdfs:comment "XUXUXUXUXUXUXUXUXUXUX" .
+            }}
+        }}
+        WHERE {{
+            ?subject oldap:rightIndex ?oldRightIndex ;
+                skos:inScheme {self.__oldapList.oldapList_iri.toRdf} .
+            FILTER(?oldRightIndex > {int(rindex)})
+            BIND(?oldRightIndex - {int(diff)} AS ?newRightIndex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update3)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList.oldapList_iri)
+
     @staticmethod
     def search(con: IConnection,
                oldapList: OldapList,

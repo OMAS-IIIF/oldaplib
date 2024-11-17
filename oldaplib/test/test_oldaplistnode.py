@@ -1411,6 +1411,75 @@ class TestOldapListNode(unittest.TestCase):
         self.assertEqual(Xsd_integer(4), olBA.leftIndex)
         self.assertEqual(Xsd_integer(5), olBA.rightIndex)
 
+    def test_delete_recursively(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestDelRec",
+                              prefLabel="TestDelRec",
+                              definition="A list for testing...")
+        oldaplist.create()
+        # oldaplist = OldapList.read(con=self._connection,
+        #                            project="test",
+        #                            oldapListId="TestDelRec")
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+
+        olBB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BB")
+        olBB.insert_node_right_of(leftnode=olBA)
+
+        olBC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BC")
+        olBC.insert_node_right_of(leftnode=olBB)
+
+        olBBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BBA")
+        olBBA.insert_node_below_of(parentnode=olBB)
+
+        olBBB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BBB")
+        olBBB.insert_node_right_of(leftnode=olBBA)
+
+        olBBC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BBC")
+        olBBC.insert_node_right_of(leftnode=olBBB)
+
+        olBBBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BBBA")
+        olBBBA.insert_node_below_of(parentnode=olBBB)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        #print_sublist(nodes)
+
+        #print("================================================================")
+
+        olBB.delete_node_recursively()
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+
+        node_A = nodes[0]
+        self.assertEqual(Xsd_integer(1), node_A.leftIndex)
+        self.assertEqual(Xsd_integer(2), node_A.rightIndex)
+
+        node_B = nodes[1]
+        self.assertEqual(Xsd_integer(3), node_B.leftIndex)
+        self.assertEqual(Xsd_integer(8), node_B.rightIndex)
+
+        node_BA = nodes[1].nodes[0]
+        self.assertEqual(Xsd_integer(4), node_BA.leftIndex)
+        self.assertEqual(Xsd_integer(5), node_BA.rightIndex)
+
+        node_BC = nodes[1].nodes[1]
+        self.assertEqual(Xsd_integer(6), node_BC.leftIndex)
+        self.assertEqual(Xsd_integer(7), node_BC.rightIndex)
+
+        node_C = nodes[2]
+        self.assertEqual(Xsd_integer(9), node_C.leftIndex)
+        self.assertEqual(Xsd_integer(10), node_C.rightIndex)
+
+
     def test_search(self):
         oldaplist = OldapList(con=self._connection,
                               project="test",
