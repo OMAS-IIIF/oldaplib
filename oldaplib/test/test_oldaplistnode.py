@@ -1418,9 +1418,6 @@ class TestOldapListNode(unittest.TestCase):
                               prefLabel="TestDelRec",
                               definition="A list for testing...")
         oldaplist.create()
-        # oldaplist = OldapList.read(con=self._connection,
-        #                            project="test",
-        #                            oldapListId="TestDelRec")
         olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
         olA.create_root_node()
 
@@ -1452,9 +1449,6 @@ class TestOldapListNode(unittest.TestCase):
         olBBBA.insert_node_below_of(parentnode=olBBB)
 
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
-        #print_sublist(nodes)
-
-        #print("================================================================")
 
         olBB.delete_node_recursively()
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
