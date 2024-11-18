@@ -18,6 +18,7 @@ from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 class ListFormat(Enum):
@@ -25,6 +26,29 @@ class ListFormat(Enum):
     JSON = 'json'
     YAML = 'yaml'
 
+
+def get_node_indices(con: IConnection, oldapList: OldapList) -> list[tuple[Iri, Xsd_integer, Xsd_integer]]:
+    context = Context(name=con.context_name)
+    graph = oldapList.project.projectShortName
+
+    query = context.sparql_context
+    query += f"""
+    SELECT ?node ?lindex ?rindex
+    WHERE {{
+        GRAPH {graph}:lists {{
+            ?node skos:inScheme {oldapList.oldapList_iri.toRdf} ;
+                oldap:leftIndex ?lindex ;
+                oldap:rightIndex ?rindex .
+        }}
+    }}
+    ORDER BY ?node
+    """
+    jsonobj = con.query(query)
+    res = QueryProcessor(context, jsonobj)
+    result: list[tuple[Iri, Xsd_integer, Xsd_integer]] = []
+    for r in res:
+        result.append((r['node'], r['lindex'], r['rindex']))
+    return result
 
 def get_nodes_from_list(con: IConnection, oldapList: OldapList) ->list[OldapListNode]:
     context = Context(name=con.context_name)
