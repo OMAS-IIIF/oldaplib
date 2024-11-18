@@ -387,11 +387,6 @@ class OldapListNode(Model):
 
         blank = ''
         update1 = context.sparql_context
-        update1 += f'{blank:{indent * indent_inc}}DELETE {{'
-        update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        update1 += f'\n{blank:{(indent + 2) * indent_inc}}{leftnode.iri.toRdf} oldap:nextNode ?rightNode'
-        update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
-        update1 += f'\n{blank:{indent * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}INSERT {{'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_class_iri}'
@@ -407,8 +402,6 @@ class OldapListNode(Model):
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:leftIndex ?nlindex'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex ?nrindex'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:broaderTransitive ?parent_node'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:nextNode ?rightNode'
-        update1 += f' .\n{blank:{(indent + 2) * indent_inc}}{leftnode.iri.toRdf} oldap:nextNode {self.__iri.toRdf}'
         update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}WHERE {{'
@@ -416,9 +409,6 @@ class OldapListNode(Model):
         update1 += f' \n{blank:{(indent + 2) * indent_inc}}{leftnode.iri.toRdf} oldap:rightIndex ?rindex'
         update1 += f' ;\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
         update1 += f'\n{blank:{(indent + 3) * indent_inc}}{leftnode.iri.toRdf} skos:broaderTransitive ?parent_node'
-        update1 += f' .\n{blank:{(indent + 2) * indent_inc}}}}'
-        update1 += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
-        update1 += f'\n{blank:{(indent + 3) * indent_inc}}{leftnode.iri.toRdf} oldap:nextNode ?rightNode'
         update1 += f' .\n{blank:{(indent + 2) * indent_inc}}}}'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}BIND((?rindex + 1) AS ?nlindex)'
@@ -553,11 +543,6 @@ class OldapListNode(Model):
 
         blank = ''
         update1 = context.sparql_context
-        update1 += f'{blank:{indent * indent_inc}}DELETE {{'
-        update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        update1 += f'\n{blank:{(indent + 2) * indent_inc}}?node oldap:nextNode {rightnode.iri.toRdf}'
-        update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
-        update1 += f'\n{blank:{indent * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}INSERT {{'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_class_iri}'
@@ -573,8 +558,6 @@ class OldapListNode(Model):
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:leftIndex ?lindex'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex ?nrindex'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:broaderTransitive ?parent_node'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:nextNode {rightnode.iri.toRdf}'
-        update1 += f' .\n{blank:{(indent + 2) * indent_inc}}?node oldap:nextNode {self.__iri.toRdf}'
         update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}WHERE {{'
@@ -583,9 +566,6 @@ class OldapListNode(Model):
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex ?rindex'
         update1 += f' ;\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
         update1 += f'\n{blank:{(indent + 3) * indent_inc}}{rightnode.iri.toRdf} skos:broaderTransitive ?parent_node'
-        update1 += f' .\n{blank:{(indent + 2) * indent_inc}}}}'
-        update1 += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
-        update1 += f'\n{blank:{(indent + 3) * indent_inc}}?node oldap:nextNode {rightnode.iri.toRdf}'
         update1 += f' .\n{blank:{(indent + 2) * indent_inc}}}}'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}BIND((?lindex + 1) AS ?nrindex)'
@@ -741,11 +721,6 @@ class OldapListNode(Model):
 
         blank = ''
         update1 = context.sparql_context
-        #update1 += f'{blank:{indent * indent_inc}}DELETE {{'
-        #update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        #update1 += f'\n{blank:{(indent + 2) * indent_inc}}?node oldap:nextNode {rightnode.iri.toRdf}'
-        #update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
-        #update1 += f'\n{blank:{indent * indent_inc}}}}'
         update1 += f'{blank:{indent * indent_inc}}INSERT {{'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_class_iri}'
@@ -1112,8 +1087,7 @@ class OldapListNode(Model):
         }}
         INSERT {{
             GRAPH {self.__graph}:lists {{
-                ?subject oldap:leftIndex ?newLeftIndex ;
-                    rdfs:comment "GAGAGAGAGAGAGAGG" .
+                ?subject oldap:leftIndex ?newLeftIndex .
             }}
         }}
         WHERE {{
@@ -1141,8 +1115,7 @@ class OldapListNode(Model):
         }}
         INSERT {{
             GRAPH {self.__graph}:lists {{
-                ?subject oldap:rightIndex ?newRightIndex ;
-                    rdfs:comment "XUXUXUXUXUXUXUXUXUXUX" .
+                ?subject oldap:rightIndex ?newRightIndex .
             }}
         }}
         WHERE {{
