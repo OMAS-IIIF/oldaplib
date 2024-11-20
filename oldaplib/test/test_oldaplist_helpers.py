@@ -397,7 +397,7 @@ class OldapListHelperTestCase(unittest.TestCase):
 
     def test_yaml_load(self):
         project_root = find_project_root(__file__)
-        file = project_root / 'oldaplib' / 'testdata' / 'testlist.yml'
+        file = project_root / 'oldaplib' / 'testdata' / 'testlist.yaml'
         listnodes = load_list_from_yaml(con=self._connection,
                                        project='test',
                                        filepath=file)

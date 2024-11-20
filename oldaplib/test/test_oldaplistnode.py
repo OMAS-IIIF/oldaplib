@@ -1480,6 +1480,7 @@ class TestOldapListNode(unittest.TestCase):
                               prefLabel="TestMoveBelowR",
                               definition="A list for testing...")
         oldaplist.create()
+
         olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
         olA.create_root_node()
 
@@ -1488,9 +1489,6 @@ class TestOldapListNode(unittest.TestCase):
 
         olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
         olC.insert_node_right_of(leftnode=olB)
-
-        olD = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_D")
-        olD.insert_node_right_of(leftnode=olC)
 
         olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
         olBA.insert_node_below_of(parentnode=olB)
@@ -1522,6 +1520,53 @@ class TestOldapListNode(unittest.TestCase):
         olBB.move_node_below(con=self._connection, target=olC)
         print("==================================")
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        for node in nodes:
+            match node.oldapListNodeId:
+                case "Node_A":
+                    self.assertEqual(node.leftIndex, 1)
+                    self.assertEqual(node.rightIndex, 2)
+                    self.assertIsNone(node.nodes)
+                case "Node_B":
+                    self.assertEqual(node.leftIndex, 3)
+                    self.assertEqual(node.rightIndex, 8)
+                    self.assertEqual(len(node.nodes), 2)
+                    for node2 in node.nodes:
+                        match node2.oldapListNodeId:
+                            case "Node_BA":
+                                self.assertEqual(node2.leftIndex, 4)
+                                self.assertEqual(node2.rightIndex, 5)
+                                self.assertIsNone(node2.nodes)
+                            case "Node_BC":
+                                self.assertEqual(node2.leftIndex, 6)
+                                self.assertEqual(node2.rightIndex, 7)
+                                self.assertIsNone(node2.nodes)
+                            case _:
+                                raise AssertionError(f'Found unexpected node: {node.oldpListNodeId}')
+                case "Node_C":
+                    self.assertEqual(node.leftIndex, 9)
+                    self.assertEqual(node.rightIndex, 20)
+                    self.assertEqual(len(node.nodes), 1)
+                    self.assertEqual(node.nodes[0].oldapListNodeId, "Node_BB")
+                    self.assertEqual(node.nodes[0].leftIndex, 10)
+                    self.assertEqual(node.nodes[0].rightIndex, 19)
+                    self.assertEqual(len(node.nodes[0].nodes), 3)
+                    for node2 in node.nodes[0].nodes:
+                        match node2.oldapListNodeId:
+                            case "Node_BBA":
+                                self.assertEqual(node2.leftIndex, 11)
+                                self.assertEqual(node2.rightIndex, 12)
+                            case "Node_BBB":
+                                self.assertEqual(node2.leftIndex, 13)
+                                self.assertEqual(node2.rightIndex, 16)
+                                self.assertEqual(len(node2.nodes), 1)
+                                self.assertEqual(node2.nodes[0].leftIndex, 14)
+                                self.assertEqual(node2.nodes[0].rightIndex, 15)
+                            case "Node_BBC":
+                                self.assertEqual(node2.leftIndex, 17)
+                                self.assertEqual(node2.rightIndex, 18)
+                            case _:
+                                raise AssertionError(f'Found unexpected node: {node.oldpListNodeId}')
+
         print_sublist(nodes)
         # result2 = get_node_indices(con=self._connection, oldapList=oldaplist)
         # for r in result2:
@@ -1534,6 +1579,7 @@ class TestOldapListNode(unittest.TestCase):
                               prefLabel="TestMoveBelowL",
                               definition="A list for testing...")
         oldaplist.create()
+
         olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
         olA.create_root_node()
 
@@ -1574,9 +1620,9 @@ class TestOldapListNode(unittest.TestCase):
         print("==================================")
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
         print_sublist(nodes)
-        # result2 = get_node_indices(con=self._connection, oldapList=oldaplist)
-        # for r in result2:
-        #     print(r)
+        #result2 = get_node_indices(con=self._connection, oldapList=oldaplist)
+        #for r in result2:
+        #    print(r)
 
     def test_search(self):
         oldaplist = OldapList(con=self._connection,

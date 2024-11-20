@@ -17,7 +17,10 @@ testlist:
           - Knoten B von der Liste testliste
         nodes:
           node_BA:
-            label: [ Node_BA@en, Knoten_BA@de, Noed_BA@fr ]
+            label:
+              - Node BA@en
+              - Knoten BA@de
+              - Noed BA@fr
             definition:
               - Node BA from list testlist@en
               - Knoten BA von der Liste testliste@de

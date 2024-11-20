@@ -1178,14 +1178,14 @@ class OldapListNode(Model):
         res = QueryProcessor(context, jsonobj)
         moving_lindex: int = 0
         moving_rindex: int = 0
-        moving_parent_iri: Iri | None = None
+        #moving_parent_iri: Iri | None = None
         if len(res) != 1:
             self._con.transaction_abort()
             raise OldapErrorInconsistency(f"Couldn't get node to delete")
         for r in res:
             moving_lindex = r['lindex']
             moving_rindex = r['rindex']
-            moving_parent_iri = r['parent_iri']
+            #moving_parent_iri = r['parent_iri']
 
         #
         # now we the get information of the target node
@@ -1253,6 +1253,13 @@ class OldapListNode(Model):
         # set the new left index
         #
         diff1 = moving_rindex - moving_lindex + 1
+        if moving_rindex < target_lindex:
+            # moving to the right
+            filter = f'FILTER (?oldLeftIndex > {int(moving_rindex)} && ?oldLeftIndex <= {int(target_lindex)})'
+        else:
+            # moving to the left
+            diff1 = -diff1
+            filter = f'FILTER (?oldLeftIndex > {int(target_rindex)} && ?oldLeftIndex <= {int(moving_rindex)})'
 
         update2 = context.sparql_context
         update2 += f"""
@@ -1269,7 +1276,7 @@ class OldapListNode(Model):
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 skos:inScheme {self.__oldapList.oldapList_iri.toRdf} .
-            FILTER (?oldLeftIndex > {int(moving_rindex)} && ?oldLeftIndex <= {int(target_lindex)})
+            {filter}
             BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
         }}
         """
@@ -1282,6 +1289,12 @@ class OldapListNode(Model):
         #
         # set the right index
         #
+        if moving_rindex < target_lindex:
+            # moving to the right
+            filter = f'FILTER (?oldRightIndex > {int(moving_rindex)} && ?oldRightIndex < {int(target_rindex)})'
+        else:
+            # moving to the left
+            filter = f'FILTER (?oldRightIndex >= {int(target_rindex)} && ?oldLeftIndex < {int(moving_lindex)})'
         update3 = context.sparql_context
         update3 += f"""
         DELETE {{
@@ -1296,8 +1309,9 @@ class OldapListNode(Model):
         }}
         WHERE {{
             ?subject oldap:rightIndex ?oldRightIndex ;
+                oldap:rightIndex ?oldLeftIndex ;
                 skos:inScheme {self.__oldapList.oldapList_iri.toRdf} .
-            FILTER (?oldRightIndex > {int(moving_rindex)} && ?oldRightIndex < {int(target_rindex)})
+            {filter}
             BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
         }}
         """
@@ -1307,10 +1321,14 @@ class OldapListNode(Model):
             self._con.transaction_abort()
             raise
 
+
         #
         # Correct leftIndex and rightIndex of the moved nodes
         #
-        diff2 = diff1 - (target_rindex - moving_rindex + 1)
+        if moving_rindex < target_lindex:
+            diff2 = diff1 - (target_rindex - moving_rindex + 1)
+        else:
+            diff2 = target_rindex - moving_lindex
         update4 = context.sparql_context
         update4 += f"""
         DELETE {{
@@ -1329,8 +1347,8 @@ class OldapListNode(Model):
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 oldap:rightIndex ?oldRightIndex .
             FILTER(?oldLeftIndex < 0)
-            BIND((-1*?oldLeftIndex) + {int(diff2)} AS ?newLeftIndex)
-            BIND((-1*?oldRightIndex) + {int(diff2)} AS ?newRightIndex)
+            BIND(-?oldLeftIndex + {int(diff2)} AS ?newLeftIndex)
+            BIND(-?oldRightIndex + {int(diff2)} AS ?newRightIndex)
         }}
         """
         try:

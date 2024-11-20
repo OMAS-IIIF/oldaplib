@@ -151,6 +151,9 @@ class Xsd_integer(Xsd):
         else:
             raise OldapErrorValue(f'Comparison of with {type(other)} not possible')
 
+    def __neg__(self) -> Self:
+        return Xsd_integer(-self._value, validate=False)
+
     def __add__(self, other: Self | int) -> Self:
         return Xsd_integer(self._value + int(other), validate=False)
 
@@ -163,6 +166,20 @@ class Xsd_integer(Xsd):
 
     def __isub__(self, other: Self | int) -> Self:
         self._value -= int(other)
+        return self
+
+    def __mul__(self, other: Self | int) -> Self:
+        return Xsd_integer(self._value * int(other), validate=False)
+
+    def __imul__(self, other: Self | int) -> Self:
+        self._value *= int(other)
+        return self
+
+    def __div__(self, other: Self | int) -> Self:
+        return Xsd_integer(self._value / int(other), validate=False)
+
+    def __idiv__(self, other: Self | int) -> Self:
+        self._value /= int(other)
         return self
 
     def _as_dict(self) -> dict[str, int]:
