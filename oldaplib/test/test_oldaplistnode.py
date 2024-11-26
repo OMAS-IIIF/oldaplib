@@ -19,7 +19,8 @@ from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorIncons
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplistnode import OldapListNode
-from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, dump_list_to, get_node_indices
+from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, dump_list_to, get_node_indices, \
+    load_list_from_yaml
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
@@ -46,7 +47,7 @@ class TestOldapListNode(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        project_root = find_project_root(__file__)
+        cls._project_root = find_project_root(__file__)
 
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://testing.org/datatypes#")
@@ -57,7 +58,7 @@ class TestOldapListNode(unittest.TestCase):
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
-        file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
+        file = cls._project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
 
 
@@ -66,7 +67,7 @@ class TestOldapListNode(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:lists'))
         cls._connection.clear_graph(Xsd_QName('test:data'))
-        file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
+        file = cls._project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
         sleep(1)
         cls._project = Project.read(cls._connection, "test")
@@ -1647,11 +1648,11 @@ class TestOldapListNode(unittest.TestCase):
                 case _:
                     raise AssertionError("Unexpected node")
 
-    def test_move_left_of_toR(self):
+    def test_move_right_of_toR(self):
         oldaplist = OldapList(con=self._connection,
                               project="test",
-                              oldapListId="TestMoveBelowL",
-                              prefLabel="TestMoveBelowL",
+                              oldapListId="TestMoveRightOfL",
+                              prefLabel="TestMoveRightOfL",
                               definition="A list for testing...")
         oldaplist.create()
 
@@ -1691,6 +1692,41 @@ class TestOldapListNode(unittest.TestCase):
         olBB.move_node_right_of(con=self._connection, leftnode=olC)
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
         print_sublist(nodes)
+
+    def test_gaga(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="GAGA",
+                              prefLabel="GAGA",
+                              definition="A list for testing...")
+
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+
+        olBB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BB")
+        olBB.insert_node_right_of(leftnode=olBA)
+
+        olBC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BC")
+        olBC.insert_node_right_of(leftnode=olBB)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        print_sublist(nodes)
+
+    def test_move_right_of_toL(self):
+        file = self._project_root / 'oldaplib' / 'testdata' / 'test_move_left_of_toL.yaml'
+        oldaplists = load_list_from_yaml(con=self._connection,
+                                        project='test',
+                                        filepath=file)
+        oldaplist = oldaplists[0]
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        print_sublist(nodes)
+
 
     def test_search(self):
         oldaplist = OldapList(con=self._connection,

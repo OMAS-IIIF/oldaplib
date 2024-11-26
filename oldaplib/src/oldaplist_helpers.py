@@ -213,11 +213,11 @@ def load_list_from_yaml(con: Connection,
                                  oldapListNodeId=Xsd_NCName(nodeid),
                                  prefLabel=label or None,
                                  definition=definition or None)
-            if parent is None:
-                node.create_root_node()
+            if oldapnodes:
+                node.insert_node_right_of(oldapnodes[-1])
             else:
-                if oldapnodes:
-                    node.insert_node_right_of(oldapnodes[-1])
+                if parent is None:
+                    node.create_root_node()
                 else:
                     node.insert_node_below_of(parent)
             oldapnodes.append(node)

@@ -1,0 +1,44 @@
+---
+TestMoveRightOfL:
+  label:
+    - TestMoveRightOfL@en
+  nodes:
+    Node_A:
+      label:
+        - Node_A@en
+    Node_B:
+      label:
+        - Node_B@en
+      nodes:
+        Node_BA:
+          label:
+            - Node_BA@en
+        Node_BB:
+          label:
+            - Node_BB@en
+        Node_BC:
+          label:
+            - Node_BC@en
+    Node_C:
+      label:
+        - Node_C@en
+    Node_D:
+      label:
+        - Node_D@en
+      nodes:
+        Node_DA:
+          label:
+            - Node_DA@en
+          nodes:
+            Node_DAA:
+              label:
+                - Node_DAA@en
+            Node_DAB:
+              label:
+                - Node_DAB@en
+            Node_DAC:
+              label:
+                - Node_DAC@en
+    Node_E:
+      label:
+        -Node_E@en
