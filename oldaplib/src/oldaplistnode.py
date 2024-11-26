@@ -1657,6 +1657,271 @@ class OldapListNode(Model):
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
 
+    def move_node_left_of(self, con: IConnection, leftnode: Self, indent: int = 0, indent_inc: int = 4):
+        if self._con is None:
+            raise OldapError("Cannot create: no connection")
+
+        context = Context(name=self._con.context_name)
+        timestamp = Xsd_dateTime.now()
+        #
+        # First we check if the logged-in user ("actor") has the permission to create a user for
+        # the given project!
+        #
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
+        #
+        # first we get the node info, especially leftIndex and rightIndex
+        #
+        query1 = context.sparql_context
+        query1 += f"""
+        SELECT ?lindex ?rindex ?parent_iri
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                {self.__iri.toRdf}
+                    oldap:leftIndex ?lindex ;
+                    oldap:rightIndex ?rindex .
+                OPTIONAL {{
+                    {self.__iri.toRdf} skos:broaderTransitive ?parent_iri .
+                }}
+            }}
+        }}
+        """
+        self._con.transaction_start()
+        try:
+            jsonobj = self._con.transaction_query(query1)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        moving_lindex: int = 0
+        moving_rindex: int = 0
+        moving_parent_iri: Iri | None = None
+        if len(res) != 1:
+            self._con.transaction_abort()
+            raise OldapErrorInconsistency(f"Couldn't get node to delete")
+        for r in res:
+            moving_lindex = r['lindex']
+            moving_rindex = r['rindex']
+            moving_parent_iri = r.get('parent_iri')
+
+        #
+        # now we the get information of the left node
+        #
+        query1 = context.sparql_context
+        query1 += f"""
+        SELECT ?lindex ?rindex ?parent_iri
+        WHERE {{
+            GRAPH {self.__graph}:lists {{
+                {leftnode.__iri.toRdf}
+                    oldap:leftIndex ?lindex ;
+                    oldap:rightIndex ?rindex ;
+                OPTIONAL {{
+                    {leftnode.__iri.toRdf} skos:broaderTransitive ?parent_iri .
+                }}
+            }}
+        }}
+        """
+        self._con.transaction_start()
+        try:
+            jsonobj = self._con.transaction_query(query1)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        res = QueryProcessor(context, jsonobj)
+        left_lindex: int = 0
+        left_rindex: int = 0
+        left_parent_iri: Iri | None = None
+        if len(res) != 1:
+            self._con.transaction_abort()
+            raise OldapErrorInconsistency(f'Could not get the "left"-node')
+        for r in res:
+            left_lindex = r['lindex']
+            left_rindex = r['rindex']
+            left_parent_iri = r.get('parent_iri')
+
+        #
+        # Set oldap:leftIndex and oldap:rightIndex of all nodes to be moved to the negative value
+        #
+        update1 = context.sparql_context
+        update1 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:leftIndex ?oldLeftIndex .
+                ?subject oldap:rightIndex ?oldRightIndex .
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:leftIndex ?newLeftIndex .
+                ?subject oldap:rightIndex ?newRightIndex .
+            }}
+        }}
+        WHERE {{
+            ?subject oldap:leftIndex ?oldLeftIndex ;
+                oldap:rightIndex ?oldRightIndex ;
+                skos:inScheme {self.__oldapList.oldapList_iri.toRdf} .
+            FILTER (?oldLeftIndex >= {int(moving_lindex)} && ?oldRightIndex <= {int(moving_rindex)})
+            BIND(-?oldLeftIndex AS ?newLeftIndex)
+            BIND(-?oldRightIndex AS ?newRightIndex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update1)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        #
+        # set the new left index
+        #
+        diff1 = moving_rindex - moving_lindex + 1
+        if moving_rindex < left_lindex:
+            # moving to the right
+            filter = f'FILTER (?oldLeftIndex > {int(moving_rindex)} && ?oldLeftIndex <= {int(left_lindex)})'
+        else:
+            # moving to the left
+            diff1 = -diff1
+            filter = f'FILTER (?oldLeftIndex > {int(left_rindex)} && ?oldLeftIndex < {int(moving_rindex)})'
+
+        update2 = context.sparql_context
+        update2 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:leftIndex ?oldLeftIndex .
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:leftIndex ?newLeftIndex .
+            }}
+        }}
+        WHERE {{
+            ?subject oldap:leftIndex ?oldLeftIndex ;
+                skos:inScheme {self.__oldapList.oldapList_iri.toRdf} .
+            {filter}
+            BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update2)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        #
+        # set the right index
+        #
+        if moving_rindex < left_lindex:
+            # moving to the right
+            filter = f'FILTER (?oldRightIndex > {int(moving_rindex)} && ?oldRightIndex <= {int(left_rindex)})'
+        else:
+            # moving to the left
+            filter = f'FILTER (?oldRightIndex > {int(left_rindex)} && ?oldLeftIndex < {int(moving_lindex)})'
+        update3 = context.sparql_context
+        update3 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:rightIndex ?oldRightIndex .
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:rightIndex ?newRightIndex .
+            }}
+        }}
+        WHERE {{
+            ?subject oldap:rightIndex ?oldRightIndex ;
+                oldap:rightIndex ?oldLeftIndex ;
+                skos:inScheme {self.__oldapList.oldapList_iri.toRdf} .
+            {filter}
+            BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update3)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+
+        #
+        # Correct leftIndex and rightIndex of the moved nodes
+        #
+        if moving_rindex < left_lindex:
+            diff2 = left_rindex - moving_rindex
+        else:
+            diff2 = left_rindex - moving_lindex + 1
+        update4 = context.sparql_context
+        update4 += f"""
+        DELETE {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:leftIndex ?oldLeftIndex .
+                ?subject oldap:rightIndex ?oldRightIndex .
+            }}
+        }}
+        INSERT {{
+            GRAPH {self.__graph}:lists {{
+                ?subject oldap:leftIndex ?newLeftIndex .
+                ?subject oldap:rightIndex ?newRightIndex .
+            }}
+        }}
+        WHERE {{
+            ?subject oldap:leftIndex ?oldLeftIndex ;
+                oldap:rightIndex ?oldRightIndex .
+            FILTER(?oldLeftIndex < 0)
+            BIND(-?oldLeftIndex + {int(diff2)} AS ?newLeftIndex)
+            BIND(-?oldRightIndex + {int(diff2)} AS ?newRightIndex)
+        }}
+        """
+        try:
+            self._con.transaction_update(update4)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+        update5 = context.sparql_context
+        if moving_parent_iri:
+            update5 += f"""
+            DELETE {{
+                GRAPH {self.__graph}:lists {{
+                    ?subject skos:broaderTransitive ?parent .
+                }}
+            }}
+        """
+        if left_parent_iri:
+            update5 += f"""
+            INSERT {{
+                GRAPH {self.__graph}:lists {{
+                    ?subject skos:broaderTransitive {left_parent_iri.toRdf} .
+                }}
+            }}
+        """
+        update5 += f"""
+        WHERE {{
+            BIND({self.__iri.toRdf} AS ?subject)
+            ?subject skos:broaderTransitive ?parent .
+        }}
+        """
+        try:
+            self._con.transaction_update(update5)
+        except OldapError:
+            print(update5)
+            self._con.transaction_abort()
+            raise
+
+        #
+        # commit
+        #
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+        cache = CacheSingleton()
+        cache.delete(self.__oldapList.oldapList_iri)
+
     @staticmethod
     def search(con: IConnection,
                oldapList: OldapList,
