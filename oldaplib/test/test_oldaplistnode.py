@@ -1693,12 +1693,13 @@ class TestOldapListNode(unittest.TestCase):
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
         print_sublist(nodes)
 
-    def test_gaga(self):
+    def test_move_right_of_toL(self):
         oldaplist = OldapList(con=self._connection,
                               project="test",
-                              oldapListId="GAGA",
-                              prefLabel="GAGA",
+                              oldapListId="TestMoveRightOfR",
+                              prefLabel="TestMoveRightOfR",
                               definition="A list for testing...")
+        oldaplist.create()
 
         olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
         olA.create_root_node()
@@ -1715,18 +1716,35 @@ class TestOldapListNode(unittest.TestCase):
         olBC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BC")
         olBC.insert_node_right_of(leftnode=olBB)
 
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+
+        olD = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_D")
+        olD.insert_node_right_of(leftnode=olC)
+
+        olDA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_DA")
+        olDA.insert_node_below_of(parentnode=olD)
+
+        olDAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_DAA")
+        olDAA.insert_node_below_of(parentnode=olDA)
+
+        olDAB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_DAB")
+        olDAB.insert_node_right_of(leftnode=olDAA)
+
+        olDAC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_DAC")
+        olDAC.insert_node_right_of(leftnode=olDAB)
+
+        olE = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_E")
+        olE.insert_node_right_of(leftnode=olD)
+
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
         print_sublist(nodes)
 
-    def test_move_right_of_toL(self):
-        file = self._project_root / 'oldaplib' / 'testdata' / 'test_move_left_of_toL.yaml'
-        oldaplists = load_list_from_yaml(con=self._connection,
-                                        project='test',
-                                        filepath=file)
-        oldaplist = oldaplists[0]
+        print("====================================================================")
+
+        olDA.move_node_right_of(con=self._connection, leftnode=olBB)
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
         print_sublist(nodes)
-
 
     def test_search(self):
         oldaplist = OldapList(con=self._connection,

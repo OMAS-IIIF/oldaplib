@@ -1518,7 +1518,7 @@ class OldapListNode(Model):
         else:
             # moving to the left
             diff1 = -diff1
-            filter = f'FILTER (?oldLeftIndex > {int(left_rindex)} && ?oldLeftIndex <= {int(moving_rindex)})'
+            filter = f'FILTER (?oldLeftIndex > {int(left_rindex)} && ?oldLeftIndex < {int(moving_rindex)})'
 
         update2 = context.sparql_context
         update2 += f"""
@@ -1553,7 +1553,7 @@ class OldapListNode(Model):
             filter = f'FILTER (?oldRightIndex > {int(moving_rindex)} && ?oldRightIndex <= {int(left_rindex)})'
         else:
             # moving to the left
-            filter = f'FILTER (?oldRightIndex >= {int(left_rindex)} && ?oldLeftIndex < {int(moving_lindex)})'
+            filter = f'FILTER (?oldRightIndex > {int(left_rindex)} && ?oldLeftIndex < {int(moving_lindex)})'
         update3 = context.sparql_context
         update3 += f"""
         DELETE {{
@@ -1587,7 +1587,7 @@ class OldapListNode(Model):
         if moving_rindex < left_lindex:
             diff2 = left_rindex - moving_rindex
         else:
-            diff2 = left_rindex - moving_lindex
+            diff2 = left_rindex - moving_lindex + 1
         update4 = context.sparql_context
         update4 += f"""
         DELETE {{
