@@ -1514,7 +1514,7 @@ class OldapListNode(Model):
         diff1 = moving_rindex - moving_lindex + 1
         if moving_rindex < left_lindex:
             # moving to the right
-            filter = f'FILTER (?oldLeftIndex > {int(moving_rindex)} && ?oldLeftIndex <= {int(left_lindex)})'
+            filter = f'FILTER (?oldLeftIndex > {int(moving_rindex)} && ?oldLeftIndex <= {int(left_rindex)})'
         else:
             # moving to the left
             diff1 = -diff1
@@ -1657,7 +1657,7 @@ class OldapListNode(Model):
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
 
-    def move_node_left_of(self, con: IConnection, leftnode: Self, indent: int = 0, indent_inc: int = 4):
+    def move_node_left_of(self, con: IConnection, rightnode: Self, indent: int = 0, indent_inc: int = 4):
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -1707,18 +1707,18 @@ class OldapListNode(Model):
             moving_parent_iri = r.get('parent_iri')
 
         #
-        # now we the get information of the left node
+        # now we the get information of the right node
         #
         query1 = context.sparql_context
         query1 += f"""
         SELECT ?lindex ?rindex ?parent_iri
         WHERE {{
             GRAPH {self.__graph}:lists {{
-                {leftnode.__iri.toRdf}
+                {rightnode.__iri.toRdf}
                     oldap:leftIndex ?lindex ;
                     oldap:rightIndex ?rindex ;
                 OPTIONAL {{
-                    {leftnode.__iri.toRdf} skos:broaderTransitive ?parent_iri .
+                    {rightnode.__iri.toRdf} skos:broaderTransitive ?parent_iri .
                 }}
             }}
         }}
@@ -1730,16 +1730,16 @@ class OldapListNode(Model):
             self._con.transaction_abort()
             raise
         res = QueryProcessor(context, jsonobj)
-        left_lindex: int = 0
-        left_rindex: int = 0
-        left_parent_iri: Iri | None = None
+        right_lindex: int = 0
+        right_rindex: int = 0
+        right_parent_iri: Iri | None = None
         if len(res) != 1:
             self._con.transaction_abort()
             raise OldapErrorInconsistency(f'Could not get the "left"-node')
         for r in res:
-            left_lindex = r['lindex']
-            left_rindex = r['rindex']
-            left_parent_iri = r.get('parent_iri')
+            right_lindex = r['lindex']
+            right_rindex = r['rindex']
+            right_parent_iri = r.get('parent_iri')
 
         #
         # Set oldap:leftIndex and oldap:rightIndex of all nodes to be moved to the negative value
@@ -1777,13 +1777,13 @@ class OldapListNode(Model):
         # set the new left index
         #
         diff1 = moving_rindex - moving_lindex + 1
-        if moving_rindex < left_lindex:
+        if moving_rindex < right_lindex:
             # moving to the right
-            filter = f'FILTER (?oldLeftIndex > {int(moving_rindex)} && ?oldLeftIndex <= {int(left_lindex)})'
+            filter = f'FILTER (?oldLeftIndex > {int(moving_rindex)} && ?oldLeftIndex < {int(right_lindex)})'
         else:
             # moving to the left
             diff1 = -diff1
-            filter = f'FILTER (?oldLeftIndex > {int(left_rindex)} && ?oldLeftIndex < {int(moving_rindex)})'
+            filter = f'FILTER (?oldLeftIndex > {int(right_rindex)} && ?oldLeftIndex < {int(moving_rindex)})'
 
         update2 = context.sparql_context
         update2 += f"""
@@ -1813,12 +1813,12 @@ class OldapListNode(Model):
         #
         # set the right index
         #
-        if moving_rindex < left_lindex:
+        if moving_rindex < right_lindex:
             # moving to the right
-            filter = f'FILTER (?oldRightIndex > {int(moving_rindex)} && ?oldRightIndex <= {int(left_rindex)})'
+            filter = f'FILTER (?oldRightIndex > {int(moving_rindex)} && ?oldRightIndex < {int(right_lindex)})'
         else:
             # moving to the left
-            filter = f'FILTER (?oldRightIndex > {int(left_rindex)} && ?oldLeftIndex < {int(moving_lindex)})'
+            filter = f'FILTER (?oldRightIndex > {int(right_rindex)} && ?oldLeftIndex < {int(moving_lindex)})'
         update3 = context.sparql_context
         update3 += f"""
         DELETE {{
@@ -1849,10 +1849,10 @@ class OldapListNode(Model):
         #
         # Correct leftIndex and rightIndex of the moved nodes
         #
-        if moving_rindex < left_lindex:
-            diff2 = left_rindex - moving_rindex
+        if moving_rindex < right_lindex:
+            diff2 = right_lindex - moving_rindex - 1
         else:
-            diff2 = left_rindex - moving_lindex + 1
+            diff2 = right_rindex - moving_lindex + 1
         update4 = context.sparql_context
         update4 += f"""
         DELETE {{
@@ -1890,11 +1890,11 @@ class OldapListNode(Model):
                 }}
             }}
         """
-        if left_parent_iri:
+        if right_parent_iri:
             update5 += f"""
             INSERT {{
                 GRAPH {self.__graph}:lists {{
-                    ?subject skos:broaderTransitive {left_parent_iri.toRdf} .
+                    ?subject skos:broaderTransitive {right_parent_iri.toRdf} .
                 }}
             }}
         """
