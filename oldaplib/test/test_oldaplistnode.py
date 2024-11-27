@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from pprint import pprint
 from time import sleep
+from unittest import case
 
 from oldaplib.src.helpers.json_encoder import SpecialEncoder
 from oldaplib.src.objectfactory import ResourceInstanceFactory
@@ -1692,6 +1693,9 @@ class TestOldapListNode(unittest.TestCase):
         olBBBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BBBA")
         olBBBA.insert_node_below_of(parentnode=olBBB)
 
+        olDA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_DA")
+        olDA.insert_node_below_of(parentnode=olD)
+
         olBB.move_node_right_of(con=self._connection, leftnode=olC)
 
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
@@ -1745,7 +1749,10 @@ class TestOldapListNode(unittest.TestCase):
                                 raise AssertionError("Unexpected node")
                 case "Node_D":
                     self.assertEqual(node.leftIndex, 23)
-                    self.assertEqual(node.rightIndex, 24)
+                    self.assertEqual(node.rightIndex, 26)
+                    self.assertEqual(len(node.nodes), 1)
+                    self.assertEqual(node.nodes[0].leftIndex, 24)
+                    self.assertEqual(node.nodes[0].rightIndex, 25)
                 case _:
                     raise AssertionError("Unexpected node")
 
@@ -1792,8 +1799,6 @@ class TestOldapListNode(unittest.TestCase):
 
         olE = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_E")
         olE.insert_node_right_of(leftnode=olD)
-
-        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
 
         olDA.move_node_right_of(con=self._connection, leftnode=olBB)
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
@@ -1860,6 +1865,9 @@ class TestOldapListNode(unittest.TestCase):
         olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
         olA.create_root_node()
 
+        olAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_AA")
+        olAA.insert_node_below_of(parentnode=olA)
+
         olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
         olB.insert_node_right_of(leftnode=olA)
 
@@ -1901,50 +1909,53 @@ class TestOldapListNode(unittest.TestCase):
             match node.oldapListNodeId:
                 case "Node_A":
                     self.assertEqual(node.leftIndex, 1)
-                    self.assertEqual(node.rightIndex, 2)
+                    self.assertEqual(node.rightIndex, 4)
+                    self.assertEqual(len(node.nodes), 1)
+                    self.assertEqual(node.nodes[0].leftIndex, 2)
+                    self.assertEqual(node.nodes[0].rightIndex, 3)
                 case "Node_DA":
-                    self.assertEqual(node.leftIndex, 3)
-                    self.assertEqual(node.rightIndex, 10)
+                    self.assertEqual(node.leftIndex, 5)
+                    self.assertEqual(node.rightIndex, 12)
                     self.assertEqual(len(node.nodes), 3)
                     for node2 in node.nodes:
                         match node2.oldapListNodeId:
                             case "Node_DAA":
-                                self.assertEqual(node2.leftIndex, 4)
-                                self.assertEqual(node2.rightIndex, 5)
-                            case "Node_DAB":
                                 self.assertEqual(node2.leftIndex, 6)
                                 self.assertEqual(node2.rightIndex, 7)
-                            case "Node_DAC":
+                            case "Node_DAB":
                                 self.assertEqual(node2.leftIndex, 8)
                                 self.assertEqual(node2.rightIndex, 9)
+                            case "Node_DAC":
+                                self.assertEqual(node2.leftIndex, 10)
+                                self.assertEqual(node2.rightIndex, 11)
                             case _:
                                 raise AssertionError("Unexpected node")
                 case "Node_B":
-                    self.assertEqual(node.leftIndex, 11)
-                    self.assertEqual(node.rightIndex, 18)
+                    self.assertEqual(node.leftIndex, 13)
+                    self.assertEqual(node.rightIndex, 20)
                     self.assertEqual(len(node.nodes), 3)
                     for node2 in node.nodes:
                         match node2.oldapListNodeId:
                             case "Node_BA":
-                                self.assertEqual(node2.leftIndex, 12)
-                                self.assertEqual(node2.rightIndex, 13)
-                            case "Node_BB":
                                 self.assertEqual(node2.leftIndex, 14)
                                 self.assertEqual(node2.rightIndex, 15)
-                            case "Node_BC":
+                            case "Node_BB":
                                 self.assertEqual(node2.leftIndex, 16)
                                 self.assertEqual(node2.rightIndex, 17)
+                            case "Node_BC":
+                                self.assertEqual(node2.leftIndex, 18)
+                                self.assertEqual(node2.rightIndex, 19)
                             case _:
                                 raise AssertionError("Unexpected node")
                 case "Node_C":
-                    self.assertEqual(node.leftIndex, 19)
-                    self.assertEqual(node.rightIndex, 20)
-                case "Node_D":
                     self.assertEqual(node.leftIndex, 21)
                     self.assertEqual(node.rightIndex, 22)
-                case "Node_E":
+                case "Node_D":
                     self.assertEqual(node.leftIndex, 23)
                     self.assertEqual(node.rightIndex, 24)
+                case "Node_E":
+                    self.assertEqual(node.leftIndex, 25)
+                    self.assertEqual(node.rightIndex, 26)
                 case _:
                     raise AssertionError("Unexpected node")
 
@@ -1990,12 +2001,105 @@ class TestOldapListNode(unittest.TestCase):
         olDA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_DA")
         olDA.insert_node_below_of(parentnode=olD)
 
+        olBB.move_node_left_of(con=self._connection, rightnode=olD)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        for node in nodes:
+            match node.oldapListNodeId:
+                case "Node_A":
+                    self.assertEqual(node.leftIndex, 1)
+                    self.assertEqual(node.rightIndex, 2)
+                case "Node_B":
+                    self.assertEqual(node.leftIndex, 3)
+                    self.assertEqual(node.rightIndex, 8)
+                    self.assertEqual(len(node.nodes), 2)
+                    for node2 in node.nodes:
+                        match node2.oldapListNodeId:
+                            case "Node_BA":
+                                self.assertEqual(node2.leftIndex, 4)
+                                self.assertEqual(node2.rightIndex, 5)
+                            case "Node_BC":
+                                self.assertEqual(node2.leftIndex, 6)
+                                self.assertEqual(node2.rightIndex, 7)
+                            case _:
+                                raise AssertionError("Unexpected node")
+                case "Node_C":
+                    self.assertEqual(node.leftIndex, 9)
+                    self.assertEqual(node.rightIndex, 10)
+                case "Node_BB":
+                    self.assertEqual(node.leftIndex, 11)
+                    self.assertEqual(node.rightIndex, 18)
+                    self.assertEqual(len(node.nodes), 3)
+                    for node2 in node.nodes:
+                        match node2.oldapListNodeId:
+                            case "Node_BBA":
+                                self.assertEqual(node2.leftIndex, 12)
+                                self.assertEqual(node2.rightIndex, 13)
+                            case "Node_BBB":
+                                self.assertEqual(node2.leftIndex, 14)
+                                self.assertEqual(node2.rightIndex, 15)
+                            case "Node_BBC":
+                                self.assertEqual(node2.leftIndex, 16)
+                                self.assertEqual(node2.rightIndex, 17)
+                            case _:
+                                raise AssertionError("Unexpected node")
+                case "Node_D":
+                    self.assertEqual(node.leftIndex, 19)
+                    self.assertEqual(node.rightIndex, 22)
+                    self.assertEqual(len(node.nodes), 1)
+                    self.assertEqual(node.nodes[0].oldapListNodeId, "Node_DA")
+                    self.assertEqual(node.nodes[0].leftIndex, 20)
+                    self.assertEqual(node.nodes[0].rightIndex, 21)
+                case _:
+                    raise AssertionError("Unexpected node")
+
+    def test_move_left_of_toL(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestMoveLeftOf_toL",
+                              prefLabel="TestMoveLeftOf_toL",
+                              definition="A list for testing...")
+        oldaplist.create()
+
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_AA")
+        olAA.insert_node_below_of(parentnode=olA)
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+
+        olBA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_BA")
+        olBA.insert_node_below_of(parentnode=olB)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+
+        olD = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_D")
+        olD.insert_node_right_of(leftnode=olC)
+
+        olDA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_DA")
+        olDA.insert_node_below_of(parentnode=olD)
+
+        olDAA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_DAA")
+        olDAA.insert_node_below_of(parentnode=olDA)
+
+        olDAB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_DAB")
+        olDAB.insert_node_right_of(leftnode=olDAA)
+
+        olE = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_E")
+        olE.insert_node_right_of(leftnode=olD)
+
+        olEA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_EA")
+        olEA.insert_node_below_of(parentnode=olE)
+
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
         print_sublist(nodes)
 
-        print("======================================================")
+        olDA.move_node_left_of(con=self._connection, rightnode=olB)
 
-        olBB.move_node_left_of(con=self._connection, rightnode=olD)
+        print("======================================================")
 
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
         print_sublist(nodes)
