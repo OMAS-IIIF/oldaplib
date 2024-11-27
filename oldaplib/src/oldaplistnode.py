@@ -1639,12 +1639,13 @@ class OldapListNode(Model):
             ?subject skos:broaderTransitive ?parent .
         }}
         """
-        try:
-            self._con.transaction_update(update5)
-        except OldapError:
-            print(update5)
-            self._con.transaction_abort()
-            raise
+        if moving_parent_iri or left_parent_iri:
+            try:
+                self._con.transaction_update(update5)
+            except OldapError:
+                print(update5)
+                self._con.transaction_abort()
+                raise
 
         #
         # commit
@@ -1783,7 +1784,7 @@ class OldapListNode(Model):
         else:
             # moving to the left
             diff1 = -diff1
-            filter = f'FILTER (?oldLeftIndex > {int(right_rindex)} && ?oldLeftIndex < {int(moving_rindex)})'
+            filter = f'FILTER (?oldLeftIndex >= {int(right_lindex)} && ?oldLeftIndex < {int(moving_lindex)})'
 
         update2 = context.sparql_context
         update2 += f"""
@@ -1799,6 +1800,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
+                oldap:rightIndex ?oldRightIndex ;
                 skos:inScheme {self.__oldapList.oldapList_iri.toRdf} .
             {filter}
             BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
@@ -1818,7 +1820,7 @@ class OldapListNode(Model):
             filter = f'FILTER (?oldRightIndex > {int(moving_rindex)} && ?oldRightIndex < {int(right_lindex)})'
         else:
             # moving to the left
-            filter = f'FILTER (?oldRightIndex > {int(right_rindex)} && ?oldLeftIndex < {int(moving_lindex)})'
+            filter = f'FILTER (?oldLeftIndex >= {int(right_lindex)} && ?oldRightIndex < {int(moving_lindex)})'
         update3 = context.sparql_context
         update3 += f"""
         DELETE {{
@@ -1833,7 +1835,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             ?subject oldap:rightIndex ?oldRightIndex ;
-                oldap:rightIndex ?oldLeftIndex ;
+                oldap:leftIndex ?oldLeftIndex ;
                 skos:inScheme {self.__oldapList.oldapList_iri.toRdf} .
             {filter}
             BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
@@ -1852,7 +1854,7 @@ class OldapListNode(Model):
         if moving_rindex < right_lindex:
             diff2 = right_lindex - moving_rindex - 1
         else:
-            diff2 = right_rindex - moving_lindex + 1
+            diff2 = right_lindex - moving_lindex
         update4 = context.sparql_context
         update4 += f"""
         DELETE {{
@@ -1904,12 +1906,13 @@ class OldapListNode(Model):
             ?subject skos:broaderTransitive ?parent .
         }}
         """
-        try:
-            self._con.transaction_update(update5)
-        except OldapError:
-            print(update5)
-            self._con.transaction_abort()
-            raise
+        if moving_parent_iri or right_parent_iri:
+            try:
+                self._con.transaction_update(update5)
+            except OldapError:
+                print(update5)
+                self._con.transaction_abort()
+                raise
 
         #
         # commit
