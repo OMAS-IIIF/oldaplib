@@ -112,6 +112,8 @@ class OldapList(Model):
     __node_class_iri: Iri
     nodes: list
 
+    __slots__ = ('oldapListId', 'prefLabel', 'definition')
+
     def __init__(self, *,
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str,

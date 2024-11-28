@@ -1,12 +1,7 @@
-import json
 import unittest
 from pathlib import Path
-from pprint import pprint
 from time import sleep
-from unittest import case
 
-from oldaplib.src.helpers.json_encoder import SpecialEncoder
-from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.languagein import LanguageIn
@@ -18,10 +13,10 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency
 from oldaplib.src.iconnection import IConnection
+from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.oldaplist import OldapList
+from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist
 from oldaplib.src.oldaplistnode import OldapListNode
-from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, dump_list_to, get_node_indices, \
-    load_list_from_yaml
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
@@ -1562,6 +1557,41 @@ class TestOldapListNode(unittest.TestCase):
                             case _:
                                 raise AssertionError(f'Found unexpected node: {node.oldpListNodeId}')
 
+    def test_move_below_toR02(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestMoveBelowR02",
+                              prefLabel="TestMoveBelowR02",
+                              definition="A list for testing...")
+        oldaplist.create()
+
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+
+        olA.move_node_below(con=self._connection, target=olC)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        self.assertEqual(len(nodes), 2)
+        for node in nodes:
+            match node.oldapListNodeId:
+                case "Node_B":
+                    self.assertEqual(node.leftIndex, 1)
+                    self.assertEqual(node.rightIndex, 2)
+                case "Node_C":
+                    self.assertEqual(node.leftIndex, 3)
+                    self.assertEqual(node.rightIndex, 6)
+                    self.assertEqual(len(node.nodes), 1)
+                    self.assertEqual(node.nodes[0].oldapListNodeId, "Node_A")
+                    self.assertEqual(node.nodes[0].leftIndex, 4)
+                    self.assertEqual(node.nodes[0].rightIndex, 5)
+                case _:
+                    raise AssertionError("Invalid node")
 
     def test_move_below_toL(self):
         oldaplist = OldapList(con=self._connection,
@@ -1637,6 +1667,43 @@ class TestOldapListNode(unittest.TestCase):
                     self.assertEqual(node.rightIndex, 20)
                 case _:
                     raise AssertionError("Unexpected node")
+
+    def test_move_below_toL02(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestMoveBelowL02",
+                              prefLabel="TestMoveBelowL02",
+                              definition="A list for testing...")
+        oldaplist.create()
+
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+
+        olC = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_C")
+        olC.insert_node_right_of(leftnode=olB)
+
+        olC.move_node_below(con=self._connection, target=olA)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        self.assertEqual(len(nodes), 2)
+        for node in nodes:
+            match node.oldapListNodeId:
+                case "Node_A":
+                    self.assertEqual(node.leftIndex, 1)
+                    self.assertEqual(node.rightIndex, 4)
+                    self.assertEqual(len(node.nodes), 1)
+                    self.assertEqual(node.nodes[0].oldapListNodeId, "Node_C")
+                    self.assertEqual(node.nodes[0].leftIndex, 2)
+                    self.assertEqual(node.nodes[0].rightIndex, 3)
+                case "Node_B":
+                    self.assertEqual(node.leftIndex, 5)
+                    self.assertEqual(node.rightIndex, 6)
+                case _:
+                    raise AssertionError("Unexpected node")
+
 
     def test_move_right_of_toR(self):
         oldaplist = OldapList(con=self._connection,

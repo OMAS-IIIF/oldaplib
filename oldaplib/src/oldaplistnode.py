@@ -44,6 +44,9 @@ class OldapListNode(Model):
     __leftIndex: Xsd_integer | None
     __rightIndex: Xsd_integer | None
 
+    #__slots__ = OldapListNodeAttr.nametuple()
+    __slots__ = ('oldapListNodeId', 'prefLabel', 'definition')
+
     def __init__(self, *,
                  con: IConnection,
                  oldapList: OldapList,
@@ -1155,7 +1158,7 @@ class OldapListNode(Model):
             raise OldapErrorNoPermission(message)
 
         #
-        # first we get the node info, especialle leftIndex and rightIndex
+        # first we get the node info, especially leftIndex and rightIndex
         #
         query1 = context.sparql_context
         query1 += f"""
@@ -1165,7 +1168,9 @@ class OldapListNode(Model):
                 {self.__iri.toRdf}
                     oldap:leftIndex ?lindex ;
                     oldap:rightIndex ?rindex ;
-                    skos:broaderTransitive ?parent_iri.
+                OPTIONAL {{
+                    {self.__iri.toRdf} skos:broaderTransitive ?parent_iri .
+                }}
             }}
         }}
         """
@@ -1178,14 +1183,14 @@ class OldapListNode(Model):
         res = QueryProcessor(context, jsonobj)
         moving_lindex: int = 0
         moving_rindex: int = 0
-        #moving_parent_iri: Iri | None = None
+        moving_parent_iri: Iri | None = None
         if len(res) != 1:
             self._con.transaction_abort()
             raise OldapErrorInconsistency(f"Couldn't get node to delete")
         for r in res:
             moving_lindex = r['lindex']
             moving_rindex = r['rindex']
-            #moving_parent_iri = r['parent_iri']
+            moving_parent_iri = r.get('parent_iri')
 
         #
         # now we the get information of the target node
@@ -1326,7 +1331,7 @@ class OldapListNode(Model):
         # Correct leftIndex and rightIndex of the moved nodes
         #
         if moving_rindex < target_lindex:
-            diff2 = diff1 - (target_rindex - moving_rindex + 1)
+            diff2 = target_rindex - moving_lindex -diff1
         else:
             diff2 = target_rindex - moving_lindex
         update4 = context.sparql_context
@@ -1357,13 +1362,19 @@ class OldapListNode(Model):
             self._con.transaction_abort()
             raise
 
+        #
+        # update parent (skos:broaderTransitive)
+        #
         update5 = context.sparql_context
-        update5 += f"""
-        DELETE {{
-            GRAPH {self.__graph}:lists {{
-                ?subject skos:broaderTransitive ?parent .
+        if moving_parent_iri:
+            update5 += f"""
+            DELETE {{
+                GRAPH {self.__graph}:lists {{
+                    ?subject skos:broaderTransitive ?parent .
+                }}
             }}
-        }}
+            """
+        update5 += f"""
         INSERT {{
             GRAPH {self.__graph}:lists {{
                 ?subject skos:broaderTransitive {target.__iri.toRdf} .
@@ -1371,7 +1382,9 @@ class OldapListNode(Model):
         }}
         WHERE {{
             BIND({self.__iri.toRdf} AS ?subject)
-            ?subject skos:broaderTransitive ?parent .
+            OPTIONAL {{
+                ?subject skos:broaderTransitive ?parent .
+            }}
         }}
         """
         try:
