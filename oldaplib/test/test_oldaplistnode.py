@@ -1470,6 +1470,105 @@ class TestOldapListNode(unittest.TestCase):
         self.assertEqual(Xsd_integer(9), node_C.leftIndex)
         self.assertEqual(Xsd_integer(10), node_C.rightIndex)
 
+    def test_move_simple_A(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestMoveSimpleA",
+                              prefLabel="TestMoveSimpleA",
+                              definition="A list for testing...")
+        oldaplist.create()
+
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+
+        olB.move_node_left_of(con=self._connection, rightnode=olA)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        self.assertEqual(nodes[0].oldapListNodeId, "Node_B")
+        self.assertEqual(nodes[0].leftIndex, 1)
+        self.assertEqual(nodes[0].rightIndex, 2)
+        self.assertEqual(nodes[1].oldapListNodeId, "Node_A")
+        self.assertEqual(nodes[1].leftIndex, 3)
+        self.assertEqual(nodes[1].rightIndex, 4)
+
+    def test_move_simple_B(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestMoveSimpleB",
+                              prefLabel="TestMoveSimpleB",
+                              definition="A list for testing...")
+        oldaplist.create()
+
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+
+        olA.move_node_right_of(con=self._connection, leftnode=olB)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        self.assertEqual(nodes[0].oldapListNodeId, "Node_B")
+        self.assertEqual(nodes[0].leftIndex, 1)
+        self.assertEqual(nodes[0].rightIndex, 2)
+        self.assertEqual(nodes[1].oldapListNodeId, "Node_A")
+        self.assertEqual(nodes[1].leftIndex, 3)
+        self.assertEqual(nodes[1].rightIndex, 4)
+
+    def test_move_simple_C(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestMoveSimpleC",
+                              prefLabel="TestMoveSimpleC",
+                              definition="A list for testing...")
+        oldaplist.create()
+
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+
+        olA.move_node_below(con=self._connection, target=olB)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        self.assertEqual(nodes[0].oldapListNodeId, "Node_B")
+        self.assertEqual(len(nodes[0].nodes), 1)
+        self.assertEqual(nodes[0].leftIndex, 1)
+        self.assertEqual(nodes[0].rightIndex, 4)
+        self.assertEqual(nodes[0].nodes[0].oldapListNodeId, "Node_A")
+        self.assertEqual(nodes[0].nodes[0].leftIndex, 2)
+        self.assertEqual(nodes[0].nodes[0].rightIndex, 3)
+
+    def test_move_simple_D(self):
+        oldaplist = OldapList(con=self._connection,
+                              project="test",
+                              oldapListId="TestMoveSimpleD",
+                              prefLabel="TestMoveSimpleD",
+                              definition="A list for testing...")
+        oldaplist.create()
+
+        olA = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        olA.create_root_node()
+
+        olB = OldapListNode(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_B")
+        olB.insert_node_right_of(leftnode=olA)
+
+        olB.move_node_below(con=self._connection, target=olA)
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        self.assertEqual(nodes[0].oldapListNodeId, "Node_A")
+        self.assertEqual(len(nodes[0].nodes), 1)
+        self.assertEqual(nodes[0].leftIndex, 1)
+        self.assertEqual(nodes[0].rightIndex, 4)
+        self.assertEqual(nodes[0].nodes[0].oldapListNodeId, "Node_B")
+        self.assertEqual(nodes[0].nodes[0].leftIndex, 2)
+        self.assertEqual(nodes[0].nodes[0].rightIndex, 3)
+
+
     def test_move_below_toR(self):
         oldaplist = OldapList(con=self._connection,
                               project="test",

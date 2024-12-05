@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oldaplib"
-version = "0.1.31"
+version = "0.1.32"
 description = "Open Media Access Server Library (Linked Open Data middleware/RESTApi)"
 authors = ["Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>"]
 license = "GNU Affero General Public License version 3"
@@ -43,3 +43,6 @@ pyyaml = "^6.0.2"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+load_list = "oldaplib/apps/load_list:load_list"
