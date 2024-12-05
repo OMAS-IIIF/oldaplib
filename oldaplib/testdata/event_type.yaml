@@ -1,0 +1,39 @@
+---
+event_type:
+    label:
+      - Event_Type@en
+      - Ereignisart@de
+      - Type_d'événement@fr
+    definition:
+      - The event type indicates the purpose or nature of an individual's activity at a particular time and place.
+      - Die Ereignisart gibt den Zweck oder die Art des Aufenthaltes einer Person zu einer bestimmten Zeit und an einem bestimmten Ort an.
+      - Le type d'événement indique le but ou le type de séjour d'une personne à un moment et à un endroit donnés.
+    nodes:
+      complete_travels:
+        label: [ Complete_Travels@en, Komplette_Reise@de, Voyage_Complet@fr ]
+        definition:
+          - Complete travels refers to an overarching event that encompasses all individual travel stops, representing the entirety of a journey from start to finish.
+          - Unter einer kompletten Reise versteht man ein übergreifendes Ereignis, das alle einzelnen Reisestationen umfasst und die Gesamtheit einer Reise von Anfang bis Ende darstellt.
+          - Les voyages complets font référence à un événement global qui englobe tous les arrêts de voyage individuels, représentant l'intégralité d'un voyage du début à la fin.
+      meeting:
+        label: [ Meeting@en, Treffen@de, Rencontre@fr ]
+        definition:
+          - A meeting or encounter that is not explicitly part of another defined event.
+          - Ein Treffen oder eine Begegnung, die nicht ausdrücklich Teil eines anderen definierten Ereignisses ist.
+          - Une réunion ou une rencontre qui ne fait pas explicitement partie d'un autre événement défini.
+      passing_through:
+        label: [ Passing_through@en, Durchreisen@de, En_Passant_à_Travers@fr ]
+        definition:
+          - The Location is mentioned in the text but there is no evidence of a travel stop, interaction, or detailed description of the location.
+          - Der Ort wird im Text erwähnt, aber es gibt keinen Hinweis auf einen Reisehalt, eine Interaktion oder eine detaillierte Beschreibung des Ortes.
+          - Le lieu est mentionné dans le texte mais il n'y a pas de preuve d'un arrêt de voyage, d'une interaction ou d'une description détaillée du lieu.
+      residence:
+        label: [ Residence@en, Aufenthalt@de, Résidence@fr ]
+        definition:
+          - When a person lives in a place for an extended period, typically indicating a more permanent or stable stay compared to shorter visits or stops.
+          - Wenn eine Person für einen längeren Zeitraum an einem Ort lebt, was typischerweise auf einen dauerhafteren oder stabileren Aufenthalt im Vergleich zu kürzeren Besuchen oder Zwischenstopps hinweist.
+          - Lorsqu'une personne vit dans un endroit pendant une période prolongée, ce qui indique généralement un séjour plus permanent ou stable par rapport à des visites ou arrêts plus courts.
+      studying:
+        label: [ Studying@en, Studieren@de, Étudier@fr ]
+      travel_stop:
+        label: [ Travel_Stop@en, Reisestopp@de, Arrêt_de_Voyage@fr ]

@@ -1,0 +1,20 @@
+---
+means_of_transportation:
+    label:
+      - Means_of_Transportation@en
+      - Fortbewegungsmittel@de
+      - Moyens_de_Transport@fr
+    definition:
+      - The means of transportation used to reach a place, if it is evident in the text.
+      - Das Fortbewegungsmittel, mit dem ein Ort erreicht wurde, wenn es aus dem Text ersichtlich ist.
+      - Le moyen de transport utilisé pour se rendre à un endroit, s'il est évident dans le texte.
+    nodes:
+      carriage:
+        label: [ Carriage@en, Kutsche@de, Carrosse@fr ]
+      horse:
+        label: [ Horse@en, Pferd@de, Cheval@fr ]
+      on_foot:
+        label: [ On_Foot@en, Zu_Fuss@de, À_Pied@fr ]
+      ship_or_boat:
+        label: [ Ship_or_Boat@en, Schiff_oder_Boot@de, Navire_ou_Bateau@fr ]
+
