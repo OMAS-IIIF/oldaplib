@@ -70,12 +70,14 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("testuser_without"),
                     familyName="TestWithout",
                     givenName="TestWithout",
+                    email="a.b@test.com",
                     credentials="Ein@geheimes&Passw0rt")
 
         user = User(con=self._connection,
                     userId=Xsd_NCName("testuser_empty"),
                     familyName="TestEmpty",
                     givenName="TestEmpty",
+                    email="a.b@test.com",
                     credentials="Ein@geheimes&Passw0rt",
                     inProject={})
 
@@ -83,6 +85,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("testuser_empty"),
                     familyName="TestEmpty",
                     givenName="TestEmpty",
+                    email="a.b@test.com",
                     credentials="Ein@geheimes&Passw0rt",
                     inProject={Iri('oldap:HyperHamlet'): {}},
                     hasPermissions={})
@@ -92,6 +95,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("testuser"),
                     familyName="Test",
                     givenName="Test",
+                    email="a.b@test.com",
                     credentials="Ein@geheimes&Passw0rt",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -101,6 +105,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.userId, Xsd_NCName("testuser"))
         self.assertEqual(user.familyName, "Test")
         self.assertEqual(user.givenName, "Test")
+        self.assertEqual(user.email, "a.b@test.com")
         self.assertEqual(user.inProject, InProjectClass({Iri("oldap:HyperHamlet"): {
             AdminPermission.ADMIN_USERS,
             AdminPermission.ADMIN_RESOURCES,
@@ -113,6 +118,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("testuser"),
                     familyName="Test",
                     givenName="Test",
+                    email="a.b@test.com",
                     credentials="Ein@geheimes&Passw0rt",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -123,6 +129,8 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.userId, user2.userId)
         self.assertEqual(user.userIri, user2.userIri)
         self.assertEqual(user.familyName, user2.familyName)
+        self.assertEqual(user.givenName, user2.givenName)
+        self.assertEqual(user.email, user2.email)
         self.assertEqual(user.credentials, user2.credentials)
         self.assertEqual(user.inProject[Iri('oldap:HyperHamlet')], user2.inProject[Iri('oldap:HyperHamlet')])
         self.assertEqual(user.hasPermissions, user2.hasPermissions)
@@ -134,6 +142,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.userIri, Iri("https://orcid.org/0000-0003-1681-4036"))
         self.assertEqual(user.familyName, Xsd_string("Rosenthaler"))
         self.assertEqual(user.givenName, Xsd_string("Lukas"))
+        self.assertEqual(user.email, Xsd_string("lukas.rosenthaler@unibas.ch"))
         self.assertEqual(user.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
@@ -146,6 +155,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.userIri, Iri("https://orcid.org/0000-0003-1681-4036"))
         self.assertEqual(user.familyName, Xsd_string("Rosenthaler"))
         self.assertEqual(user.givenName, Xsd_string("Lukas"))
+        self.assertEqual(user.email, Xsd_string("lukas.rosenthaler@unibas.ch"))
         self.assertEqual(user.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
@@ -179,6 +189,10 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.givenName, user2.givenName)
         self.assertFalse(user.givenName is user2.givenName)
 
+        self.assertEqual(user2.email, Xsd_string("lukas.rosenthaler@unibas.ch"))
+        self.assertEqual(user.email, user2.email)
+        self.assertFalse(user.email is user2.email)
+
         self.assertEqual(user2.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
@@ -208,6 +222,10 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user3.givenName, Xsd_string("Lukas"))
         self.assertEqual(user.givenName, user3.givenName)
         self.assertFalse(user.givenName is user3.givenName)
+
+        self.assertEqual(user3.email, Xsd_string("lukas.rosenthaler@unibas.ch"))
+        self.assertEqual(user.email, user3.email)
+        self.assertFalse(user.email is user3.email)
 
         self.assertEqual(user3.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
@@ -266,6 +284,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("coyote"),
                     familyName="Coyote",
                     givenName="Wiley E.",
+                    email="wiley.coyote@looneytunes.com",
                     credentials="Super-Genius",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                                AdminPermission.ADMIN_RESOURCES,
@@ -282,6 +301,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user2.userIri, user.userIri)
         self.assertEqual(user2.familyName, user.familyName)
         self.assertEqual(user2.givenName, user.givenName)
+        self.assertEqual(user2.email, user.email)
         self.assertEqual(user2.inProject, user.inProject)
         self.assertEqual(user2.hasPermissions, user.hasPermissions)
         self.assertTrue(user2.isActive)
@@ -293,6 +313,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("birdy"),
                     familyName="Birdy",
                     givenName="Tweetie",
+                    email="tweety.birdy@looneytunes.com",
                     credentials="Sylvester",
                     inProject={Iri('oldap:HyperHamlet'): set()},
                     hasPermissions={Iri('oldap:GenericView')},
@@ -309,6 +330,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("yogi"),
                     familyName="Baer",
                     givenName="Yogi",
+                    email="yogi.baer@yellowstone.gov",
                     credentials="BuBu",
                     hasPermissions={Iri('oldap:GenericView')},
                     isActive=True)
@@ -325,6 +347,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("speedy"),
                     familyName="Ganzales",
                     givenName="Speedy",
+                    email="speedy.gonzales@mexico.com",
                     credentials="fasterthanlight",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                                AdminPermission.ADMIN_RESOURCES,
@@ -344,6 +367,7 @@ class TestUser(unittest.TestCase):
                     familyName="Sylvester",
                     givenName="Cat",
                     credentials="Birdy",
+                    email="sylvester.cat@looneytunes.com",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                                AdminPermission.ADMIN_RESOURCES,
                                                                AdminPermission.ADMIN_CREATE}},
@@ -363,6 +387,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("fornaro"),
                     familyName="di Fornaro",
                     givenName="Petri",
+                    email="petri.difornaro@italia.it",
                     credentials="Genius",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                                AdminPermission.ADMIN_RESOURCES,
@@ -380,6 +405,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("brown"),
                     familyName="Brown",
                     givenName="Emmett",
+                    email="emmet.brown@hilldale.com",
                     credentials="Time-Machine@1985",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                                AdminPermission.ADMIN_RESOURCES,
@@ -396,6 +422,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("donald"),
                     familyName="Duck",
                     givenName="Donald",
+                    email="donald.duck@duckville.com",
                     credentials="Entenhausen@for&Ever",
                     inProject={Iri('oldap:NotExistingproject'): {AdminPermission.ADMIN_USERS,
                                                                 AdminPermission.ADMIN_RESOURCES,
@@ -412,6 +439,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("donald"),
                     familyName="Duck",
                     givenName="Donald",
+                    email="donald.duck@duckville.com",
                     credentials="Entenhausen@for&Ever",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -428,6 +456,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("donald"),
                     familyName="Duck",
                     givenName="Donald",
+                    email="donald.duck@duckville.com",
                     credentials="Entenhausen@for&Ever",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_CREATE}},
                     hasPermissions={Iri('oldap:GenericView')})
@@ -443,6 +472,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("edison"),
                     familyName="Edison",
                     givenName="Thomas A.",
+                    email="thomas.aedison@ny.com",
                     credentials="Lightbulb&Phonograph",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -470,6 +500,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("ampere"),
                     familyName="Ampère",
                     givenName="André-Marie",
+                    email="ampere@current.com",
                     credentials="Current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -487,6 +518,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("ampere"),
                     familyName="Ampère",
                     givenName="André-Marie",
+                    email="ampere@current.com",
                     credentials="Current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -505,6 +537,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("ampere"),
                     familyName="Ampère",
                     givenName="André-Marie",
+                    email="ampere@current.com",
                     credentials="Current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -523,6 +556,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("ampere"),
                     familyName="Ampère",
                     givenName="André-Marie",
+                    email="ampere@current.com",
                     credentials="Current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -541,6 +575,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("faraday"),
                     familyName="Faraday",
                     givenName="Michael",
+                    email="michael.faraday@cage.com",
                     credentials="electromagnetism",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -559,6 +594,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("fourier"),
                     familyName="Fourier",
                     givenName="Joseph",
+                    email="joseph.fourier@wave.com",
                     credentials="FrequencyAnalysis",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -578,6 +614,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("edison"),
                     familyName="Edison",
                     givenName="Thomas A.",
+                    email="thomas.edison@inventors.org",
                     credentials="Lightbulb&Phonograph",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
@@ -588,6 +625,7 @@ class TestUser(unittest.TestCase):
         user2.userId = "aedison"
         user2.familyName = "Edison et al."
         user2.givenName = "Thomas"
+        user2.email = "th.edison@audiorec.com"
 
         user2.hasPermissions.add(Iri('oldap:GenericRestricted'))
         user2.hasPermissions.add(Iri('hyha:HyperHamletMember'))
@@ -597,6 +635,9 @@ class TestUser(unittest.TestCase):
         user2.inProject[Iri('oldap:HyperHamlet')].add(AdminPermission.ADMIN_LISTS)
         user2.update()
         user3 = User.read(con=self._connection, userId="aedison", ignore_cache=True)
+        self.assertEqual(user3.familyName, "Edison et al.")
+        self.assertEqual(user3.givenName, "Thomas")
+        self.assertEqual(user3.email, "th.edison@audiorec.com")
         self.assertEqual({Iri('oldap:GenericRestricted'), Iri('hyha:HyperHamletMember')}, user3.hasPermissions)
         user3.hasPermissions.add(Iri('oldap:DoesNotExist'))
         with self.assertRaises(OldapErrorValue) as ex:
@@ -625,6 +666,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("tesla"),
                     familyName="Tesla",
                     givenName="Nikolai",
+                    email="nikolai.tesla@tesla.com",
                     credentials="Alternative current",
                     hasPermissions={Iri('oldap:GenericView')})
         user.create()
@@ -640,6 +682,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("tesla"),
                     familyName="Tesla",
                     givenName="Nikolai",
+                    email="nikolai.tesla@tesla.com",
                     credentials="Alternative current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES}},
@@ -657,6 +700,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("tesla"),
                     familyName="Tesla",
                     givenName="Nikolai",
+                    email="nikolai.tesla@tesla.com",
                     credentials="Alternative current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES}},
@@ -675,6 +719,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("volta"),
                     familyName="Volta",
                     givenName="Alessandro",
+                    email="alessandro.volta@tension.com",
                     credentials="ElectricTension",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES},
@@ -694,6 +739,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("voltaB"),
                     familyName="VoltaB",
                     givenName="AlessandroB",
+                    email="alessandro.volta@tension.com",
                     credentials="ElectricTensionB",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES},
@@ -713,6 +759,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("curie"),
                     familyName="Curie",
                     givenName="Marie",
+                    email="marie.curie@radioactivity.com",
                     credentials="Radiation",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES},
@@ -732,6 +779,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("tesla"),
                     familyName="Tesla",
                     givenName="Nikolai",
+                    email="nikolai.tesla@tesla.com",
                     credentials="Alternative current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES}},
@@ -759,6 +807,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("chiquet"),
                     familyName="Chiquet",
                     givenName="Vera",
+                    email="vera.chiquet@unibas.ch",
                     credentials="Photography",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -781,6 +830,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("bsimpson"),
                     familyName="Simpson",
                     givenName="Bart",
+                    email="bart.simpson@springfield.com",
                     credentials="AtomicPower",
                     hasPermissions={Iri('oldap:GenericView')})
         user.create()
@@ -803,6 +853,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("chiquet"),
                     familyName="Chiquet",
                     givenName="Vera",
+                    email="vera.chiquet@unibas.ch",
                     credentials="Photography",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -825,6 +876,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("chiquet"),
                     familyName="Chiquet",
                     givenName="Vera",
+                    email="vera.chiquet@unibas.ch",
                     credentials="Photography",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -847,6 +899,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("bsimpson"),
                     familyName="Simpson",
                     givenName="Bart",
+                    email="bart.simpson@springfield.com",
                     credentials="AtomicPower",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -878,6 +931,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("bsimpson"),
                     familyName="Simpson",
                     givenName="Bart",
+                    email="bart.simpson@springfield.com",
                     credentials="AtomicPower",
                     inProject={
                         Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
@@ -908,6 +962,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("bsimpson"),
                     familyName="Simpson",
                     givenName="Bart",
+                    email="bart.simpson@springfield.com",
                     credentials="AtomicPower",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -940,6 +995,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("chiquet"),
                     familyName="Chiquet",
                     givenName="Vera",
+                    email="vera.chiquet@unibas.ch",
                     credentials="Photography",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -962,6 +1018,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("chiquet"),
                     familyName="Chiquet",
                     givenName="Vera",
+                    email="vera.chiquet@unibas.ch",
                     credentials="Photography",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -984,6 +1041,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("chiquet"),
                     familyName="Chiquet",
                     givenName="Vera",
+                    email="vera.chiquet@unibas.ch",
                     credentials="Photography",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -1005,6 +1063,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("chiquet"),
                     familyName="Chiquet",
                     givenName="Vera",
+                    email="vera.chiquet@unibas.ch",
                     credentials="Photography",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -1024,6 +1083,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("chiquet"),
                     familyName="Chiquet",
                     givenName="Vera",
+                    email="vera.chiquet@unibas.ch",
                     credentials="Photography",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -1046,6 +1106,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("chiquet"),
                     familyName="Chiquet",
                     givenName="Vera",
+                    email="vera.chiquet@unibas.ch",
                     credentials="Photography",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -1067,6 +1128,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("jrosenthal"),
                     familyName="Rosenthal",
                     givenName="Joachim",
+                    email="rosenthal@math.uzh.ch",
                     credentials="CryptoGraphy0*0@",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -1100,6 +1162,7 @@ class TestUser(unittest.TestCase):
                     userId=Xsd_NCName("speedy"),
                     familyName="Gonzales",
                     givenName="Speedy",
+                    email="speedy.gonzales@mexico.com",
                     credentials="FastestMouseInMexico",
                     isActive=True)
         user.create()
@@ -1131,8 +1194,9 @@ class TestUser(unittest.TestCase):
         user = User(con=self._unpriv,
                     userIri=Iri("https://orcid.org/0000-0001-9421-3434"),
                     userId=Xsd_NCName("niederer"),
-                    familyName="Niedererer",
+                    familyName="Niederer",
                     givenName="Markus",
+                    email="markus.niederer@gmail.com",
                     credentials="DendroChronologie",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                         AdminPermission.ADMIN_USERS,
@@ -1145,7 +1209,8 @@ class TestUser(unittest.TestCase):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-9421-3434"),
                     userId=Xsd_NCName("niederer"),
-                    familyName="Niedererer",
+                    familyName="Niederer",
+                    email="markus.niederer@gmail.com",
                     givenName="Markus",
                     credentials="DendroChronologie",
                     inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {

@@ -391,6 +391,7 @@ class User(Model):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:userId {self.userId.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:familyName {self.familyName.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:givenName {self.givenName.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:email {self.email.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:credentials {self.credentials.toRdf}'
         activeval = "true" if self.isActive else "false"
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:isActive {activeval}'
@@ -513,6 +514,7 @@ class User(Model):
                        userId=userdata.userId,
                        familyName=userdata.familyName,
                        givenName=userdata.givenName,
+                       email=userdata.email,
                        credentials=userdata.credentials,
                        isActive=userdata.isActive,
                        inProject=userdata.inProject,

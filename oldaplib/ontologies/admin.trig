@@ -171,6 +171,7 @@
         :userId "rosenth"^^xsd:NCName ;
         schema:familyName "Rosenthaler"^^xsd:string ;
         schema:givenName "Lukas"^^xsd:string ;
+        schema:email "lukas.rosenthaler@unibas.ch"^^xsd:string ;
         :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2"^^xsd:string ;
         :inProject :SystemProject, :HyperHamlet ;
         :hasPermissions :GenericRestricted, :GenericView ;
@@ -187,6 +188,7 @@
         :userId "fornaro"^^xsd:NCName ;
         schema:familyName "Fornaro"^^xsd:string ;
         schema:givenName "Peter R."^^xsd:string ;
+        schema:email "peter.fornaro@unibas.ch"^^xsd:string ;
         :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2"^^xsd:string ;
         :inProject :HyperHamlet ;
         :hasPermissions :GenericView ;
@@ -202,6 +204,7 @@
         :userId "unknown"^^xsd:NCName ;
         schema:familyName "Doe"^^xsd:string ;
         schema:givenName "John"^^xsd:string ;
+        schema:email "john.doe@nowhere.com"^^xsd:string ;
         :credentials "*"^^xsd:string ;
         #:inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
         :hasPermissions :GenericRestricted ;
@@ -215,6 +218,7 @@
         :userId "bugsbunny"^^xsd:NCName ;
         schema:familyName "Bunny"^^xsd:string ;
         schema:givenName "Bugs"^^xsd:string ;
+        schema:email "bugs.bunny@warnerbrothers.com"^^xsd:string ;
         :credentials "$2b$12$YK2g0KFvkelCZwCcE38UguIE/3aMPjO4XIX.9FJgYJoz2m.5sDlZK"^^xsd:string ; # "DuffyDuck"
         :inProject :HyperHamlet ;
         :hasPermissions :GenericView ;
@@ -228,6 +232,7 @@
         :userId "habermann"^^xsd:NCName ;
         schema:familyName "Habermann"^^xsd:string ;
         schema:givenName "Ina"^^xsd:string ;
+        schema:email "ina.habermann@unibas.ch"^^xsd:string ;
         :credentials "*"^^xsd:string ;
         :inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
         :hasPermissions :GenericRestricted ;

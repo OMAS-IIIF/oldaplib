@@ -29,6 +29,7 @@ class UserAttr(AttributeClass):
     USER_ID = ('oldap:userId', True, False, Xsd_NCName)
     FAMILY_NAME = ('schema:familyName', True, False, Xsd_string)
     GIVEN_NAME = ('schema:givenName', True, False, Xsd_string)
+    EMAIL = ('schema:email', True, False, Xsd_string)
     CREDENTIALS = ('oldap:credentials', True, False, Xsd_string)
     ACTIVE = ('oldap:isActive', False, False, Xsd_boolean)
     IN_PROJECT = ('oldap:inProject', False, False, InProjectClass)

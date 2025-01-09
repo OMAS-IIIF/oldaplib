@@ -27,6 +27,7 @@ class UserData:
     _userId: Xsd_NCName
     _familyName: Xsd_string
     _givenName: Xsd_string
+    _email: Xsd_string
     _credentials: Xsd_string
     _isActive: Xsd_boolean
     _inProject: InProjectClass
@@ -40,6 +41,7 @@ class UserData:
                  userId: Xsd_NCName,
                  familyName: Xsd_string,
                  givenName: Xsd_string,
+                 email: Xsd_string,
                  credentials: Xsd_string | None = None,
                  isActive: Xsd_boolean,
                  inProject: InProjectClass | None = None,
@@ -52,6 +54,7 @@ class UserData:
         self._userId = userId
         self._familyName = familyName
         self._givenName = givenName
+        self._email = email
         self._credentials = credentials
         self._isActive = isActive
         self._inProject = inProject or InProjectClass()
@@ -62,6 +65,7 @@ class UserData:
         res += f', userId: {self._userId}\n'
         res += f', familyName: {self._familyName}\n'
         res += f', givenName: {self._givenName}\n'
+        res += f', email: {self._email}\n'
         res += f', credentials: {self._credentials}\n'
         res += f', isActive: {self._isActive}\n'
         res += f', inProject: {self._inProject}\n'
@@ -99,6 +103,10 @@ class UserData:
     @property
     def givenName(self) -> Xsd_string:
         return self._givenName
+
+    @property
+    def email(self) -> Xsd_string:
+        return self._email
 
     @property
     def credentials(self) -> Xsd_string:
@@ -169,6 +177,7 @@ class UserData:
         userId: Xsd_NCName | None = None
         familyName: Xsd_string | None = None
         givenName: Xsd_string | None = None
+        email: Xsd_string | None = None
         credentials: Xsd_string | None = None
         isActive: Xsd_boolean | None = None
         inProjectDict: dict[Iri | str, set[AdminPermission]] | None = None
@@ -190,6 +199,8 @@ class UserData:
                     familyName = r['val']
                 case 'schema:givenName':
                     givenName = r['val']
+                case 'schema:email':
+                    email = r['val']
                 case 'oldap:credentials':
                     credentials = r['val']
                 case 'oldap:isActive':
@@ -219,6 +230,7 @@ class UserData:
                    userId=userId,
                    familyName=familyName,
                    givenName=givenName,
+                   email=email,
                    credentials=credentials,
                    isActive=isActive,
                    inProject=inProject,
@@ -230,6 +242,7 @@ class UserData:
                 'userId': self._userId,
                 'familyName': self._familyName,
                 'givenName': self._givenName,
+                'email': self._email,
                 'isActive': self._isActive,
                 'hasPermissions': self._hasPermissions,
                 'inProject': self._inProject

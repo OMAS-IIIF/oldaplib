@@ -353,7 +353,8 @@ class TestDataModel(unittest.TestCase):
             Iri("dcterms:contributor"),
             Iri("dcterms:modified"),
             Iri("schema:givenName"),
-            Iri("schema:familyName")
+            Iri("schema:familyName"),
+            Iri("schema:email")
         })
         self.assertTrue(set(model.get_resclasses()) == {
             Iri("oldap:Project"),

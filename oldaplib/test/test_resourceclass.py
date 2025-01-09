@@ -428,7 +428,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop7.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop7.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
         self.assertEqual(prop7.prop.datatype, XsdDatatypes.string)
-        self.assertEqual(prop7.prop.name, LangString(["Given name@en", "Vornamen@de", "Pénom@fr", "Nome@it"]))
+        self.assertEqual(prop7.prop.name, LangString(["Given name@en", "Vornamen@de", "Prénom@fr", "Nome@it"]))
         self.assertEqual(prop7.prop.description, LangString("The given name of some person@en"))
 
         prop8 = r1[Iri('oldap:credentials')]

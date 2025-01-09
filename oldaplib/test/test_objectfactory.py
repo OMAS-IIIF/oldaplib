@@ -120,6 +120,7 @@ class TestObjectFactory(unittest.TestCase):
                     userId=Xsd_NCName("factorytestuser"),
                     familyName="FactoryTest",
                     givenName="FactoryTest",
+                    email="ft@test.com",
                     credentials="Waseliwas",
                     inProject={'oldap:Test': {}},
                     hasPermissions={ps.iri.as_qname},

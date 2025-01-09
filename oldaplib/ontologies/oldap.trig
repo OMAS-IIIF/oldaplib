@@ -396,6 +396,11 @@
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
         ] ;
+        sh:property [
+            sh:node schema:email ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+        ] ;
         sh:property
             [
                 sh:path :credentials ;
@@ -1381,6 +1386,12 @@
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty schema:givenName ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:string
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty schema:email ;
                 owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                 owl:onDatatype xsd:string
             ] ,
