@@ -567,4 +567,24 @@ class Project(Model):
         cache.delete(self.projectIri)
         cache.delete(self.projectShortName)
 
+    @staticmethod
+    def get_shortname_from_iri(con: IConnection, iri: Iri) -> Xsd_NCName:
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        sparql += 'SELECT ?shortname\n'
+        sparql += 'FROM oldap:onto\n'
+        sparql += 'FROM shared:onto\n'
+        sparql += 'FROM NAMED oldap:admin\n'
+        sparql += 'WHERE {\n'
+        sparql += '    GRAPH oldap:admin {\n'
+        sparql += f'        {iri.toRdf} oldap:projectShortName ?shortname .\n'
+        sparql += '    }\n'
+        sparql += '}\n'
+        jsonobj = con.query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            raise OldapErrorNoPermission(f"No project shortname found for {iri}")
+        return res[0]['shortname']
+
+
 

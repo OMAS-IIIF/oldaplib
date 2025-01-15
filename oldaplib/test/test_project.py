@@ -392,6 +392,16 @@ class Testproject(unittest.TestCase):
         with self.assertRaises(OldapErrorNoPermission) as ex:
             project.delete()
 
+    def test_get_shortname_from_iri(self):
+        shortname1 = Project.get_shortname_from_iri(con=self._connection, iri=Iri("oldap:SystemProject"))
+        self.assertEqual(shortname1, "oldap")
+
+        shortname2 = Project.get_shortname_from_iri(con=self._connection, iri=Iri("oldap:HyperHamlet"))
+        self.assertEqual(shortname2, "hyha")
+
+        shortname3 = Project.get_shortname_from_iri(con=self._connection, iri=Iri("http://www.salsah.org/version/2.0/SwissBritNet"))
+        self.assertEqual(shortname3, "britnet")
+
 
 if __name__ == '__main__':
     unittest.main()
