@@ -145,7 +145,11 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.email, Xsd_string("lukas.rosenthaler@unibas.ch"))
         self.assertEqual(user.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
-            Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
+            Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
+            Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
+                AdminPermission.ADMIN_PERMISSION_SETS, AdminPermission.ADMIN_RESOURCES,
+                AdminPermission.ADMIN_USERS}
         }))
         self.assertEqual(user.hasPermissions, {Iri("oldap:GenericRestricted"), Iri('oldap:GenericView')})
 
@@ -158,7 +162,11 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.email, Xsd_string("lukas.rosenthaler@unibas.ch"))
         self.assertEqual(user.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
-            Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
+            Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
+            Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
+                AdminPermission.ADMIN_PERMISSION_SETS, AdminPermission.ADMIN_RESOURCES,
+                AdminPermission.ADMIN_USERS}
         }))
         self.assertEqual(user.hasPermissions, {Iri("oldap:GenericRestricted"), Iri('oldap:GenericView')})
 
@@ -195,7 +203,11 @@ class TestUser(unittest.TestCase):
 
         self.assertEqual(user2.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
-            Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
+            Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
+            Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
+                AdminPermission.ADMIN_PERMISSION_SETS, AdminPermission.ADMIN_RESOURCES,
+                AdminPermission.ADMIN_USERS}
         }))
         self.assertEqual(user.inProject, user2.inProject)
         self.assertFalse(user.inProject is user2.inProject)
@@ -229,7 +241,11 @@ class TestUser(unittest.TestCase):
 
         self.assertEqual(user3.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
-            Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES}
+            Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
+            Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
+                AdminPermission.ADMIN_PERMISSION_SETS, AdminPermission.ADMIN_RESOURCES,
+                AdminPermission.ADMIN_USERS}
         }))
         self.assertEqual(user.inProject, user3.inProject)
         self.assertFalse(user.inProject is user3.inProject)
@@ -250,13 +266,13 @@ class TestUser(unittest.TestCase):
         users = User.search(con=self._connection, givenName="John")
         self.assertEqual([Iri("urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b")], users)
 
-        users = User.search(con=self._connection, inProject=Xsd_QName("oldap:HyperHamlet"))
-        self.assertEqual([Iri("https://orcid.org/0000-0003-1681-4036"),
+        users = User.search(con=self._connection, inProject=Iri("oldap:HyperHamlet"))
+        self.assertEqual({Iri("https://orcid.org/0000-0003-1681-4036"),
                           Iri("https://orcid.org/0000-0003-1485-4923"),
-                          Iri("https://orcid.org/0000-0001-9277-3921")], users)
+                          Iri("https://orcid.org/0000-0001-9277-3921")}, set(users))
 
         users = User.search(con=self._connection, inProject=Iri("http://www.salsah.org/version/2.0/SwissBritNet"))
-        self.assertEqual([Iri("https://orcid.org/0000-0002-7403-9595")], users)
+        self.assertEqual({Iri("https://orcid.org/0000-0003-1681-4036"), Iri("https://orcid.org/0000-0002-7403-9595")}, set(users))
 
         users = User.search(con=self._connection, userId="GAGA")
         self.assertEqual([], users)

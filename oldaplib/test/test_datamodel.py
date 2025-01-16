@@ -21,6 +21,7 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.enums.language import Language
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
@@ -57,7 +58,8 @@ class TestDataModel(unittest.TestCase):
         cls._context['dmtestB'] = NamespaceIRI('http://oldap.org/dmtestB#')
         cls._context['dmtestC'] = NamespaceIRI('http://oldap.org/dmtestC#')
         cls._context['dmtestE'] = NamespaceIRI('http://oldap.org/dmtestE#')
-        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC')
+        cls._context['dmtestF'] = NamespaceIRI('http://oldap.org/dmtestF#')
+        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="oldap",
@@ -77,6 +79,8 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtestC:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtestE:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtestE:onto'))
+        cls._connection.clear_graph(Xsd_QName('dmtestF:shacl'))
+        cls._connection.clear_graph(Xsd_QName('dmtestF:onto'))
         cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
         cls._connection.clear_graph(Xsd_QName('hyha:onto'))
 
@@ -92,6 +96,7 @@ class TestDataModel(unittest.TestCase):
         cls._dmprojectB = Project.read(cls._connection, "dmtestB", ignore_cache=True)
         cls._dmprojectC = Project.read(cls._connection, "dmtestC", ignore_cache=True)
         cls._dmprojectE = Project.read(cls._connection, "dmtestE", ignore_cache=True)
+        cls._dmprojectF = Project.read(cls._connection, "dmtestF", ignore_cache=True)
         cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
 
 
@@ -832,6 +837,32 @@ class TestDataModel(unittest.TestCase):
         dm.delete()
         with self.assertRaises(OldapErrorNotFound):
             dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+
+
+    def test_delete_label_from_resource(self):
+        pagename = PropertyClass(con=self._connection,
+                                 project=self._dmprojectF,
+                                 property_class_iri=Iri('test:testPropGaga'),
+                                 datatype=XsdDatatypes.string,
+                                 name=LangString("Page designation@en", "Seitenbezeichnung@de"))
+        page = ResourceClass(con=self._connection,
+                             project=self._dmprojectF,
+                             owlclass_iri=Iri("test:PageGaga"),
+                             #superclass=Iri('oldap:Thing'),  # no longer necessary TODO: Test it!!!!
+                             label=LangString(["Project@en", "Projekt@de"]),
+                             comment=LangString(["A page of a book@en", "Seite eines Buches@de"]),
+                             closed=Xsd_boolean(True),
+                             hasproperties=[
+                                 HasProperty(con=self._connection, prop=pagename, minCount=Xsd_integer(1), order=1)])
+        dm = DataModel(con=self._connection,
+                       project=self._dmprojectF,
+                       resclasses=[page])
+        dm.create()
+        dm = DataModel.read(self._connection, self._dmprojectF, ignore_cache=True)
+        #del dm[Iri('test:Page')][ResClassAttribute.from_name('label')]
+        delattr(dm[Iri('test:PageGaga')], 'label')
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmprojectF, ignore_cache=True)
 
 
     def test_write_trig(self):

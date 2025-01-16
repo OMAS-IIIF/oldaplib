@@ -82,7 +82,7 @@ class Model:
         return res
 
     def __getitem__(self, attr: AttributeClass) -> Any:
-        return self._attributes[attr]
+        return self._attributes.get(attr)
 
     def get(self, attr: AttributeClass) -> Any:
         return self._attributes.get(attr)
@@ -94,6 +94,15 @@ class Model:
         if self._attributes.get(attr) is not None:
             self._changeset[attr] = AttributeChange(self._attributes[attr], Action.DELETE)
             del self._attributes[attr]
+
+    # def __delattr__(self, attrstr: str) -> None:
+    #     try:
+    #         attr = AttributeClass.from_name(attrstr)
+    #     except ValueError:
+    #         raise OldapErrorValue(f'Nonexisting attribute: "{attrstr}"')
+    #     if self._attributes.get(attr) is not None:
+    #         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.DELETE)
+    #         del self._attributes[attr]
 
     def set_attributes(self, arguments: dict[str, Any], Attributes: type[Enum]) -> None:
         for name, value in arguments.items():

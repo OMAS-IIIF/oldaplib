@@ -323,6 +323,23 @@ class ResourceClass(Model, Notify):
             del self._properties[key]
         self.notify()
 
+    def __delattr__(self, item: str):
+        try:
+            attr = ResClassAttribute.from_name(item)
+            super().__delitem__(attr)
+        except ValueError as err:
+            try:
+                iri = Iri(item, validate=True)
+                if self._prop_changeset.get(iri) is None:
+                    self._prop_changeset[iri] = ResourceClassPropertyChange(self._properties[iri], Action.DELETE, False)
+                else:
+                    self._prop_changeset[iri] = ResourceClassPropertyChange(self._prop_changeset[iri].old_value,
+                                                                            Action.DELETE, False)
+                del self._properties[iri]
+            except OldapErrorValue as err:
+                raise ValueError(f'Invalid key {item}')
+        self.notify()
+
     @property
     def owl_class_iri(self) -> Iri:
         return self._owlclass_iri
@@ -1057,7 +1074,7 @@ class ResourceClass(Model, Notify):
                                             owlclass_iri=self._owlclass_iri,
                                             ele=RdfModifyItem(item.value,
                                                               change.old_value,
-                                                              self._attributes[item]),
+                                                              self._attributes.get(item)),
                                             last_modified=self._modified)
             if sparql:
                 sparql_list.append(sparql)

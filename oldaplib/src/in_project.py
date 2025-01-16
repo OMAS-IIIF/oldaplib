@@ -133,6 +133,19 @@ class InProjectClass(Notify):
         else:
             raise OldapErrorKey(f'Can\'t delete key "{key}" – does not exist')
 
+    def __eq__(self, other: Self) -> bool:
+        if len(self) != len(other):
+            return False
+        for iri, perms in self.__setdata.items():
+            if other.get(iri) is None:
+                return False
+            if self[iri] != other[iri]:
+                return False
+        return True
+
+    def __ne__(self, other: Self) -> bool:
+        return not self.__eq__(other)
+
     def __iter__(self) -> Iterator[Iri]:
         return iter(self.__setdata.items())
 

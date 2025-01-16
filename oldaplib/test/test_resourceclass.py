@@ -1092,6 +1092,59 @@ class TestResourceClass(unittest.TestCase):
                           'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object',
                           'http://gugus.com/gaga/wird/nicht/gehen'}, set(r1.superclass))
 
+    def test_updateing_sc_D(self):
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:p4'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["P4"]))
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, prop=p1, order=1)
+        ]
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:CrazyD"),
+                           superclass={"test:testMyRes", 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object', 'test:testMyResMinimal'},
+                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           hasproperties=hasproperties)
+        r1.create()
+
+        del r1[ResClassAttribute.LABEL]
+        r1.update()
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:CrazyD'))
+        self.assertIsNone(r1[ResClassAttribute.LABEL])
+
+    def test_updateing_sc_E(self):
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:p5'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["P5"]))
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, prop=p1, order=1)
+        ]
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:CrazyE"),
+                           superclass={"test:testMyRes", 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object', 'test:testMyResMinimal'},
+                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           hasproperties=hasproperties)
+        r1.create()
+
+        delattr(r1, 'label')
+        r1.update()
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:CrazyE'))
+        self.assertIsNone(r1[ResClassAttribute.LABEL])
+
+
     # @unittest.skip('Work in progress')
     def test_delete_props(self):
         p1 = PropertyClass(con=self._connection,
