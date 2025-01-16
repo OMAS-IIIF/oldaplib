@@ -583,7 +583,7 @@ class Project(Model):
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
-            raise OldapErrorNoPermission(f"No project shortname found for {iri}")
+            raise OldapErrorNotFound(f"No project shortname found for {iri}")
         return res[0]['shortname']
 
 
