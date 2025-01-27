@@ -29,7 +29,7 @@ class Xsd_dateTime(Xsd):
         :raises OldapErrorValue: if the parameter cannot be converted to a datetime
         """
         if value is None:
-            self.__value = datetime.now()
+            self.__value = datetime.now().astimezone()
         elif isinstance(value, Xsd_dateTime):
             self.__value = value.__value
         elif isinstance(value, datetime):
@@ -124,4 +124,4 @@ class Xsd_dateTime(Xsd):
         :return: Xsd_dateTime instance
         :rtype: Xsd_dateTime
         """
-        return cls(datetime.now())
+        return cls(datetime.now().astimezone())

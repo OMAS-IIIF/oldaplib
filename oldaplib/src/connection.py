@@ -55,7 +55,7 @@ INSERT DATA {
 jwt_format = {
     "userId": "https://orcid.org/0000-0003-1681-4036",
     "exp": "2023-11-04T12:00:00+00:00",
-    "iat": datetime.now().isoformat(),
+    "iat": datetime.now().astimezone().isoformat(),
     "iss": "http://oldap.org"
 }
 token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIkMmIkMTIkaldDSloucWRYRTlNU0NQZFVjMHk0Ljlzd1dZSmNnTFpuMGVQdFJUdS83VThxSC9PWFhrQjIiLCJleHAiOiIyMDI0LTExLTA0VDEyOjAwOjAwKzAwOjAwIiwiaWF0IjoiMjAyNC0wMS0xOVQyMzo0MTozMS45NTI5MTkiLCJpc3MiOiJodHRwOi8vb2xkYXAub3JnIn0.Vsc2qamfyeTW6Xz5l2Wca-mFnA5PcLuOoWPVEo__4Z4"
@@ -175,11 +175,11 @@ class Connection(IConnection):
             if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
                 raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
 
-        expiration = datetime.now() + timedelta(days=1)
+        expiration = datetime.now().astimezone() + timedelta(days=1)
         payload = {
             "userdata": json.dumps(self._userdata, default=serializer.encoder_default),
             "exp": expiration.timestamp(),
-            "iat": int(datetime.now().timestamp()),
+            "iat": int(datetime.now().astimezone().timestamp()),
             "iss": "http://oldap.org"
         }
         self._token = jwt.encode(
@@ -311,7 +311,7 @@ class Connection(IConnection):
             elif ext == ".trig":
                 mime = "application/x-trig"
 
-            ct = datetime.now()
+            ct = datetime.now().astimezone()
             ts = ct.timestamp()
             data = {
                 "name": f'Data from "{filename}"',

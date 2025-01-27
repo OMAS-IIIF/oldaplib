@@ -26,7 +26,7 @@ class Xsd_dateTimeStamp(Xsd):
         :raises OldapErrorValue: If the value is not a datetimestamp object
         """
         if value is None:
-            self.__value = datetime.now()
+            self.__value = datetime.now().astimezone()
         elif isinstance(value, Xsd_dateTimeStamp):
             self.__value = value.__value
         elif isinstance(value, datetime):
