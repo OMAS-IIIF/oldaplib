@@ -272,7 +272,9 @@ class TestUser(unittest.TestCase):
                           Iri("https://orcid.org/0000-0001-9277-3921")}, set(users))
 
         users = User.search(con=self._connection, inProject=Iri("http://www.salsah.org/version/2.0/SwissBritNet"))
-        self.assertEqual({Iri("https://orcid.org/0000-0003-1681-4036"), Iri("https://orcid.org/0000-0002-7403-9595")}, set(users))
+        self.assertEqual({Iri("https://orcid.org/0000-0003-1681-4036"),
+                          Iri("urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc"),
+                          Iri("https://orcid.org/0000-0002-7403-9595")}, set(users))
 
         users = User.search(con=self._connection, userId="GAGA")
         self.assertEqual([], users)
