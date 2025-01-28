@@ -116,12 +116,19 @@ class Testproject(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_project_search(self):
         projects = Project.search(con=self._connection, label="HyperHamlet")
-        self.assertEqual(["oldap:HyperHamlet"], projects)
+        self.assertEqual({(Iri("oldap:HyperHamlet"), Xsd_NCName("hyha"))}, set(projects))
 
     # @unittest.skip('Work in progress')
     def test_project_search_fail(self):
         projects = Project.search(con=self._connection, label="NoExisting")
         self.assertEqual([], projects)
+
+    def test_project_search_all(self):
+        projects = Project.search(con=self._connection)
+        print(projects)
+        self.assertEqual({(Iri("oldap:SystemProject"), Xsd_NCName("oldap")),
+                          (Iri("oldap:HyperHamlet"), Xsd_NCName("hyha")),
+                          (Iri("http://www.salsah.org/version/2.0/SwissBritNet"), Xsd_NCName("britnet"))}, set(projects))
 
     def test_project_create_simplest(self):
         project = Project(con=self._connection,
@@ -137,6 +144,11 @@ class Testproject(unittest.TestCase):
         self.assertIsNotNone(project.contributor)
         self.assertEqual("simpleproj", project.projectShortName)
         self.assertEqual("http://unitest.org/project/simpleproj#", project.namespaceIri)
+        #
+        # cleanup
+        #
+        project = Project.read(con=self._connection, projectIri_SName="simpleproj", ignore_cache=True)
+        project.delete()
 
     # @unittest.skip('Work in progress')
     def test_project_create(self):
@@ -228,6 +240,18 @@ class Testproject(unittest.TestCase):
                            comment=LangString(["For testing8@en", "Für Tests3@de"]),
                            projectEnd=Xsd_date(2028, 3, 3))
         self.assertEqual(project8.projectStart, date.today())
+        #
+        # cleanup
+        #
+        project = Project.read(con=self._connection, projectIri_SName="unittest", ignore_cache=True)
+        project.delete()
+        project = Project.read(con=self._connection, projectIri_SName="unittest3", ignore_cache=True)
+        project.delete()
+        project = Project.read(con=self._connection, projectIri_SName="unittest4", ignore_cache=True)
+        project.delete()
+        project = Project.read(con=self._connection, projectIri_SName="unittest6", ignore_cache=True)
+        project.delete()
+
 
     def test_project_create_without_label_comment(self):
         project = Project(con=self._connection,
@@ -237,6 +261,11 @@ class Testproject(unittest.TestCase):
                           projectEnd=Xsd_date(2025, 12, 31)
                           )
         project.create()
+        #
+        # cleanup
+        #
+        project = Project.read(con=self._connection, projectIri_SName="emptyfieldsXX", ignore_cache=True)
+        project.delete()
 
     def test_project_create_empty_fields(self):
         project = Project(con=self._connection,
@@ -251,6 +280,11 @@ class Testproject(unittest.TestCase):
         del project
         project = Project.read(con=self._connection, projectIri_SName=projectIri, ignore_cache=True)
         self.assertIsNone(project.comment)
+        #
+        # cleanup
+        #
+        project = Project.read(con=self._connection, projectIri_SName="emptyfields1", ignore_cache=True)
+        project.delete()
 
         project = Project(con=self._connection,
                           projectShortName="emptyfields2",
@@ -271,6 +305,11 @@ class Testproject(unittest.TestCase):
         project = Project.read(con=self._connection, projectIri_SName=projectIri, ignore_cache=True)
         self.assertEqual(project.comment[Language.EN], "Comment for unittest")
         self.assertEqual(project.comment[Language.DE], "Kommentar für unittest")
+        #
+        # cleanup
+        #
+        project = Project.read(con=self._connection, projectIri_SName="emptyfields2", ignore_cache=True)
+        project.delete()
 
         project = Project(con=self._connection,
                           projectShortName="emptyfields3",
@@ -307,6 +346,11 @@ class Testproject(unittest.TestCase):
         self.assertEqual(project.comment, LangString(["For testing@en", "FÜR DAS TESTEN@de", "Pour les tests@fr"]))
         self.assertEqual(project.label, LangString(["UPDATETEST@en", "UP-DATE-TEST@fr"]))
         self.assertEqual(project.projectEnd, Xsd_date(2026, 6, 30))
+        #
+        # cleanup
+        #
+        project = Project.read(con=self._connection, projectIri_SName="updatetest", ignore_cache=True)
+        project.delete()
 
     def test_project_update_B(self):
         project = Project(con=self._connection,
@@ -329,6 +373,11 @@ class Testproject(unittest.TestCase):
 
         project = Project.read(con=self._connection, projectIri_SName="updatetestB", ignore_cache=True)
         self.assertEqual(project.comment, LangString(["Für Tests@de", "per i test@it"]))
+        #
+        # cleanup
+        #
+        project = Project.read(con=self._connection, projectIri_SName="updatetestB", ignore_cache=True)
+        project.delete()
 
     def test_project_start_end_consistency(self):
         project = Project(con=self._connection,
@@ -391,6 +440,12 @@ class Testproject(unittest.TestCase):
             project.update()
         with self.assertRaises(OldapErrorNoPermission) as ex:
             project.delete()
+        #
+        # cleanup
+        #
+        project = Project.read(con=self._connection, projectIri_SName="unauthorized", ignore_cache=True)
+        project.delete()
+
 
     def test_get_shortname_from_iri(self):
         shortname1 = Project.get_shortname_from_iri(con=self._connection, iri=Iri("oldap:SystemProject"))

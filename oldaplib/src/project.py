@@ -1,4 +1,5 @@
 from copy import deepcopy
+from dataclasses import dataclass
 from functools import partial
 
 from typing import List, Self, Any
@@ -334,6 +335,12 @@ class Project(Model):
     def search(con: IConnection,
                label: Xsd_string | str | None = None,
                comment: Xsd_string | str | None = None) -> list[Iri]:
+
+        @dataclass
+        class Result:
+            projectIri: Iri | None = None
+            projectShortName: Xsd_NCName | None = None
+
         """
         Search for a given project. If no label or comment is given, all existing projects are returned. If both
         a search term for the label and comment are given, they will be combined by *AND*.
@@ -345,21 +352,22 @@ class Project(Model):
         :param comment: A string to search for in the comments. The search will check if the comment of a project
         **contains** the string given here
         :type comment: str
-        :return: List of IRIs matching the search criteria (AnyIRI | QName)
-        :rtype: List[Iri]
+        :return: List of IRIs and shortnames matching the search criteria (AnyIRI | QName)
+        :rtype: list[tuple(Iri, Xsd_NCName]
         :raises OldapErrorNotFound: If the project does not exist
         """
         label = Xsd_string(label)
         comment = Xsd_string(comment)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
-        sparql += 'SELECT DISTINCT ?project\n'
+        sparql += 'SELECT DISTINCT ?project ?shortname\n'
         sparql += 'FROM oldap:onto\n'
         sparql += 'FROM shared:onto\n'
         sparql += 'FROM NAMED oldap:admin\n'
         sparql += 'WHERE {\n'
         sparql += '    GRAPH oldap:admin {\n'
         sparql += '        ?project a oldap:Project .\n'
+        sparql += '        ?project oldap:projectShortName ?shortname .\n'
         if label:
             sparql += '        ?project rdfs:label ?label .\n'
             sparql += '    }\n'
@@ -368,13 +376,15 @@ class Project(Model):
             sparql += '        ?project rdfs:comment ?comment .\n'
             sparql += '    }\n'
             sparql += f'    FILTER(CONTAINS(STR(?comment), "{Xsd_string.escaping(comment.value)}"))\n'
+        if not label and not comment:
+            sparql += '    }\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        projects: list[Iri] = []
+        projects: list[tuple(Iri, Xsd_NCName)] = []
         if len(res) > 0:
             for r in res:
-                projects.append(r['project'])
+                projects.append((r['project'], r['shortname']))
         return projects
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
