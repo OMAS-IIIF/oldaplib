@@ -178,7 +178,7 @@
         :isActive true .
 
     <<<urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>>
-        :hasAdminPermission :ADMIN_USERS, :ADMIN_PERMISSION_SETS, :ADMIN_RESOURCES, :ADMIN_MODEL, :ADMIN_CREATE, :ADMIN_LISTS .
+        :hasAdminPermission :ADMIN_USERS, :ADMIN_PERMISSION_SETS, :ADMIN_RESOURCES, :ADMIN_CREATE, :ADMIN_LISTS .
 
 
     <https://orcid.org/0000-0003-1681-4036> a oldap:User ;
