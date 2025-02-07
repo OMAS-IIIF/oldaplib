@@ -279,6 +279,15 @@ class TestUser(unittest.TestCase):
         users = User.search(con=self._connection, userId="GAGA")
         self.assertEqual([], users)
 
+    def test_search_user_all(self):
+        users = User.search(con=self._connection)
+        self.assertEqual(set(users), {Iri("https://orcid.org/0000-0003-1681-4036"),
+                                 Iri("https://orcid.org/0000-0003-1485-4923"),
+                                 Iri("urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b"),
+                                 Iri("https://orcid.org/0000-0001-9277-3921"),
+                                 Iri("https://orcid.org/0000-0002-7403-9595"),
+                                 Iri("urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc")})
+
     #  #unittest.skip('Work in progress')
     def test_search_user_injection(self):
         with self.assertRaises(OldapErrorValue) as ex:
