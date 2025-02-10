@@ -14,7 +14,8 @@ from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission
+from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, \
+    OldapErrorInconsistency
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.project import Project
@@ -174,6 +175,14 @@ class TestPropertyClass(unittest.TestCase):
                                property_class_iri=Iri('test:testprop5'),
                                datatype=XsdDatatypes.string,
                                languageIn=LanguageIn(Language.EN, Language.DE, Language.FR))
+
+    def test_propertyclass_invalid_constructor(self):
+        with self.assertRaises(OldapErrorInconsistency):
+            px = PropertyClass(con=self._connection,
+                               project=self._project,
+                               property_class_iri=Iri('test:testpropX'),
+                               toClass=Iri('test:comment'),
+                               minLength=42)
 
     def test_propertyclass_projectsn_constructor(self):
         p6 = PropertyClass(con=self._connection,

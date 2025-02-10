@@ -141,7 +141,10 @@ class PropertyClass(Model, Notify):
                  notify_data: PropClassAttr | None = None,
                  **kwargs):
         """
-        Constructor of the PropertyClass
+        Constructor of the PropertyClass. If the property is created as link to a resource by defininf
+        the "toClass" attribute, only the restriction "inSet" is allowed which could restrict the
+        property to a given set of resourtce IRI's.
+
         :param con: Instance of a subclass of IConnection
         :type con: IConnection or subclass of IConnection
         :param creator: Iri of the user that creates the property [DO NOT USE! FOR INTERNAL USE ONLY!]
@@ -161,6 +164,7 @@ class PropertyClass(Model, Notify):
         :param notify_data: Data for the notifier callback
         :type notify_data: PropClassAttr | None
         :param kwargs: Other attributes of the property
+        :raises OldapErrorInconsistency: A link property with invalid restrictions
         """
         Model.__init__(self,
                        connection=con,
@@ -190,6 +194,20 @@ class PropertyClass(Model, Notify):
         if toClass and kwargs.get('inSet'):
             kwargs['inSet'] = {Iri(x) for x in kwargs['inSet']}
         self.set_attributes(kwargs, PropClassAttr)
+
+        if toClass:
+            if self._attributes.get(PropClassAttr.DATATYPE) or \
+                    self._attributes.get(PropClassAttr.LANGUAGE_IN) or \
+                    self._attributes.get(PropClassAttr.LESS_THAN) or \
+                    self._attributes.get(PropClassAttr.LESS_THAN_OR_EQUALS) or \
+                    self._attributes.get(PropClassAttr.MAX_EXCLUSIVE) or \
+                    self._attributes.get(PropClassAttr.MAX_INCLUSIVE) or \
+                    self._attributes.get(PropClassAttr.MIN_EXCLUSIVE) or \
+                    self._attributes.get(PropClassAttr.MIN_INCLUSIVE) or \
+                    self._attributes.get(PropClassAttr.MIN_LENGTH) or \
+                    self._attributes.get(PropClassAttr.PATTERN) or \
+                    self._attributes.get(PropClassAttr.UNIQUE_LANG):
+                raise OldapErrorInconsistency("A property pointing to a resource (link) may not have restrictions")
 
         #
         # Consistency checks
@@ -708,6 +726,8 @@ class PropertyClass(Model, Notify):
         :type ignore_cache: bool
         :return: Instance of a property class
         :rtype: PropertyClass
+        :raises: OldapError: generic error when reading from triple store
+
         """
         if not isinstance(property_class_iri, Iri):
             property_class_iri = Iri(property_class_iri)
