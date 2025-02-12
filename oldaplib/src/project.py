@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
@@ -12,6 +13,7 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.helpers.irincname import IriOrNCName
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -27,6 +29,15 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
+
+@serializer
+@dataclass(frozen=True)
+class ProjectSearchResult:
+    projectIri: IriOrNCName
+    projectShortName: Xsd_NCName
+
+    def _as_dict(self):
+        return {'projectIri': self.projectIri, 'projectShortName': self.projectShortName}
 
 
 #@strict
@@ -334,12 +345,8 @@ class Project(Model):
     @staticmethod
     def search(con: IConnection,
                label: Xsd_string | str | None = None,
-               comment: Xsd_string | str | None = None) -> list[Iri]:
+               comment: Xsd_string | str | None = None) -> list[ProjectSearchResult]:
 
-        @dataclass
-        class Result:
-            projectIri: Iri | None = None
-            projectShortName: Xsd_NCName | None = None
 
         """
         Search for a given project. If no label or comment is given, all existing projects are returned. If both
@@ -353,7 +360,7 @@ class Project(Model):
         **contains** the string given here
         :type comment: str
         :return: List of IRIs and shortnames matching the search criteria (AnyIRI | QName)
-        :rtype: list[tuple(Iri, Xsd_NCName]
+        :rtype: list[ProjectSearchResult]
         :raises OldapErrorNotFound: If the project does not exist
         """
         label = Xsd_string(label)
@@ -384,7 +391,7 @@ class Project(Model):
         projects: list[tuple(Iri, Xsd_NCName)] = []
         if len(res) > 0:
             for r in res:
-                projects.append((r['project'], r['shortname']))
+                projects.append(ProjectSearchResult(r['project'], r['shortname']))
         return projects
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -597,4 +604,6 @@ class Project(Model):
         return res[0]['shortname']
 
 
-
+if __name__ == '__main__':
+    gaga = ProjectSearchResult(Iri('http://gaga.com/gugus'), Xsd_NCName('gaga'))
+    print(json.dumps(gaga, default=serializer.encoder_default))

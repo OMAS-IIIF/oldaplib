@@ -15,7 +15,7 @@ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_date import Xsd_date
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission
-from oldaplib.src.project import Project
+from oldaplib.src.project import Project, ProjectSearchResult
 
 
 def find_project_root(current_path):
@@ -116,7 +116,7 @@ class Testproject(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_project_search(self):
         projects = Project.search(con=self._connection, label="HyperHamlet")
-        self.assertEqual({(Iri("oldap:HyperHamlet"), Xsd_NCName("hyha"))}, set(projects))
+        self.assertEqual({ProjectSearchResult(Iri("oldap:HyperHamlet"), Xsd_NCName("hyha"))}, set(projects))
 
     # @unittest.skip('Work in progress')
     def test_project_search_fail(self):
@@ -126,9 +126,9 @@ class Testproject(unittest.TestCase):
     def test_project_search_all(self):
         projects = Project.search(con=self._connection)
         print(projects)
-        self.assertEqual({(Iri("oldap:SystemProject"), Xsd_NCName("oldap")),
-                          (Iri("oldap:HyperHamlet"), Xsd_NCName("hyha")),
-                          (Iri("http://www.salsah.org/version/2.0/SwissBritNet"), Xsd_NCName("britnet"))}, set(projects))
+        self.assertEqual({ProjectSearchResult(Iri("oldap:SystemProject"), Xsd_NCName("oldap")),
+                          ProjectSearchResult(Iri("oldap:HyperHamlet"), Xsd_NCName("hyha")),
+                          ProjectSearchResult(Iri("http://www.salsah.org/version/2.0/SwissBritNet"), Xsd_NCName("britnet"))}, set(projects))
 
     def test_project_create_simplest(self):
         project = Project(con=self._connection,
