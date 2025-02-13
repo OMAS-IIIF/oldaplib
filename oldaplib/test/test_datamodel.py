@@ -502,7 +502,6 @@ class TestDataModel(unittest.TestCase):
         del dm
 
         dm = DataModel.read(self._connection, self._dmprojectC, ignore_cache=True)
-        print(str(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment'))))
         self.assertIsNone(dm[Iri(f'{dm_name}:Page')].get(Iri(f'{dm_name}:comment')))  # TODO THIS TEST SHOULD PASS!!!!
 
     def test_datamodel_modify_D(self):

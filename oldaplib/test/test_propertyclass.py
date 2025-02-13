@@ -1,6 +1,7 @@
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from pprint import pprint
 from time import sleep
 
 from oldaplib.src.connection import Connection
@@ -135,11 +136,29 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.inSet, p2.inSet)
         self.assertFalse(p.inSet is p2.inSet)
 
-    def test_propertyclass_tonode_constructor(self):
+    def test_propertyclass_toclass_constructor(self):
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            toClass=Iri('test:Person'))
         self.assertEqual(p2.get(PropClassAttr.CLASS), Xsd_QName('test:Person'))
+
+    def test_propertyclass_toclass_constructor_invalid_A(self):
+        with self.assertRaises(OldapErrorValue):
+            p2 = PropertyClass(con=self._connection,
+                               project=self._project,
+                               toClass=Iri('rdf:Person'))
+
+        with self.assertRaises(OldapErrorValue):
+            p2 = PropertyClass(con=self._connection,
+                               project=self._project,
+                               toClass=Iri('xml:Person'))
+
+    def test_propertyclass_toclass_constructor_invalid_B(self):
+        with self.assertRaises(OldapErrorValue):
+            p2 = PropertyClass(con=self._connection,
+                               project=self._project,
+                               toClass=Iri('gaga:Person'))
+
 
     def test_propertyclass_datatype_constructor(self):
         p3 = PropertyClass(con=self._connection,

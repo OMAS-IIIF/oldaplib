@@ -193,6 +193,7 @@ class PropertyClass(Model, Notify):
         toClass = kwargs.get('toClass', None)
         if toClass and kwargs.get('inSet'):
             kwargs['inSet'] = {Iri(x) for x in kwargs['inSet']}
+
         self.set_attributes(kwargs, PropClassAttr)
 
         if toClass:
@@ -207,7 +208,13 @@ class PropertyClass(Model, Notify):
                     self._attributes.get(PropClassAttr.MIN_LENGTH) or \
                     self._attributes.get(PropClassAttr.PATTERN) or \
                     self._attributes.get(PropClassAttr.UNIQUE_LANG):
-                raise OldapErrorInconsistency("A property pointing to a resource (link) may not have restrictions")
+                raise OldapErrorInconsistency("A property pointing to a resource (link) may not have restrictions.")
+            if self._attributes[PropClassAttr.CLASS].is_qname:
+                tmp = self._attributes[PropClassAttr.CLASS].as_qname
+                if tmp.prefix == "rdf" or tmp.prefix == "xml":
+                    raise OldapErrorValue(f'A class that has a prefix of "rdf", "rdfs" and "xml" is not allowed.')
+                if context.get(tmp.prefix) is None:
+                    raise OldapErrorValue(f'The prefix "{tmp.prefix}" is not known in the context.')
 
         #
         # Consistency checks

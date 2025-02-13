@@ -172,6 +172,11 @@ class Context(metaclass=ContextSingleton):
         self._context.pop(prefix)
         self._inverse.pop(iri)
 
+    def get(self, prefix: Xsd_NCName | str, default = None) -> NamespaceIRI | None:
+        if not isinstance(prefix, Xsd_NCName):
+            prefix = Xsd_NCName(prefix)
+        return self._context.get(prefix, default)
+
     def __iter__(self):
         """
         Returns an iterator
