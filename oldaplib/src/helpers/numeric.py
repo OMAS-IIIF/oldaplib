@@ -19,4 +19,3 @@ class Numeric:
                 return Xsd_integer(str(value))
             except:
                 return Xsd_float(str(value))
-

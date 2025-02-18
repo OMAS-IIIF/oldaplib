@@ -348,6 +348,11 @@ class PropertyClass(Model, Notify):
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, attr)
 
+    def oldapSetAttr(self, attrname: str, attrval: PropTypes):
+        propClassAttr = PropClassAttr.from_name(attrname)
+        val = propClassAttr.datatype(attrval)
+        self._change_setter(propClassAttr, val)
+
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         if id(self) in memo:
             return memo[id(self)]
