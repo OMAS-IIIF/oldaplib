@@ -221,10 +221,11 @@ class PermissionSet(Model):
         cache.set(self.__permset_iri, self)
 
     @classmethod
-    def read(cls,
+    def read(cls, *,
              con: IConnection,
-             permissionSetId: Xsd_NCName | str,
-             definedByProject: Project | Iri | Xsd_NCName | str,
+             iri: Iri | str | None = None,
+             permissionSetId: Xsd_NCName | str | None = None,
+             definedByProject: Project | Iri | Xsd_NCName | str | None = None,
              ignore_cache: bool = False) -> Self:
         """
         Reads a given permission set. The permission set is defined by its ID (which must be unique within
@@ -239,13 +240,18 @@ class PermissionSet(Model):
         :rtype: OldapPermissionSet
         :raises OldapErrorNot found: If the permission set cannot be found.
         """
-        id = Xsd_NCName(permissionSetId)
+        if iri:
+            permset_iri = Iri(iri)
+        elif permissionSetId and definedByProject:
+            id = Xsd_NCName(permissionSetId)
 
-        if isinstance(definedByProject, Project):
-            project = definedByProject
+            if isinstance(definedByProject, Project):
+                project = definedByProject
+            else:
+                project = Project.read(con, definedByProject)
+            permset_iri = Iri.fromPrefixFragment(project.projectShortName, permissionSetId, validate=False)
         else:
-            project = Project.read(con, definedByProject)
-        permset_iri = Iri.fromPrefixFragment(project.projectShortName, permissionSetId, validate=False)
+            raise OldapErrorValue('Either the parameter "iri" of both "permissionSetId" and "definedByProject" must be provided.')
         if not ignore_cache:
             cache = CacheSingleton()
             tmp = cache.get(permset_iri)
@@ -276,13 +282,17 @@ class PermissionSet(Model):
         label: LangString = LangString()
         comment: LangString = LangString()
         givesPermission: DataPermission | None = None
-        definedByProject: Iri | None = None
+        _permissionSetId: Xsd_NCName | None = None
+        _definedByProject: Iri | None = None
         for r in res:
             if not permset_iri:
                 try:
                     permset_iri = r['permset']
                 except Exception as e:
                     raise OldapErrorInconsistency(f'Invalid project identifier "{r['o']}".')
+                if not permset_iri.is_qname:
+                    raise OldapErrorInconsistency(f'Invalid project identifier "{r['o']}".')
+                _permissionSetId = permset_iri.fragment
             match str(r['p']):
                 case 'dcterms:creator':
                     creator = r['o']
@@ -299,7 +309,7 @@ class PermissionSet(Model):
                 case 'oldap:givesPermission':
                     givesPermission = DataPermission.from_string(str(r['o']))
                 case 'oldap:definedByProject':
-                    definedByProject = r['o']
+                    _definedByProject = r['o']
         cls.__permset_iri = permset_iri
         if comment:
             comment.changeset_clear()
@@ -308,7 +318,7 @@ class PermissionSet(Model):
             label.changeset_clear()
             label.set_notifier(cls.notifier, Xsd_QName(PermissionSetAttr.LABEL.value))
         instance = cls(con=con,
-                       permissionSetId=permissionSetId,
+                       permissionSetId=Xsd_NCName(_permissionSetId, validate=False),
                        creator=creator,
                        created=created,
                        contributor=contributor,
@@ -316,11 +326,10 @@ class PermissionSet(Model):
                        label=label,
                        comment=comment,
                        givesPermission=givesPermission,
-                       definedByProject=Iri(definedByProject, validate=False))
+                       definedByProject=Iri(_definedByProject, validate=False))
         cache = CacheSingleton()
         cache.set(instance.__permset_iri, instance)
         return instance
-
 
     @staticmethod
     def search(con: IConnection, *,

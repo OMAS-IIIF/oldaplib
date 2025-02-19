@@ -114,7 +114,7 @@ class TestObjectFactory(unittest.TestCase):
                            givesPermission=DataPermission.DATA_VIEW,
                            definedByProject="test")
         ps.create()
-        cls._tps = ps.read(cls._connection, "testNoUpdate", "test")
+        cls._tps = ps.read(con=cls._connection, permissionSetId="testNoUpdate", definedByProject="test")
 
         user = User(con=cls._connection,
                     userId=Xsd_NCName("factorytestuser"),
