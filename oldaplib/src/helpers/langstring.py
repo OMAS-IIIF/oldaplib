@@ -127,6 +127,8 @@ class LangString(Notify):
                         if not xstr:
                             continue
                         l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
+                        if self._langstring.get(l, None) is not None:
+                            raise OldapErrorValue(f'Langstring has duplicate languages')
                         self._langstring[l] = xstr.value
                 elif isinstance(langstring, dict):
                     for lang, value in langstring.items():
@@ -624,7 +626,7 @@ if __name__ == '__main__':
     #     print(type(gaga).__name__)
     # gugus = gaga or None
     # print("Gugus:", gugus)
-    ls = LangString("Deutsch@de", "Français@fr")
+    ls = LangString(["kappa", "Français@en"])
     for l in ls:
         print(str(l))
         #print(ls[l].toRdf)

@@ -10,7 +10,7 @@ from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapError, OldapErrorAlreadyExists
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
@@ -59,7 +59,8 @@ class TestDataModel(unittest.TestCase):
         cls._context['dmtestC'] = NamespaceIRI('http://oldap.org/dmtestC#')
         cls._context['dmtestE'] = NamespaceIRI('http://oldap.org/dmtestE#')
         cls._context['dmtestF'] = NamespaceIRI('http://oldap.org/dmtestF#')
-        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF')
+        cls._context['dmtestG'] = NamespaceIRI('http://oldap.org/dmtestG#')
+        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF', 'dmtestG')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="oldap",
@@ -81,6 +82,8 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtestE:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtestF:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtestF:onto'))
+        cls._connection.clear_graph(Xsd_QName('dmtestG:shacl'))
+        cls._connection.clear_graph(Xsd_QName('dmtestG:onto'))
         cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
         cls._connection.clear_graph(Xsd_QName('hyha:onto'))
 
@@ -97,6 +100,7 @@ class TestDataModel(unittest.TestCase):
         cls._dmprojectC = Project.read(cls._connection, "dmtestC", ignore_cache=True)
         cls._dmprojectE = Project.read(cls._connection, "dmtestE", ignore_cache=True)
         cls._dmprojectF = Project.read(cls._connection, "dmtestF", ignore_cache=True)
+        cls._dmprojectG = Project.read(cls._connection, "dmtestG", ignore_cache=True)
         cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
 
 
@@ -633,6 +637,42 @@ class TestDataModel(unittest.TestCase):
         self.assertEqual(r1p3.prop.name, LangString(["Generic comment@en", "Allgemeiner Kommentar@de"]))
         self.assertEqual(r1p3.order, Xsd_decimal(3))
 
+
+    def test_datamodel_duplicate_standalone_property(self):
+        dm = DataModel(con=self._connection,
+                       project=self._dmprojectG)
+        dm.create()
+        dm = DataModel.read(self._connection, self._dmprojectG, ignore_cache=True)
+        dm_name = self._dmprojectG.projectShortName
+
+        #
+        # add a standalone property
+        #
+        generic_comment = PropertyClass(con=self._connection,
+                                 project=self._dmprojectG,
+                                 property_class_iri=Iri(f'{dm_name}:genericComment'),
+                                 datatype=XsdDatatypes.string,
+                                 name=LangString(["Generic comment@en", "Allgemeiner Kommentar@de"]))
+        generic_comment.force_external()
+        dm[Iri(f'{dm_name}:genericComment')] = generic_comment
+        dm.update()
+
+        dm = DataModel.read(self._connection, self._dmprojectG, ignore_cache=True)
+        p1 = dm[Iri(f'{dm_name}:genericComment')]
+        self.assertEqual(p1.datatype, XsdDatatypes.string)
+
+        #
+        # add a duplicate standalone property
+        #
+        generic_comment = PropertyClass(con=self._connection,
+                                 project=self._dmprojectG,
+                                 property_class_iri=Iri(f'{dm_name}:genericComment'),
+                                 datatype=XsdDatatypes.string,
+                                 name=LangString(["Generic comment@en", "Allgemeiner Kommentar@de"]))
+        generic_comment.force_external()
+        dm[Iri(f'{dm_name}:genericComment')] = generic_comment
+        with self.assertRaises(OldapErrorAlreadyExists):
+            dm.update()
 
     def test_update_parts(self):
         dm_name = self._dmproject.projectShortName
