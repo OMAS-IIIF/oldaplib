@@ -11,7 +11,7 @@ from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapError, OldapErrorValue, \
-    OldapErrorNoPermission, OldapErrorNotFound
+    OldapErrorNoPermission, OldapErrorNotFound, OldapErrorAlreadyExists
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.iconnection import IConnection
@@ -158,15 +158,13 @@ class DataModel(Model):
             if self.__propclasses.get(key) is None:
                 self.__propclasses_changeset[key] = PropertyClassChange(None, Action.CREATE)
             else:
-                old_value = deepcopy(self.__propclasses[key])
-                self.__propclasses_changeset[key] = PropertyClassChange(old_value, Action.MODIFY)
+                raise OldapErrorAlreadyExists(f'The property class "{key}" already exists. It cannot be replaced. Update/delete it.')
             self.__propclasses[key] = value
         elif isinstance(value, ResourceClass):
             if self.__resclasses.get(key) is None:
                 self.__resclasses_changeset[key] = ResourceClassChange(None, Action.CREATE)
             else:
-                old_value = deepcopy(self.__resclasses[key])
-                self.__resclasses_changeset[key] = ResourceClassChange(old_value, Action.MODIFY)
+                raise OldapErrorAlreadyExists(f'The resource class "{key}" already exists. It cannot be replaced. Update/delete it.')
             self.__resclasses[key] = value
         else:
             raise OldapErrorValue(f'"{key}" must be either PropertyClass or ResourceClass (is "{type(value).__name__}")')

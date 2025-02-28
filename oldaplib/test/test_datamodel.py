@@ -670,9 +670,8 @@ class TestDataModel(unittest.TestCase):
                                  datatype=XsdDatatypes.string,
                                  name=LangString(["Generic comment@en", "Allgemeiner Kommentar@de"]))
         generic_comment.force_external()
-        dm[Iri(f'{dm_name}:genericComment')] = generic_comment
         with self.assertRaises(OldapErrorAlreadyExists):
-            dm.update()
+            dm[Iri(f'{dm_name}:genericComment')] = generic_comment
 
     def test_update_parts(self):
         dm_name = self._dmproject.projectShortName

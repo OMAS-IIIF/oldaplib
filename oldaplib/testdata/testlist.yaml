@@ -16,8 +16,8 @@ testlist:  # ID of the list. Must be unique within the projectd and a NCName ('a
       node_B:  # ID of the next node
         label: [ Node_B@en, Knoten_B@de, Noed_B@fr ]
         definition:
-          - Node B from list testlist
-          - Knoten B von der Liste testliste
+          - Node B from list testlist@en
+          - Knoten B von der Liste testliste@de
         nodes: # This node ("node_B") does have sub-nodes...
           node_BA:  # ID of first sub-node
             label:

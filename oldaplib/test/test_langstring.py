@@ -11,7 +11,7 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.langstring import LangString, LangStringChange
 from oldaplib.src.enums.language import Language
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue, OldapErrorAlreadyExists
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
@@ -202,9 +202,8 @@ class TestLangstring(unittest.TestCase):
         ls2 = LangString(["english@en", "deutsch@de", "unbekannt"])
         self.assertTrue(ls1 == ls2)
         self.assertFalse(ls1 != ls2)
-        ls3 = LangString(["english@en", "français", "unbekannt"])
-        self.assertFalse(ls1 == ls3)
-        self.assertTrue(ls1 != ls3)
+        with self.assertRaises(OldapErrorValue):
+            ls3 = LangString(["english@en", "français", "unbekannt"])
         ls4 = LangString(["english@en", "unbekannt"])
         self.assertFalse(ls1 == ls4)
         self.assertTrue(ls1 != ls4)

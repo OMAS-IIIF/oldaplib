@@ -415,7 +415,7 @@ class OldapListHelperTestCase(unittest.TestCase):
 
         self.assertEqual(listnode.nodes[1].oldapListNodeId, 'node_B')
         self.assertEqual(listnode.nodes[1].prefLabel, LangString('Node_B@en', 'Knoten_B@de', 'Noed_B@fr'))
-        self.assertEqual(listnode.nodes[1].definition, LangString('Node B from list testlist', 'Knoten B von der Liste testliste'))
+        self.assertEqual(listnode.nodes[1].definition, LangString('Node B from list testlist@en', 'Knoten B von der Liste testliste@de'))
         self.assertEqual(len(listnode.nodes[1].nodes), 3)
 
         subnodes = listnode.nodes[1].nodes
