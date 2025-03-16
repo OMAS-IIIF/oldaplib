@@ -250,7 +250,7 @@ class ResourceClass(Model, Notify):
                 else:
                     value.prop._internal = self._owlclass_iri  # we need to access the private variable here
                     value._property_class_iri = key  # we need to access the private variable here
-                    self.prop._properties[key] = value
+                    self._properties[key] = value
         else:
             raise OldapError(f'Invalid key type {type(key).__name__} of key {key}')
         self.notify()

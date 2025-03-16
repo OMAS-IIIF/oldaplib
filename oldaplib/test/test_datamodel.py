@@ -60,7 +60,8 @@ class TestDataModel(unittest.TestCase):
         cls._context['dmtestE'] = NamespaceIRI('http://oldap.org/dmtestE#')
         cls._context['dmtestF'] = NamespaceIRI('http://oldap.org/dmtestF#')
         cls._context['dmtestG'] = NamespaceIRI('http://oldap.org/dmtestG#')
-        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF', 'dmtestG')
+        cls._context['dmtestH'] = NamespaceIRI('http://oldap.org/dmtestH#')
+        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF', 'dmtestG', 'dmtestH')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="oldap",
@@ -84,6 +85,8 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtestF:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtestG:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtestG:onto'))
+        cls._connection.clear_graph(Xsd_QName('dmtestH:shacl'))
+        cls._connection.clear_graph(Xsd_QName('dmtestH:onto'))
         cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
         cls._connection.clear_graph(Xsd_QName('hyha:onto'))
 
@@ -101,6 +104,7 @@ class TestDataModel(unittest.TestCase):
         cls._dmprojectE = Project.read(cls._connection, "dmtestE", ignore_cache=True)
         cls._dmprojectF = Project.read(cls._connection, "dmtestF", ignore_cache=True)
         cls._dmprojectG = Project.read(cls._connection, "dmtestG", ignore_cache=True)
+        cls._dmprojectH = Project.read(cls._connection, "dmtestH", ignore_cache=True)
         cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
 
 
@@ -672,6 +676,31 @@ class TestDataModel(unittest.TestCase):
         generic_comment.force_external()
         with self.assertRaises(OldapErrorAlreadyExists):
             dm[Iri(f'{dm_name}:genericComment')] = generic_comment
+
+    def test_datamodel_duplicate_resource_property(self):
+        dm_name = self._dmprojectH.projectShortName
+
+        dm = self.generate_a_datamodel(self._dmprojectH)
+        dm.create()
+        del dm
+
+        dm = DataModel.read(self._connection, self._dmprojectH, ignore_cache=True)
+
+        title = PropertyClass(con=self._connection,
+                              project=self._dmprojectH,
+                              property_class_iri=Iri(f'{dm_name}:title'),
+                              datatype=XsdDatatypes.langString,
+                              name=LangString(["Title@en", "Titel@de"]),
+                              description=LangString(["Title of book@en", "Titel des Buches@de"]),
+                              uniqueLang=Xsd_boolean(True),
+                              languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        hasprop = HasProperty(con=self._connection, prop=title, minCount=Xsd_integer(1), order=1)
+
+        dm[Iri(f'{dm_name}:Book')][Iri(f'{dm_name}:title')] = hasprop
+
+        with self.assertRaises(OldapErrorAlreadyExists):
+            dm.update()
 
     def test_update_parts(self):
         dm_name = self._dmproject.projectShortName
