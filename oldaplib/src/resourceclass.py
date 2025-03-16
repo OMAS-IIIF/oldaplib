@@ -1125,7 +1125,7 @@ class ResourceClass(Model, Notify):
                             sparql2 += f'{blank:{indent* indent_inc}}}}\n'
                             sparql_list.append(sparql2)
             elif change.action == Action.REPLACE:
-                raise OldapErrorInconsistency(f'Property can not be replaced!')
+                raise OldapErrorAlreadyExists(f'Property can not be replaced!')
             elif change.action == Action.DELETE:
                 if change.old_value.prop.internal:
                     sparql = change.old_value.prop.delete_shacl()
