@@ -1061,7 +1061,7 @@ class OldapListNode(Model):
             ?subject ?p ?o
         }}
         WHERE {{
-            GRAPH test:lists {{
+            GRAPH {self.__graph}:lists {{
                 ?subject oldap:leftIndex ?leftIndex ;
         	        oldap:rightIndex ?rightIndex ;
         	        skos:inScheme {self.__oldapList.oldapList_iri.toRdf} ;
