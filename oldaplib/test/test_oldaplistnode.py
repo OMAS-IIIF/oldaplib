@@ -11,7 +11,7 @@ from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.oldaplist import OldapList
@@ -53,6 +53,11 @@ class TestOldapListNode(unittest.TestCase):
                                      userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
+        cls._unpriv = Connection(server='http://localhost:7200',
+                                 repo="oldap",
+                                 userId="unknown",
+                                 credentials="RioGrande",
+                                 context_name="DEFAULT")
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
         file = cls._project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
@@ -100,6 +105,34 @@ class TestOldapListNode(unittest.TestCase):
         self.assertEqual(LangString("First node@en"), oln.definition)
         self.assertEqual(Xsd_integer(1), oln.leftIndex)
         self.assertEqual(Xsd_integer(2), oln.rightIndex)
+
+    def test_root_constructor_unpriv(self):
+        project = Project.read(con=self._connection, projectIri_SName="test")
+        oldaplist = OldapList(con=self._connection,
+                              project=project,
+                              oldapListId="TestListUnpriv",
+                              prefLabel="TestListUnpriv",
+                              definition="A list for testing...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._unpriv,
+                                   project=project,
+                                   oldapListId="TestListUnpriv")
+        oln = OldapListNode(con=self._unpriv,
+                            oldapList=oldaplist,
+                            oldapListNodeId="Node_A",
+                            prefLabel="Node_A",
+                            definition="First node")
+        with self.assertRaises(OldapErrorNoPermission) as ex:
+            oln.create_root_node()
+        #
+        # oln = OldapListNode.read(con=self._connection,
+        #                          oldapList=oldaplist,
+        #                          oldapListNodeId="Node_A")
+        # self.assertEqual("Node_A", oln.oldapListNodeId)
+        # self.assertEqual(LangString("Node_A"), oln.prefLabel)
+        # self.assertEqual(LangString("First node@en"), oln.definition)
+        # self.assertEqual(Xsd_integer(1), oln.leftIndex)
+        # self.assertEqual(Xsd_integer(2), oln.rightIndex)
 
     def test_update(self):
         project = Project.read(con=self._connection, projectIri_SName="test")

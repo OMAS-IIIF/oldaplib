@@ -198,14 +198,11 @@ class OldapList(Model):
             return True, "OK – IS ROOT"
         else:
             if len(actor.inProject) == 0:
-                return False, f'Actor has no ADMIN_LISTS permission for user {self.userId}.'
-            allowed: list[Iri] = []
-            for proj in actor.inProject.keys():
-                if actor.inProject.get(proj) is None:
-                    return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
-                else:
-                    if AdminPermission.ADMIN_LISTS not in actor.inProject.get(proj):
-                        return False, f'Actor has no ADMIN_LISTS permission for project {proj}'
+                return False, f'Actor has no ADMIN_LISTS permission for project "{self.__project.projectIri}".'
+            if not actor.inProject.get(self.__project.projectIri):
+                return False, f'Actor has no ADMIN_LISTS permission for project "{self.__project.projectIri}".'
+            if AdminPermission.ADMIN_LISTS not in actor.inProject.get(self.__project.projectIri):
+                return False, f'Actor has no ADMIN_LISTS permission for project "{self.__project.projectIri}".'
             return True, "OK"
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
@@ -246,6 +243,10 @@ class OldapList(Model):
     @property
     def node_class_iri(self) -> Iri:
         return self.__node_class_iri
+
+    @property
+    def project(self) -> Project:
+        return self.__project
 
     @classmethod
     def read(cls,
