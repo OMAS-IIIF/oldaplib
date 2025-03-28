@@ -104,7 +104,7 @@ class OldapListNode(Model):
             if len(actor.inProject) == 0:
                 return False, f'Actor has no ADMIN_LISTS permission for project "{self.__oldapList.project.projectIri}".'
             if not actor.inProject.get(self.__oldapList.project.projectIri):
-                return False, f'Actor has no ADMIN_LISTS permission for project "{self.__project.projectIri}".'
+                return False, f'Actor has no ADMIN_LISTS permission.'
             if AdminPermission.ADMIN_LISTS not in actor.inProject.get(self.__oldapList.project.projectIri):
                 return False, f'Actor has no ADMIN_LISTS permission for project "{self.__oldapList.project.projectIri}".'
             return True, "OK"
@@ -262,14 +262,14 @@ class OldapListNode(Model):
         timestamp = Xsd_dateTime.now()
         blank = ''
         #
-        # Sparql to check if list has already eny nodes. If so, root node creation is not possible!
+        # Sparql to check if list has already any nodes. If so, root node creation is not possible!
         #
         sparql1 = context.sparql_context
         sparql1 += f"""
         SELECT ?list
         FROM {self.__graph}:lists
         WHERE {{
-            ?listnode a oldap:OldapListNode .
+            ?listnode a {self.__oldapList.node_class_iri} .
             ?listnode skos:inScheme {self.__oldapList.oldapList_iri.toRdf}
         }}
         """
