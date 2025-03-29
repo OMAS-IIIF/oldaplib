@@ -1,6 +1,7 @@
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from pprint import pprint
 from time import sleep
 
 from oldaplib.src.connection import Connection
@@ -954,6 +955,38 @@ class TestUser(unittest.TestCase):
     #@unittest.skip('Work in progress')
     def test_update_user_rm_from_project(self):
         user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-6353-0020"),
+                    userId=Xsd_NCName("fred"),
+                    familyName="Flintstone",
+                    givenName="fred",
+                    email="fred.flintstone@bedrock.com",
+                    credentials="StoneAgeGenius",
+                    inProject={
+                        Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                            AdminPermission.ADMIN_USERS,
+                            AdminPermission.ADMIN_RESOURCES,
+                            AdminPermission.ADMIN_CREATE
+                        },
+                        Iri('oldap:HyperHamlet'): {
+                            AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
+                        }
+                    },
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="fred", ignore_cache=True)
+        del user.inProject[Iri('oldap:HyperHamlet')]
+        user.update()
+        user = User.read(con=self._connection, userId="fred", ignore_cache=True)
+        print(str(user))
+        self.assertIsNone(user.inProject.get(Iri('oldap:HyperHamlet')))
+        self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {
+                    AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
+            }
+        )
+
+    #@unittest.skip('Work in progress')
+    def test_update_user_rm_all_permsets_from_project(self):
+        user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-2553-8814"),
                     userId=Xsd_NCName("bsimpson"),
                     familyName="Simpson",
@@ -974,8 +1007,10 @@ class TestUser(unittest.TestCase):
         user.create()
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
         user.inProject[Iri('oldap:HyperHamlet')] = None
+        # del user.inProject[Iri('oldap:HyperHamlet')]
         user.update()
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
+        print(str(user))
         self.assertEqual(user.inProject.get(Iri('oldap:HyperHamlet')), {})
         self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {
                     AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
