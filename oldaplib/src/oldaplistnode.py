@@ -1220,6 +1220,14 @@ class OldapListNode(Model):
             target_rindex = r['rindex']
 
         #
+        # target node may not be below moving node!
+        #
+        print(target_lindex, ">=", moving_lindex)
+        print(target_rindex, "<=", moving_rindex)
+        if (target_lindex >= moving_lindex) and (target_rindex <= moving_rindex):
+            raise OldapErrorInconsistency(f"Cannot move node to target node that is part of the tree to be moved!")
+
+        #
         # Set oldap:leftIndex and oldap:rightIndex of all nodes to be moved to the negative value
         #
         update1 = context.sparql_context
@@ -1487,6 +1495,12 @@ class OldapListNode(Model):
             left_parent_iri = r.get('parent_iri')
 
         #
+        # target node may not be below moving node!
+        #
+        if (left_lindex >= moving_lindex) and (left_rindex <= moving_rindex):
+            raise OldapErrorInconsistency(f"Cannot move node to target node that is part of the tree to be moved!")
+
+        #
         # Set oldap:leftIndex and oldap:rightIndex of all nodes to be moved to the negative value
         #
         update1 = context.sparql_context
@@ -1751,6 +1765,12 @@ class OldapListNode(Model):
             right_lindex = r['lindex']
             right_rindex = r['rindex']
             right_parent_iri = r.get('parent_iri')
+
+        #
+        # target node may not be below moving node!
+        #
+        if (right_lindex >= moving_lindex) and (right_rindex <= moving_rindex):
+            raise OldapErrorInconsistency(f"Cannot move node to target node that is part of the tree to be moved!")
 
         #
         # Set oldap:leftIndex and oldap:rightIndex of all nodes to be moved to the negative value
