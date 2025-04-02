@@ -952,6 +952,27 @@ class TestUser(unittest.TestCase):
             }
         ))
 
+    # @unittest.skip('Work in progress')
+    def test_update_user_add_to_invalid_project(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-2553-8814"),
+                    userId=Xsd_NCName("bsimpson"),
+                    familyName="Simpson",
+                    givenName="Bart",
+                    email="bart.simpson@springfield.com",
+                    credentials="AtomicPower",
+                    inProject={Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
+                        AdminPermission.ADMIN_USERS,
+                        AdminPermission.ADMIN_RESOURCES,
+                        AdminPermission.ADMIN_CREATE}},
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        del user
+        user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
+        user.inProject[Iri('http://gaga.gugus.com/doesnotexist')] = {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE}
+        with self.assertRaises(OldapErrorValue):
+            user.update()
+
     #@unittest.skip('Work in progress')
     def test_update_user_rm_from_project(self):
         user = User(con=self._connection,
@@ -977,7 +998,6 @@ class TestUser(unittest.TestCase):
         del user.inProject[Iri('oldap:HyperHamlet')]
         user.update()
         user = User.read(con=self._connection, userId="fred", ignore_cache=True)
-        print(str(user))
         self.assertIsNone(user.inProject.get(Iri('oldap:HyperHamlet')))
         self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {
                     AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
@@ -1010,7 +1030,6 @@ class TestUser(unittest.TestCase):
         # del user.inProject[Iri('oldap:HyperHamlet')]
         user.update()
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
-        print(str(user))
         self.assertEqual(user.inProject.get(Iri('oldap:HyperHamlet')), {})
         self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {
                     AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE

@@ -654,6 +654,9 @@ class User(Model):
 
         ptest = None
         ptest_len = 0
+        proj_test = None
+        proj_test_len = 0
+
         blank = ''
         sparql_list = []
         for field, change in self._changeset.items():
@@ -715,15 +718,17 @@ class User(Model):
             # check if existing :PermissionSet's have been given!
             #
             if added:
+                tmp = [x.toRdf for x in added]
+                tmp = ", ".join(tmp)
                 ptest = f"""
                 SELECT ?permissionset
                 FROM oldap:admin
                 WHERE {{
                     ?permissionset a oldap:PermissionSet .
-                    FILTER(?permissionset IN ({added.toRdf}))
+                    FILTER(?permissionset IN ({tmp}))
                 }}
                 """
-                ptest_len = len(added) if added else 0
+                ptest_len = len(added)
 
         if UserAttr.IN_PROJECT in self._changeset:
             addedprojs = {}
@@ -738,6 +743,18 @@ class User(Model):
 
             # add projects
             if addedprojs:
+                projs = [x.toRdf for x in addedprojs]
+                projslist = ", ".join(projs)
+                proj_test = f"""
+                SELECT ?project
+                FROM oldap:admin
+                WHERE {{
+                    ?project a oldap:Project .
+                    FILTER(?project IN ({projslist}))
+                }}
+                """
+                proj_test_len = len(addedprojs)
+
                 sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
                 for proj in addedprojs:
@@ -791,6 +808,18 @@ class User(Model):
                             deleting[proj_iri] = B - A
 
                 if adding:
+                    projs = [x.toRdf for x in adding.keys()]
+                    projslist = ", ".join(projs)
+                    proj_test = f"""
+                    SELECT ?project
+                    FROM oldap:admin
+                    WHERE {{
+                        ?project a oldap:Project .
+                        FILTER(?project IN ({projslist}))
+                    }}
+                    """
+                    proj_test_len = len(adding.keys())
+
                     sparql = f"{blank:{indent * indent_inc}}INSERT DATA {{\n"
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
                     for proj, add_set in adding.items():
@@ -840,6 +869,16 @@ class User(Model):
             if len(res) != ptest_len:
                 self._con.transaction_abort()
                 raise OldapErrorValue("One of the permission sets is not existing!")
+
+        if proj_test and proj_test_len > 0:
+            proj_sparql = context.sparql_context
+            proj_sparql += proj_test
+            jsonobj = self._con.transaction_query(proj_sparql)
+            res = QueryProcessor(context, jsonobj)
+            if len(res) != proj_test_len:
+                self._con.transaction_abort()
+                raise OldapErrorValue("One of the projects is not existing!")
+
         try:
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri, self.modified, timestamp)
