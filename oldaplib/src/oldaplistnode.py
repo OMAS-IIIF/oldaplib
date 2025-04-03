@@ -56,6 +56,7 @@ class OldapListNode(Model):
                  modified: Xsd_dateTime | None = None,
                  leftIndex: Xsd_integer | None = None,
                  rightIndex: Xsd_integer | None = None,
+                 defaultLabel: bool = True,
                  **kwargs):
         super().__init__(connection=con,
                          creator=creator,
@@ -67,7 +68,7 @@ class OldapListNode(Model):
         self.__graph = oldapList.project.projectShortName
 
         self.set_attributes(kwargs, OldapListNodeAttr)
-        if self._attributes.get(OldapListNodeAttr.PREF_LABEL) is None:
+        if self._attributes.get(OldapListNodeAttr.PREF_LABEL) is None and defaultLabel:
             self._attributes[OldapListNodeAttr.PREF_LABEL] = LangString(str(self._attributes[OldapListNodeAttr.OLDAPLISTNODE_ID]))
 
         list_node_prefix = Xsd_NCName("L-") + self.__oldapList.oldapListId

@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+from pprint import pprint
 from time import sleep
 
 from oldaplib.src.connection import Connection
@@ -173,6 +174,35 @@ class TestOldapListNode(unittest.TestCase):
         oln.update()
         self.assertEqual(oln.prefLabel, LangString("Erster Knoten@de"))
         self.assertIsNone(oln.definition)
+
+    def test_get_nodes_from_list(self):
+        project = Project.read(con=self._connection, projectIri_SName="test")
+        oldaplist = OldapList(con=self._connection,
+                              project=project,
+                              oldapListId="TestGetNodesFromList",
+                              prefLabel="TestGetNodesFromList",
+                              definition="A list for test updating...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project=project,
+                                   oldapListId="TestGetNodesFromList")
+        oln = OldapListNode(con=self._connection,
+                            oldapList=oldaplist,
+                            oldapListNodeId="Node_A",
+                            prefLabel="Node_A",
+                            definition="First node")
+        oln.create_root_node()
+        oln = OldapListNode.read(con=self._connection, oldapList=oldaplist, oldapListNodeId="Node_A")
+        oln.prefLabel = LangString("First Node")
+        oln.definition = LangString("Erster Knoten@de")
+        oln.update()
+
+        oldaplist = OldapList.read(con=self._connection,
+                                   project=project,
+                                   oldapListId="TestGetNodesFromList")
+        hlist = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        self.assertEqual(hlist[0].prefLabel, LangString("First Node@en"))
+        self.assertEqual(len(hlist[0].prefLabel), 1)
 
     def test_insert_right_of_A(self):
         oldaplist = OldapList(con=self._connection,

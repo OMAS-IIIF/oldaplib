@@ -96,7 +96,8 @@ def get_nodes_from_list(con: IConnection, oldapList: OldapList) ->list[OldapList
                                modified=r['modified'],
                                contributor=r['contributor'],
                                leftIndex=r['lindex'],
-                               rightIndex=r['rindex'])
+                               rightIndex=r['rindex'],
+                               defaultLabel=False)
             if r.get('parent') is not None:
                 parent_prefix, parent_id = str(r['parent']).split(':')
                 pnodes = [x for x in all_nodes if x.oldapListNodeId == parent_id]
