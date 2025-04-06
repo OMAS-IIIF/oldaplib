@@ -819,6 +819,44 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
         self.assertEqual(user.inProject[Iri('oldap:HyperHamlet')], {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE})
 
+    def test_update_user_permissions_D(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2066"),
+                    userId=Xsd_NCName("tesla"),
+                    familyName="Tesla",
+                    givenName="Nikolai",
+                    email="nikolai.tesla@tesla.com",
+                    credentials="Alternative current",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                          AdminPermission.ADMIN_RESOURCES},
+                               Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_MODEL}},
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
+        del user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')]
+        user.update()
+        user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
+        self.assertIsNone(user.inProject.get(Iri('http://www.salsah.org/version/2.0/SwissBritNet')))
+
+    def test_update_user_permissions_E(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0002-9991-2066"),
+                    userId=Xsd_NCName("tesla"),
+                    familyName="Tesla",
+                    givenName="Nikolai",
+                    email="nikolai.tesla@tesla.com",
+                    credentials="Alternative current",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                          AdminPermission.ADMIN_RESOURCES}},
+                    hasPermissions={Iri('oldap:GenericView')})
+        user.create()
+        user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
+        user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')] = set()
+        user.update()
+        user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
+        self.assertIsNotNone(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')])
+        self.assertEqual(user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')], {})
+
 
     #  #unittest.skip('Work in progress')
     def test_update_user_unpriv(self):

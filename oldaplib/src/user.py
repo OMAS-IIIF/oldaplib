@@ -740,6 +740,13 @@ class User(Model):
             elif self._changeset[UserAttr.IN_PROJECT].action == Action.REPLACE:
                 deletedprojs = {key: val for key, val in self._changeset[UserAttr.IN_PROJECT].old_value}
                 addedprojs = {key: val for key, val in self._attributes[UserAttr.IN_PROJECT]}
+            elif self._changeset[UserAttr.IN_PROJECT].action == Action.MODIFY:
+                mod_cs = self._attributes[UserAttr.IN_PROJECT].changeset
+                for key in mod_cs:
+                    if mod_cs[key].action == Action.CREATE:
+                        addedprojs[key] = self._attributes[UserAttr.IN_PROJECT][key]
+                    elif mod_cs[key].action == Action.DELETE:
+                        deletedprojs[key] = mod_cs[key].old_value
 
             # add projects
             if addedprojs:
@@ -771,7 +778,8 @@ class User(Model):
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
                 for proj in deletedprojs:
                     sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} oldap:inProject {proj.toRdf} .\n'
-                    for perm in self._changeset[UserAttr.IN_PROJECT].old_value[proj]:
+                    #for perm in self._changeset[UserAttr.IN_PROJECT].old_value[proj]:
+                    for perm in deletedprojs[proj]:
                         sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {proj.toRdf}>> oldap:hasAdminPermission {perm.value} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
