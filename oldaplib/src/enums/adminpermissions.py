@@ -27,6 +27,21 @@ class AdminPermission(Enum):
     ADMIN_CREATE = 'oldap:ADMIN_CREATE'  # Create new resources in the given project
     ADMIN_LISTS = 'oldap:ADMIN_LISTS'  # Allows to add/modify/delete lists
 
+    def __new__(cls, value):
+        # Allow plain names like 'ADMIN_OLDAP'
+        if not value.startswith('oldap:'):
+            value = f'oldap:{value}'
+        obj = object.__new__(cls)
+        obj._value_ = value
+        return obj
+
+    @classmethod
+    def from_string(cls, key):
+        # Accept either 'ADMIN_OLDAP' or 'oldap:ADMIN_OLDAP'
+        if not key.startswith('oldap:'):
+            key = f'oldap:{key}'
+        return cls(key)
+
     @property
     def toRdf(self):
         return self.value
