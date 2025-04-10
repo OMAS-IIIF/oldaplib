@@ -220,7 +220,7 @@ class UserData:
                             inProjectDict = {r['proj']: set()}
                         if inProjectDict.get(r['proj']) is None:
                             inProjectDict[r['proj']] = set()
-                        inProjectDict[r['proj']].add(AdminPermission(str(r['rval'])))
+                        inProjectDict[r['proj']].add(AdminPermission.from_string(str(r['rval'])))
         inProject = InProjectClass(inProjectDict) if inProjectDict else InProjectClass()
         return cls(created=created,
                    creator=creator,

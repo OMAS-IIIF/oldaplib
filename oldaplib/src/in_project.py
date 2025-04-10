@@ -74,10 +74,7 @@ class InProjectClass(Notify):
         for permission in value:
             if isinstance(permission, str):
                 try:
-                    if permission.find(':') >= 0:
-                        perms.add(AdminPermission(permission))
-                    else:
-                        perms.add(AdminPermission('oldap:' + permission))
+                    perms.add(AdminPermission.from_string(permission))
                 except ValueError as err:
                     raise OldapErrorValue(str(err))
             elif permission in AdminPermission:
