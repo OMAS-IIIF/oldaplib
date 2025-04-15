@@ -79,6 +79,8 @@ class Xsd_string(Xsd):
         :type lang: str | Language
         :raises OldapErrorValue: If the given language is invalid
         """
+        if isinstance(value, (list, tuple, set, dict)):
+            raise OldapErrorValue(f'Value "{value}" cannot meaningfully be converted to a Xsd_string')
         if not value:
             self.__value = None
             self.__lang = None
@@ -93,10 +95,11 @@ class Xsd_string(Xsd):
                     tmpls: str = value[-2:].upper()
                     try:
                         self.__lang = Language[tmpls]
-                        self.__value = value[:-3]
                     except KeyError as err:
-                        self.__lang = None
-                        self.__value = value
+                        # self.__lang = None
+                        # self.__value = value
+                        raise OldapErrorValue(f'Invalid language "{tmpls}".')
+                    self.__value = value[:-3]
                 else:
                     self.__lang = None
                     self.__value = value

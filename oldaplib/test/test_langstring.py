@@ -1,6 +1,7 @@
 import json
 import unittest
 from datetime import datetime
+from unittest.mock import Mock
 
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.action import Action
@@ -281,6 +282,14 @@ class TestLangstring(unittest.TestCase):
         with self.assertRaises(OldapErrorValue):
             ls7.add(77)
 
+    def test_langstring_notify(self):
+        do_notify = Mock()
+
+        ls1 = LangString(["english@en", "deutsch@de"], notifier=do_notify)
+        ls1.add("français@fr")
+
+        assert ls1 == LangString("english@en", "deutsch@de", "français@fr")
+        assert do_notify.called, "do_notify() was not called"
 
     def test_langstring_undo(self):
         LangString.defaultLanguage = Language.ZU

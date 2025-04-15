@@ -1435,13 +1435,23 @@ class TestXsdDatatypes(unittest.TestCase):
         valx = self.get_triple(Xsd_NCName("Xsd_string3"))
         self.assertEqual(val, valx)
 
-        val = Xsd_string("sosdeli@xx")
-        self.assertEqual(str(val), "sosdeli@xx")
-        self.assertEqual(repr(val), 'Xsd_string("sosdeli@xx")')
-        self.assertEqual(val.toRdf, '"sosdeli@xx"^^xsd:string')
+        with self.assertRaises(OldapErrorValue):
+            val = Xsd_string("sosdeli@xx")
 
         with self.assertRaises(OldapErrorValue):
             val = Xsd_string("gaga", "xx")
+
+        with self.assertRaises(OldapErrorValue):
+            val = Xsd_string([])
+
+        with self.assertRaises(OldapErrorValue):
+            val = Xsd_string({})
+
+        with self.assertRaises(OldapErrorValue):
+            val = Xsd_string(set())
+
+        with self.assertRaises(OldapErrorValue):
+            val = Xsd_string("gaga@xy")
 
 
     def test_xsd_time(self):

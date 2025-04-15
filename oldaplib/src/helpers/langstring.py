@@ -224,7 +224,6 @@ class LangString(Notify):
                 if self._changeset.get(lang) is None:
                     self._changeset[lang] = LangStringChange(self._langstring[lang], Action.DELETE)
                 del self._langstring[lang]
-                self.notify()
             except KeyError as err:
                 raise OldapError(f'No language string of language: "{lang}"!')
         elif isinstance(lang, str):
@@ -233,11 +232,11 @@ class LangString(Notify):
                 if self._changeset.get(lobj) is None:
                     self._changeset[lobj] = LangStringChange(self._langstring[lobj], Action.DELETE)
                 del self._langstring[lobj]
-                self.notify()
             except (KeyError, ValueError) as err:
                 raise OldapError(f'No language string of language: "{lang}"!')
         else:
             raise OldapError(f'Unsupported language value {lang}!')
+        self.notify()
 
     def __str__(self) -> str:
         """
@@ -364,15 +363,13 @@ class LangString(Notify):
                     oldval = self._langstring.get(lang)
                     self._langstring[lang] = val
                     if self._changeset.get(lang) is None:  # only the first change is recorded
-                        self._changeset[lang] = LangStringChange(oldval,
-                                                                 Action.REPLACE if oldval is not None else Action.CREATE)
+                        self._changeset[lang] = LangStringChange(oldval, Action.REPLACE if oldval is not None else Action.CREATE)
             elif isinstance(args[0], Xsd_string):
                 l = LangString.defaultLanguage if args[0].lang is None else args[0].lang
                 oldval = self._langstring.get(l)
                 self._langstring[l] = args[0].value
                 if self._changeset.get(l) is None:  # only the first change is recorded
-                    self._changeset[l] = LangStringChange(oldval,
-                                                             Action.REPLACE if oldval is not None else Action.CREATE)
+                    self._changeset[l] = LangStringChange(oldval, Action.REPLACE if oldval is not None else Action.CREATE)
             elif isinstance(args[0], str):
                 xstr = Xsd_string(args[0])
                 l = xstr.lang or LangString.defaultLanguage
@@ -395,8 +392,7 @@ class LangString(Notify):
                     oldval = self._langstring.get(l)
                     self._langstring[l] = xstr.value
                     if self._changeset.get(l) is None:  # only the first change is recorded
-                        self._changeset[l] = LangStringChange(oldval,
-                                                              Action.REPLACE if oldval is not None else Action.CREATE)
+                        self._changeset[l] = LangStringChange(oldval, Action.REPLACE if oldval is not None else Action.CREATE)
             else:
                 raise OldapErrorValue(
                     f'LangString parameter has wrong datatype: {type(args[0]).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
@@ -420,6 +416,7 @@ class LangString(Notify):
                 else:
                     raise OldapErrorValue(
                         f'LangString parameter has wrong datatype: {type(langstring).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
+        self.notify()
 
     def undo(self) -> None:
         """
