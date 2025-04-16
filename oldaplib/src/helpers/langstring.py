@@ -51,6 +51,8 @@ class LangString(Notify):
       `myvar["de"] = "Ein neuer string"`.
     - to delete a language: `del myvar[Language.FR]`
 
+    **NOTE***: If a language is repeated, the last language string will be used and the previous ones ignored or overriden!
+
     The class implements the following methods:
 
     - _LangString()_: Initiate a language string instance (`__init__()`)
@@ -127,8 +129,6 @@ class LangString(Notify):
                         if not xstr:
                             continue
                         l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
-                        if self._langstring.get(l, None) is not None:
-                            raise OldapErrorValue(f'Langstring has duplicate languages ({l}: "{self._langstring[l]}", "{xstr.value}")')
                         self._langstring[l] = xstr.value
                 elif isinstance(langstring, dict):
                     for lang, value in langstring.items():

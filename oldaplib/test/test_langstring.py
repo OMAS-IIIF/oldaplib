@@ -203,8 +203,10 @@ class TestLangstring(unittest.TestCase):
         ls2 = LangString(["english@en", "deutsch@de", "unbekannt"])
         self.assertTrue(ls1 == ls2)
         self.assertFalse(ls1 != ls2)
-        with self.assertRaises(OldapErrorValue):
-            ls3 = LangString(["english@en", "français", "unbekannt"])
+
+        ls3 = LangString(["english@en", "français", "unbekannt"])
+        self.assertTrue(ls3[Language.ZU] == "unbekannt")
+
         ls4 = LangString(["english@en", "unbekannt"])
         self.assertFalse(ls1 == ls4)
         self.assertTrue(ls1 != ls4)
@@ -281,6 +283,11 @@ class TestLangstring(unittest.TestCase):
         ls7 = LangString(["english@en", "deutsch@de"])
         with self.assertRaises(OldapErrorValue):
             ls7.add(77)
+
+    def test_langstring_add(self):
+        ls = LangString(["english@en", "deutsch@de"])
+        ls.add("kappa@z")
+
 
     def test_langstring_notify(self):
         do_notify = Mock()
