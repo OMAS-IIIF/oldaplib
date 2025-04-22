@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
+from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -479,6 +480,8 @@ if __name__ == "__main__":
                      credentials="RioGrande",
                      repo="oldap",
                      context_name="DEFAULT")
+    cache = CacheSingleton()
+    cache.clear()
     con.clear_repo()
     con.upload_turtle("../ontologies/oldap.trig")
     con.upload_turtle("../ontologies/shared.trig")
