@@ -19,7 +19,7 @@ from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.enums.language import Language
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorValue, OldapErrorKey
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
@@ -498,7 +498,10 @@ class LangString(Notify):
             if change.action != Action.DELETE:
                 sparql = f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-                langstr = f'"{self._langstring[lang]}"'
+                try:
+                    langstr = f'"{self._langstring[lang]}"'
+                except KeyError:
+                    raise OldapErrorKey(f'No language string of language: "{lang}"!')
                 langstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {langstr} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
@@ -548,7 +551,10 @@ class LangString(Notify):
 
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                langstr = f'"{self._langstring[lang]}"'
+                try:
+                    langstr = f'"{self._langstring[lang]}"'
+                except KeyError:
+                    raise OldapErrorKey(f'No language string of language: "{lang}"!')
                 langstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {langstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
