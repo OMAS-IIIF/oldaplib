@@ -175,7 +175,7 @@ class LangString(Notify):
             try:
                 lang = Language[lang.upper()]
             except KeyError:
-                raise OldapError(f'Language "{lang}" is invalid')
+                raise OldapErrorKey(f'Language "{lang}" is invalid')
         s = self._langstring.get(lang)
         if s:
             return s
@@ -207,9 +207,9 @@ class LangString(Notify):
                 self._langstring[lobj] = value
                 self.notify()
             except (KeyError, ValueError) as err:
-                raise OldapError(f'Language "{lang}" is invalid: {err}.')
+                raise OldapErrorKey(f'Language "{lang}" is invalid: {err}.')
         else:
-            raise OldapError(f'Language "{lang}" is invalid.')
+            raise OldapErrorKey(f'Language "{lang}" is invalid.')
 
     def __delitem__(self, lang: Language | str) -> None:
         """
@@ -225,7 +225,7 @@ class LangString(Notify):
                     self._changeset[lang] = LangStringChange(self._langstring[lang], Action.DELETE)
                 del self._langstring[lang]
             except KeyError as err:
-                raise OldapError(f'No language string of language: "{lang}"!')
+                raise OldapErrorKey(f'No language string of language: "{lang}"!')
         elif isinstance(lang, str):
             try:
                 lobj = Language[lang.upper()]
@@ -233,9 +233,9 @@ class LangString(Notify):
                     self._changeset[lobj] = LangStringChange(self._langstring[lobj], Action.DELETE)
                 del self._langstring[lobj]
             except (KeyError, ValueError) as err:
-                raise OldapError(f'No language string of language: "{lang}"!')
+                raise OldapErrorKey(f'No language string of language: "{lang}"!')
         else:
-            raise OldapError(f'Unsupported language value {lang}!')
+            raise OldapErrorKey(f'Unsupported language value {lang}!')
         self.notify()
 
     def __str__(self) -> str:
