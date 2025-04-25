@@ -91,7 +91,7 @@ class Xsd_string(Xsd):
         else:
             value = str(value)
             if lang is None:
-                if len(value) > 3 and value[-3] == '@':
+                if len(value) >= 3 and value[-3] == '@':
                     tmpls: str = value[-2:].upper()
                     try:
                         self.__lang = Language[tmpls]
@@ -265,3 +265,4 @@ class Xsd_string(Xsd):
         :rtype: Language | None
         """
         return self.__lang
+
