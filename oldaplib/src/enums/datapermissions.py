@@ -76,11 +76,23 @@ class DataPermission(PermissionWithValue):
     def toRdf(self):
         return self.value
 
+    def to_string(self):
+        return self.name.removeprefix("oldap:")
+
     @classmethod
     def from_string(cls, permission_string: str) -> Self:
+        if not permission_string.startswith('oldap:'):
+            permission_string = f'oldap:{permission_string}'
         for member in cls:
             if f'oldap:{member.name}' == permission_string:
                 return member
         raise ValueError(f'{permission_string} is not in DataPermission enum.')
+
+if __name__ == '__main__':
+    p = DataPermission.from_string('DATA_RESTRICTED')
+    print(p)
+    print(p.to_string())
+    print(p.value)
+    print(p.numeric)
 
 

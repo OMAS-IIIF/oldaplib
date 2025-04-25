@@ -1383,6 +1383,9 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_string("")
         self.assertFalse(val)
 
+        val = Xsd_string("@fr")
+        self.assertFalse(val)
+
         val = Xsd_string("Waseliwas\nsoll <denn> das\" sein?")
         self.assertEqual(str(val), "Waseliwas\nsoll <denn> das\" sein?")
         self.assertEqual(repr(val), 'Xsd_string("Waseliwas\nsoll <denn> das\" sein?")')

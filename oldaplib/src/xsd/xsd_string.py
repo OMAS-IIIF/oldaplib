@@ -133,7 +133,7 @@ class Xsd_string(Xsd):
         return len(self.__value)
 
     def __bool__(self) -> bool:
-        return self.__value is not None
+        return self.__value is not None and len(self.__value) > 0
 
     def __str__(self) -> str:
         """
