@@ -448,26 +448,14 @@ class Project(Model):
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
         self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(sparql1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(sparql1)
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
             raise OldapErrorAlreadyExists(f'A Project with a projectIri "{self.projectIri}" already exists')
 
-        try:
-            self._con.transaction_update(sparql2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(sparql2)
+        self.safe_commit()
         self._created = timestamp
         self._creator = self._con.userIri
         self._modified = timestamp
@@ -544,11 +532,7 @@ class Project(Model):
         if timestamp != modtime:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         self._modified = timestamp
         self._contributor = self._con.userIri
         self.clear_changeset()
@@ -604,6 +588,3 @@ class Project(Model):
         return res[0]['shortname']
 
 
-if __name__ == '__main__':
-    gaga = ProjectSearchResult(Iri('http://gaga.com/gugus'), Xsd_NCName('gaga'))
-    print(json.dumps(gaga, default=serializer.encoder_default))

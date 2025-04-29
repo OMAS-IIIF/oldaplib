@@ -1709,8 +1709,15 @@ class TestXsdDatatypes(unittest.TestCase):
         n = Numeric(3.14159)
         self.assertTrue(isinstance(n, FloatingPoint))
 
+        n = Numeric("3.14159")
+        self.assertTrue(isinstance(n, FloatingPoint))
+
         n = Numeric(42)
         self.assertTrue(isinstance(n, Xsd_integer))
+
+        n = Numeric("42")
+        self.assertTrue(isinstance(n, Xsd_integer))
+
 
     def test_propref(self):
         pr = PropRef("gs:test")
