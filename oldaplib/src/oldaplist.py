@@ -507,11 +507,7 @@ class OldapList(Model):
         sparql4 += f'{blank:{indent * indent_inc}}}}\n'
 
         self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(sparql1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(sparql1)
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
@@ -524,11 +520,7 @@ class OldapList(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         self._created = timestamp
         self._creator = self._con.userIri
         self._modified = timestamp
@@ -587,11 +579,7 @@ class OldapList(Model):
         if timestamp != modtime:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         self._modified = timestamp
         self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
         self.clear_changeset()
@@ -660,11 +648,7 @@ class OldapList(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         cache = CacheSingleton()
         cache.delete(self.__oldapList_iri)
 
