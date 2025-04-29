@@ -274,3 +274,25 @@ class Model:
             self._con.transaction_update(sparql)
         else:
             self._con.update_query(sparql)
+
+    def safe_query(self, query: str) -> Any:
+        try:
+            return self._con.transaction_query(query)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+    def safe_update(self, update_query: str) -> None:
+        try:
+            self._con.transaction_update(update_query)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+    def safe_commit(self) -> None:
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+

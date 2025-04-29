@@ -89,26 +89,6 @@ class OldapListNode(Model):
                 partial(OldapListNode._set_value, attr=attr),
                 partial(OldapListNode._del_value, attr=attr)))
 
-    def safe_query(self, query: str) -> Any:
-        try:
-            return self._con.transaction_query(query)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
-
-    def safe_update(self, update_query: str) -> None:
-        try:
-            self._con.transaction_update(update_query)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
-
-    def safe_commit(self) -> None:
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
 
     def check_for_permissions(self) -> (bool, str):
         #
@@ -1071,7 +1051,6 @@ class OldapListNode(Model):
             }}
         }}
         """
-        self._con.transaction_start()  # TODO: ??????????????
         jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         target_lindex: int = 0
@@ -1546,7 +1525,6 @@ class OldapListNode(Model):
             }}
         }}
         """
-        self._con.transaction_start()  # TODO ????????????
         jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         right_lindex: int = 0
