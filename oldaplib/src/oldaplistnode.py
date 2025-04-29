@@ -89,6 +89,27 @@ class OldapListNode(Model):
                 partial(OldapListNode._set_value, attr=attr),
                 partial(OldapListNode._del_value, attr=attr)))
 
+    def safe_query(self, query: str) -> Any:
+        try:
+            return self._con.transaction_query(query)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+    def safe_update(self, update_query: str) -> None:
+        try:
+            self._con.transaction_update(update_query)
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
+    def safe_commit(self) -> None:
+        try:
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
+
     def check_for_permissions(self) -> (bool, str):
         #
         # First we check if the logged-in user ("actor") has the permission to create a ListNode for
@@ -134,8 +155,6 @@ class OldapListNode(Model):
         instance.__rightIndex = deepcopy(self.__rightIndex, memo)
 
         return instance
-
-
 
     @property
     def iri(self) -> Iri:
@@ -294,30 +313,16 @@ class OldapListNode(Model):
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
         self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(sparql1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(sparql1)
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
             raise OldapErrorAlreadyExists(f'A root node for "{self.__oldapList.oldapList_iri}" already exists')
 
-        try:
-            self._con.transaction_update(sparql2)
-        except OldapError:
-            self._con.transaction_abort()
-            print(sparql2)
-            raise
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(sparql2)
+        self.safe_commit()
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
-
 
     def update(self, indent: int = 0, indent_inc: int = 4):
         result, message = self.check_for_permissions()
@@ -359,11 +364,7 @@ class OldapListNode(Model):
         if timestamp != modtime:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed("Update failed! Timestamp does not match")
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         self._modified = timestamp
         self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
         self.clear_changeset()
@@ -417,12 +418,7 @@ class OldapListNode(Model):
         update1 += f'\n{blank:{indent * indent_inc}}}}'
 
         self._con.transaction_start()
-        try:
-            self._con.transaction_update(update1)
-        except OldapError:
-            lprint(update1)
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update1)
 
         query1 = context.sparql_context
         query1 += f"""
@@ -434,11 +430,7 @@ class OldapListNode(Model):
             }}
         }}
         """
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         rindex = 0
         lindex = 0
         res = QueryProcessor(context, jsonobj)
@@ -471,11 +463,7 @@ class OldapListNode(Model):
             BIND((?lindex + 2) AS ?nlindex)
         }}
         """
-        try:
-            self._con.transaction_update(update2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update2)
 
         update3 = context.sparql_context
         update3 += f"""
@@ -499,17 +487,9 @@ class OldapListNode(Model):
             BIND((?rindex + 2) AS ?nrindex)
         }}
         """
-        try:
-            self._con.transaction_update(update3)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update3)
 
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
             self._con.transaction_abort()
@@ -518,11 +498,7 @@ class OldapListNode(Model):
             self.__leftIndex = row['lindex']
             self.__rightIndex = row['rindex']
 
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         self.clear_changeset()
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
@@ -573,12 +549,7 @@ class OldapListNode(Model):
         update1 += f'\n{blank:{indent * indent_inc}}}}'
 
         self._con.transaction_start()
-        try:
-            self._con.transaction_update(update1)
-        except OldapError:
-            lprint(update1)
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update1)
 
         query1 = context.sparql_context
         query1 += f"""
@@ -590,12 +561,7 @@ class OldapListNode(Model):
             }}
         }}
         """
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            lprint(query1)
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         rindex = 0
         lindex = 0
         res = QueryProcessor(context, jsonobj)
@@ -627,11 +593,7 @@ class OldapListNode(Model):
             BIND((?lindex + 2) AS ?nlindex)
         }}
         """
-        try:
-            self._con.transaction_update(update2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update2)
 
         update3 = context.sparql_context
         update3 += f"""
@@ -654,18 +616,9 @@ class OldapListNode(Model):
             BIND((?rindex + 2) AS ?nrindex)
         }}
         """
-        try:
-            self._con.transaction_update(update3)
-        except OldapError:
-            lprint(update3)
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update3)
 
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
             self._con.transaction_abort()
@@ -674,11 +627,7 @@ class OldapListNode(Model):
             self.__leftIndex = row['lindex']
             self.__rightIndex = row['rindex']
 
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         self.clear_changeset()
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
@@ -709,12 +658,7 @@ class OldapListNode(Model):
         """
         self._con.transaction_start()
 
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            lprint(query1)
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
@@ -749,12 +693,7 @@ class OldapListNode(Model):
         update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}}}'
 
-        try:
-            self._con.transaction_update(update1)
-        except OldapError:
-            lprint(update1)
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update1)
 
         query2 = context.sparql_context
         query2 += f"""
@@ -767,12 +706,7 @@ class OldapListNode(Model):
             }}
         }}
         """
-        try:
-            jsonobj = self._con.transaction_query(query2)
-        except OldapError:
-            lprint(query2)
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query2)
         rindex = 0
         lindex = 0
         res = QueryProcessor(context, jsonobj)
@@ -805,12 +739,7 @@ class OldapListNode(Model):
                 BIND((?rindex + 2) AS ?nrindex)
             }}
         """
-        try:
-            self._con.transaction_update(update2)
-        except OldapError:
-            lprint(update2)
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update2)
 
         update3 = context.sparql_context
         update3 += f"""
@@ -834,18 +763,9 @@ class OldapListNode(Model):
                 BIND((?lindex + 2) AS ?nlindex)
             }}
         """
-        try:
-            self._con.transaction_update(update3)
-        except OldapError:
-            lprint(update3)
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update3)
 
-        try:
-            jsonobj = self._con.transaction_query(query2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query2)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
             self._con.transaction_abort()
@@ -854,11 +774,7 @@ class OldapListNode(Model):
             self.__leftIndex = row['lindex']
             self.__rightIndex = row['rindex']
 
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         self.clear_changeset()
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
@@ -888,11 +804,7 @@ class OldapListNode(Model):
         """
         self._con.transaction_start()
 
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
@@ -909,11 +821,7 @@ class OldapListNode(Model):
             }}
         }}
         """
-        try:
-            jsonobj = self._con.transaction_query(query2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query2)
         res = QueryProcessor(context, jsonobj)
         lindex = 0
         rindex = 0
@@ -933,11 +841,7 @@ class OldapListNode(Model):
             }}
         }}
         """
-        try:
-            self._con.transaction_update(update1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update1)
 
         update2 = context.sparql_context
         update2 += f"""
@@ -962,11 +866,7 @@ class OldapListNode(Model):
             BIND((?lindex - 2) AS ?nlindex)
         }}
         """
-        try:
-            self._con.transaction_update(update2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update2)
 
         update3 = context.sparql_context
         update3 += f"""
@@ -991,17 +891,9 @@ class OldapListNode(Model):
             BIND((?rindex - 2) AS ?nrindex)
         }}
         """
-        try:
-            self._con.transaction_update(update3)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update3)
 
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         self.clear_changeset()
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
@@ -1035,11 +927,7 @@ class OldapListNode(Model):
         }}
         """
         self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         lindex = 0
         rindex = 0
@@ -1068,12 +956,7 @@ class OldapListNode(Model):
             }}
         }}
         """
-        try:
-            self._con.transaction_update(update1)
-        except OldapError:
-            print(update1)
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update1)
 
         #
         # now adjust all leftIndex'es of the nodes "to the right"
@@ -1098,11 +981,7 @@ class OldapListNode(Model):
             BIND(?oldLeftIndex - {int(diff)} AS ?newLeftIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update2)
 
         #
         # now adjust all rightIndex'es of the nodes "to the right"
@@ -1126,17 +1005,9 @@ class OldapListNode(Model):
             BIND(?oldRightIndex - {int(diff)} AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update3)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update3)
 
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
 
@@ -1173,11 +1044,7 @@ class OldapListNode(Model):
         }}
         """
         self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         moving_lindex: int = 0
         moving_rindex: int = 0
@@ -1204,12 +1071,8 @@ class OldapListNode(Model):
             }}
         }}
         """
-        self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self._con.transaction_start()  # TODO: ??????????????
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         target_lindex: int = 0
         target_rindex: int = 0
@@ -1223,8 +1086,6 @@ class OldapListNode(Model):
         #
         # target node may not be below moving node!
         #
-        print(target_lindex, ">=", moving_lindex)
-        print(target_rindex, "<=", moving_rindex)
         if (target_lindex >= moving_lindex) and (target_rindex <= moving_rindex):
             raise OldapErrorInconsistency(f"Cannot move node to target node that is part of the tree to be moved!")
 
@@ -1254,11 +1115,7 @@ class OldapListNode(Model):
             BIND(-?oldRightIndex AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update1)
 
         #
         # set the new left index
@@ -1291,11 +1148,7 @@ class OldapListNode(Model):
             BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update2)
 
         #
         # set the right index
@@ -1326,12 +1179,7 @@ class OldapListNode(Model):
             BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update3)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
-
+        self.safe_update(update3)
 
         #
         # Correct leftIndex and rightIndex of the moved nodes
@@ -1362,11 +1210,7 @@ class OldapListNode(Model):
             BIND(-?oldRightIndex + {int(diff2)} AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update4)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update4)
 
         #
         # update parent (skos:broaderTransitive)
@@ -1393,21 +1237,12 @@ class OldapListNode(Model):
             }}
         }}
         """
-        try:
-            self._con.transaction_update(update5)
-        except OldapError:
-            print(update5)
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update5)
 
         #
         # commit
         #
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
 
@@ -1443,11 +1278,7 @@ class OldapListNode(Model):
         }}
         """
         self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         moving_lindex: int = 0
         moving_rindex: int = 0
@@ -1478,11 +1309,7 @@ class OldapListNode(Model):
         }}
         """
         self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         left_lindex: int = 0
         left_rindex: int = 0
@@ -1527,11 +1354,7 @@ class OldapListNode(Model):
             BIND(-?oldRightIndex AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update1)
 
         #
         # set the new left index
@@ -1564,11 +1387,7 @@ class OldapListNode(Model):
             BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update2)
 
         #
         # set the right index
@@ -1599,12 +1418,7 @@ class OldapListNode(Model):
             BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update3)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
-
+        self.safe_update(update3)
 
         #
         # Correct leftIndex and rightIndex of the moved nodes
@@ -1635,11 +1449,7 @@ class OldapListNode(Model):
             BIND(-?oldRightIndex + {int(diff2)} AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update4)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update4)
 
         update5 = context.sparql_context
         if moving_parent_iri:
@@ -1665,21 +1475,12 @@ class OldapListNode(Model):
         }}
         """
         if moving_parent_iri or left_parent_iri:
-            try:
-                self._con.transaction_update(update5)
-            except OldapError:
-                print(update5)
-                self._con.transaction_abort()
-                raise
+            self.safe_update(update5)
 
         #
         # commit
         #
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
 
@@ -1715,11 +1516,7 @@ class OldapListNode(Model):
         }}
         """
         self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         moving_lindex: int = 0
         moving_rindex: int = 0
@@ -1749,12 +1546,8 @@ class OldapListNode(Model):
             }}
         }}
         """
-        self._con.transaction_start()
-        try:
-            jsonobj = self._con.transaction_query(query1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self._con.transaction_start()  # TODO ????????????
+        jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         right_lindex: int = 0
         right_rindex: int = 0
@@ -1799,11 +1592,7 @@ class OldapListNode(Model):
             BIND(-?oldRightIndex AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update1)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update1)
 
         #
         # set the new left index
@@ -1837,11 +1626,7 @@ class OldapListNode(Model):
             BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update2)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update2)
 
         #
         # set the right index
@@ -1872,12 +1657,7 @@ class OldapListNode(Model):
             BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update3)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
-
+        self.safe_update(update3)
 
         #
         # Correct leftIndex and rightIndex of the moved nodes
@@ -1908,11 +1688,7 @@ class OldapListNode(Model):
             BIND(-?oldRightIndex + {int(diff2)} AS ?newRightIndex)
         }}
         """
-        try:
-            self._con.transaction_update(update4)
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_update(update4)
 
         update5 = context.sparql_context
         if moving_parent_iri:
@@ -1938,21 +1714,11 @@ class OldapListNode(Model):
         }}
         """
         if moving_parent_iri or right_parent_iri:
-            try:
-                self._con.transaction_update(update5)
-            except OldapError:
-                print(update5)
-                self._con.transaction_abort()
-                raise
-
+            self.safe_update(update5)
         #
         # commit
         #
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            self._con.transaction_abort()
-            raise
+        self.safe_commit()
         cache = CacheSingleton()
         cache.delete(self.__oldapList.oldapList_iri)
 
