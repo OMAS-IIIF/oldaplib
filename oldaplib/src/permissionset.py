@@ -4,7 +4,11 @@ from datetime import datetime
 from functools import partial
 from typing import Dict, Self, Any
 
-from pystrict import strict
+from typing import Dict, Self, Any
+from copy import deepcopy
+from dataclasses import dataclass
+from datetime import datetime
+from functools import partial
 
 from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.connection import Connection
@@ -22,8 +26,9 @@ from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, OldapError, \
-    OldapErrorInconsistency, OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorAlreadyExists, OldapErrorNoPermission, \
+    OldapError, \
+    OldapErrorInconsistency, OldapErrorUpdateFailed, OldapErrorImmutable, OldapErrorNotFound, OldapErrorInUse
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
@@ -501,34 +506,69 @@ class PermissionSet(Model):
             raise OldapErrorNoPermission(message)
 
         context = Context(name=self._con.context_name)
+
+        #
+        # first check if the permission set is assigned to a user
+        #
+        sparql = context.sparql_context
+        sparql += f"""
+        SELECT (COUNT(?user) AS ?userCount)
+        FROM oldap:admin
+        WHERE {{
+            ?user a oldap:OldapUser ;
+            oldap:hasPermissionSet {self.__permset_iri.toRdf} .
+        }}
+        """
+        jsonobj = self._con.query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            raise OldapError("Query failed!!")
+        for r in res:
+            if int(r['userCount']) > 0:
+                raise OldapErrorInUse(f"Permission set is still assigned to {r['userCount']} users")
+
+        #
+        # now check if the permission set
+        #
+        sparql = context.sparql_context
+        sparql += f"""
+        SELECT (COUNT(?instance) as ?instanceCount)
+        WHERE {{
+            GRAPH ?graph {{
+                ?instance oldap:grantsPermission {self.__permset_iri.toRdf} .
+            }}
+        }}
+        """
+        jsonobj = self._con.query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            raise OldapError("Query failed!!")
+        for r in res:
+            if int(r['instanceCount']) != 0:
+                raise OldapErrorInUse("Permission set is still assigned to data objects")
+
+        #
+        # Now delete the permission set
+        #
         sparql = context.sparql_context
         sparql += f"""
         DELETE WHERE {{
             GRAPH oldap:admin {{
-                {self.__permset_iri.toRdf} a oldap:PermissionSet .
                 {self.__permset_iri.toRdf} ?prop ?val .
             }}
         }} 
         """
-        # TODO: use transaction for error handling
-        self._con.update_query(sparql)
+
+        self._con.transaction_start()
+        try:
+            self._con.transaction_update(sparql)
+            self._con.transaction_commit()
+        except OldapError:
+            self._con.transaction_abort()
+            raise
         cache = CacheSingleton()
         cache.delete(self.__permset_iri)
 
 
 if __name__ == '__main__':
-    context = Context(name="DEFAULT")
-    connection = Connection(server='http://localhost:7200',
-                                 repo="oldap",
-                                 userId="rosenth",
-                                 credentials="RioGrande",
-                                 context_name="DEFAULT")
-    ps = PermissionSet(con=connection,
-                       permissionSetId="test4_ps",
-                       label=LangString("test4@en", "test4@Perm@de"),
-                       comment=LangString("Testing a PermissionSet 4@en", "Test eines PermissionSet 4@Perm@de"),
-                       givesPermission=DataPermission.DATA_UPDATE,
-                       definedByProject='britnet')
-    ps2 = deepcopy(ps)
-    print(ps.definedByProject)
-    print(ps2.definedByProject)
+    pass

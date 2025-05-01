@@ -10,7 +10,8 @@ from oldaplib.src.enums.language import Language
 from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapErrorNotFound, OldapErrorNoPermission, OldapErrorAlreadyExists, OldapErrorImmutable
+from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapErrorNotFound, OldapErrorNoPermission, \
+    OldapErrorAlreadyExists, OldapErrorImmutable, OldapErrorInUse
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
@@ -370,6 +371,10 @@ class TestPermissionSet(unittest.TestCase):
         with self.assertRaises(OldapErrorNotFound) as ex:
             project = ps.read(con=self._connection, permissionSetId="testDeletePerm", definedByProject=Iri('oldap:HyperHamlet'), ignore_cache=True)
 
+    def test_delete_permission_set_in_use(self):
+        ps = PermissionSet.read(con=self._connection, permissionSetId="GenericView", definedByProject=Iri('oldap:SystemProject'), ignore_cache=True)
+        with self.assertRaises(OldapErrorInUse):
+            ps.delete()
 
 if __name__ == '__main__':
     unittest.main()
