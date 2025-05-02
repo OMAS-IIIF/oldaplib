@@ -107,6 +107,8 @@ class Project(Model):
     #_attributes: dict[ProjectAttr, ProjectAttrTypes]
     #__changeset: dict[ProjectAttr, ProjectAttrChange]
 
+    __slots__ = ('projectIri', 'projectShortName', 'label', 'comment', 'namespaceIri', 'projectStart', 'projectEnd')
+
     def __init__(self, *,
                  con: IConnection,
                  creator: Iri | None = None,

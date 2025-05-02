@@ -1,0 +1,79 @@
+---
+booktype:
+  label:
+    - Bookcategory@en
+    - Buchkategorie@de
+  definition:
+    - Definition der Buchkategorien@de
+    - Definition of the book categories@en
+  nodes:
+    fiction:
+      label:
+        - Fiction@en
+    novels:
+      label:
+        - Novels@en
+      nodes:
+        historic:
+          label:
+            - Historical novels@en
+        contemporary:
+          label:
+            - Contemporary literature@en
+    shorts:
+      label:
+        - Short stories@en
+    nonfiction:
+      label:
+        - Non-fiction@en
+      nodes:
+        history:
+          label:
+            - History@en
+        science:
+          label:
+            - Science@en
+          nodes:
+            physics:
+              label:
+                - Physics@en
+            biology:
+              label:
+                - Biology@en
+            medicine:
+              label:
+                - Medicine
+    childrens:
+      label:
+        - Children's & young adult books@en
+      nodes:
+        picturebook:
+          label:
+            - Picture book@en
+        youngadult:
+          label:
+            - Young adult novels@en
+    selfhelp:
+      label:
+        - self-help@en
+      nodes:
+        health:
+          label:
+            - Health@en
+        career:
+          label:
+            - Career@en
+    artculture:
+      label:
+        - Art & Culture@en
+      nodes:
+        architecture:
+          label:
+            - Architecture@en
+        music:
+          label:
+            - Music@en
+        painting:
+          label:
+            - Painting@en
+

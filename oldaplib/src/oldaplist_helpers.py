@@ -167,8 +167,8 @@ def dump_list_to(con: IConnection,
         if listnode is not None:
             # rectify the connection
             listnode._con = con
-            if listnode.nodes:
-                set_con(listnode.nodes)
+            # if listnode.nodes:
+            #     set_con(listnode.nodes)
             setattr(listnode, 'source', 'cache')
     if listnode is None:
         #
@@ -195,7 +195,7 @@ def dump_list_to(con: IConnection,
 
 def print_sublist(nodes: list[OldapListNode], level: int = 1) -> None:
     for node in nodes:
-        print(f'{str(node.oldapListNodeId): >{level * 5}} ({node.leftIndex}, {node.rightIndex}) prefLabel={node.prefLabel}')
+        print(f'{str(node.oldapListNodeId): >{level * 5}} ({node.leftIndex}, {node.rightIndex}) prefLabel={node.prefLabel} iri={node.iri}')
         if node.nodes:
             print_sublist(node.nodes, level + 1)
 
