@@ -226,7 +226,7 @@ if __name__ == '__main__':
     Book = factory.createObjectInstance('Book')
     b = Book(title="Hitchhiker's Guide to the Galaxy",
              authors=p1.iri,
-             category=Iri(f'{listnodes[0].node_class_iri}:physics'),  # TODO: How to get the IRI programmatically?
+             category=Iri(f'{listnodes[0].node_namespaceIri}:physics'),  # TODO: How to get the IRI programmatically?
              pubDate="1995-09-27",
              grantsPermission=ps1.iri)
     b.create()

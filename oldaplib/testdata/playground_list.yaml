@@ -10,19 +10,20 @@ booktype:
     fiction:
       label:
         - Fiction@en
-    novels:
-      label:
-        - Novels@en
       nodes:
-        historic:
+        novels:
           label:
-            - Historical novels@en
-        contemporary:
+            - Novels@en
+          nodes:
+            historic:
+              label:
+                - Historical novels@en
+            contemporary:
+              label:
+                - Contemporary literature@en
+        shorts:
           label:
-            - Contemporary literature@en
-    shorts:
-      label:
-        - Short stories@en
+            - Short stories@en
     nonfiction:
       label:
         - Non-fiction@en
