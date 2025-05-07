@@ -217,7 +217,7 @@ class OldapListHelperTestCase(unittest.TestCase):
 
         listnode_copy = deepcopy(listnode)
 
-        self.assertEqual(listnode_copy.node_class_iri, listnode.node_class_iri)
+        self.assertEqual(listnode_copy.node_classIri, listnode.node_classIri)
         self.assertEqual(listnode_copy.created, listnode.created)
         self.assertEqual(listnode_copy.creator, listnode.creator)
         self.assertEqual(listnode_copy.modified, listnode.modified)
@@ -294,7 +294,7 @@ class OldapListHelperTestCase(unittest.TestCase):
         listnode_copy = dump_list_to(con=self._connection, project="hyha", oldapListId="TestCache", listformat=ListFormat.PYTHON)
 
         self.assertEqual(listnode_copy.source, 'cache')
-        self.assertEqual(listnode_copy.node_class_iri, listnode.node_class_iri)
+        self.assertEqual(listnode_copy.node_classIri, listnode.node_classIri)
         self.assertEqual(listnode_copy.created, listnode.created)
         self.assertEqual(listnode_copy.creator, listnode.creator)
         self.assertEqual(listnode_copy.modified, listnode.modified)

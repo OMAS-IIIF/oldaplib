@@ -66,7 +66,7 @@ def generate_a_datamodel(con: Connection, project: Project) -> DataModel:
     category = PropertyClass(con=con,
                              project=project,
                              property_class_iri=Iri(f'{dm_name}:category'),
-                             toClass=catlist.node_class_iri,
+                             toClass=catlist.node_classIri,
                              name=LangString(["Category@en", "Kategorie@de"]),
                              description=LangString(["Category of the Book@en", "Kategorie des Buchs@de"]))
 

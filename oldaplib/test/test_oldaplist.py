@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 from time import sleep
@@ -6,6 +7,7 @@ from oldaplib.src.connection import Connection
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.json_encoder import SpecialEncoder
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmutable, OldapErrorNoPermission
 from oldaplib.src.iconnection import IConnection
@@ -83,6 +85,7 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual(LangString("TestList"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
         self.assertEqual(NamespaceIRI("http://oldap.org/test/TestList#"), oldaplist.node_namespaceIri)
+        self.assertEqual(Xsd_NCName('L-TestList'), oldaplist.node_prefix)
 
     def test_constructor_project_object(self):
         oldaplist = OldapList(con=self._connection,
@@ -94,6 +97,23 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual(LangString("TestList2"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
         self.assertEqual(NamespaceIRI("http://oldap.org/test/TestList2#"), oldaplist.node_namespaceIri)
+        self.assertEqual(Xsd_NCName('L-TestList2'), oldaplist.node_prefix)
+
+    def test_dump_json(self):
+        oldaplist = OldapList(con=self._connection,
+                              project=self._project,
+                              oldapListId="TestList3",
+                              prefLabel="TestList3",
+                              definition="A list for testing...")
+        jsonstr = json.dumps(oldaplist, cls=SpecialEncoder)
+        jsonobj = json.loads(jsonstr)
+        self.assertEqual(jsonobj['oldapListId'], "TestList3")
+        self.assertEqual(jsonobj['prefLabel'], ["TestList3@en"])
+        self.assertEqual(jsonobj['definition'], ["A list for testing...@en"])
+        self.assertEqual(jsonobj['nodeClassIri'], "test:TestList3Node")
+        self.assertEqual(jsonobj['nodeNamespaceIri'], "http://oldap.org/test/TestList3#")
+        self.assertEqual(jsonobj['nodePrefix'], "L-TestList3")
+        self.assertEqual(jsonobj['iri'], "test:TestList3")
 
     def test_create_read_project_id(self):
         oldaplist = OldapList(con=self._connection,
@@ -110,6 +130,7 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual(LangString("TestList_B"), oldaplist.prefLabel)
         self.assertEqual(LangString("A list for testing..."), oldaplist.definition)
         self.assertEqual(NamespaceIRI("http://oldap.org/test/TestList_B#"), oldaplist.node_namespaceIri)
+        self.assertEqual(Xsd_NCName('L-TestList_B'), oldaplist.node_prefix)
 
     def test_create_unpriv(self):
         oldaplist = OldapList(con=self._unpriv,

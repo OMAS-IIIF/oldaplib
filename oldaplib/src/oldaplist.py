@@ -107,10 +107,11 @@ class OldapList(Model):
 
     __project: Project
     __graph: Xsd_NCName
-    __oldapList_iri: Iri
+    __iri: Iri
     __node_namespaceIri: NamespaceIRI
+    __node_prefix: Xsd_NCName
     __node_class_iri: Iri
-    nodes: list
+    nodes: list  # used for building complete list including all it's nodes!
 
     __slots__ = ('oldapListId', 'prefLabel', 'definition')
 
@@ -157,9 +158,9 @@ class OldapList(Model):
         if self._attributes.get(OldapListAttr.PREF_LABEL) is None:
             self._attributes[OldapListAttr.PREF_LABEL] = LangString(str(self._attributes[OldapListAttr.OLDAPLIST_ID]))
 
-        self.__oldapList_iri = Iri.fromPrefixFragment(self.__project.projectShortName,
-                                                      self._attributes[OldapListAttr.OLDAPLIST_ID],
-                                                      validate=False)
+        self.__iri = Iri.fromPrefixFragment(self.__project.projectShortName,
+                                            self._attributes[OldapListAttr.OLDAPLIST_ID],
+                                            validate=False)
         #
         # we will use a special prefix for the ListNodes instances: "<project.namespace_iri>/<list_id>#"
         # This will allow us to have unique ListNode IRI's even if the same ListNode-ID is used for different lists.
@@ -168,10 +169,10 @@ class OldapList(Model):
         # @PREFIX L-<list-id>: <project.namespace_iri>/<list_id>#
         #
         self.__node_namespaceIri = self.__project.namespaceIri.expand(self._attributes[OldapListAttr.OLDAPLIST_ID])
-        self.__node_class_iri = Iri(f'{self.__oldapList_iri}Node', validate=False)
-        list_node_prefix = Xsd_NCName("L-") + self._attributes[OldapListAttr.OLDAPLIST_ID]
-        context[list_node_prefix] = self.__node_namespaceIri
-        context.use(list_node_prefix)
+        self.__node_class_iri = Iri(f'{self.__iri}Node', validate=False)
+        self.__node_prefix = Xsd_NCName("L-") + self._attributes[OldapListAttr.OLDAPLIST_ID]
+        context[self.__node_prefix] = self.__node_namespaceIri
+        context.use(self.__node_prefix)
 
         for attr in OldapListAttr:
             setattr(OldapList, attr.value.fragment, property(
@@ -224,7 +225,7 @@ class OldapList(Model):
 
         instance.__graph = deepcopy(self.__graph, memo)
         instance.__project = deepcopy(self.__project, memo)
-        instance.__oldapList_iri = deepcopy(self.__oldapList_iri, memo)
+        instance.__iri = deepcopy(self.__iri, memo)
         instance.__node_namespaceIri = deepcopy(self.__node_namespaceIri, memo)
         instance.__node_class_iri = deepcopy(self.__node_class_iri, memo)
         instance.nodes = deepcopy(self.nodes, memo)
@@ -241,12 +242,25 @@ class OldapList(Model):
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
 
     @property
-    def node_class_iri(self) -> Iri:
+    def node_classIri(self) -> Iri:
         return self.__node_class_iri
 
     @property
     def project(self) -> Project:
         return self.__project
+
+    @property
+    def node_namespaceIri(self):
+        return self.__node_namespaceIri
+
+    @property
+    def node_prefix(self) -> Xsd_NCName:
+        return self.__node_prefix
+
+    @property
+    def iri(self) -> Iri:
+        return self.__iri
+
 
     @classmethod
     def read(cls,
@@ -326,18 +340,6 @@ class OldapList(Model):
                    modified=modified,
                    prefLabel=prefLabel,
                    definition=definition)
-
-    @property
-    def project(self) -> Project:
-        return self.__project
-
-    @property
-    def node_namespaceIri(self):
-        return self.__node_namespaceIri
-
-    @property
-    def oldapList_iri(self) -> Iri:
-        return self.__oldapList_iri
 
     @staticmethod
     def search(con: IConnection,
@@ -458,7 +460,7 @@ class OldapList(Model):
         FROM {self.__graph}:lists
         WHERE {{
             ?list a oldap:OldapList .
-            FILTER(?list = {self.__oldapList_iri.toRdf})
+            FILTER(?list = {self.__iri.toRdf})
         }}
         """
 
@@ -469,7 +471,7 @@ class OldapList(Model):
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__oldapList_iri.toRdf} a oldap:OldapList'
+        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a oldap:OldapList'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
@@ -493,7 +495,7 @@ class OldapList(Model):
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property [ sh:path rdf:type ; ]'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property ['
         sparql3 += f'\n{blank:{(indent + 4) * indent_inc}}sh:path skos:inScheme'
-        sparql3 += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:hasValue {self.__oldapList_iri.toRdf}'
+        sparql3 += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:hasValue {self.__iri.toRdf}'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
         sparql3 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql3 += f'{blank:{indent * indent_inc}}}}\n'
@@ -511,7 +513,7 @@ class OldapList(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OldapErrorAlreadyExists(f'A list with a oldapListIri "{self.__oldapList_iri}" already exists')
+            raise OldapErrorAlreadyExists(f'A list with a oldapListIri "{self.__iri}" already exists')
 
         try:
             self._con.transaction_update(sparql2)
@@ -552,16 +554,16 @@ class OldapList(Model):
             if field == OldapListAttr.PREF_LABEL or field == OldapListAttr.DEFINITION:
                 if change.action == Action.MODIFY:
                     sparql_list.extend(self._attributes[field].update(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                                      subject=self.__oldapList_iri,
+                                                                      subject=self.__iri,
                                                                       field=Xsd_QName(field.value)))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
                     sparql = self._changeset[field].old_value.delete(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                                     subject=self.__oldapList_iri,
+                                                                     subject=self.__iri,
                                                                      field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
                     sparql = self._attributes[field].create(graph=Xsd_QName(f'{self.__graph}:lists'),
-                                                            subject=self.__oldapList_iri,
+                                                            subject=self.__iri,
                                                             field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
 
@@ -571,8 +573,8 @@ class OldapList(Model):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__oldapList_iri, self.modified, timestamp)
-            modtime = self.get_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__oldapList_iri)
+            self.set_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__iri, self.modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName(f'{self.__graph}:lists'), self.__iri)
         except OldapError:
             self._con.transaction_abort()
             raise
@@ -586,7 +588,7 @@ class OldapList(Model):
         #
         # we changed something, therefore we invalidate the list cache
         cache = CacheSingleton()
-        cache.delete(self.__oldapList_iri)
+        cache.delete(self.__iri)
 
 
     def delete(self) -> None:
@@ -616,8 +618,8 @@ class OldapList(Model):
         sparql1 += f"""
         DELETE WHERE {{
             GRAPH {self.__graph}:lists {{
-                {self.__oldapList_iri.toRdf} a oldap:OldapList .
-                {self.__oldapList_iri.toRdf} ?prop ?val .
+                {self.__iri.toRdf} a oldap:OldapList .
+                {self.__iri.toRdf} ?prop ?val .
             }}
         }} 
         """
@@ -650,7 +652,5 @@ class OldapList(Model):
             raise
         self.safe_commit()
         cache = CacheSingleton()
-        cache.delete(self.__oldapList_iri)
-
-
+        cache.delete(self.__iri)
 

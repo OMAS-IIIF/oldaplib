@@ -2824,11 +2824,11 @@ class TestOldapListNode(unittest.TestCase):
                               languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
         category = PropertyClass(con=self._connection,
-                                project=project,
-                                property_class_iri=Iri(f'{dm_name}:category'),
-                                toClass=oldaplist.node_class_iri,
-                                name=LangString(["Category@en", "Kategorie@de"]),
-                                description=LangString(["Category@en", "Kategorie@de"]))
+                                 project=project,
+                                 property_class_iri=Iri(f'{dm_name}:category'),
+                                 toClass=oldaplist.node_classIri,
+                                 name=LangString(["Category@en", "Kategorie@de"]),
+                                 description=LangString(["Category@en", "Kategorie@de"]))
 
         categoryitem = ResourceClass(con=self._connection,
                                      project=project,

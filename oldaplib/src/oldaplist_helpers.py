@@ -36,7 +36,7 @@ def get_node_indices(con: IConnection, oldapList: OldapList) -> list[tuple[Iri, 
     SELECT ?node ?lindex ?rindex
     WHERE {{
         GRAPH {graph}:lists {{
-            ?node skos:inScheme {oldapList.oldapList_iri.toRdf} ;
+            ?node skos:inScheme {oldapList.iri.toRdf} ;
                 oldap:leftIndex ?lindex ;
                 oldap:rightIndex ?rindex .
         }}
@@ -59,7 +59,7 @@ def get_nodes_from_list(con: IConnection, oldapList: OldapList) ->list[OldapList
     SELECT ?node ?created ?creator ?modified ?contributor ?rindex ?lindex ?parent ?prefLabel ?definition
     WHERE {{
         GRAPH {graph}:lists {{
-            ?node skos:inScheme {oldapList.oldapList_iri.toRdf} ;
+            ?node skos:inScheme {oldapList.iri.toRdf} ;
                 dcterms:created ?created ;
                 dcterms:creator ?creator ;
                 dcterms:modified ?modified ;

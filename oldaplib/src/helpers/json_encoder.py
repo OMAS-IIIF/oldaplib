@@ -15,7 +15,8 @@ class SpecialEncoder(json.JSONEncoder):
                     'created': str(obj.created),
                     'creator': str(obj.creator),
                     'modified': str(obj.modified),
-                    'contributor': str(obj.contributor)
+                    'contributor': str(obj.contributor),
+                    'iri': str(obj.iri)
                 }
                 if obj.prefLabel:
                     jsonobj['prefLabel'] = obj.prefLabel
@@ -30,7 +31,11 @@ class SpecialEncoder(json.JSONEncoder):
                     'created': str(obj.created),
                     'creator': str(obj.creator),
                     'modified': str(obj.modified),
-                    'contributor': str(obj.contributor)
+                    'contributor': str(obj.contributor),
+                    'nodeClassIri': str(obj.node_classIri),
+                    'nodeNamespaceIri': str(obj.node_namespaceIri),
+                    'nodePrefix': str(obj.node_prefix),
+                    'iri': str(obj.iri)
                 }
                 if obj.prefLabel:
                     jsonobj['prefLabel'] = obj.prefLabel
