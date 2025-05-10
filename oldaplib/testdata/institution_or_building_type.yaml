@@ -1,0 +1,49 @@
+---
+institution_or_building_type:
+    label:
+      - Institution_or_Building_Type@en
+      - Institution_oder_Gebäudeart@de
+      - Institution_ou_Bâtiment_Type@fr
+    definition:
+      - Institution or building type is the classification of buildings, organizations, or institutions based on their primary purpose or function.@en
+      - Die Institution oder Gebäudeart ist die Klassifizierung von Gebäuden, Organisationen oder Institutionen auf der Grundlage ihres Hauptzwecks oder ihrer Funktion.@de
+      - Le type d'institution ou de bâtiment est la classification des bâtiments, des organisations ou des institutions en fonction de leur objectif ou de leur fonction principale.@fr
+    nodes:
+      Academic_Institution:
+        label: [ Academic_Institution@en, Akademische_Institution@de, Institution_Académique@fr ]
+        nodes:
+          College:
+            label: [ College@en, College@de, Collège@fr ]
+      Botanical_Garden:
+        label: [ Botanical_Garden@en, Botanischer_Garten@de, Jardin_Botanique@fr ]
+      Bridge:
+        label: [ Bridge@en, Brücke@de, Pont@fr ]
+      Building:
+        label: [ Building@en, Gebäude@de, Bâtiment@fr ]
+      Castle_or_Palace:
+        label: [ Castle_or_Palace@en, Burg_oder_Palast@de, Château_ou_Palace@fr ]
+      Coffee_House:
+        label: [ Coffee_House@en, Kaffeehaus@de, Maison_du_café@fr ]
+      Educational_Institution:
+        label: [ Educational_Institution@en, Bildungsinstitution@de, Établissement_d'enseignement@fr ]
+      Fortress:
+        label: [ Fortress@en, Festung@de, Forteresse@fr ]
+      Hospital:
+        label: [ Hospital@en, Krankenhaus@de, Hôpital@fr ]
+      Landmark_or_Monument:
+        label: [ Landmark_or_Monument@en, Landmarke_oder_Denkmal@de, Repère_ou_Monument@fr ]
+      Library:
+        label: [ Library@en, Bibliothek@de, Bibliothèque@fr ]
+      Order:
+        label: [ Order@en, Orden@de, Ordre@fr ]
+      Prison:
+        label: [ Prison@en, Gefängnis@de, Prison@fr ]
+      Religious_Building:
+        label: [ Religious_Building@en, Religiöses_Gebäude@de, Bâtiment_Religieux@fr ]
+        nodes:
+          Monastery:
+            label: [ Monastery@en, Kloster@de, Monastère@fr ]
+      Scholarly_Association:
+        label: [ Scholarly_Association@en, Gelehrte_Vereinigung@de, Association_scolaire@fr ]
+      Theatre:
+        label: [ Theatre@en, Theater@de, Théâtre@fr ]

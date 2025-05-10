@@ -1,0 +1,31 @@
+---
+collections_type:
+    label:
+      - Collections_Type@en
+      - Sammlungstyp@de
+      - Type_de_Collection@fr
+    definition:
+      - The categorization of curated assemblies of objects, artifacts, or animals.@en
+      - Die Kategorisierung von kuratierten Zusammenstellungen von Objekten, Artefakten oder Tieren.@de
+      - La catégorisation d'assemblages d'objets, d'artefacts ou d'animaux.@fr
+    nodes:
+      Armory:
+        label: [ Armory@en, Zeughaus@de, Arsenal@fr ]
+      Cabinet:
+        label: [ Cabinet@en, Kabinett@de, Cabinet@fr ]
+        definition:
+          - A type of collection that emerged in the early modern period, typically curated by private individuals and displayed in a dedicated room known as the cabinet.@en
+          - Eine Art von Sammlung, die in der frühen Neuzeit entstand und typischerweise von Privatpersonen zusammengestellt und in einem speziellen Raum, dem Kabinett, ausgestellt wurde.@de
+          - Type de collection apparu au début de la période moderne, généralement constituée par des particuliers et exposée dans une pièce réservée à cet effet, connue sous le nom de cabinet.@fr
+      Collection:
+        Label: [ Collection@en, Sammlung@de, Collection@fr ]
+        definition:
+          - Refers broadly to an assembly of objects, artifacts, or items gathered and displayed in a specific location, such as a royal palace, at a particular time. These collections, while often described by various observers over the centuries, were not static and evolved over time.@en
+          - Bezieht sich im Allgemeinen auf eine Sammlung von Objekten, Artefakten oder Gegenständen, die zu einer bestimmten Zeit an einem bestimmten Ort, wie etwa einem königlichen Palast, gesammelt und ausgestellt wurden. Diese Sammlungen, die über die Jahrhunderte hinweg von verschiedenen Beobachtern beschrieben wurden, waren nicht statisch und veränderten sich im Laufe der Zeit.@de
+          - Désigne de manière générale un ensemble d'objets, d’artefacts ou d’éléments rassemblés et exposés dans un lieu spécifique, tel qu’un palais royal, à une époque donnée. Ces collections, bien que souvent décrites par divers observateurs au fil des siècles, n’étaient pas statiques et ont évolué au fil du temps.@fr
+      Menagerie:
+        Label: [ Menagerie@en, Menagerie@de, Ménagerie@fr ]
+        definition:
+          - A precursor to the modern zoo, a menagerie was a collection of exotic or wild animals.@en
+          - Als Vorläufer des modernen Zoos war eine Menagerie eine Sammlung von exotischen oder wilden Tieren.@de
+          - Précurseur du zoo moderne, la ménagerie était une collection d'animaux exotiques ou sauvages.@fr

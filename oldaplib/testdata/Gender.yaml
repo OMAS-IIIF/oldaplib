@@ -1,0 +1,12 @@
+---
+Gender:
+    label:
+      - Gender@en
+      - Geschlecht@de
+      - Genre@fr
+    nodes:
+      female:
+        label: [ Female@en, Weiblich@de, Femelle@fr ]
+      male:
+        label: [ Male@en, Männlich@de, Mâle@fr ]
+

@@ -1,0 +1,23 @@
+---
+role:
+    label:
+      - Role@en
+      - Rolle@de
+      - Rôle@fr
+    nodes:
+      Author:
+        label: [ Author@en, Autor@de, Auteur@fr ]
+      Deliverer:
+        label: [ Deliverer@en, Zusteller@de, Délivreur@fr ]
+      Editor:
+        label: [ Editor@en, Editor@de, Éditeur@fr ]
+      Engraver:
+        label: [ Engraver@en, Graveur@de, Graveur@fr ]
+      Owner:
+        label: [ Owner@en, Eigentümer@de, Propriétaire@fr ]
+      Receiver:
+        label: [ Receiver@en, Empfänger@de, Récepteur@fr ]
+      Sender:
+        label: [ Sender@en, Absender@de, Expéditeur@fr ]
+      Translator:
+        label: [ Translator@en, Übersetzer@de, Traducteur@fr ]

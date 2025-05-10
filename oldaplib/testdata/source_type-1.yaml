@@ -1,0 +1,27 @@
+---
+source_type:
+    label:
+      - Source_Type@en
+      - Quellentyp@de
+      - Type_de_Source@fr
+    nodes:
+      Album_Amicorum:
+        label: [ Album_Amicorum@en, Stammbuch@de, Liber_Amicorum@fr ]
+        nodes:
+          Album_Amicorum_Entry:
+            label: [ Album_Amicorum_Entry@en, Stammbucheintrag@de, Liber_Amicorum_Entrée@fr ]
+      Court_Case:
+        label: [ Court_Case@en, Gerichtsverfahren@de, Affaire_Judiciaire@fr ]
+      Journal_Article:
+        label: [ @en, @de, @fr ]
+      Letter:
+        label: [ Letter@en, Brief@de, Lettre@fr ]
+        nodes:
+          Epistle:
+            label: [ Epistle@en, Epistel@de, Épître@fr ]
+      Manuscript:
+        label: [ Manuscript@en, Manuskript@de, Manuscrit@fr ]
+      Pamphlet:
+        label: [ Pamphlet@en, Flugschrift@de, Brochure@fr ]
+      Publication:
+        label: [ Publication@en, Publikation@de, Publication@fr ]

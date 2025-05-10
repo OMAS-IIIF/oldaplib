@@ -213,6 +213,31 @@ if __name__ == '__main__':
                                     project=project,
                                     filepath=Path('../oldaplib/testdata/playground_list.yaml'))
 
+    listnodes = load_list_from_yaml(con=con,
+                                    project=project,
+                                    filepath=Path('../oldaplib/testdata/source_type.yaml'))
+
+    collections_type = load_list_from_yaml(con=con,
+                                           project=project,
+                                           filepath=Path('../oldaplib/testdata/collections_type.yaml'))
+
+    language_type = load_list_from_yaml(con=con,
+                                        project=project,
+                                        filepath=Path('../oldaplib/testdata/language.yaml'))
+
+    location_type = load_list_from_yaml(con=con,
+                                        project=project,
+                                        filepath=Path('../oldaplib/testdata/location_type.yaml'))
+
+    means_of_transportation = load_list_from_yaml(con=con,
+                                                  project=project,
+                                                  filepath=Path('../oldaplib/testdata/means_of_transportation.yaml'))
+
+    role = load_list_from_yaml(con=con,
+                               project=project,
+                               filepath=Path('../oldaplib/testdata/role.yaml'))
+
+
     dm = generate_a_datamodel(con=con, project=project)
     dm.create()
 

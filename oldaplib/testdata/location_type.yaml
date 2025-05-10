@@ -1,0 +1,37 @@
+---
+location_type:
+    label:
+      - location_type@en
+      - Ortstyp@de
+      - Type_de_lieu@fr
+    nodes:
+      Body_of_Water:
+        label: [ Body_of_Water@en, Gewässer@de, Étendue_d'Eau@fr ]
+        nodes:
+          Spring:
+            label: [ Spring@en, Quelle@de, Source@fr ]
+      Building:
+        label: [ Building@en, Gebäude@de, Bâtiment@fr ]
+      City_or_Town:
+        label: [ City_or_Town@en, Stadt@de, Ville@fr ]
+      Island:
+        label: [ Island@en, Insel@de, Île@fr ]
+      Landmark:
+        label: [ Landmark@en, Landmarke@de, Repère@fr ]
+      Mountain:
+        label: [ Mountain@en, Gebirge@de, Montagne@fr ]
+        nodes:
+          Glacier:
+            label: [ Glacier@en, Gletscher@de, Glacier@fr ]
+      Municipality:
+        label: [ Municipality@en, Gemeinde@de, Commune@fr ]
+      Street_or_Way_of_Passage:
+        label: [ Street_or_Way_of_Passage@en, Strasse_oder_Übergang@de, Rue_ou_Voie_de_Passage@fr ]
+        nodes:
+          Bridge:
+            label: [ Bridge@en, Brücke@de, Pont@fr ]
+      Unidentified_or_Uncertain_Location:
+        label: [ Unidentified_or_Uncertain_Location@en, Nicht_identifizierter_oder_ungewisser_Ort@de, Lieu_non_identifié_ou_incertain@fr ]
+      Village:
+        label: [ Village@en, Dorf@de, Village@fr ]
+

@@ -1,0 +1,18 @@
+---
+Language:
+    label:
+      - Language@en
+      - Sprache@de
+      - Langue@fr
+    nodes:
+      English:
+        label: [ English@en, Englisch@de, Anglais@fr ]
+      French:
+        label: [ French@en, Französisch@de, Français@fr ]
+      German:
+        label: [ German@en, Deutsch@de, Allemand@fr ]
+      Greek:
+        label: [ Greek@en, Griechisch@de, Grec@fr ]
+      Latin:
+        label: [ Latin@en, Latein@de, Latin@fr ]
+
