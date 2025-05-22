@@ -759,9 +759,48 @@ class OldapListNode(Model):
         cache = CacheSingleton()
         cache.delete(self.__oldapList.iri)
 
+    def in_use(self) -> bool:
+        context = Context(name=self._con.context_name)
+        query1 = context.sparql_context
+        query1 += f"""
+        ASK {{
+            {{ GRAPH {self.__graph}:data
+                {{
+                    ?s ?p {self.__iri.toRdf}
+                }}
+            }}
+        }}
+        """
+        result = self._con.query(query1)
+        return result['boolean']
+
+    def in_use_recursively(self) -> bool:
+        context = Context(name=self._con.context_name)
+        query1 = context.sparql_context
+        query1 += f"""
+        ASK  {{
+            GRAPH {self.__graph}:data {{
+	            ?s ?p ?o .
+            }}
+            GRAPH {self.__graph}:lists {{
+	            ?o skos:inScheme {self.__oldapList.iri.toRdf} .
+	            ?o oldap:leftIndex ?leftIndex .
+	            ?o oldap:rightIndex ?rightIndex .
+            }}
+            FILTER (?leftIndex >= {int(self.__leftIndex)} && ?rightIndex <= {int(self.__rightIndex)})
+        }}
+        """
+        print(query1)
+        result = self._con.query(query1)
+        return result['boolean']
+
+
     def delete_node(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OldapError("Cannot create: no connection")
+
+        if (self.in_use()):
+            raise OldapErrorInconsistency('Cannot delete: node is in use')
 
         timestamp = Xsd_dateTime.now()
         #
@@ -893,7 +932,7 @@ class OldapListNode(Model):
             raise OldapErrorNoPermission(message)
 
         #
-        # first we get the node info, especialle leftIndex and rightIndex
+        # first we get the node info, especially leftIndex and rightIndex
         #
         query1 = context.sparql_context
         query1 += f"""

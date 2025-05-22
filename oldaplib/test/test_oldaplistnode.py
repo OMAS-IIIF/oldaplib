@@ -1471,6 +1471,64 @@ class TestOldapListNode(unittest.TestCase):
         self.assertEqual(Xsd_integer(4), olBA.leftIndex)
         self.assertEqual(Xsd_integer(5), olBA.rightIndex)
 
+    def test_delete_in_use(self):
+        #
+        # First we create a (very simple) list
+        #
+        oldaplist = OldapList(con=self._connection,
+                              project=self._project,
+                              oldapListId="TestDeleteList2",
+                              prefLabel="TestDeleteList",
+                              definition="A list for testing deletes...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project=self._project,
+                                   oldapListId="TestDeleteList2")
+        node = OldapListNode(con=self._connection,
+                             oldapList=oldaplist,
+                             oldapListNodeId="TestDeleteList2Node1",
+                             prefLabel="TestDelete2ListNode1",
+                             definition="A node for testing deletes...")
+        node.create_root_node()
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+
+        node_classIri = oldaplist.node_classIri
+        dm = DataModel.read(self._connection, self._project, ignore_cache=True)
+        dm_name = self._project.projectShortName
+
+        selection = PropertyClass(con=self._connection,
+                                  project=self._project,
+                                  property_class_iri=Iri(f'{dm_name}:selection'),
+                                  toClass=node_classIri,
+                                  name=LangString(["Selection@en", "Selektion@de"]))
+
+        #
+        # Now we create a simple data model
+        #
+        resobj = ResourceClass(con=self._connection,
+                               project=self._project,
+                               owlclass_iri=Iri(f'{dm_name}:Resobj'),
+                               label=LangString(["Resobj@en", "Resobj@de"]),
+                               hasproperties=[
+                                   HasProperty(con=self._connection, prop=selection, maxCount=Xsd_integer(1),
+                                               minCount=Xsd_integer(1), order=1)])
+        dm[Iri(f'{dm_name}:resobj')] = resobj
+        dm.update()
+        dm = DataModel.read(self._connection, self._project, ignore_cache=True)
+
+        #
+        # let's add a resource which references the node
+        #
+        factory = ResourceInstanceFactory(con=self._connection, project=self._project)
+        Resobj = factory.createObjectInstance('Resobj')
+        r = Resobj(selection=nodes[0].iri)
+        r.create()
+
+        with self.assertRaises(OldapErrorInconsistency):
+            nodes[0].delete_node()
+
+
     def test_delete_recursively(self):
         oldaplist = OldapList(con=self._connection,
                               project="test",

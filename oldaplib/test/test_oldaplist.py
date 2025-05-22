@@ -13,6 +13,7 @@ from oldaplib.src.helpers.json_encoder import SpecialEncoder
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmutable, OldapErrorNoPermission
 from oldaplib.src.iconnection import IConnection
+from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.enums.oldaplistattr import OldapListAttr
 from oldaplib.src.oldaplist_helpers import get_nodes_from_list
@@ -71,6 +72,8 @@ class TestOldapList(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:onto'))
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:lists'))
+        cls._connection.clear_graph(Xsd_QName('test:data'))
+
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
         sleep(1)
@@ -257,7 +260,6 @@ class TestOldapList(unittest.TestCase):
                                    project=self._project,
                                    oldapListId="TestDeleteList2")
         node_classIri = oldaplist.node_classIri
-        print("=======>", node_classIri)
         node = OldapListNode(con=self._connection,
                              oldapList=oldaplist,
                              #project=self._project,
@@ -268,6 +270,8 @@ class TestOldapList(unittest.TestCase):
 
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
 
+        print("=========0)", node.in_use())
+
         selection = PropertyClass(con=self._connection,
                                   project=self._project,
                                   property_class_iri=Iri(f'{dm_name}:selection'),
@@ -277,10 +281,23 @@ class TestOldapList(unittest.TestCase):
         resobj = ResourceClass(con=self._connection,
                                project=self._project,
                                owlclass_iri=Iri(f'{dm_name}:Resobj'),
-                               label=LangString(["Resobj@en", "Resobj@de"]))
+                               label=LangString(["Resobj@en", "Resobj@de"]),
+                               hasproperties=[
+                                   HasProperty(con=self._connection, prop=selection, maxCount=Xsd_integer(1),
+                                               minCount=Xsd_integer(1), order=1)])
         dm[Iri(f'{dm_name}:resobj')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
+
+        print("=========1)", node.in_use())
+
+        factory = ResourceInstanceFactory(con=self._connection, project=self._project)
+        Resobj = factory.createObjectInstance('Resobj')
+        r = Resobj(selection=nodes[0].iri)
+        r.create()
+
+        print("=========2)", node.in_use())
+        #node.delete_node()
 
 
     def test_search(self):
