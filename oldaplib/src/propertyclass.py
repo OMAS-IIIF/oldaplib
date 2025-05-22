@@ -664,6 +664,7 @@ class PropertyClass(Model, Notify):
         query1 += f"""
         SELECT ?p ?o
         FROM {self._graph}:onto
+        FROM oldap:onto
         FROM shared:onto
         WHERE {{
             {self._property_class_iri} ?p ?o

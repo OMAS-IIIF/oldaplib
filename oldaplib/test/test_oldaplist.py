@@ -4,8 +4,10 @@ from pathlib import Path
 from time import sleep
 
 from oldaplib.src.connection import Connection
+from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.language import Language
+from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.json_encoder import SpecialEncoder
 from oldaplib.src.helpers.langstring import LangString
@@ -13,8 +15,13 @@ from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmuta
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.enums.oldaplistattr import OldapListAttr
+from oldaplib.src.oldaplist_helpers import get_nodes_from_list
+from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
+from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
@@ -236,6 +243,46 @@ class TestOldapList(unittest.TestCase):
                                        project=self._project,
                                        oldapListId="TestDeleteList")
 
+    def test_delete_with_nodes(self):
+        dm = DataModel.read(self._connection, self._project, ignore_cache=True)
+        dm_name = self._project.projectShortName
+
+        oldaplist = OldapList(con=self._connection,
+                              project=self._project,
+                              oldapListId="TestDeleteList2",
+                              prefLabel="TestDeleteList",
+                              definition="A list for testing deletes...")
+        oldaplist.create()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project=self._project,
+                                   oldapListId="TestDeleteList2")
+        node_classIri = oldaplist.node_classIri
+        print("=======>", node_classIri)
+        node = OldapListNode(con=self._connection,
+                             oldapList=oldaplist,
+                             #project=self._project,
+                             oldapListNodeId="TestDeleteList2Node1",
+                             prefLabel="TestDelete2ListNode1",
+                             definition="A node for testing deletes...")
+        node.create_root_node()
+
+        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+
+        selection = PropertyClass(con=self._connection,
+                                  project=self._project,
+                                  property_class_iri=Iri(f'{dm_name}:selection'),
+                                  toClass=node_classIri,
+                                  name=LangString(["Selection@en", "Selektion@de"]))
+
+        resobj = ResourceClass(con=self._connection,
+                               project=self._project,
+                               owlclass_iri=Iri(f'{dm_name}:Resobj'),
+                               label=LangString(["Resobj@en", "Resobj@de"]))
+        dm[Iri(f'{dm_name}:resobj')] = resobj
+        dm.update()
+        dm = DataModel.read(self._connection, self._project, ignore_cache=True)
+
+
     def test_search(self):
         oldaplist = OldapList(con=self._connection,
                               project=self._project,
@@ -286,6 +333,7 @@ class TestOldapList(unittest.TestCase):
                                 definition=Xsd_string("hierarchical"))
         self.assertTrue(Iri('test:animals') in iris)
         self.assertTrue(Iri('test:plants') in iris)
+
 
 
 

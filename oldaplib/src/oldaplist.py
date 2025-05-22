@@ -493,10 +493,13 @@ class OldapList(Model):
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:targetClass {self.__node_class_iri.toRdf}'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:node oldap:OldapListNodeShape'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property [ sh:path rdf:type ; ]'
+
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}sh:property ['
         sparql3 += f'\n{blank:{(indent + 4) * indent_inc}}sh:path skos:inScheme'
+        sparql3 += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:class oldap:OldapList'
         sparql3 += f' ;\n{blank:{(indent + 4) * indent_inc}}sh:hasValue {self.__iri.toRdf}'
         sparql3 += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
+
         sparql3 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql3 += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -612,7 +615,7 @@ class OldapList(Model):
         jsonobj = self._con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
-            raise OldapErrorInUse(f'List {self.prefLabel} cannot be deleted since there are still nodes.')
+            raise OldapErrorInUse(f'List {self.prefLabel} cannot be deleted since there are still nodes of the list in use.')
 
         sparql1 = context.sparql_context
         sparql1 += f"""
@@ -653,4 +656,31 @@ class OldapList(Model):
         self.safe_commit()
         cache = CacheSingleton()
         cache.delete(self.__iri)
+
+    def in_use(self) -> bool:
+        """
+        Checks if the logged-in user is a member of the list
+        :return: True if the logged-in user is a member of the list
+        :rtype: bool
+        """
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+        context = Context(name=self._con.context_name)
+
+        sparql = context.sparql_context
+        sparql += f'''
+        SELECT ?listnode
+        FROM {self.__graph}:lists
+        WHERE {{
+            ?listnode a oldap:OldapListNode .
+        }}
+        '''
+        jsonobj = self._con.query(sparql)
+        res = QueryProcessor(context, jsonobj)
+        if len(res) > 0:
+            return True
+        else:
+            return False
+
 
