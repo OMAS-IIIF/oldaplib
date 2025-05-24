@@ -800,7 +800,7 @@ class OldapListNode(Model):
             raise OldapError("Cannot create: no connection")
 
         if (self.in_use()):
-            raise OldapErrorInconsistency('Cannot delete: node is in use')
+            raise OldapErrorInconsistency(f'Cannot delete: node "{self.__iri}" is in use')
 
         timestamp = Xsd_dateTime.now()
         #
@@ -920,6 +920,9 @@ class OldapListNode(Model):
     def delete_node_recursively(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OldapError("Cannot create: no connection")
+
+        if (self.in_use_recursively()):
+            raise OldapErrorInconsistency('Cannot delete: Some nodes are in use')
 
         context = Context(name=self._con.context_name)
         timestamp = Xsd_dateTime.now()

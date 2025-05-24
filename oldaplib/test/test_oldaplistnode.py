@@ -16,7 +16,7 @@ from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorIncons
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.oldaplist import OldapList
-from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist
+from oldaplib.src.oldaplist_helpers import get_nodes_from_list, print_sublist, load_list_from_yaml, get_node_by_id
 from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
@@ -24,6 +24,7 @@ from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
@@ -1473,27 +1474,15 @@ class TestOldapListNode(unittest.TestCase):
 
     def test_delete_in_use(self):
         #
-        # First we create a (very simple) list
+        # load hierarchical list from YAML
         #
-        oldaplist = OldapList(con=self._connection,
-                              project=self._project,
-                              oldapListId="TestDeleteList2",
-                              prefLabel="TestDeleteList",
-                              definition="A list for testing deletes...")
-        oldaplist.create()
-        oldaplist = OldapList.read(con=self._connection,
-                                   project=self._project,
-                                   oldapListId="TestDeleteList2")
-        node = OldapListNode(con=self._connection,
-                             oldapList=oldaplist,
-                             oldapListNodeId="TestDeleteList2Node1",
-                             prefLabel="TestDelete2ListNode1",
-                             definition="A node for testing deletes...")
-        node.create_root_node()
+        file = self._project_root / 'oldaplib' / 'testdata' / 'testlist.yaml'
+        oldaplists = load_list_from_yaml(con=self._connection,
+                                         project="test",
+                                         filepath=file)
+        testnode = get_node_by_id(oldaplists[0].nodes, Xsd_NCName("node_A"))
 
-        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
-
-        node_classIri = oldaplist.node_classIri
+        node_classIri = oldaplists[0].node_classIri
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
         dm_name = self._project.projectShortName
 
@@ -1522,11 +1511,11 @@ class TestOldapListNode(unittest.TestCase):
         #
         factory = ResourceInstanceFactory(con=self._connection, project=self._project)
         Resobj = factory.createObjectInstance('Resobj')
-        r = Resobj(selection=nodes[0].iri)
+        r = Resobj(selection=testnode.iri)
         r.create()
 
         with self.assertRaises(OldapErrorInconsistency):
-            nodes[0].delete_node()
+            testnode.delete_node()
 
 
     def test_delete_recursively(self):
@@ -1590,6 +1579,52 @@ class TestOldapListNode(unittest.TestCase):
         node_C = nodes[2]
         self.assertEqual(Xsd_integer(9), node_C.leftIndex)
         self.assertEqual(Xsd_integer(10), node_C.rightIndex)
+
+    def test_delete_recursively_in_user(self):
+        #
+        # load a hierarchical list from YAML
+        #
+        file = self._project_root / 'oldaplib' / 'testdata' / 'testlist.yaml'
+        oldaplists = load_list_from_yaml(con=self._connection,
+                                         project="test",
+                                         filepath=file)
+        testnode = get_node_by_id(oldaplists[0].nodes, Xsd_NCName("node_BB"))
+
+        node_classIri = oldaplists[0].node_classIri
+        dm = DataModel.read(self._connection, self._project, ignore_cache=True)
+        dm_name = self._project.projectShortName
+
+        selection = PropertyClass(con=self._connection,
+                                  project=self._project,
+                                  property_class_iri=Iri(f'{dm_name}:selection'),
+                                  toClass=node_classIri,
+                                  name=LangString(["Selection@en", "Selektion@de"]))
+
+        #
+        # Now we create a simple data model
+        #
+        resobj = ResourceClass(con=self._connection,
+                               project=self._project,
+                               owlclass_iri=Iri(f'{dm_name}:Resobj'),
+                               label=LangString(["Resobj@en", "Resobj@de"]),
+                               hasproperties=[
+                                   HasProperty(con=self._connection, prop=selection, maxCount=Xsd_integer(1),
+                                               minCount=Xsd_integer(1), order=1)])
+        dm[Iri(f'{dm_name}:resobj')] = resobj
+        dm.update()
+        dm = DataModel.read(self._connection, self._project, ignore_cache=True)
+
+        #
+        # let's add a resource which references the node
+        #
+        factory = ResourceInstanceFactory(con=self._connection, project=self._project)
+        Resobj = factory.createObjectInstance('Resobj')
+        r = Resobj(selection=testnode.iri)
+        r.create()
+
+        delnode = get_node_by_id(oldaplists[0].nodes, Xsd_NCName("node_B"))
+        with self.assertRaises(OldapErrorInconsistency):
+            delnode.delete_node()
 
     def test_move_simple_A(self):
         oldaplist = OldapList(con=self._connection,

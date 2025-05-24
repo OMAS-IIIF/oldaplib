@@ -242,3 +242,13 @@ def load_list_from_yaml(con: Connection,
             if listdata.get('nodes'):
                 oldaplist.nodes = process_nodes(listdata['nodes'], oldaplist, None)
     return oldaplists
+
+def get_node_by_id(nodes: list[OldapListNode], id: Xsd_NCName) -> OldapListNode | None:
+    for node in nodes:
+        if node.oldapListNodeId == id:
+            return node
+        elif node.nodes:
+            result = get_node_by_id(node.nodes, id)
+            if result is not None:
+                return result
+    return None
