@@ -84,8 +84,9 @@ from oldaplib.src.enums.oldaplistattr import OldapListAttr
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapError, OldapErrorNoPermission, OldapErrorAlreadyExists, \
-    OldapErrorNotFound, OldapErrorUpdateFailed, OldapErrorInUse
+from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapError, OldapErrorNoPermission, \
+    OldapErrorAlreadyExists, \
+    OldapErrorNotFound, OldapErrorUpdateFailed, OldapErrorInUse, OldapErrorInconsistency
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
@@ -594,6 +595,50 @@ class OldapList(Model):
         cache.delete(self.__iri)
 
 
+    def in_use(self) -> (str, str):
+        """
+        Checks if the list is in use. A list is in use if at least one list item is in use or
+        if the list is referenced in a datamodel as property.
+        :return: True if the list is in use, False otherwise
+        :rtype: bool
+        """
+
+        #
+        # first we check if a list item is in use by some resource instance
+        #
+        context = Context(name=self._con.context_name)
+        query1 = context.sparql_context
+        query1 += f'''
+        ASK {{
+            GRAPH {self.__graph}:data {{
+	            ?s ?p ?o .
+            }}
+            GRAPH {self.__graph}:lists {{
+	            ?o skos:inScheme {self.iri.toRdf} .
+            }}
+        }}
+        '''
+        # result = self._con.query(query1)
+        # if result['boolean']:
+        #     return True
+
+        #
+        # now we check if a list is references as target from a property definition
+        #
+        context = Context(name=self._con.context_name)
+        query2 = context.sparql_context
+        query2 += f'''
+        ASK {{
+            GRAPH {self.__graph}:shacl {{
+                ?propobj sh:class {self.__node_class_iri.toRdf} .
+            }}
+        }}
+        '''
+        # result = self._con.query(query2)
+        # return result['boolean']
+        return query1, query2
+
+
     def delete(self) -> None:
         """
         Deletes a list from the RDF triplestore. The list must have no list items in order to allow the deletion
@@ -603,20 +648,29 @@ class OldapList(Model):
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
-        context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        sparql += f'''
-        SELECT ?listnode
-        FROM {self.__graph}:lists
-        WHERE {{
-            ?listnode a oldap:OldapListNode .
-        }}
-        '''
-        jsonobj = self._con.query(sparql)
-        res = QueryProcessor(context, jsonobj)
-        if len(res) > 0:
-            raise OldapErrorInUse(f'List {self.prefLabel} cannot be deleted since there are still nodes of the list in use.')
 
+        # if (self.in_use()):
+        #     raise OldapErrorInUse(f'Cannot deletelist: "{self.__iri}" is in use')
+
+        query1, query2 = self.in_use()
+
+        context = Context(name=self._con.context_name)
+        #
+        # first let's delete all nodes with all information
+        #
+        sparql0 = context.sparql_context
+        sparql0 += f"""
+        DELETE WHERE {{
+            GRAPH {self.__graph}:lists {{
+                ?node a {self.__node_class_iri.toRdf} .
+                ?node ?prop ?val .
+            }}
+        }}
+        """
+
+        #
+        # let's delete the list resource (that holds the information of the list)
+        #
         sparql1 = context.sparql_context
         sparql1 += f"""
         DELETE WHERE {{
@@ -627,6 +681,9 @@ class OldapList(Model):
         }} 
         """
 
+        #
+        # let's delete the SHACL definition
+        #
         sparql2 = context.sparql_context
         sparql2 += f"""
         DELETE WHERE {{
@@ -636,6 +693,9 @@ class OldapList(Model):
         }}
         """
 
+        #
+        # let's delete the OWL class definition
+        #
         sparql3 = context.sparql_context
         sparql3 += f"""
         DELETE WHERE {{
@@ -647,6 +707,13 @@ class OldapList(Model):
 
         self._con.transaction_start()
         try:
+            result1 = self._con.query(query1)
+            if result1['boolean']:
+                raise OldapErrorInUse(f'Cannot delete list: "{self.__iri}" is in use')
+            result2 = self._con.query(query2)
+            if result2['boolean']:
+                raise OldapErrorInUse(f'Cannot delete list: "{self.__iri}" is in use')
+            self._con.transaction_update(sparql0)
             self._con.transaction_update(sparql1)
             self._con.transaction_update(sparql2)
             self._con.transaction_update(sparql3)
@@ -657,30 +724,30 @@ class OldapList(Model):
         cache = CacheSingleton()
         cache.delete(self.__iri)
 
-    def in_use(self) -> bool:
-        """
-        Checks if the logged-in user is a member of the list
-        :return: True if the logged-in user is a member of the list
-        :rtype: bool
-        """
-        result, message = self.check_for_permissions()
-        if not result:
-            raise OldapErrorNoPermission(message)
-        context = Context(name=self._con.context_name)
-
-        sparql = context.sparql_context
-        sparql += f'''
-        SELECT ?listnode
-        FROM {self.__graph}:lists
-        WHERE {{
-            ?listnode a oldap:OldapListNode .
-        }}
-        '''
-        jsonobj = self._con.query(sparql)
-        res = QueryProcessor(context, jsonobj)
-        if len(res) > 0:
-            return True
-        else:
-            return False
+    # def in_use(self) -> bool:
+    #     """
+    #     Checks if the logged-in user is a member of the list
+    #     :return: True if the logged-in user is a member of the list
+    #     :rtype: bool
+    #     """
+    #     result, message = self.check_for_permissions()
+    #     if not result:
+    #         raise OldapErrorNoPermission(message)
+    #     context = Context(name=self._con.context_name)
+    #
+    #     sparql = context.sparql_context
+    #     sparql += f'''
+    #     SELECT ?listnode
+    #     FROM {self.__graph}:lists
+    #     WHERE {{
+    #         ?listnode a oldap:OldapListNode .
+    #     }}
+    #     '''
+    #     jsonobj = self._con.query(sparql)
+    #     res = QueryProcessor(context, jsonobj)
+    #     if len(res) > 0:
+    #         return True
+    #     else:
+    #         return False
 
 

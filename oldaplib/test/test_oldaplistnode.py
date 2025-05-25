@@ -12,7 +12,8 @@ from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission, \
+    OldapErrorInUse
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.oldaplist import OldapList
@@ -1514,7 +1515,7 @@ class TestOldapListNode(unittest.TestCase):
         r = Resobj(selection=testnode.iri)
         r.create()
 
-        with self.assertRaises(OldapErrorInconsistency):
+        with self.assertRaises(OldapErrorInUse):
             testnode.delete_node()
 
 
@@ -1584,33 +1585,34 @@ class TestOldapListNode(unittest.TestCase):
         #
         # load a hierarchical list from YAML
         #
-        file = self._project_root / 'oldaplib' / 'testdata' / 'testlist.yaml'
+        file = self._project_root / 'oldaplib' / 'testdata' / 'playground_list.yaml'
         oldaplists = load_list_from_yaml(con=self._connection,
                                          project="test",
                                          filepath=file)
-        testnode = get_node_by_id(oldaplists[0].nodes, Xsd_NCName("node_BB"))
-
+        testnode = get_node_by_id(oldaplists[0].nodes, Xsd_NCName("physics"))
         node_classIri = oldaplists[0].node_classIri
+
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
         dm_name = self._project.projectShortName
 
-        selection = PropertyClass(con=self._connection,
-                                  project=self._project,
-                                  property_class_iri=Iri(f'{dm_name}:selection'),
-                                  toClass=node_classIri,
-                                  name=LangString(["Selection@en", "Selektion@de"]))
 
         #
         # Now we create a simple data model
         #
+        selection = PropertyClass(con=self._connection,
+                                  project=self._project,
+                                  property_class_iri=Iri(f'{dm_name}:selection2'),
+                                  toClass=node_classIri,
+                                  name=LangString(["Selection2@en", "Selektion2@de"]))
+
         resobj = ResourceClass(con=self._connection,
                                project=self._project,
-                               owlclass_iri=Iri(f'{dm_name}:Resobj'),
-                               label=LangString(["Resobj@en", "Resobj@de"]),
+                               owlclass_iri=Iri(f'{dm_name}:Resobj2'),
+                               label=LangString(["Resobj2@en", "Resobj2@de"]),
                                hasproperties=[
                                    HasProperty(con=self._connection, prop=selection, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
-        dm[Iri(f'{dm_name}:resobj')] = resobj
+        dm[Iri(f'{dm_name}:Resobj2')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
 
@@ -1618,12 +1620,12 @@ class TestOldapListNode(unittest.TestCase):
         # let's add a resource which references the node
         #
         factory = ResourceInstanceFactory(con=self._connection, project=self._project)
-        Resobj = factory.createObjectInstance('Resobj')
-        r = Resobj(selection=testnode.iri)
+        Resobj = factory.createObjectInstance('Resobj2')
+        r = Resobj(selection2=testnode.iri)
         r.create()
 
-        delnode = get_node_by_id(oldaplists[0].nodes, Xsd_NCName("node_B"))
-        with self.assertRaises(OldapErrorInconsistency):
+        delnode = get_node_by_id(oldaplists[0].nodes, Xsd_NCName("nonfiction"))
+        with self.assertRaises(OldapErrorInUse):
             delnode.delete_node()
 
     def test_move_simple_A(self):

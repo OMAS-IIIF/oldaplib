@@ -10,7 +10,7 @@ from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission, \
-    OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorNotFound, OldapErrorUpdateFailed
+    OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorNotFound, OldapErrorUpdateFailed, OldapErrorInUse
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
@@ -790,7 +790,6 @@ class OldapListNode(Model):
             FILTER (?leftIndex >= {int(self.__leftIndex)} && ?rightIndex <= {int(self.__rightIndex)})
         }}
         """
-        print(query1)
         result = self._con.query(query1)
         return result['boolean']
 
@@ -800,7 +799,7 @@ class OldapListNode(Model):
             raise OldapError("Cannot create: no connection")
 
         if (self.in_use()):
-            raise OldapErrorInconsistency(f'Cannot delete: node "{self.__iri}" is in use')
+            raise OldapErrorInUse(f'Cannot delete: node "{self.__iri}" is in use')
 
         timestamp = Xsd_dateTime.now()
         #
@@ -827,7 +826,7 @@ class OldapListNode(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OldapErrorInconsistency(f'Cannot delete node with skos:broaderTransitive pointing to it!')
+            raise OldapErrorInUse(f'Cannot delete node with skos:broaderTransitive pointing to it!')
 
         query2 = context.sparql_context
         query2 += f"""
@@ -922,7 +921,7 @@ class OldapListNode(Model):
             raise OldapError("Cannot create: no connection")
 
         if (self.in_use_recursively()):
-            raise OldapErrorInconsistency('Cannot delete: Some nodes are in use')
+            raise OldapErrorInUse('Cannot delete: Some nodes are in use')
 
         context = Context(name=self._con.context_name)
         timestamp = Xsd_dateTime.now()

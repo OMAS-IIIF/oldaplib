@@ -11,12 +11,13 @@ from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.json_encoder import SpecialEncoder
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmutable, OldapErrorNoPermission
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmutable, OldapErrorNoPermission, \
+    OldapErrorInUse
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.enums.oldaplistattr import OldapListAttr
-from oldaplib.src.oldaplist_helpers import get_nodes_from_list
+from oldaplib.src.oldaplist_helpers import get_nodes_from_list, load_list_from_yaml
 from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
@@ -47,7 +48,7 @@ class TestOldapList(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        project_root = find_project_root(__file__)
+        cls._project_root = find_project_root(__file__)
 
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://testing.org/datatypes#")
@@ -64,7 +65,7 @@ class TestOldapList(unittest.TestCase):
                                  context_name="DEFAULT")
 
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
-        file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
+        file = cls._project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
 
 
@@ -74,7 +75,7 @@ class TestOldapList(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:lists'))
         cls._connection.clear_graph(Xsd_QName('test:data'))
 
-        file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
+        file = cls._project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
         sleep(1)
         cls._project = Project.read(cls._connection, "test")
@@ -246,6 +247,14 @@ class TestOldapList(unittest.TestCase):
                                        project=self._project,
                                        oldapListId="TestDeleteList")
 
+    def test_delete_hierarchy(self):
+        file = self._project_root / 'oldaplib' / 'testdata' / 'playground_list.yaml'
+        oldaplists = load_list_from_yaml(con=self._connection,
+                                         project="test",
+                                         filepath=file)
+        oldaplists[0].delete()
+
+
     def test_delete_with_nodes(self):
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
         dm_name = self._project.projectShortName
@@ -270,7 +279,7 @@ class TestOldapList(unittest.TestCase):
 
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
 
-        print("=========0)", node.in_use())
+        oldaplist = OldapList.read(self._connection, self._project, oldapListId="TestDeleteList2")
 
         selection = PropertyClass(con=self._connection,
                                   project=self._project,
@@ -289,15 +298,13 @@ class TestOldapList(unittest.TestCase):
         dm.update()
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
 
-        print("=========1)", node.in_use())
-
         factory = ResourceInstanceFactory(con=self._connection, project=self._project)
         Resobj = factory.createObjectInstance('Resobj')
         r = Resobj(selection=nodes[0].iri)
         r.create()
 
-        print("=========2)", node.in_use())
-        #node.delete_node()
+        with self.assertRaises(OldapErrorInUse):
+            node.delete_node()
 
 
     def test_search(self):
