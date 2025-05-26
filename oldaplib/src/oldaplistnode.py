@@ -761,8 +761,8 @@ class OldapListNode(Model):
 
     def in_use(self) -> bool:
         context = Context(name=self._con.context_name)
-        query1 = context.sparql_context
-        query1 += f"""
+        query = context.sparql_context
+        query += f"""
         ASK {{
             {{ GRAPH {self.__graph}:data
                 {{
@@ -771,13 +771,12 @@ class OldapListNode(Model):
             }}
         }}
         """
-        result = self._con.query(query1)
-        return result['boolean']
+        return query
 
     def in_use_recursively(self) -> bool:
         context = Context(name=self._con.context_name)
-        query1 = context.sparql_context
-        query1 += f"""
+        query = context.sparql_context
+        query += f"""
         ASK  {{
             GRAPH {self.__graph}:data {{
 	            ?s ?p ?o .
@@ -790,16 +789,14 @@ class OldapListNode(Model):
             FILTER (?leftIndex >= {int(self.__leftIndex)} && ?rightIndex <= {int(self.__rightIndex)})
         }}
         """
-        result = self._con.query(query1)
-        return result['boolean']
+        return query
+        #result = self._con.query(query1)
+        #return result['boolean']
 
 
     def delete_node(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
             raise OldapError("Cannot create: no connection")
-
-        if (self.in_use()):
-            raise OldapErrorInUse(f'Cannot delete: node "{self.__iri}" is in use')
 
         timestamp = Xsd_dateTime.now()
         #
@@ -809,6 +806,14 @@ class OldapListNode(Model):
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
+
+        self._con.transaction_start()
+
+        query0 = self.in_use()
+        result = self.safe_query(query0)
+        if result['boolean']:
+            self._con.transaction_abort()
+            raise OldapErrorInUse(f'Cannot delete: node "{self.__iri}" is in use')
 
         context = Context(name=self._con.context_name)
         query1 = context.sparql_context
@@ -820,8 +825,6 @@ class OldapListNode(Model):
             }}
         }}
         """
-        self._con.transaction_start()
-
         jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
@@ -920,11 +923,7 @@ class OldapListNode(Model):
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
-        if (self.in_use_recursively()):
-            raise OldapErrorInUse('Cannot delete: Some nodes are in use')
-
         context = Context(name=self._con.context_name)
-        timestamp = Xsd_dateTime.now()
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -932,6 +931,14 @@ class OldapListNode(Model):
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
+
+        self._con.transaction_start()
+
+        query0 = self.in_use_recursively()
+        result = self.safe_query(query0)
+        if result['boolean']:
+            self._con.transaction_abort()
+            raise OldapErrorInUse(f'Cannot delete: some node are in use')
 
         #
         # first we get the node info, especially leftIndex and rightIndex
@@ -947,7 +954,6 @@ class OldapListNode(Model):
             }}
         }}
         """
-        self._con.transaction_start()
         jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         lindex = 0

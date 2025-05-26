@@ -591,6 +591,7 @@ class OldapList(Model):
         self.clear_changeset()
         #
         # we changed something, therefore we invalidate the list cache
+        #
         cache = CacheSingleton()
         cache.delete(self.__iri)
 
@@ -723,31 +724,4 @@ class OldapList(Model):
         self.safe_commit()
         cache = CacheSingleton()
         cache.delete(self.__iri)
-
-    # def in_use(self) -> bool:
-    #     """
-    #     Checks if the logged-in user is a member of the list
-    #     :return: True if the logged-in user is a member of the list
-    #     :rtype: bool
-    #     """
-    #     result, message = self.check_for_permissions()
-    #     if not result:
-    #         raise OldapErrorNoPermission(message)
-    #     context = Context(name=self._con.context_name)
-    #
-    #     sparql = context.sparql_context
-    #     sparql += f'''
-    #     SELECT ?listnode
-    #     FROM {self.__graph}:lists
-    #     WHERE {{
-    #         ?listnode a oldap:OldapListNode .
-    #     }}
-    #     '''
-    #     jsonobj = self._con.query(sparql)
-    #     res = QueryProcessor(context, jsonobj)
-    #     if len(res) > 0:
-    #         return True
-    #     else:
-    #         return False
-
 
