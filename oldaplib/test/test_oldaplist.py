@@ -247,12 +247,38 @@ class TestOldapList(unittest.TestCase):
                                        project=self._project,
                                        oldapListId="TestDeleteList")
 
+    def test_delete_no_priv(self):
+        oldaplist = OldapList(con=self._connection,
+                              project=self._project,
+                              oldapListId="TestDeleteList",
+                              prefLabel="TestDeleteList",
+                              definition="A list for testing deletes...")
+        oldaplist.create()
+        del oldaplist
+        oldaplist = OldapList.read(con=self._unpriv,
+                                   project=self._project,
+                                   oldapListId="TestDeleteList")
+        with self.assertRaises(OldapErrorNoPermission) as ex:
+            oldaplist.delete()
+
     def test_delete_hierarchy(self):
         file = self._project_root / 'oldaplib' / 'testdata' / 'playground_list.yaml'
         oldaplists = load_list_from_yaml(con=self._connection,
                                          project="test",
                                          filepath=file)
         oldaplists[0].delete()
+
+    def test_delete_hierarchy_no_priv(self):
+        file = self._project_root / 'oldaplib' / 'testdata' / 'source_type.yaml'
+        oldaplists = load_list_from_yaml(con=self._connection,
+                                         project="test",
+                                         filepath=file)
+
+        oldaplist = OldapList.read(con=self._unpriv,
+                                   project=self._project,
+                                   oldapListId="source_type")
+        with self.assertRaises(OldapErrorNoPermission) as ex:
+            oldaplist.delete()
 
 
     def test_delete_with_nodes(self):

@@ -1391,7 +1391,7 @@ class TestOldapListNode(unittest.TestCase):
         self.assertEqual(Xsd_integer(4), olBA.leftIndex)
         self.assertEqual(Xsd_integer(5), olBA.rightIndex)
 
-        with self.assertRaises(OldapErrorInconsistency):
+        with self.assertRaises(OldapErrorInUse):
             olB.delete_node()
 
         olBA.delete_node()
