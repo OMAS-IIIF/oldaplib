@@ -297,7 +297,6 @@ class TestOldapList(unittest.TestCase):
         node_classIri = oldaplist.node_classIri
         node = OldapListNode(con=self._connection,
                              oldapList=oldaplist,
-                             #project=self._project,
                              oldapListNodeId="TestDeleteList2Node1",
                              prefLabel="TestDelete2ListNode1",
                              definition="A node for testing deletes...")

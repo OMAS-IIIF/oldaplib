@@ -790,8 +790,6 @@ class OldapListNode(Model):
         }}
         """
         return query
-        #result = self._con.query(query1)
-        #return result['boolean']
 
 
     def delete_node(self, indent: int = 0, indent_inc: int = 4) -> None:
