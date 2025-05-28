@@ -43,7 +43,7 @@ booktype:
                 - Biology@en
             medicine:
               label:
-                - Medicine
+                - Medicine@en
     childrens:
       label:
         - Children's & young adult books@en

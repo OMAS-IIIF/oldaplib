@@ -1,0 +1,6 @@
+map(include('node'))
+---
+node:
+  label: list(str(matches='^.*@[ -~]{2}$'))
+  definition: list(str(matches='^.*@[ -~]{2}$'), required=False)
+  nodes: map(include('node'), required=False)

@@ -596,7 +596,7 @@ class OldapList(Model):
         cache.delete(self.__iri)
 
 
-    def in_use(self) -> (str, str):
+    def in_use_queries(self) -> (str, str):
         """
         Checks if the list is in use. A list is in use if at least one list item is in use or
         if the list is referenced in a datamodel as property.
@@ -639,6 +639,20 @@ class OldapList(Model):
         # return result['boolean']
         return query1, query2
 
+    def in_use(self) -> bool:
+        query1, query2 = self.in_use_queries()
+
+        self._con.transaction_start()
+        res1 = self.safe_query(query1)
+        if res1['boolean']:
+            self._con.transaction_abort()
+            return True
+        res2 = self.safe_query(query2)
+        if res2['boolean']:
+            self._con.transaction_abort()
+            return True
+        self._con.transaction_commit()
+        return False
 
     def delete(self) -> None:
         """
@@ -653,7 +667,7 @@ class OldapList(Model):
         # if (self.in_use()):
         #     raise OldapErrorInUse(f'Cannot deletelist: "{self.__iri}" is in use')
 
-        query1, query2 = self.in_use()
+        query1, query2 = self.in_use_queries()
 
         context = Context(name=self._con.context_name)
         #

@@ -18,13 +18,13 @@ collections_type:
           - Eine Art von Sammlung, die in der frühen Neuzeit entstand und typischerweise von Privatpersonen zusammengestellt und in einem speziellen Raum, dem Kabinett, ausgestellt wurde.@de
           - Type de collection apparu au début de la période moderne, généralement constituée par des particuliers et exposée dans une pièce réservée à cet effet, connue sous le nom de cabinet.@fr
       Collection:
-        Label: [ Collection@en, Sammlung@de, Collection@fr ]
+        label: [ Collection@en, Sammlung@de, Collection@fr ]
         definition:
           - Refers broadly to an assembly of objects, artifacts, or items gathered and displayed in a specific location, such as a royal palace, at a particular time. These collections, while often described by various observers over the centuries, were not static and evolved over time.@en
           - Bezieht sich im Allgemeinen auf eine Sammlung von Objekten, Artefakten oder Gegenständen, die zu einer bestimmten Zeit an einem bestimmten Ort, wie etwa einem königlichen Palast, gesammelt und ausgestellt wurden. Diese Sammlungen, die über die Jahrhunderte hinweg von verschiedenen Beobachtern beschrieben wurden, waren nicht statisch und veränderten sich im Laufe der Zeit.@de
           - Désigne de manière générale un ensemble d'objets, d’artefacts ou d’éléments rassemblés et exposés dans un lieu spécifique, tel qu’un palais royal, à une époque donnée. Ces collections, bien que souvent décrites par divers observateurs au fil des siècles, n’étaient pas statiques et ont évolué au fil du temps.@fr
       Menagerie:
-        Label: [ Menagerie@en, Menagerie@de, Ménagerie@fr ]
+        label: [ Menagerie@en, Menagerie@de, Ménagerie@fr ]
         definition:
           - A precursor to the modern zoo, a menagerie was a collection of exotic or wild animals.@en
           - Als Vorläufer des modernen Zoos war eine Menagerie eine Sammlung von exotischen oder wilden Tieren.@de

@@ -4,6 +4,7 @@ from pathlib import Path
 from pprint import pprint
 from typing import Any
 
+import yamale
 import yaml
 
 from oldaplib.src.cachesingleton import CacheSingleton
@@ -11,7 +12,7 @@ from oldaplib.src.connection import Connection
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.json_encoder import SpecialEncoder
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotImplemented
+from oldaplib.src.helpers.oldaperror import OldapErrorNotImplemented, OldapErrorValue
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
@@ -207,6 +208,8 @@ def load_list_from_yaml(con: Connection,
     def process_nodes(nodes: dict[str, Any], oldaplist: OldapList, parent: OldapListNode | None):
         oldapnodes: list[OldapListNode] = []
         for nodeid, nodedata in nodes.items():
+            if not hasattr(listdata, 'get'):
+                raise OldapErrorValue(f'YAML has invalid content.')
             label = LangString(nodedata.get('label'))
             definition = LangString(nodedata.get('definition'))
             node = OldapListNode(con=con,
@@ -227,9 +230,35 @@ def load_list_from_yaml(con: Connection,
         return oldapnodes
 
     oldaplists: list[OldapList] = []
+    #
+    # first we validate the YAML file using the following schema (using yamale)
+    #
     with filepath.open() as f:
-        lists = yaml.safe_load(f)
+        schema = yamale.make_schema(content='''
+map(include('node'))
+---
+node:
+  label: list(str(matches='^.*@[ -~]{2}$'))
+  definition: list(str(matches='^.*@[ -~]{2}$'), required=False)
+  nodes: map(include('node'), required=False)
+'''
+                           )
+        data = yamale.make_data(content=f.read())
+        try:
+            yamale.validate(schema=schema, data=data)
+        except ValueError as e:
+            raise OldapErrorValue(f"Error validating YAML file: {e}")
+    #
+    # now we read the YAML
+    #
+    with filepath.open() as f:
+        try:
+            lists = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise OldapErrorValue(f"Error loading YAML file: {e}")
         for listid, listdata in lists.items():
+            if not hasattr(listdata, 'get'):
+                raise OldapErrorValue(f'YAML has invalid content.')
             label = LangString(listdata.get('label'))
             definition = LangString(listdata.get('definition'))
             oldaplist = OldapList(con=con,

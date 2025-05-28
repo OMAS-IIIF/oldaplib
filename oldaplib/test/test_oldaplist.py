@@ -241,6 +241,8 @@ class TestOldapList(unittest.TestCase):
         oldaplist = OldapList.read(con=self._connection,
                                    project=self._project,
                                    oldapListId="TestDeleteList")
+        self.assertFalse(oldaplist.in_use())
+
         oldaplist.delete()
         with self.assertRaises(OldapErrorNotFound) as ex:
             oldaplist = OldapList.read(con=self._connection,
@@ -280,7 +282,6 @@ class TestOldapList(unittest.TestCase):
         with self.assertRaises(OldapErrorNoPermission) as ex:
             oldaplist.delete()
 
-
     def test_delete_with_nodes(self):
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
         dm_name = self._project.projectShortName
@@ -304,8 +305,6 @@ class TestOldapList(unittest.TestCase):
 
         nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
 
-        oldaplist = OldapList.read(self._connection, self._project, oldapListId="TestDeleteList2")
-
         selection = PropertyClass(con=self._connection,
                                   project=self._project,
                                   property_class_iri=Iri(f'{dm_name}:selection'),
@@ -328,9 +327,11 @@ class TestOldapList(unittest.TestCase):
         r = Resobj(selection=nodes[0].iri)
         r.create()
 
+        oldaplist = OldapList.read(self._connection, self._project, oldapListId="TestDeleteList2")
+        self.assertTrue(oldaplist.in_use())
+
         with self.assertRaises(OldapErrorInUse):
             node.delete_node()
-
 
     def test_search(self):
         oldaplist = OldapList(con=self._connection,
