@@ -191,8 +191,9 @@ def dump_list_to(con: IConnection,
         case ListFormat.YAML:
             list_dict = {}
             make_dict(listnode, list_dict)
-            return yaml.dump(list_dict, indent=3)
+            return yaml.dump(list_dict, indent=2, allow_unicode=True)
 
+    return ''
 
 def print_sublist(nodes: list[OldapListNode], level: int = 1) -> None:
     for node in nodes:
