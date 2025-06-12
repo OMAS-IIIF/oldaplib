@@ -3,7 +3,12 @@ from copy import deepcopy
 from pathlib import Path
 from time import sleep
 
+from oldaplib.src.datamodel import DataModel
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
+from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.hasproperty import HasProperty
+from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.permissionset import PermissionSet
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.language import Language
@@ -12,7 +17,11 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapErrorNotFound, OldapErrorNoPermission, \
     OldapErrorAlreadyExists, OldapErrorImmutable, OldapErrorInUse
+from oldaplib.src.project import Project
+from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
@@ -35,9 +44,12 @@ class TestPermissionSet(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        project_root = find_project_root(__file__)
+        cls._project_root = find_project_root(__file__)
+
 
         cls._context = Context(name="DEFAULT")
+        cls._context['test'] = NamespaceIRI("http://testing.org/datatypes#")
+        cls._context.use('test')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="oldap",
@@ -51,9 +63,19 @@ class TestPermissionSet(unittest.TestCase):
                                  context_name="DEFAULT")
 
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))
-        file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
+        file = cls._project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
-        sleep(1)  # upload may take a while...
+
+        cls._connection.clear_graph(Xsd_QName('test:test'))
+        cls._connection.clear_graph(Xsd_QName('test:onto'))
+        cls._connection.clear_graph(Xsd_QName('test:shacl'))
+        cls._connection.clear_graph(Xsd_QName('test:lists'))
+        cls._connection.clear_graph(Xsd_QName('test:data'))
+        file = cls._project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
+        cls._connection.upload_turtle(file)
+        sleep(1)
+        cls._project = Project.read(cls._connection, "test")
+        LangString.defaultLanguage = Language.EN
 
     @classmethod
     def tearDownClass(cls):
@@ -375,6 +397,41 @@ class TestPermissionSet(unittest.TestCase):
         ps = PermissionSet.read(con=self._connection, permissionSetId="GenericView", definedByProject=Iri('oldap:SystemProject'), ignore_cache=True)
         with self.assertRaises(OldapErrorInUse):
             ps.delete()
+
+    def test_delete_permission_set_user_with_data(self):
+        dm = DataModel.read(self._connection, self._project, ignore_cache=True)
+        dm_name = self._project.projectShortName
+
+        irgendwas = PropertyClass(con=self._connection,
+                                  project=self._project,
+                                  property_class_iri=Iri(f'{dm_name}:irgendwas'),
+                                  datatype=XsdDatatypes.string,
+                                  name=LangString(["AnyString@en", "Irgendwas@de"]))
+
+        #
+        # Now we create a simple data model
+        #
+        resobj = ResourceClass(con=self._connection,
+                               project=self._project,
+                               owlclass_iri=Iri(f'{dm_name}:DummyClass'),
+                               label=LangString(["Dummy@en", "Dummy@de"]),
+                               hasproperties=[
+                                   HasProperty(con=self._connection, prop=irgendwas, maxCount=Xsd_integer(1),
+                                               minCount=Xsd_integer(1), order=1)])
+        dm[Iri(f'{dm_name}:resobj')] = resobj
+        dm.update()
+        dm = DataModel.read(self._connection, self._project, ignore_cache=True)
+
+        factory = ResourceInstanceFactory(con=self._connection, project=self._project)
+        DummyClass = factory.createObjectInstance('DummyClass')
+        r = DummyClass(irgendwas="Dies ist irgend ein String", grantsPermission=Iri('oldap:GenericUpdate'))
+        r.create()
+
+        ps = PermissionSet.read(con=self._connection, permissionSetId="GenericUpdate", definedByProject=Iri('oldap:SystemProject'), ignore_cache=True)
+        with self.assertRaises(OldapErrorInUse):
+            ps.delete()
+
+
 
 if __name__ == '__main__':
     unittest.main()

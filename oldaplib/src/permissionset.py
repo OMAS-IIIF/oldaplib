@@ -86,6 +86,10 @@ class PermissionSet(Model):
         if self._attributes.get(PermissionSetAttr.DEFINED_BY_PROJECT):
             self.check_consistency(PermissionSetAttr.DEFINED_BY_PROJECT, self._attributes[PermissionSetAttr.DEFINED_BY_PROJECT])
 
+        #
+        # The IRI of the permission set is a QName consisting of the prefix of the project (aka projectShortname)
+        # and the permissionSetId. Thus, the same permission set ID could be used in different projects...
+        #
         self.__permset_iri = Iri.fromPrefixFragment(self.__project.projectShortName, self._attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
 
         for attr in PermissionSetAttr:
@@ -512,40 +516,30 @@ class PermissionSet(Model):
         #
         sparql = context.sparql_context
         sparql += f"""
-        SELECT (COUNT(?user) AS ?userCount)
-        FROM oldap:admin
+        ASK FROM oldap:admin
         WHERE {{
-            ?user a oldap:OldapUser ;
-            oldap:hasPermissionSet {self.__permset_iri.toRdf} .
+            ?user a oldap:User ;
+            oldap:hasPermissions {self.__permset_iri.toRdf} .
         }}
         """
-        jsonobj = self._con.query(sparql)
-        res = QueryProcessor(context, jsonobj)
-        if len(res) != 1:
-            raise OldapError("Query failed!!")
-        for r in res:
-            if int(r['userCount']) > 0:
-                raise OldapErrorInUse(f"Permission set is still assigned to {r['userCount']} users")
+        result = self._con.query(sparql)
+        if result['boolean']:
+            raise OldapErrorInUse(f"Permission set is still assigned to some users")
 
         #
-        # now check if the permission set
+        # now check if the permission set is used by a data object (resource)
         #
         sparql = context.sparql_context
         sparql += f"""
-        SELECT (COUNT(?instance) as ?instanceCount)
-        WHERE {{
+        ASK {{
             GRAPH ?graph {{
                 ?instance oldap:grantsPermission {self.__permset_iri.toRdf} .
             }}
         }}
         """
-        jsonobj = self._con.query(sparql)
-        res = QueryProcessor(context, jsonobj)
-        if len(res) != 1:
-            raise OldapError("Query failed!!")
-        for r in res:
-            if int(r['instanceCount']) != 0:
-                raise OldapErrorInUse("Permission set is still assigned to data objects")
+        result = self._con.query(sparql)
+        if result['boolean']:
+            raise OldapErrorInUse("Permission set is still assigned to some data objects")
 
         #
         # Now delete the permission set
