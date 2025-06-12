@@ -499,6 +499,51 @@ class PermissionSet(Model):
         cache.set(self.__permset_iri, self)
 
 
+    def in_use_queries(self) -> (str, str):
+        context = Context(name=self._con.context_name)
+
+        #
+        # first check if the permission set is assigned to a user
+        #
+        query1 = context.sparql_context
+        query1 += f"""
+        ASK FROM oldap:admin
+        WHERE {{
+            ?user a oldap:User ;
+            oldap:hasPermissions {self.__permset_iri.toRdf} .
+        }}
+        """
+
+        #
+        # now check if the permission set is used by a data object (resource)
+        #
+        query2 = context.sparql_context
+        query2 += f"""
+        ASK {{
+            GRAPH ?graph {{
+                ?instance oldap:grantsPermission {self.__permset_iri.toRdf} .
+            }}
+        }}
+        """
+
+        return query1, query2
+
+    def in_use(self) -> bool:
+        query1, query2 = self.in_use_queries()
+
+        self._con.transaction_start()
+        res1 = self.safe_query(query1)
+        if res1['boolean']:
+            self._con.transaction_abort()
+            return True
+        res2 = self.safe_query(query2)
+        if res2['boolean']:
+            self._con.transaction_abort()
+            return True
+        self._con.transaction_commit()
+        return False
+
+
     def delete(self) -> None:
         """
         Delete the given permission set.
@@ -509,38 +554,8 @@ class PermissionSet(Model):
         if not result:
             raise OldapErrorNoPermission(message)
 
+        query1, query2 = self.in_use_queries()
         context = Context(name=self._con.context_name)
-
-        #
-        # first check if the permission set is assigned to a user
-        #
-        sparql = context.sparql_context
-        sparql += f"""
-        ASK FROM oldap:admin
-        WHERE {{
-            ?user a oldap:User ;
-            oldap:hasPermissions {self.__permset_iri.toRdf} .
-        }}
-        """
-        result = self._con.query(sparql)
-        if result['boolean']:
-            raise OldapErrorInUse(f"Permission set is still assigned to some users")
-
-        #
-        # now check if the permission set is used by a data object (resource)
-        #
-        sparql = context.sparql_context
-        sparql += f"""
-        ASK {{
-            GRAPH ?graph {{
-                ?instance oldap:grantsPermission {self.__permset_iri.toRdf} .
-            }}
-        }}
-        """
-        result = self._con.query(sparql)
-        if result['boolean']:
-            raise OldapErrorInUse("Permission set is still assigned to some data objects")
-
         #
         # Now delete the permission set
         #
@@ -555,6 +570,12 @@ class PermissionSet(Model):
 
         self._con.transaction_start()
         try:
+            result1 = self._con.query(query1)
+            if result1['boolean']:
+                raise OldapErrorInUse(f"Permission set is still assigned to some users")
+            result2 = self._con.query(query2)
+            if result2['boolean']:
+                raise OldapErrorInUse("Permission set is still assigned to some data objects")
             self._con.transaction_update(sparql)
             self._con.transaction_commit()
         except OldapError:

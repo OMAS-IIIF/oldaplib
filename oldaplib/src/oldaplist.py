@@ -619,9 +619,6 @@ class OldapList(Model):
             }}
         }}
         '''
-        # result = self._con.query(query1)
-        # if result['boolean']:
-        #     return True
 
         #
         # now we check if a list is references as target from a property definition
@@ -635,8 +632,6 @@ class OldapList(Model):
             }}
         }}
         '''
-        # result = self._con.query(query2)
-        # return result['boolean']
         return query1, query2
 
     def in_use(self) -> bool:
@@ -664,8 +659,6 @@ class OldapList(Model):
         if not result:
             raise OldapErrorNoPermission(message)
 
-        # if (self.in_use()):
-        #     raise OldapErrorInUse(f'Cannot deletelist: "{self.__iri}" is in use')
 
         query1, query2 = self.in_use_queries()
 
