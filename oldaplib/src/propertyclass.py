@@ -21,6 +21,7 @@ from functools import partial
 from pprint import pprint
 from typing import Callable, Self, Any
 
+from oldaplib.src.logging import get_logger
 from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet
@@ -740,8 +741,9 @@ class PropertyClass(Model, Notify):
         :return: Instance of a property class
         :rtype: PropertyClass
         :raises: OldapError: generic error when reading from triple store
-
         """
+        logger = get_logger()
+
         if not isinstance(property_class_iri, Iri):
             property_class_iri = Iri(property_class_iri)
         cache = CacheSingleton()
@@ -749,6 +751,7 @@ class PropertyClass(Model, Notify):
             tmp = cache.get(property_class_iri)
             if tmp is not None:
                 tmp._con = con
+                logger.info(f'Property class "{property_class_iri}" already cached in triple store!')
                 return tmp
         property = cls(con=con, project=project, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, property._graph, property_class_iri)
