@@ -2,7 +2,7 @@ import unittest
 from copy import deepcopy
 from pathlib import Path
 from pprint import pprint
-from time import sleep
+from time import sleep, time
 
 from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel, PropertyClassChange, ResourceClassChange
@@ -380,6 +380,17 @@ class TestDataModel(unittest.TestCase):
             Iri("oldap:Thing"),
             Iri("oldap:OldapChronolgyStatement")
         })
+
+    def test_datamodel_cache(self):
+        start = time()
+        model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)
+        end = time()
+        print(f"No cache execution time: {end - start:.4f} seconds")
+
+        start = time()
+        model = DataModel.read(self._connection, self._sysproject, ignore_cache=False)
+        end = time()
+        print(f"With cache execution time: {end - start:.4f} seconds")
 
     # @unittest.skip('Work in progress')
     def test_datamodel_modify_A(self):

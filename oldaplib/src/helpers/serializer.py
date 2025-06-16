@@ -46,7 +46,7 @@ class _Serializer:
         self._classes[class_.__name__] = class_
         return class_
 
-    def decoder_hook(self, d: Dict[Any, Any]) -> Dict[Any, Any] | datetime | UUID | bytes:
+    def decoder_hook(self, d: Dict[Any, Any], connection: Any) -> Dict[Any, Any] | datetime | UUID | bytes:
         classname = d.pop(self._key, None)
         if classname:
             if classname == 'datetime':
@@ -75,6 +75,12 @@ class _Serializer:
         d = obj._as_dict()
         d[self._key] = type(obj).__name__
         return d
+
+    def make_decoder_hook(self, connection: Any):
+        def hook(obj):
+            return self.decoder_hook(obj, connection: Any)
+        return hook
+
 
 
 serializer = _Serializer()

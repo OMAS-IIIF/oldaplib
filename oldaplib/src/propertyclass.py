@@ -21,7 +21,7 @@ from functools import partial
 from pprint import pprint
 from typing import Callable, Self, Any
 
-from oldaplib.src.logging import get_logger
+from oldaplib.src.oldaplogging import get_logger
 from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet

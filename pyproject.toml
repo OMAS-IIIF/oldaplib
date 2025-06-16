@@ -39,6 +39,8 @@ mkdocs-material = "^9.5.18"
 pymdown-extensions = "^10.10.2"
 pyyaml = "^6.0.2"
 yamale = "^6.0.0"
+redis = "^6.2.0"
+cloudpickle = "^3.1.1"
 
 
 [build-system]

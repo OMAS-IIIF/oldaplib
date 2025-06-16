@@ -41,6 +41,7 @@ class ProjectSearchResult:
 
 
 #@strict
+@serializer
 class Project(Model):
     """
     # Project
@@ -172,6 +173,9 @@ class Project(Model):
                 partial(Project._set_value, attr=attr),
                 partial(Project._del_value, attr=attr)))
         self._changeset = {}
+
+    def _as_dict(self):
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict()
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         if id(self) in memo:

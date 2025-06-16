@@ -1,11 +1,15 @@
+import json
 from copy import deepcopy
 from enum import Enum
+from pprint import pprint
 from typing import Set, Dict, Any, Self
 
+from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -16,6 +20,7 @@ from oldaplib.src.iconnection import IConnection
 
 
 #@strict
+@serializer
 class Model:
     _con: IConnection
     _changed: Set[str]
@@ -48,6 +53,14 @@ class Model:
         self._modified = modified
         self._attributes = {}
         self._changeset = {}
+
+    def _as_dict(self) -> dict[str, Any]:
+        return {
+            'creator': self._creator,
+            'created': self._created,
+            'contributor': self._contributor,
+            'modified': self._modified,
+        }
 
     def __deepcopy__(self, memo: Dict[int, Any]) -> 'Model':
         cls = self.__class__

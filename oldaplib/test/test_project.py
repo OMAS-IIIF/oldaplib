@@ -1,7 +1,9 @@
+import json
 import unittest
 from copy import deepcopy
 from datetime import date
 from pathlib import Path
+from pprint import pprint
 from time import sleep
 
 from oldaplib.src.cachesingleton import CacheSingleton
@@ -16,7 +18,7 @@ from oldaplib.src.xsd.xsd_date import Xsd_date
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission
 from oldaplib.src.project import Project, ProjectSearchResult
-
+from oldaplib.src.helpers.serializer import serializer
 
 def find_project_root(current_path):
     # Climb up the directory hierarchy and check for a marker file
@@ -63,7 +65,14 @@ class Testproject(unittest.TestCase):
         #sleep(1)  # upload may take a while...
         pass
 
+    def test_project_to_json(self):
+        project = Project.read(con=self._connection, projectIri_SName=Iri("oldap:SystemProject"), ignore_cache=True)
+        jsonstr = json.dumps(project, default=serializer.encoder_default, indent=3)
+        print(jsonstr);
+
+
     def test_project_deepcopy(self):
+        project = Project.read()
         project = Project(con=self._connection,
                           projectShortName="unittest",
                           label=LangString(["unittest@en", "unittest@de"]),

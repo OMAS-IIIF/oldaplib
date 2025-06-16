@@ -33,6 +33,10 @@ class AttributeClass(Enum):
         return self._value
 
     @property
+    def fragment(self) -> str:
+        return self._name
+
+    @property
     def datatype(self) -> Type:
         return self._datatype
 
