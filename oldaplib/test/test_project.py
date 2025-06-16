@@ -65,10 +65,11 @@ class Testproject(unittest.TestCase):
         #sleep(1)  # upload may take a while...
         pass
 
-    def test_project_to_json(self):
+    def test_project_jsonify(self):
         project = Project.read(con=self._connection, projectIri_SName=Iri("oldap:SystemProject"), ignore_cache=True)
-        jsonstr = json.dumps(project, default=serializer.encoder_default, indent=3)
-        print(jsonstr);
+        jsonstr = json.dumps(project, default=serializer.encoder_default,)
+        project2 = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(self._connection))
+        self.assertEqual(project2, project)
 
 
     def test_project_deepcopy(self):

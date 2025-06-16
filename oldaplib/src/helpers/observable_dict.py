@@ -40,7 +40,8 @@ class ObservableDict(UserDict):
         self.__on_change = on_change
 
     def _as_dict(self):
-        return self.data
+        #return self.data
+        return {str(key): val for key, val in self.data.items()}
 
     def changeset_clear(self):
         pass

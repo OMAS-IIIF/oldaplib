@@ -1,3 +1,4 @@
+import json
 import unittest
 from copy import deepcopy
 from pathlib import Path
@@ -19,6 +20,7 @@ from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorV
     OldapErrorInconsistency
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.attributechange import AttributeChange
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
@@ -102,6 +104,20 @@ class TestPropertyClass(unittest.TestCase):
                           name=LangString(["Deepcopy@en", "Tiefekopie@de"]),
                           description=LangString("A test for deepcopy...@"))
 
+    def test_propertyclass_jsonify(self):
+        p = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Iri('test:deepcopy'),
+                          subPropertyOf=Iri('test:comment'),
+                          datatype=XsdDatatypes.string,
+                          inSet=XsdSet(Xsd_string("AAA"), Xsd_string("BBB"), Xsd_string("CCC")),
+                          name=LangString(["Deepcopy@en", "Tiefekopie@de"]),
+                          description=LangString("A test for deepcopy...@"))
+        p.force_external()
+        jsonstr = json.dumps(p, default=serializer.encoder_default, indent=3)
+        print(jsonstr)
+        p2 = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(self._connection))
+        self.assertEqual(p2, p)
 
     def test_propertyclass_deepcopy(self):
         p = PropertyClass(con=self._connection,

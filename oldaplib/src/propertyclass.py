@@ -21,6 +21,7 @@ from functools import partial
 from pprint import pprint
 from typing import Callable, Self, Any
 
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.oldaplogging import get_logger
 from oldaplib.src.cachesingleton import CacheSingleton
 from oldaplib.src.dtypes.languagein import LanguageIn
@@ -61,6 +62,7 @@ PropClassAttrContainer = dict[PropClassAttr, PropTypes]
 Attributes = dict[Iri, PropTypes]
 
 @dataclass
+@serializer
 class HasPropertyData:
     refprop: Iri | None = None
     minCount: Xsd_integer | None = None
@@ -99,6 +101,7 @@ class HasPropertyData:
 
 
 #@strict
+@serializer
 class PropertyClass(Model, Notify):
     """
     This class implements a property as used by OMASlib. There are 2 types of properties:
@@ -140,6 +143,9 @@ class PropertyClass(Model, Notify):
                  property_class_iri: Iri | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
+                 _internal: Iri | None = None,  # DO NOT USE!! Only for serialization!
+                 _force_external: bool | None = None,  # DO NOT USE!! Only for serialization!
+                 _from_triplestore: bool = False,
                  **kwargs):
         """
         Constructor of the PropertyClass. If the property is created as link to a resource by defininf
@@ -251,10 +257,22 @@ class PropertyClass(Model, Notify):
                 partial(PropertyClass._del_value, attr=attr)))
 
         self._test_in_use = False
-        self._internal = None
-        self._force_external = False
+        self._internal = _internal
+        self._force_external = _force_external
         self.__version = SemanticVersion()
-        self.__from_triplestore = False
+        self.__from_triplestore = _from_triplestore
+
+    def _as_dict(self):
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
+            'project': self._project.projectShortName,
+            'property_class_iri': self.property_class_iri,
+            '_internal': self._internal,
+            '_force_external': self._force_external,
+            '_from_triplestore': self.__from_triplestore,
+        }
+
+    def __eq__(self, other: Self):
+        return self._as_dict() == other._as_dict()
 
     def check_for_permissions(self) -> (bool, str):
         #

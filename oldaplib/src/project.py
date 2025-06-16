@@ -194,6 +194,10 @@ class Project(Model):
         instance._changset = deepcopy(self._changeset, memo)
         return instance
 
+    def __eq__(self, other: Self) -> bool:
+        if not isinstance(other, Project):
+            return False
+        return self._as_dict() == other._as_dict()
 
     def check_consistency(self, attr: ProjectAttr, value: Any) -> None:
         if attr == ProjectAttr.PROJECT_END:

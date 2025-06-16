@@ -1,7 +1,7 @@
 """
 This module implements the error clasees
 """
-from pystrict import strict
+#from pystrict import strict
 from traceback import format_exc
 
 #@strict

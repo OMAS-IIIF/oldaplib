@@ -9,7 +9,11 @@ from enum import Enum, unique
 from pystrict import strict
 from typing import Any
 
+from oldaplib.src.helpers.serializer import serializer
+
+
 @unique
+@serializer
 class XsdDatatypes(Enum):
     """
     Enumeration of the supported xsd datatypes:

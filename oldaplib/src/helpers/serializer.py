@@ -1,3 +1,4 @@
+import inspect
 from base64 import b85encode, b85decode
 from enum import Enum
 from typing import Dict, Any, Self
@@ -46,21 +47,6 @@ class _Serializer:
         self._classes[class_.__name__] = class_
         return class_
 
-    def decoder_hook(self, d: Dict[Any, Any], connection: Any) -> Dict[Any, Any] | datetime | UUID | bytes:
-        classname = d.pop(self._key, None)
-        if classname:
-            if classname == 'datetime':
-                return datetime.fromisoformat(d['__value__'])
-            if classname == 'UUID':
-                return UUID(d['__value__'])
-            if classname == 'bytes':
-                return b85decode(d['__value__'].encode(encoding='UTF-8'))
-            if type(self._classes[classname]) == type(Enum):
-                return self._classes[classname](d['__value__'])
-            else:
-                return self._classes[classname](**d)
-        return d
-
     def encoder_default(self, obj):
         if isinstance(obj, datetime):
             return {self._key: 'datetime', '__value__': str(obj)}
@@ -76,9 +62,30 @@ class _Serializer:
         d[self._key] = type(obj).__name__
         return d
 
-    def make_decoder_hook(self, connection: Any):
+    def decoder_hook(self, d: Dict[Any, Any], connection: Any | None = None) -> Dict[Any, Any] | datetime | UUID | bytes:
+        classname = d.pop(self._key, None)
+        if classname:
+            if connection:
+                sig = inspect.signature(self._classes[classname].__init__)
+                if 'connection' in sig.parameters:
+                    d['connection'] = connection
+                if 'con' in sig.parameters:
+                    d['con'] = connection
+            if classname == 'datetime':
+                return datetime.fromisoformat(d['__value__'])
+            if classname == 'UUID':
+                return UUID(d['__value__'])
+            if classname == 'bytes':
+                return b85decode(d['__value__'].encode(encoding='UTF-8'))
+            if type(self._classes[classname]) == type(Enum):
+                return self._classes[classname](d['__value__'])
+            else:
+                return self._classes[classname](**d)
+        return d
+
+    def make_decoder_hook(self, connection: Any | None = None) -> Dict[Any, Any] | datetime | UUID | bytes:
         def hook(obj):
-            return self.decoder_hook(obj, connection: Any)
+            return self.decoder_hook(obj, connection=connection)
         return hook
 
 

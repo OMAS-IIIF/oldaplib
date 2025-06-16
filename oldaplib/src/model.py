@@ -56,10 +56,10 @@ class Model:
 
     def _as_dict(self) -> dict[str, Any]:
         return {
-            'creator': self._creator,
-            'created': self._created,
-            'contributor': self._contributor,
-            'modified': self._modified,
+            **({"creator": self._creator} if self._creator is not None else {}),
+            **({"created": self._created} if self._created is not None else {}),
+            **({"contributor": self._contributor} if self._contributor is not None else {}),
+            **({"modified": self._modified} if self._modified is not None else {}),
         }
 
     def __deepcopy__(self, memo: Dict[int, Any]) -> 'Model':

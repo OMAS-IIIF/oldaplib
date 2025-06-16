@@ -1,6 +1,7 @@
 """
 Test data
 """
+import json
 import unittest
 from copy import deepcopy
 from enum import Enum
@@ -21,6 +22,7 @@ from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorNoPermission
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.semantic_version import SemanticVersion
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropClassAttrContainer, PropertyClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
@@ -522,6 +524,41 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop3.datatype, XsdDatatypes.string)
         self.assertEqual(prop3.inSet,
                          RdfSet(Xsd_string('red'), Xsd_string('green'), Xsd_string('blue'), Xsd_string('yellow')))
+
+    def test_resource_jsonify(self):
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:testMyRes'),
+                                ignore_cache=True)
+        jsonstr = json.dumps(r1, default=serializer.encoder_default, indent=3)
+        r2 = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(connection=self._connection))
+        self.assertEqual(r2.owl_class_iri, Iri('test:testMyRes'))
+        #self.assertEqual({Iri('test:testMyResMinimal'), Iri('oldap:Thing')}, {x for x in r2.superclass})
+        self.assertEqual(r2.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
+        self.assertTrue(r2.closed)
+
+        hp1 = r2[Iri('test:test')]
+        self.assertEqual(hp1.minCount, Xsd_integer(1))
+        self.assertEqual(hp1.maxCount, Xsd_integer(1))
+        self.assertEqual(hp1.order, Xsd_decimal(3))
+        p1 = hp1.prop
+        self.assertIsNone(p1.internal)
+
+        hp2 = r2[Iri('test:hasText')]
+        self.assertEqual(hp2.minCount, Xsd_integer(1))
+        self.assertEqual(hp2.maxCount, Xsd_integer(1))
+        self.assertEqual(hp2.order, Xsd_decimal(1))
+        p2 = hp2.prop
+        self.assertIsNotNone(p2.internal)
+        self.assertEqual(p2.datatype, XsdDatatypes.langString)
+        self.assertEqual(p2.languageIn, {Language.EN, Language.DE})
+        self.assertEqual(p2.name, LangString("A text@en", "Ein Text@de"))
+        self.assertEqual(p2.description, LangString("A longer text...@en"))
+
+        hp3 = r2[Iri('test:hasEnum')]
+        p3 = hp3.prop
+        self.assertEqual(p3.datatype, XsdDatatypes.string)
+        self.assertEqual(p3.inSet, {'blue', 'red', 'green', 'yellow'})
 
     def test_reading_with_superclass(self):
         r1 = ResourceClass.read(con=self._connection,

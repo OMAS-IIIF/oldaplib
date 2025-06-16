@@ -6,17 +6,19 @@ from typing import Callable, Self, Any
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.propertyclass import PropertyClass, HasPropertyData
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 
-
+@serializer
 class HasProperty(Model, Notify):
     _prop: PropertyClass | Iri | None
 
@@ -25,8 +27,16 @@ class HasProperty(Model, Notify):
                  prop: PropertyClass | Iri | None = None,
                  notifier: Callable[[Iri], None] | None = None,
                  notify_data: Iri | None = None,
+                 creator: Iri | None = None,  # DO NO USE! Only for jsonify!!
+                 created: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
+                 contributor: Iri | None = None,  # DO NO USE! Only for jsonify!!
+                 modified: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
                  **kwargs):
-        Model.__init__(self, connection=con)
+        Model.__init__(self, connection=con,
+                       creator=creator,
+                       created=created,
+                       contributor=contributor,
+                       modified=modified)
         Notify.__init__(self, notifier, notify_data)
         self._prop = prop
         self.set_attributes(kwargs, HasPropertyAttr)
@@ -37,6 +47,9 @@ class HasProperty(Model, Notify):
                 partial(HasProperty._set_value, attr=attr),
                 partial(HasProperty._del_value, attr=attr)))
         self._changeset = {}
+
+    def _as_dict(self):
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {'prop': self._prop}
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         if id(self) in memo:

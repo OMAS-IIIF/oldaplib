@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
+from pprint import pprint
 from typing import Union, List, Dict, Callable, Self, Any, TypeVar
 
 from oldaplib.src.cachesingleton import CacheSingleton
@@ -19,6 +20,7 @@ from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 from oldaplib.src.helpers.semantic_version import SemanticVersion
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.helpers.tools import RdfModifyRes, RdfModifyItem, lprint
 from oldaplib.src.dtypes.bnode import BNode
 from oldaplib.src.enums.action import Action
@@ -56,6 +58,7 @@ class ResourceClassPropertyChange:
 
 
 #@strict
+@serializer
 class ResourceClass(Model, Notify):
     _graph: Xsd_NCName
     _project: Project
@@ -106,13 +109,17 @@ class ResourceClass(Model, Notify):
                  hasproperties: List[HasProperty] | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
+                 creator: Iri | None = None,  # DO NO USE! Only for jsonify!!
+                 created: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
+                 contributor: Iri | None = None,  # DO NO USE! Only for jsonify!!
+                 modified: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
                  **kwargs):
         Model.__init__(self,
                        connection=con,
                        creator=con.userIri,
-                       created=None,
+                       created=created,
                        contributor=con.userIri,
-                       modified=None)
+                       modified=modified)
         Notify.__init__(self, notifier, notify_data)
         self._prop_changeset = {}
         self._hp_prop_changeset = {}
@@ -184,6 +191,22 @@ class ResourceClass(Model, Notify):
         self._test_in_use = False
         self.__version = SemanticVersion()
         self.__from_triplestore = False
+
+    def _as_dict(self):
+        attributes = {}
+        for key, value in self._attributes.items():
+            if key.fragment == 'superclass':
+                attributes[key.fragment] = [x for x in value.keys() if x != 'oldap:Thing']
+            else:
+                attributes[key.fragment] = value
+        return attributes | super()._as_dict() | {
+            'project': self._project.projectShortName,
+            'owlclass_iri': self._owlclass_iri,
+            'hasproperties': [x for x in self._properties.values()],
+        }
+
+    def __eq__(self, other: Self):
+        return self._as_dict() == other._as_dict()
 
     def check_for_permissions(self) -> (bool, str):
         #
