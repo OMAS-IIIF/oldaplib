@@ -19,7 +19,7 @@ class Xsd_gYear(Xsd):
     __tz: Tuple[int, int] | None
     __zulu: bool
 
-    def __init__(self, value: Self | int | str, validate: bool = True):
+    def __init__(self, value: Self | int | str, validate: bool = False):
         """
         Constructor of the Xsd_gYear class.
         :param value: Xsd_gYear instance or a valid string representation

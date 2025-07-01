@@ -27,7 +27,7 @@ class FloatingPoint(Xsd):
     """
     _value: float
 
-    def __init__(self, value: Self | float | str, validate: bool = True):
+    def __init__(self, value: Self | float | str, validate: bool = False):
         """
         Constructor for Floating Point
         :param value: The initial value. May not be None

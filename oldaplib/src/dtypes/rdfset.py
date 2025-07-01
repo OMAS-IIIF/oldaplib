@@ -1,7 +1,5 @@
 from typing import Set, List, Dict, Iterable, Iterator, Self, TypeVar, Generic
 
-from pystrict import strict
-
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorType, OldapErrorInconsistency
 from oldaplib.src.helpers.serializer import serializer

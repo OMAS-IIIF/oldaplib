@@ -1,13 +1,17 @@
+import json
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from pprint import pprint
 from time import sleep
 
+from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.hasproperty import HasProperty
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.permissionset import PermissionSet
 from oldaplib.src.connection import Connection
@@ -43,6 +47,8 @@ class TestPermissionSet(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cache = CacheSingletonRedis()
+        cache.clear()
         super().setUpClass()
         cls._project_root = find_project_root(__file__)
 
@@ -416,7 +422,7 @@ class TestPermissionSet(unittest.TestCase):
                                owlclass_iri=Iri(f'{dm_name}:DummyClass'),
                                label=LangString(["Dummy@en", "Dummy@de"]),
                                hasproperties=[
-                                   HasProperty(con=self._connection, prop=irgendwas, maxCount=Xsd_integer(1),
+                                   HasProperty(con=self._connection, project=self._project, prop=irgendwas, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
         dm[Iri(f'{dm_name}:resobj')] = resobj
         dm.update()

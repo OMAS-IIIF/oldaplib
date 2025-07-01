@@ -69,8 +69,8 @@ class TestHasProperty(unittest.TestCase):
                            datatype=XsdDatatypes.string,
                            name=LangString(["HasPropTest A"]))
         hasproperties: list[HasProperty] = [
-            HasProperty(con=self._connection, prop=p1, minCount=1, maxCount=1, group=Iri('test:group'), order=1),
-            HasProperty(con=self._connection, prop=Iri("test:comment"), maxCount=1, group=Iri('test:group'), order=2),
+            HasProperty(con=self._connection, project=self._project, prop=p1, minCount=1, maxCount=1, group=Iri('test:group'), order=1),
+            HasProperty(con=self._connection, project=self._project, prop=Iri("test:comment"), maxCount=1, group=Iri('test:group'), order=2),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -102,8 +102,8 @@ class TestHasProperty(unittest.TestCase):
                            datatype=XsdDatatypes.string,
                            name=LangString(["HasPropTest B"]))
         hasproperties: list[HasProperty] = [
-            HasProperty(con=self._connection, prop=p1, minCount=1, maxCount=1, group=Iri('test:group'), order=1),
-            HasProperty(con=self._connection, prop=Iri("test:comment"), maxCount=1, group=Iri('test:group'), order=2),
+            HasProperty(con=self._connection, project=self._project, prop=p1, minCount=1, maxCount=1, group=Iri('test:group'), order=1),
+            HasProperty(con=self._connection, project=self._project, prop=Iri("test:comment"), maxCount=1, group=Iri('test:group'), order=2),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -145,8 +145,8 @@ class TestHasProperty(unittest.TestCase):
                            datatype=XsdDatatypes.string,
                            name=LangString(["HasPropTest C"]))
         hasproperties: list[HasProperty] = [
-            HasProperty(con=self._connection, prop=p1, minCount=1, order=1),
-            HasProperty(con=self._connection, prop=Iri("test:comment"), maxCount=1, group=Iri('test:group')),
+            HasProperty(con=self._connection, project=self._project, prop=p1, minCount=1, order=1),
+            HasProperty(con=self._connection, project=self._project, prop=Iri("test:comment"), maxCount=1, group=Iri('test:group')),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -181,8 +181,8 @@ class TestHasProperty(unittest.TestCase):
                            datatype=XsdDatatypes.string,
                            name=LangString(["HasPropTest D"]))
         hasproperties: list[HasProperty] = [
-            HasProperty(con=self._connection, prop=p1, minCount=1, maxCount=1, group=Iri('test:group'), order=1),
-            HasProperty(con=self._connection, prop=Iri("test:comment"), maxCount=1, group=Iri('test:group'), order=2),
+            HasProperty(con=self._connection, project=self._project, prop=p1, minCount=1, maxCount=1, group=Iri('test:group'), order=1),
+            HasProperty(con=self._connection, project=self._project, prop=Iri("test:comment"), maxCount=1, group=Iri('test:group'), order=2),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,

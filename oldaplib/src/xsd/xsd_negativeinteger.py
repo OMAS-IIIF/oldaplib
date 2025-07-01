@@ -16,7 +16,7 @@ class Xsd_negativeInteger(Xsd_integer):
     This class inherits from Xsd_integer
     """
 
-    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = False):
         """
         Constructor of the Xsd_negativeInteger class.
         :param value: Any valid Xsd value, an int or a string reprenting a negative integer.

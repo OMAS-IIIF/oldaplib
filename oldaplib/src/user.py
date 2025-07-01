@@ -148,13 +148,13 @@ from typing import List, Self, Optional, Any
 
 import bcrypt
 
-from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.observable_set import ObservableSet
-from oldaplib.src.helpers.tools import lprint
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.in_project import InProjectClass
 from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.iri import Iri
@@ -172,7 +172,7 @@ from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
 
 
-# @serializer
+@serializer
 class User(Model):
     """
     The OLDAP user class is based on the [UserDataclass](/python_docstrings/userdataclass#UserDataclass). It implements together with the UserDataclass
@@ -185,12 +185,14 @@ class User(Model):
                  created: Xsd_dateTime | str | str | None = None,
                  contributor: Iri | str | None = None,
                  modified: Xsd_dateTime | str | None = None,
+                 validate: bool = False,
                  **kwargs):
         super().__init__(connection=con,
                          created=created,
                          creator=creator,
                          modified=modified,
-                         contributor=contributor)
+                         contributor=contributor,
+                         validate=validate)
 
         self.set_attributes(kwargs, UserAttr)
         #
@@ -220,6 +222,9 @@ class User(Model):
                 partial(User._set_value, attr=attr),
                 partial(User._del_value, attr=attr)))
         self.clear_changeset()
+
+    def _as_dict(self):
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict()
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         if id(self) in memo:
@@ -468,7 +473,7 @@ class User(Model):
         self._created = timestamp
         self._contributor = self._con.userIri
         self._modified = timestamp
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(self.userIri, self)
 
 
@@ -487,14 +492,13 @@ class User(Model):
         :raises OldapErrorNotFound: Required user does ot exist
         """
         if not isinstance(userId, IriOrNCName):
-            userId = IriOrNCName(userId)
+            userId = IriOrNCName(userId, validate=True)
         user_id, user_iri = userId.value()
         if user_iri is not None:
             if not ignore_cache:
-                cache = CacheSingleton()
-                tmp = cache.get(user_iri)
+                cache = CacheSingletonRedis()
+                tmp = cache.get(user_iri, connection=con)
                 if tmp is not None:
-                    tmp._con = con
                     return tmp
 
         context = Context(name=con.context_name)
@@ -519,7 +523,7 @@ class User(Model):
                        isActive=userdata.isActive,
                        inProject=userdata.inProject,
                        hasPermissions=userdata.hasPermissions)
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(instance.userIri, instance)
         instance.clear_changeset()
         return instance
@@ -554,11 +558,11 @@ class User(Model):
         :rtype: List[AnyIRI]
         """
         if userId and not isinstance(userId, Xsd_NCName):
-            userId = Xsd_NCName(userId)
-        familyName = Xsd_string(familyName) if familyName else None
-        givenName = Xsd_string(givenName) if givenName else None
+            userId = Xsd_NCName(userId, validate=True)
+        familyName = Xsd_string(familyName, validate=True) if familyName else None
+        givenName = Xsd_string(givenName, validate=True) if givenName else None
         if not isinstance(inProject, Iri):
-            inProject = Iri(inProject) if inProject else None
+            inProject = Iri(inProject, validate=True) if inProject else None
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?user\n'
@@ -622,7 +626,7 @@ class User(Model):
         """
         # TODO: use transaction for error handling
         self._con.update_query(sparql)
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.delete(self.userIri)
 
 
@@ -903,7 +907,7 @@ class User(Model):
             raise
         self._modified = timestamp
         self._contributor = self._con.userIri
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(self.userIri, self)
 
 

@@ -17,7 +17,7 @@ class Xsd_NMTOKEN(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Constructor of the Xsd_NMTOKEN class.
         :param value: Either a Xsd_NMTOKEN instance or a string conforming to the syntax of Xsd_NMTOKEN.

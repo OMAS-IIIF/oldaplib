@@ -16,7 +16,7 @@ class Xsd_unsignedByte(Xsd_integer):
     Inherits from Xsd_integer.
     """
 
-    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = False):
         """
         Constructor of the Xsd_unsignedByte class.
         :param value: A Xsd_integer instance, an int in the range [0, 255] or a valid string representation.

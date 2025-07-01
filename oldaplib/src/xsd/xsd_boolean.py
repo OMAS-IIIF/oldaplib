@@ -15,7 +15,7 @@ class Xsd_boolean(Xsd):
     """
     __value: bool
 
-    def __init__(self, value: Any, validate: bool = True):
+    def __init__(self, value: Any, validate: bool = False):
         """
         Constructor of Xsd_boolean
         :param value: Any value that can be interpreted as boolean

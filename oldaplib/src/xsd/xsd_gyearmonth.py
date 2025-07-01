@@ -20,7 +20,7 @@ class Xsd_gYearMonth(Xsd):
     __tz: Tuple[int, int] | None
     __zulu: bool
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Constructor of the Xsd_gYearMonth class
         :param value: Xsd_gYearMonth instance or a valid string representing a Xsd_gYearMonth instance

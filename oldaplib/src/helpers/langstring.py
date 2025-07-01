@@ -81,7 +81,8 @@ class LangString(Notify):
     def __init__(self, *args: GenStr | GenStrCollection | dict[Language | str, str] | Self | None,
                  langstring: GenStr | GenStrCollection | dict[Language | str, str] | Self | None = None,
                  notifier: Callable[[AttributeClass | Iri], None] | None = None,
-                 notify_data: AttributeClass | Iri | None = None):
+                 notify_data: AttributeClass | Iri | None = None,
+                 validate:bool = False):
         """
         Implements language dependent strings.
 
@@ -102,7 +103,6 @@ class LangString(Notify):
         self._changeset = {}
         self._langstring = {}
         self._iteration = None
-        #self._iteration = self._langstring.__iter__()
 
         if len(args) <= 1:
             if len(args) == 1:
@@ -132,7 +132,7 @@ class LangString(Notify):
                         self._langstring[l] = xstr.value
                 elif isinstance(langstring, dict):
                     for lang, value in langstring.items():
-                        xstr = Xsd_string(value, lang)
+                        xstr = Xsd_string(value, lang, validate=validate)
                         if not xstr:
                             continue
                         l = LangString.defaultLanguage if xstr.lang is None else xstr.lang
@@ -146,7 +146,7 @@ class LangString(Notify):
                         l = LangString.defaultLanguage if langstring.lang is None else langstring.lang
                         self._langstring[l] = langstring.value
                 elif isinstance(langstring, str):
-                    xstr = Xsd_string(langstring)
+                    xstr = Xsd_string(langstring, validate=validate)
                     if not xstr:
                         continue
                     l = LangString.defaultLanguage if xstr.lang is None else xstr.lang

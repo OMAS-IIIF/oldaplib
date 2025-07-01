@@ -51,74 +51,6 @@ def get_node_indices(con: IConnection, oldapList: OldapList) -> list[tuple[Iri, 
         result.append((r['node'], r['lindex'], r['rindex']))
     return result
 
-def get_nodes_from_list(con: IConnection, oldapList: OldapList) ->list[OldapListNode]:
-    context = Context(name=con.context_name)
-    graph = oldapList.project.projectShortName
-
-    query = context.sparql_context
-    query += f"""    
-    SELECT ?node ?created ?creator ?modified ?contributor ?rindex ?lindex ?parent ?prefLabel ?definition
-    WHERE {{
-        GRAPH {graph}:lists {{
-            ?node skos:inScheme {oldapList.iri.toRdf} ;
-                dcterms:created ?created ;
-                dcterms:creator ?creator ;
-                dcterms:modified ?modified ;
-                dcterms:contributor ?contributor ;
-                oldap:leftIndex ?lindex ;
-                oldap:rightIndex ?rindex .
-            OPTIONAL {{
-                ?node skos:prefLabel ?prefLabel .
-            }}
-            OPTIONAL {{
-                ?node skos:definition ?definition .
-            }}
-            OPTIONAL {{
-                ?node skos:broaderTransitive ?parent .
-            }}
-        }}
-    }}
-    ORDER BY ?lindex
-    """
-    jsonobj = con.query(query)
-    res = QueryProcessor(context, jsonobj)
-    nodes: list[OldapListNode] = []
-    all_nodes: list[OldapListNode] = []
-    last_nodeiri = None
-    for r in res:
-        nodeiri = r['node']
-        if last_nodeiri != nodeiri:
-            prefix, id = str(nodeiri).split(':')
-            ln = OldapListNode(con=con,
-                               oldapList=oldapList,
-                               oldapListNodeId=Xsd_NCName(id, validate=False),
-                               created=r['created'],
-                               creator=r['creator'],
-                               modified=r['modified'],
-                               contributor=r['contributor'],
-                               leftIndex=r['lindex'],
-                               rightIndex=r['rindex'],
-                               defaultLabel=False)
-            if r.get('parent') is not None:
-                parent_prefix, parent_id = str(r['parent']).split(':')
-                pnodes = [x for x in all_nodes if x.oldapListNodeId == parent_id]
-                pnodes[0].add_node_to_nodes(ln)
-            else:
-                nodes.append(ln)
-            all_nodes.append(ln)
-        if r.get('prefLabel'):
-            if ln.prefLabel:
-                ln.prefLabel.add(r['prefLabel'])
-            else:
-                ln.prefLabel = LangString(r['prefLabel'])
-        if r.get('definition'):
-            if ln.definition:
-                ln.definition.add(r['definition'])
-            else:
-                ln.definition = LangString(r['definition'])
-
-        last_nodeiri = nodeiri
-    return nodes
 
 
 def dump_list_to(con: IConnection,
@@ -178,7 +110,7 @@ def dump_list_to(con: IConnection,
         listnode = OldapList.read(con=con,
                                   project=project,
                                   oldapListId=oldapListId)
-        nodes = get_nodes_from_list(con, listnode)
+        nodes = listnode.nodes
         listnode.nodes = nodes
         setattr(listnode, 'source', 'db')
         cache.set(oldapListIri, listnode)
@@ -214,7 +146,7 @@ def load_list_from_yaml(con: Connection,
             label = LangString(nodedata.get('label'))
             definition = LangString(nodedata.get('definition'))
             node = OldapListNode(con=con,
-                                 oldapList=oldaplist,
+                                 **oldaplist.info,
                                  oldapListNodeId=Xsd_NCName(nodeid),
                                  prefLabel=label or None,
                                  definition=definition or None)
@@ -229,6 +161,9 @@ def load_list_from_yaml(con: Connection,
             if nodedata.get('nodes'):
                 node.nodes = process_nodes(nodedata['nodes'], oldaplist, node)
         return oldapnodes
+
+    if not isinstance(project, Project):
+        project = Project.read(con, project)
 
     oldaplists: list[OldapList] = []
     #
@@ -264,9 +199,10 @@ node:
             definition = LangString(listdata.get('definition'))
             oldaplist = OldapList(con=con,
                                   project=project,
-                                  oldapListId=Xsd_NCName(listid),
+                                  oldapListId=Xsd_NCName(listid, validate=True),
                                   prefLabel=label or None,
-                                  definition=definition or None)
+                                  definition=definition or None,
+                                  validate=True)
             oldaplist.create()
             oldaplists.append(oldaplist)
             if listdata.get('nodes'):

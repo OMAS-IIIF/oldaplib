@@ -23,7 +23,7 @@ class Xsd_language(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | Language | str, validate: bool = True):
+    def __init__(self, value: Self | Language | str, validate: bool = False):
         """
         Constructs a new Xsd_language instance. It checks if the syntax is valid, but it does
         not test if the language tag is a valid language!

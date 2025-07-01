@@ -70,7 +70,7 @@ class Xsd_string(Xsd):
         value = value.replace('\\n', '\n').replace('\\r', '\r')
         return value
 
-    def __init__(self, value: Self | str | None = None, lang: str | Language | None = None, validate: bool = True):
+    def __init__(self, value: Self | str | None = None, lang: str | Language | None = None, validate: bool = False):
         """
         Constructor of Xsd_string.
         :param value: String value

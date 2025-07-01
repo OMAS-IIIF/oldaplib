@@ -16,7 +16,7 @@ class Xsd_short(Xsd_integer):
     Xsd_integer.
     """
 
-    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = False):
         """
         Constructor for the Xsd_short class
         :param value: A valid xsd class, an int in the range of -32768 - 32767, or a valid str

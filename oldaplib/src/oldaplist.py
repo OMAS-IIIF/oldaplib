@@ -77,20 +77,23 @@ from functools import partial
 from pprint import pprint
 from typing import Self, Any
 
-from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.oldaplistattr import OldapListAttr
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapError, OldapErrorNoPermission, \
     OldapErrorAlreadyExists, \
     OldapErrorNotFound, OldapErrorUpdateFailed, OldapErrorInUse, OldapErrorInconsistency
 from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
+from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -100,7 +103,7 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 
 OldapListAttrTypes = LangString | Iri | None
 
-
+@serializer
 class OldapList(Model):
     """
     Implementation of the OLDAP List object. It implements a SKOS ConceptScheme.
@@ -112,7 +115,7 @@ class OldapList(Model):
     __node_namespaceIri: NamespaceIRI
     __node_prefix: Xsd_NCName
     __node_class_iri: Iri
-    nodes: list  # used for building complete list including all it's nodes!
+    nodes: list[OldapListNode]  # used for building complete list including all it's nodes!
 
     __slots__ = ('oldapListId', 'prefLabel', 'definition')
 
@@ -123,6 +126,8 @@ class OldapList(Model):
                  created: Xsd_dateTime | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | None = None,
+                 nodes: list[OldapListNode] = [],
+                 validate: bool = False,
                  **kwargs):
         """
         Constructor for OldapList
@@ -141,15 +146,20 @@ class OldapList(Model):
         :param kwargs: Further parameters (see enum/oldaplistattr.py)
         :type kwargs: see enum/oldaplistattr.py
         """
+        if not isinstance(con, IConnection):
+            raise ValueError(f'Connection must be an instance of IConnection, not {type(con)}')
         super().__init__(connection=con,
                          creator=creator,
                          created=created,
                          contributor=contributor,
-                         modified=modified)
-        self.nodes = []
+                         modified=modified,
+                         validate=validate)
+        self.nodes = nodes
         if isinstance(project, Project):
             self.__project = project
         else:
+            if not isinstance(project, (Iri, Xsd_NCName)):
+                project = IriOrNCName(project, validate=validate)
             self.__project = Project.read(self._con, project)
 
         context = Context(name=self._con.context_name)
@@ -180,6 +190,12 @@ class OldapList(Model):
                 partial(OldapList._get_value, attr=attr),
                 partial(OldapList._set_value, attr=attr),
                 partial(OldapList._del_value, attr=attr)))
+
+    def _as_dict(self):
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
+            'project': self.__project.projectShortName,
+            'nodes': self.nodes
+        }
 
     def check_for_permissions(self) -> (bool, str):
         """
@@ -262,6 +278,84 @@ class OldapList(Model):
     def iri(self) -> Iri:
         return self.__iri
 
+    @property
+    def info(self):
+        return {
+            'projectShortName': self.__project.projectShortName,
+            'projectIri': self.__project.projectIri,  # Iri
+            'oldapListId': self.oldapListId,  # Xsd_NCName
+            'oldapListIri': self.__iri,  # Iri
+            'node_classIri': self.__node_class_iri,  # Iri
+        }
+
+    def get_nodes_from_list(self) -> list[OldapListNode]:
+        context = Context(name=self._con.context_name)
+        graph = self.project.projectShortName
+
+        query = context.sparql_context
+        query += f"""    
+        SELECT ?node ?created ?creator ?modified ?contributor ?rindex ?lindex ?parent ?prefLabel ?definition
+        WHERE {{
+            GRAPH {graph}:lists {{
+                ?node skos:inScheme {self.iri.toRdf} ;
+                    dcterms:created ?created ;
+                    dcterms:creator ?creator ;
+                    dcterms:modified ?modified ;
+                    dcterms:contributor ?contributor ;
+                    oldap:leftIndex ?lindex ;
+                    oldap:rightIndex ?rindex .
+                OPTIONAL {{
+                    ?node skos:prefLabel ?prefLabel .
+                }}
+                OPTIONAL {{
+                    ?node skos:definition ?definition .
+                }}
+                OPTIONAL {{
+                    ?node skos:broaderTransitive ?parent .
+                }}
+            }}
+        }}
+        ORDER BY ?lindex
+        """
+        jsonobj = self._con.query(query)
+        res = QueryProcessor(context, jsonobj)
+        nodes: list[OldapListNode] = []
+        all_nodes: list[OldapListNode] = []
+        last_nodeiri = None
+        for r in res:
+            nodeiri = r['node']
+            if last_nodeiri != nodeiri:
+                prefix, id = str(nodeiri).split(':')
+                ln = OldapListNode(con=self._con,
+                                   **self.info,
+                                   oldapListNodeId=Xsd_NCName(id, validate=False),
+                                   created=r['created'],
+                                   creator=r['creator'],
+                                   modified=r['modified'],
+                                   contributor=r['contributor'],
+                                   leftIndex=r['lindex'],
+                                   rightIndex=r['rindex'],
+                                   defaultLabel=False)
+                if r.get('parent') is not None:
+                    parent_prefix, parent_id = str(r['parent']).split(':')
+                    pnodes = [x for x in all_nodes if x.oldapListNodeId == parent_id]
+                    pnodes[0].add_node_to_nodes(ln)
+                else:
+                    nodes.append(ln)
+                all_nodes.append(ln)
+            if r.get('prefLabel'):
+                if ln.prefLabel:
+                    ln.prefLabel.add(r['prefLabel'])
+                else:
+                    ln.prefLabel = LangString(r['prefLabel'])
+            if r.get('definition'):
+                if ln.definition:
+                    ln.definition.add(r['definition'])
+                else:
+                    ln.definition = LangString(r['definition'])
+
+            last_nodeiri = nodeiri
+        return nodes
 
     @classmethod
     def read(cls,
@@ -280,9 +374,24 @@ class OldapList(Model):
         :return: A list object
         :rtype: OldapList
         """
+
+        if isinstance(project, Project):
+            oldaplist_iri = Iri.fromPrefixFragment(project.projectShortName, oldapListId, validate=False)
+        elif isinstance(project, Iri):
+            oldaplist_iri = Iri.fromPrefixFragment(project, oldapListId, validate=False)
+        elif isinstance(project, (Xsd_NCName, str)):
+            project = Project.read(con, project)
+            oldaplist_iri = Iri.fromPrefixFragment(project.projectShortName, oldapListId, validate=False)
+
+        cache = CacheSingletonRedis()
+        tmp = cache.get(oldaplist_iri, connection=con)
+        if tmp is not None:
+            return tmp
+
         if not isinstance(project, Project):
             project = Project.read(con, project)
-        oldapListId = Xsd_NCName(oldapListId)
+        if not isinstance(oldapListId, Xsd_NCName):
+            oldapListId = Xsd_NCName(oldapListId)
         oldaplist_iri = Iri.fromPrefixFragment(project.projectShortName, oldapListId, validate=False)
 
         context = Context(name=con.context_name)
@@ -332,15 +441,18 @@ class OldapList(Model):
             definition.changeset_clear()
             definition.set_notifier(cls.notifier, Xsd_QName(OldapListAttr.DEFINITION.value))
 
-        return cls(con=con,
-                   project=project,
-                   oldapListId=oldapListId,
-                   creator=creator,
-                   created=created,
-                   contributor=contributor,
-                   modified=modified,
-                   prefLabel=prefLabel,
-                   definition=definition)
+        instance = cls(con=con,
+                       project=project,
+                       oldapListId=oldapListId,
+                       creator=creator,
+                       created=created,
+                       contributor=contributor,
+                       modified=modified,
+                       prefLabel=prefLabel,
+                       definition=definition)
+        instance.nodes = instance.get_nodes_from_list()
+        cache.set(oldaplist_iri, instance)
+        return instance
 
     @staticmethod
     def search(con: IConnection,
@@ -368,15 +480,19 @@ class OldapList(Model):
         :return: List of hierarchival list's IRI's
         :rtype: list[Iri]
         """
+        if not isinstance(con, IConnection):
+            raise TypeError("con must be an IConnection object")
         if not isinstance(project, Project):
+            if not isinstance(project, (Iri, Xsd_NCName)):
+                project = IriOrNCName(project, validate=True)
             project = Project.read(con, project)
-        id = Xsd_string(id)
-        prefLabel = Xsd_string(prefLabel)
-        definition = Xsd_string(definition)
+        id = Xsd_string(id, validate=True)
+        prefLabel = Xsd_string(prefLabel, validate=True)
+        definition = Xsd_string(definition, validate=True)
+
         context = Context(name=con.context_name)
         graph = project.projectShortName
 
-        prefLabel = Xsd_string(prefLabel)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?node\n'
         sparql += f'FROM {graph}:lists\n'
@@ -533,6 +649,9 @@ class OldapList(Model):
         self._contributor = self._con.userIri
         self.clear_changeset()
 
+        cache = CacheSingletonRedis()
+        cache.set(self.__iri, self)
+
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Updates the metadata of an hierarchical list
@@ -592,7 +711,7 @@ class OldapList(Model):
         #
         # we changed something, therefore we invalidate the list cache
         #
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.delete(self.__iri)
 
 
@@ -729,6 +848,6 @@ class OldapList(Model):
             self._con.transaction_abort()
             raise
         self.safe_commit()
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.delete(self.__iri)
 

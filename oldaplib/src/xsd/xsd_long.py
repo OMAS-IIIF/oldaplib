@@ -16,7 +16,7 @@ class Xsd_long(Xsd_integer):
     a range of -9223372036854775808 to 9223372036854775807. It subclasses Xsd_integer
     """
 
-    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = False):
         """
         Constructor for the Xsd_long datatype.
         :param value: The integer value as Xsd_long, int or string. It must be in the

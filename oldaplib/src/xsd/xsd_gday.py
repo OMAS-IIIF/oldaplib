@@ -19,7 +19,7 @@ class Xsd_gDay(Xsd):
     __tz: Tuple[int, int] | None
     __zulu: bool | None
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Constructor for the Xsd_gDay class
         :param value: A Xsd_gDay object or a string valid for xsd:gDay

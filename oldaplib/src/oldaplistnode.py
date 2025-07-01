@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Self, Any
 
-from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.oldaplistnodeattr import OldapListNodeAttr
 from oldaplib.src.enums.adminpermissions import AdminPermission
@@ -12,17 +12,19 @@ from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission, \
     OldapErrorAlreadyExists, OldapErrorInconsistency, OldapErrorNotFound, OldapErrorUpdateFailed, OldapErrorInUse
 from oldaplib.src.helpers.query_processor import QueryProcessor
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
-from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
+#if TYPE_CHECKING:
+#    from oldaplib.src.oldaplist import OldapList
 
 OldapListNodeAttrTypes = int | Xsd_NCName | LangString | Iri | None
 
@@ -36,49 +38,97 @@ class OldapListNodeAttrChange:
     action: Action
 
 
+@serializer
 class OldapListNode(Model):
-    __oldapList: OldapList
+    __projectShortName: Xsd_NCName
+    __projectIri: Iri
+    __oldapListId: Xsd_NCName
+    __oldapListIri: Iri
+    __node_classIri: Iri
+
     __graph: Xsd_NCName
     __iri: Iri | None
     __nodes: list[Self] | None
     __leftIndex: Xsd_integer | None
     __rightIndex: Xsd_integer | None
 
-    #__slots__ = OldapListNodeAttr.nametuple()
     __slots__ = ('oldapListNodeId', 'prefLabel', 'definition')
 
     def __init__(self, *,
                  con: IConnection,
-                 oldapList: OldapList,
-                 creator: Iri | None = None,
-                 created: Xsd_dateTime | None = None,
-                 contributor: Iri | None = None,
-                 modified: Xsd_dateTime | None = None,
+                 projectShortName: Xsd_NCName,  # Coming from OldapList as **OldapList.info
+                 projectIri: Iri,  # Coming from OldapList as **OldapList.info
+                 oldapListId: Xsd_NCName,  # Coming from OldapList as **OldapList.info
+                 oldapListIri: Iri,  # Coming from OldapList as **OldapList.info
+                 node_classIri: Iri,  # Coming from OldapList as **OldapList.info
+                 creator: Iri | None = None,  # INTERNAL USE ONLY!
+                 created: Xsd_dateTime | None = None,  # INTERNAL USE ONLY!
+                 contributor: Iri | None = None,  # INTERNAL USE ONLY!
+                 modified: Xsd_dateTime | None = None,  # INTERNAL USE ONLY!
                  leftIndex: Xsd_integer | None = None,
                  rightIndex: Xsd_integer | None = None,
                  defaultLabel: bool = True,
+                 nodes: list[Self] | None = None,
+                 validate: bool = False,
                  **kwargs):
+        """
+
+        :param con: Connection to server
+        :type con: IConnection
+        :param projectShortName: Shortname of project (**oldaplist.info)
+        :type projectShortName: Xsd_NCName
+        :param projectIri: Iri of project (**oldaplist.info)
+        :type projectIri: Xsd_NCName
+        :param oldapListId: ID of list (**oldaplist.info)
+        :type oldapListId: Xsd_NCName
+        :param oldapListIri: Iri of list (**oldaplist.info)
+        :type oldapListIri: Xsd_NCName
+        :param node_classIri: Iri if the node's class, that is: "node a node_classIri ."
+        :type node_classIri: Iri
+        :param creator: The Creator of the item
+        :type creator: Iri | None
+        :param created: Creation type
+        :type created: Xsd_dateTime | None
+        :param contributor: The user that last modified
+        :type contributor: Iri | None
+        :param modified: Last modification date
+        :type modified: Xsd_dateTime | None
+        :param leftIndex: Left index of node
+        :type leftIndex: Xsd_integer | None
+        :param rightIndex: Right index of node
+        :type rightIndex: Xsd_integer | None
+        :param defaultLabel: Use the nodeId as default label if no label is given
+        :type defaultLabel: bool
+        :param nodes: The subnodes of this node (only used by the serializer!)
+        :type nodes: list[Self] | None
+        :param kwargs:
+        """
         super().__init__(connection=con,
                          creator=creator,
                          created=created,
                          contributor=contributor,
-                         modified=modified)
-        self.__oldapList = oldapList
-        context = Context(name=self._con.context_name)
-        self.__graph = oldapList.project.projectShortName
+                         modified=modified,
+                         validate=validate)
+        self.__projectShortName = projectShortName
+        self.__projectIri = projectIri
+        self.__oldapListId = oldapListId
+        self.__oldapListIri = oldapListIri
+        self.__node_classIri = node_classIri
+
+        self.__graph = self.__projectShortName
 
         self.set_attributes(kwargs, OldapListNodeAttr)
         if self._attributes.get(OldapListNodeAttr.PREF_LABEL) is None and defaultLabel:
             self._attributes[OldapListNodeAttr.PREF_LABEL] = LangString(str(self._attributes[OldapListNodeAttr.OLDAPLISTNODE_ID]))
 
-        list_node_prefix = Xsd_NCName("L-") + self.__oldapList.oldapListId
+        list_node_prefix = Xsd_NCName("L-") + self.__oldapListId
         self.__iri = Iri.fromPrefixFragment(list_node_prefix,
                                             self._attributes[OldapListNodeAttr.OLDAPLISTNODE_ID],
                                             validate=False)
 
         self.__leftIndex = leftIndex
         self.__rightIndex = rightIndex
-        self.__nodes = None
+        self.__nodes = nodes
 
         #
         # create all the attributes of the class according to the OldapListAttr definition
@@ -88,6 +138,30 @@ class OldapListNode(Model):
                 partial(OldapListNode._get_value, attr=attr),
                 partial(OldapListNode._set_value, attr=attr),
                 partial(OldapListNode._del_value, attr=attr)))
+
+    def _as_dict(self):
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
+            'projectShortName': self.__projectShortName,
+            'projectIri': self.__projectIri,
+            'oldapListId': self.__oldapListId,
+            'oldapListIri': self.__oldapListIri,
+            'node_classIri': self.__node_classIri,
+            'leftIndex': self.__leftIndex,
+            'rightIndex': self.__rightIndex,
+            'nodes': self.__nodes
+        }
+
+    def __eq__(self, other: Self) -> bool:
+        return self.__oldapListId == other.__oldapListId and \
+            self.__oldapListIri == other.__oldapListIri and \
+            self.__node_classIri == other.__node_classIri and \
+            self.__projectIri == other.__projectIri and \
+            self.__projectShortName == other.__projectShortName and \
+            self.__leftIndex == other.__leftIndex and \
+            self.__rightIndex == other.__rightIndex and \
+            self.__graph == other.__graph and \
+            self.prefLabel == other.prefLabel and \
+            self.definition == other.definition
 
 
     def check_for_permissions(self) -> (bool, str):
@@ -104,11 +178,11 @@ class OldapListNode(Model):
             return True, "OK – IS ROOT"
         else: # TODO: totally wrong what's being done below!!!
             if len(actor.inProject) == 0:
-                return False, f'Actor has no ADMIN_LISTS permission for project "{self.__oldapList.project.projectIri}".'
-            if not actor.inProject.get(self.__oldapList.project.projectIri):
+                return False, f'Actor has no ADMIN_LISTS permission for project "{self.__projectIri}".'
+            if not actor.inProject.get(self.__projectIri):
                 return False, f'Actor has no ADMIN_LISTS permission.'
-            if AdminPermission.ADMIN_LISTS not in actor.inProject.get(self.__oldapList.project.projectIri):
-                return False, f'Actor has no ADMIN_LISTS permission for project "{self.__oldapList.project.projectIri}".'
+            if AdminPermission.ADMIN_LISTS not in actor.inProject.get(self.__projectIri):
+                return False, f'Actor has no ADMIN_LISTS permission for project "{self.__projectIri}".'
             return True, "OK"
 
 
@@ -127,7 +201,11 @@ class OldapListNode(Model):
 
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
-        instance.__oldapList = deepcopy(self.__oldapList, memo)
+        instance.__projectShortName = deepcopy(self.__projectShortName, memo)
+        instance.__projectIri = deepcopy(self.__projectIri, memo)
+        instance.__oldapListId = deepcopy(self.__oldapListId, memo)
+        instance.__oldapListIri = deepcopy(self.__oldapListIri, memo)
+        instance.__node_classIri = deepcopy(self.__node_classIri, memo)
         instance.__graph = deepcopy(self.__graph, memo)
         instance.__iri = deepcopy(self.__iri, memo)
         instance.__nodes = deepcopy(self.__nodes, memo)
@@ -173,15 +251,19 @@ class OldapListNode(Model):
     @classmethod
     def read(cls, *,
              con: IConnection,
-             oldapList: OldapList,
+             projectShortName: Xsd_NCName,
+             projectIri: Iri,
+             oldapListId: Xsd_NCName,
+             oldapListIri: Iri,
+             node_classIri: Iri,
              oldapListNodeId: Xsd_NCName | str):
-        oldapListNodeId = Xsd_NCName(oldapListNodeId)
+        oldapListNodeId = Xsd_NCName(oldapListNodeId, validate=True)
 
-        list_node_prefix = Xsd_NCName("L-", validate=False) + oldapList.oldapListId
+        list_node_prefix = Xsd_NCName("L-", validate=False) + oldapListId
         node_iri = Iri.fromPrefixFragment(list_node_prefix, oldapListNodeId, validate=False)
 
         context = Context(name=con.context_name)
-        graph = oldapList.project.projectShortName
+        graph = projectShortName
         query = context.sparql_context
         query += f'''
             SELECT ?prop ?val
@@ -231,7 +313,11 @@ class OldapListNode(Model):
             definition.changeset_clear()
             definition.set_notifier(cls.notifier, Xsd_QName(OldapListNodeAttr.DEFINITION.value))
         return cls(con=con,
-                   oldapList=oldapList,
+                   projectShortName=projectShortName,
+                   projectIri=projectIri,
+                   oldapListId=oldapListId,
+                   oldapListIri=oldapListIri,
+                   node_classIri=node_classIri,
                    oldapListNodeId=oldapListNodeId,
                    creator=creator,
                    created=created,
@@ -269,20 +355,20 @@ class OldapListNode(Model):
         SELECT ?list
         FROM {self.__graph}:lists
         WHERE {{
-            ?listnode a {self.__oldapList.node_classIri} .
-            ?listnode skos:inScheme {self.__oldapList.iri.toRdf}
+            ?listnode a {self.__node_classIri} .
+            ?listnode skos:inScheme {self.__oldapListIri.toRdf}
         }}
         """
 
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_classIri}'
+        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__node_classIri}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.iri.toRdf}'
+        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapListIri.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:leftIndex {self.__leftIndex.toRdf}'
         sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex {self.__rightIndex.toRdf}'
         if self.prefLabel:
@@ -297,12 +383,12 @@ class OldapListNode(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OldapErrorAlreadyExists(f'A root node for "{self.__oldapList.iri}" already exists')
+            raise OldapErrorAlreadyExists(f'A root node for "{self.__oldapListIri}" already exists')
 
         self.safe_update(sparql2)
         self.safe_commit()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
     def update(self, indent: int = 0, indent_inc: int = 4):
         result, message = self.check_for_permissions()
@@ -348,8 +434,8 @@ class OldapListNode(Model):
         self._modified = timestamp
         self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
         self.clear_changeset()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
     def insert_node_right_of(self, leftnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
 
@@ -371,12 +457,12 @@ class OldapListNode(Model):
         update1 = context.sparql_context
         update1 += f'\n{blank:{indent * indent_inc}}INSERT {{'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_classIri}'
+        update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__node_classIri}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.iri.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapListIri.toRdf}'
         if self.prefLabel:
             update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.PREF_LABEL.value} {self.prefLabel.toRdf}'
         if self.definition:
@@ -435,7 +521,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             GRAPH {self.__graph}:lists {{
-                ?node skos:inScheme {self.__oldapList.iri.toRdf} ;
+                ?node skos:inScheme {self.__oldapListIri.toRdf} ;
                       oldap:rightIndex ?rindex ;
                       oldap:leftIndex ?lindex .
             }}
@@ -459,7 +545,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             GRAPH {self.__graph}:lists {{
-                ?node skos:inScheme {self.__oldapList.iri.toRdf} ;
+                ?node skos:inScheme {self.__oldapListIri.toRdf} ;
                       oldap:rightIndex ?rindex ;
                       oldap:leftIndex ?lindex ;
             }}
@@ -480,8 +566,8 @@ class OldapListNode(Model):
 
         self.safe_commit()
         self.clear_changeset()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
     def insert_node_left_of(self, rightnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
@@ -502,12 +588,12 @@ class OldapListNode(Model):
         update1 = context.sparql_context
         update1 += f'\n{blank:{indent * indent_inc}}INSERT {{'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_classIri}'
+        update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__node_classIri}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.iri.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapListIri.toRdf}'
         if self.prefLabel:
             update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.PREF_LABEL.value} {self.prefLabel.toRdf}'
         if self.definition:
@@ -566,7 +652,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             GRAPH {self.__graph}:lists {{
-                ?node skos:inScheme {self.__oldapList.iri.toRdf} ;
+                ?node skos:inScheme {self.__oldapListIri.toRdf} ;
                       oldap:leftIndex ?lindex .
             }}
             FILTER((?node != {self.__iri.toRdf}) && (?lindex >= {lindex}))
@@ -589,7 +675,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             GRAPH {self.__graph}:lists {{
-               ?node skos:inScheme {self.__oldapList.iri.toRdf} ;
+               ?node skos:inScheme {self.__oldapListIri.toRdf} ;
                       oldap:rightIndex ?rindex ;
             }}
             FILTER((?node != {self.__iri.toRdf}) && (?rindex >= {rindex}))
@@ -609,8 +695,8 @@ class OldapListNode(Model):
 
         self.safe_commit()
         self.clear_changeset()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
     def insert_node_below_of(self, parentnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
@@ -648,12 +734,12 @@ class OldapListNode(Model):
         update1 = context.sparql_context
         update1 += f'{blank:{indent * indent_inc}}INSERT {{'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
-        update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__oldapList.node_classIri}'
+        update1 += f'\n{blank:{(indent + 2) * indent_inc}}{self.__iri.toRdf} a {self.__node_classIri}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapList.iri.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:inScheme {self.__oldapListIri.toRdf}'
         if self.prefLabel:
             update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.PREF_LABEL.value} {self.prefLabel.toRdf}'
         if self.definition:
@@ -711,7 +797,7 @@ class OldapListNode(Model):
             }}
             WHERE {{
                 GRAPH {self.__graph}:lists {{
-                    ?node skos:inScheme {self.__oldapList.iri.toRdf} ;
+                    ?node skos:inScheme {self.__oldapListIri.toRdf} ;
                           oldap:leftIndex ?lindex ;
                           oldap:rightIndex ?rindex .
                 }}
@@ -735,7 +821,7 @@ class OldapListNode(Model):
             }}
             WHERE {{
                 GRAPH {self.__graph}:lists {{
-                    ?node skos:inScheme {self.__oldapList.iri.toRdf} ;
+                    ?node skos:inScheme {self.__oldapListIri.toRdf} ;
                           oldap:leftIndex ?lindex ;
                           oldap:rightIndex ?rindex .
                 }}
@@ -756,8 +842,8 @@ class OldapListNode(Model):
 
         self.safe_commit()
         self.clear_changeset()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
     def in_use(self) -> bool:
         context = Context(name=self._con.context_name)
@@ -782,7 +868,7 @@ class OldapListNode(Model):
 	            ?s ?p ?o .
             }}
             GRAPH {self.__graph}:lists {{
-	            ?o skos:inScheme {self.__oldapList.iri.toRdf} .
+	            ?o skos:inScheme {self.__oldapListIri.toRdf} .
 	            ?o oldap:leftIndex ?leftIndex .
 	            ?o oldap:rightIndex ?rightIndex .
             }}
@@ -914,8 +1000,8 @@ class OldapListNode(Model):
 
         self.safe_commit()
         self.clear_changeset()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
     def delete_node_recursively(self, indent: int = 0, indent_inc: int = 4) -> None:
         if self._con is None:
@@ -975,7 +1061,7 @@ class OldapListNode(Model):
             GRAPH {self.__graph}:lists {{
                 ?subject oldap:leftIndex ?leftIndex ;
         	        oldap:rightIndex ?rightIndex ;
-        	        skos:inScheme {self.__oldapList.iri.toRdf} ;
+        	        skos:inScheme {self.__oldapListIri.toRdf} ;
         	        ?p ?o .
     	        FILTER (?leftIndex >= {int(lindex)} && ?rightIndex <= {int(rindex)})
             }}
@@ -1001,7 +1087,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             FILTER(?oldLeftIndex > {int(lindex)})
             BIND(?oldLeftIndex - {int(diff)} AS ?newLeftIndex)
         }}
@@ -1025,7 +1111,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             ?subject oldap:rightIndex ?oldRightIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             FILTER(?oldRightIndex > {int(rindex)})
             BIND(?oldRightIndex - {int(diff)} AS ?newRightIndex)
         }}
@@ -1033,8 +1119,8 @@ class OldapListNode(Model):
         self.safe_update(update3)
 
         self.safe_commit()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
 
     def move_node_below(self, con: IConnection, target: Self, indent: int = 0, indent_inc: int = 4):
@@ -1133,7 +1219,7 @@ class OldapListNode(Model):
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 oldap:rightIndex ?oldRightIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             FILTER (?oldLeftIndex >= {int(moving_lindex)} && ?oldRightIndex <= {int(moving_rindex)})
             BIND(-?oldLeftIndex AS ?newLeftIndex)
             BIND(-?oldRightIndex AS ?newRightIndex)
@@ -1167,7 +1253,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             {filter}
             BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
         }}
@@ -1198,7 +1284,7 @@ class OldapListNode(Model):
         WHERE {{
             ?subject oldap:rightIndex ?oldRightIndex ;
                 oldap:rightIndex ?oldLeftIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             {filter}
             BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
         }}
@@ -1267,8 +1353,8 @@ class OldapListNode(Model):
         # commit
         #
         self.safe_commit()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
     def move_node_right_of(self, con: IConnection, leftnode: Self, indent: int = 0, indent_inc: int = 4):
         if self._con is None:
@@ -1372,7 +1458,7 @@ class OldapListNode(Model):
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 oldap:rightIndex ?oldRightIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             FILTER (?oldLeftIndex >= {int(moving_lindex)} && ?oldRightIndex <= {int(moving_rindex)})
             BIND(-?oldLeftIndex AS ?newLeftIndex)
             BIND(-?oldRightIndex AS ?newRightIndex)
@@ -1406,7 +1492,7 @@ class OldapListNode(Model):
         }}
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             {filter}
             BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
         }}
@@ -1437,7 +1523,7 @@ class OldapListNode(Model):
         WHERE {{
             ?subject oldap:rightIndex ?oldRightIndex ;
                 oldap:rightIndex ?oldLeftIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             {filter}
             BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
         }}
@@ -1505,8 +1591,8 @@ class OldapListNode(Model):
         # commit
         #
         self.safe_commit()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
     def move_node_left_of(self, con: IConnection, rightnode: Self, indent: int = 0, indent_inc: int = 4):
         if self._con is None:
@@ -1609,7 +1695,7 @@ class OldapListNode(Model):
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 oldap:rightIndex ?oldRightIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             FILTER (?oldLeftIndex >= {int(moving_lindex)} && ?oldRightIndex <= {int(moving_rindex)})
             BIND(-?oldLeftIndex AS ?newLeftIndex)
             BIND(-?oldRightIndex AS ?newRightIndex)
@@ -1644,7 +1730,7 @@ class OldapListNode(Model):
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 oldap:rightIndex ?oldRightIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             {filter}
             BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
         }}
@@ -1675,7 +1761,7 @@ class OldapListNode(Model):
         WHERE {{
             ?subject oldap:rightIndex ?oldRightIndex ;
                 oldap:leftIndex ?oldLeftIndex ;
-                skos:inScheme {self.__oldapList.iri.toRdf} .
+                skos:inScheme {self.__oldapListIri.toRdf} .
             {filter}
             BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
         }}
@@ -1742,12 +1828,17 @@ class OldapListNode(Model):
         # commit
         #
         self.safe_commit()
-        cache = CacheSingleton()
-        cache.delete(self.__oldapList.iri)
+        cache = CacheSingletonRedis()
+        cache.delete(self.__oldapListIri)
 
     @staticmethod
     def search(con: IConnection,
-               oldapList: OldapList,
+               projectShortName: Xsd_NCName,
+               projectIri: Iri,
+               oldapListId: Xsd_NCName,
+               oldapListIri: Iri,
+               node_classIri: Iri,
+               #oldapList: "OldapList",
                id: Xsd_string | str | None = None,
                prefLabel: Xsd_string | str | None = None,
                definition: str | None = None,
@@ -1756,15 +1847,15 @@ class OldapListNode(Model):
         prefLabel = Xsd_string(prefLabel)
         definition = Xsd_string(definition)
         context = Context(name=con.context_name)
-        graph = oldapList.project.projectShortName
+        graph = projectShortName
 
         prefLabel = Xsd_string(prefLabel)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?node\n'
         sparql += f'FROM {graph}:lists\n'
         sparql += 'WHERE {\n'
-        sparql += f'   ?node a {oldapList.node_classIri} ;\n'
-        sparql += f'       skos:inScheme {oldapList.iri.toRdf} .\n'
+        sparql += f'   ?node a {node_classIri} ;\n'
+        sparql += f'       skos:inScheme {oldapListIri.toRdf} .\n'
         if prefLabel:
             sparql += '   ?node skos:prefLabel ?label .\n'
         if definition:

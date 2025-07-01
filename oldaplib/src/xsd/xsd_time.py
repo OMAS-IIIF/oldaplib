@@ -19,7 +19,7 @@ class Xsd_time(Xsd):
 
     __pattern = r'^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.\d+)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9])?$'
 
-    def __init__(self, value: time | Self | str, validate: bool = True):
+    def __init__(self, value: time | Self | str, validate: bool = False):
         """
         Constructor for the Xsd_time class
         :param value: Either a Xsd_time instance, a Python time object, or a valid string representing a time

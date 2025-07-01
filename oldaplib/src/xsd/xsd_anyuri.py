@@ -47,7 +47,7 @@ class Xsd_anyURI(Xsd):
         r'(\?[a-zA-Z0-9._~%!$&\'()*+,;=:@/?-]*)?'  # Optional query
         r'(#[-a-zA-Z0-9._~%!$&\'()*+,;=:@/?]*)?')  # Optional fragment
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI.
         If the validate parameter is true, the extensive XsdValidator library will be used.

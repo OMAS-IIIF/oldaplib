@@ -14,7 +14,7 @@ class Xsd_unsignedLong(Xsd_integer):
     Inherits from Xsd_integer.
     """
 
-    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = False):
         """
         Constructor of the Xsd_unsignedLong class.
         :param value: A Xsd_integer instance, an int or a string representation.

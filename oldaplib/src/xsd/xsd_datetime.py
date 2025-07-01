@@ -17,7 +17,7 @@ class Xsd_dateTime(Xsd):
     """
     __value: datetime
 
-    def __init__(self, value: datetime | Self | str | None = None, validate: bool = True):
+    def __init__(self, value: datetime | Self | str | None = None, validate: bool = False):
         """
         Constructor of a Xsd_dateTime instance. If no value is given, `datetime.new()` will be used.
         :param value: a Xsd_dateTime instance, Python datetime

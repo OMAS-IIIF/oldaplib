@@ -14,7 +14,7 @@ class Xsd_unsignedShort(Xsd_integer):
     Inherits from Xsd_integer.
     """
 
-    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = False):
         """
         Constructor for the Xsd_unsignedShort class.
         :param value: A Xsd_integer instance, a valid int or a valid string representation. Valid range [0 - 65535].

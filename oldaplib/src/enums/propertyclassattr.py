@@ -10,7 +10,6 @@ from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
-from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
@@ -40,11 +39,11 @@ class PropClassAttr(AttributeClass):
     TYPE = ('rdf:type', False, False, OwlPropertyType)
     CLASS = ('sh:class', False, False, Iri)
     DATATYPE = ('sh:datatype', False, False, XsdDatatypes)
-    NAME = ('sh:name', False, False, LangString)
-    DESCRIPTION = ('sh:description', False, False, LangString)
-    LANGUAGE_IN = ('sh:languageIn', False, False, LanguageIn)
+    NAME = ('sh:name', False, False, LangString)  # needs notifier
+    DESCRIPTION = ('sh:description', False, False, LangString)  # needs notifier
+    LANGUAGE_IN = ('sh:languageIn', False, False, LanguageIn)  # needs notifier
     UNIQUE_LANG = ('sh:uniqueLang', False, False, Xsd_boolean)
-    IN = ('sh:in', False, False, XsdSet)
+    IN = ('sh:in', False, False, XsdSet)  # needs notifier
     MIN_LENGTH = ('sh:minLength', False, False, Xsd_integer)
     MAX_LENGTH = ('sh:maxLength', False, False, Xsd_integer)
     PATTERN = ('sh:pattern', False, False, Xsd_string)

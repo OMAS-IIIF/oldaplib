@@ -31,7 +31,7 @@ class Xsd_QName(Xsd):
     """
     _value: str
 
-    def __init__(self, value: Self | str | Xsd_NCName, fragment: str | Xsd_NCName | None = None, validate: bool = True) -> None:
+    def __init__(self, value: Self | str | Xsd_NCName, fragment: str | Xsd_NCName | None = None, validate: bool = False) -> None:
         """
         Construct a QName from a QName, string (with a ":") or a prefix/fragment pair
         :param value: A Qname, string (with a ":") or a prefix as NCName or string

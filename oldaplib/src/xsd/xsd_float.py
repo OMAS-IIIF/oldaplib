@@ -17,7 +17,7 @@ class Xsd_float(FloatingPoint):
     Implements the XML Schema [xsd:float](https://www.w3.org/TR/xmlschema11-2/#float) datatype
     """
 
-    def __init__(self, value: Self | float | str, validate: bool = True):
+    def __init__(self, value: Self | float | str, validate: bool = False):
         """
         Constructor for Xsd_float class
         :param value: A Xsd_float value, a floating point or a string containing a valid float value

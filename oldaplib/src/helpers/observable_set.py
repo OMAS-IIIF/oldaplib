@@ -35,7 +35,8 @@ class ObservableSet(Notify):
                  setitems: Self | Iterable | None = None,
                  notifier: Callable[[Enum | Iri], None] | None = None,
                  notify_data: Iri | None = None,
-                 old_value: Self | None = None) -> None:
+                 old_value: Self | None = None,
+                 validate: bool = False) -> None:
         """
         Constructor of the ObservableSet class
 

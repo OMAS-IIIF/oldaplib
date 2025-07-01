@@ -17,7 +17,7 @@ class Xsd_Name(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Constructs an Xsd_Name instance.
         :param value: An Xsd_Name instance or a string conforming to the XML Schema [xsd:Name]

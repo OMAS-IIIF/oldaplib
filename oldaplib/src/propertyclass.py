@@ -21,9 +21,10 @@ from functools import partial
 from pprint import pprint
 from typing import Callable, Self, Any
 
+from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.oldaplogging import get_logger
-from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet
 from oldaplib.src.enums.adminpermissions import AdminPermission
@@ -146,6 +147,7 @@ class PropertyClass(Model, Notify):
                  _internal: Iri | None = None,  # DO NOT USE!! Only for serialization!
                  _force_external: bool | None = None,  # DO NOT USE!! Only for serialization!
                  _from_triplestore: bool = False,
+                 validate: bool = False,
                  **kwargs):
         """
         Constructor of the PropertyClass. If the property is created as link to a resource by defininf
@@ -178,19 +180,22 @@ class PropertyClass(Model, Notify):
                        creator=creator,
                        created=created,
                        contributor=contributor,
-                       modified=modified)
+                       modified=modified,
+                       validate=validate)
         Notify.__init__(self, notifier, notify_data)
 
         if isinstance(project, Project):
             self._project = project
         else:
+            if not isinstance(project, (Iri, Xsd_NCName)):
+                project = IriOrNCName(project, validate=validate)
             self._project = Project.read(self._con, project)
         context = Context(name=self._con.context_name)
         context[self._project.projectShortName] = self._project.namespaceIri
         context.use(self._project.projectShortName)
         self._graph = self._project.projectShortName
 
-        self._property_class_iri = Iri(property_class_iri) if property_class_iri else None
+        self._property_class_iri = Iri(property_class_iri, validate=validate) if property_class_iri else None
         datatype = kwargs.get('datatype', None)
         if datatype and kwargs.get('inSet'):
             if datatype == XsdDatatypes.langString:
@@ -256,18 +261,28 @@ class PropertyClass(Model, Notify):
                 partial(PropertyClass._set_value, attr=attr),
                 partial(PropertyClass._del_value, attr=attr)))
 
+        self.update_notifier()
         self._test_in_use = False
         self._internal = _internal
         self._force_external = _force_external
         self.__version = SemanticVersion()
         self.__from_triplestore = _from_triplestore
 
+    def update_notifier(self,
+                        notifier: Callable[[PropClassAttr], None] | None = None,
+                        notify_data: PropClassAttr | None = None,):
+        self.set_notifier(notifier, notify_data)
+        for attr, value in self._attributes.items():
+            if getattr(value, 'set_notifier', None) is not None:
+                value.set_notifier(self.notifier, attr)
+
+
     def _as_dict(self):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
             'project': self._project.projectShortName,
             'property_class_iri': self.property_class_iri,
-            '_internal': self._internal,
-            '_force_external': self._force_external,
+            **({'_internal': self._internal} if self._internal else {}),
+            **({'_force_external': self._force_external} if self._force_external else {}),
             '_from_triplestore': self.__from_triplestore,
         }
 
@@ -298,7 +313,7 @@ class PropertyClass(Model, Notify):
             return True, "OK"
 
 
-    def pre_transform(self, attr: AttributeClass, value: Any) -> Any:
+    def pre_transform(self, attr: AttributeClass, value: Any, validate: bool = False) -> Any:
         """
         INTERNAL USE ONLY! Overrides the method pre_transform from the Model class.
         :param attr: Attribute name
@@ -312,9 +327,9 @@ class PropertyClass(Model, Notify):
             if self._attributes.get(PropClassAttr.DATATYPE) is not None:
                 datatype = self._attributes[PropClassAttr.DATATYPE]
                 if datatype == XsdDatatypes.langString:
-                    return {convert2datatype(x, XsdDatatypes.string) for x in value}
+                    return {convert2datatype(x, XsdDatatypes.string, validate=validate) for x in value}
                 else:
-                    return {convert2datatype(x, datatype) for x in value}
+                    return {convert2datatype(x, datatype, validate=validate) for x in value}
             elif self._attributes.get(PropClassAttr.CLASS) is not None:
                 toClass = self._attributes[PropClassAttr.CLASS]
                 return {Iri(x) for x in value}
@@ -364,6 +379,8 @@ class PropertyClass(Model, Notify):
         if self._attributes.get(attr) == value:
             return
         super()._change_setter(attr, value)
+        #
+        # set the notifier, if the value
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, attr)
 
@@ -401,7 +418,6 @@ class PropertyClass(Model, Notify):
         instance.__version = deepcopy(self.__version)
         return instance
 
-
     def __len__(self) -> int:
         return len(self._attributes)
 
@@ -411,6 +427,10 @@ class PropertyClass(Model, Notify):
             propstr += f' {attr.value}: {value};'
         propstr += f' internal: {self._internal};'
         return propstr
+
+    @property
+    def project(self) -> Project:
+        return self._project
 
     @property
     def property_class_iri(self) -> Iri:
@@ -671,9 +691,11 @@ class PropertyClass(Model, Notify):
                 raise OldapError(f'Datatype "{dt}" not valid for OwlObjectProperty')
         else:
             self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
-        for attr, value in self._attributes.items():
-            if getattr(value, 'set_notifier', None) is not None:
-                value.set_notifier(self.notifier, attr)
+        #
+        # update all notifiers of properties
+        #
+        self.update_notifier()
+
         self.__from_triplestore = True
         return HasPropertyData(refprop, minCount, maxCount, order, group)
 
@@ -764,18 +786,20 @@ class PropertyClass(Model, Notify):
 
         if not isinstance(property_class_iri, Iri):
             property_class_iri = Iri(property_class_iri)
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         if not ignore_cache:
-            tmp = cache.get(property_class_iri)
+            tmp = cache.get(property_class_iri, connection=con)
             if tmp is not None:
-                tmp._con = con
-                logger.info(f'Property class "{property_class_iri}" already cached in triple store!')
+                tmp.update_notifier()
+                #logger.info(f'Property class "{property_class_iri}" already cached in triple store!')
                 return tmp
         property = cls(con=con, project=project, property_class_iri=property_class_iri)
         attributes = PropertyClass.__query_shacl(con, property._graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
         property.read_owl()
         cache.set(property.property_class_iri, property)
+
+        property.update_notifier()
 
         return property
 
@@ -1002,7 +1026,7 @@ class PropertyClass(Model, Notify):
 
         self.clear_changeset()
 
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(self._property_class_iri, self)
 
 
@@ -1031,7 +1055,7 @@ class PropertyClass(Model, Notify):
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
-            sparql = f'#\n# SHACL\n# Process "{prop.value}" with Action "{change.action.value}"\n#\n'
+            sparql = f'#\n# SHACL\n# PrpoertyClass(1): Process "{prop.value}" with Action "{change.action.value}"\n#\n'
             if change.action == Action.MODIFY:
                 if prop.datatype == LangString:
                     sparql += self._attributes[prop].update_shacl(graph=self._graph,
@@ -1110,7 +1134,7 @@ class PropertyClass(Model, Notify):
         sparql_list = []
         for prop, change in self._changeset.items():
             if prop in owl_propclass_attributes:
-                sparql = f'#\n# OWL:\n# Process "{owl_prop[prop]}" with Action "{change.action.value}"\n#\n'
+                sparql = f'#\n# OWL:\n# PropertyClass(2): Process "{owl_prop[prop]}" with Action "{change.action.value}"\n#\n'
                 ele = RdfModifyItem(property=owl_prop[prop],
                                     old_value=str(change.old_value) if change.action != Action.CREATE else None,
                                     new_value=str(self._attributes[prop]) if change.action != Action.DELETE else None)
@@ -1226,7 +1250,7 @@ class PropertyClass(Model, Notify):
             raise OldapErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} owl={modtime_owl} timestamp={timestamp}')
         self._modified = timestamp
         self._contributor = self._con.userIri
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(self._property_class_iri, self)
 
     def delete_shacl(self, *,
@@ -1355,7 +1379,7 @@ class PropertyClass(Model, Notify):
             raise OldapErrorUpdateFailed("Deleting Property failed")
         else:
             self._con.transaction_commit()
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.delete(self._property_class_iri)
 
 

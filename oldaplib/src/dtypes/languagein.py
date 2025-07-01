@@ -20,7 +20,8 @@ class LanguageIn(RdfSet[Language], Notify):
 
     def __init__(self,
                  *args: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str,
-                 value: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None = None):
+                 value: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None = None,
+                 validate: bool = False):
         """
         Implementation of the SHACL sh:languageIn datatype. It completely validates the input.
         :param args: languages to be included

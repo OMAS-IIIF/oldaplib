@@ -45,89 +45,89 @@ from oldaplib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
 from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 
 
-def convert2datatype(value: Any, datatype: XsdDatatypes) -> Xsd | LangString:
+def convert2datatype(value: Any, datatype: XsdDatatypes, validate: bool = False) -> Xsd | LangString:
     match datatype:
         case XsdDatatypes.string:
-            return Xsd_string(value)
+            return Xsd_string(value, validate=validate)
         case XsdDatatypes.langString:
-            return LangString(value)
+            return LangString(value, validate=validate)
         case XsdDatatypes.boolean:
-            return Xsd_boolean(value)
+            return Xsd_boolean(value, validate=validate)
         case XsdDatatypes.decimal:
-            return Xsd_decimal(value)
+            return Xsd_decimal(value, validate=validate)
         case XsdDatatypes.float:
-            return Xsd_float(value)
+            return Xsd_float(value, validate=validate)
         case XsdDatatypes.double:
-            return Xsd_double(value)
+            return Xsd_double(value, validate=validate)
         case XsdDatatypes.duration:
-            return Xsd_duration(value)
+            return Xsd_duration(value, validate=validate)
         case XsdDatatypes.dateTime:
-            return Xsd_dateTime(value)
+            return Xsd_dateTime(value, validate=validate)
         case XsdDatatypes.dateTimeStamp:
-            return Xsd_dateTimeStamp(value)
+            return Xsd_dateTimeStamp(value, validate=validate)
         case XsdDatatypes.time:
-            return Xsd_time(value)
+            return Xsd_time(value, validate=validate)
         case XsdDatatypes.date:
-            return Xsd_date(value)
+            return Xsd_date(value, validate=validate)
         case XsdDatatypes.gYearMonth:
-            return Xsd_gYearMonth(value)
+            return Xsd_gYearMonth(value, validate=validate)
         case XsdDatatypes.gYear:
-            return Xsd_gYear(value)
+            return Xsd_gYear(value, validate=validate)
         case XsdDatatypes.gMonthDay:
-            return Xsd_gMonthDay(value)
+            return Xsd_gMonthDay(value, validate=validate)
         case XsdDatatypes.gDay:
-            return Xsd_gDay(value)
+            return Xsd_gDay(value, validate=validate)
         case XsdDatatypes.gMonth:
-            return Xsd_gMonth(value)
+            return Xsd_gMonth(value, validate=validate)
         case XsdDatatypes.hexBinary:
-            return Xsd_hexBinary(value)
+            return Xsd_hexBinary(value, validate=validate)
         case XsdDatatypes.base64Binary:
-            return Xsd_base64Binary(value)
+            return Xsd_base64Binary(value, validate=validate)
         case XsdDatatypes.anyURI:
-            return Xsd_anyURI(value)
+            return Xsd_anyURI(value, validate=validate)
         case XsdDatatypes.QName:
-            return Xsd_QName(value)
+            return Xsd_QName(value, validate=validate)
         case XsdDatatypes.normalizedString:
-            return Xsd_normalizedString(value)
+            return Xsd_normalizedString(value, validate=validate)
         case XsdDatatypes.token:
-            return Xsd_token(value)
+            return Xsd_token(value, validate=validate)
         case XsdDatatypes.language:
-            return Xsd_language(value)
+            return Xsd_language(value, validate=validate)
         case XsdDatatypes.NCName:
-            return Xsd_NCName(value)
+            return Xsd_NCName(value, validate=validate)
         case XsdDatatypes.NMTOKEN:
-            return Xsd_NMTOKEN(value)
+            return Xsd_NMTOKEN(value, validate=validate)
         case XsdDatatypes.ID:
-            return Xsd_ID(value)
+            return Xsd_ID(value, validate=validate)
         case XsdDatatypes.IDREF:
-            return Xsd_IDREF(value)
+            return Xsd_IDREF(value, validate=validate)
         case XsdDatatypes.integer:
-            return Xsd_int(value)
+            return Xsd_int(value, validate=validate)
         case XsdDatatypes.nonPositiveInteger:
-            return Xsd_nonPositiveInteger(value)
+            return Xsd_nonPositiveInteger(value, validate=validate)
         case XsdDatatypes.negativeInteger:
-            return Xsd_negativeInteger(value)
+            return Xsd_negativeInteger(value, validate=validate)
         case XsdDatatypes.long:
-            return Xsd_long(value)
+            return Xsd_long(value, validate=validate)
         case XsdDatatypes.int:
-            return Xsd_int(value)
+            return Xsd_int(value, validate=validate)
         case XsdDatatypes.short:
-            return Xsd_short(value)
+            return Xsd_short(value, validate=validate)
         case XsdDatatypes.byte:
-            return Xsd_byte(value)
+            return Xsd_byte(value, validate=validate)
         case XsdDatatypes.nonNegativeInteger:
-            return Xsd_nonNegativeInteger(value)
+            return Xsd_nonNegativeInteger(value, validate=validate)
         case XsdDatatypes.unsignedLong:
-            return Xsd_unsignedLong(value)
+            return Xsd_unsignedLong(value, validate=validate)
         case XsdDatatypes.unsignedInt:
-            return Xsd_unsignedInt(value)
+            return Xsd_unsignedInt(value, validate=validate)
         case XsdDatatypes.unsignedShort:
-            return Xsd_unsignedShort(value)
+            return Xsd_unsignedShort(value, validate=validate)
         case XsdDatatypes.unsignedByte:
-            return Xsd_unsignedByte(value)
+            return Xsd_unsignedByte(value, validate=validate)
         case XsdDatatypes.positiveInteger:
-            return Xsd_positiveInteger(value)
+            return Xsd_positiveInteger(value, validate=validate)
         case None:
-            return Iri(value)
+            return Iri(value, validate=validate)
         case _:
             raise OldapErrorValue(f'Invalid datatype "{datatype}" for value "{value}"')

@@ -1,3 +1,5 @@
+import doctest
+
 from oldaplib.src.xsd.floatingpoint import FloatingPoint
 from oldaplib.src.xsd.xsd_float import Xsd_float
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
@@ -9,13 +11,13 @@ class Numeric:
     a subclass of FloatingPoint (and it's subclasses). FLoatingPoint is the superclass of all XML Schema datatypes
     with a floating point content (e.g. Xsd_float, Xsd_decimal etc.)
     """
-    def __new__(cls, value: Xsd_integer | int | FloatingPoint | float | str):
+    def __new__(cls, value: Xsd_integer | int | FloatingPoint | float | str, validate: bool = False):
         if isinstance(value, (Xsd_integer, int)):
             return Xsd_integer(value)
         elif isinstance(value, (FloatingPoint, float)):
             return Xsd_float(value)
         else:
             try:
-                return Xsd_integer(str(value))
+                return Xsd_integer(str(value), validate=validate)
             except:
-                return Xsd_float(str(value))
+                return Xsd_float(str(value), validate=validate)

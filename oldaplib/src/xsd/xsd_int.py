@@ -16,7 +16,7 @@ class Xsd_int(Xsd_integer):
     It inherits from Xsd_integer. The xsd:int datatype has a limited range -2147483648 - 2147483647.
     """
 
-    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = False):
         """
         Constructor for Xsd_int class
         :param value: Int value. Must be in the range -2147483648 - 2147483647

@@ -16,7 +16,7 @@ class Xsd_byte(Xsd_integer):
     and inherits most methods from Xsd_integer.
     """
 
-    def __init__(self, value: Xsd | int | str, validate: bool = True):
+    def __init__(self, value: Xsd | int | str, validate: bool = False):
         """
         Xsd_byte constructor
         :param value: a byte value >= -128 and <= 127

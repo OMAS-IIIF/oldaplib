@@ -4,6 +4,7 @@ from pathlib import Path
 from pprint import pprint
 from time import sleep
 
+from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
@@ -38,6 +39,8 @@ class TestUser(unittest.TestCase):
 
     @classmethod
     def setUp(cls):
+        cache = CacheSingletonRedis()
+        cache.clear()
         super().setUpClass()
         project_root = find_project_root(__file__)
 

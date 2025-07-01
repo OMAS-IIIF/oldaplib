@@ -16,7 +16,7 @@ class Xsd_nonNegativeInteger(Xsd_integer):
     """
     __value: int
 
-    def __init__(self, value: Xsd_integer | int | str, validate: bool = True):
+    def __init__(self, value: Xsd_integer | int | str, validate: bool = False):
         """
         Constructor of the Xsd_nonNegativeInteger class.
         :param value: Another valid Xsd instance, a non-negative integer or a valid string representation.

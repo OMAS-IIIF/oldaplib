@@ -38,34 +38,34 @@ class ContextSingleton(type):
         super().__init__(name, bases, attributes)
         cls._cache = {}
         cls._predefined_context =  {
-            Xsd_NCName('rdf', validate=False): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
-            Xsd_NCName('rdfs', validate=False): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
-            Xsd_NCName('owl', validate=False): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
-            Xsd_NCName('xsd', validate=False): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
-            Xsd_NCName('xml', validate=False): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
-            Xsd_NCName('sh', validate=False): NamespaceIRI('http://www.w3.org/ns/shacl#'),
-            Xsd_NCName('skos', validate=False): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
-            Xsd_NCName('schema', validate=False): NamespaceIRI('http://schema.org/'),
-            Xsd_NCName('dc', validate=False): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
-            Xsd_NCName('dcterms', validate=False): NamespaceIRI('http://purl.org/dc/terms/'),
-            Xsd_NCName('foaf', validate=False): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
-            Xsd_NCName('oldap', validate=False): NamespaceIRI('http://oldap.org/base#'),
-            Xsd_NCName('shared', validate=False): NamespaceIRI('http://oldap.org/shared#')
+            Xsd_NCName('rdf'): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
+            Xsd_NCName('rdfs'): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
+            Xsd_NCName('owl'): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
+            Xsd_NCName('xsd'): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
+            Xsd_NCName('xml'): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
+            Xsd_NCName('sh'): NamespaceIRI('http://www.w3.org/ns/shacl#'),
+            Xsd_NCName('skos'): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
+            Xsd_NCName('schema'): NamespaceIRI('http://schema.org/'),
+            Xsd_NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
+            Xsd_NCName('dcterms'): NamespaceIRI('http://purl.org/dc/terms/'),
+            Xsd_NCName('foaf'): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
+            Xsd_NCName('oldap'): NamespaceIRI('http://oldap.org/base#'),
+            Xsd_NCName('shared'): NamespaceIRI('http://oldap.org/shared#')
         }
         cls._predefined_inverse = {
-            NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf', validate=False),
-            NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs', validate=False),
-            NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl', validate=False),
-            NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd', validate=False),
-            NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml', validate=False),
-            NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh', validate=False),
-            NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos', validate=False),
-            NamespaceIRI('http://schema.org/'): Xsd_NCName('schema', validate=False),
-            NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc', validate=False),
-            NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms', validate=False),
-            NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf', validate=False),
-            NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap', validate=False),
-            NamespaceIRI('http://oldap.org/shared#'): Xsd_NCName('shared', validate=False),
+            NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf'),
+            NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs'),
+            NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl'),
+            NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd'),
+            NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml'),
+            NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh'),
+            NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos'),
+            NamespaceIRI('http://schema.org/'): Xsd_NCName('schema'),
+            NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc'),
+            NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms'),
+            NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf'),
+            NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap'),
+            NamespaceIRI('http://oldap.org/shared#'): Xsd_NCName('shared'),
         }
 
 
@@ -284,8 +284,4 @@ class Context(metaclass=ContextSingleton):
 
 
 if __name__ == '__main__':
-    c1 = Context(name=DEFAULT_CONTEXT)
-    c1['gaga'] = 'http://gaga.org/gugus#'
-    c2 = Context(name=DEFAULT_CONTEXT)
-    for k, v in c2.items():
-        print(k, v)
+    pass

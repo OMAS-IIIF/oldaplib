@@ -17,7 +17,7 @@ class Xsd_date(Xsd):
     """
     __value: date
 
-    def __init__(self, value: date | Self | str | int | None = None, month: int | None = None, day: int | None = None, validate: bool = True):
+    def __init__(self, value: date | Self | str | int | None = None, month: int | None = None, day: int | None = None, validate: bool = False):
         """
         Constructor of a Xsd_date object. If no date value is given, the date of "today" will be used.
         :param value: Either the year as int, or an ISO date string, or a Python date value, or a Xsd_date instance

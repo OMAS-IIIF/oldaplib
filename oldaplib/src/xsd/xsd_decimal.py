@@ -17,7 +17,7 @@ class Xsd_decimal(FloatingPoint):
     inherits most methods from the FloatingPoint class.
     """
 
-    def __init__(self, value: Self | float | str, validate: bool = True):
+    def __init__(self, value: Self | float | str, validate: bool = False):
         """
         Constructor for the Xsd_decimal class.
         :param value: Either a Xsd_decimal, float or string in decimal format.

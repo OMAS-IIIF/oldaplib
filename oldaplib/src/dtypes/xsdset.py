@@ -18,7 +18,7 @@ class XsdSet(RdfSet[Xsd]):
     subclasses of the Xsd class, that is Xsd compatible data types.
     """
 
-    def __init__(self, *args: Iterable[Xsd] | Xsd, value: Iterable[Xsd] | Xsd | None = None):
+    def __init__(self, *args: Iterable[Xsd] | Xsd, value: Iterable[Xsd] | Xsd | None = None, validate: bool = False):
         #
         # Here we first do some fancy type checking, before we call the superclass' __init__() method
         #
@@ -49,7 +49,6 @@ class XsdSet(RdfSet[Xsd]):
 
     def add(self, val: Xsd) -> None:
         self.notify()
-
         if isinstance(val, Xsd) and not type(val) is Xsd:
             self._data.add(val)
         else:

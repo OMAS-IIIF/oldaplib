@@ -6,7 +6,7 @@ from functools import partial
 from typing import List, Self, Any
 from datetime import date, datetime
 
-from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.projectattr import ProjectAttr
 from oldaplib.src.helpers.context import Context
@@ -112,10 +112,11 @@ class Project(Model):
 
     def __init__(self, *,
                  con: IConnection,
-                 creator: Iri | None = None,
-                 created: Xsd_dateTime | None = None,
-                 contributor: Iri | None = None,
-                 modified: Xsd_dateTime | None = None,
+                 creator: Iri | str | None = None,
+                 created: Xsd_dateTime | datetime | str | None = None,
+                 contributor: Iri | str | None = None,
+                 modified: Xsd_dateTime | datetime | str | None = None,
+                 validate: bool = False,
                  **kwargs):
         """
         Constructs a new Project
@@ -150,7 +151,8 @@ class Project(Model):
                          created=created,
                          creator=creator,
                          modified=modified,
-                         contributor=contributor)
+                         contributor=contributor,
+                         validate=validate)
 
         self.set_attributes(kwargs, ProjectAttr)
         #
@@ -173,6 +175,11 @@ class Project(Model):
                 partial(Project._set_value, attr=attr),
                 partial(Project._del_value, attr=attr)))
         self._changeset = {}
+
+    def update_notifier(self):
+        for attr, value in self._attributes.items():
+            if getattr(value, 'set_notifier', None) is not None:
+                value.set_notifier(self.notifier, attr)
 
     def _as_dict(self):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict()
@@ -244,7 +251,7 @@ class Project(Model):
         query = context.sparql_context
 
         if not isinstance(projectIri_SName, IriOrNCName):
-            projectIri_SName = IriOrNCName(projectIri_SName)
+            projectIri_SName = IriOrNCName(projectIri_SName, validate=True)
         shortname, projectIri = projectIri_SName.value()
         # projectIri: Iri | None = None
         # shortname: Xsd_NCName | None = None
@@ -257,12 +264,12 @@ class Project(Model):
         #         projectIri = Iri(projectIri_SName)
         #     else:
         #         shortname = Xsd_NCName(projectIri_SName)
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         if projectIri is not None:
             if not ignore_cache:
-                tmp = cache.get(projectIri)
+                tmp = cache.get(projectIri, connection=con)
                 if tmp is not None:
-                    tmp._con = con
+                    tmp.update_notifier()
                     return tmp
             query += f"""
                 SELECT ?prop ?val
@@ -275,7 +282,7 @@ class Project(Model):
             """
         elif shortname is not None:
             if not ignore_cache:
-                tmp = cache.get(shortname)
+                tmp = cache.get(shortname, connection=con)
                 if tmp is not None:
                     tmp._con = con
                     return tmp
@@ -348,7 +355,7 @@ class Project(Model):
                        comment=comment,
                        projectStart=projectStart,
                        projectEnd=projectEnd)
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(instance.projectIri, instance, instance.projectShortName)
         return instance
 
@@ -373,8 +380,8 @@ class Project(Model):
         :rtype: list[ProjectSearchResult]
         :raises OldapErrorNotFound: If the project does not exist
         """
-        label = Xsd_string(label)
-        comment = Xsd_string(comment)
+        label = Xsd_string(label, validate=True)
+        comment = Xsd_string(comment, validate=True)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?project ?shortname\n'
@@ -472,7 +479,7 @@ class Project(Model):
         self._contributor = self._con.userIri
         context[self._attributes[ProjectAttr.PROJECT_SHORTNAME]] = self._attributes[ProjectAttr.NAMESPACE_IRI]
 
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(self.projectIri, self, self.projectShortName)
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -546,7 +553,7 @@ class Project(Model):
         self._modified = timestamp
         self._contributor = self._con.userIri
         self.clear_changeset()
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(self.projectIri, self, self.projectShortName)
 
     def delete(self) -> None:
@@ -574,12 +581,16 @@ class Project(Model):
         }} 
         """
         self._con.update_query(sparql)
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.delete(self.projectIri)
         cache.delete(self.projectShortName)
 
     @staticmethod
     def get_shortname_from_iri(con: IConnection, iri: Iri) -> Xsd_NCName:
+        if not isinstance(con, IConnection):
+            raise OldapError("Connection must be an instance of IConnection")
+        if not isinstance(iri, Iri):
+            iri = Iri(iri, validate=True)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT ?shortname\n'

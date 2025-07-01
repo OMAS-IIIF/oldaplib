@@ -16,7 +16,7 @@ class Xsd_integer(Xsd):
     """
     _value: int
 
-    def __init__(self, value: Xsd | int | str, validate: bool = True):
+    def __init__(self, value: Xsd | int | str, validate: bool = False):
         """
         Constructor for Xsd_integer
         :param value: Value to convert to Xsd_integer

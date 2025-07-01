@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from time import sleep
 
+from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -13,11 +14,12 @@ from oldaplib.src.helpers.json_encoder import SpecialEncoder
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorImmutable, OldapErrorNoPermission, \
     OldapErrorInUse
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.enums.oldaplistattr import OldapListAttr
-from oldaplib.src.oldaplist_helpers import get_nodes_from_list, load_list_from_yaml
+from oldaplib.src.oldaplist_helpers import load_list_from_yaml
 from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
@@ -47,6 +49,9 @@ class TestOldapList(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cache = CacheSingletonRedis()
+        cache.clear()
+
         super().setUpClass()
         cls._project_root = find_project_root(__file__)
 
@@ -110,21 +115,38 @@ class TestOldapList(unittest.TestCase):
         self.assertEqual(NamespaceIRI("http://oldap.org/test/TestList2#"), oldaplist.node_namespaceIri)
         self.assertEqual(Xsd_NCName('L-TestList2'), oldaplist.node_prefix)
 
-    def test_dump_json(self):
+    def test_dump_json_spez(self):
         oldaplist = OldapList(con=self._connection,
                               project=self._project,
                               oldapListId="TestList3",
                               prefLabel="TestList3",
                               definition="A list for testing...")
-        jsonstr = json.dumps(oldaplist, cls=SpecialEncoder)
-        jsonobj = json.loads(jsonstr)
-        self.assertEqual(jsonobj['oldapListId'], "TestList3")
-        self.assertEqual(jsonobj['prefLabel'], ["TestList3@en"])
-        self.assertEqual(jsonobj['definition'], ["A list for testing...@en"])
-        self.assertEqual(jsonobj['nodeClassIri'], "test:TestList3Node")
-        self.assertEqual(jsonobj['nodeNamespaceIri'], "http://oldap.org/test/TestList3#")
-        self.assertEqual(jsonobj['nodePrefix'], "L-TestList3")
-        self.assertEqual(jsonobj['iri'], "test:TestList3")
+        jsonstr = json.dumps(oldaplist, default=serializer.encoder_default)
+        oldaplist2 = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(connection=self._connection))
+        self.assertEqual(oldaplist2.oldapListId, "TestList3")
+        self.assertEqual(oldaplist2.prefLabel, LangString("TestList3@en"))
+        self.assertEqual(oldaplist2.definition, LangString("A list for testing...@en"))
+        self.assertEqual(oldaplist2.node_classIri, "test:TestList3Node")
+        self.assertEqual(oldaplist2.node_namespaceIri, "http://oldap.org/test/TestList3#")
+        self.assertEqual(oldaplist2.node_prefix, "L-TestList3")
+        self.assertEqual(oldaplist2.iri, "test:TestList3")
+
+    def test_dump_json_list_with_nodes(self):
+        oldaplist = OldapList(con=self._connection,
+                              project=self._project,
+                              oldapListId="TestList3a",
+                              prefLabel="TestList3a",
+                              definition="A list for testing...")
+        jsonstr = json.dumps(oldaplist, default=serializer.encoder_default, indent=2)
+        oldaplist2 = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(connection=self._connection))
+        self.assertEqual(oldaplist.oldapListId, "TestList3a")
+        self.assertEqual(oldaplist.prefLabel, LangString("TestList3a@en"))
+        self.assertEqual(oldaplist.definition, LangString("A list for testing...@en"))
+        self.assertEqual(oldaplist.node_classIri, "test:TestList3aNode")
+        self.assertEqual(oldaplist.node_namespaceIri, "http://oldap.org/test/TestList3a#")
+        self.assertEqual(oldaplist.node_prefix, "L-TestList3a")
+        self.assertEqual(oldaplist.iri, "test:TestList3a")
+
 
     def test_create_read_project_id(self):
         oldaplist = OldapList(con=self._connection,
@@ -297,13 +319,16 @@ class TestOldapList(unittest.TestCase):
                                    oldapListId="TestDeleteList2")
         node_classIri = oldaplist.node_classIri
         node = OldapListNode(con=self._connection,
-                             oldapList=oldaplist,
+                             **oldaplist.info,
                              oldapListNodeId="TestDeleteList2Node1",
                              prefLabel="TestDelete2ListNode1",
                              definition="A node for testing deletes...")
         node.create_root_node()
 
-        nodes = get_nodes_from_list(con=self._connection, oldapList=oldaplist)
+        oldaplist = OldapList.read(con=self._connection,
+                                   project=self._project,
+                                   oldapListId="TestDeleteList2")
+        nodes = oldaplist.nodes
 
         selection = PropertyClass(con=self._connection,
                                   project=self._project,
@@ -316,7 +341,7 @@ class TestOldapList(unittest.TestCase):
                                owlclass_iri=Iri(f'{dm_name}:Resobj'),
                                label=LangString(["Resobj@en", "Resobj@de"]),
                                hasproperties=[
-                                   HasProperty(con=self._connection, prop=selection, maxCount=Xsd_integer(1),
+                                   HasProperty(con=self._connection, project=self._project, prop=selection, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
         dm[Iri(f'{dm_name}:resobj')] = resobj
         dm.update()

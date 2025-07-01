@@ -18,7 +18,7 @@ class Xsd_base64Binary(Xsd):
 
     __value: bytes
 
-    def __init__(self, value: Self | bytes, validate: bool = True):
+    def __init__(self, value: Self | bytes, validate: bool = False):
         """
         Constructor that encodes and decodes binary data using the XML Scheme xsd:base64Binary datatype.
         Validation uses regexp patterns and the XsdValidator library.

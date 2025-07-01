@@ -18,7 +18,7 @@ class Xsd_duration(Xsd):
     """
     __value: timedelta
 
-    def __init__(self, value: timedelta | Self | str, validate: bool = True):
+    def __init__(self, value: timedelta | Self | str, validate: bool = False):
         """
         Constructor of the Xsd_duration class.
         :param value: a Xsd_duration instance, or a timedelta instance, or a string for a timedelta

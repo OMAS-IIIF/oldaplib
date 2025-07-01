@@ -4,42 +4,12 @@ from enum import Enum
 from oldaplib.src.helpers.serializer import serializer
 
 
-@serializer
-class ExtendedEnum(Enum):
-    def __init__(self, value: str, description: str):
-        self._value_ = value
-        self.description = description
-
-    def _as_dict(self):
-        return {'value': self._value_, 'description': self.description}
-
-def create_enum(enum_name: str, query: str):
-    if query == 'a':
-        items = {
-            'A': ('aa', 'An aa'),
-            'B': ('bb', 'A bb'),
-            'C': ('cc', 'A cc'),
-        }
-    elif query == 'x':
-        items = {
-            'X': ('xx', 'A xx'),
-            'Y': ('yy', 'A yy'),
-            'Z': ('zz', 'A ZZ'),
-        }
-    else:
-        items = {
-            'ONE': ('1', 'A one'),
-            'TWO': ('2', 'A two'),
-            'THREE': ('3', 'A three'),
-        }
-    return Enum(enum_name, items, type=ExtendedEnum)
 
 if __name__ == '__main__':
-    EnumA = create_enum('EnumA', 'a')
-    EnumB = create_enum('EnumX', 'x')
+    def gaga(*, var1, var2, spec1, spec2, **kwargs):
+        print(var1, var2, spec1, spec2)
+        for key, value in kwargs.items():
+            print(key, value)
 
-    a = EnumA.A
-    print(a)
-
-    a_jsonstr = json.dumps(a, default=serializer.encoder_default)
-    print(a_jsonstr)
+    spec = {'spec1': 'SPEZ1', 'spec2': 'SPEZ2'}
+    gaga(var1='A', var2='B', **spec, var3='E', var4='F')

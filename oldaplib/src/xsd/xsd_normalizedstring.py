@@ -18,7 +18,7 @@ class Xsd_normalizedString(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Constructor for Xsd_normalizedString class
         :param value: Another instance of the Xsd_normalizedString class or a valid string

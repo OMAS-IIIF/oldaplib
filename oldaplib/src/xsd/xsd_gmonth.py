@@ -19,7 +19,7 @@ class Xsd_gMonth(Xsd):
     __tz: Tuple[int, int] | None
     __zulu: bool | None
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Constructor of Xsd_gMonth class
         :param value: An Xsd_gMonth instance or a valid string conforming to the

@@ -20,9 +20,9 @@ def lprint(text: str):
 
 def str2qname_anyiri(s: Xsd_QName | Xsd_anyURI | str) -> Xsd_QName | Xsd_anyURI:
     try:
-        return Xsd_QName(s)
+        return Xsd_QName(s, validate=True)
     except:
-        return Xsd_anyURI(s)
+        return Xsd_anyURI(s, validate=True)
 
 
 @dataclass
@@ -185,7 +185,7 @@ class RdfModifyProp:
                        indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
-        sparql = f'#\n# (X) Process "{pclass_iri}" with Action "{action.value}"\n#\n'
+        sparql = f'#\n# (Tools) Process "{pclass_iri}" with Action "{action.value}"\n#\n'
         #
         # The SHACL RdfSet is implemented as a RDF List with blank nodes having
         # a rdf:first and rdf:rest property. This makes the manipulation a bit complicated. If

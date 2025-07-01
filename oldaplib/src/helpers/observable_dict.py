@@ -15,6 +15,7 @@ class ObservableDict(UserDict):
     def __init__(self,
                  obj: Iterable | Mapping | None = None, *,
                  on_change: Callable[[Self], None] | None = None,
+                 validate: bool = False,
                  **kwargs):
         self.__on_change = on_change
         if obj:

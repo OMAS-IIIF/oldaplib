@@ -53,7 +53,11 @@ class _Serializer:
         if isinstance(obj, UUID):
             return {self._key: 'UUID', '__value__': str(obj)}
         if isinstance(obj, Enum):
-            return {self._key: obj.__class__.__name__, '__value__': obj.value}
+            if hasattr(obj, '_value'):
+                # It's a "complex" enum....
+                return {self._key: obj.__class__.__name__, '__value__': [obj.value, obj.numeric]}
+            else:
+                return {self._key: obj.__class__.__name__, '__value__': obj.value}
         if isinstance(obj, bytes):
             #  NOTE: if bytes are real bytes (image, sound,...) encoding as UTF-8 will not work...
             #  Therefore I use b85-encoding
@@ -62,24 +66,47 @@ class _Serializer:
         d[self._key] = type(obj).__name__
         return d
 
-    def decoder_hook(self, d: Dict[Any, Any], connection: Any | None = None) -> Dict[Any, Any] | datetime | UUID | bytes:
+    def decoder_hook(self, d: Dict[Any, Any], *,
+                     connection: Any | None = None) -> Dict[Any, Any] | datetime | UUID | bytes:
         classname = d.pop(self._key, None)
         if classname:
             if connection:
+                #
+                # we have a class with a connection parameter that we have to update.
+                # this requires that the "json.loads" uses the "make_decoder_hook(...)" hook!
+                #
                 sig = inspect.signature(self._classes[classname].__init__)
                 if 'connection' in sig.parameters:
                     d['connection'] = connection
                 if 'con' in sig.parameters:
                     d['con'] = connection
             if classname == 'datetime':
+                #
+                # For datetime datatype
+                #
                 return datetime.fromisoformat(d['__value__'])
             if classname == 'UUID':
+                #
+                # for UUID datatype
+                #
                 return UUID(d['__value__'])
             if classname == 'bytes':
+                #
+                # for bytes datatype
+                #
                 return b85decode(d['__value__'].encode(encoding='UTF-8'))
             if type(self._classes[classname]) == type(Enum):
-                return self._classes[classname](d['__value__'])
+                #
+                # for Enums and subclasses
+                #
+                if isinstance(d['__value__'], list):
+                    return self._classes[classname](*d['__value__'])
+                else:
+                    return self._classes[classname](d['__value__'])
             else:
+                #
+                # all other classes
+                #
                 return self._classes[classname](**d)
         return d
 

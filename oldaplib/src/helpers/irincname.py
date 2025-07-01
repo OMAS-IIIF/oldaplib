@@ -4,7 +4,7 @@ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 class IriOrNCName:
 
-    def __init__(self, value: Iri | Xsd_NCName | str):
+    def __init__(self, value: Iri | Xsd_NCName | str, validate: bool = False):
         self.__iri: Iri | None = None
         self.__ncname: Xsd_NCName | None = None
         if isinstance(value, Iri):
@@ -15,10 +15,10 @@ class IriOrNCName:
             self.__iri = None
         else:
             if ':' in str(value):  # must be IRI or QName
-                self.__iri = Iri(value)
+                self.__iri = Iri(value, validate=validate)
                 self.__ncname = None
             else:
-                self.__ncname = Xsd_NCName(value)
+                self.__ncname = Xsd_NCName(value, validate=validate)
                 self.__iri = None
 
     def value(self) -> tuple[Xsd_NCName| None, Iri | None]:

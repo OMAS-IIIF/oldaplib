@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
-from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -457,21 +457,6 @@ class Connection(IConnection):
 
     def in_transaction(self) -> bool:
         return self._transaction_url is not None
-
-
-
-    # def rdflib_query(self, query: str,
-    #                  bindings: Optional[Mapping[str, Identifier]] = None) -> Result:
-    #     """
-    #     Send a SPARQL query to a triple store using the Python rdflib interface.
-    #
-    #     :param query: SPARQL query string
-    #     :param bindings: Bindings to variables
-    #     :return: a RDFLib Result instance
-    #     """
-    #     if not self._userdata:
-    #         raise OldapError("No login")
-    #     return self._store.query(query, initBindings=bindings)
 
 
 if __name__ == "__main__":

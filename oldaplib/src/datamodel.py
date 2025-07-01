@@ -1,11 +1,14 @@
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, List, Optional, Union, Any, Self
 
-from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
+from oldaplib.src.helpers.irincname import IriOrNCName
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -31,6 +34,7 @@ class PropertyClassChange:
     old_value: PropertyClass | None
     action: Action
 
+@serializer
 class DataModel(Model):
     """
     This class implements the representation of a OLDAP datamodel The datamodel itself contains standalone properties
@@ -57,9 +61,14 @@ class DataModel(Model):
 
     def __init__(self, *,
                  con: IConnection,
+                 creator: Iri | str | None = None,
+                 created: Xsd_dateTime | datetime | str | None = None,
+                 contributor: Iri | None = None,
+                 modified: Xsd_dateTime | datetime | str | None = None,
                  project: Project | Iri | Xsd_NCName | str,
                  propclasses: list[PropertyClass] | None = None,
-                 resclasses: list[ResourceClass] | None = None) -> None:
+                 resclasses: list[ResourceClass] | None = None,
+                 validate: bool = False) -> None:
         """
         Create a datamodel instance
         :param con: Valid connection to triple store
@@ -69,16 +78,28 @@ class DataModel(Model):
         :param propclasses: List of PropertyClass instances (standalone properties) [OPTIONAL]
         :param resclasses: List of ResourceClass instances [OPTIONAL]
         """
+        timestamp = Xsd_dateTime()
+        if creator is None:
+            creator = con.userIri
+        if created is None:
+            created = timestamp
+        if contributor is None:
+            contributor = con.userIri
+        if modified is None:
+            modified = timestamp
         super().__init__(connection=con,
-                         creator=con.userIri,
-                         created=None,
-                         contributor=con.userIri,
-                         modified=None)
+                         creator=creator,
+                         created=created,
+                         contributor=contributor,
+                         modified=modified,
+                         validate=validate)
         self.__version = SemanticVersion()
 
         if isinstance(project, Project):
             self._project = project
         else:
+            if not isinstance(project, (Iri, Xsd_NCName)):
+                project = IriOrNCName(project, validate=validate)
             self._project = Project.read(self._con, project)
         self.__context = Context(name=self._con.context_name)
         self.__context[self._project.projectShortName] = self._project.namespaceIri
@@ -95,6 +116,13 @@ class DataModel(Model):
                 self.__resclasses[r.owl_class_iri] = r
         self.__propclasses_changeset = {}
         self.__resclasses_changeset = {}
+
+    def _as_dict(self):
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
+            'project': self._project.projectShortName,
+            **({'propclasses': [x for x in self.__propclasses.values()]} if self.__propclasses else {}),
+            **({'resclasses': [x for x in self.__resclasses.values()]} if self.__resclasses else {}),
+        }
 
     def check_for_permissions(self) -> (bool, str):
         #
@@ -169,7 +197,9 @@ class DataModel(Model):
         else:
             raise OldapErrorValue(f'"{key}" must be either PropertyClass or ResourceClass (is "{type(value).__name__}")')
 
-    def __delitem__(self, key: Iri) -> None:
+    def __delitem__(self, key: Iri | str) -> None:
+        if not isinstance(key, Iri):
+            key = Iri(key, validate=True)
         if key in self.__propclasses:
             self.__propclasses_changeset[key] = PropertyClassChange(self.__propclasses[key], Action.DELETE)
             del self.__propclasses[key]
@@ -179,7 +209,9 @@ class DataModel(Model):
         else:
             raise OldapErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
 
-    def get(self, key: Iri) -> PropertyClass | ResourceClass | None:
+    def get(self, key: Iri | str) -> PropertyClass | ResourceClass | None:
+        if not isinstance(key, Iri):
+            key = Iri(key, validate=True)
         if key in self.__propclasses:
             return self.__propclasses[key]
         elif key in self.__resclasses:
@@ -245,11 +277,10 @@ class DataModel(Model):
             project = project
         else:
             project = Project.read(con, project)
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         if not ignore_cache:
-            tmp = cache.get(Xsd_QName(project.projectShortName, 'shacl'))
+            tmp = cache.get(Xsd_QName(project.projectShortName, 'shacl'), connection=con)
             if tmp is not None:
-                tmp._con = con
                 return tmp
         cls.__context = Context(name=con.context_name)
         cls.__context[project.projectShortName] = project.namespaceIri
@@ -419,7 +450,7 @@ class DataModel(Model):
 
         self.clear_changeset()
 
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
     def update(self) -> None:
@@ -456,7 +487,7 @@ class DataModel(Model):
                     #self.__resclasses[qname].delete()
                     change.old_value.delete()
         self.changeset_clear()
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
     def delete(self):
@@ -482,6 +513,8 @@ class DataModel(Model):
         except OldapError as err:
             self._con.transaction_abort()
             raise
+        cache = CacheSingletonRedis()
+        cache.delete(Xsd_QName(self._project.projectShortName, 'shacl'))
 
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:

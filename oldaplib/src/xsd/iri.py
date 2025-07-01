@@ -48,7 +48,7 @@ class Iri(Xsd):
     __value: str
     __rep: IriRep
 
-    def __init__(self, value: Self | Xsd_QName | Xsd_anyURI | str | None = None, validate: bool = True):
+    def __init__(self, value: Self | Xsd_QName | Xsd_anyURI | str | None = None, validate: bool = False):
         """
         Constructor for the Iri class. If no parameter is supplied, the Iri class is initialized with
         a generated random Iri from the urn-namespace.

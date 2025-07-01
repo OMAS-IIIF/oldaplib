@@ -17,7 +17,7 @@ class Xsd_hexBinary(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Constructor of the Xsd_hexBinary class
         :param value: Xsd_hexBinary instance or a valid string

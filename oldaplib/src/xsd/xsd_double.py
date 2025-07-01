@@ -18,7 +18,7 @@ class Xsd_double(FloatingPoint):
     """
     _value: float
 
-    def __init__(self, value: FloatingPoint | float | str, validate: bool = True):
+    def __init__(self, value: FloatingPoint | float | str, validate: bool = False):
         """
         Constructor for the Xsd_double class.
         :param value: a FloatinPoint instance, a float or a valid string for a float number

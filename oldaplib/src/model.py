@@ -1,5 +1,6 @@
 import json
 from copy import deepcopy
+from datetime import datetime
 from enum import Enum
 from pprint import pprint
 from typing import Set, Dict, Any, Self
@@ -9,6 +10,7 @@ from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
@@ -29,28 +31,29 @@ class Model:
     _contributor: Iri | None
     _modified: Xsd_dateTime | None
     _attributes: dict[Enum, Any]
-    _changeset: dict[AttributeClass, AttributeChange]
+    _changeset: dict[AttributeClass | Iri, AttributeChange]
+    _validate: bool
 
     def __init__(self, *,
                  connection: IConnection,
-                 creator: Iri | None = None,
-                 created: Xsd_dateTime | None = None,
-                 contributor: Iri | None = None,
-                 modified: Xsd_dateTime | None = None) -> None:
-        # if not isinstance(connection, Connection):
-        #     raise OldapError('"con"-parameter must be an instance of Connection')
-        # if type(connection) != Connection:
-        #     raise OldapError('"con"-parameter must be an instance of Connection')
+                 creator: Iri | str | None = None,
+                 created: Xsd_dateTime | datetime | str | None = None,
+                 contributor: Iri | str | None = None,
+                 modified: Xsd_dateTime | datetime | str | None = None,
+                 validate: bool = False) -> None:
+        if not isinstance(connection, IConnection):
+            raise OldapError('"connection"-parameter must be an instance of IConnection')
+        self._validate = validate
         self._con = connection
         if not creator:
             creator = self._con.userIri
         if not contributor:
             contributor = self._con.userIri
 
-        self._creator = creator
-        self._created = created
-        self._contributor = contributor
-        self._modified = modified
+        self._creator = Iri(creator, validate=validate)
+        self._created = Xsd_dateTime(created, validate=validate)
+        self._contributor = Iri(contributor, validate=validate)
+        self._modified = Xsd_dateTime(modified, validate=validate)
         self._attributes = {}
         self._changeset = {}
 
@@ -78,7 +81,7 @@ class Model:
     def check_consistency(self, attr: AttributeClass, value: Any) -> None:
         pass
 
-    def pre_transform(self, attr: AttributeClass, value: Any) -> Any:
+    def pre_transform(self, attr: AttributeClass, value: Any, validate: bool = False) -> Any:
         return value
 
     def cleanup_setter(self, attr: AttributeClass, value: Any) -> None:
@@ -123,7 +126,7 @@ class Model:
                 continue
             attr = Attributes.from_name(name)
             try:
-                self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value)
+                self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value, validate=self._validate)
             except ValueError as err:
                 raise OldapErrorValue(err)
             if hasattr(self._attributes[attr], 'set_notifier'):
@@ -155,7 +158,7 @@ class Model:
             if attr.immutable:
                 raise OldapErrorImmutable(f'Attribute {attr.value} is immutable.')
             self.check_consistency(attr, value)
-            value = self.pre_transform(attr, value)
+            value = self.pre_transform(attr, value, validate=self._validate)
         if self._attributes.get(attr) is None:
             if self._changeset.get(attr) is None:
                 self._changeset[attr] = AttributeChange(None, Action.CREATE)
@@ -170,7 +173,7 @@ class Model:
             del self._attributes[attr]
         else:
             if not isinstance(value, attr.datatype):
-                self._attributes[attr] = attr.datatype(value)
+                self._attributes[attr] = attr.datatype(value, validate=True)
             else:
                 self._attributes[attr] = value
             if hasattr(self._attributes[attr], 'set_notifier') and hasattr(self, 'notifier'):
@@ -236,7 +239,11 @@ class Model:
         return self._modified
 
 
-    def get_modified_by_iri(self, graph: Xsd_QName, iri: Iri) -> Xsd_dateTime:
+    def get_modified_by_iri(self, graph: Xsd_QName | str, iri: Iri | str) -> Xsd_dateTime:
+        if not isinstance(graph, Xsd_QName):
+            graph = Xsd_QName(graph, validate=True)
+        if not isinstance(iri, Iri):
+            iri = Iri(iri, validate=True)
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""
@@ -258,10 +265,18 @@ class Model:
             return r['modified']
 
     def set_modified_by_iri(self,
-                            graph: Xsd_QName,
-                            iri: Iri,
-                            old_timestamp: Xsd_dateTime,
-                            timestamp: Xsd_dateTime) -> None:
+                            graph: Xsd_QName | str,
+                            iri: Iri | str,
+                            old_timestamp: Xsd_dateTime | datetime | str,
+                            timestamp: Xsd_dateTime | datetime | str) -> None:
+        if not isinstance(graph, Xsd_QName):
+            graph = Xsd_QName(graph, validate=True)
+        if not isinstance(iri, Iri):
+            iri = Iri(iri, validate=True)
+        if not isinstance(old_timestamp, Xsd_dateTime):
+            old_timestamp = Xsd_dateTime(old_timestamp, validate=True)
+        if not isinstance(timestamp, Xsd_dateTime):
+            timestamp = Xsd_dateTime(timestamp, validate=True)
         try:
             context = Context(name=self._con.context_name)
             sparql = context.sparql_context

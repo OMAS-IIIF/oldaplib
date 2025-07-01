@@ -18,7 +18,7 @@ class Xsd_token(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Constructor for the Xsd_token class.
         :param value: A Xml_token instance or a valid token string

@@ -1,3 +1,4 @@
+import json
 import threading
 from enum import EnumMeta, Enum, unique
 from typing import Self
@@ -11,14 +12,17 @@ from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
-
+@serializer
 class PermissionWithValue(Enum):
     def __new__(cls, value: Xsd_QName | str, numeric: Xsd_integer | int):
         member = object.__new__(cls)
-        member._value = Xsd_QName(value, validate=False)
+        member._value = Xsd_QName(value)
         member._name = member._value.fragment  # Extract fragment for example
-        member._numeric = Xsd_integer(numeric, validate=False)
+        member._numeric = Xsd_integer(numeric)
         return member
+
+    def _as_dict(self):
+        return {'value': (self.value, self.numeric)}
 
     def __str__(self) -> str:
         return str(self.value)
@@ -87,12 +91,4 @@ class DataPermission(PermissionWithValue):
             if f'oldap:{member.name}' == permission_string:
                 return member
         raise ValueError(f'{permission_string} is not in DataPermission enum.')
-
-if __name__ == '__main__':
-    p = DataPermission.from_string('DATA_RESTRICTED')
-    print(p)
-    print(p.to_string())
-    print(p.value)
-    print(p.numeric)
-
 

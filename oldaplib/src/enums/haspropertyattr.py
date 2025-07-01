@@ -1,7 +1,6 @@
 from enum import unique
 
 from oldaplib.src.enums.attributeclass import AttributeClass
-from oldaplib.src.helpers.propref import PropRef
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_integer import Xsd_integer

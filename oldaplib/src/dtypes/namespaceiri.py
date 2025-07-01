@@ -18,7 +18,7 @@ class NamespaceIRI(Xsd_anyURI):
     It is a subclass of AnyIRI and checks in the constructor for the termination with a "#" or "/".
     """
 
-    def __init__(self, value: Self | Xsd_anyURI | str, validate: bool = True):
+    def __init__(self, value: Self | Xsd_anyURI | str, validate: bool = False):
         """
         Constructor for the NamespaceIRI
         :param value: A string or another NamespaceIRI

@@ -18,7 +18,7 @@ class AttributeClass(Enum):
         :param datatype: The datatype of the attribute-enum item.
         """
         member = object.__new__(cls)
-        member._value = Xsd_QName(value, validate=False)
+        member._value = Xsd_QName(value)
         member._name = member._value.fragment  # Extract fragment for example
         member._mandatory = mandatory
         member._immutable = immutable

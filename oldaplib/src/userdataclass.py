@@ -45,7 +45,8 @@ class UserData:
                  credentials: Xsd_string | None = None,
                  isActive: Xsd_boolean,
                  inProject: InProjectClass | None = None,
-                 hasPermissions: SerializeableSet[Iri] | set[Iri] | None = None):
+                 hasPermissions: SerializeableSet[Iri] | set[Iri] | None = None,
+                 validate: bool = False):
         self._creator = creator
         self._created = created
         self._contributor = contributor
@@ -234,7 +235,8 @@ class UserData:
                    credentials=credentials,
                    isActive=isActive,
                    inProject=inProject,
-                   hasPermissions=hasPermissions)
+                   hasPermissions=hasPermissions,
+                   validate=False)
 
     def _as_dict(self) -> dict:
         return {

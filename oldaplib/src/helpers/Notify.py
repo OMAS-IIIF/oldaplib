@@ -3,6 +3,7 @@ from typing import Callable, Any, Self
 
 from pystrict import strict
 
+from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.xsd.iri import Iri
 
 
@@ -29,7 +30,7 @@ class Notify:
         self._notify_data = data
 
     def set_notifier(self,
-                     notifier: Callable[[Enum | Iri], None],
+                     notifier: Callable[[Enum | AttributeClass | Iri], None],
                      data: Enum | Iri | None = None) -> None:
         """
         Sets the notifier callback function and the data it should return...

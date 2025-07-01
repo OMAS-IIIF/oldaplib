@@ -36,7 +36,8 @@ class InProjectClass(Notify):
     def __init__(self,
                  setdata: Self | Dict[Iri | str, set[AdminPermission | str] | ObservableSet] | None = None,
                  notifier: Callable[[Iri], None] | None = None,
-                 notify_data: Iri | None = None) -> None:
+                 notify_data: Iri | None = None,
+                 validate: bool = False) -> None:
         """
         Constructor of the class. The class acts like a dictionary and allows the access to the permission
         set for a project using the QName of the project as the key: ```perms = t.in_project[QName('ex:proj')]```.
@@ -104,7 +105,7 @@ class InProjectClass(Notify):
 
     def __setitem__(self, key: Iri | str, value: set[AdminPermission | str] | ObservableSet | None) -> None:
         if not isinstance(key, Iri):
-            key = Iri(key)
+            key = Iri(key, validate=True)
         if self.__setdata.get(key) is None:
             if self._changeset.get(key) is None:
                 self._changeset[key] = AttributeChange(self.__setdata.get(key), Action.CREATE)
@@ -121,7 +122,7 @@ class InProjectClass(Notify):
 
     def __delitem__(self, key: Iri | str) -> None:
         if not isinstance(key, Iri):
-            key = Iri(key)
+            key = Iri(key, validate=True)
         if self.__setdata.get(key) is not None:
             if self._changeset.get(key) is None:
                 self._changeset[key] = AttributeChange(self.__setdata[key], Action.DELETE)
@@ -148,7 +149,7 @@ class InProjectClass(Notify):
 
     def __contains__(self, key: Iri | str) -> bool:
         if not isinstance(key, Iri):
-            key = Iri(key)
+            key = Iri(key, validate=True)
         return key in self.__setdata
 
 

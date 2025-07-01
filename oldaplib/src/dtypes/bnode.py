@@ -25,7 +25,7 @@ class BNode(Xsd_QName):
     - *value()*: Return the value of the blank node (same as str())
     """
 
-    def __init__(self, value: Xsd_QName | str, validate: bool = True) -> None:
+    def __init__(self, value: Xsd_QName | str, validate: bool = False) -> None:
         """
         Construct a blank node from its name
         :param value: Name/id of the blank node

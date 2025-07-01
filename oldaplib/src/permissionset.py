@@ -10,13 +10,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 
-from oldaplib.src.cachesingleton import CacheSingleton
+from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.project import Project
 from oldaplib.src.enums.projectattr import ProjectAttr
@@ -37,6 +38,7 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 #@strict
+@serializer
 class PermissionSet(Model):
 
     __permset_iri: Iri | None
@@ -48,6 +50,7 @@ class PermissionSet(Model):
                  created: Xsd_dateTime | datetime | str | None = None,
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
+                 validate: bool = False,
                  **kwargs):
         """
         Constructor for a permission set.
@@ -77,7 +80,8 @@ class PermissionSet(Model):
                          creator=creator,
                          created=created,
                          contributor=contributor,
-                         modified=modified)
+                         modified=modified,
+                         validate=validate)
         self.__project = None
         self.set_attributes(kwargs, PermissionSetAttr)
         #
@@ -98,6 +102,14 @@ class PermissionSet(Model):
                 partial(PermissionSet._set_value, attr=attr),
                 partial(PermissionSet._del_value, attr=attr)))
         self._changeset = {}
+
+    def update_notifier(self):
+        for attr, value in self._attributes.items():
+            if getattr(value, 'set_notifier', None) is not None:
+                value.set_notifier(self.notifier, attr)
+
+    def _as_dict(self):
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict()
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         if id(self) in memo:
@@ -226,7 +238,7 @@ class PermissionSet(Model):
         self._creator = self._con.userIri
         self._modified = timestamp
         self._contributor = self._con.userIri
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(self.__permset_iri, self)
 
     @classmethod
@@ -250,9 +262,9 @@ class PermissionSet(Model):
         :raises OldapErrorNot found: If the permission set cannot be found.
         """
         if iri:
-            permset_iri = Iri(iri)
+            permset_iri = Iri(iri, validate=True)
         elif permissionSetId and definedByProject:
-            id = Xsd_NCName(permissionSetId)
+            id = Xsd_NCName(permissionSetId, validate=True)
 
             if isinstance(definedByProject, Project):
                 project = definedByProject
@@ -262,10 +274,10 @@ class PermissionSet(Model):
         else:
             raise OldapErrorValue('Either the parameter "iri" of both "permissionSetId" and "definedByProject" must be provided.')
         if not ignore_cache:
-            cache = CacheSingleton()
-            tmp = cache.get(permset_iri)
+            cache = CacheSingletonRedis()
+            tmp = cache.get(permset_iri, connection=con)
             if tmp is not None:
-                tmp._con = con
+                tmp.update_notifier()
                 return tmp
         context = Context(name=con.context_name)
         sparql = context.sparql_context
@@ -336,7 +348,7 @@ class PermissionSet(Model):
                        comment=comment,
                        givesPermission=givesPermission,
                        definedByProject=Iri(_definedByProject, validate=False))
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(instance.__permset_iri, instance)
         return instance
 
@@ -363,8 +375,8 @@ class PermissionSet(Model):
         :rtype: list[Iri | Xsd_QName]
         """
         if definedByProject:
-            definedByProject = Iri(definedByProject)
-        label = Xsd_string(label)
+            definedByProject = Iri(definedByProject, validate=True)
+        label = Xsd_string(label, validate=True)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         if definedByProject:
@@ -495,7 +507,7 @@ class PermissionSet(Model):
             raise
         self._modified = timestamp
         self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.set(self.__permset_iri, self)
 
 
@@ -581,7 +593,7 @@ class PermissionSet(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        cache = CacheSingleton()
+        cache = CacheSingletonRedis()
         cache.delete(self.__permset_iri)
 
 

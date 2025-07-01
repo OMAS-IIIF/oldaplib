@@ -6,7 +6,7 @@ from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
 
-class TestObservableDic(unittest.TestCase):
+class TestObservableDict(unittest.TestCase):
 
     _notified: Iri
 

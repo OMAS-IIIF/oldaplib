@@ -1,15 +1,20 @@
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
+from pprint import pprint
 from typing import Callable, Self, Any
 
 from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
+from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
+from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass, HasPropertyData
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -21,9 +26,11 @@ from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 @serializer
 class HasProperty(Model, Notify):
     _prop: PropertyClass | Iri | None
+    _project: Project | None
 
     def __init__(self, *,
                  con: IConnection,
+                 project: Project,
                  prop: PropertyClass | Iri | None = None,
                  notifier: Callable[[Iri], None] | None = None,
                  notify_data: Iri | None = None,
@@ -38,6 +45,15 @@ class HasProperty(Model, Notify):
                        contributor=contributor,
                        modified=modified)
         Notify.__init__(self, notifier, notify_data)
+        self._project = project
+        if isinstance(prop, Iri):
+            fixed_prop = Iri(str(prop).removesuffix("Shape"))
+            try:
+                self._prop = PropertyClass.read(self._con, self._project, fixed_prop)
+            except OldapErrorNotFound as err:
+                self._prop = fixed_prop
+        else:
+            self._prop = prop
         self._prop = prop
         self.set_attributes(kwargs, HasPropertyAttr)
 
@@ -46,10 +62,24 @@ class HasProperty(Model, Notify):
                 partial(HasProperty._get_value, attr=attr),
                 partial(HasProperty._set_value, attr=attr),
                 partial(HasProperty._del_value, attr=attr)))
+        self.update_notifier(notifier, notify_data)
         self._changeset = {}
 
+    def update_notifier(self,
+                        notifier: Callable[[AttributeClass | Iri], None] | None = None,
+                        notify_data: HasPropertyAttr | Iri | None = None):
+        self.set_notifier(notifier, notify_data)
+        if isinstance(self._prop, PropertyClass):
+            self._prop.set_notifier(self.notifier, self._prop.property_class_iri)
+        for attr, value in self._attributes.items():
+            if getattr(value, 'set_notifier', None) is not None:
+                value.set_notifier(self.notifier, attr)
+
     def _as_dict(self):
-        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {'prop': self._prop}
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
+            'project': self._project,
+            'prop': self._prop.property_class_iri if not self._prop.internal else self.prop
+        }
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         if id(self) in memo:
@@ -79,11 +109,11 @@ class HasProperty(Model, Notify):
         return s
 
     @property
-    def prop(self) -> PropertyClass:
+    def prop(self) -> PropertyClass | Iri | None:
         return self._prop
 
     @prop.setter
-    def prop(self, prop: PropertyClass) -> None:
+    def prop(self, prop: PropertyClass | Iri) -> None:
         self._prop = prop
 
     @property
@@ -93,10 +123,13 @@ class HasProperty(Model, Notify):
                                order=self._attributes.get(HasPropertyAttr.ORDER, None),
                                group=self._attributes.get(HasPropertyAttr.GROUP, None))
 
-    def notifier(self, attr: HasPropertyAttr) -> None:
-        if attr == HasPropertyAttr.PROP:
-            return
-        self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
+    def notifier(self, attr: HasPropertyAttr | Iri) -> None:
+        #if attr == HasPropertyAttr.PROP:
+        #    return
+        if isinstance(attr, HasPropertyAttr):
+            self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
+        elif isinstance(attr, Iri):
+            self._changeset[attr] = AttributeChange(None, Action.MODIFY)
         self.notify()
 
     def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
@@ -135,6 +168,8 @@ class HasProperty(Model, Notify):
         blank = ''
         sparql_list = []
         for attr, change in self._changeset.items():
+            if isinstance(attr, Iri):  # if it's an IRI, the attached PropertyClass has changed. We don't process this here
+                continue
             sparql = f'WITH {graph}:shacl\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'

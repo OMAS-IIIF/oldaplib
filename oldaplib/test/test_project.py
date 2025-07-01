@@ -73,7 +73,6 @@ class Testproject(unittest.TestCase):
 
 
     def test_project_deepcopy(self):
-        project = Project.read()
         project = Project(con=self._connection,
                           projectShortName="unittest",
                           label=LangString(["unittest@en", "unittest@de"]),

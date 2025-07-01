@@ -31,7 +31,7 @@ class Xsd_NCName(Xsd):
     """
     __value: str
 
-    def __init__(self, value: Self | str | None, validate: bool = True):
+    def __init__(self, value: Self | str | None, validate: bool = False):
         """
         Initialize the NCName
         :param value: Either a string conforming to the QName syntax or a NCName

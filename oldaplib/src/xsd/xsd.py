@@ -8,7 +8,7 @@ class Xsd(ABC):
     """
 
     @abstractmethod
-    def __init__(self, value: Self | str, validate: bool = True):
+    def __init__(self, value: Self | str, validate: bool = False):
         """
         Initialize the XSD class. Must not be called by subclasses
         :param value: The value of the Xsd instance

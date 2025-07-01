@@ -15,7 +15,7 @@ from oldaplib.src.enums.language import Language
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.context import Context
-from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.langstring import LangString, LangStringChange
 from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, \
     OldapErrorInconsistency
 from oldaplib.src.helpers.query_processor import QueryProcessor
@@ -373,6 +373,10 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.name, p2.name)
         self.assertEqual(p1.description, p2.description)
         self.assertEqual(p1.inSet, p2.inSet)
+
+        p2.name.add("Annotation@de")
+        self.assertEqual(p2.changeset, {PropClassAttr.NAME: AttributeChange(old_value=None, action=Action.MODIFY)})
+        self.assertEqual(p2.name.changeset, {Language.DE: LangStringChange(old_value=None, action=Action.CREATE)})
 
     # @unittest.skip('Work in progress')
     def test_propertyclass_undo(self):
