@@ -115,7 +115,6 @@ class TestPropertyClass(unittest.TestCase):
                           description=LangString("A test for deepcopy...@"))
         p.force_external()
         jsonstr = json.dumps(p, default=serializer.encoder_default, indent=3)
-        print(jsonstr)
         p2 = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(self._connection))
         self.assertEqual(p2, p)
 
@@ -131,11 +130,10 @@ class TestPropertyClass(unittest.TestCase):
         p.force_external()
         p2 = deepcopy(p)
         p2.set_notifier(lambda x: x, Iri('test:gaga'))
-        self.assertEqual(p._project.projectIri, p2._project.projectIri)
-        self.assertFalse(p._project.projectIri is p2._project.projectIri)
-        self.assertEqual(p._project.projectShortName, p2._project.projectShortName)
-        self.assertFalse(p._project.projectShortName is p2._project.projectShortName)
-        self.assertFalse(p._project is p2._project)
+        self.assertEqual(p._projectIri, p2._projectIri)
+        self.assertFalse(p._projectIri is p2._projectIri)
+        self.assertEqual(p._projectShortName, p2._projectShortName)
+        self.assertFalse(p._projectShortName is p2._projectShortName)
         self.assertEqual(p._graph, p2._graph)
         self.assertFalse(p._graph is p2._graph)
         self.assertEqual(p._property_class_iri, p2._property_class_iri)
@@ -351,7 +349,7 @@ class TestPropertyClass(unittest.TestCase):
         )
         with self.assertRaises(OldapErrorNoPermission) as ex:
             p1.create()
-        self.assertEqual(str(ex.exception), 'Actor has no ADMIN_MODEL permission for project "test"')
+        self.assertEqual(str(ex.exception), 'Actor has no ADMIN_MODEL permission for project "oldap:Test"')
 
     def test_property_cache(self):
         p1 = PropertyClass(

@@ -119,7 +119,8 @@ class PropertyClass(Model, Notify):
 
     """
     _graph: Xsd_NCName
-    _project: Project
+    _projectShortName: Xsd_NCName
+    _projectIri: Iri
     _property_class_iri: Iri | None
     _internal: Iri | None
     _force_external: bool
@@ -184,16 +185,16 @@ class PropertyClass(Model, Notify):
                        validate=validate)
         Notify.__init__(self, notifier, notify_data)
 
-        if isinstance(project, Project):
-            self._project = project
-        else:
+        if not isinstance(project, Project):
             if not isinstance(project, (Iri, Xsd_NCName)):
                 project = IriOrNCName(project, validate=validate)
-            self._project = Project.read(self._con, project)
+            project = Project.read(self._con, project)
+        self._projectShortName = project.projectShortName
+        self._projectIri = project.projectIri
         context = Context(name=self._con.context_name)
-        context[self._project.projectShortName] = self._project.namespaceIri
-        context.use(self._project.projectShortName)
-        self._graph = self._project.projectShortName
+        context[self._projectShortName] = project.namespaceIri
+        context.use(self._projectShortName)
+        self._graph = self._projectShortName
 
         self._property_class_iri = Iri(property_class_iri, validate=validate) if property_class_iri else None
         datatype = kwargs.get('datatype', None)
@@ -279,7 +280,7 @@ class PropertyClass(Model, Notify):
 
     def _as_dict(self):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
-            'project': self._project.projectShortName,
+            'project': self._projectShortName,
             'property_class_iri': self.property_class_iri,
             **({'_internal': self._internal} if self._internal else {}),
             **({'_force_external': self._force_external} if self._force_external else {}),
@@ -302,14 +303,14 @@ class PropertyClass(Model, Notify):
             #
             return True, "OK – IS ROOT"
         else:
-            if not self._project:
+            if not self._projectShortName:
                 return False, f'Actor has no ADMIN_MODEL permission. Actor not associated with a project.'
-            proj = self._project.projectShortName
-            if actor.inProject.get(proj) is None:
-                return False, f'Actor has no ADMIN_MODEL permission for project "{proj}"'
+            proj = self._projectShortName
+            if actor.inProject.get(self._projectIri) is None:
+                return False, f'Actor has no ADMIN_MODEL permission for project "{self._projectIri}"'
             else:
-                if AdminPermission.ADMIN_MODEL not in actor.inProject.get(proj):
-                    return False, f'Actor has no ADMIN_MODEL permission for project "{proj}"'
+                if AdminPermission.ADMIN_MODEL not in actor.inProject.get(self._projectIri):
+                    return False, f'Actor has no ADMIN_MODEL permission for project "{self._projectIri}"'
             return True, "OK"
 
 
@@ -409,7 +410,8 @@ class PropertyClass(Model, Notify):
         instance._changset = deepcopy(self._changeset, memo)
         # Copy remaining PropertyClass attributes
         instance._graph = deepcopy(self._graph, memo)
-        instance._project = deepcopy(self._project, memo)
+        instance._projectShortName = deepcopy(self._projectShortName, memo)
+        instance._projectIri = deepcopy(self._projectIri, memo)
         instance._property_class_iri = deepcopy(self._property_class_iri, memo)
         instance._internal = deepcopy(self._internal, memo)
         instance._force_external = self._force_external
@@ -429,8 +431,12 @@ class PropertyClass(Model, Notify):
         return propstr
 
     @property
-    def project(self) -> Project:
-        return self._project
+    def projectShortName(self) -> Xsd_NCName:
+        return self._projectShortName
+
+    @property
+    def projectIri(self) -> Iri:
+        return self._projectIri
 
     @property
     def property_class_iri(self) -> Iri:

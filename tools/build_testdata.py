@@ -77,10 +77,10 @@ def generate_a_datamodel(con: Connection, project: Project) -> DataModel:
                          comment=LangString("Ein Buch mit Seiten@en"),
                          closed=Xsd_boolean(True),
                          hasproperties=[
-                             HasProperty(con=con, prop=title, minCount=Xsd_integer(1), order=1),
-                             HasProperty(con=con, prop=authors, minCount=Xsd_integer(1), order=2),
-                             HasProperty(con=con, prop=category, minCount=Xsd_integer(1), order=3),
-                             HasProperty(con=con, prop=comment, order=4)])
+                             HasProperty(con=con, project=project, prop=title, minCount=Xsd_integer(1), order=1),
+                             HasProperty(con=con, project=project, prop=authors, minCount=Xsd_integer(1), order=2),
+                             HasProperty(con=con, project=project, prop=category, minCount=Xsd_integer(1), order=3),
+                             HasProperty(con=con, project=project, prop=comment, order=4)])
 
     #
     # model for page
@@ -104,20 +104,20 @@ def generate_a_datamodel(con: Connection, project: Project) -> DataModel:
                          comment=LangString("Page of a book@en"),
                          closed=Xsd_boolean(True),
                          hasproperties=[
-                             HasProperty(con=con, prop=pagenum, maxCount=Xsd_integer(1),
+                             HasProperty(con=con, project=project, prop=pagenum, maxCount=Xsd_integer(1),
                                          minCount=Xsd_integer(1), order=1),
-                             HasProperty(con=con, prop=inbook, maxCount=Xsd_integer(1),
+                             HasProperty(con=con, project=project, prop=inbook, maxCount=Xsd_integer(1),
                                          minCount=Xsd_integer(1), order=2),
-                             HasProperty(con=con, prop=comment, order=3)])
+                             HasProperty(con=con, project=project, prop=comment, order=3)])
 
     person = ResourceClass(con=con,
                            project=project,
                            owlclass_iri=Iri(f'{dm_name}:Person'),
                            label=LangString(["Person@en", "Person@de"]),
                            hasproperties=[
-                               HasProperty(con=con, prop=Iri('schema:familyName'), minCount=Xsd_integer(1),
+                               HasProperty(con=con, project=project, prop=Iri('schema:familyName'), minCount=Xsd_integer(1),
                                            maxCount=Xsd_integer(1), order=1),
-                               HasProperty(con=con, prop=Iri('schema:givenName'), minCount=Xsd_integer(1),
+                               HasProperty(con=con, project=project, prop=Iri('schema:givenName'), minCount=Xsd_integer(1),
                                            order=2)])
 
     dm = DataModel(con=con,
@@ -173,7 +173,7 @@ if __name__ == '__main__':
                  userId=Xsd_NCName("p1"),
                  familyName="Playground",
                  givenName="One",
-                 email="one.playground@playground.og",
+                 email="one.playground@playground.org",
                  credentials="RioGrande",
                  inProject={
                      project.projectIri: {

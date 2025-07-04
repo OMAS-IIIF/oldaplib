@@ -263,7 +263,7 @@ class DataModel(Model):
              project: Project | Iri | Xsd_NCName | str,
              ignore_cache: bool = False):
         """
-        Read the datamodel fromn the given project from the triple store.
+        Read the datamodel from the given project from the triple store.
         :param con: Valid connection to the triple store
         :type con: IConnection or subclass thereof
         :param project: Project instance, project iri or project shortname
@@ -325,11 +325,12 @@ class DataModel(Model):
         #
         query = cls.__context.sparql_context
         query += f"""
-        SELECT ?prop
-        FROM {cls.__graph}:shacl
-        FROM shared:shacl
+        SELECT ?prop ?graph
         WHERE {{
-            ?prop a sh:PropertyShape
+	        GRAPH ?graph {{
+		        ?prop a sh:PropertyShape
+	        }}
+            FILTER (?graph = {cls.__graph}:shacl || ?graph = shared:shacl)
         }}
         """
         jsonobj = con.query(query)
@@ -488,7 +489,8 @@ class DataModel(Model):
                     change.old_value.delete()
         self.changeset_clear()
         cache = CacheSingletonRedis()
-        cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
+        cache.delete(Xsd_QName(self._project.projectShortName, 'shacl'))
+        #cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
     def delete(self):
         #

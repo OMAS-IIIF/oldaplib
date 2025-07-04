@@ -14,7 +14,7 @@ class ProjectAttr(AttributeClass):
     This enum class represents the fields used in the project model
     """
     # order: (QName, mandatory, immutable, datatype)
-    PROJECT_IRI = ('oldap:projectIri', False, True, Iri)  # virtual property, repents the RDF subject
+    PROJECT_IRI = ('oldap:projectIri', False, True, Iri)  # virtual property, represents the RDF subject
     PROJECT_SHORTNAME = ('oldap:projectShortName', True, True, Xsd_NCName)
     LABEL = ('rdfs:label', False, False, LangString)
     COMMENT = ('rdfs:comment', False, False, LangString)
