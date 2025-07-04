@@ -78,6 +78,17 @@
         :permissionValue "6"^^xsd:integer .
 
 
+    :SharedProject a :Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        :projectShortName "shared"^^xsd:NCName ;
+        :namespaceIri "http://oldap.org/shared#"^^xsd:anyURI ;
+        rdfs:label "Shared"@en, "Shared"@de, "Shared"@fr, "Shared"@it ;
+        rdfs:comment "Project for shared ontologies"@en ;
+        :projectStart "2024-01-01"^^xsd:date .
+
     :SystemProject a :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;

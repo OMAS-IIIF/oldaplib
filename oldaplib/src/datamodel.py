@@ -340,9 +340,10 @@ class DataModel(Model):
         #
         propclasses: list[PropertyClass] = []
         for r in res:
+            projectid = r['graph'].prefix
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
-            propclass = PropertyClass.read(con, project, Iri(propclassiri, validate=False), ignore_cache=ignore_cache)
+            propclass = PropertyClass.read(con, projectid, Iri(propclassiri, validate=False), ignore_cache=ignore_cache)
             propclass.force_external()
             propclasses.append(propclass)
         sa_props = {x.property_class_iri: x for x in propclasses}
