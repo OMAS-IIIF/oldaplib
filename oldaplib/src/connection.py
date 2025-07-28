@@ -465,7 +465,7 @@ if __name__ == "__main__":
                      credentials="RioGrande",
                      repo="oldap",
                      context_name="DEFAULT")
-    cache = CacheSingleton()
+    cache = CacheSingletonRedis()
     cache.clear()
     con.clear_repo()
     con.upload_turtle("../ontologies/oldap.trig")

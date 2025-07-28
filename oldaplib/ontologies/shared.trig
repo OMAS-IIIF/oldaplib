@@ -7,6 +7,7 @@
 @prefix dc: <http://purl.org/dc/elements/1.1/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix schema: <http://schema.org/> .
+@prefix cidoc:  <http://www.cidoc-crm.org/cidoc-crm/> .
 @prefix oldap: <http://oldap.org/base#> .
 
 
@@ -14,6 +15,7 @@
 @prefix : <http://oldap.org/shared#> .
 
 shared:shacl {
+    shared:shapes dcterms:hasVersion "0.1.0"^^xsd:string .
 
     #
     # Define the SHACL for OLAPDLIB's use of rdfs:label
@@ -128,6 +130,8 @@ shared:shacl {
 }
 
 shared:onto {
+    shared:ontology rdf:type owl:Ontology ;
+        owl:versionInfo "0.1.0"^^xsd:string .
 
     rdfs:label a owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
