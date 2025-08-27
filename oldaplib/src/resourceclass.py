@@ -145,7 +145,8 @@ class ResourceClass(Model, Notify):
         new_kwargs: dict[str, Any] = {}
         for name, value in kwargs.items():
             if name == ResClassAttribute.SUPERCLASS.value.fragment:
-                new_kwargs[name] = self.assign_superclass(value)
+                if value is not None:
+                    new_kwargs[name] = self.assign_superclass(value)
             else:
                 new_kwargs[name] = value
         #
@@ -156,7 +157,7 @@ class ResourceClass(Model, Notify):
         if self._owlclass_iri != thing_iri:
             if not new_kwargs.get(ResClassAttribute.SUPERCLASS.value.fragment):
                 new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment] = self.assign_superclass(thing_iri)
-            else :
+            else:
                 if not thing_iri in new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment]:
                     thing = ResourceClass.read(self._con, self._sysproject, thing_iri)
                     new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment][thing_iri] = thing
