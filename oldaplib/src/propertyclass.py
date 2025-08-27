@@ -135,6 +135,12 @@ class PropertyClass(Model, Notify):
     __version: SemanticVersion
     __from_triplestore: bool
 
+    __slots__ = ('subPropertyOf', 'type', 'toClass', 'datatype', 'name', 'description', 'languageIn', 'uniqueLang',
+                 'inSet', 'minCount', 'maxCount', 'pattern',
+                 'minExclusive', 'maxExclusive', 'minInclusive', 'maxInclusive', 'minLength', 'maxLength',
+                 'lessThan', 'lessThanOrEqual')
+
+
     def __init__(self, *,
                  con: IConnection,
                  creator: Iri | str | None = None,
@@ -547,11 +553,11 @@ class PropertyClass(Model, Notify):
         }} LIMIT 2
         """
         jsonres = self._con.query(query)
-        res = QueryProcessor(jsonres)
+        res = QueryProcessor(context, jsonres)
         if len(res) != 1:
             raise OldapError('Internal Error in "propertyClass.in_use"')
         for r in res:
-            if r['nresinstances'] > 0:
+            if r['nrinstances'] > 0:
                 return True
             else:
                 return False
@@ -1215,6 +1221,66 @@ class PropertyClass(Model, Notify):
         if not result:
             raise OldapErrorNoPermission(message)
         timestamp = Xsd_dateTime.now()
+
+        if (PropClassAttr.CLASS in self.changeset and PropClassAttr.DATATYPE in self.changeset):
+            # we change the Property type!!
+            if self.in_use:
+                raise OldapError("Cannot change Property type while in use")
+            if self.changeset[PropClassAttr.DATATYPE].action == Action.DELETE:
+                # we change from a literal to a class pointer
+                if self.minLength is not None:
+                    self.minLength = None
+                if self.maxLength is not None:
+                    self.maxLength = None
+                if self.languageIn is not None:
+                    self.languageIn = None
+                if self.uniqueLang is not None:
+                    self.uniqueLang = None
+                if self.pattern is not None:
+                    self.pattern = None
+                if self.minExclusive is not None:
+                    self.minExclusive = None
+                if self.minInclusive is not None:
+                    self.minInclusive = None
+                if self.maxExclusive is not None:
+                    self.maxExclusive = None
+                if self.maxInclusive is not None:
+                    self.maxInclusive = None
+                if self.lessThan is not None:
+                    self.lessThan = None
+                if self.lessThanOrEquals is not None:
+                    self.lessThanOrEquals = None
+        if PropClassAttr.DATATYPE in self.changeset and self.changeset[PropClassAttr.DATATYPE].action == Action.REPLACE:
+            if self.datatype in {XsdDatatypes.int, XsdDatatypes.float, XsdDatatypes.double, XsdDatatypes.decimal,
+                                 XsdDatatypes.long, XsdDatatypes.integer, XsdDatatypes.short, XsdDatatypes.byte,
+                                 XsdDatatypes.nonNegativeInteger, XsdDatatypes.positiveInteger, XsdDatatypes.unsignedLong,
+                                 XsdDatatypes.unsignedInt, XsdDatatypes.unsignedShort, XsdDatatypes.unsignedByte,
+                                 XsdDatatypes.dateTime, XsdDatatypes.dateTimeStamp, XsdDatatypes.time, XsdDatatypes.gYearMonth,
+                                 XsdDatatypes.gYear}:
+                # numeric literal datatypes, delete string restrictions
+                if self.minLength is not None:
+                    self.minLength = None
+                if self.maxLength is not None:
+                    self.maxLength = None
+                if self.uniqueLang is not None:
+                    self.uniqueLang = None
+                if self.pattern is not None:
+                    self.pattern = None
+            elif self.datatype in {XsdDatatypes.langString, XsdDatatypes.string, XsdDatatypes.ID, XsdDatatypes.NCName,
+                                   XsdDatatypes.NMTOKEN, XsdDatatypes.anyURI, XsdDatatypes.QName, XsdDatatypes.token}:
+                # string literal datatypes, delete all numeric restrictions
+                if self.minInclusive is not None:
+                    self.minInclusive = None
+                if self.maxInclusive is not None:
+                    self.maxInclusive = None
+                if self.minExclusive is not None:
+                    self.minExclusive = None
+                if self.maxExclusive is not None:
+                    self.maxExclusive = None
+                if self.lessThan is not None:
+                    self.lessThan = None
+                if self.lessThanOrEqual is not None:
+                    self.lessThanOrEqual = None
 
         blank = ''
         context = Context(name=self._con.context_name)

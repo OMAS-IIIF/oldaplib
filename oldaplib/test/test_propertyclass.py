@@ -28,6 +28,7 @@ from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
@@ -569,6 +570,86 @@ class TestPropertyClass(unittest.TestCase):
                          LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT, Language.ZU))
         self.assertEqual(p2.inSet, RdfSet(Xsd_string("gaga"), Xsd_string("is was")))
         self.assertFalse(p2.uniqueLang)
+
+    def test_propertyclass_update3(self):
+        p1 = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Iri('test:testUpdate3'),
+            name=LangString("Annotations@en"),
+            description=LangString("An annotation@en"),
+            datatype=XsdDatatypes.langString,
+            minLength=Xsd_integer(2),
+            maxLength=Xsd_integer(10),
+            languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
+            uniqueLang=Xsd_boolean(True)
+        )
+        p1.create()
+
+        p1 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:testUpdate3'),
+                                ignore_cache=True)
+        self.assertEqual(p1.property_class_iri, Iri('test:testUpdate3'))
+        self.assertEqual(p1.datatype, XsdDatatypes.langString)
+        self.assertEqual(p1.minLength, 2)
+        self.assertEqual(p1.maxLength, 10)
+        self.assertEqual(p1.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertTrue(p1.uniqueLang)
+        self.assertIsNone(p1.toClass)
+        self.assertEqual(p1.name, LangString(["Annotations@en"]))
+        self.assertEqual(p1.description, LangString("An annotation@en"))
+
+        p1.toClass = Iri('test:masterProp3')
+        p1.update()
+        self.assertEqual(p1.changeset, {})
+
+        p2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:testUpdate3'),
+                                ignore_cache=True)
+        self.assertEqual(p2.property_class_iri, Iri('test:testUpdate3'))
+        self.assertIsNone(p2.datatype)
+        self.assertEqual(p2.toClass, Iri('test:masterProp3'))
+        self.assertEqual(p2.name, LangString(["Annotations@en"]))
+        self.assertEqual(p2.description, LangString("An annotation@en"))
+        self.assertIsNone(p2.languageIn)
+        self.assertIsNone(p2.uniqueLang)
+
+    def test_propertyclass_update4(self):
+        p1 = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Iri('test:testUpdate4'),
+            name=LangString("Annotations@en"),
+            description=LangString("An annotation@en"),
+            toClass=Iri('test:masterProp4')
+        )
+        p1.create()
+
+        p1 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:testUpdate4'),
+                                ignore_cache=True)
+        p1.datatype = XsdDatatypes.string
+        p1.maxLength = 100
+        p1.pattern = '.*'
+        p1.update()
+        self.assertEqual(p1.changeset, {})
+
+        p2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:testUpdate4'),
+                                ignore_cache=True)
+        self.assertEqual(p2.datatype, XsdDatatypes.string)
+        self.assertEqual(p2.maxLength, 100)
+        self.assertEqual(p2.pattern, '.*')
+        self.assertIsNone(p2.toClass)
+        self.assertEqual(p2.name, LangString(["Annotations@en"]))
+        self.assertEqual(p2.description, LangString("An annotation@en"))
+
+
+
 
     # @unittest.skip('Work in progress')
     def test_propertyclass_delete_attrs(self):

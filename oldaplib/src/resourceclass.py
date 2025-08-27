@@ -399,6 +399,10 @@ class ResourceClass(Model, Notify):
     def properties(self) -> dict[Iri, HasProperty]:
         return self._properties
 
+    @property
+    def projectid(self) -> Xsd_NCName:
+        return self._project.projectShortName
+
     def properties_items(self):
         return self._properties.items()
 

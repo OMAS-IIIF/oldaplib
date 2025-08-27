@@ -136,6 +136,7 @@ class Testproject(unittest.TestCase):
         projects = Project.search(con=self._connection)
         print(projects)
         self.assertEqual({ProjectSearchResult(Iri("oldap:SystemProject"), Xsd_NCName("oldap")),
+                          ProjectSearchResult(Iri("oldap:SharedProject"), Xsd_NCName("shared")),
                           ProjectSearchResult(Iri("oldap:HyperHamlet"), Xsd_NCName("hyha")),
                           ProjectSearchResult(Iri("http://www.salsah.org/version/2.0/SwissBritNet"), Xsd_NCName("britnet"))}, set(projects))
 

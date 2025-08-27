@@ -149,6 +149,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.email, Xsd_string("lukas.rosenthaler@unibas.ch"))
         self.assertEqual(user.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
+            Iri("oldap:SharedProject"): {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
             Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                 AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
@@ -167,6 +168,7 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
+            Iri('oldap:SharedProject'): {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS},
             Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                 AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
                 AdminPermission.ADMIN_PERMISSION_SETS, AdminPermission.ADMIN_RESOURCES,
@@ -207,6 +209,7 @@ class TestUser(unittest.TestCase):
 
         self.assertEqual(user2.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
+            Iri('oldap:SharedProject'): {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
             Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                 AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
@@ -245,6 +248,7 @@ class TestUser(unittest.TestCase):
 
         self.assertEqual(user3.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
+            Iri('oldap:SharedProject'): {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
             Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                 AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,

@@ -95,13 +95,13 @@ def generate_a_datamodel(con: Connection, project: Project) -> DataModel:
                            project=project,
                            property_class_iri=Iri(f'{dm_name}:inbook'),
                            toClass=Iri(f'{dm_name}:Book'),
-                           name=LangString(["Pagenumber@en", "Seitennummer@de"]))
+                           name=LangString(["In book@en", "Im Buch@de"]))
 
     page = ResourceClass(con=con,
                          project=project,
                          owlclass_iri=Iri(f'{dm_name}:Page'),
                          label=LangString(["Page@en", "Seite@de"]),
-                         comment=LangString("Page of a book@en"),
+                         comment=LangString("Page of a book@en", "Seite eines Buches@de"),
                          closed=Xsd_boolean(True),
                          hasproperties=[
                              HasProperty(con=con, project=project, prop=pagenum, maxCount=Xsd_integer(1),
