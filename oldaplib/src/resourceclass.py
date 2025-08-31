@@ -48,7 +48,7 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 RC = TypeVar('RC', bound='ResourceClass')
 AttributeTypes = Iri | LangString | Xsd_boolean | ObservableDict[Iri, RC | None] | None
 ResourceClassAttributesContainer = Dict[ResClassAttribute, AttributeTypes]
-SuperclassParam = Iri | str | list[Iri] | tuple[Iri] | set[Iri] | None
+SuperclassParam = Iri | str | list[Iri | str] | tuple[Iri] | set[Iri | str] | None
 AttributeParams = LangString | Xsd_boolean | SuperclassParam
 
 
@@ -69,35 +69,62 @@ class ResourceClass(Model, Notify):
     __version: SemanticVersion
     __from_triplestore: bool
 
-    def assign_superclass(self, superclass: SuperclassParam) -> ObservableDict[Iri, RC | None]:
+    __slots__ = ['superclass', 'label', 'comment', 'closed']
 
-        def __check(sc: Any):
-            scval = Iri(sc)
-            sucla = None
-            if scval.is_qname:
-                match scval.prefix:
-                    case self._project.projectShortName:
-                        sucla = ResourceClass.read(self._con, self._project, scval)
-                    case 'oldap':
-                        sucla = ResourceClass.read(self._con, self._sysproject, scval)
-                    case 'shared':
-                        raise OldapErrorNotImplemented("Not yet implemented!")
-                    case _:
-                        # external resource not defined in Oldap
-                        # -> we can not read it -> we pass None -> no "sh:node" in SHACL!
-                        pass
-            return scval, sucla
+    def __check(self, sc: Any, validate: bool = False):
+        scval = Iri(sc, validate=validate)
+        sucla = None
+        if scval.is_qname:
+            match scval.prefix:
+                case self._project.projectShortName:
+                    sucla = ResourceClass.read(self._con, self._project, scval)
+                case 'oldap':
+                    sucla = ResourceClass.read(self._con, self._sysproject, scval)
+                case 'shared':
+                    raise OldapErrorNotImplemented("Not yet implemented!")  # TODO !!!!!!!!!!!!!!!!!!!!
+                case _:
+                    # external resource not defined in Oldap
+                    # -> we can not read it -> we pass None -> no "sh:node" in SHACL!
+                    pass
+        return scval, sucla
 
+    def assign_superclass(self, superclass: SuperclassParam, validate = False) -> ObservableDict[Iri, RC | None]:
         data = ObservableDict()
         if isinstance(superclass, (list, tuple, set)):
             for sc in superclass:
-                iri, sucla = __check(sc)
+                if sc is None:
+                    continue
+                iri, sucla = self.__check(sc, validate=validate)
                 data[iri] = sucla
         else:
-            iri, sucla = __check(superclass)
+            iri, sucla = self.__check(superclass, validate=validate)
             data[iri] = sucla
         data.set_on_change(self.__sc_changed)
         return data
+
+    def add_superclasses(self, superclass: SuperclassParam, validate = False):
+        if isinstance(superclass, (list, tuple, set)):
+            for sc in superclass:
+                if sc is None or sc in self.superclass:
+                    continue
+                iri, sucla = self.__check(sc, validate=validate)
+                self.superclass[iri] = sucla
+        else:
+            if superclass in self.superclass:
+                return
+            iri, sucla = self.__check(superclass, validate=validate)
+            self.superclass[iri] = sucla
+
+    def del_superclasses(self, superclass: SuperclassParam, validate = False):
+        if isinstance(superclass, (list, tuple, set)):
+            for sc in superclass:
+                scIri = Iri(sc, validate=validate)
+                del self.superclass[scIri]
+        else:
+            superclassIri = Iri(superclass, validate=validate)
+            if superclassIri not in self.superclass:
+                raise OldapErrorValue(f'Superclass "{superclass}" not found in superclass list')
+            del self.superclass[superclassIri]
 
 
     def __init__(self, *,

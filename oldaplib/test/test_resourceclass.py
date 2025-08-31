@@ -792,6 +792,110 @@ class TestResourceClass(unittest.TestCase):
         s = set(r2.superclass.keys())
         self.assertEqual({"oldap:Thing", "test:testMyResMinimal", 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object'}, s)
 
+    def test_updating_superclass_add(self):
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:Superclass1"),
+                           label=LangString(["Superclass1@en", "Superclass1@fr"]),
+                           closed=Xsd_boolean(True))
+        r1.create()
+
+        r2 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:Superclass2"),
+                           label=LangString(["Superclass2@en", "Superclass2@fr"]),
+                           closed=Xsd_boolean(True))
+        r2.create()
+
+        r3 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:Superclass3"),
+                           label=LangString(["Superclass2@en", "Superclass2@fr"]),
+                           closed=Xsd_boolean(True))
+        r3.create()
+
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:thingtest_prop1'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["ThingTestProp1"]))
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, project=self._project, prop=p1, order=1)
+        ]
+        r = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:ResWithSuperThingAdd"),
+                           superclass={'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object', "test:Superclass1"},
+                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           hasproperties=hasproperties)
+        r.create()
+        r = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:ResWithSuperThingAdd'))
+        r.add_superclasses({'test:Superclass2', 'test:Superclass3'})
+        r.update()
+        r = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:ResWithSuperThingAdd'))
+        s = set(r.superclass.keys())
+        self.assertEqual(s, {"oldap:Thing", 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object', "test:Superclass1", "test:Superclass2", "test:Superclass3"})
+
+    def test_updating_superclass_del(self):
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:SuperclassDel1"),
+                           label=LangString(["SuperclassDel1@en", "SuperclassDel1@fr"]),
+                           closed=Xsd_boolean(True))
+        r1.create()
+
+        r2 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:SuperclassDel2"),
+                           label=LangString(["SuperclassDel2@en", "SuperclassDel2@fr"]),
+                           closed=Xsd_boolean(True))
+        r2.create()
+
+        r3 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:SuperclassDel3"),
+                           label=LangString(["SuperclassDel3@en", "SuperclassDel3@fr"]),
+                           closed=Xsd_boolean(True))
+        r3.create()
+
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:deltest_prop1'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["DelTestProp1"]))
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, project=self._project, prop=p1, order=1)
+        ]
+        r = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:ResWithManySuper2"),
+                           superclass={
+                               'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object',
+                               "test:SuperclassDel1",
+                               "test:SuperclassDel2",
+                               "test:SuperclassDel3"},
+                           label=LangString(["CreateResTestDelSup@en", "CréationResTesteDelSup@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           hasproperties=hasproperties)
+        r.create()
+        r = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri("test:ResWithManySuper2"))
+        r.del_superclasses({'test:SuperclassDel1', 'test:SuperclassDel3'})
+        r.update()
+        r = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri("test:ResWithManySuper2"))
+        s = set(r.superclass.keys())
+        self.assertEqual(s, {"oldap:Thing", 'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object', "test:SuperclassDel2"})
+
     def test_creating_with_thing_sc(self):
         p1 = PropertyClass(con=self._connection,
                            project=self._project,
