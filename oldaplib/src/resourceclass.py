@@ -17,7 +17,7 @@ from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, \
     OldapErrorInconsistency, OldapErrorUpdateFailed, \
-    OldapErrorValue, OldapErrorNotImplemented, OldapErrorNoPermission
+    OldapErrorValue, OldapErrorNotImplemented, OldapErrorNoPermission, OldapErrorInUse
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.enums.resourceclassattr import ResClassAttribute
@@ -463,25 +463,18 @@ class ResourceClass(Model, Notify):
             self._changeset[ResClassAttribute.SUPERCLASS] = AttributeChange(oldval, Action.MODIFY)
 
     @property
-    def in_use(self) -> bool:
+    def in_use(self) -> str:
         context = Context(name=self._con.context_name)
         query = context.sparql_context
         query += f"""
-        SELECT (COUNT(?resinstances) as ?nresinstances)
-        WHERE {{
-            ?resinstance rdf:type {self._owlclass_iri} .
-            FILTER(?resinstances != {self._owlclass_iri}Shape)
-        }} LIMIT 2
+        ASK {{
+            GRAPH {self._project.projectShortName}:data {{
+                ?resinstance rdf:type {self._owlclass_iri} .
+                FILTER(?resinstance != {self._owlclass_iri}Shape)
+            }}
+        }}
         """
-        jsonobj = self._con.query(query)
-        res = QueryProcessor(context, jsonobj)
-        if len(res) != 1:
-            raise OldapError('Internal Error in "ResourceClass.in_use"')
-        for r in res:
-            if int(r.nresinstances) > 0:
-                return True
-            else:
-                return False
+        return query
 
     @staticmethod
     def __query_shacl(con: IConnection,
@@ -1478,8 +1471,25 @@ class ResourceClass(Model, Notify):
         if not result:
             raise OldapErrorNoPermission(message)
 
+        #
+        # we check if we have to cancel the update because the resource is in use
+        #
+        check_use = False
+        for item, change in self._changeset.items():
+            if isinstance(item, ResClassAttribute):
+                if item == ResClassAttribute.SUPERCLASS and change.action != Action.CREATE:
+                    check_use = True
+            else:
+                if change.action != Action.CREATE:
+                    check_use = True
+
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
+
+        sparql0 = ''
+        if check_use:
+            sparql0 = self.in_use
+
         sparql1 = context.sparql_context
         sparql1 += self.__update_shacl(timestamp=timestamp)
 
@@ -1487,6 +1497,13 @@ class ResourceClass(Model, Notify):
         sparql2 += self.__update_owl(timestamp=timestamp)
 
         self._con.transaction_start()
+
+        if sparql0:
+            result = self.safe_query(sparql0)
+            if result['boolean']:
+                self._con.transaction_abort()
+                raise OldapErrorInUse(f'Cannot update: resource "{self._owlclass_iri}" is in use')
+
         self.safe_update(sparql1)
         self.safe_update(sparql2)
 
@@ -1567,19 +1584,28 @@ class ResourceClass(Model, Notify):
 
         timestamp = datetime.now()
         context = Context(name=self._con.context_name)
+        sparql0 = self.in_use
         sparql = context.sparql_context
         sparql += self.__delete_shacl()
         sparql += ' ;\n'
         sparql += self.__delete_owl()
+
         self._con.transaction_start()
-        self._con.transaction_update(sparql)
+        result = self.safe_query(sparql0)
+        if result['boolean']:
+            self._con.transaction_abort()
+            raise OldapErrorInUse(f'Cannot delete: resource class {self._owlclass_iri} is in use!')
+
+        self.safe_update(sparql)
         sparql = context.sparql_context
         sparql += f"SELECT * FROM {self._graph}:shacl WHERE {{ {self._owlclass_iri}Shape ?p ?v }}"
-        jsonobj = self._con.transaction_query(sparql)
+
+        jsonobj = self.safe_query(sparql)
+
         res_shacl = QueryProcessor(context, jsonobj)
         sparql = context.sparql_context
         sparql += f"SELECT * FROM {self._graph}:onto WHERE {{ {self._owlclass_iri.toRdf} ?p ?v }}"
-        jsonobj = self._con.transaction_query(sparql)
+        jsonobj = self.safe_query(sparql)
         res_onto = QueryProcessor(context, jsonobj)
         if len(res_shacl) > 0 or len(res_onto) > 0:
             self._con.transaction_abort()

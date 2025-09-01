@@ -20,10 +20,11 @@ from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorNoPermission
+from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorNoPermission, OldapErrorInUse
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropClassAttrContainer, PropertyClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
@@ -133,6 +134,8 @@ class TestResourceClass(unittest.TestCase):
 
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
+        cls._connection.clear_graph(Xsd_QName('test:data'))
+
         cls._connection.clear_graph(Xsd_QName('dcterms:shacl'))
         cls._connection.clear_graph(Xsd_QName('dcterms:onto'))
 
@@ -1450,6 +1453,49 @@ class TestResourceClass(unittest.TestCase):
                                         project=self._project,
                                         owl_class_iri=Iri("test:testMyResMinimal"))
         self.assertEqual(Iri("test:testMyResMinimal"), superclass.owl_class_iri)
+
+    def test_in_use_case(self):
+        p1 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Iri('test:prop_A'),
+                           datatype=XsdDatatypes.string,
+                           name=LangString(["Test property A@en", "Testprädikat A@de"]),
+                           description=LangString("A property for testing...@en"))
+
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, project=self._project, prop=p1),
+        ]
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:TestResourceInUse"),
+                           superclass="test:testMyResMinimal",
+                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           hasproperties=hasproperties)
+        r1.create()
+
+        factory = ResourceInstanceFactory(con=self._connection, project=self._project)
+        TestResourceInUse = factory.createObjectInstance('TestResourceInUse')
+        data = TestResourceInUse(
+            label=['lanel_aaa@en', 'label_bbb@de'],
+            comment=['comment_aaa@en', 'comment_bbb@de'],
+            prop_A="WAELIWAS SOLL DENN DAS?",
+            grantsPermission=Iri('oldap:GenericView')
+        )
+        data.create()
+        data2 = TestResourceInUse.read(con=self._connection,
+                                       project='test',
+                                       iri=data.iri)
+
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri("test:TestResourceInUse"), ignore_cache=True)
+        with self.assertRaises(OldapErrorInUse):
+            r1.delete()
+
+
+
 
     # @unittest.skip('Work in progress')
     def test_write_trig(self):
