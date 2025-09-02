@@ -111,6 +111,17 @@ oldap:admin {
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
 
+    oldap:DmTestI a oldap:Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        oldap:projectShortName "dmtestI"^^xsd:NCName ;
+        oldap:namespaceIri "http://oldap.org/dmtestI#"^^xsd:anyURI ;
+        rdfs:label "DmTestI"@en, "DmTestI"@de, "DmTestI"@fr, "DmTestI"@it ;
+        rdfs:comment "For data model testing purposes"@en ;
+        oldap:projectStart "2024-01-01"^^xsd:date .
+
 }
 
 

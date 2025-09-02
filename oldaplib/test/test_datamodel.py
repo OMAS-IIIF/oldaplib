@@ -67,7 +67,8 @@ class TestDataModel(unittest.TestCase):
         cls._context['dmtestF'] = NamespaceIRI('http://oldap.org/dmtestF#')
         cls._context['dmtestG'] = NamespaceIRI('http://oldap.org/dmtestG#')
         cls._context['dmtestH'] = NamespaceIRI('http://oldap.org/dmtestH#')
-        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF', 'dmtestG', 'dmtestH')
+        cls._context['dmtestI'] = NamespaceIRI('http://oldap.org/dmtestI#')
+        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF', 'dmtestG', 'dmtestH', 'dmtestI')
 
         cls._connection = Connection(server='http://localhost:7200',
                                      repo="oldap",
@@ -93,6 +94,8 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtestG:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtestH:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtestH:onto'))
+        cls._connection.clear_graph(Xsd_QName('dmtestI:shacl'))
+        cls._connection.clear_graph(Xsd_QName('dmtestI:onto'))
         cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
         cls._connection.clear_graph(Xsd_QName('hyha:onto'))
 
@@ -111,6 +114,7 @@ class TestDataModel(unittest.TestCase):
         cls._dmprojectF = Project.read(cls._connection, "dmtestF", ignore_cache=True)
         cls._dmprojectG = Project.read(cls._connection, "dmtestG", ignore_cache=True)
         cls._dmprojectH = Project.read(cls._connection, "dmtestH", ignore_cache=True)
+        cls._dmprojectI = Project.read(cls._connection, "dmtestI", ignore_cache=True)
         cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
 
 
@@ -565,6 +569,27 @@ class TestDataModel(unittest.TestCase):
         dm = DataModel.read(self._connection, self._dmprojectE, ignore_cache=True)
         self.assertIsNotNone(dm.get(Iri(f'{dm_name}:pubYearE')))
 
+    def test_datamodel_modify_I(self):
+        dm_name = self._dmprojectI.projectShortName
+        dm = self.generate_a_datamodel(self._dmprojectI)
+        dm.create()
+        del dm
+        dm = DataModel.read(self._connection, self._dmprojectI, ignore_cache=True)
+        dm[Iri(f'{dm_name}:Book')].add_superclasses([f'{dm_name}:Page', 'dcterms:Event'])
+        dm.update()
+
+        dm = DataModel.read(self._connection, self._dmprojectI, ignore_cache=True)
+        tmp = set([key for key, val in dm[Iri(f'{dm_name}:Book')].superclass.items()])
+        assert tmp == {'oldap:Thing', f'{dm_name}:Page', 'dcterms:Event'}
+
+        dm[Iri(f'{dm_name}:Book')].del_superclasses([f'{dm_name}:Page'])
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmprojectI, ignore_cache=True)
+        tmp = set([key for key, val in dm[Iri(f'{dm_name}:Book')].superclass.items()])
+        assert tmp == {'oldap:Thing', 'dcterms:Event'}
+
+
+
     def test_incremental_generation(self):
         dm = DataModel(con=self._connection,
                        project=self._dmproject)
@@ -1006,7 +1031,7 @@ class TestDataModel(unittest.TestCase):
         book = ResourceClass(con=self._connection,
                              project=self._project,
                              owlclass_iri=Iri('test:Book'),
-                             superclass=Iri('oldap:Thing'),
+                             #superclass=Iri('oldap:Thing'),
                              label=LangString(["Book@en", "Buch@de"]),
                              closed=Xsd_boolean(True),
                              hasproperties=[

@@ -109,22 +109,26 @@ class ResourceClass(Model, Notify):
                     continue
                 iri, sucla = self.__check(sc, validate=validate)
                 self.superclass[iri] = sucla
+                self.notify()
         else:
             if superclass in self.superclass:
                 return
             iri, sucla = self.__check(superclass, validate=validate)
             self.superclass[iri] = sucla
+            self.notify()
 
     def del_superclasses(self, superclass: SuperclassParam, validate = False):
         if isinstance(superclass, (list, tuple, set)):
             for sc in superclass:
                 scIri = Iri(sc, validate=validate)
                 del self.superclass[scIri]
+                self.notify()
         else:
             superclassIri = Iri(superclass, validate=validate)
             if superclassIri not in self.superclass:
                 raise OldapErrorValue(f'Superclass "{superclass}" not found in superclass list')
             del self.superclass[superclassIri]
+            self.notify()
 
 
     def __init__(self, *,
@@ -596,7 +600,7 @@ class ResourceClass(Model, Notify):
         #
         # first we query all the properties that part of this resource
         #
-        # There may be several ways to defines these properties:
+        # There may be several ways to define these properties:
         #
         # A. sh:property <iri> ;
         #    Reference to an external property without any additional information. The property may be a foreign
@@ -784,9 +788,8 @@ class ResourceClass(Model, Notify):
         res = QueryProcessor(context=context, query_result=jsonobj)
         if not self._attributes.get(ResClassAttribute.SUPERCLASS):
             self._attributes[ResClassAttribute.SUPERCLASS] = ObservableDict(on_change=self.__sc_changed)
-        for r in res:
-            if r['superclass'] not in self._attributes[ResClassAttribute.SUPERCLASS]:
-                self._attributes[ResClassAttribute.SUPERCLASS][r['superclass']] = None
+        superclasses = [r['superclass'] for r in res]
+        self.add_superclasses(superclasses)
 
     @classmethod
     def read(cls,
