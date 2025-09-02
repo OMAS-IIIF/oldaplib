@@ -1477,7 +1477,7 @@ class ResourceClass(Model, Notify):
         check_use = False
         for item, change in self._changeset.items():
             if isinstance(item, ResClassAttribute):
-                if item == ResClassAttribute.SUPERCLASS and change.action != Action.CREATE:
+                if item == ResClassAttribute.SUPERCLASS:
                     check_use = True
             else:
                 if change.action != Action.CREATE:

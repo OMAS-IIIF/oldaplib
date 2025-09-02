@@ -1494,6 +1494,20 @@ class TestResourceClass(unittest.TestCase):
         with self.assertRaises(OldapErrorInUse):
             r1.delete()
 
+        r1.del_superclasses("test:testMyResMinimal")
+        with self.assertRaises(OldapErrorInUse):
+            r1.update()
+
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri("test:TestResourceInUse"), ignore_cache=True)
+        r1.add_superclasses("dcterms:waseliwas")
+        with self.assertRaises(OldapErrorInUse):
+            r1.update()
+
+
+
+
 
 
 
