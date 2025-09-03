@@ -19,6 +19,34 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 
 @serializer
 class UserData:
+    """
+    Represents a user entity and provides management and query functionalities for a user
+    in a specific project context.
+
+    This class is designed to encapsulate properties and behaviors associated with a user.
+    It provides attributes for managing user metadata, permissions, and project associations.
+    Additionally, it includes utility methods for constructing SPARQL queries and processing
+    query results to instantiate user data instances.
+
+    :ivar userIri: The IRI uniquely identifying the user.
+    :ivar userId: The NCName uniquely identifying the user.
+    :ivar familyName: The family name of the user.
+    :ivar givenName: The given name of the user.
+    :ivar email: The email address of the user.
+    :ivar credentials: The hashed credentials or identifier for user authentication.
+    :ivar isActive: Indicates whether the user's account is active.
+    :ivar inProject: A representation of the user's association within projects.
+    :ivar hasPermissions: The set of permissions associated with the user.
+    :type userIri: Iri
+    :type userId: Xsd_NCName
+    :type familyName: Xsd_string
+    :type givenName: Xsd_string
+    :type email: Xsd_string
+    :type credentials: Xsd_string
+    :type isActive: Xsd_boolean
+    :type inProject: InProjectClass | None
+    :type hasPermissions: SerializeableSet[Iri] | None
+    """
     _creator: Iri | None
     _created: Xsd_dateTime | datetime | None
     _contributor: Iri | None
@@ -126,9 +154,30 @@ class UserData:
         return self._hasPermissions
 
     @staticmethod
-    def sparql_query(context: Context, userId: IriOrNCName) -> str:
+    def sparql_query(context: Context, userId: IriOrNCName, validate: bool = False) -> str:
+        """
+        Constructs and returns a SPARQL query string to retrieve user information and associated
+        permissions from an administrative SPARQL context. The query can be built using either a user ID
+        or a user IRI, and includes union statements to accommodate both properties and project-based
+        admin permissions. This method is primarily designed to integrate within SPARQL-based systems
+        and assumes the provided `Context` and `IriOrNCName` types adhere to expected operational
+        contracts.
+
+        :param context: The SPARQL context containing necessary administrative configurations.
+        :type context: Context
+        :param userId: The identifier or name conforming to the `IriOrNCName` type.
+        :type userId: IriOrNCName
+        :param validate: A boolean indicating whether the user ID should be validated during processing.
+        :type validate: bool
+        :return: A SPARQL query string for obtaining the requested administrative user data.
+        :rtype: str
+
+        :raises OldapErrorNotFound: If the user cannot be found.
+        :raises OldapError: If the query fails for any other reason.
+        :raises OldapErrorValue: If the user IRI is invalid and `validate` is set to `True`.
+        """
         if not isinstance(userId, IriOrNCName):
-            userId = IriOrNCName(userId)
+            userId = IriOrNCName(userId, validate=validate)
         user_id, user_iri = userId.value()
         sparql = context.sparql_context
         if user_id is not None:
@@ -167,6 +216,20 @@ class UserData:
 
     @classmethod
     def from_query(cls, queryresult: QueryProcessor) -> Self:
+        """
+        Creates an instance of the class by parsing a query result object. The method
+        extracts information such as user details, permissions, project involvement,
+        and metadata from the query result and constructs a corresponding instance
+        of the class.
+
+        :param queryresult: Query result data obtained from a QueryProcessor.
+        :type queryresult: QueryProcessor
+        :return: An instance of the class with attributes populated based on query
+            result data.
+        :rtype: Self
+        :raises OldapErrorNotFound: If the query result is empty, indicating that the
+            user was not found.
+        """
         in_project: dict[str, set[AdminPermission]] | None = None
         if len(queryresult) == 0:
             raise OldapErrorNotFound("Given user not found!")

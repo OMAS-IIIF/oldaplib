@@ -128,9 +128,22 @@ class Connection(IConnection):
         Constructor that establishes the connection parameters.
 
         :param server: URL of the server (including port information if necessary)
+        :type server: str
         :param repo: Name of the triple store repository on the server
+        :type repo: str
+        :param userId: User identifier for authentication. If not specified, a default "unknown" value
+                       is used. Can optionally be validated against `Xsd_NCName`.
+        :type userId: Optional[str | Xsd_NCName]
+        :param credentials: User credentials for authentication. If not specified, defaults to None.
+        :type credentials: Optional[str]
+        :param token: JWT token string for authentication. If provided, it bypasses userId and credentials.
+        :type token: Optional[str]
         :param context_name: A name of the Context to be used (see ~Context). If no such context exists,
-            a new context of this name is created
+                             a new context with this name is created.
+        :type context_name: Optional[str]
+        :raises OldapError: Raised when invalid credentials or token are provided, or if there is
+                            an issue during the authentication process. Also raised on login failure
+                            in specific scenarios.
         """
         super().__init__(context_name=context_name)
         self._server = server
@@ -232,10 +245,21 @@ class Connection(IConnection):
 
     def clear_graph(self, graph_iri: Xsd_QName) -> None:
         """
-        This method clears (deletes) the given RDF graph. May raise an OldapError.
+        Clears (deletes) the given RDF graph from the system.
 
-        :param graph_iri: RDF graph name as QName. The prefix must be defined in the context!
+        This method uses the SPARQL Update protocol to clear the specified graph.
+        Permission checks are performed to ensure that the actor has sufficient
+        privileges. If the user does not have the required permissions or
+        the graph clearing operation fails, appropriate exceptions are raised.
+
+        :param graph_iri: RDF graph name as QName. The prefix must be defined
+                          in the context.
+        :type graph_iri: Xsd_QName
         :return: None
+        :rtype: None
+        :raises OldapErrorNoPermission: If the user lacks the required
+                                        permission to clear the graph.
+        :raises OldapError: If the SPARQL update operation fails.
         """
         if not self._userdata:
             raise OldapErrorNoPermission("No permission")
@@ -261,7 +285,9 @@ class Connection(IConnection):
 
     def clear_repo(self) -> None:
         """
-        This method deletes the complete repository. Use with caution!!!
+        Deletes the complete repository. This operation is destructive and should
+        be used with extreme caution. Removes all data from the repository and executes
+        a "CLEAR ALL" update operation.
 
         :return: None
         """
@@ -286,12 +312,17 @@ class Connection(IConnection):
 
     def upload_turtle(self, filename: str, graphname: Optional[str] = None) -> None:
         """
-        Upload a turtle- or trig-file to the given repository. This method returns immediately after sending the
-        command to upload the given file to the triplestore. The import process may take a while!
+        Uploads a turtle or trig file to the specified repository. This function sends the file to the triplestore for
+        import and does not wait for the completion of the import process. The process itself may continue for some time
+        after the command is issued.
 
-        :param filename: Name of the file to upload
-        :param graphname: Optional name of the RDF-graph where the data should be imported in.
+        :param filename: Name of the file to be uploaded.
+        :type filename: str
+        :param graphname: Optional; the name of the RDF-graph into which the data is to be imported.
+        :type graphname: str or None
         :return: None
+        :rtype: None
+        :raises OldapError: Raised when there are issues with the repository or during the HTTP request.
         """
         # if not self._userdata:
         #     raise OldapErrorNoPermission("No permission")
@@ -354,8 +385,12 @@ class Connection(IConnection):
         Send a SPARQL-query and return the result. The result may be nested dict (in case of JSON) or a text.
 
         :param query: SPARQL query as string
+        :type query: str
         :param format: The format desired (see ~SparqlResultFormat)
+        :type format: SparqlResultFormat
         :return: Query results or an error message (as text)
+        :rtype: Any
+        :raises OldapError: Raised if not logged in or if there is an issue with the query execution.
         """
         if not self._userdata:
             raise OldapError("No login")
@@ -376,9 +411,16 @@ class Connection(IConnection):
 
     def update_query(self, query: str) -> Dict[str,str]:
         """
-        Send an SPARQL UPDATE query to the triple store
-        :param query: SPARQL UPDATE query as string
-        :return:
+        Sends an SPARQL UPDATE query to the triple store.
+
+        This method constructs, performs, and handles the response of an SPARQL UPDATE query
+        sent to an RDF triple store. If no user session is active, an error will be raised.
+
+        :param query: The SPARQL UPDATE query as a string to be executed on the triple store.
+        :type query: str
+        :return: A dictionary containing the response information from the triple store.
+        :rtype: Dict[str, str
+        :raises OldapError: If user authentication is missing or the SPARQL UPDATE execution fails.
         """
         if not self._userdata:
             raise OldapError("No login")
@@ -391,6 +433,17 @@ class Connection(IConnection):
             raise OldapError(f'Update query failed. Reason: "{res.text}"')
 
     def transaction_start(self) -> None:
+        """
+        Initiates a new transaction for the current repository on the server.
+
+        This method starts a transaction by sending a POST request to the server's
+        transaction endpoint. If the `location` header is missing in the response,
+        it indicates that the transaction initiation failed.
+
+        :raises OldapError: If the user is not logged in or if the transaction cannot
+                            be started on the server.
+        :return: None
+        """
         if not self._userdata:
             raise OldapError("No login")
         headers = {
@@ -403,6 +456,24 @@ class Connection(IConnection):
         self._transaction_url = res.headers['location']
 
     def transaction_query(self, query: str, result_format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
+        """
+        Executes a SPARQL query against the currently ongoing transaction in GraphDB.
+
+        This method sends a SPARQL query using HTTP POST to the active transaction URL
+        and handles the response based on the provided result format. It ensures that
+        the user is authenticated and that a transaction is already started. In case
+        of errors, appropriate exceptions are raised.
+
+        :param query: The SPARQL query as a string to execute.
+        :type query: str
+        :param result_format: The expected format of the SPARQL query result. Defaults
+                              to JSON.
+        :type result_format: SparqlResultFormat
+        :return: The query result in the specified format.
+        :rtype: Any
+        :raises OldapError: If no user is logged in, no transaction is started, or the
+                            query execution fails.
+        """
         if not self._userdata:
             raise OldapError("No login")
         headers = {
@@ -417,6 +488,21 @@ class Connection(IConnection):
         return Connection._switcher[result_format](res)
 
     def transaction_update(self, query: str) -> None:
+        """
+        Updates the current GraphDB transaction with a specified SPARQL update query.
+
+        This method sends a POST request to the specified transaction URL with the
+        provided SPARQL `query`. It throws an error if the user is not logged in or
+        if no GraphDB transaction URL is available. If the request fails, an exception
+        is raised containing the reason for the failure.
+
+        :param query: The SPARQL update query to execute as part of the current GraphDB
+                      transaction.
+        :type query: str
+        :raises OldapError: If the user is not logged in or no transaction URL is defined.
+        :raises OldapError: If the GraphDB transaction update fails.
+        :return: None
+        """
         if not self._userdata:
             raise OldapError("No login")
         headers = {
@@ -430,6 +516,16 @@ class Connection(IConnection):
             raise OldapError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
 
     def transaction_commit(self) -> None:
+        """
+        Commits the current transaction for the GraphDB session. This method ensures that
+        the transaction completes and is finalized successfully. In the case of an error
+        in committing the transaction, it raises an exception to notify the caller.
+
+        :raises OldapError: If the user is not logged in, no transaction is started,
+            or the commit operation fails.
+        :rtype: None
+        :return: None
+        """
         if not self._userdata:
             raise OldapError("No login")
         headers = {
@@ -443,6 +539,15 @@ class Connection(IConnection):
         self._transaction_url = None
 
     def transaction_abort(self) -> None:
+        """
+        Aborts an ongoing GraphDB transaction if it exists. This method ensures that
+        a started transaction is properly terminated to prevent stale or lingering
+        transactions.
+
+        :raises OldapError: If the user is not logged in or there is no transaction
+            to abort, or if the abort request to the server fails.
+        :return: None
+        """
         if not self._userdata:
             raise OldapError("No login")
         headers = {
@@ -456,6 +561,16 @@ class Connection(IConnection):
         self._transaction_url = None
 
     def in_transaction(self) -> bool:
+        """
+        Determines if the current instance is in a transaction.
+
+        This method checks if there is a transaction URL indicating that a transaction
+        is currently active. If `_transaction_url` is not None, it means a transaction
+        is in progress. Otherwise, no transaction is active.
+
+        :return: True if in a transaction, False otherwise
+        :rtype: bool
+        """
         return self._transaction_url is not None
 
 

@@ -12,24 +12,27 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 @serializer
 class BNode(Xsd_QName):
     """
-    # BNode
+    Represents a blank node in the triple store.
 
-    Represents a blank node in the triple store. The class has the following methods:
+    This class provides functionality to handle blank nodes which are
+    used as identifiers in a triple store. Blank nodes are unique,
+    non-reusable, and have no intrinsic meaning outside of their use as
+    identifiers. This class ensures that blank nodes adhere to specific
+    conventions and provides methods for their manipulation.
 
-    - *Constructor*: Initialize a blank node
-    - *str()*: Return the name of the blank node
-    - *repr()*: Return the Python representation of the blank node
-    - *==*: Test for equality of 2 blank nodes
-    - *!=*: Test for inequality of 2 blank nodes
-    - *hash()*: Return the hash of the blank node
-    - *value()*: Return the value of the blank node (same as str())
+    :ivar value: Name/id of the blank node.
+    :type value: Xsd_QName | str
     """
 
     def __init__(self, value: Xsd_QName | str, validate: bool = False) -> None:
         """
-        Construct a blank node from its name
-        :param value: Name/id of the blank node
-        :type value: str
+        Construct a blank node with a specified name or id.
+
+        :param value: Name or id of the blank node.
+        :type value: Xsd_QName | str
+        :param validate: Determines whether to validate the blank node.
+        :type validate: bool
+        :raises OldapErrorValue: If the prefix of the blank node is not '_'.
         """
         super().__init__(value, validate=validate)
         if self.prefix != '_':

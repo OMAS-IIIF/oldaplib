@@ -37,18 +37,35 @@ class PropertyClassChange:
 @serializer
 class DataModel(Model):
     """
-    This class implements the representation of a OLDAP datamodel The datamodel itself contains standalone properties
-    and resources with the associated property definitions. A datamodel can be instantiated completeley with all
-    property and resource defintion at once, or it can be instanciated empty and property/resource definition can be
-    added later incrementally.
+    Representation of an OLDAP datamodel.
 
-    An OLDAP datamodel is bound to a project. This means, that a project can have exactely one datamodel. Currently
-    a project is limited to one datamodel. The datamodel uses the namespace defined in the project definition and
-    the project shortname is used for the named graphs:
+    This class provides a comprehensive implementation of an OLDAP datamodel, including standalone properties and
+    resources associated with property definitions. The datamodel is bound to a single project, utilizing the project's
+    namespace and shortname for defining named graphs. It can be instantiated completely or incrementally updated by
+    adding properties and resource definitions later.
 
     - _projectshortname:shacl_ contains the SHACL triples
     - _projectshortname:onto_ contains the OWL triples
     - _projectshortname:data_ contains the data
+
+    :ivar con: Connection to the triple store.
+    :type con: IConnection
+    :ivar creator: Creator of the datamodel. If not provided, defaults to the user associated with the connection.
+    :type creator: Iri | str | None
+    :ivar created: Creation timestamp for the datamodel. Defaults to the current timestamp if not provided.
+    :type created: Xsd_dateTime | datetime | str | None
+    :ivar contributor: Contributor information. Defaults to the user associated with the connection if not specified.
+    :type contributor: Iri | None
+    :ivar modified: Modification timestamp for the datamodel. Defaults to the current timestamp if not provided.
+    :type modified: Xsd_dateTime | datetime | str | None
+    :ivar project: Associated project. Accepts a Project instance, IRI, shortname, or name string.
+    :type project: Project | Iri | Xsd_NCName | str
+    :ivar propclasses: List of standalone properties for the datamodel.
+    :type propclasses: list[PropertyClass] | None
+    :ivar resclasses: List of resource classes for the datamodel.
+    :type resclasses: list[ResourceClass] | None
+    :ivar validate: Determines whether input validation is enabled during initialization.
+    :type validate: bool
     """
     __graph: Xsd_NCName
     _project: Project
@@ -70,13 +87,42 @@ class DataModel(Model):
                  resclasses: list[ResourceClass] | None = None,
                  validate: bool = False) -> None:
         """
-        Create a datamodel instance
-        :param con: Valid connection to triple store
-        :type con: IConnection (subclass)
-        :param project: Project instance, project iri or project shortnanme
+        Create a datamodel instance for managing and interacting with a triple store.
+
+        This class initializes various attributes necessary for handling semantic data,
+        including establishing connections, setting up project contexts, and managing
+        property and resource classes. It ensures the proper creation and population of
+        component elements for the datamodel.
+
+        :param con: Valid connection to the triple store.
+        :type con: IConnection
+        :param creator: IRI of the data's creator or string representation
+            [OPTIONAL].
+        :type creator: Iri | str | None
+        :param created: Datetime or string representation of the creation date
+            [OPTIONAL].
+        :type created: Xsd_dateTime | datetime | str | None
+        :param contributor: IRI of data's contributor or None if not provided
+            [OPTIONAL].
+        :type contributor: Iri | None
+        :param modified: Datetime or string representation of the last modification
+            [OPTIONAL].
+        :type modified: Xsd_dateTime | datetime | str | None
+        :param project: Project instance, project IRI, or project short name.
         :type project: Project | Iri | Xsd_NCName | str
-        :param propclasses: List of PropertyClass instances (standalone properties) [OPTIONAL]
-        :param resclasses: List of ResourceClass instances [OPTIONAL]
+        :param propclasses: List of `PropertyClass` instances for standalone
+            properties. This parameter is optional.
+        :type propclasses: list[PropertyClass] | None
+        :param resclasses: List of `ResourceClass` instances for describing defined
+            resources. This parameter is optional.
+        :type resclasses: list[ResourceClass] | None
+        :param validate: Boolean flag indicating whether validation of inputs is
+            enforced.
+        :type validate: bool
+
+        :raises OldapErrorNotFound: If the project is not found in the triple store.
+        :raises OldapErrorInconsistency: If the project's SHACL and OWL ontology
+            versions do not match.
         """
         timestamp = Xsd_dateTime()
         if creator is None:
@@ -210,6 +256,20 @@ class DataModel(Model):
             raise OldapErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
 
     def get(self, key: Iri | str) -> PropertyClass | ResourceClass | None:
+        """
+        Retrieves an instance of `PropertyClass` or `ResourceClass` associated with the
+        specified `key`. The `key` can be either an `Iri` instance or a string. If the
+        `key` is a string, it will be converted to an `Iri` object with validation before
+        retrieving the associated object. Returns `None` if no associated object exists
+        for the given `key`.
+
+        :param key: Identifier for the instance to be retrieved. Can be a string or
+           an Iri object.
+        :return: An instance of `PropertyClass` or `ResourceClass` associated with the
+           given key, or `None` if no match is found.
+        :raises OldapErrorValue: If the `key` is not a valid Iri object.
+        :raises OldapErrorNotFound: If no instance is found for the given `key`.
+        """
         if not isinstance(key, Iri):
             key = Iri(key, validate=True)
         if key in self.__propclasses:
@@ -221,16 +281,25 @@ class DataModel(Model):
 
     def get_propclasses(self) -> list[Iri]:
         """
-        Get list of the iri's of the standalone proeprty classes
-        :return: List of Iri's
+        Get a list of the IRIs of the standalone property classes.
+
+        This method retrieves and returns a list containing the IRIs of
+        the property classes that have been identified as standalone.
+
+        :return: List of IRIs for standalone property classes
         :rtype: list[Iri]
         """
         return [x for x in self.__propclasses]
 
     def get_resclasses(self) -> list[Iri]:
         """
-        Get list of the iri's of the resource classes'
-        :return:
+        Get a list of the IRIs of the resource classes.
+
+        This method retrieves a list of IRIs corresponding to resource classes. It
+        provides a way to access these IRIs directly.
+
+        :return: A list containing IRIs of the resource classes
+        :rtype: list[Iri]
         """
         return [x for x in self.__resclasses]
 
@@ -263,15 +332,24 @@ class DataModel(Model):
              project: Project | Iri | Xsd_NCName | str,
              ignore_cache: bool = False):
         """
-        Read the datamodel from the given project from the triple store.
-        :param con: Valid connection to the triple store
-        :type con: IConnection or subclass thereof
-        :param project: Project instance, project iri or project shortname
+        Reads the data model from the given project by querying the triple store.
+        This method retrieves and verifies metadata related to SHACL and OWL ontology,
+        processes standalone properties, and collects resources defined in the data model.
+        Optionally, it bypasses caching by directly querying the triple store.
+
+        :param con: Connection object to the triple store
+        :type con: IConnection
+        :param project: Project identifier which could be an instance of the Project class,
+            a project IRI, a project shortname, or an Xsd_NCName
         :type project: Project | Iri | Xsd_NCName | str
-        :param ignore_cache: If True, read the data from the triple store ifen if the project is in the cache
+        :param ignore_cache: Indicates whether the method should bypass the cache and
+            read directly from the triple store. Defaults to False.
         :type ignore_cache: bool
-        :return: Instance of the DataModel
+        :return: An instance of the DataModel which encapsulates the project data.
         :rtype: DataModel
+
+        :raises OldapErrorNotFound: If the data model is not found in the triple store.
+        :raises OldapErrorInconsistency: If the SHACL and OWL ontology versions do not match.
         """
         if isinstance(project, Project):
             project = project
@@ -384,13 +462,18 @@ class DataModel(Model):
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
-        If the Instance has been created using the Python constructor, this method writes all the information
-        of the DataModel instance to the triple store.
-        :param indent: internl use
+        Creates and writes all the information of the DataModel instance to the triple store.
+        Ensures the user has the appropriate permissions and processes all relevant data
+        to prepare and execute SPARQL queries for a semantic triple store.
+
+        :param indent: The current indentation level used within the SPARQL query.
         :type indent: int
-        :param indent_inc: internal use
+        :param indent_inc: The incremental indentation level for formatting nested SPARQL commands.
         :type indent_inc: int
         :return: None
+
+        :raises OldapErrorNoPermission: If the logged-in user does not have the required permissions.
+        :raises OldapError: If an unexpected error occurs during the SPARQL query execution.
         """
         #
         # First we check if the logged-in user ("actor") has the permission to create resource for
@@ -457,10 +540,13 @@ class DataModel(Model):
 
     def update(self) -> None:
         """
-        After modifing a data model by adding/modifying/deleting properties or resoutce classes, these
-        changes have to be written to the triple store using the update method.
+        Updates the triple store to reflect changes made to the data model, such as adding,
+        modifying, or deleting properties or resource classes. This method ensures that
+        the data model and the underlying triple store are synchronized.
+
+        :raises OldapError: If an error occurs during the update process.
+        :raises OldapErrorNoPermission: If the logged-in actor lacks the required permissions.
         :return: None
-        :raises: OldapError or subclass
         """
         #
         # First we check if the logged-in user ("actor") has the permission to create resource for
@@ -494,6 +580,18 @@ class DataModel(Model):
         #cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
     def delete(self):
+        """
+        Deletes resources associated with a specific graph in the SHACL and ONTO context. This
+        function checks permissions of the user, formulates SPARQL queries to delete data from
+        the graph, and commits or rolls back the transaction accordingly. It finally clears the
+        cache related to the graph.
+
+        :raises OldapErrorNoPermission: If the actor does not have sufficient permissions for
+            the operation.
+        :raises OldapError: If an error occurs during the deletion process, including database
+            transaction errors.
+        :return: None
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to create resource for
         # the given project!
@@ -523,11 +621,19 @@ class DataModel(Model):
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Write the complete datamodel in the trig format to a file.
-        :param filename: The path of the file
+
+        This method serializes the complete datamodel, including its SHACL
+        shapes and OWL ontology, and writes the resulting data in the trig
+        format to the specified file.
+
+        :param filename: The path of the file where the trig data will be
+                         written
         :type filename: str
-        :param indent: Start level of indentation
+        :param indent: Start level of indentation for serialized data. Defaults
+                       to 0
         :type indent: int
-        :param indent_inc: Increment (number of characters) of a indentation level
+        :param indent_inc: Number of characters to increment for each indent
+                           level. Defaults to 4
         :type indent_inc: int
         :return: None
         """

@@ -28,7 +28,18 @@ import json
 @serializer
 class InProjectClass(Notify):
     """
-    Implements the administrative permission a user has for the projects the user is associated with.
+    Defines a class that implements administrative permission management for users
+    associated with projects.
+
+    This class provides a dictionary-like interface to manage permissions for various
+    projects, identified by their QName or IRI. It supports operations like
+    retrieving, setting, deleting, and copying permission sets. It also facilitates
+    tracking changes and notifying through observers when modifications occur. The
+    permissions for each project are stored in an observable set.
+
+    :ivar changeset: A dictionary that keeps track of changes to the permissions for
+        the associated projects.
+    :type changeset: dict[Iri, AttributeChange]
     """
     __setdata: dict[Iri, ObservableSet]
     _changeset: dict[Iri, AttributeChange]
@@ -39,20 +50,24 @@ class InProjectClass(Notify):
                  notify_data: Iri | None = None,
                  validate: bool = False) -> None:
         """
-        Constructor of the class. The class acts like a dictionary and allows the access to the permission
-        set for a project using the QName of the project as the key: ```perms = t.in_project[QName('ex:proj')]```.
-        It supports the getting, setting and deleting a permission set.
-        In addition, the following methods are implemented:
+        Constructor of the class. The class behaves like a dictionary that allows access to the permission set for
+        a project, using the QName of the project as the key. It supports retrieving, setting, and deleting
+        permission sets. Methods for copying the instance and comparing equality or inequality with another
+        instance are implemented.
 
-        - _get()_: gets the permission set or returns `None`if it doesn't exist for the given project'
-        - _copy()_: Creates a deep copy of the given instance
-        - _==_: Check for equality of 2 instances
-        - _!=_: Check for inequality of 2 instances
+        :param setdata: Optional initial set of data represented as a dictionary. Keys are project QName or anyURI,
+            and values are sets of permissions.
+        :type setdata: Dict[Iri | str, Set[AdminPermission | str] | ObservableSet] | None
+        :param notifier: A callable function to be invoked for notifications related to project permissions.
+        :type notifier: Callable[[Iri], None] | None
+        :param notify_data: Relevant data to be passed to the notifier callable, typically an Iri instance.
+        :type notify_data: Iri | None
+        :param validate: A boolean value indicating whether the data should be validated during initialization.
+        :type validate: bool
 
-        :param setdata: A dictionary with the QName/anyURI of the project as key and the set of permissions as value
-        :type setdata: Dict[str | Xsd_QName, Set[AdminPermission] | ObservableSet[AdminPermission]] | None
-        :param on_change: A callable that is called whenever the instance has been changed
-        :type on_change: Callable[[str, ObservableSet[AdminPermission] | None], None]
+        :raises OldapErrorValue: If the input data is not valid.
+        :raises OldapErrorNotFound: If a project is not found.
+        :raises OldapError: If an error occurs during initialization.
         """
         super().__init__(notifier=notifier, data=notify_data)
         self.__setdata = {}
@@ -195,12 +210,47 @@ class InProjectClass(Notify):
         return self.__setdata != other.__setdata
 
     def get(self, key: Iri) -> ObservableSet | None:
+        """
+        Retrieves the value associated with the specified key from the internal
+        data structure. If the key exists, the corresponding value will be
+        returned; otherwise, None will be returned.
+
+        :param key: The key to search within the data structure.
+        :type key: Iri
+        :return: The value associated with the provided key if it exists,
+            otherwise None.
+        :rtype: ObservableSet | None
+        """
         return self.__setdata.get(key)
 
     def items(self) -> ItemsView[Iri, ObservableSet]:
+        """
+        Returns a view of the dictionary's items.
+
+        This method provides access to the items of the internal dictionary-like
+        structure. It returns an ItemsView object containing key-value pairs where
+        keys are of type `Iri` and values are of type `ObservableSet`.
+
+        :return: An ItemsView containing all key-value pairs from the internal
+            dictionary-like structure. The keys are of type `Iri` and the values are
+            of type `ObservableSet`.
+        :rtype: ItemsView[Iri, ObservableSet]
+        """
         return self.__setdata.items()
 
     def keys(self) -> KeysView:
+        """
+        Returns a view of the keys in the internal data structure.
+
+        This method provides access to the keys stored in the internal
+        data representation. It is particularly useful for iterating
+        over all keys or checking the existence of a key within the
+        data structure.
+
+        :returns: A view object displaying a dynamic view of the
+                  dictionary's keys.
+        :rtype: KeysView
+        """
         return self.__setdata.keys()
 
     def _as_dict(self) -> dict:
@@ -210,14 +260,3 @@ class InProjectClass(Notify):
     def add_admin_permission(self, project: Iri, permission: AdminPermission) -> None:
         pass
 
-
-if __name__ == '__main__':
-    in_proj = InProjectClass({Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                              AdminPermission.ADMIN_RESOURCES,
-                                                              AdminPermission.ADMIN_CREATE}})
-    for key, val in in_proj:
-        print(key, val)
-    jsonstr = json.dumps(in_proj, default=serializer.encoder_default)
-    in_proj2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-    for k, v in in_proj2.items():
-        print(f'{k} ({type(k)}) = {v}')

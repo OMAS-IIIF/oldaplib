@@ -24,6 +24,21 @@ from oldaplib.src.iconnection import IConnection
 #@strict
 @serializer
 class Model:
+    """
+    Model class manages attributes, encapsulates state, and tracks changes.
+
+    This class is intended to provide a concrete implementation for objects with
+    specific attributes, ensuring consistency, change tracking, and optional
+    validation logic. The primary purpose of this class is to be extended or used
+    as a foundational class in a larger system. It supports deep copying,
+    notification mechanisms, and attribute manipulation while maintaining an
+    immutable core structure for sensitive attributes.
+
+    :ivar creator: The creator of the project, represented as an IRI.
+    :type creator: Iri | None
+    :ivar created: The creation date of the project, represented as a datetime object.
+    :type created: Xsd_dateTime | None
+    """
     _con: IConnection
     _changed: Set[str]
     _creator: Iri | None
@@ -41,6 +56,26 @@ class Model:
                  contributor: Iri | str | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
                  validate: bool = False) -> None:
+        """
+        Initializes an instance of the class.
+
+        :param connection: An instance of `IConnection` representing the current
+            connection.
+        :param creator: An optional parameter representing the creator, which can
+            be a string, an IRI object, or None.
+        :param created: An optional parameter representing the creation date/time,
+            which can be an `Xsd_dateTime`, `datetime`, `str`, or None.
+        :param contributor: An optional parameter representing the contributor,
+            which can be a string, an IRI object, or None.
+        :param modified: An optional parameter representing the last modification
+            date/time, which can be an `Xsd_dateTime`, `datetime`, `str`, or None.
+        :param validate: Boolean specifying whether to validate input values.
+
+        :raises OldapError: If the `connection` parameter is not an instance of
+            `IConnection`.
+        :raises OldapErrorValue: If the `creator`, `created`, or `contributor`
+            parameters are not valid IRI objects.
+        """
         if not isinstance(connection, IConnection):
             raise OldapError('"connection"-parameter must be an instance of IConnection')
         self._validate = validate
@@ -121,6 +156,18 @@ class Model:
     #         del self._attributes[attr]
 
     def set_attributes(self, arguments: dict[str, Any], Attributes: type[Enum]) -> None:
+        """
+        Sets attributes on the instance using the provided arguments and attributes metadata.
+
+        :param arguments: A dictionary mapping attribute names to their values.
+        :type arguments: dict[str, Any]
+        :param Attributes: An enumeration class representing the possible attributes, their types,
+            and validation metadata.
+        :type Attributes: type[Enum]
+        :raises OldapErrorValue: If a provided value cannot be converted to the specific attribute's datatype.
+        :raises OldapErrorType: If a mandatory attribute is missing in the given arguments.
+        :return: None
+        """
         for name, value in arguments.items():
             if not isinstance(value, (bool, Xsd_boolean)) and not value:
                 continue
@@ -185,16 +232,22 @@ class Model:
     @property
     def changeset(self) -> Dict[AttributeClass, AttributeChange]:
         """
-        Return the changeset, that is dicst with information about all properties that have benn changed.
-        This method is only for internal use or debugging...
-        :return: A dictionary of all changes
-        :rtype: Dict[ProjectAttr, ProjectAttrChange]
+        Provides access to the collection of changes, represented as a
+        dictionary, where keys are attributes and values are the corresponding
+        changes. This property is useful for internal use or debugging purposes.
+
+        :return: A dictionary containing the mapping of attributes to their
+            respective changes.
+        :rtype: Dict[AttributeClass, AttributeChange]
         """
         return self._changeset
 
     def clear_changeset(self) -> None:
         """
-        Clear the changeset. This method is only for internal use or debugging...
+        Clear the changeset for all applicable attributes. This method is utilized
+        to reset tracked changes, an internal operation primarily used for debugging
+        or restoration of a clean state in the managed object or its nested properties.
+
         :return: None
         """
         for item in self._attributes:
@@ -240,6 +293,19 @@ class Model:
 
 
     def get_modified_by_iri(self, graph: Xsd_QName | str, iri: Iri | str) -> Xsd_dateTime:
+        """
+        This method retrieves the modification timestamp of a resource identified by its IRI
+        from a specified RDF graph. It executes a SPARQL query to extract the required
+        information. The method ensures type validation for the input parameters and
+        follows appropriate context operations for querying.
+
+        :param graph: The target RDF graph from which the modification data will be retrieved.
+                      This can be either an `Xsd_QName` object or a `str` representing the graph name.
+        :param iri: The IRI of the resource to query for its modification timestamp. It can
+                    be provided as an `Iri` object or a `str`.
+        :return: The modification timestamp of the requested resource as an `Xsd_dateTime` object.
+        :raises OldapErrorNotFound: If no resource is found with the specified IRI in the graph.
+        """
         if not isinstance(graph, Xsd_QName):
             graph = Xsd_QName(graph, validate=True)
         if not isinstance(iri, Iri):
@@ -269,6 +335,29 @@ class Model:
                             iri: Iri | str,
                             old_timestamp: Xsd_dateTime | datetime | str,
                             timestamp: Xsd_dateTime | datetime | str) -> None:
+        """
+        Updates the modification timestamp and contributor information associated
+        with the given IRI in a specified graph. This operation involves querying
+        with a SPARQL DELETE/INSERT statement and substituting the old timestamp
+        with the new one while associating the resource with the current user as
+        the contributor.
+
+        This method ensures that the parameters are instantiated as appropriate
+        types (`Xsd_QName`, `Iri`, `Xsd_dateTime`) if they are not already so.
+
+        :param graph: The graph in which the modification and contributor information
+                      needs to be updated. Can be provided as an instance of `Xsd_QName`
+                      or a string.
+        :param iri: The IRI of the resource whose modification information is being
+                    updated. Can be provided as an instance of `Iri` or a string.
+        :param old_timestamp: The existing timestamp to be removed. Can be provided as
+                              an instance of `Xsd_dateTime`, `datetime`, or a string.
+        :param timestamp: The new timestamp to be set. Can be provided as an instance
+                          of `Xsd_dateTime`, `datetime`, or a string.
+        :return: None
+        :raises OldapError: If an exception occurs during the operation, it is wrapped
+                            in an `OldapError` and raised.
+        """
         if not isinstance(graph, Xsd_QName):
             graph = Xsd_QName(graph, validate=True)
         if not isinstance(iri, Iri):
@@ -304,6 +393,22 @@ class Model:
             self._con.update_query(sparql)
 
     def safe_query(self, query: str) -> Any:
+        """
+        Executes a safe transaction query and ensures any potential errors during
+        execution are handled appropriately. If an error occurs, the transaction
+        is aborted to maintain consistency.
+
+        :param query: The SQL query string to execute within the context of a
+                      database transaction.
+        :type query: str
+
+        :return: The result of the query execution, of any type, depending on the
+                 database operation performed.
+        :rtype: Any
+
+        :raises OldapError: If an error occurs during the query execution. The
+                            transaction is aborted before re-raising the error.
+        """
         try:
             return self._con.transaction_query(query)
         except OldapError:
@@ -311,6 +416,17 @@ class Model:
             raise
 
     def safe_update(self, update_query: str) -> None:
+        """
+        Executes a safe update operation within a transaction context. If an error
+        occurs during the update, the transaction is aborted.
+
+        :param update_query: The SQL update query to be executed.
+        :type update_query: str
+        :return: None
+        :rtype: None
+        :raises OldapError: If the update operation fails, the error is propagated
+            after the transaction is rolled back.
+        """
         try:
             self._con.transaction_update(update_query)
         except OldapError:
@@ -318,6 +434,14 @@ class Model:
             raise
 
     def safe_commit(self) -> None:
+        """
+        Commits a transaction safely. If the commit operation fails due to an OldapError,
+        the transaction is aborted to ensure data consistency.
+
+        :return: None
+        :raises OldapError: If the transaction commit fails and it cannot be
+            successfully completed.
+        """
         try:
             self._con.transaction_commit()
         except OldapError:

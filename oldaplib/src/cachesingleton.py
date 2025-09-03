@@ -14,6 +14,19 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
 class CacheSingleton(metaclass=SingletonMeta):
+    """
+    Singleton class for thread-safe caching.
+
+    This class provides a mechanism for thread-safe access and modification
+    of a cache. It ensures single-instance usage via the SingletonMeta
+    metaclass. The cache allows storing, retrieving, deleting, and clearing
+    key-value pairs in a thread-safe manner.
+
+    :ivar _lock: Lock object ensuring thread-safe access to the cache.
+    :type _lock: Lock
+    :ivar _cache: Internal dictionary used for storing the cache data.
+    :type _cache: dict[Iri | Xsd_NCName, Any]
+    """
     _lock: Lock
     _cache: dict[Iri | Xsd_NCName, Any]
 
@@ -46,6 +59,18 @@ class CacheSingleton(metaclass=SingletonMeta):
 
 
 class CacheSingletonRedis:
+    """
+    Singleton class for caching using a Redis database.
+
+    This class interacts with a Redis instance to store, retrieve, and manage
+    cached data. Designed to facilitate data caching using key-value pairs,
+    supporting serialization and deserialization for complex objects. Provides
+    methods for synchronous operations like setting, retrieving, deleting, and
+    clearing cache entries.
+
+    :ivar _r: Connection to the Redis database.
+    :type _r: redis.client.Redis
+    """
     def __init__(self):
         # default connection to local redis server on port 6379
         self._r = redis.Redis(host='localhost', port=6379, db=0)

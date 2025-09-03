@@ -107,8 +107,26 @@ OldapListAttrTypes = LangString | Iri | None
 class OldapList(Model):
     """
     Implementation of the OLDAP List object. It implements a SKOS ConceptScheme.
-    """
 
+    This class represents an OLDAP List, which is a hierarchical list structure that conforms
+    to the SKOS (Simple Knowledge Organization System) ConceptScheme standard. It is used
+    to manage and organize lists along with their respective nodes. Each OldapList instance
+    is associated with a project and has its own attributes, including hierarchical
+    relationships between the nodes it contains.
+
+    Purpose:
+    - Manage hierarchical lists in a project-specific context.
+    - Facilitate the manipulation and querying of list-related information.
+
+    Usage:
+    - Create and manage lists, including their associated nodes.
+    - Integrate lists into the OLDAP server through a project-based organizational structure.
+    - Support permissions-checking and other administrative operations for lists.
+
+    Attributes:
+    :ivar nodes: List of OldapListNode objects associated with this list.
+    :type nodes: list[OldapListNode]
+    """
     __project: Project
     __graph: Xsd_NCName
     __iri: Iri
@@ -130,21 +148,35 @@ class OldapList(Model):
                  validate: bool = False,
                  **kwargs):
         """
-        Constructor for OldapList
+        Represents a list in the OLDAP system with associated metadata, nodes, and attributes. This class
+        enables management of project-specific lists, their context, and their unique identifiers.
+
+        The class is initialized with a connection and parameters that define the associated
+        project, metadata, and node information. It supports dynamic attributes for managing list-specific
+        attributes and provides context settings for the list and its nodes.
+
         :param con: Active connection to the OLDAP server.
         :type con: IConnection
-        :param project: a Project object, project short name or IRI.
-        :type project: Project | Iri | Xsd_NCName | st
-        :param creator: Creator IRI (INTERNAL USE ONLY!)
-        :type creator: Iri
-        :param created: creation date (INTERNAL USE ONLY!)
-        :type created: Xsd_dateTime
-        :param contributor: Contributor IRI (INTERNAL USE ONLY!)
-        :type contributor: Iri
-        :param modified: Modification timestamp (INTERNAL USE ONLY!)
-        :type modified: Xsd_dateTime
-        :param kwargs: Further parameters (see enum/oldaplistattr.py)
-        :type kwargs: see enum/oldaplistattr.py
+        :param project: A Project object, project short name, or IRI. Represents the project
+            associated with this list.
+        :type project: Project | Iri | Xsd_NCName | str
+        :param creator: Creator IRI (used internally only).
+        :type creator: Iri | None
+        :param created: Creation date (used internally only).
+        :type created: Xsd_dateTime | None
+        :param contributor: Contributor IRI (used internally only).
+        :type contributor: Iri | None
+        :param modified: Modification timestamp (used internally only).
+        :type modified: Xsd_dateTime | None
+        :param nodes: A list of OldapListNode objects, representing nodes within this list.
+        :type nodes: list[OldapListNode]
+        :param validate: Flag to enable or disable validation of input data.
+        :type validate: bool
+        :param kwargs: Additional parameters for attribute settings in the list.
+        :type kwargs: dict
+
+        :raises ValueError: If the project is not a Project instance, or if the connection is not an IConnection
+            instance, or if the project IRI is not a string or valid URI
         """
         if not isinstance(con, IConnection):
             raise ValueError(f'Connection must be an instance of IConnection, not {type(con)}')
@@ -199,9 +231,21 @@ class OldapList(Model):
 
     def check_for_permissions(self) -> (bool, str):
         """
-        Check the permission of the connected user to manipulate hierarchical lists
-        :return: Tuple with True, if the user has the ADMIN_LISTS permission, False otherwise, and a message
+        Check whether the connected user has permissions to manipulate hierarchical lists.
+
+        This method determines if a logged-in user has the ADMIN_LISTS permission for a specific
+        project or has root-level privileges determined by their association with predefined
+        system permissions.
+
+        :return:
+            A tuple containing:
+            - A boolean indicating whether the user has the required permission (True) or not (False).
+            - A message providing additional context about the user's permission status.
         :rtype: bool, str
+
+        :raises OldapErrorNotFound: If the logged-in user does not have the required permission.
+        :raises OldapError: If an unexpected error occurs during the permission check.
+        :raises OldapErrorPermissionDenied: If the logged-in user does not have the required permission.
         """
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
@@ -289,6 +333,21 @@ class OldapList(Model):
         }
 
     def get_nodes_from_list(self) -> list[OldapListNode]:
+        """
+        Fetches and constructs a list of `OldapListNode` objects by querying the SPARQL
+        context. These nodes represent elements within a specific project graph defined
+        by their respective attributes, relationships, and optional details such as
+        labels and definitions. The function ensures proper parent-child relationships
+        among nodes based on query results.
+
+        :return: List of constructed `OldapListNode` instances, representing nodes
+            in the graph.
+        :rtype: list[OldapListNode]
+
+        :raises OldapErrorNotFound: If the list does not exist.
+        :raises OldapError: If an unexpected error occurs during the query.
+        :raises OldapErrorPermissionDenied: If the logged-in user does not have the required permission.
+        """
         context = Context(name=self._con.context_name)
         graph = self.project.projectShortName
 
@@ -363,16 +422,23 @@ class OldapList(Model):
              project: Project | Iri | Xsd_NCName | str,
              oldapListId: Xsd_NCName | str) -> Self:
         """
-        Read a list from the OLDAP server. This function reads only the list object, but it will _not_ read the
-        nodes belonging to the list.
+        Reads a list object from the OLDAP server. This function retrieves only the list object
+        without the nodes belonging to the list. It ensures that a valid connection and proper
+        parameters are provided to access the data stored on the server.
+
         :param con: Active connection to the OLDAP server.
         :type con: IConnection
-        :param project: a Project object, project short name or IRI.
+        :param project: A project object, project short name, or IRI to identify the associated project.
         :type project: Project | Iri | Xsd_NCName | str
-        :param oldapListId: An ID that uniquely identifies the list. The name must be unique within a given project. However, different projects may use the same list-ID for identifying there respective lists.
-        :type oldapListId: Xsd_NCName | str. Must be convertible to an NCName.
-        :return: A list object
+        :param oldapListId: An ID uniquely identifying the list, which must be unique within a particular project.
+                           The input must be convertible to an NCName.
+        :type oldapListId: Xsd_NCName | str
+        :return: A list object fetched from the OLDAP server.
         :rtype: OldapList
+
+        :raises OldapErrorNotFound: If the list does not exist.
+        :raises OldapError: If the list cannot be read.
+        :raises OldapErrorPermissionDenied: If the logged-in user does not have the required permission.
         """
 
         if isinstance(project, Project):
@@ -462,23 +528,31 @@ class OldapList(Model):
                definition: str | None = None,
                exactMatch: bool = False) -> list[Iri]:
         """
-        Search for a specific list. The search can be made by given either an ID, a prefLabel or a definition. The
-        required match can either be exact or by substring. If more than one search item is given, the search will
-        combine the results by AND.
+        Searches hierarchical lists in the OLDAP server based on specified criteria. The search can filter by ID,
+        prefLabel, definition, or a combination of these terms. It can also perform an exact match or a substring
+        match, as specified by the `exactMatch` parameter.
+
+        This method ensures results are combined using an AND operation when multiple criteria are provided. Results
+        will consist of IRIs corresponding to the lists that meet the search conditions.
+
         :param con: Active connection to the OLDAP server.
         :type con: IConnection
-        :param project: Project object or project short name or IRI.
+        :param project: Project object, project short name, or project IRI.
         :type project: Project | Iri | Xsd_NCName | str
-        :param id: List ID.
+        :param id: (Optional) List ID for the search. Matches can be exact or by substring.
         :type id: Xsd_string | str | None
-        :param prefLabel: Label of the list. All languages are being searched, if exactMatch is False.
+        :param prefLabel: (Optional) Label of the list to search. Matches can be exact or by substring. All languages
+          are searched if `exactMatch` is False.
         :type prefLabel: Xsd_string | str | None
-        :param definition: Definition of the list. All languages are being searched, if exactMatch is False.
-        :type definition: Xsd_string | str | None
-        :param exactMatch: Exact match in search terms
+        :param definition: (Optional) Definition text to search. Matches can be exact or by substring. All languages
+          are searched if `exactMatch` is False.
+        :type definition: str | None
+        :param exactMatch: (Optional) Specifies whether to enforce an exact match for the search terms. Defaults to False.
         :type exactMatch: bool
-        :return: List of hierarchival list's IRI's
+        :return: A list of IRIs for hierarchical lists that match the search criteria.
         :rtype: list[Iri]
+
+        :raises TypeError: If `con` is not an IConnection object.
         """
         if not isinstance(con, IConnection):
             raise TypeError("con must be an IConnection object")
@@ -544,16 +618,17 @@ class OldapList(Model):
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
-        Create a new list in the RDF triplestore. The method checks if a list with the same name is already existing
-        :param indent: Start indent fpr beautifying the sparql query (INTERNAL USE/DEBUGGING)
-        :type indent: int
-        :param indent_inc: Indent increment for beautifying the sparql query (INTERNAL USE/DEBUGGING)
-        :type indent_inc: int
-        :return: None object
+        Creates a new list in the RDF triplestore and ensures compliance with the required schema.
+        This method verifies that a list with the same identifier does not already exist, and if not,
+        it performs SPARQL updates to create the required RDF data structures and list nodes.
+
+        :param indent: Start indent for beautifying the SPARQL query (used for internal debugging purposes)
+        :param indent_inc: Indent increment for beautifying the SPARQL query (used for internal debugging purposes)
+        :return: None
         :rtype: None
-        :throws OldapErrorAlreadyExists: If a list with the same name already exists
-        :throws OldapErrorNoPermission: If the logged-in user has no permission to create a list for the given project
-        :throws OldapError: All other error conditions
+        :raises OldapErrorAlreadyExists: Raised if a list with the same name already exists in the triplestore.
+        :raises OldapErrorNoPermission: Raised if the logged-in user lacks permissions to create a list for the given project.
+        :raises OldapError: Raised for other general error conditions encountered during the process.
         """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
@@ -654,15 +729,25 @@ class OldapList(Model):
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
-        Updates the metadata of an hierarchical list
-        :param indent: Start indent for beautifying the sparql query (INTERNAL USE/DEBUGGING)
+        Updates the metadata of a hierarchical list.
+
+        This method performs updates on metadata of an existing hierarchical list
+        based on the changeset provided. It validates permissions and constructs
+        SPARQL queries to apply the necessary changes. The updated metadata is
+        committed atomically to ensure data consistency. Additionally, the cache
+        is invalidated to reflect the updated metadata.
+
+        :param indent: Start indent for beautifying the SPARQL query (used internally for debugging purposes)
         :type indent: int
-        :param indent_inc: Indent increment for beautifying the sparql query (INTERNAL USE/DEBUGGING)
+        :param indent_inc: Indent increment for beautifying the SPARQL query (used internally for debugging purposes)
         :type indent_inc: int
-        :return: None object
+        :return: None
         :rtype: None
-        :throws OldapErrorNoPermission: If the logged-in user has no permission to update a list for the given project
-        :throws OldapError: All other error conditions
+
+        :raises OldapErrorNoPermission: If the logged-in user does not have sufficient
+            permissions to update the hierarchical list for the given project.
+        :raises OldapError: For all other error conditions encountered during the
+            update process, including transaction failures or metadata mismatch.
         """
         result, message = self.check_for_permissions()
         if not result:
@@ -717,12 +802,15 @@ class OldapList(Model):
 
     def in_use_queries(self) -> (str, str):
         """
-        Checks if the list is in use. A list is in use if at least one list item is in use or
-        if the list is referenced in a datamodel as property.
-        :return: True if the list is in use, False otherwise
-        :rtype: bool
-        """
+        Constructs and returns two SPARQL queries to determine if a list is in use. The first query
+        checks if at least one item in the list is in use within a resource instance, while the
+        second query checks if the list is referenced as a target from a property definition
+        within a SHACL graph. These queries are used to verify whether the list is actively
+        utilized in the system.
 
+        :return: A tuple containing the two SPARQL queries as strings.
+        :rtype: (str, str)
+        """
         #
         # first we check if a list item is in use by some resource instance
         #
@@ -754,6 +842,17 @@ class OldapList(Model):
         return query1, query2
 
     def in_use(self) -> bool:
+        """
+        Determines if the resource is currently in use.
+
+        Executes two database queries within a transaction to check the current
+        usage status of a resource. If any of these queries indicate the resource
+        is in use, the transaction is aborted and the result is returned. Otherwise,
+        the transaction is committed, and the resource is confirmed as not in use.
+
+        :return: ``True`` if the resource is in use, otherwise ``False``.
+        :rtype: bool
+        """
         query1, query2 = self.in_use_queries()
 
         self._con.transaction_start()
@@ -770,7 +869,15 @@ class OldapList(Model):
 
     def delete(self) -> None:
         """
-        Deletes a list from the RDF triplestore. The list must have no list items in order to allow the deletion
+        Deletes a list from the RDF triplestore. The list must not have any list items in order to
+        allow the deletion process. Method ensures all associated data with the list, including
+        its nodes, SHACL definitions, OWL class definitions, and graph information, are removed
+        appropriately. Also validates the operation to ensure the list is not in use before
+        deletion.
+
+        :raises OldapErrorNoPermission: If the required permissions to delete the list are not met.
+        :raises OldapErrorInUse: If the list is currently in use and cannot be deleted.
+
         :return: None object
         :rtype: None
         """

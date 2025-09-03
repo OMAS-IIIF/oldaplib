@@ -12,16 +12,31 @@ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 @serializer
 class NamespaceIRI(Xsd_anyURI):
     """
-    # NamespaceIRI
+    Represents an IRI that denotes a namespace.
 
-    An IRI representing a namespace. A namespace is an IRI that ends with a fragment separates, that is a "#" or "/".
-    It is a subclass of AnyIRI and checks in the constructor for the termination with a "#" or "/".
+    A NamespaceIRI is a specialized form of `Xsd_anyURI` that ensures the IRI
+    ends with a fragment separator, either a `"#"` or a `"/"`. This class validates the IRI
+    structure during instantiation and provides utility methods for usage.
+
+    :ivar value: The IRI value that this instance represents.
+    :type value: str
     """
 
     def __init__(self, value: Self | Xsd_anyURI | str, validate: bool = False):
         """
-        Constructor for the NamespaceIRI
-        :param value: A string or another NamespaceIRI
+        Constructor for the NamespaceIRI class.
+
+        This constructor initializes a NamespaceIRI object with the given value and
+        validation flag. The value represents the namespace and can be a string,
+        `NamespaceIRI` object, or `Xsd_anyURI`. The validate flag determines whether
+        validation is performed on the provided value. If the value does not comply
+        with the expected format, an exception is raised. NamespaceIRI instances must
+        always end with '/' or '#'.
+
+        :param value: A string, `NamespaceIRI` object, or `Xsd_anyURI` representing
+            the namespace.
+        :param validate: A boolean flag indicating whether to validate the given value.
+        :raises OldapErrorValue: If the provided value does not end with '/' or '#'.
         """
         super().__init__(value, validate)
         if not self._append_allowed:
@@ -34,5 +49,14 @@ class NamespaceIRI(Xsd_anyURI):
         return Xsd_anyURI(self._value + other)
 
     def expand(self, name: Xsd_NCName):
+        """
+        Expands the current namespace URI by appending a name to it, separated by a '/'
+        and followed by a '#'. The expanded URI is then returned as a new NamespaceIRI
+        object.
+
+        :param name: An object of type `Xsd_NCName` whose value will be appended to
+            the current namespace's URI.
+        :return: A new NamespaceIRI object with the expanded URI.
+        """
         return NamespaceIRI(self.value[:-1] + '/' + name.value + '#')
 

@@ -40,6 +40,20 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 #@strict
 @serializer
 class PermissionSet(Model):
+    """
+    Represents a Permission Set model, typically for use in a semantic knowledge-based system.
+
+    This class provides methods to define, manage, and manipulate Permission Sets, which specify
+    data access permissions within a project. It includes methods for creating permissions in
+    a triple store, validating consistency, and managing notifications for changes to attributes.
+
+    Permission Sets are uniquely identified by their association with a project and their ID.
+    The class ensures that operations are consistent within a defined project context and
+    permissions are compliant with system access controls.
+
+    :ivar iri: The unique IRI of the permission set, derived from the project and permission set ID.
+    :type iri: Iri
+    """
 
     __permset_iri: Iri | None
     __project: Project | None
@@ -53,28 +67,32 @@ class PermissionSet(Model):
                  validate: bool = False,
                  **kwargs):
         """
-        Constructor for a permission set.
-        :param con: Subclass of IConnection
+        This constructor initializes a permission set instance.
+
+        A permission set represents a defined set of permissions belonging to a specific
+        project. It combines information such as label, comments, permissions granted,
+        and the defining project. The initialization process ensures that provided data
+        is consistent according to the constraints defined by the project and assigns
+        correct IRIs to the permission set.
+
+        :param con: Connection to manage the data within the permission set.
         :type con: IConnection
-        :param creator: Usually not being used (internal use only)
-        :type creator: Iri | None
-        :param created: Usually not being used (internal use only)
+        :param creator: Creator of the permission set (internal use).
+        :type creator: Iri | str | None
+        :param created: Timestamp indicating when the permission set was created
+            (internal use).
         :type created: Xsd_dateTime | datetime | str | None
-        :param contributor: Usually not being used (internal use only)
+        :param contributor: Contributor associated with the permission set (internal use).
         :type contributor: Iri | None
-        :param modified: Usually not being used (internal use only)
+        :param modified: Timestamp indicating the last modification of the permission set
+            (internal use).
         :type modified: Xsd_dateTime | datetime | str | None
-        :param permissionSetId: A unique identifier for the permission set (unique within the project as given be :definedByProject)
-        :type permissionSetId: Xsd_NCName | str
-        :param label: A meaninful label for the permission set (several languages allowed)
-        :type label: LangString | str
-        :param comment: A meaningful comment for the permission set (several languages allowed)
-        :type comment: LangString | str
-        :param givesPermission: The permission that this permision set grants
-        :type givesPermission: DataPermission
-        :param definedByProject: The project that defines this permission set (either the IRI or the shortname)
-        :type definedByProject: Iri | Xsd_NCName
-        :raises OldapErrorNoFound: Given project does not exist
+        :param validate: Flag indicating whether to validate values upon initialization.
+        :type validate: bool
+        :param kwargs: Additional arguments for dynamic attributes.
+        :type kwargs: Any
+        :raises OldapErrorNoFound: Raised if the project defined by the identifier does
+            not exist.
         """
         super().__init__(connection=con,
                          creator=creator,
@@ -169,12 +187,24 @@ class PermissionSet(Model):
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
-        Create the given permission set in the triple store.
-        :param indent: indentation for SPARQL text
-        :type indent: int
-        :param indent_inc: indentation increment for the SPARQL text
-        :type indent_inc: int
+        Creates and stores a permission set in the triple store.
+
+        The method handles creating SPARQL queries to insert data related to
+        the given permission set. The data includes metadata such as creator,
+        creation timestamp, contributors, and other attributes defined in the
+        permission set. It also ensures that no duplicate permission set exists
+        before attempting insertion. The changes are managed as a transaction,
+        and the cache is updated upon successful persistence.
+
+        :param indent: Indentation for the SPARQL text.
+        :param indent_inc: Increment value for indentation in SPARQL text.
         :return: None
+        :raises OldapError: If no connection is present.
+        :raises OldapErrorNoPermission: If the user does not have the required
+            permissions to create the permission set.
+        :raises OldapErrorAlreadyExists: If a permission set with the given IRI
+            already exists.
+        :raises OldapError: If an error occurs during transaction operations.
         """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
@@ -249,17 +279,28 @@ class PermissionSet(Model):
              definedByProject: Project | Iri | Xsd_NCName | str | None = None,
              ignore_cache: bool = False) -> Self:
         """
-        Reads a given permission set. The permission set is defined by its ID (which must be unique within
-        one project) and the project IRI.
-        :param con: A Connection object.
-        :type con: IConnection
-        :param permissionSetId: The ID of the permission set.
-        :type permissionSetId: Xsd_NCName | str
-        :param definedByProject: Iri or the shortname of the project
-        :type definedByProject: Iri | Xsd_NCName | str
-        :return: A PermissionSet instance
-        :rtype: OldapPermissionSet
-        :raises OldapErrorNot found: If the permission set cannot be found.
+        Reads a specific permission set from the system using its unique identifier within the
+        context of a project or using its Internationalized Resource Identifier (IRI). Returns
+        an instance of the permission set if found.
+
+        :param con: The connection object used to interact with the system.
+        :param iri: The Internationalized Resource Identifier of the permission set. If provided,
+                    it will be used to read the permission set.
+        :param permissionSetId: The unique identifier of the permission set within a project.
+                                Required if `iri` is not provided.
+        :param definedByProject: The project either as an object, its IRI, or its short name
+                                 which defines the namespace of the permission set. This is
+                                 required alongside `permissionSetId` if `iri` is not provided.
+        :param ignore_cache: If set to True, the method bypasses the cache and reads fresh data
+                             directly from the source.
+
+        :return: An instance of the requested permission set.
+
+        :raises OldapErrorNotFound: Raised if the permission set cannot be found in the system.
+        :raises OldapErrorValue: Raised if both `iri` and the combination of `permissionSetId`
+                                 and `definedByProject` are missing.
+        :raises OldapErrorInconsistency: Raised if the permission set contains inconsistencies
+                                         in its data during retrieval.
         """
         if iri:
             permset_iri = Iri(iri, validate=True)
@@ -361,18 +402,22 @@ class PermissionSet(Model):
         """
         Search for a permission set. At least one of the search criteria is required. Multiple search criteria are
         combined using a logical AND.
+
         :param con: A valid Connection object.
         :type con: IConnection
-        :param permissionSetId: Search for the given ID. The given string must be _contained_ in the ID (substring)
+        :param permissionSetId: Search for the given ID. The given string must be _contained_ in the ID (substring).
         :type permissionSetId: str | None
-        :param definedByProject: The project which is responsible for the permission set
-        :type definedByProject: str | None
-        :param givesPermission: The permission that the permission set should grant
-        :type givesPermission: str | None
+        :param definedByProject: The project which is responsible for the permission set.
+        :type definedByProject: Iri | str | None
+        :param givesPermission: The permission that the permission set should grant.
+        :type givesPermission: DataPermission | None
         :param label: The label string. The given string must be within at least one language label.
-        :type label: str | None
-        :return: A list or permission set Iri's (possibly as Xsd_QName
+        :type label: Xsd_string | str | None
+        :return: A list of permission set IRIs (possibly as Xsd_QName).
         :rtype: list[Iri | Xsd_QName]
+
+        :raises OldapError: If the connection is not valid or another non-specified error occurs.
+        :raises OldapErrorValue: If the search criteria are not valid.
         """
         if definedByProject:
             definedByProject = Iri(definedByProject, validate=True)
@@ -437,7 +482,13 @@ class PermissionSet(Model):
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
-        Update a changed permission set
+        Update a changed permission set.
+
+        This method is responsible for preparing and executing updates to
+        the permission set based on the tracked changes. It interacts with
+        a SPARQL database to apply changes atomically and ensure data
+        consistency.
+
         :param indent: Internal use (indent of SPARQL text)
         :type indent: int
         :param indent_inc: Internal use (indent increment of SPARQL text)
@@ -445,6 +496,7 @@ class PermissionSet(Model):
         :return: None
         :rtype: None
         :raises OldapErrorUpdateFailed: Update failed
+        :raises OldapErrorNoPermission: Insufficient permissions to perform the update
         """
         result, message = self.check_for_permissions()
         if not result:
@@ -512,6 +564,19 @@ class PermissionSet(Model):
 
 
     def in_use_queries(self) -> (str, str):
+        """
+        Generates two SPARQL ASK queries to check the usage of a permission set in two contexts:
+        assigned to a user or used by a data object (resource). The generated queries are used
+        to confirm whether the specified permission set is currently in use within the system.
+
+        The first query checks if the permission set is assigned to any user. The second query
+        validates if the permission set is associated with any data object or resource.
+
+        :return: A tuple containing two SPARQL ASK queries as strings. The first query checks
+                 if the permission set is assigned to a user, and the second query checks if
+                 the permission set is associated with a data object or resource.
+        :rtype: tuple[str, str]
+        """
         context = Context(name=self._con.context_name)
 
         #
@@ -541,6 +606,16 @@ class PermissionSet(Model):
         return query1, query2
 
     def in_use(self) -> bool:
+        """
+        Checks if the current object is in use by executing a series
+        of database queries within a transaction. If any of the queries
+        return a boolean value indicating 'True', the object is considered
+        to be in use, and the transaction is aborted. Otherwise, the
+        transaction is committed.
+
+        :return: True if the object is in use, otherwise False
+        :rtype: bool
+        """
         query1, query2 = self.in_use_queries()
 
         self._con.transaction_start()
@@ -558,9 +633,25 @@ class PermissionSet(Model):
 
     def delete(self) -> None:
         """
-        Delete the given permission set.
+        Deletes a specific permission set by identifying its associated RDF resource
+        and removing it from the context graph. The method verifies if the permission
+        set is in use by checking relevant queries against users and data objects. If
+        the permission set is assigned to users or data objects, deletion is aborted,
+        and an error is raised. The method also performs transactional operations to
+        handle any modifications or failures during the deletion process. After
+        successful deletion, the associated cache entry is removed.
+
+        :raises OldapErrorNoPermission: If the current user lacks permissions to
+            delete the permission set.
+        :raises OldapErrorInUse: If the permission set is assigned to either users
+            or data objects.
+        :raises OldapError: For any general error encountered during the operation.
         :return: None
         :rtype: None
+
+        :raises OldapErrorNoPermission: Insufficient permissions to perform the update
+        :raises OldapErrorInUse: Permission set is still in use
+        :raises OldapError: For any general error encountered during the operation.
         """
         result, message = self.check_for_permissions()
         if not result:
@@ -596,6 +687,3 @@ class PermissionSet(Model):
         cache = CacheSingletonRedis()
         cache.delete(self.__permset_iri)
 
-
-if __name__ == '__main__':
-    pass

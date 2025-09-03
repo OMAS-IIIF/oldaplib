@@ -25,6 +25,23 @@ from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 
 @serializer
 class HasProperty(Model, Notify):
+    """
+    Represents a `HasProperty` model that integrates functionalities from both the `Model`
+    and `Notify` classes. It provides extensive management for property attributes,
+    notifications, and serialization.
+
+    This class serves the purpose of managing `PropertyClass` objects or equivalent IRIs
+    within the context of a given project. It offers capabilities such as notifying
+    changes, serializing properties into dictionaries, and generating SHACL and OWL
+    annotations for validation and reasoning purposes. The class also helps track
+    updates to attributes or changes made to properties associated with a project.
+
+    :ivar prop: The associated `PropertyClass` object or IRI of this property.
+    :type prop: PropertyClass | Iri | None
+    :ivar haspropdata: Represents combined data attributes (minCount, maxCount, order, group)
+                      as a single `HasPropertyData` object.
+    :type haspropdata: HasPropertyData
+    """
     _prop: PropertyClass | Iri | None
     _project: Project | None
 
@@ -39,6 +56,26 @@ class HasProperty(Model, Notify):
                  contributor: Iri | None = None,  # DO NO USE! Only for jsonify!!
                  modified: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
                  **kwargs):
+        """
+        Initializes the class with the given parameters and configurations.
+
+        This constructor sets up the internal properties and state, and handles specific
+        initialization logic related to `PropertyClass`, notification handlers, and attributes.
+        It also prepares the object to track changes and attributes defined in `HasPropertyAttr`.
+
+        :param con: The connection interface used to interact with the related resources.
+        :type con: IConnection
+        :param project: The project instance associated with this object.
+        :type project: Project
+        :param prop: Optional; the property class or IRI associated with this object, or None.
+        :param notifier: Optional; the callable function used for notification.
+        :type notifier: Callable[[Iri], None] | None
+        :param notify_data: Optional; additional data in the form of an IRI for notification.
+        :type notify_data: Iri | None
+        :param kwargs: Additional attributes to configure specific behaviors, passed as key-value pairs.
+
+        :raises OldapErrorNotFound: If the given property class is not found.
+        """
         Model.__init__(self, connection=con,
                        creator=creator,
                        created=created,

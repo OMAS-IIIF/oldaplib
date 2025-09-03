@@ -11,18 +11,32 @@ T = TypeVar("T")
 @serializer
 class RdfSet(Generic[T], Notify):
     """
-    This generic class RdfSet implements the handling of an RDF set and offers some helper methods to deal with this
-    kind of data
+    This generic class implements the handling of an RDF set and offers helper methods to deal with this kind of data.
+
+    The purpose of this class is to simplify management and operations on RDF sets, providing methods for comparison,
+    manipulation, and serialization.
+
+    :ivar value: The set of data elements stored in this RDF set.
+    :type value: set[T]
     """
     _data: Set[T]
 
     def __init__(self, *args: Self | set[T] | list[T] | tuple[T] | T,
                  value: Self | set[T] | list[T] | tuple[T] | T | None = None) -> None:
         """
-        Constructor of an RdfSet
-        :param args: Values for the set. **Note**: all values must be of the same datatype!
-        :type: Self | set[T] | list[T] | tuple[T] | T
-        :param value: Internal use for serialization/deserialization
+        Constructor of the RdfSet class.
+
+        This constructor initializes an RdfSet object, which holds a collection
+        of unique items. Items can be provided through the `args` argument or
+        the `value` argument. The items can be of different container types,
+        but uniformity in the datatype of elements within the set is enforced.
+
+        :param args: Items to populate the set. Accepts RdfSet, set, list, tuple,
+            or single items of type T.
+        :type args: Self | set[T] | list[T] | tuple[T] | T
+        :param value: Internal use parameter, primarily utilized for serialization
+            or deserialization of objects.
+        :type value: Self | set[T] | list[T] | tuple[T] | T | None
         """
         self._data: Set[T] = set()
         Notify.__init__(self)

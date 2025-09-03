@@ -40,6 +40,22 @@ class OldapListNodeAttrChange:
 
 @serializer
 class OldapListNode(Model):
+    """
+    Represents a node in an ordered list, with attributes and behaviors specific to managing and maintaining
+    relations within a hierarchical data structure. This class encapsulates details pertaining to the project,
+    graph structure, and metadata associated with each node. It also facilitates permissions checking and supports
+    deep copying for instances.
+
+    Detailed description of attributes, including their roles within hierarchical structures, supports serialization,
+    and ensures object uniqueness by comparing key attributes.
+
+    :ivar oldapListNodeId: Unique identifier of the node within the ordered list.
+    :type oldapListNodeId: str
+    :ivar prefLabel: Preferred label for the node.
+    :type prefLabel: str
+    :ivar definition: Definition or description for the node.
+    :type definition: str
+    """
     __projectShortName: Xsd_NCName
     __projectIri: Iri
     __oldapListId: Xsd_NCName
@@ -72,36 +88,39 @@ class OldapListNode(Model):
                  validate: bool = False,
                  **kwargs):
         """
+        Initializes an instance with various parameters for defining and interacting
+        with a node structure.
 
-        :param con: Connection to server
+        The constructor initializes an object with attributes related to its
+        identity, hierarchy, and semantics. It configures the node object while
+        considering its internal and external relationships, enabling its use
+        within a structured project context. Optional parameters allow customization
+        of the node's runtime behavior.
+
+        :param con: Connection to the server
         :type con: IConnection
-        :param projectShortName: Shortname of project (**oldaplist.info)
+        :param projectShortName: Shortname of the project (**oldaplist.info)
         :type projectShortName: Xsd_NCName
-        :param projectIri: Iri of project (**oldaplist.info)
-        :type projectIri: Xsd_NCName
-        :param oldapListId: ID of list (**oldaplist.info)
+        :param projectIri: IRI of the project (**oldaplist.info)
+        :type projectIri: Iri
+        :param oldapListId: ID of the list (**oldaplist.info)
         :type oldapListId: Xsd_NCName
-        :param oldapListIri: Iri of list (**oldaplist.info)
-        :type oldapListIri: Xsd_NCName
-        :param node_classIri: Iri if the node's class, that is: "node a node_classIri ."
+        :param oldapListIri: IRI of the list (**oldaplist.info)
+        :type oldapListIri: Iri
+        :param node_classIri: IRI of the node class, representing "node a node_classIri ."
         :type node_classIri: Iri
-        :param creator: The Creator of the item
-        :type creator: Iri | None
-        :param created: Creation type
-        :type created: Xsd_dateTime | None
-        :param contributor: The user that last modified
-        :type contributor: Iri | None
-        :param modified: Last modification date
-        :type modified: Xsd_dateTime | None
-        :param leftIndex: Left index of node
+        :param leftIndex: Left index of the node
         :type leftIndex: Xsd_integer | None
-        :param rightIndex: Right index of node
+        :param rightIndex: Right index of the node
         :type rightIndex: Xsd_integer | None
-        :param defaultLabel: Use the nodeId as default label if no label is given
+        :param defaultLabel: Flag indicating whether to use nodeId as the default
+            label if no label is provided
         :type defaultLabel: bool
-        :param nodes: The subnodes of this node (only used by the serializer!)
+        :param nodes: Subnodes of this node; primarily for use by the serializer
         :type nodes: list[Self] | None
-        :param kwargs:
+        :param validate: Flag to enable or disable validation
+        :type validate: bool
+        :param kwargs: Additional keyword arguments for customization
         """
         super().__init__(connection=con,
                          creator=creator,
@@ -257,6 +276,32 @@ class OldapListNode(Model):
              oldapListIri: Iri,
              node_classIri: Iri,
              oldapListNodeId: Xsd_NCName | str):
+        """
+        Reads and initializes an instance of the class using information retrieved from
+        a graph database. This method queries a SPARQL endpoint to gather properties
+        and values associated with a specific node, identified by its IRI. It processes
+        the query results and constructs an object with attributes populated based on
+        retrieved data. If the specified node does not exist in the database, an error
+        is raised.
+
+        :param con: Connection object to the SPARQL endpoint used to execute queries.
+        :type con: IConnection
+        :param projectShortName: Short name of the project to identify the graph.
+        :type projectShortName: Xsd_NCName
+        :param projectIri: The IRI identifying the project in the data store.
+        :type projectIri: Iri
+        :param oldapListId: Identifier of the list to which the node belongs.
+        :type oldapListId: Xsd_NCName
+        :param oldapListIri: The IRI of the list to which the node belongs.
+        :type oldapListIri: Iri
+        :param node_classIri: The IRI representing the class of the node in the ontology.
+        :type node_classIri: Iri
+        :param oldapListNodeId: The identifier of the specific node in the list. Can be a string or an Xsd_NCName.
+        :type oldapListNodeId: Xsd_NCName | str
+        :return: An instance of the class populated with data retrieved for the specified node.
+        :rtype: cls
+        :raises OldapErrorNotFound: If the node cannot be found in the graph database.
+        """
         oldapListNodeId = Xsd_NCName(oldapListNodeId, validate=True)
 
         list_node_prefix = Xsd_NCName("L-", validate=False) + oldapListId
@@ -329,6 +374,25 @@ class OldapListNode(Model):
                    rightIndex=rightIndex)
 
     def create_root_node(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Creates a root node in the specified list within the context of the given graph. This method
+        ensures all necessary conditions are fulfilled before creating the node. It verifies if the
+        logged-in user has the necessary permissions and validates that no existing root node is
+        present in the targeted list. The newly created root node is populated with initial attributes,
+        such as left and right indices, timestamps, and other metadata, and committed to the data
+        store. If a root node already exists, the operation is aborted and an error is raised.
+
+        :param indent: An integer value used to define the base indentation level. Default is 0.
+        :param indent_inc: An integer that specifies the increase in indentation for every nesting
+            level. Default is 4.
+        :return: None
+
+        :raises OldapErrorNoPermission: If the logged-in user does not have the necessary permissions.
+        :raises OldapErrorAlreadyExists: If a root node already exists in the targeted list.
+        :raises OldapErrorUpdateFailed: If the update of the root node failed.
+        :raises OldapError: If an unexpected error occurs during the operation.
+        """
+        OldapError
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -391,6 +455,20 @@ class OldapListNode(Model):
         cache.delete(self.__oldapListIri)
 
     def update(self, indent: int = 0, indent_inc: int = 4):
+        """
+        Updates an entity within the system by ensuring that all necessary changes are
+        applied and associated permissions are respected. The method performs updates
+        on fields specified in the changeset, along with transaction management to
+        maintain data consistency. Additionally, timestamps and modification tracking
+        are updated to reflect the changes made.
+
+        :param indent: The initial indentation level for formatting the output.
+        :param indent_inc: The increment value for indentation levels.
+        :return: None
+        :raises OldapErrorNoPermission: Raised if the user does not have the necessary permissions to perform the update.
+        :raises OldapErrorUpdateFailed: Raised if the update fails due to mismatched modification timestamps.
+        :raises OldapError: Raised when any transaction-related error occurs during the update process.
+        """
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
@@ -438,6 +516,23 @@ class OldapListNode(Model):
         cache.delete(self.__oldapListIri)
 
     def insert_node_right_of(self, leftnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Inserts a new node to the right of a given left node in a controlled hierarchical structure.
+        This operation involves multiple SPARQL updates and queries to maintain the consistency
+        of left and right index values for nodes in the hierarchy, ensuring proper ordering
+        and relationships between nodes.
+
+        :param leftnode: The node to the left of which the new node will be inserted.
+        :type leftnode: Self
+        :param indent: Indentation level for the SPARQL query formatting. Default is 0.
+        :type indent: int
+        :param indent_inc: Increment of indentation per level for SPARQL query formatting. Default is 4.
+        :type indent_inc: int
+        :return: None. This function modifies the data structure and does not return any values.
+        :rtype: None
+        :raises OldapError: If the operation fails for any generic reason.
+        :raises OldapErrorNoPermission: If the current user lacks permission to insert nodes.
+        """
 
         if self._con is None:
             raise OldapError("Cannot create: no connection")
@@ -570,6 +665,29 @@ class OldapListNode(Model):
         cache.delete(self.__oldapListIri)
 
     def insert_node_left_of(self, rightnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Inserts a node to the left of the specified rightnode in a list hierarchy
+        while maintaining consistent indexing and properties. This operation
+        validates permissions, builds SPARQL update queries for performing the
+        insertion, adjusts index consistency across the list, and updates the
+        store and cache as needed. This ensures that the hierarchy and index
+        are maintained correctly even after new nodes are added.
+
+        :param rightnode: The node to the right of which the new node will
+                          be inserted.
+        :type rightnode: Self
+        :param indent: The base level of indentation for formatting update
+                       queries. Defaults to 0.
+        :param indent_inc: The increment in the indentation level for nested
+                           elements in update queries. Defaults to 4.
+        :type indent_inc: int
+        :return: None
+        :rtype: None
+        :raises OldapError: If there is no existing connection or the
+                            transaction fails.
+        :raises OldapErrorNoPermission: If the user does not have permission
+                                        for the operation.
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -699,6 +817,27 @@ class OldapListNode(Model):
         cache.delete(self.__oldapListIri)
 
     def insert_node_below_of(self, parentnode: Self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Inserts a new node as a child of the specified parent node in a semantic data structure.
+
+        This method ensures that the new node is correctly added as a hierarchical child node
+        of the provided parent node while maintaining logical consistency in the data graph.
+        The operation includes SPARQL queries and updates performed within a transactional
+        context to safeguard against potential inconsistencies.
+
+        :param parentnode: The parent node under which the new node is to be inserted.
+        :type parentnode: Self
+        :param indent: The base indentation level for formatting SPARQL queries. Default is 0.
+        :type indent: int
+        :param indent_inc: The increment amount for each indentation level in SPARQL query formatting. Default is 4.
+        :type indent_inc: int
+        :return: None
+        :rtype: None
+        :raises OldapError: Raised if the operation cannot start due to missing connection.
+        :raises OldapErrorNoPermission: Raised if the current user lacks permissions for the operation.
+        :raises OldapErrorInconsistency: Raised if an insertion point already contains sub-nodes.
+        :raises OldapError: Raised if the insertion operation encounters unexpected issues or inconsistencies.
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -846,6 +985,15 @@ class OldapListNode(Model):
         cache.delete(self.__oldapListIri)
 
     def in_use(self) -> bool:
+        """
+        Checks if the current node is currently in use within the specified graph context.
+
+        The method constructs a SPARQL `ASK` query using the context's graph name and
+        the IRI in question to determine if it is used in any triple within the graph.
+
+        :return: A SPARQL `ASK` query as a string to determine the IRI usage.
+        :rtype: str
+        """
         context = Context(name=self._con.context_name)
         query = context.sparql_context
         query += f"""
@@ -860,6 +1008,18 @@ class OldapListNode(Model):
         return query
 
     def in_use_recursively(self) -> bool:
+        """
+        Determine whether the current node and its descendants is in use recursively by generating an
+        ASK SPARQL query. This query checks if certain conditions, such as the context
+        and index range, are satisfied for elements within the defined graph.
+
+        :raises ValueError: If internal state variables are not properly initialized or lack
+            required formatting for the SPARQL query.
+
+        :return: Boolean value indicating whether the graph element is in use recursively as per
+            the defined query.
+        :rtype: bool
+        """
         context = Context(name=self._con.context_name)
         query = context.sparql_context
         query += f"""
@@ -879,6 +1039,15 @@ class OldapListNode(Model):
 
 
     def delete_node(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Deletes a node with the provided indices and ensures proper index adjustments. The method
+        performs transaction operations to safeguard against inconsistencies during the deletion
+        process. Additionally, it ensures no dependent nodes or references are left unresolved.
+
+        :param indent: The initial indentation level used in logging or display.
+        :param indent_inc: Increment value for each level of indentation in logging or display.
+        :return: None
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -1004,6 +1173,23 @@ class OldapListNode(Model):
         cache.delete(self.__oldapListIri)
 
     def delete_node_recursively(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Recursively deletes a node and its child nodes while ensuring consistency in the
+        underlying hierarchical structure. The method performs various operations such as
+        permission checking, deletion of nodes, and adjustments to indices of nodes to
+        the right of the deleted node.
+
+        :param indent: Initial indent level for log or trace purposes.
+        :type indent: int
+        :param indent_inc: Incremental value used for adjusting indent level.
+        :type indent_inc: int
+        :return: This method does not return a value, its purpose is execution of node deletion.
+        :rtype: None
+        :raises OldapError: When there is no connection available for performing the operation.
+        :raises OldapErrorNoPermission: When permissions to delete a node are insufficient.
+        :raises OldapErrorInUse: When the node is in use and cannot be deleted.
+        :raises OldapErrorInconsistency: When an inconsistency is encountered retrieving the node.
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -1124,6 +1310,27 @@ class OldapListNode(Model):
 
 
     def move_node_below(self, con: IConnection, target: Self, indent: int = 0, indent_inc: int = 4):
+        """
+        Moves a node and its subtree below a target node within a hierarchical structure. This operation
+        modifies the index values (`leftIndex` and `rightIndex`) of the nodes to reflect their new position
+        in the hierarchy. The function ensures consistency in the index values and prevents any invalid
+        hierarchical relationships. The function also updates the parent reference (`broaderTransitive`)
+        after the move and commits the changes to the graph.
+
+        :param con: The connection interface to interact with the graph/database.
+        :type con: IConnection
+        :param target: The node that will become the new parent of the moved node.
+        :type target: Self
+        :param indent: The starting level of indentation for logging or debugging.
+        :type indent: int
+        :param indent_inc: Increment of indentation for nested structures or operations.
+        :type indent_inc: int
+        :return: None
+
+        :raises OldapError: When there is no connection available for performing the operation.
+        :raises OldapErrorNoPermission: When the user does not have permission to perform the operation.
+        :raises OldapErrorInUse: When the node is in use and cannot be moved.
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -1357,6 +1564,26 @@ class OldapListNode(Model):
         cache.delete(self.__oldapListIri)
 
     def move_node_right_of(self, con: IConnection, leftnode: Self, indent: int = 0, indent_inc: int = 4):
+        """
+        Move a node to the right of a specified left node, adjusting its position and relationship in a hierarchical
+        structure. This operation includes permission checks, positional adjustments, and hierarchy consistency checks.
+
+        :param con: The connection object used to interact with the database
+            or remote system.
+        :type con: IConnection
+        :param leftnode: The node to which the current node will be moved
+            to the right of.
+        :type leftnode: Self
+        :param indent: The base level of indentation, default is 0.
+        :type indent: int, optional
+        :param indent_inc: Increment to adjust indentation levels, default is 4.
+        :type indent_inc: int, optional
+        :return: None
+        :rtype: None
+        :raises OldapError: If no connection is established.
+        :raises OldapErrorNoPermission: If the user lacks necessary permissions to execute the operation.
+        :raises OldapErrorInconsistency: If inconsistencies are detected during the operation.
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -1595,6 +1822,24 @@ class OldapListNode(Model):
         cache.delete(self.__oldapListIri)
 
     def move_node_left_of(self, con: IConnection, rightnode: Self, indent: int = 0, indent_inc: int = 4):
+        """
+        Moves a node in a tree structure to the left of a specified sibling node. The method ensures that the
+        node's position is properly updated based on the given tree's left and right indices, adjusting all
+        relevant indices within the tree and validating the operation.
+
+        :param con: The connection object used for the database operations.
+        :type con: IConnection
+        :param rightnode: The target sibling node to place the given node to the left of.
+        :type rightnode: Self
+        :param indent: The base indentation level for the operation.
+        :type indent: int
+        :param indent_inc: The amount by which to increment the indentation for subsequent operations.
+        :type indent_inc: int
+        :return: None
+
+        :raises OldapError: If the operation fails.
+        :raises OldapErrorNoPermission: If the user does not have permission to perform the operation.
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -1843,6 +2088,34 @@ class OldapListNode(Model):
                prefLabel: Xsd_string | str | None = None,
                definition: str | None = None,
                exactMatch: bool = False) -> list[Iri]:
+        """
+        Searches for nodes in the graph associated with the provided parameters and returns a list of their IRIs.
+
+        :param con: The connection interface to the knowledge graph.
+        :type con: IConnection
+        :param projectShortName: The short name of the project where the search is performed.
+        :type projectShortName: Xsd_NCName
+        :param projectIri: The IRI of the project where the search is performed.
+        :type projectIri: Iri
+        :param oldapListId: The identifier of the oldap list in the project.
+        :type oldapListId: Xsd_NCName
+        :param oldapListIri: The IRI of the oldap list in the project.
+        :type oldapListIri: Iri
+        :param node_classIri: The IRI of the node class to filter in the search.
+        :type node_classIri: Iri
+        :param id: The identifier of the node to search for. Optional.
+        :type id: Xsd_string | str | None
+        :param prefLabel: The preferred label of the node to search for. Optional.
+        :type prefLabel: Xsd_string | str | None
+        :param definition: The definition of the node to search for. Optional.
+        :type definition: str | None
+        :param exactMatch: A flag indicating whether the search should use exact matching for the provided parameters.
+        :type exactMatch: bool
+        :return: A list of IRIs of the found nodes.
+        :rtype: list[Iri]
+
+        :raises OldapError: If the operation fails.
+        """
         id = Xsd_string(id)
         prefLabel = Xsd_string(prefLabel)
         definition = Xsd_string(definition)

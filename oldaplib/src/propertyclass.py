@@ -105,18 +105,61 @@ class HasPropertyData:
 @serializer
 class PropertyClass(Model, Notify):
     """
-    This class implements a property as used by OMASlib. There are 2 types of properties:
-    - _External properties_: External properties are defined outside a specific resource class
-      and can be (re-)used by several resources. In SHACL, they are defined as "sh:PropertyShape"
-      instance.
-    - _Internal or exclusive properties_: These Properties ate defined as blank node within the
-      definition of a resource class. A "sh:property" predicate points to the blank node that
-      defines the property. These properties cannot be re-used!
+    This class represents a property as utilized within the context of OMASlib. Properties in this
+    framework are categorized into two main types:
 
-    *NOTE*: External properties have to be defined and created before being referenced as
-    property within a resource definition. In order to reference an external property, the
-    QName has to be used!
+    - **External properties**: These are properties defined outside a specific resource class and
+      are designed to be reusable across multiple resources. In SHACL, they correspond to instances
+      of "sh:PropertyShape".
+    - **Internal or exclusive properties**: These are properties defined as blank nodes within
+      the resource class definition. A "sh:property" predicate refers to the blank node that specifies
+      the property. Internal properties are resource-specific and cannot be reused across different
+      resources.
 
+    **Note**: External properties must be defined and instantiated before being referenced as
+    properties within a resource definition. When referencing external properties, their QName
+    should be used.
+
+    :ivar subPropertyOf: Specifies the super-property of the property represented by this instance.
+    :type subPropertyOf: Any
+    :ivar type: The type of the property (e.g., data or object property).
+    :type type: Any
+    :ivar toClass: Points to the associated resource class (for object property definitions).
+    :type toClass: Any
+    :ivar datatype: Defines the datatype of the property for data properties.
+    :type datatype: Any
+    :ivar name: The name of the property.
+    :type name: Any
+    :ivar description: A textual description of the property.
+    :type description: Any
+    :ivar languageIn: Restrictions on languages if the datatype is language-sensitive.
+    :type languageIn: Any
+    :ivar uniqueLang: Indicates whether only unique languages are allowed for the property.
+    :type uniqueLang: Any
+    :ivar inSet: Provides a set of restricted allowed values for the property.
+    :type inSet: Any
+    :ivar minCount: Specifies the minimum number of occurrences allowed for the property.
+    :type minCount: Any
+    :ivar maxCount: Specifies the maximum number of occurrences allowed for the property.
+    :type maxCount: Any
+    :ivar pattern: A regular expression pattern the property value must conform to.
+    :type pattern: Any
+    :ivar minExclusive: Restricts the property value to be strictly greater than this value.
+    :type minExclusive: Any
+    :ivar maxExclusive: Restricts the property value to be strictly less than this value.
+    :type maxExclusive: Any
+    :ivar minInclusive: Restricts the property value to be greater than or equal to this value.
+    :type minInclusive: Any
+    :ivar maxInclusive: Restricts the property value to be less than or equal to this value.
+    :type maxInclusive: Any
+    :ivar minLength: Specifies the minimal length for the property value (for strings, etc.).
+    :type minLength: Any
+    :ivar maxLength: Specifies the maximum length for the property value (for strings, etc.).
+    :type maxLength: Any
+    :ivar lessThan: Indicates the property must have smaller values compared to another property.
+    :type lessThan: Any
+    :ivar lessThanOrEqual: Indicates the property must have values less than or equal to another property.
+    :type lessThanOrEqual: Any
     """
     _graph: Xsd_NCName
     _projectShortName: Xsd_NCName
@@ -297,6 +340,19 @@ class PropertyClass(Model, Notify):
         return self._as_dict() == other._as_dict()
 
     def check_for_permissions(self) -> (bool, str):
+        """
+        Checks if the current logged-in user (actor) has the necessary permissions to create a user
+        for a given project. The method determines permissions based on system and project-specific
+        privileges. If the user has root privileges or the required project permissions, the function
+        returns success; otherwise, it provides a failure message.
+
+        :raises TypeError: Raised if function arguments are of invalid types.
+        :raises ValueError: Raised if provided IRI is not formatted properly.
+
+        :return: A tuple where the first element is a boolean indicating whether the check succeeded
+            or failed, and the second element is a string containing an explanatory message.
+        :rtype: tuple[bool, str]
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -474,14 +530,24 @@ class PropertyClass(Model, Notify):
 
     def force_external(self) -> None:
         """
-        This method enforced that the property is created as a standalone property not associated with a resource.
-        It must be called immediately after calling the constructor of the property.
+        Ensures that the property is created as a standalone property not tied to any resource.
+        This method must be invoked right after the property's constructor is called.
+
         :return: None
         """
         self._force_external = True
 
     @property
     def from_triplestore(self) -> bool:
+        """
+        Indicates if the `PropertyClass` instance was instantiated via the `read()`-classmethod.
+
+        This property identifies whether the object was created by reading from a triple store or
+        through the standard Python constructor.
+
+        :return: True if the object was created using the `read()` method; False otherwise.
+        :rtype: bool
+        """
         """
         Returns True if the PropertyClass instance was created by the `read()`-classmethod. If the property
         has been created using the Python constructor.
@@ -539,10 +605,14 @@ class PropertyClass(Model, Notify):
     @property
     def in_use(self) -> bool:
         """
-        Checks if the property is already been used somewhere. If the property is in use, changing the property
-        attributes may be dangerous.
-        :return: True if the property is in use, otherwise False
+        Checks if the property is already in use. This is determined by querying
+        the associated context to check if there are existing instances using
+        this property. If the property is in use, modifications to its
+        attributes may lead to unintended behaviors or errors.
+
+        :return: True if the property is currently in use, otherwise False
         :rtype: bool
+        :raises OlapError: Internal error
         """
         context = Context(name=self._con.context_name)
         query = context.sparql_context
@@ -781,18 +851,25 @@ class PropertyClass(Model, Notify):
              property_class_iri: Iri | str,
              ignore_cache: bool = False) -> Self:
         """
-        Rwad a property from the triple store
-        :param con: Instance of a valid connection to the triple store
-        :type con: IConnection or subclass thereof
-        :param project: Project instance, project IRI or project shortname
+        Reads a property from the triple store.
+
+        This method initializes or retrieves an instance of a property class
+        from the triple store. It utilizes caching mechanisms if applicable and may
+        bypass the cache based on the input parameters.
+
+        :param con: Instance of a valid connection to the triple store.
+        :type con: IConnection
+        :param project: Project instance, project IRI, project shortname, or equivalent identifier.
         :type project: Project | Iri | Xsd_NCName | str
-        :param property_class_iri: The Iri indentifying the class
-        :type property_class_iri: Iri
-        :param ignore_cache: If True, the data is read from the triple store even if it would be in the cache
+        :param property_class_iri: The IRI identifying the property class.
+        :type property_class_iri: Iri | str
+        :param ignore_cache: Determines if the cached data is ignored
+                             and the property is read directly from the triple store.
         :type ignore_cache: bool
-        :return: Instance of a property class
-        :rtype: PropertyClass
-        :raises: OldapError: generic error when reading from triple store
+        :return: Instance of the appropriate property class.
+        :rtype: Self
+        :raises OldapError: Generic error indicating an issue when reading from the triple store.
+        :raises OldapErrorInconsistency: Inconsistency between SHACL and OWL.
         """
         logger = get_logger()
 
@@ -962,14 +1039,27 @@ class PropertyClass(Model, Notify):
                haspropdata: HasPropertyData | None = None,
                indent: int = 0, indent_inc: int = 4) -> None:
         """
-        Create the triple store data from a newly constructed PropertyClass instance. Create will throw an
-        [OldapErrorAlreadyExists](/python_docstrings/oldaperror) if the PropertyClass is already existing.
+        Create the triple store data from a newly constructed PropertyClass instance.
 
-        :param haspropdata: For internal properties, a HasPropertyData instance has to be given here. For external
-               properties, this parameter defaults to None.
-        :param indent: Intendation level for beautifying SPARQL code [default: 0]
-        :param indent_inc: Intendation for beautifying SPARQL code [default: 4]
+        This method constructs the necessary SPARQL statements to insert data into
+        triple stores. It ensures proper permissions before proceeding and handles both
+        internal and external properties. Conflicts with preexisting data and updates
+        are managed through transactions. Metadata is updated upon successful creation,
+        and the local cache is refreshed accordingly.
+
+        :param haspropdata: A HasPropertyData instance for internal properties.
+                            Defaults to None for external properties.
+        :type haspropdata: HasPropertyData | None
+        :param indent: Indentation level for formatting SPARQL code [default: 0].
+        :type indent: int
+        :param indent_inc: Increment for adding additional indentation levels
+                           [default: 4].
+        :type indent_inc: int
         :return: None
+
+        :raises OldapError: Generic error indicating an issue when creating data in the triple store.
+        :raises OldapErrorInconsistency: Inconsistency between SHACL and OWL.
+        :raises OldapErrorAlreadyExists: The PropertyClass is already existing.
         """
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
@@ -1043,6 +1133,21 @@ class PropertyClass(Model, Notify):
 
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Writes the content of the current object to a file in Trig format.
+
+        The method generates a timestamp, initializes a context and produces
+        content based on the internal state of the object. The content is written
+        to a file in valid Trig format.
+
+        :param filename: The name of the output file where Trig-formatted data
+            will be written.
+        :param indent: The base indentation level to be applied to the written
+            content. Default value is 0.
+        :param indent_inc: The incremental spaces for each indentation level.
+            Default value is 4.
+        :return: None
+        """
         with open(filename, 'w') as f:
             timestamp = Xsd_dateTime().now()
             blank = ''
@@ -1213,6 +1318,25 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def update(self) -> None:
+        """
+        Updates the RDF graph and applies the necessary modifications to the property class
+        based on the changeset. This method performs operations such as validating permissions,
+        updating data types, deleting unwanted restrictions based on the new data type, and handling
+        transaction updates. The method ensures consistency between SHACL and OWL modifications.
+
+        :raises OldapErrorNoPermission: If the user does not have permission to perform the update.
+        :raises OldapError: If the property type is being changed while it is in use, or if specific
+            operations fail during the update process.
+        :raises OldapErrorUpdateFailed: If the SHACL and OWL updates do not reflect the expected
+            modifications after a successful attempt.
+        :return: None
+
+        :raises OldapErrorNoPermission: Generic error indicating an issue when updating data in the triple store.
+        :raises OldapError: Generic error indicating an issue when updating data in the triple store.
+        :raises OldapErrorInconsistency: Inconsistency between SHACL and OWL.
+        :raises OldapErrorUpdateFailed: If the SHACL and OWL updates do not reflect the expected
+            modifications after a successful attempt.
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -1426,6 +1550,17 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def delete(self) -> None:
+        """
+        Delete the current property from the triplestore, ensuring proper permissions and transactional
+        integrity. This method validates the user's permissions prior to performing a SPARQL update for
+        deleting SHACL and OWL properties. It handles potential errors encountered during the deletion
+        process and interacts with a Redis cache to ensure proper state management after deletion.
+
+        :raises OldapErrorNoPermission: If the logged-in user lacks sufficient permissions.
+        :raises OldapErrorUpdateFailed: If the deletion process fails due to modifications detected.
+        :raises OldapError: Generic error indicating an issue when updating data in the triple store.
+        :return: None
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -1454,11 +1589,3 @@ class PropertyClass(Model, Notify):
         cache = CacheSingletonRedis()
         cache.delete(self._property_class_iri)
 
-
-if __name__ == '__main__':
-    n = Numeric(Xsd_integer(4))
-    print(n, type(n).__name__)
-
-    s = Iri("xsd:integer")
-    dt = XsdDatatypes(s)
-    print(dt, type(dt))

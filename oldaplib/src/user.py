@@ -175,8 +175,21 @@ from oldaplib.src.helpers.attributechange import AttributeChange
 @serializer
 class User(Model):
     """
-    The OLDAP user class is based on the [UserDataclass](/python_docstrings/userdataclass#UserDataclass). It implements together with the UserDataclass
-    all the methods ot manage OLDAP users. I also uses the [InProject](/python_docstrings/in_project) class.
+    This class represents a user in the OLDAP system. It allows managing and handling user-related
+    functionalities, including working with permissions, projects, and credentials. The class relies
+    on the provided connection and other related attributes for interaction with the triple store.
+    It also incorporates the `InProjectClass` and `ObservableSet` to handle project and permission
+    modifications.
+
+    :ivar userIri: The unique identifier (IRI) for the user. Automatically created if not provided.
+    :type userIri: Iri
+    :ivar inProject: A mapping of project identifiers to their respective sets of permissions.
+        Modifications trigger callbacks.
+    :type inProject: InProjectClass
+    :ivar hasPermissions: Permissions assigned to the user. Supports modification callbacks.
+    :type hasPermissions: ObservableSet
+    :ivar credentials: The user’s hashed credentials for secure authentication.
+    :type credentials: Xsd_string
     """
 
     def __init__(self, *,
@@ -187,6 +200,33 @@ class User(Model):
                  modified: Xsd_dateTime | str | None = None,
                  validate: bool = False,
                  **kwargs):
+        """
+        Initializes a user instance with specified attributes and performs consistency checks for the user.
+
+        :param con: The connection instance used for database or API interactions.
+        :type con: IConnection
+
+        :param creator: The entity or identifier for the creator of the user, provided as an Iri or string.
+        :type creator: Iri | str | None
+
+        :param created: The datetime information of the creation moment, provided as an Xsd_dateTime,
+                        string, or None.
+        :type created: Xsd_dateTime | str | None
+
+        :param contributor: The entity or identifier for the contributor, provided as an Iri or string.
+        :type contributor: Iri | str | None
+
+        :param modified: The datetime information for when the user was last modified, provided as an
+                         Xsd_dateTime, string, or None.
+        :type modified: Xsd_dateTime | str | None
+
+        :param validate: A boolean flag indicating whether to perform validation checks on the user instance.
+        :type validate: bool
+
+        :param kwargs: Additional keyword arguments that specify custom attributes for the user.
+
+        :raises OldapErrorValue: If the user ID is invalid.
+        """
         super().__init__(connection=con,
                          created=created,
                          creator=creator,
@@ -259,6 +299,16 @@ class User(Model):
                 self._attributes[UserAttr.HAS_PERMISSIONS] = ObservableSet(value, notifier=self.__hasPermission_cb)
 
     def check_for_permissions(self) -> (bool, str):
+        """
+        Evaluates whether the currently logged-in user ("actor") has the necessary permissions
+        to create a user for the specified project(s). The function checks if the actor has root
+        privileges or ADMIN_USERS permission for each relevant project. Returns appropriate
+        messages indicating the state of permissions.
+
+        :returns: A tuple where the first element is a boolean indicating whether the actor has
+                  permissions, and the second element is a string message providing details.
+        :rtype: tuple[bool, str]
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -315,15 +365,21 @@ class User(Model):
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
-        Creates the given user in the triple store. Before the creation, the method checks if a
-        user with the given userID or userIri already exists and raises an exception.
-        :return: None
-        :raises OldapErrorAlreadyExists: User already exists
-        :raises OldapValueError: PermissionSet is not existing
-        :raises OldapError: Internal error
-        :raises  OldapErrorNoPermission: No permission to create user for given project(s)
-        """
+        Creates a user in the triple store with the provided details. Before proceeding with the
+        creation, it verifies the uniqueness of the `userId` and `userIri`. The user is created
+        along with its associated attributes and permissions. Necessary checks are performed
+        to ensure the provided projects and permission sets exist.
 
+        :param indent: The current indentation level for the generated SPARQL query.
+        :param indent_inc: Increment used for indentation in the SPARQL query.
+        :return: None
+        :raises OldapErrorAlreadyExists: Raised when a user with the same `userId` or `userIri`
+            already exists.
+        :raises OldapValueError: Raised when a provided project or permission set does not exist.
+        :raises OldapError: Raised for internal errors during the user creation process.
+        :raises OldapErrorNoPermission: Raised when permissions to create a user for the specified
+            project(s) are lacking.
+        """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
 
@@ -483,13 +539,27 @@ class User(Model):
              userId: IriOrNCName | str,
              ignore_cache: bool = False) -> Self:
         """
-        Reads a User instance from the data in the triple store
-        :param con: IConnection instance
+        Reads a User instance from the data in the triple store.
+
+        This method queries the triple store for a User instance corresponding
+        to the provided `userId`. It utilizes an optional cache to improve
+        performance, bypassing the query if the data is already cached. If no
+        data is found in either the cache or the triple store, an exception
+        is raised.
+
+        :param con: The connection object used to query the triple store.
         :type con: IConnection
-        :param userId: The userId of the user to be read
-        :type userId: Xsd_NCName | str
-        :return: Self
-        :raises OldapErrorNotFound: Required user does ot exist
+        :param userId: The identifier for the user to be retrieved.
+        :type userId: IriOrNCName | str
+        :param ignore_cache: Controls whether the method should skip checking
+                             the cache and query the triple store directly.
+                             Defaults to False.
+        :type ignore_cache: bool
+        :return: An instance of the class populated with user data from the
+                 triple store.
+        :rtype: Self
+        :raises OldapErrorNotFound: Raised when the requested user does not
+                                    exist in the triple store.
         """
         if not isinstance(userId, IriOrNCName):
             userId = IriOrNCName(userId, validate=True)
@@ -535,27 +605,29 @@ class User(Model):
                givenName: Optional[str | Xsd_string] = None,
                inProject: Optional[Iri | str] = None) -> List[Xsd_anyURI]:
         """
-        Search for a user in the database. The user can be found by the
+        Search for a user in the database. The search can be refined by specifying one or
+        more of the following parameters:
 
-        - userId
-        - familyName
-        - givenName
-        - inProject
+        - `userId`: The unique identifier of the user.
+        - `familyName`: The user's last name.
+        - `givenName`: The user's first name.
+        - `inProject`: The project in which the user is a member.
 
-        In each case, the full string is compared. If more than one parameter is given, they are
-        combined by a logical AND operation. That is, all parameters have to fit.
-        :param con: IConnection instance
+        Each provided parameter will filter the search results. If multiple parameters are
+        specified, the search results will match all specified criteria (logical AND operation).
+
+        :param con: Connection instance for accessing the database.
         :type con: IConnection
-        :param userId: The userId of the user to be searched for in the database
+        :param userId: The unique identifier of the user to be searched (optional).
         :type userId: Xsd_NCName | str
-        :param familyName: The family name of the user to be searched for in the database
-        :type familyName: str
-        :param givenName: The givenname of the user to be searched for in the database
-        :type givenName: str
-        :param inProject: The project the user is member of
-        :type inProject: Xsd_anyURI | Xsd_QName | str
-        :return: List of users
-        :rtype: List[AnyIRI]
+        :param familyName: The last name of the user to be searched (optional).
+        :type familyName: str | Xsd_string
+        :param givenName: The first name of the user to be searched (optional).
+        :type givenName: str | Xsd_string
+        :param inProject: A project identifier to match users who are members of the project (optional).
+        :type inProject: Iri | str
+        :return: A list of IRIs corresponding to users matching the search criteria.
+        :rtype: List[Xsd_anyURI]
         """
         if userId and not isinstance(userId, Xsd_NCName):
             userId = Xsd_NCName(userId, validate=True)
@@ -595,7 +667,14 @@ class User(Model):
 
     def delete(self) -> None:
         """
-        Delete the given user from the triple store
+        Deletes the current user from the triple store. This method ensures that the user is
+        removed from the system and any context where the user is associated. Additionally,
+        it includes permission checks prior to deletion, and it also considers potential references
+        to the user (such as owning data), which may cause the user to be set inactive instead
+        of outright deletion.
+
+        :raises OldapErrorNoPermission: If the user does not have the necessary permissions to
+                                         perform the delete action.
         :return: None
         """
         result, message = self.check_for_permissions()
@@ -632,12 +711,25 @@ class User(Model):
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
-        Update an existing user in the triple store. This method writes all changes that have made to the
-        user instance to the database.
+        Update user data in the triple store. This method applies all modifications made
+        to the user object and updates the database accordingly. It manages changes in
+        fields, permissions, and associated projects, ensuring data consistency while
+        also checking necessary conditions and permissions.
+
+        This method generates SPARQL queries to handle the updates, and executes them to
+        persist changes in the backend. Specific logic handles special cases such as
+        updating user permissions, managing projects where the user is involved, and
+        dealing with potential race conditions.
+
+        :param indent: The base indent for the generated SPARQL queries.
+        :type indent: int
+        :param indent_inc: Incremental indent step for improved query readability.
+        :type indent_inc: int
         :return: None
-        :raises OldapErrorUpdateFailed: Updating user failed because user has been changed through race condition
-        :raises OldapValueError: A PermissionSet is not existing
-        :raises OldapError: An internal error occurred
+        :rtype: None
+        :raises OldapErrorUpdateFailed: If the update fails due to a race condition.
+        :raises OldapValueError: If a referenced PermissionSet is invalid or does not exist.
+        :raises OldapError: If an internal, unspecified error occurs.
         """
         if self._con is None:
             raise OldapError("Cannot create: no connection")
@@ -910,32 +1002,3 @@ class User(Model):
         cache = CacheSingletonRedis()
         cache.set(self.userIri, self)
 
-
-
-if __name__ == '__main__':
-    pass
-    # con = Connection(server='http://localhost:7200',
-    #                  repo="oldap",
-    #                  userId="rosenth",
-    #                  credentials="RioGrande",
-    #                  context_name="DEFAULT")
-    #
-    # user = User.read(con, 'rosenth')
-    # print(user)
-    # user2 = User(con=con,
-    #              userId=NCName("testuser"),
-    #              family_name="Test",
-    #              given_name="Test",
-    #              credentials="Ein@geheimes&Passw0rt",
-    #              inProject={QName('oldap:HyperHamlet'): [AdminPermission.ADMIN_USERS,
-    #                                                      AdminPermission.ADMIN_RESOURCES,
-    #                                                      AdminPermission.ADMIN_CREATE]},
-    #              hasPermissions=[QName('oldap:GenericView')])
-    # print(user2)
-    # user2.create()
-    # user3 = User.read(con, 'testuser')
-    # print(user3)
-    # jsonstr = json.dumps(user2, default=serializer.encoder_default, indent=4)
-    # print(jsonstr)
-    # user3 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
-    # print(user3)

@@ -14,8 +14,21 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 @serializer
 class LanguageIn(RdfSet[Language], Notify):
     """
-    This class implements the SHACL sh:languageIn datatype. It completely validates the input.
-    If the validations fail, an OldapErrorValue is raised.
+    This class implements the SHACL sh:languageIn datatype, providing complete validation
+    of the input. It ensures the input conforms to the required datatype, and raises
+    an error if validation fails.
+
+    This class is primarily designed to work with sets of languages, defining operations
+    such as containment checks, addition, and removal. It validates inputs against the
+    "Language" type to guarantee compatibility and correctness.
+
+    It inherits from `RdfSet` and `Notify` to enable integration with RDF and notification
+    mechanisms. Its usage aids in validating language-based constraints in SHACL data
+    models.
+
+    :ivar value: The internal parameter used for serialization/deserialization of
+        language values.
+    :type value: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None
     """
 
     def __init__(self,
@@ -23,13 +36,26 @@ class LanguageIn(RdfSet[Language], Notify):
                  value: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None = None,
                  validate: bool = False):
         """
-        Implementation of the SHACL sh:languageIn datatype. It completely validates the input.
-        :param args: languages to be included
-        :type args: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str
-        :param value: Internal parameter used for serialization/deserialization
-        :type value: Self | set[Language | str] | list[Language | str] | tuple[Language | str] | Language | str | None
-        :raises OldapErrorType: Iterable contains element that is not an instance of "Language"
-        :raises OldapErrorKey: Language not existing
+        Represents the SHACL sh:languageIn datatype. This class validates input fully
+        against provided language definitions, ensuring compliance with SHACL language
+        requirements. The class accepts a variety of input formats, including
+        individual language values, lists, sets, or tuples, and performs necessary
+        checks to ensure all elements conform to the Language type or a valid string.
+
+        :param args: A set of languages to be included in the LanguageIn instance.
+        :type args: Self | set[Language | str] | list[Language | str] |
+            tuple[Language | str] | Language | str
+        :param value: An optional parameter used internally for serialization or
+            deserialization purposes.
+        :type value: Self | set[Language | str] | list[Language | str] |
+            tuple[Language | str] | Language | str | None
+        :param validate: Flag indicating whether validation checks should be applied
+            on initialization.
+        :type validate: bool
+        :raises OldapErrorType: Raised if elements in an iterable, or provided value,
+            are not an instance of "Language" or valid string representations thereof.
+        :raises OldapErrorKey: Raised if a provided language string is not recognized
+            or does not exist in the Language enum.
         """
         nargs = tuple()
         nvalue = None
@@ -89,6 +115,12 @@ class LanguageIn(RdfSet[Language], Notify):
     def __contains__(self, val: Language | str) -> bool:
         """
         Tests if the given language is contained in the given language set.
+
+        This method is used to verify whether a specific language, represented by
+        the `Language` type or its string equivalent, exists in the language set.
+        If a string is provided, it converts the string to the corresponding
+        `Language` enumeration before performing the containment check.
+
         :param val: Language to be tested
         :type val: Language | str
         :return: True if the given language is contained in the given language set.
@@ -101,9 +133,20 @@ class LanguageIn(RdfSet[Language], Notify):
     def add(self, language: Language | Xsd_string | str) -> None:
         """
         Add a language to the given language set.
+
+        This method attempts to add a language to the current set. If the input
+        language is not an instance of the Language class, the method will
+        attempt to convert the input to a Language instance using its string
+        representation. Conversion errors are propagated as specific exceptions.
+
         :param language: The Language to be added to the given language set.
         :type language: Language | Xsd_string | str
         :return: None
+        :rtype: None
+        :raises OldapErrorValue: If conversion of the input to a Language fails
+            due to invalid value.
+        :raises OldapErrorKey: If conversion of the input to a Language fails
+            due to an invalid key.
         """
         if not isinstance(language, Language):
             try:
@@ -117,9 +160,14 @@ class LanguageIn(RdfSet[Language], Notify):
     def discard(self, language: Language | Xsd_string | str) -> None:
         """
         Remove a language from the given language set.
+
+        This method attempts to discard a language from the language set. If `language`
+        is not a member, it raises an OldapErrorValue exception.
+
         :param language: The Language to be removed from the given language set.
         :return: None
-        :raises OldapErrorValue: If the given language is not contained in the given language set.
+        :raises OldapErrorValue: If the given language is not contained in the given
+            language set.
         """
         if not isinstance(language, Language):
             try:

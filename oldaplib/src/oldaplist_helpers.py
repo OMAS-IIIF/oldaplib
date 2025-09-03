@@ -29,6 +29,24 @@ class ListFormat(Enum):
 
 
 def get_node_indices(con: IConnection, oldapList: OldapList) -> list[tuple[Iri, Xsd_integer, Xsd_integer]]:
+    """
+    Retrieve node indices from a given list structure in the ontology.
+
+    This function constructs and executes a SPARQL query to retrieve
+    the left and right indices of nodes belonging to the given list
+    structure. The result is returned as a list of tuples containing
+    the node IRI and its associated indices.
+
+    :param con: An active connection to the ontology system.
+    :param oldapList: Representation of a list within the ontology that
+        contains contextual and project-specific information.
+    :return: A list of tuples containing the node IRI, left index, and
+        right index extracted from the ontology list.
+    :rtype: list[tuple[Iri, Xsd_integer, Xsd_integer]]
+    :raises OldapError: If the connection object is not an instance of IConnection.
+    :raises TypeError: If the connection object is not an instance of IConnection.
+    :raises ValueError: If the connection object is not an instance of IConnection.
+    """
     context = Context(name=con.context_name)
     graph = oldapList.project.projectShortName
 
@@ -58,6 +76,50 @@ def dump_list_to(con: IConnection,
                  oldapListId: Xsd_NCName | str,
                  listformat: ListFormat=ListFormat.JSON,
                  ignore_cache=False) -> OldapList | str:
+    """
+    Dumps an OLDAP list into a specified format such as Python dictionary, JSON,
+    or YAML. The function manages and consults a cache to improve performance,
+    retrieving the necessary OLDAP list data from either the cache or directly
+    from the database, based on user preferences.
+
+    :param con: Connection object `con` used to interact with the database.
+                Must provide necessary methods and properties for executing
+                backend operations.
+    :type con: IConnection
+
+    :param project: Identifies the project to which the OLDAP list belongs.
+                    Accepts project-related identifiers such as `Project`,
+                    `Iri`, `Xsd_NCName`, or `str`.
+    :type project: Project | Iri | Xsd_NCName | str
+
+    :param oldapListId: The identifier for the OLDAP list to dump.
+    :type oldapListId: Xsd_NCName | str
+
+    :param listformat: Specifies the output format for the OLDAP list.
+                       Supported formats include `ListFormat.JSON`,
+                       `ListFormat.PYTHON`, and `ListFormat.YAML`.
+                       Defaults to `ListFormat.JSON`.
+    :type listformat: ListFormat
+
+    :param ignore_cache: Whether to force fetching the list directly
+                         from the database, bypassing any cached
+                         value. Defaults to `False`.
+    :type ignore_cache: bool
+
+    :return: Depending on the specified `listformat`, returns the OLDAP list
+             in one of the supported formats:
+             - For `ListFormat.PYTHON`: Returns an `OldapList` instance.
+             - For `ListFormat.JSON`: Returns a string representing the list
+               as JSON.
+             - For `ListFormat.YAML`: Returns a string representing the list
+               as YAML.
+    :rtype: OldapList | str
+
+    :raises OldapError: If the connection object is not an instance of IConnection.
+    :raises TypeError: If the connection object is not an instance of IConnection.
+    :raises ValueError: If the connection object is not an instance of IConnection.
+    :raises Exception: If an unexpected error occurs.
+    """
 
     def set_con(nodes: list[OldapListNode]) -> None:
         for node in nodes:
@@ -128,6 +190,22 @@ def dump_list_to(con: IConnection,
     return ''
 
 def print_sublist(nodes: list[OldapListNode], level: int = 1) -> None:
+    """
+    Prints a nested list of OldapListNode objects in a structured format.
+
+    This function recursively traverses through a list of OldapListNode objects,
+    and its nested `nodes` attributes, to print their details. Node information
+    is displayed with indentation proportional to their depth level in the
+    hierarchy.
+
+    :param nodes: A list of OldapListNode objects to be printed. Each node contains
+        attributes such as `oldapListNodeId`, `leftIndex`, `rightIndex`,
+        `prefLabel`, `iri`, and optionally nested `nodes`.
+    :type nodes: list[OldapListNode]
+    :param level: The current depth level of indentation. Defaults to 1.
+    :type level: int
+    :return: None
+    """
     for node in nodes:
         print(f'{str(node.oldapListNodeId): >{level * 5}} ({node.leftIndex}, {node.rightIndex}) prefLabel={node.prefLabel} iri={node.iri}')
         if node.nodes:
@@ -137,6 +215,26 @@ def print_sublist(nodes: list[OldapListNode], level: int = 1) -> None:
 def load_list_from_yaml(con: Connection,
                         project: Project | Iri | Xsd_NCName | str,
                         filepath: Path) -> list[OldapList]:
+    """
+    Loads a list of OldapList objects from a YAML file, validates its structure
+    using a predefined schema, and processes its content into objects in the
+    system. Each list in the YAML file is mapped to an OldapList instance
+    and its nodes recursively.
+
+    :param con: A connection object to interact with the backend system.
+    :param project: The project to which the created OldapLists will belong.
+        It can be a Project object or identifications such as Iri, Xsd_NCName,
+        or string.
+    :param filepath: The path of the YAML file containing the lists and nodes
+        to be loaded and processed.
+    :return: A list of OldapList objects that were successfully created and
+        populated based on the YAML input.
+
+    :raises OldapError: If the connection object is not an instance of IConnection.
+    :raises TypeError: If the connection object is not an instance of IConnection.
+    :raises ValueError: If the connection object is not an instance of IConnection.
+    :raises OldapErrorNotImplemented: If the YAML file contains nodes that are not implemented.
+    """
 
     def process_nodes(nodes: dict[str, Any], oldaplist: OldapList, parent: OldapListNode | None):
         oldapnodes: list[OldapListNode] = []
@@ -210,6 +308,21 @@ node:
     return oldaplists
 
 def get_node_by_id(nodes: list[OldapListNode], id: Xsd_NCName) -> OldapListNode | None:
+    """
+    Retrieve a node from a nested list of OldapListNode objects that matches a given ID.
+
+    This function searches recursively through the list of OldapListNode objects and their
+    nested children to find a node with a matching oldapListNodeId. If a match is found,
+    the node is returned. If no matching node is found in the entire structure, the function
+    returns None.
+
+    :param nodes: A list of OldapListNode objects within which the search is conducted.
+    :type nodes: list[OldapListNode]
+    :param id: The identifier to match against the oldapListNodeId of nodes.
+    :type id: Xsd_NCName
+    :return: Returns the matching OldapListNode object if found, or None if no match is located.
+    :rtype: OldapListNode | None
+    """
     for node in nodes:
         if node.oldapListNodeId == id:
             return node

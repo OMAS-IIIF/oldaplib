@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from pprint import pprint
-from typing import Union, List, Dict, Callable, Self, Any, TypeVar
+from typing import Union, List, Dict, Callable, Self, Any, TypeVar, TYPE_CHECKING
 from unittest import case
 
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
@@ -46,9 +46,9 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 # Datatype definitions
 #
 RC = TypeVar('RC', bound='ResourceClass')
-AttributeTypes = Iri | LangString | Xsd_boolean | ObservableDict[Iri, RC | None] | None
+AttributeTypes = Iri | LangString | Xsd_boolean | ObservableDict | None
 ResourceClassAttributesContainer = Dict[ResClassAttribute, AttributeTypes]
-SuperclassParam = Iri | str | list[Iri | str] | tuple[Iri] | set[Iri | str] | None
+SuperclassParam = Union[Iri, str, list[Union[Iri, str]], tuple[Union[Iri, str], ...] , set[Union[Iri, str]], None]
 AttributeParams = LangString | Xsd_boolean | SuperclassParam
 
 
@@ -60,9 +60,29 @@ class ResourceClassPropertyChange(AttributeChange):
 #@strict
 @serializer
 class ResourceClass(Model, Notify):
+    """
+    Represents a resource class in a semantic model, enabling operations such as
+    assignment, addition, and deletion of superclasses, as well as handling
+    associated properties and attributes.
+
+    This class provides mechanisms for defining, managing, and customizing superclasses
+    and related properties within a resource hierarchy. It integrates with a
+    connection object and supports handling validation and notifications for changes.
+
+    :ivar superclass: The list of assigned superclasses for this resource class.
+    :type superclass: dict
+    :ivar label: Optional label providing a human-readable identifier for the resource.
+    :type label: str
+    :ivar comment: Optional comment describing the resource class in detail.
+    :type comment: str
+    :ivar closed: Indicates whether the resource class is closed, i.e., no further
+        subclasses or properties can be added.
+    :type closed: bool
+    """
     _graph: Xsd_NCName
     _project: Project
     _sysproject: Project = None
+    _sharedproject: Project = None
     _owlclass_iri: Iri | None
     _attributes: ResourceClassAttributesContainer
     _properties: dict[Iri, HasProperty]
@@ -72,6 +92,16 @@ class ResourceClass(Model, Notify):
     __slots__ = ['superclass', 'label', 'comment', 'closed']
 
     def __check(self, sc: Any, validate: bool = False):
+        """
+        Check if the given superclass is valid and return its IRI and ResourceClass instance. If the namespace
+        is not known, it's assumed to be an external resource.
+
+        :param sc: The superclass to check.
+        :param validate: Whether to validate the IRI.
+        :return: A tuple containing the IRI and ResourceClass instance.
+        :raises OldapErrorNotFound: If the superclass is not found.
+        :raises OldapErrorValue: If the superclass is not a valid IRI.
+        """
         scval = Iri(sc, validate=validate)
         sucla = None
         if scval.is_qname:
@@ -81,14 +111,31 @@ class ResourceClass(Model, Notify):
                 case 'oldap':
                     sucla = ResourceClass.read(self._con, self._sysproject, scval)
                 case 'shared':
-                    raise OldapErrorNotImplemented("Not yet implemented!")  # TODO !!!!!!!!!!!!!!!!!!!!
+                    sucla = ResourceClass.read(self._con, self._sharedproject, scval)
                 case _:
                     # external resource not defined in Oldap
                     # -> we can not read it -> we pass None -> no "sh:node" in SHACL!
                     pass
         return scval, sucla
 
-    def assign_superclass(self, superclass: SuperclassParam, validate = False) -> ObservableDict[Iri, RC | None]:
+    def assign_superclass(self, superclass: SuperclassParam, validate = False) -> ObservableDict:
+        """
+        Assigns a superclass or multiple superclasses to an entity, verifying and
+        processing them in the process. This method ensures the input is validated
+        and appropriately structured within an `ObservableDict`.
+
+        :param superclass: A single superclass or an iterable of superclasses to
+            be assigned.
+        :param validate: A boolean indicating whether input validation should
+            be performed (default is False).
+        :return: An ObservableDict containing the processed superclasses, with
+            keys as their IRIs and values as the respective processed superclasses.
+        :rtype: ObservableDict
+        :raises ValueError: If the input is not a valid superclass or iterable of superclasses
+        :raises OldapError: If the superclass is not valid or if it is not a valid IRI
+        :raises OldapErrorValue: If the superclass is not a valid IRI
+        :raises OldapErrorNotValid: If the superclass is not valid
+        """
         data = ObservableDict()
         if isinstance(superclass, (list, tuple, set)):
             for sc in superclass:
@@ -103,6 +150,26 @@ class ResourceClass(Model, Notify):
         return data
 
     def add_superclasses(self, superclass: SuperclassParam, validate = False):
+        """
+        Adds one or multiple superclasses to the existing list of superclasses. This method
+        will check each provided superclass to ensure it does not already exist in
+        the current superclass list. If a superclass is invalid, an appropriate error
+        will be raised. After validation, the superclasses are added, and notifications
+        are sent to relevant systems.
+
+        :param superclass: A single superclass or a collection (list, tuple, set) of
+            superclasses to be added to the current superclass list.
+        :type superclass: SuperclassParam
+        :param validate: A flag indicating whether to validate the provided superclasses
+            during the addition process. Defaults to False.
+        :type validate: bool
+        :return: None
+        :raises OldapErrorAlreadyExists: If a superclass already exists in the current superclass list.
+        :raises OldapErrorValue: If a superclass to be added is not a valid Iri (e.g. None).
+        :raises OldapError: If an error occurs during the addition process.
+        :raises OldapErrorNotValid: If a superclass is not valid
+        :raises OldapErrorNotFound: If a superclass is not found.
+        """
         if isinstance(superclass, (list, tuple, set)):
             for sc in superclass:
                 if sc is None or sc in self.superclass:
@@ -112,15 +179,35 @@ class ResourceClass(Model, Notify):
                 self.notify()
         else:
             if superclass in self.superclass:
-                return
+                raise OldapErrorAlreadyExists(f'Superclass "{superclass}" already exists in superclass list of {self._owlclass_iri}.')
             iri, sucla = self.__check(superclass, validate=validate)
             self.superclass[iri] = sucla
             self.notify()
 
     def del_superclasses(self, superclass: SuperclassParam, validate = False):
+        """
+        Removes one or multiple superclasses from the current superclass list. If the provided
+        superclass(es) do not exist in the current list, an exception will be raised. The function
+        also allows optional validation of the input values before processing. Notifications
+        will be triggered upon successful removal of the superclass or superclasses.
+
+        :param superclass: One or more `superclass` entities to remove. It can be a single
+            instance or a collection such as a list, tuple, or set.
+        :type superclass: Union[SuperclassParam, List[SuperclassParam], Tuple[SuperclassParam], Set[SuperclassParam]]
+        :param validate: Flag indicating whether to validate the provided `superclass` values
+            before processing. Defaults to False.
+        :type validate: bool
+        :return: None
+        :raises OldapErrorNotFound: If a superclass to be removed is not found in the current superclass list.
+        :raises OldapErrorValue: If a superclass to be removed is not a valid Iri (e.g. None).
+        :raises OldapErrorNotValid: If a superclass is not valid.
+        :raises OldapError: If the provided `superclass` is not a valid collection.
+        """
         if isinstance(superclass, (list, tuple, set)):
             for sc in superclass:
                 scIri = Iri(sc, validate=validate)
+                if scIri not in self.superclass:
+                    raise OldapErrorValue(f'Superclass "{scIri}" not found in superclass list')
                 del self.superclass[scIri]
                 self.notify()
         else:
@@ -144,6 +231,40 @@ class ResourceClass(Model, Notify):
                  modified: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
                  validate: bool = False,
                  **kwargs):
+        """
+        Initializes a new instance of the class with mandatory and optional parameters.
+
+        This constructor creates and configures the required context, graph, and necessary
+        properties. It sets up the project, defines the owl class IRI, adds the mandatory
+        superclass “oldap:Thing” if required, and assigns attributes based on the provided
+        parameters. Additional functionality includes handling of external/internal property
+        definitions and configuring notifier settings.
+
+        :param con: The connection object to interact with the required system.
+        :type con: IConnection
+        :param project: The project identifier or object which can be a Project instance, IRI,
+            XSD NCName, or string.
+        :type project: Project | Iri | Xsd_NCName | str
+        :param owlclass_iri: The IRI to define the owl class. It can be IRI type, string,
+            or None by default.
+        :type owlclass_iri: Iri | str | None
+        :param hasproperties: A list of HasProperty objects specifying the properties associated
+            with the resource class.
+        :type hasproperties: List[HasProperty] | None
+        :param notifier: A callable function used for notification purposes. Notifier operates
+            on PropClassAttr type objects.
+        :type notifier: Callable[[PropClassAttr], None] | None
+        :param notify_data: Notification data to be passed with the notifier.
+        :type notify_data: PropClassAttr | None
+        :param validate: Boolean flag used to enable or disable validation.
+        :type validate: bool
+        :param kwargs: Arbitrary additional keyword arguments to pass. This can include
+            attributes like superclasses or other configurations.
+        :type kwargs: Any
+
+        :raises OldapErrorNotFound: If the project is not found.
+        :raises OldapErrorValue: If the owlclass_iri is not a valid Iri.
+        """
         Model.__init__(self,
                        connection=con,
                        creator=con.userIri,
@@ -161,6 +282,8 @@ class ResourceClass(Model, Notify):
             self._project = Project.read(self._con, project)
         if self._sysproject is None:
             self._sysproject = Project.read(self._con, Xsd_NCName("oldap"))
+        if self._sharedproject is None:
+            self._sharedproject = Project.read(self._con, Xsd_NCName("shared"))
 
         context = Context(name=self._con.context_name)
         context[self._project.projectShortName] = self._project.namespaceIri
@@ -227,6 +350,24 @@ class ResourceClass(Model, Notify):
     def update_notifier(self,
                         notifier: Callable[[AttributeClass | Iri], None] | None = None,
                         notify_data: AttributeClass | None = None,):
+        """
+        Updates the notifier for the current instance and any nested attributes or
+        properties that support notifier updates.
+
+        This method assigns a notifier (callable function or None) and associate data
+        to the current instance and propagates the notifier updates to contained
+        attributes and properties, if they support the operation.
+
+        :param notifier: Callable to be assigned as the notifier. It should accept
+            an `AttributeClass` or `Iri` as arguments, or can be set to None to remove
+            the notifier.
+        :type notifier: Callable[[AttributeClass | Iri], None] | None
+        :param notify_data: Associated data that may be passed to the notifier
+            for processing. It can be `AttributeClass` or None.
+        :type notify_data: AttributeClass | None
+        :return: None
+        :raises OldapError: If the provided `notifier` is not a callable function.
+        """
         self.set_notifier(notifier, notify_data)
         for attr, value in self._attributes.items():
             if getattr(value, 'set_notifier', None) is not None:
@@ -253,6 +394,18 @@ class ResourceClass(Model, Notify):
         return self._as_dict() == other._as_dict()
 
     def check_for_permissions(self) -> (bool, str):
+        """
+        Evaluates whether the logged-in user (referred to as "actor") has the required
+        permissions to create a user in the specified project or within the system. The
+        function checks both system-level and project-level permissions and determines
+        if the actor is authorized.
+
+        :return: A tuple where the first element is a boolean indicating whether the
+            actor has the necessary permissions, and the second element is a string
+            detailing the result or reason for failure.
+        :rtype: tuple[bool, str]
+        :raises OldapError: If the logged-in user is not associated with a project.
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -357,6 +510,7 @@ class ResourceClass(Model, Notify):
         instance._graph = deepcopy(self._graph, memo)
         instance._project = deepcopy(self._project, memo)
         instance._sysproject = deepcopy(self._sysproject, memo)
+        instance._sharedproject = deepcopy(self._sharedproject, memo)
         instance._owlclass_iri = deepcopy(self._owlclass_iri, memo)
         instance.__version = deepcopy(self.__version, memo)
         instance._properties = deepcopy(self._properties, memo)
@@ -468,6 +622,18 @@ class ResourceClass(Model, Notify):
 
     @property
     def in_use(self) -> str:
+        """
+        Determines whether the resource instances of a specific OWL class in a SPARQL context
+        are currently in use, excluding instances that match the specified shape type.
+
+        The method generates a SPARQL query based on the class IRI and project context.
+        The resulting query is returned as a string, enabling further evaluation or
+        execution in the corresponding environment.
+
+        :return: A SPARQL ASK query string used to check the usage status of
+                 resource instances within a specific context.
+        :rtype: str
+        """
         context = Context(name=self._con.context_name)
         query = context.sparql_context
         query += f"""
@@ -798,6 +964,37 @@ class ResourceClass(Model, Notify):
              owl_class_iri: Iri | str,
              sa_props: dict[Iri, PropertyClass] | None = None,
              ignore_cache: bool = False) -> Self:
+        """
+        Reads and retrieves a class instance from the data source based on the provided
+        connection, project, and class IRI. This method ensures that the class instance
+        is created with relevant properties and attributes queried from the data source.
+        Additionally, caching mechanisms are used to optimize performance.
+
+        :param con: Connection to the data source.
+        :type con: IConnection
+        :param project: The project associated with the class. This can be provided as
+            a `Project`, `Iri`, `Xsd_NCName`, or `str`. If not already a `Project` instance,
+            it will be converted accordingly.
+        :type project: Project | Iri | Xsd_NCName | str
+        :param owl_class_iri: The IRI of the OWL class to retrieve. It can be provided as
+            an `Iri` or `str`. If not already an `Iri`, it will be wrapped accordingly
+            with validation.
+        :type owl_class_iri: Iri | str
+        :param sa_props: Optional dictionary that maps IRI to `PropertyClass` instances.
+            These properties enhance the definition of the retrieved class. If not provided,
+            no additional properties are used.
+        :type sa_props: dict[Iri, PropertyClass] | None
+        :param ignore_cache: Determines whether to ignore cached values. If `True`, the
+            cache is bypassed, and the instance is freshly retrieved. If `False`, cached
+            values are used if available.
+        :type ignore_cache: bool
+        :return: The retrieved and prepared class instance.
+        :rtype: Self
+
+        :raises OldapErrorNotFound: If the class IRI is not found in the data source.
+        :raises OldapError: If an error occurs during retrieval.
+        :raises OldapErrorInconsistency: If the retrieved class IRI is not consistent with the provided IRI.
+        """
         if not isinstance(project, Project):
             if not isinstance(project, (Iri, Xsd_NCName)):
                 project = IriOrNCName(project, validate=True)
@@ -979,6 +1176,22 @@ class ResourceClass(Model, Notify):
         self.__from_triplestore = True
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Creates a resource within the specified graph context while ensuring correct
+        permissions, transaction handling, and metadata generation. This method manages
+        SHACL and OWL data insertions, verifies existing records, handles cache updates,
+        and performs necessary error handling for failed operations. It ensures that
+        proper creation logic is followed without overwriting pre-existing resources.
+
+        :param indent: Initial indentation level for constructing SPARQL statements.
+        :param indent_inc: Incremental indentation for nested SPARQL structures.
+        :raises OldapErrorNoPermission: When the current "actor" lacks the permissions
+            to create a resource in the specified context.
+        :raises OldapErrorAlreadyExists: When attempting to create a resource that
+            already exists in the triplestore or has been previously detected.
+        :raises OldapErrorUpdateFailed: When an attempt to create the resource fails,
+            leading to a transaction abort.
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to create resource for
         # the given project!
@@ -1027,6 +1240,22 @@ class ResourceClass(Model, Notify):
         cache.set(self._owlclass_iri, self)
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Writes the content of the graph in TriG format to the specified file.
+
+        This method outputs the graph data in TriG serialization format using a
+        specified filename. It generates timestamped SHACL and OWL content
+        based on the graph and writes them into the file within corresponding contexts.
+
+        :param filename: The path to the file where the TriG data will be saved.
+        :type filename: str
+        :param indent: The base indentation level for the TriG file formatting.
+        :type indent: int
+        :param indent_inc: The incremental indentation size for nested elements in
+            the TriG file.
+        :type indent_inc: int
+        :return: None
+        """
         with open(filename, 'w') as f:
             timestamp = Xsd_dateTime.now()
             blank = ''
@@ -1466,6 +1695,25 @@ class ResourceClass(Model, Notify):
         return sparql
 
     def update(self) -> None:
+        """
+        Updates the current resource, ensuring all necessary permissions, conditions,
+        and constraints are met before proceeding. This method primarily interacts with
+        the context, SPARQL queries, and manages the update lifecycle, including
+        transactional integrity. It finalizes the update process with cache synchronization.
+
+        If any precondition is violated, corresponding errors are raised, such as lacking
+        permissions, resource usage conflicts, or inconsistencies during the update process.
+
+        Raises:
+            OldapErrorNoPermission: If the actor does not have the required permissions to update.
+            OldapErrorInUse: If the resource is in use and cannot be updated.
+            OldapErrorUpdateFailed: If the update fails during the verification of timestamps.
+
+        :raises OldapErrorNoPermission: When user lacks permissions to perform the update.
+        :raises OldapErrorInUse: When the resource is already in active use and update cannot proceed.
+        :raises OldapErrorUpdateFailed: When the update operation fails due to timestamp inconsistency.
+        :return: None
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to update resource for
         # the given project!
@@ -1577,6 +1825,17 @@ class ResourceClass(Model, Notify):
         return sparql
 
     def delete(self) -> None:
+        """
+        Deletes the specified resource class if it is not in use and the logged-in user has
+        the necessary permissions. This operation involves ensuring that no SHACL or RDF resources
+        associated with the class remain and performs validations before committing the transaction.
+
+        :raises OldapErrorNoPermission: If the logged-in user lacks the necessary permissions.
+        :raises OldapErrorInUse: If the resource class is currently in use.
+        :raises OldapErrorUpdateFailed: If the deletion process fails due to residual SHACL or RDF resources.
+
+        :return: None
+        """
         #
         # First we check if the logged-in user ("actor") has the permission to create resource for
         # the given project!
