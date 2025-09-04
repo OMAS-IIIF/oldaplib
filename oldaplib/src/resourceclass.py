@@ -88,6 +88,7 @@ class ResourceClass(Model, Notify):
     _properties: dict[Iri, HasProperty]
     __version: SemanticVersion
     __from_triplestore: bool
+    _test_in_use: bool
 
     __slots__ = ['superclass', 'label', 'comment', 'closed']
 
@@ -448,6 +449,8 @@ class ResourceClass(Model, Notify):
                     self._changeset[key] = ResourceClassPropertyChange(self._attributes[key], Action.REPLACE, True)
                 else:
                     self._changeset[key] = ResourceClassPropertyChange(self._changeset[key].old_value, Action.REPLACE, True)
+            if key == ResClassAttribute.SUPERCLASS: # we can only change the superclass in the instance of ResourceClass if it's not in use
+                self._test_in_use = True
 
         elif isinstance(key, Iri):  # Iri, we add a HasProperty instance
             if self._properties.get(key) is None:  # Property not set -> CREATE action
@@ -479,6 +482,7 @@ class ResourceClass(Model, Notify):
                     value.prop._internal = self._owlclass_iri  # we need to access the private variable here
                     value._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
+                self._test_in_use = True  # change a property only when not in use!
         else:
             raise OldapError(f'Invalid key type {type(key).__name__} of key {key}')
         self.notify()
@@ -515,6 +519,7 @@ class ResourceClass(Model, Notify):
         instance.__version = deepcopy(self.__version, memo)
         instance._properties = deepcopy(self._properties, memo)
         instance.__from_triplestore = self.__from_triplestore
+        instance._test_in_use = self._test_in_use
         #
         # we have to set the callback for the associated props to the method in the new instance
         #
@@ -544,6 +549,18 @@ class ResourceClass(Model, Notify):
         self._change_setter(key, value)
 
     def __delitem__(self, key: ResClassAttribute | Iri) -> None:
+        """
+        Removes the specified key from the ResourceClass instance. The method handles keys of type
+        `ResClassAttribute` and `Iri` differently internally. For a `ResClassAttribute`
+        it removes the attribute from the ResourceClass instance. For `Iri` keys, it
+        manages a changeset to track deleted properties before removing the
+        key-value pair. It also sets the _test_in_use attribute to True to avoid changing
+        the resource class in use.
+
+        :param key: The key to be removed from the collection.
+        :type key: ResClassAttribute | Iri
+        :raises ValueError: If the key type is not `ResClassAttribute` or `Iri`.
+        """
         if not isinstance(key, (ResClassAttribute, Iri)):
             raise ValueError(f'Invalid key type {type(key).__name__} of key {key}')
         if isinstance(key, ResClassAttribute):
@@ -554,6 +571,7 @@ class ResourceClass(Model, Notify):
             else:
                 self._changeset[key] = ResourceClassPropertyChange(self._changeset[key].old_value, Action.DELETE, False)
             del self._properties[key]
+            self._test_in_use = True
         self.notify()
 
     def __delattr__(self, item: str):
@@ -1725,21 +1743,20 @@ class ResourceClass(Model, Notify):
         #
         # we check if we have to cancel the update because the resource is in use
         #
-        check_use = False
         for item, change in self._changeset.items():
             if isinstance(item, ResClassAttribute):
                 if item == ResClassAttribute.SUPERCLASS:
-                    check_use = True
+                    self._test_in_use = True
             else:
                 if change.action != Action.CREATE:
-                    check_use = True
+                    self._test_in_use = True
 
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
 
-        sparql0 = ''
-        if check_use:
-            sparql0 = self.in_use
+        # sparql0 = ''
+        # if check_use:
+        #     sparql0 = self.in_use
 
         sparql1 = context.sparql_context
         sparql1 += self.__update_shacl(timestamp=timestamp)
@@ -1749,7 +1766,8 @@ class ResourceClass(Model, Notify):
 
         self._con.transaction_start()
 
-        if sparql0:
+        if self._test_in_use:
+            sparql0 = self.in_use
             result = self.safe_query(sparql0)
             if result['boolean']:
                 self._con.transaction_abort()
@@ -1768,6 +1786,7 @@ class ResourceClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
+        self._test_in_use = False
         cache = CacheSingletonRedis()
         cache.set(self._owlclass_iri, self)
 
