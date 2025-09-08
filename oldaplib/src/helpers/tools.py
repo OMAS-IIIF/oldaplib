@@ -27,7 +27,7 @@ def str2qname_anyiri(s: Xsd_QName | Xsd_anyURI | str) -> Xsd_QName | Xsd_anyURI:
 
 @dataclass
 class RdfModifyItem:
-    property: str
+    property: str | Xsd_QName
     old_value: Xsd | None
     new_value: Xsd | None
 

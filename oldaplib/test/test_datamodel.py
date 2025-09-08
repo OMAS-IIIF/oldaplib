@@ -377,6 +377,10 @@ class TestDataModel(unittest.TestCase):
             Iri("dcterms:created"),
             Iri("dcterms:contributor"),
             Iri("dcterms:modified"),
+            Iri("dcterms:rights"),
+            Iri("dcterms:description"),
+            Iri("dcterms:abstract"),
+            Iri("dcterms:accessRights"),
             Iri("schema:givenName"),
             Iri("schema:familyName"),
             Iri("schema:email")

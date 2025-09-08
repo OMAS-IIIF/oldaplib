@@ -49,7 +49,72 @@ shared:shacl {
         sh:name "Description"@en ;
         sh:description "A description for something."@en .
 
-        #
+    #--------------------------------------------------------------------------
+    # dcterms properties
+    #
+
+    dcterms:descriptionShape a sh:PropertyShape ;
+        sh:path dcterms:description ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:name "Description"@en, "Beschreibung"@de, "Description"@fr, "Descrizione"@it ;
+        sh:description "Description may include but is not limited to: an abstract, a table of contents, a graphical representation, or a free-text account of the resource."@en,
+                           "Die Beschreibung kann eine Zusammenfassung, ein Inhaltsverzeichnis, eine grafische Darstellung oder eine Freitextbeschreibung der Ressource umfassen, ist aber nicht darauf beschränkt."@de,
+                           "La description peut inclure, sans s'y limiter, un résumé, une table des matières, une représentation graphique ou un compte rendu en texte libre de la ressource."@fr,
+                           "La descrizione può includere, a titolo esemplificativo ma non esaustivo: un abstract, un indice, una rappresentazione grafica o un resoconto a testo libero della risorsa."@it ;
+        sh:datatype rdf:langString .
+
+    dcterms:rightsShape a sh:PropertyShape ;
+        sh:path dcterms:rights ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:name "Rights"@en, "Rechte"@de, "Droits"@fr, "Diritti"@it ;
+        sh:description "Typically, rights information includes a statement about various property rights associated with the resource, including intellectual property rights. Recommended practice is to refer to a rights statement with a URI. If this is not possible or feasible, a literal value (name, label, or short text) may be provided."@en,
+                       "In der Regel enthalten die Informationen zu den Rechten eine Erklärung zu den verschiedenen mit der Ressource verbundenen Eigentumsrechten, einschließlich der Rechte an geistigem Eigentum. Es wird empfohlen, mit einem URI auf eine Rechteerklärung zu verweisen. Ist dies nicht möglich oder praktikabel, kann ein literarischer Wert (Name, Bezeichnung oder Kurztext) angegeben werden."@de,
+                       "En général, les informations sur les droits comprennent une déclaration sur les divers droits de propriété associés à la ressource, y compris les droits de propriété intellectuelle. La pratique recommandée est de faire référence à une déclaration de droits avec un URI. Si cela n'est pas possible ou réalisable, une valeur littérale (nom, étiquette ou texte court) peut être fournie."@fr,
+                       "In genere, le informazioni sui diritti includono una dichiarazione sui vari diritti di proprietà associati alla risorsa, compresi i diritti di proprietà intellettuale. La prassi consigliata è quella di fare riferimento a una dichiarazione sui diritti con un URI. Se ciò non è possibile o fattibile, si può fornire un valore letterale (nome, etichetta o testo breve)."@it ;
+        sh:datatype xsd:string .
+
+    dcterms:abstractShape a sh:PropertyShape ;
+        sh:path dcterms:abstract ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:name "Abstract"@en, "Abstrakt"@de, "Résumé"@fr, "Astratto"@it ;
+        sh:description
+            "A summary of the resource."@en,
+            "Eine Zusammenfassung der Ressource."@de,
+            "Un résumé de la ressource."@fr,
+            "Una sintesi della risorsa."@it ;
+        rdfs:subPropertyOf dcterms:description ;
+        sh:datatype rdf:langString .
+
+    dcterms:accessRightsShape a sh:PropertyShape ;
+        sh:path dcterms:accessRights ;
+        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:name "Access Rights"@en, "Zugangsrechte"@de, "Droits d'accès"@fr, "Diritti di accesso"@it ;
+        sh:description
+                "Information about who access the resource or an indication of its security status."@en,
+                "Informationen darüber, wer auf die Ressource zugreift, oder ein Hinweis auf ihren Sicherheitsstatus."@de,
+                "Informations sur les personnes qui accèdent à la ressource ou indication de son état de sécurité."@fr,
+                "Informazioni su chi accede alla risorsa o un'indicazione del suo stato di sicurezza."@it ;
+        rdfs:subPropertyOf dcterms:rights ;
+        sh:datatype xsd:string .
+
+
+    #
     # Definition of SHACL for OLDAP's use of dcterms:creator. Points an oldap:User .
     #
     dcterms:creatorShape a sh:PropertyShape ;
@@ -95,6 +160,19 @@ shared:shacl {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:dateTime .
+
+    dcterms:PhysicalResourceShape a sh:NodeShape, dcterms:PhysicalResource ;
+        sh:targetClass dcterms:PhysicalResource ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:label "Physical Resource"@en, "Physische Ressource"@de, "Ressources physiques"@fr, "Risorse fisiche"@it ;
+        rdfs:comment "A material thing."@en, "Eine materielle Sache."@de, "Une chose matérielle."@fr, "Una cosa materiale."@it ;
+        sh:property
+            [
+                sh:path rdf:type ;
+            ] .
 
 
     schema:familyNameShape a sh:PropertyShape ;
@@ -147,6 +225,41 @@ shared:onto {
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:range rdf:langString .
 
+    dcterms:description a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Description" ;
+        rdfs:range rdf:langString .
+
+    dcterms:rights a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Rights" ;
+        rdfs:range xsd:string .
+
+    dcterms:abstract a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Abstract" ;
+        rdfs:subPropertyOf dcterms:description ;
+        rdfs:range rdf:langString .
+
+    dcterms:accessRights a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Access Rights" ;
+        rdfs:subPropertyOf dcterms:rights ;
+        rdfs:range xsd:string .
+
+
     dcterms:creator a owl:ObjectProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
@@ -174,6 +287,15 @@ shared:onto {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:range xsd:dateTime .
+
+    dcterms:PhysicalResource a owl:class ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:label "Physical Resource"@en, "Physische Ressource"@de, "Ressources physiques"@fr, "Risorse fisiche"@it ;
+        rdfs:comment "A material thing."@en, "Eine materielle Sache."@de, "Une chose matérielle."@fr, "Una cosa materiale."@it .
+
 
 
     schema:familyName a owl:DatatypeProperty ;

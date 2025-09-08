@@ -1163,6 +1163,11 @@ class ResourceClass(Model, Notify):
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._creator.toRdf} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._contributor.toRdf} ;\n'
+        # we add, if available, rdfs:label and rdfs:comment to the OWL ontology
+        if self._attributes.get(ResClassAttribute.LABEL):
+            sparql += f'{blank:{(indent + 3) * indent_inc}}rdfs:label {self._attributes[ResClassAttribute.LABEL].toRdf} ;\n'
+        if self._attributes.get(ResClassAttribute.COMMENT):
+            sparql += f'{blank:{(indent + 3) * indent_inc}}rdfs:comment {self._attributes[ResClassAttribute.COMMENT].toRdf} ;\n'
         if self._attributes.get(ResClassAttribute.SUPERCLASS) is not None:
             sc = {x.toRdf for x in self._attributes[ResClassAttribute.SUPERCLASS].keys()}
             if Iri('oldap:Thing', validate=False).toRdf not in sc:
@@ -1583,6 +1588,26 @@ class ResourceClass(Model, Notify):
             if isinstance(item, ResClassAttribute):  # we have just an attribute or ResourceClass
                 #
                 # Do the changes to the ResourceClass attributes
+                #
+                if item == ResClassAttribute.LABEL:
+                    sparql = RdfModifyRes.onto(action=change.action,
+                                                graph=self._graph,
+                                                owlclass_iri=self._owlclass_iri,
+                                                ele=RdfModifyItem(item.value,
+                                                                  change.old_value,
+                                                                  self._attributes.get(ResClassAttribute.LABEL)),
+                                                last_modified=self._modified)
+                    sparql_list.append(sparql)
+                if item == ResClassAttribute.COMMENT:
+                    sparql = RdfModifyRes.onto(action=change.action,
+                                                graph=self._graph,
+                                                owlclass_iri=self._owlclass_iri,
+                                                ele=RdfModifyItem(item.value,
+                                                                  change.old_value,
+                                                                  self._attributes.get(ResClassAttribute.COMMENT)),
+                                                last_modified=self._modified)
+                    sparql_list.append(sparql)
+
                 #
                 # we only need to add rdfs:subClassOf to the ontology – all other attributes are irrelevant
                 #

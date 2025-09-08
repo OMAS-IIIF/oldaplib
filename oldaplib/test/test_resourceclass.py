@@ -1546,6 +1546,12 @@ class TestResourceClass(unittest.TestCase):
                            comment=LangString(["Definiton of a project@en", "Definition eines Projektes@de"]),
                            closed=Xsd_boolean(True),
                            hasproperties=hasproperties)
+        r1.create()
+        r1.label.add("projet@fr")
+        r1.update()
+        r1.read(con=self._connection,
+                project=self._project,
+                owl_class_iri=Iri("test:Project"), ignore_cache=True)
         r1.write_as_trig("gaga.trig")
 
 
