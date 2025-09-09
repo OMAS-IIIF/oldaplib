@@ -1249,7 +1249,7 @@ class TestResourceClass(unittest.TestCase):
                                 owl_class_iri=Iri('test:CrazyB'))
         self.assertEqual({Iri("oldap:Thing"), Iri('http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object')}, set(r1.superclass))
 
-    def test_updateing_sc_C(self):
+    def test_updating_sc_C(self):
         p1 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:p3'),
@@ -1282,7 +1282,7 @@ class TestResourceClass(unittest.TestCase):
                           'http://www.cidoc-crm.org/cidoc-crm/E22_Man-Made_Object',
                           'http://gugus.com/gaga/wird/nicht/gehen'}, set(r1.superclass))
 
-    def test_updateing_sc_D(self):
+    def test_updating_sc_D(self):
         p1 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:p4'),
@@ -1308,7 +1308,7 @@ class TestResourceClass(unittest.TestCase):
                                 owl_class_iri=Iri('test:CrazyD'))
         self.assertIsNone(r1[ResClassAttribute.LABEL])
 
-    def test_updateing_sc_E(self):
+    def test_updating_sc_E(self):
         p1 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Iri('test:p5'),
@@ -1334,6 +1334,38 @@ class TestResourceClass(unittest.TestCase):
                                 owl_class_iri=Iri('test:CrazyE'))
         self.assertIsNone(r1[ResClassAttribute.LABEL])
 
+    def test_updating_sc_F(self):
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:CrazyF"),
+                           label=LangString(["LabelF english@en", "Label F french@fr"]),
+                           comment=LangString("commentF english@en"))
+        r1.create()
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:CrazyF'))
+        del r1.label[Language.EN]
+        r1.label.add("Label F italian@it")
+        r1.update()
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri('test:CrazyF'))
+        self.assertEqual(r1.label, LangString(["Label F french@fr", "Label F italian@it"]))
+        #
+        # Testing if also OWL ontology has been updated
+        #
+        sparql = self._context.sparql_context
+        sparql += """
+        SELECT ?label
+        FROM test:onto
+        WHERE {{
+            test:CrazyF rdfs:label ?label .
+        }}
+        """
+        jsonres = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonres)
+        for r in res:
+            self.assertIn(r['label'], [Xsd_string("Label F french@fr"), Xsd_string("Label F italian@it")])
 
     # @unittest.skip('Work in progress')
     def test_delete_props(self):
