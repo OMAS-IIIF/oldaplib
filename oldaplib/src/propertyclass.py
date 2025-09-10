@@ -998,6 +998,10 @@ class PropertyClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        if self.name:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:label {self.name.toRdf}'
+        if self.description:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:comment {self.description.toRdf}'
         sparql += ' .\n'
         return sparql
 
@@ -1278,8 +1282,49 @@ class PropertyClass(Model, Notify):
                                              ele=ele,
                                              last_modified=self._modified,
                                              indent=indent, indent_inc=indent_inc)
-
                 sparql_list.append(sparql)
+            if prop == PropClassAttr.NAME:
+                if change.action == Action.CREATE:
+                    sparql = self.name.create(graph=Xsd_QName(self._graph, 'onto'),
+                                              subject=self._property_class_iri,
+                                              field=Xsd_QName('rdfs:label'),
+                                              indent=indent, indent_inc=indent_inc)
+                    sparql_list.append(sparql)
+                if change.action == Action.MODIFY:
+                    sparqls = self.name.update(graph=Xsd_QName(self._graph, 'onto'),
+                                               subject=self._property_class_iri,
+                                               field=Xsd_QName('rdfs:label'),
+                                               indent=indent, indent_inc=indent_inc)
+                    for sparql in sparqls:
+                        sparql_list.append(sparql)
+                if change.action == Action.DELETE:
+                    sparql = change.old_value.delete(graph=Xsd_QName(self._graph, 'onto'),
+                                               subject=self._property_class_iri,
+                                               field=Xsd_QName('rdfs:label'),
+                                               indent=indent, indent_inc=indent_inc)
+                    sparql_list.append(sparql)
+
+            if prop == PropClassAttr.DESCRIPTION:
+                if change.action == Action.CREATE:
+                    sparql = self.description.create(graph=Xsd_QName(self._graph, 'onto'),
+                                                     subject=self._property_class_iri,
+                                                     field=Xsd_QName('rdfs:comment'),
+                                                     indent=indent, indent_inc=indent_inc)
+                    sparql_list.append(sparql)
+                if change.action == Action.MODIFY:
+                    sparqls = self.description.update(graph=Xsd_QName(self._graph, 'onto'),
+                                                      subject=self._property_class_iri,
+                                                      field=Xsd_QName('rdfs:comment'),
+                                                      indent=indent, indent_inc=indent_inc)
+                    for sparql in sparqls:
+                        sparql_list.append(sparql)
+                if change.action == Action.DELETE:
+                    sparql = change.old_value.delete(graph=Xsd_QName(self._graph, 'onto'),
+                                                     subject=self._property_class_iri,
+                                                     field=Xsd_QName('rdfs:comment'),
+                                                     indent=indent, indent_inc=indent_inc)
+                    sparql_list.append(sparql)
+
 
         #
         # Updating the timestamp and contributor ID

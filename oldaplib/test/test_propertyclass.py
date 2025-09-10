@@ -649,6 +649,92 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.description, LangString("An annotation@en"))
 
 
+    def test_propertyclass_update5(self):
+        p1 = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Iri('test:testUpdate5'),
+            datatype=XsdDatatypes.string,
+            name=LangString(["name english@en", "nom français@fr"]),
+            description=LangString("description english@en", "description français@fr"),
+        )
+        p1.create()
+
+        p1 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:testUpdate5'),
+                                ignore_cache=True)
+        p1.name[Language.DE] = "name deutsch"
+        p1.description[Language.DE] = "description deutsch"
+        p1.update()
+
+        sparql = self._context.sparql_context
+        sparql += """
+        SELECT ?label
+        FROM test:onto
+        WHERE {{
+            test:testUpdate5 rdfs:label ?label .
+        }}
+        """
+        jsonres = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonres)
+        for r in res:
+            self.assertIn(r['label'], [Xsd_string("name english@en"),
+                                       Xsd_string("nom français@fr"),
+                                       Xsd_string("name deutsch@de")])
+
+    def test_propertyclass_update6(self):
+        p1 = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Iri('test:testUpdate6'),
+            datatype=XsdDatatypes.string,
+            name=LangString(["name english@en", "nom français@fr"]),
+        )
+        p1.create()
+        p1.description = LangString("description english@en", "description français@fr")
+        del p1.name
+        p1.update()
+
+        p1 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:testUpdate6'),
+                                ignore_cache=True)
+
+        #
+        # test if all rdfs:label have been deleted!
+        #
+        sparql = self._context.sparql_context
+        sparql += """
+        SELECT ?label
+        FROM test:onto
+        WHERE {{
+            test:testUpdate6 rdfs:label ?label .
+        }}
+        """
+        jsonres = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonres)
+        self.assertEqual(len(res), 0)
+
+        #
+        # test if the new rdfs:comments have been added
+        #
+        sparql = self._context.sparql_context
+        sparql += """
+        SELECT ?comment
+        FROM test:onto
+        WHERE {{
+            test:testUpdate6 rdfs:comment ?comment .
+        }}
+        """
+        jsonres = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonres)
+        self.assertEqual(len(res), 2)
+        for r in res:
+            self.assertIn(r['comment'], [Xsd_string("description english@en"), Xsd_string("description français@fr")])
+
+
+
 
 
     # @unittest.skip('Work in progress')

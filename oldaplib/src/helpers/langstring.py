@@ -452,7 +452,7 @@ class LangString(Notify):
                graph: Xsd_QName,
                subject: Iri,
                field: Xsd_QName,
-               indent: int = 0, indent_inc: int = 4):
+               indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
         sparql = ''
