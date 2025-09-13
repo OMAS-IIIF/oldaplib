@@ -96,8 +96,8 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtestH:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtestI:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtestI:onto'))
-        cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
-        cls._connection.clear_graph(Xsd_QName('hyha:onto'))
+        #cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
+        #cls._connection.clear_graph(Xsd_QName('hyha:onto'))
 
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
@@ -370,7 +370,6 @@ class TestDataModel(unittest.TestCase):
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)
         self.assertEqual(set(model.get_propclasses()), {
-            Iri("oldap:test"),
             Iri("dcterms:creator"),
             Iri("rdfs:label"),
             Iri("rdfs:comment"),

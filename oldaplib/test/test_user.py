@@ -63,6 +63,8 @@ class TestUser(unittest.TestCase):
 
         file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
+        file = project_root / 'oldaplib' / 'ontologies' / 'admin-testing.trig'
+        cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
 
     def tearDown(self):

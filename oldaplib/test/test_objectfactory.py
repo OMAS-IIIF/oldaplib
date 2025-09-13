@@ -96,7 +96,11 @@ class TestObjectFactory(unittest.TestCase):
 
         file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
-        sleep(1)  # upload may take a while...
+        #sleep(1)  # upload may take a while...
+
+        file = project_root / 'oldaplib' / 'ontologies' / 'admin-testing.trig'
+        cls._connection.upload_turtle(file)
+        #sleep(1)  # upload may take a while...
 
         file = project_root / 'oldaplib' / 'testdata' / 'objectfactory_test.trig'
         cls._connection.upload_turtle(file)
@@ -325,6 +329,16 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(at.unsignedShortProp, at2.unsignedShortProp)
         self.assertEqual(at.unsignedByteProp, at2.unsignedByteProp)
         self.assertEqual(at.positiveIntegerProp, at2.positiveIntegerProp)
+
+    def test_constructor_c(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Book = factory.createObjectInstance('Book')
+
+        b = Book(title="History of Time",
+                 author=[Iri('test:AlbertEinstein', validate=False), Iri('test:JohnWick', validate=False)],
+                 pubDate="1995-09-27",
+                 grantsPermission=Iri('oldap:GenericView'))
+        b.create()
 
     def test_value_setter(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')

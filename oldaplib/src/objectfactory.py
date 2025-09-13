@@ -72,98 +72,47 @@ ValueType = LangString | ObservableSet
 
 #@strict
 class ResourceInstance:
+    """
+    Represents an instance of a resource in a system based on certain defined ontology.
+
+    Provides functionality to initialize a resource, set its values, validate those values
+    against defined properties, and handle changesets related to the resource instance.
+    It integrates the resource's superclass properties into the instance and ensures the
+    conformance of its data to defined constraints such as minimum/maximum counts, lengths,
+    and allowable values or patterns.
+
+    Basically it's used be the ResourceInstanceFactory to create new instances of a resource.
+    The basic usage is as follows:
+
+    ```python
+        project = Project.read(con=self._connection, projectIri_SName='test')
+        factory = ResourceInstanceFactory(con=self._connection, project=project)
+        Book = factory.createObjectInstance('Book')
+    ```
+
+    **IMPORTANT NOTE: This class is not intended to be used directly, but rather through the
+    `ResourceInstanceFactory` class!**
+
+    In a first step the factory is instantiated with the project. Then using the `createObjectInstance` method
+    creates a new Python class which will represent instances of the given resource class.
+
+    :ivar iri: The unique identifier of the resource instance.
+    :type iri: Iri
+    :ivar values: A mapping of property IRIs to their corresponding values, which could
+                  include `LangString` objects or `ObservableSet` of values.
+    :type values: dict[Iri, LangString | ObservableSet]
+    :ivar graph: The name of the graph attribute in which the instance will reside,
+                 represented by a short name of the project.
+    :type graph: Xsd_NCName
+    :ivar changeset: A mapping to track all attributes changed within the instance,
+                     where the key is the property IRI and the value defines the
+                     change details.
+    :type changeset: dict[Iri, AttributeChange]
+    """
     _iri: Iri
     _values: dict[Iri, LangString | ObservableSet]
     _graph: Xsd_NCName
     _changeset: dict[Iri, AttributeChange]
-
-    #@staticmethod
-    # def convert2datatype(value: Any, datatype: XsdDatatypes) -> Xsd | LangString:
-    #     match datatype:
-    #         case XsdDatatypes.string:
-    #             return Xsd_string(value)
-    #         case XsdDatatypes.langString:
-    #             return LangString(value)
-    #         case XsdDatatypes.boolean:
-    #             return Xsd_boolean(value)
-    #         case XsdDatatypes.decimal:
-    #             return Xsd_decimal(value)
-    #         case XsdDatatypes.float:
-    #             return Xsd_float(value)
-    #         case XsdDatatypes.double:
-    #             return Xsd_double(value)
-    #         case XsdDatatypes.duration:
-    #             return Xsd_duration(value)
-    #         case XsdDatatypes.dateTime:
-    #             return Xsd_dateTime(value)
-    #         case XsdDatatypes.dateTimeStamp:
-    #             return Xsd_dateTimeStamp(value)
-    #         case XsdDatatypes.time:
-    #             return Xsd_time(value)
-    #         case XsdDatatypes.date:
-    #             return Xsd_date(value)
-    #         case XsdDatatypes.gYearMonth:
-    #             return Xsd_gYearMonth(value)
-    #         case XsdDatatypes.gYear:
-    #             return Xsd_gYear(value)
-    #         case XsdDatatypes.gMonthDay:
-    #             return Xsd_gMonthDay(value)
-    #         case XsdDatatypes.gDay:
-    #             return Xsd_gDay(value)
-    #         case XsdDatatypes.gMonth:
-    #             return Xsd_gMonth(value)
-    #         case XsdDatatypes.hexBinary:
-    #             return Xsd_hexBinary(value)
-    #         case XsdDatatypes.base64Binary:
-    #             return Xsd_base64Binary(value)
-    #         case XsdDatatypes.anyURI:
-    #             return Xsd_anyURI(value)
-    #         case XsdDatatypes.QName:
-    #             return Xsd_QName(value)
-    #         case XsdDatatypes.normalizedString:
-    #             return Xsd_normalizedString(value)
-    #         case XsdDatatypes.token:
-    #             return Xsd_token(value)
-    #         case XsdDatatypes.language:
-    #             return Xsd_language(value)
-    #         case XsdDatatypes.NCName:
-    #             return Xsd_NCName(value)
-    #         case XsdDatatypes.NMTOKEN:
-    #             return Xsd_NMTOKEN(value)
-    #         case XsdDatatypes.ID:
-    #             return Xsd_ID(value)
-    #         case XsdDatatypes.IDREF:
-    #             return Xsd_IDREF(value)
-    #         case XsdDatatypes.integer:
-    #             return Xsd_int(value)
-    #         case XsdDatatypes.nonPositiveInteger:
-    #             return Xsd_nonPositiveInteger(value)
-    #         case XsdDatatypes.negativeInteger:
-    #             return Xsd_negativeInteger(value)
-    #         case XsdDatatypes.long:
-    #             return Xsd_long(value)
-    #         case XsdDatatypes.int:
-    #             return Xsd_int(value)
-    #         case XsdDatatypes.short:
-    #             return Xsd_short(value)
-    #         case XsdDatatypes.byte:
-    #             return Xsd_byte(value)
-    #         case XsdDatatypes.nonNegativeInteger:
-    #             return Xsd_nonNegativeInteger(value)
-    #         case XsdDatatypes.unsignedLong:
-    #             return Xsd_unsignedLong(value)
-    #         case XsdDatatypes.unsignedInt:
-    #             return Xsd_unsignedInt(value)
-    #         case XsdDatatypes.unsignedShort:
-    #             return Xsd_unsignedShort(value)
-    #         case XsdDatatypes.unsignedByte:
-    #             return Xsd_unsignedByte(value)
-    #         case XsdDatatypes.positiveInteger:
-    #             return Xsd_positiveInteger(value)
-    #         case None:
-    #             return Iri(value)
-    #         case _:
-    #             raise OldapErrorValue(f'Invalid datatype "{datatype}" for value "{value}"')
 
     def __init__(self, *,
                  iri: Iri | None = None,
@@ -231,7 +180,6 @@ class ResourceInstance:
                 for iri, prop in sc.properties.items():
                     self.properties[iri] = prop
 
-
         if self.superclass:
             process_superclasses(self.superclass)
 
@@ -245,6 +193,22 @@ class ResourceInstance:
         self.clear_changeset()
 
     def validate_value(self, values: ValueType, property: PropertyClass):
+        """
+        Validates a set of values against a given property and its constraints. This function ensures
+        that the input values conform to specific constraints defined by the property. The function
+        verifies conformance to constraints such as language requirements, predefined inclusions,
+        length limits, pattern matching, exclusivity, inclusivity, and relational comparisons
+        (less than or less than or equals).
+
+        :param values: A set of values to be validated.
+        :param property: The property against which the values are being validated, containing
+            the constraints that the values must meet.
+        :return: None if the values successfully pass all validations.
+        :raises OldapErrorInconsistency: Raised when the values do not conform to the defined property
+            constraints due to inconsistencies or invalid data types.
+        :raises OldapErrorValue: Raised when the values explicitly violate specific constraints
+            such as inclusion constraints or invalid language values.
+        """
         if property.get(PropClassAttr.LANGUAGE_IN):  # testing for LANGUAGE_IN conformance
             if not isinstance(values, LangString):
                 raise OldapErrorInconsistency(f'Property {property.property_class_iri} with LANGUAGE_IN requires datatype rdf:langstring, got {type(values).__name__}.')
@@ -777,6 +741,21 @@ WHERE {{
 
 
 class ResourceInstanceFactory:
+    """
+    Represents a factory for creating instances of resources in a specific project.
+
+    The `ResourceInstanceFactory` class is used for creating resource instances
+    associated with a data model and project. It provides an interface to dynamically
+    generate classes for resource objects with properties and inheritance derived
+    from the project's data model.
+
+    :ivar _con: The connection interface used to interact with the backend.
+    :type _con: IConnection
+    :ivar _project: Represents the project associated with the factory.
+    :type _project: Project
+    :ivar _datamodel: Represents the data model associated with the project.
+    :type _datamodel: DataModel
+    """
     _con: IConnection
     _project: Project
     _datamodel: DataModel

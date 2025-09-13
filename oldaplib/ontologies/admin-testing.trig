@@ -1,0 +1,99 @@
+@prefix http: <http://www.w3.org/2011/http#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix schema: <http://schema.org/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix oldap: <http://oldap.org/base#> .
+@prefix : <http://oldap.org/base#> .
+
+@prefix hyha: <http://hyperhamlet.unibas.ch/> .
+
+:admin {
+
+    :HyperHamlet a :Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        :projectShortName "hyha"^^xsd:NCName ;
+        :namespaceIri "http://hyperhamlet.unibas.ch/"^^xsd:anyURI ;
+        rdfs:label "HyperHamlet"@en, "HyperHamlet"@de, "HyperHamlet"@fr, "HyperHamlet"@it ;
+        rdfs:comment "Reception of Hamlet"@en ;
+        :projectStart "2024-01-01"^^xsd:date .
+
+    <http://www.salsah.org/version/2.0/SwissBritNet> a :Project ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        :projectShortName "britnet"^^xsd:NCName ;
+        :namespaceIri "http://www.salsah.org/version/2.0/SwissBritNet#"^^xsd:anyURI ;
+        rdfs:label "SwissBritNet"@en ;
+        rdfs:comment "Elite network between Switzerland and Great Britain"@en ;
+        :projectStart "2023-07-01"^^xsd:date .
+
+    hyha:HyperHamletMember a :PermissionSet ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:label "HyHaUpdate"@en, "HyHaUpdate"@de, "HyHaUpdate"@fr, "HyHaUpdate"@it ;
+        :givesPermission :DATA_UPDATE ;
+        :definedByProject :HyperHamlet .
+
+    <urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> a oldap:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        :userId "swissbritnet"^^xsd:NCName ;
+        schema:familyName "Admin"^^xsd:string ;
+        schema:givenName "Admin"^^xsd:string ;
+        schema:email "lukas.rosenthaler@unibas.ch"^^xsd:string ;
+        :credentials "$2b$12$i2MZSo1p6sYGnMRFxjP8dempYr6p5/HDa93Dm3cMglqUpfQ4bSdgy"^^xsd:string ; # SwissBritNet
+        :inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
+        :hasPermissions :GenericRestricted, :GenericView ;
+        :isActive true .
+
+    <<<urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>>
+        :hasAdminPermission :ADMIN_USERS, :ADMIN_PERMISSION_SETS, :ADMIN_RESOURCES, :ADMIN_CREATE, :ADMIN_LISTS .
+
+    <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
+    <<<https://orcid.org/0000-0003-1681-4036> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission
+            :ADMIN_USERS, :ADMIN_PERMISSION_SETS, :ADMIN_RESOURCES, :ADMIN_MODEL, :ADMIN_CREATE, :ADMIN_LISTS .
+
+    <https://orcid.org/0000-0003-1485-4923> a oldap:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        :userId "fornaro"^^xsd:NCName ;
+        schema:familyName "Fornaro"^^xsd:string ;
+        schema:givenName "Peter R."^^xsd:string ;
+        schema:email "peter.fornaro@unibas.ch"^^xsd:string ;
+        :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2"^^xsd:string ;
+        :inProject :HyperHamlet ;
+        :hasPermissions :GenericView ;
+        :isActive true .
+
+    <<<https://orcid.org/0000-0003-1485-4923> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
+
+    <https://orcid.org/0000-0002-7403-9595> a oldap:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        :userId "habermann"^^xsd:NCName ;
+        schema:familyName "Habermann"^^xsd:string ;
+        schema:givenName "Ina"^^xsd:string ;
+        schema:email "ina.habermann@unibas.ch"^^xsd:string ;
+        :credentials "*"^^xsd:string ;
+        :inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
+        :hasPermissions :GenericRestricted ;
+        :isActive true .
+
+    <<<https://orcid.org/0000-0002-7403-9595> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission :ADMIN_RESOURCES .
+
+}

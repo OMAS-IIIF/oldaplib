@@ -53,6 +53,9 @@ class OldapListHelperTestCase(unittest.TestCase):
         file = project_root / 'oldaplib' / 'ontologies' / 'admin.trig'
         cls._connection.upload_turtle(file)
 
+        file = project_root / 'oldaplib' / 'ontologies' / 'admin-testing.trig'
+        cls._connection.upload_turtle(file)
+
 
         cls._connection.clear_graph(Xsd_QName('test:test'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))

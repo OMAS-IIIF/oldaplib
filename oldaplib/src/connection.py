@@ -587,3 +587,11 @@ if __name__ == "__main__":
     con.upload_turtle("../ontologies/shared.trig")
     con.upload_turtle("../ontologies/admin.trig")
 
+    # Eingabeaufforderung für das Laden der Testinstanzen
+    load_test_instances = input("Testinstanzen laden [Y/N] ?(Y): ").strip().lower()
+    if not load_test_instances or load_test_instances in ['y', 'yes', 'ja']:
+        print("Lade Testinstanzen...")
+        con.upload_turtle("../ontologies/admin-testing.trig")
+        print("Testinstanzen erfolgreich geladen.")
+    else:
+        print("Testinstanzen übersprungen.")
