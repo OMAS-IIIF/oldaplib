@@ -76,14 +76,10 @@ class TestObjectFactory(unittest.TestCase):
         project_root = find_project_root(__file__)
         cls._context = Context(name="DEFAULT")
 
-        cls._connection = Connection(server='http://localhost:7200',
-                                     repo="oldap",
-                                     userId="rosenth",
+        cls._connection = Connection(userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
-        cls._unpriv = Connection(server='http://localhost:7200',
-                                 repo="oldap",
-                                 userId="unknown",
+        cls._unpriv = Connection(userId="unknown",
                                  credentials="RioGrande",
                                  context_name="DEFAULT")
         cls._context['test'] = 'http://oldap.org/test#'
@@ -419,6 +415,24 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
         self.assertFalse(obj1.booleanSetter)
 
+    def test_value_maxcount_mincount(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Person = factory.createObjectInstance('Person')
+        p = Person(familyName="Müller",
+                   givenName="Max",
+                   grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        p.create()
+        sleep(1)
+        obj1 = Person.read(con=self._connection,
+                           project='test',
+                           iri=p.iri)
+        with self.assertRaises(OldapErrorValue):
+            obj1.familyName.add("Meier")
+        with self.assertRaises(OldapErrorValue):
+            obj1.givenName.discard("Max")
+        with self.assertRaises(OldapErrorValue):
+            del obj1.familyName
+
     def test_value_modifier_norights(self):
         # ps = PermissionSet(con=self._connection,
         #                    permissionSetId="testNoUpdate",
@@ -448,9 +462,7 @@ class TestObjectFactory(unittest.TestCase):
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate'), self._tps.iri})
         obj1.create()
 
-        unpriv = Connection(server='http://localhost:7200',
-                            repo="oldap",
-                            userId="factorytestuser",
+        unpriv = Connection(userId="factorytestuser",
                             credentials="Waseliwas",
                             context_name="DEFAULT")
         factory = ResourceInstanceFactory(con=unpriv, project='test')
@@ -525,9 +537,7 @@ class TestObjectFactory(unittest.TestCase):
         b.grantsPermission.add('hyha:HyperHamletMember')
         b.update()
 
-        unpriv = Connection(server='http://localhost:7200',
-                            repo="oldap",
-                            userId="factorytestuser",
+        unpriv = Connection(userId="factorytestuser",
                             credentials="Waseliwas",
                             context_name="DEFAULT")
         factory = ResourceInstanceFactory(con=unpriv, project=project)

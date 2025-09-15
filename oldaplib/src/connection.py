@@ -1,4 +1,5 @@
 import json
+import os
 from time import sleep
 
 import bcrypt
@@ -10,6 +11,8 @@ from typing import Dict, Optional, Any
 from datetime import datetime, timedelta
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
+
+from requests.auth import HTTPBasicAuth
 
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.enums.adminpermissions import AdminPermission
@@ -29,6 +32,7 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 # SPARQL-console:
 #
 """
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX oldap: <http://oldap.org/base#>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX schema: <http://schema.org/>
@@ -45,6 +49,9 @@ INSERT DATA {
         	schema:givenName "Lukas"^^xsd:string ;
         	oldap:credentials "$2b$12$N00UMBBJG9XfPV6R5NxulOTKi0qRBpypTFe82dKwSdTFrWZS7nat2"^^xsd:string ;
         	oldap:isActive "true"^^xsd:boolean .
+            
+        <<<https://orcid.org/0000-0003-1681-4036> oldap:inProject oldap:SystemProject>> oldap:hasAdminPermission oldap:ADMIN_OLDAP .
+        <<<https://orcid.org/0000-0003-1681-4036> oldap:inProject oldap:SharedProject>> oldap:hasAdminPermission oldap:ADMIN_RESOURCES, oldap:ADMIN_MODEL, oldap:ADMIN_LISTS .
 	}
 }
 
@@ -100,6 +107,11 @@ class Connection(IConnection):
     _server: str
     _repo: str
     _userId: str
+    _dbuser: str
+    _dbpassword: str
+    _userdata: Optional[UserData]
+    _token: Optional[str]
+    _context_name: str = DEFAULT_CONTEXT
     _store: SPARQLUpdateStore
     _query_url: str
     _update_url: str
@@ -118,11 +130,13 @@ class Connection(IConnection):
     }
 
     def __init__(self, *,
-                 server: str,
-                 repo: str,
+                 server: Optional[str] = None,
+                 repo: Optional[str] = None,
                  userId: Optional[str | Xsd_NCName] = None,
                  credentials: Optional[str | Xsd_string] = None,
                  token: Optional[str] = None,
+                 dbuser: Optional[str] = None,
+                 dbpassword: Optional[str] = None,
                  context_name: Optional[str] = DEFAULT_CONTEXT) -> None:
         """
         Constructor that establishes the connection parameters.
@@ -146,8 +160,10 @@ class Connection(IConnection):
                             in specific scenarios.
         """
         super().__init__(context_name=context_name)
-        self._server = server
-        self._repo = repo
+        self._server = server or os.getenv("OLDAP_TS_SERVER", "http://localhost:7200")
+        self._repo = repo or os.getenv("OLDAP_TS_REPO", "oldap")
+        self._dbuser = dbuser or os.getenv("OLDAP_TS_USER", "")
+        self._dbpassword = dbpassword or os.getenv("OLDAP_TS_PASSWORD", "")
         self._query_url = f'{self._server}/repositories/{self._repo}'
         self._update_url = f'{self._server}/repositories/{self._repo}/statements'
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
@@ -174,7 +190,8 @@ class Connection(IConnection):
         data = {
             'query': sparql,
         }
-        res = requests.post(url=self._query_url, headers=headers, data=data)
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
         if res.status_code == 200:
             jsonobj = res.json()
         else:
@@ -224,7 +241,7 @@ class Connection(IConnection):
         data = {
             'query': sparql,
         }
-        res = requests.post(url=self._query_url, headers=headers, data=data)
+        res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
         if res.status_code == 200:
             jsonobj = res.json()
         else:
@@ -277,9 +294,11 @@ class Connection(IConnection):
             "Accept": "application/json, text/plain, */*",
         }
         data = f"CLEAR GRAPH <{context.qname2iri(graph_iri)}>"
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         req = requests.post(self._update_url,
                             headers=headers,
-                            data=data)
+                            data=data,
+                            auth=auth)
         if not req.ok:
             raise OldapError(req.text)
 
@@ -304,9 +323,11 @@ class Connection(IConnection):
             "Accept": "application/json, text/plain, */*",
         }
         data = {"update": "CLEAR ALL"}
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         req = requests.post(self._update_url,
                             headers=headers,
-                            data=data)
+                            data=data,
+                            auth=auth)
         if not req.ok:
             raise OldapError(req.text)
 
@@ -374,9 +395,11 @@ class Connection(IConnection):
                 "Content-Type": "application/json; charset=utf-8"
             }
             url = f"{self._server}/rest/repositories/{self._repo}/import/upload/text"
+            auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
             req = requests.post(url,
                                 headers=headers,
-                                data=jsondata)
+                                data=jsondata,
+                                auth=auth)
         if not req.ok:
             raise OldapError(req.text)
 
@@ -401,9 +424,11 @@ class Connection(IConnection):
         data = {
             'query': query,
         }
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         res = requests.post(url=self._query_url,
                             headers=headers,
-                            data=data)
+                            data=data,
+                            auth=auth)
         if res.status_code == 200:
             return Connection._switcher[format](res)
         else:
@@ -428,7 +453,8 @@ class Connection(IConnection):
             "Accept": "*/*"
         }
         url = f"{self._server}/repositories/{self._repo}/statements"
-        res = requests.post(url, data={"update": query}, headers=headers)
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        res = requests.post(url, data={"update": query}, headers=headers, auth=auth)
         if not res.ok:
             raise OldapError(f'Update query failed. Reason: "{res.text}"')
 
@@ -450,7 +476,8 @@ class Connection(IConnection):
             "Accept": "*/*"
         }
         url = f"{self._server}/repositories/{self._repo}/transactions"
-        res = requests.post(url, headers=headers)
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        res = requests.post(url, headers=headers, auth=auth)
         if res.headers.get('location') is None:
             raise OldapError('GraphDB start of transaction failed')
         self._transaction_url = res.headers['location']
@@ -482,7 +509,11 @@ class Connection(IConnection):
         }
         if self._transaction_url is None:
             raise OldapError("No GraphDB transaction started")
-        res = requests.post(self._transaction_url, data={'action': 'QUERY', 'query': query}, headers=headers)
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        res = requests.post(self._transaction_url,
+                            data={'action': 'QUERY', 'query': query},
+                            headers=headers,
+                            auth=auth)
         if not res.ok:
             raise OldapError(f'GraphDB Transaction query failed. Reason: "{res.text}"')
         return Connection._switcher[result_format](res)
@@ -511,7 +542,11 @@ class Connection(IConnection):
         }
         if self._transaction_url is None:
             raise OldapError("No GraphDB transaction started")
-        res = requests.post(self._transaction_url, data={'action': 'UPDATE', 'update': query}, headers=headers)
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        res = requests.post(self._transaction_url,
+                            data={'action': 'UPDATE', 'update': query},
+                            headers=headers,
+                            auth=auth)
         if not res.ok:
             raise OldapError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
 
@@ -533,7 +568,8 @@ class Connection(IConnection):
         }
         if self._transaction_url is None:
             raise OldapError("No GraphDB transaction started")
-        res = requests.put(f'{self._transaction_url}?action=COMMIT', headers=headers)
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        res = requests.put(f'{self._transaction_url}?action=COMMIT', headers=headers, auth=auth)
         if not res.ok:
             raise OldapError(f'GraphDB transaction commit failed. Reason: "{res.text}"')
         self._transaction_url = None
@@ -555,7 +591,8 @@ class Connection(IConnection):
         }
         if self._transaction_url is None:
             raise OldapError("No GraphDB transaction started")
-        res = requests.delete(self._transaction_url, headers=headers)
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        res = requests.delete(self._transaction_url, headers=headers, auth=auth)
         if not res.ok:
             raise OldapError(f'GraphDB transaction abort failed. Reason: "{res.text}"')
         self._transaction_url = None

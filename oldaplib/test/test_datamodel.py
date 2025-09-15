@@ -70,9 +70,7 @@ class TestDataModel(unittest.TestCase):
         cls._context['dmtestI'] = NamespaceIRI('http://oldap.org/dmtestI#')
         cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF', 'dmtestG', 'dmtestH', 'dmtestI')
 
-        cls._connection = Connection(server='http://localhost:7200',
-                                     repo="oldap",
-                                     userId="rosenth",
+        cls._connection = Connection(userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 

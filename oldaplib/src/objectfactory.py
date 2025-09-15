@@ -20,7 +20,7 @@ from oldaplib.src.helpers.convert2datatype import convert2datatype
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency, \
-    OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed, OldapErrorInUse
+    OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed, OldapErrorInUse, OldapErrorAlreadyExists
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.project import Project
@@ -479,6 +479,13 @@ class ResourceInstance:
 
         blank = ''
         context = Context(name=self._con.context_name)
+
+        #
+        # Test if a resource with the same IRI already exists!
+        #
+        sparql0 = context.sparql_context
+        sparql0 += f'ASK {{ GRAPH {self._graph}:data {{ {self._iri.toRdf} ?p ?o }} }}'
+
         sparql = context.sparql_context
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{'
@@ -494,8 +501,13 @@ class ResourceInstance:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {values.toRdf}'
         sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
+
         self._con.transaction_start()
         try:
+            result = self._con.transaction_query(sparql0)
+            if result['boolean']:
+                self._con.transaction_abort()
+                raise OldapErrorAlreadyExists(f'Resource with IRI {self._iri} already exists.')
             self._con.transaction_update(sparql)
         except OldapError as e:
             self._con.transaction_abort()
@@ -565,6 +577,29 @@ WHERE {{
         return cls(iri=iri, **kwargs)
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
+        #
+        # first we check if the cardinality restrictions are followed
+        #
+        # for field, change in self._changeset.items():
+        #     if self.properties.get(field).minCount:
+        #         count = 0
+        #         if self._values.get(field):
+        #             try:
+        #                 count = len(self._values[field])
+        #             except TypeError:
+        #                 pass
+        #         if count < self.properties[field].minCount:
+        #             raise OldapErrorInconsistency(f"Field {field} has less values than the minimum count")
+        #     if self.properties.get(field).maxCount:
+        #         count = 1
+        #         if self._values.get(field):
+        #             try:
+        #                 count = len(self._values[field])
+        #             except TypeError:
+        #                 pass
+        #         if count > self.properties[field].maxCount:
+        #             raise OldapErrorInconsistency(f"Field {field} has less values than the maximum count")
+
         admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
         context = Context(name=self._con.context_name)

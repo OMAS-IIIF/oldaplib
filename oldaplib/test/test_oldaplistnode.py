@@ -59,14 +59,10 @@ class TestOldapListNode(unittest.TestCase):
         cls._context['dmtest'] = NamespaceIRI('http://oldap.org/dmtest#')
 
         cls._context.use('test', 'dmtest')
-        cls._connection = Connection(server='http://localhost:7200',
-                                     repo="oldap",
-                                     userId="rosenth",
+        cls._connection = Connection(userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
-        cls._unpriv = Connection(server='http://localhost:7200',
-                                 repo="oldap",
-                                 userId="unknown",
+        cls._unpriv = Connection(userId="unknown",
                                  credentials="RioGrande",
                                  context_name="DEFAULT")
         cls._connection.clear_graph(Xsd_QName('oldap:admin'))

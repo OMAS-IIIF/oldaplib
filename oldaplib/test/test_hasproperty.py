@@ -40,8 +40,7 @@ class TestHasProperty(unittest.TestCase):
         cls._context['test'] = NamespaceIRI("http://oldap.org/test#")
         cls._context.use('test', 'dcterms')
 
-        cls._connection = Connection(server='http://localhost:7200',
-                                     userId="rosenth",
+        cls._connection = Connection(userId="rosenth",
                                      credentials="RioGrande",
                                      repo="oldap",
                                      context_name="DEFAULT")

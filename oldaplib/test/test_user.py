@@ -46,14 +46,10 @@ class TestUser(unittest.TestCase):
 
         cls._context = Context(name="DEFAULT")
 
-        cls._connection = Connection(server='http://localhost:7200',
-                                     repo="oldap",
-                                     userId="rosenth",
+        cls._connection = Connection(userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
-        cls._unpriv = Connection(server='http://localhost:7200',
-                                 repo="oldap",
-                                 userId="fornaro",
+        cls._unpriv = Connection(userId="fornaro",
                                  credentials="RioGrande",
                                  context_name="DEFAULT")
 
@@ -1294,23 +1290,17 @@ class TestUser(unittest.TestCase):
                     credentials="FastestMouseInMexico",
                     isActive=True)
         user.create()
-        mycon = Connection(server='http://localhost:7200',
-                           repo="oldap",
-                           userId="speedy",
+        mycon = Connection(userId="speedy",
                            credentials="FastestMouseInMexico",
                            context_name="DEFAULT")
         user = User.read(con=mycon, userId="speedy", ignore_cache=True)
         user.credentials = "ElRatónMásRápidoDeMéxico"
         user.update()
         with self.assertRaises(OldapError) as err:
-            mycon = Connection(server='http://localhost:7200',
-                               repo="oldap",
-                               userId="speedy",
+            mycon = Connection(userId="speedy",
                                credentials="FastestMouseInMexico",
                                context_name="DEFAULT")
-        mycon = Connection(server='http://localhost:7200',
-                           repo="oldap",
-                           userId="speedy",
+        mycon = Connection(userId="speedy",
                            credentials="ElRatónMásRápidoDeMéxico",
                            context_name="DEFAULT")
         user = User.read(con=mycon, userId="speedy", ignore_cache=True)

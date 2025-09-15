@@ -58,14 +58,10 @@ class TestOldapList(unittest.TestCase):
         cls._context = Context(name="DEFAULT")
         cls._context['test'] = NamespaceIRI("http://testing.org/datatypes#")
         cls._context.use('test')
-        cls._connection = Connection(server='http://localhost:7200',
-                                     repo="oldap",
-                                     userId="rosenth",
+        cls._connection = Connection(userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
-        cls._unpriv = Connection(server='http://localhost:7200',
-                                 repo="oldap",
-                                 userId="fornaro",
+        cls._unpriv = Connection(userId="fornaro",
                                  credentials="RioGrande",
                                  context_name="DEFAULT")
 

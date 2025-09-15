@@ -38,9 +38,7 @@ class TestBasicConnection(unittest.TestCase):
         cls._context['test'] = NamespaceIRI("http://oldap.org/test#")
         cls._context.use('test')
 
-        cls._connection = Connection(server='http://localhost:7200',
-                                     repo="oldap",
-                                     userId="rosenth",
+        cls._connection = Connection(userId="rosenth",
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 
@@ -57,9 +55,7 @@ class TestBasicConnection(unittest.TestCase):
         pass
 
     def test_basic_connection(self):
-        con = Connection(server='http://localhost:7200',
-                         repo="oldap",
-                         userId="rosenth",
+        con = Connection(userId="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         self.assertIsInstance(con, Connection)
@@ -69,68 +65,52 @@ class TestBasicConnection(unittest.TestCase):
 
     def test_basic_connection_wrong_credentials(self):
         with self.assertRaises(OldapError) as ex:
-            con = Connection(server='http://localhost:7200',
-                             repo="oldap",
-                             userId="rosenth",
+            con = Connection(userId="rosenth",
                              credentials="XXX",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
     def test_basic_connection_unknown_user(self):
         with self.assertRaises(OldapErrorNotFound) as ex:
-            con = Connection(server='http://localhost:7200',
-                             repo="oldap",
-                             userId="XXX",
+            con = Connection(userId="XXX",
                              credentials="RioGrande",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Given user not found!")
 
     def test_inactive_user(self):
         with self.assertRaises(OldapError) as ex:
-            con = Connection(server='http://localhost:7200',
-                             repo="oldap",
-                             userId="bugsbunny",
+            con = Connection(userId="bugsbunny",
                              credentials="DuffyDuck",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
     def test_basic_connection_injection_userid(self):
         with self.assertRaises(OldapError) as ex:
-            con = Connection(server='http://localhost:7200',
-                             repo="oldap",
-                             userId="rosenth \". #\n; SELECT * {?s ?p ?o}",
+            con = Connection(userId="rosenth \". #\n; SELECT * {?s ?p ?o}",
                              credentials="RioGrande",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), 'Invalid string "rosenth ". #\n; SELECT * {?s ?p ?o}" for NCName')
 
     def test_basic_connection_injection_credentials(self):
         with self.assertRaises(OldapError) as ex:
-            con = Connection(server='http://localhost:7200',
-                             repo="oldap",
-                             userId="rosenth",
+            con = Connection(userId="rosenth",
                              credentials="RioGrande \". #\n; SELECT * {?s ?p ?o};",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), 'Wrong credentials')
 
     def test_token(self):
         Connection.jwtkey = "This is a very special secret, yeah!"
-        con = Connection(server='http://localhost:7200',
-                         repo="oldap",
-                         userId="rosenth",
+        con = Connection(userId="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         token = con.token
-        con = Connection(server='http://localhost:7200',
-                         repo="oldap",
-                         token=token,
+        con = Connection(token=token,
                          context_name="DEFAULT")
         self.assertEqual(con.userid, Xsd_NCName("rosenth"))
         self.assertEqual(con.userIri, Xsd_anyURI("https://orcid.org/0000-0003-1681-4036"))
 
         with self.assertRaises(OldapError) as ex:
-            con = Connection(server='http://localhost:7200',
-                             repo="oldap",
-                             token=token + "X",
+            con = Connection(token=token + "X",
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
