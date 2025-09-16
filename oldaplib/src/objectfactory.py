@@ -1,9 +1,5 @@
 import re
-import threading
-from datetime import datetime
-from enum import Enum, EnumMeta
 from functools import partial
-from pprint import pprint
 from typing import Type, Any, Self
 
 from oldaplib.src.datamodel import DataModel
@@ -28,46 +24,11 @@ from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd import Xsd
-from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
-from oldaplib.src.xsd.xsd_base64binary import Xsd_base64Binary
-from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
-from oldaplib.src.xsd.xsd_byte import Xsd_byte
-from oldaplib.src.xsd.xsd_date import Xsd_date
-from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
-from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
-from oldaplib.src.xsd.xsd_double import Xsd_double
-from oldaplib.src.xsd.xsd_duration import Xsd_duration
-from oldaplib.src.xsd.xsd_float import Xsd_float
-from oldaplib.src.xsd.xsd_gday import Xsd_gDay
-from oldaplib.src.xsd.xsd_gmonth import Xsd_gMonth
-from oldaplib.src.xsd.xsd_gmonthday import Xsd_gMonthDay
-from oldaplib.src.xsd.xsd_gyear import Xsd_gYear
-from oldaplib.src.xsd.xsd_gyearmonth import Xsd_gYearMonth
-from oldaplib.src.xsd.xsd_hexbinary import Xsd_hexBinary
-from oldaplib.src.xsd.xsd_id import Xsd_ID
-from oldaplib.src.xsd.xsd_idref import Xsd_IDREF
-from oldaplib.src.xsd.xsd_int import Xsd_int
-from oldaplib.src.xsd.xsd_language import Xsd_language
-from oldaplib.src.xsd.xsd_long import Xsd_long
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
-from oldaplib.src.xsd.xsd_negativeinteger import Xsd_negativeInteger
-from oldaplib.src.xsd.xsd_nmtoken import Xsd_NMTOKEN
-from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
-from oldaplib.src.xsd.xsd_nonpositiveinteger import Xsd_nonPositiveInteger
-from oldaplib.src.xsd.xsd_normalizedstring import Xsd_normalizedString
-from oldaplib.src.xsd.xsd_positiveinteger import Xsd_positiveInteger
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
-from oldaplib.src.xsd.xsd_short import Xsd_short
-from oldaplib.src.xsd.xsd_string import Xsd_string
-from oldaplib.src.xsd.xsd_time import Xsd_time
-from oldaplib.src.xsd.xsd_token import Xsd_token
-from oldaplib.src.xsd.xsd_unsignedbyte import Xsd_unsignedByte
-from oldaplib.src.xsd.xsd_unsignedint import Xsd_unsignedInt
-from oldaplib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
-from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 
-ValueType = LangString | ObservableSet
+ValueType = LangString | ObservableSet | Xsd
 
 
 #@strict
@@ -114,10 +75,29 @@ class ResourceInstance:
     _graph: Xsd_NCName
     _changeset: dict[Iri, AttributeChange]
 
+    __slots__ = ['_iri', '_values', '_graph', '_changeset', '_superclass_objs',
+                 '_con', 'project', 'name', 'factory', 'properties', 'superclass']
+
+
     def __init__(self, *,
                  iri: Iri | None = None,
                  **kwargs):
-        self._iri = iri or Iri()
+        """
+        Initializes an instance of the resource class, setting the optional IRI, processing
+        superclasses, and validating property constraints. This initializer interprets
+        the properties and superclasses associated with the instance and ensures
+        conformance to rules such as `MIN_COUNT` and `MAX_COUNT` for properties.
+
+        :param iri: An optional parameter specifying the IRI of the instance.
+        :type iri: Iri | None
+        :param kwargs: A dictionary of additional property values with property IRIs
+            or fragments as keys. In case of unique fragments, the dictionary may be pass
+            as named method arguments
+        :type kwargs: dict or named method arguments
+        """
+        if iri and isinstance(iri, str):
+            iri = Iri(Xsd_QName(self.project.projectShortName, iri))
+        self._iri = Iri(iri, validate=True) if iri else Iri()
         self._values = {}
         self._graph = self.project.projectShortName
         self._superclass_objs = {}
@@ -125,8 +105,8 @@ class ResourceInstance:
 
         def set_values(propclass: dict[Iri, HasProperty]):
             for prop_iri, hasprop in propclass.items():
-                if kwargs.get(prop_iri.fragment):
-                    value = kwargs[prop_iri.fragment]
+                if kwargs.get(str(prop_iri)) or kwargs.get(prop_iri.fragment):
+                    value = kwargs[str(prop_iri)] if kwargs.get(str(prop_iri)) else kwargs[prop_iri.fragment]
                     if isinstance(value, (list, tuple, set, LangString)):  # we may have multiple values...
                         if hasprop.prop.datatype == XsdDatatypes.langString:
                             self._values[prop_iri] = LangString(value,
@@ -151,7 +131,7 @@ class ResourceInstance:
                         raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
                 if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
                     if isinstance(self._values.get(prop_iri), ObservableSet) and len(self._values[prop_iri]) > hasprop[HasPropertyAttr.MAX_COUNT]:
-                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri.fragment])})')
+                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri])})')
                 if self._values.get(prop_iri):
                     if isinstance(self._values[prop_iri], LangString):
                         self.validate_value(self._values[prop_iri], hasprop.prop)
@@ -168,13 +148,13 @@ class ResourceInstance:
                     process_superclasses(sc.superclass)
                 if sc.owl_class_iri == Iri("oldap:Thing", validate=False):
                     timestamp = Xsd_dateTimeStamp()
-                    if not self._values.get('oldap:createdBy'):
+                    if not self._values.get(Iri('oldap:createdBy', validate=False)):
                         self._values[Iri('oldap:createdBy', validate=False)] = ObservableSet({self._con.userIri})
-                    if not self._values.get('oldap:creationDate'):
+                    if not self._values.get(Iri('oldap:creationDate', validate=False)):
                         self._values[Iri('oldap:creationDate', validate=False)] = ObservableSet({timestamp})
-                    if not self._values.get('oldap:lastModifiedBy'):
+                    if not self._values.get(Iri('oldap:lastModifiedBy', validate=False)):
                         self._values[Iri('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
-                    if not self._values.get('oldap:lastModificationDate'):
+                    if not self._values.get(Iri('oldap:lastModificationDate', validate=False)):
                         self._values[Iri('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
                 set_values(sc.properties)
                 for iri, prop in sc.properties.items():
@@ -258,27 +238,27 @@ class ResourceInstance:
                 try:
                     v = val >= property[PropClassAttr.MIN_INCLUSIVE]
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{val}".')
                 if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{val}".')
         if property.get(PropClassAttr.MAX_EXCLUSIVE):
             for val in values:
                 v: bool | None = None
                 try:
                     v = val < property[PropClassAttr.MAX_EXCLUSIVE]
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{val}".')
                 if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{val}".')
         if property.get(PropClassAttr.MAX_INCLUSIVE):
             for val in values:
                 v: bool | None = None
                 try:
                     v = val <= property[PropClassAttr.MAX_INCLUSIVE]
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{val}".')
                 if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{value}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{val}".')
         if property.get(PropClassAttr.LESS_THAN):
             other_values = self._values.get(property[PropClassAttr.LESS_THAN])
             if other_values is not None:
@@ -289,7 +269,7 @@ class ResourceInstance:
                     b = max_value < min_other_value
                 except TypeError:
                     raise OldapErrorInconsistency(
-                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared "{max_value} / {min_other_value}".')
+                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared to "{values}".')
                 if not b:
                     raise OldapErrorInconsistency(
                         f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
@@ -303,7 +283,7 @@ class ResourceInstance:
                     b = max_value <= min_other_value
                 except TypeError:
                     raise OldapErrorInconsistency(
-                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} cannot be compared "{max_value} / {min_other_value}".')
+                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} cannot be compared "{values}".')
                 if not b:
                     raise OldapErrorInconsistency(
                         f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
@@ -328,7 +308,7 @@ class ResourceInstance:
 
         self._changeset[prop_iri] = AttributeChange(None, Action.MODIFY)
 
-    def check_for_permissions(self, permission: AdminPermission) -> (bool, str):
+    def check_for_permissions(self, permission: AdminPermission) -> tuple[bool, str]:
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -435,6 +415,7 @@ class ResourceInstance:
 
     def get_data_permission(self, context: Context, permission: DataPermission) -> bool:
         permission_query = context.sparql_context
+        # language=sparql
         permission_query += f'''
         SELECT (COUNT(?permset) as ?numOfPermsets)
         FROM oldap:onto
@@ -577,29 +558,6 @@ WHERE {{
         return cls(iri=iri, **kwargs)
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
-        #
-        # first we check if the cardinality restrictions are followed
-        #
-        # for field, change in self._changeset.items():
-        #     if self.properties.get(field).minCount:
-        #         count = 0
-        #         if self._values.get(field):
-        #             try:
-        #                 count = len(self._values[field])
-        #             except TypeError:
-        #                 pass
-        #         if count < self.properties[field].minCount:
-        #             raise OldapErrorInconsistency(f"Field {field} has less values than the minimum count")
-        #     if self.properties.get(field).maxCount:
-        #         count = 1
-        #         if self._values.get(field):
-        #             try:
-        #                 count = len(self._values[field])
-        #             except TypeError:
-        #                 pass
-        #         if count > self.properties[field].maxCount:
-        #             raise OldapErrorInconsistency(f"Field {field} has less values than the maximum count")
-
         admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
         context = Context(name=self._con.context_name)
@@ -649,9 +607,9 @@ WHERE {{
             if change.action != Action.MODIFY:
                 continue  # has been processed above
             if self.properties[field].prop.datatype == XsdDatatypes.langString:
-                sparqls = self._values[field].update(graph=f'{self._graph}:data',
+                sparqls = self._values[field].update(graph=Xsd_QName(self._graph, 'data'),
                                                      subject=self._iri,
-                                                     field=field)
+                                                     field=field.as_qname)
                 for lang, lchange in self._values[field].changeset.items():
                     if lchange.action != Action.CREATE:
                         if required_permission < DataPermission.DATA_UPDATE:
@@ -663,7 +621,7 @@ WHERE {{
                 #
                 newset = {convert2datatype(x, self.properties[field].prop.datatype) for x in self._values[field]}
                 self._values[field] = ObservableSet(newset, old_value=self._values[field].old_value, notifier=self.notifier, notify_data=field)
-                sparqls = self._values[field].update_sparql(graph=f'{self._graph}:data',
+                sparqls = self._values[field].update_sparql(graph=Iri(f'{self._graph}:data'),
                                                             subject=self._iri,
                                                             field=field)
                 sparql_list.extend(sparqls)
@@ -674,21 +632,21 @@ WHERE {{
 
         modtime_update = context.sparql_context
         modtime_update += f'''
-WITH {self._graph}:data
-DELETE {{
-    ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
-    ?res oldap:lastModifiedBy ?contributor .
-}}
-INSERT {{
-    ?res oldap:lastModificationDate {timestamp.toRdf} .
-    ?res oldap:lastModifiedBy {self._con.userIri.toRdf} .
-}}
-WHERE {{
-    BIND({self._iri.toRdf} as ?res)
-    ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
-    ?res oldap:lastModifiedBy ?contributor .
-}}
-'''
+        WITH {self._graph}:data
+        DELETE {{
+            ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
+            ?res oldap:lastModifiedBy ?contributor .
+        }}
+        INSERT {{
+            ?res oldap:lastModificationDate {timestamp.toRdf} .
+            ?res oldap:lastModifiedBy {self._con.userIri.toRdf} .
+        }}
+        WHERE {{
+            BIND({self._iri.toRdf} as ?res)
+            ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
+            ?res oldap:lastModifiedBy ?contributor .
+        }}
+        '''
 
         context = Context(name=self._con.context_name)
         modtime_get = context.sparql_context
@@ -724,8 +682,6 @@ WHERE {{
         except OldapError:
             self._con.transaction_abort()
             raise
-        self._modified = timestamp
-        self._contributor = self._con.userIri
         self.clear_changeset()
 
     def delete(self) -> None:
