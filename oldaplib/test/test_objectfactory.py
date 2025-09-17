@@ -153,7 +153,6 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(b.lastModifiedBy, Iri('https://orcid.org/0000-0003-1681-4036', validate=False))
         b.create()
         b2 = Book.read(con=self._connection,
-                       project='test',
                        iri=b.iri)
         self.assertEqual(b2.title, b.title)
         self.assertEqual(b2.author, b.author)
@@ -167,7 +166,7 @@ class TestObjectFactory(unittest.TestCase):
         # test unprivileged access. Should return "not found"-Error!
         #
         with self.assertRaises(OldapErrorNotFound):
-            b3 = Book.read(con=self._unpriv, project='test', iri=b.iri)
+            b3 = Book.read(con=self._unpriv, iri=b.iri)
 
         Page = factory.createObjectInstance('Page')
         p1 = Page(pageDesignation="Cover",
@@ -180,7 +179,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(p1.pageDescription, LangString("Cover page of book@en", "Vorderseite des Bucheinschlags@de"))
         self.assertEqual(p1.pageInBook, {"test:Hitchhiker"})
         p1.create()
-        p2 = Page.read(con=self._connection, project='test', iri=p1.iri)
+        p2 = Page.read(con=self._connection, iri=p1.iri)
         self.assertEqual(p2.pageDesignation, p1.pageDesignation)
         self.assertEqual(p2.pageNum, p1.pageNum)
         self.assertEqual(p2.pageInBook, p1.pageInBook)
@@ -280,7 +279,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(at.unsignedByteProp, {Xsd_unsignedByte(202)})
         self.assertEqual(at.positiveIntegerProp, {Xsd_positiveInteger(202)})
         at.create()
-        at2 = AllTypes.read(con=self._connection, project='test', iri=at.iri)
+        at2 = AllTypes.read(con=self._connection, iri=at.iri)
         self.assertEqual(at.stringProp, at2.stringProp)
         self.assertEqual(at.langStringProp, at2.langStringProp)
         self.assertEqual(at.booleanProp, at2.booleanProp)
@@ -326,7 +325,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(at.unsignedByteProp, at2.unsignedByteProp)
         self.assertEqual(at.positiveIntegerProp, at2.positiveIntegerProp)
 
-    def test_constructor_c(self):
+    def test_constructor_C(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         Book = factory.createObjectInstance('Book')
 
@@ -335,6 +334,19 @@ class TestObjectFactory(unittest.TestCase):
                  pubDate="1995-09-27",
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
+
+    def test_read_A(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Book = factory.createObjectInstance('Book')
+        b = Book(title="The Life and Times of Scrooge",
+                 author="test:TuomasHolopainen",
+                 pubDate="2001-01-01",
+                 grantsPermission=Iri('oldap:GenericView'))
+        b.create()
+        bb = factory.read(iri=b.iri)
+        self.assertEqual(bb.name, "Book")
+        self.assertEqual(bb.title, {Xsd_string("The Life and Times of Scrooge")})
+        self.assertEqual(bb.author, {Iri("test:TuomasHolopainen")})
 
     def test_value_setter(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -345,7 +357,7 @@ class TestObjectFactory(unittest.TestCase):
                             integerSetter={20200, 30300},
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
         obj1.create()
-        obj2 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        obj2 = SetterTester.read(con=self._connection, iri=obj1.iri)
         self.assertEqual(obj1.stringSetter, obj2.stringSetter)
         self.assertEqual(obj1.langStringSetter, obj2.langStringSetter)
         self.assertIsNone(obj2.booleanSetter)
@@ -382,7 +394,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj2.changeset, expected_cs)
 
         obj2.update()
-        obj2 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        obj2 = SetterTester.read(con=self._connection, iri=obj1.iri)
         self.assertEqual(obj2.stringSetter, {"This is not a statement!"})
         self.assertEqual(obj2.langStringSetter, LangString("In Deutsch@de", "En Français@fr"))
         self.assertTrue(obj2.booleanSetter)
@@ -399,7 +411,7 @@ class TestObjectFactory(unittest.TestCase):
                             booleanSetter=True,
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
         obj1.create()
-        obj1 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
         obj1.langStringSetter[Language.FR] = "Qu'est-ce que c'est?"
         obj1.integerSetter.add(42)
         obj1.integerSetter.discard(-10)
@@ -409,7 +421,7 @@ class TestObjectFactory(unittest.TestCase):
         with self.assertRaises(OldapErrorValue):
             del obj1.stringSetter
         obj1.update()
-        obj1 = SetterTester.read(con=self._connection, project='test', iri=obj1.iri)
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
         self.assertEqual(obj1.stringSetter, {"This is a test string"})
         self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
         self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
@@ -424,7 +436,6 @@ class TestObjectFactory(unittest.TestCase):
         p.create()
         sleep(1)
         obj1 = Person.read(con=self._connection,
-                           project='test',
                            iri=p.iri)
         with self.assertRaises(OldapErrorValue):
             obj1.familyName.add("Meier")
@@ -467,7 +478,7 @@ class TestObjectFactory(unittest.TestCase):
                             context_name="DEFAULT")
         factory = ResourceInstanceFactory(con=unpriv, project='test')
         SetterTester = factory.createObjectInstance('SetterTester')
-        obj = SetterTester.read(con=unpriv, project='test', iri=obj1.iri)
+        obj = SetterTester.read(con=unpriv, iri=obj1.iri)
         self.assertEqual(obj.stringSetter, {"This is a test string"})
         self.assertEqual(obj.langStringSetter, LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"))
         self.assertTrue(obj.booleanSetter)
@@ -488,7 +499,6 @@ class TestObjectFactory(unittest.TestCase):
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
         b = Book.read(con=self._connection,
-                       project='test',
                        iri=b.iri)
         Page = factory.createObjectInstance('Page')
         p1 = Page(pageDesignation="Cover",
@@ -504,12 +514,10 @@ class TestObjectFactory(unittest.TestCase):
         p1.delete()
         with self.assertRaises(OldapErrorNotFound):
             Page.read(con=self._connection,
-                    project='test',
                     iri=p1.iri)
         b.delete()
         with self.assertRaises(OldapErrorNotFound):
             b = Book.read(con=self._connection,
-                          project='test',
                           iri=b.iri)
 
     def test_change_permissions(self):
@@ -532,7 +540,6 @@ class TestObjectFactory(unittest.TestCase):
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
         b = Book.read(con=self._connection,
-                      project='test',
                       iri=b.iri)
         b.grantsPermission.add('hyha:HyperHamletMember')
         b.update()
@@ -543,7 +550,6 @@ class TestObjectFactory(unittest.TestCase):
         factory = ResourceInstanceFactory(con=unpriv, project=project)
         Book = factory.createObjectInstance('Book')
         b = Book.read(con=self._connection,
-                      project='test',
                       iri=b.iri)
         b.grantsPermission.add('oldap:GenericUpdate')
         with self.assertRaises(OldapErrorNoPermission):

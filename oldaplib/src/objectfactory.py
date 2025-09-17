@@ -499,10 +499,7 @@ class ResourceInstance:
     @classmethod
     def read(cls,
              con: IConnection,
-             project: Project | Iri | Xsd_NCName | str,
              iri: Iri) -> Self:
-        # if not isinstance(project, Project):
-        #     project = Project.read(con, project)
         graph = cls.project.projectShortName
         context = Context(name=con.context_name)
         sparql = context.sparql_context
@@ -779,6 +776,63 @@ class ResourceInstanceFactory:
             'factory': self,
             'properties': resclass.properties,
             'superclass': resclass.superclass})
+
+    def read(self, iri: Iri | str) -> ResourceInstance:
+        graph = self._project.projectShortName
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += f'''
+        SELECT ?predicate ?value
+        FROM oldap:onto
+        FROM shared:onto
+        FROM {graph}:onto
+        FROM NAMED oldap:admin
+        FROM NAMED {graph}:data
+        WHERE {{
+        	BIND({iri.toRdf} as ?iri)
+            GRAPH {graph}:data {{
+                ?iri ?predicate ?value .
+                ?iri oldap:grantsPermission ?permset .
+            }}
+            BIND({self._con.userIri.toRdf} as ?user)
+            GRAPH oldap:admin {{
+            	?user oldap:hasPermissions ?permset .
+            	?permset oldap:givesPermission ?DataPermission .
+            	?DataPermission oldap:permissionValue ?permval .
+            }}
+            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
+        }}'''
+        jsonres = self._con.query(sparql)
+        res = QueryProcessor(context, jsonres)
+        objtype = None
+        kwargs: dict[str, Any] = {}
+        for r in res:
+            if r['predicate'] == 'rdf:type':
+                if r['value'].is_qname:
+                    objtype = r['value'].as_qname.fragment
+                else:
+                    raise OldapErrorInconsistency(f"Expected QName as value, got {r['value']}")
+            else:
+                if r['predicate'].is_qname:
+                    if kwargs.get(r['predicate'].as_qname.fragment):
+                        if isinstance(kwargs[r['predicate'].as_qname.fragment], set):
+                            kwargs[r['predicate'].as_qname.fragment].add(r['value'])
+                        else:
+                            kwargs[r['predicate'].as_qname.fragment] = r['value']
+                    else:
+                        try:
+                            kwargs[r['predicate'].as_qname.fragment] = {r['value']}
+                        except TypeError:
+                            kwargs[r['predicate'].as_qname.fragment] = r['value']
+                else:
+                    raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
+        if objtype is None:
+            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+        Instance = self.createObjectInstance(objtype)
+        return Instance(iri=iri, **kwargs)
+
+
+
 
 
 

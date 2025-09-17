@@ -3036,7 +3036,6 @@ class TestOldapListNode(unittest.TestCase):
         citem1.create()
 
         testitem = CategoryItem.read(con=self._connection,
-                                     project=project,
                                      iri=citem1.iri)
         self.assertEqual(testitem.title, LangString("Item1@en"))
         self.assertEqual(testitem.category, {olA.iri})

@@ -1513,7 +1513,6 @@ class TestResourceClass(unittest.TestCase):
         )
         data.create()
         data2 = TestResourceInUse.read(con=self._connection,
-                                       project='test',
                                        iri=data.iri)
 
         r1 = ResourceClass.read(con=self._connection,
