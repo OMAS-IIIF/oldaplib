@@ -727,6 +727,17 @@ WHERE {{
             self._con.transaction_abort()
             raise
 
+    def toJsonObject(self) -> dict[str, list[str] | str]:
+        result = {'iri': str(self._iri)}
+        for propiri, values in self._values.items():
+            if str(propiri) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModificationDate', 'oldap:lastModifiedBy'}:
+                iterator = iter(values)
+                result[str(propiri)] = str(next(iterator))
+                continue
+
+            result[str(propiri)] = [str(v) for v in values]
+        return result
+
 
 class ResourceInstanceFactory:
     """
@@ -778,6 +789,8 @@ class ResourceInstanceFactory:
             'superclass': resclass.superclass})
 
     def read(self, iri: Iri | str) -> ResourceInstance:
+        if not isinstance(iri, Iri):
+            iri = Iri(iri, validate=True)
         graph = self._project.projectShortName
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context

@@ -347,6 +347,10 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(bb.name, "Book")
         self.assertEqual(bb.title, {Xsd_string("The Life and Times of Scrooge")})
         self.assertEqual(bb.author, {Iri("test:TuomasHolopainen")})
+        jsonobj = bb.toJsonObject()
+        self.assertEqual(jsonobj['test:author'], ['test:TuomasHolopainen'])
+        self.assertEqual(jsonobj['test:pubDate'], ['2001-01-01'])
+        self.assertEqual(jsonobj['test:title'], ['The Life and Times of Scrooge'])
 
     def test_value_setter(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
