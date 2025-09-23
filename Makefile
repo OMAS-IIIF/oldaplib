@@ -18,6 +18,7 @@ docs:
 test:
 	OLDAP_TS_SERVER=http://localhost:7200 \
 	OLDAP_TS_REPO=oldap \
+	OLDAP_REDIS_URL=redis://localhost:6379 \
 	poetry run python3 -m unittest -v
 
 test-secure:
@@ -25,6 +26,7 @@ test-secure:
 	OLDAP_TS_REPO=oldap \
 	OLDAP_TS_USER=oldap \
 	OLDAP_TS_PASSWORD=MyOldap \
+	OLDAP_REDIS_URL=redis://localhost:6379 \
 	poetry run python3 -m unittest -v
 
 build:
@@ -36,6 +38,7 @@ publish:
 coverage:
 	OLDAP_TS_SERVER=http://localhost:7200 \
 	OLDAP_TS_REPO=oldap \
+	OLDAP_REDIS_URL=redis://localhost:6379 \
 	poetry run coverage run -m unittest -v
 	poetry run coverage html
 

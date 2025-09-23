@@ -1,4 +1,6 @@
 import base64
+import random
+import string
 import unittest
 from pathlib import Path
 from pprint import pprint
@@ -558,6 +560,26 @@ class TestObjectFactory(unittest.TestCase):
         b.grantsPermission.add('oldap:GenericUpdate')
         with self.assertRaises(OldapErrorNoPermission):
             b.update()
+
+    def test_search_resource_A(self):
+
+        def random_string(length=12):
+            chars = string.ascii_letters + string.digits
+            return ''.join(random.choices(chars, k=length))
+
+        project = Project.read(con=self._connection, projectIri_SName='test')
+        factory = ResourceInstanceFactory(con=self._connection, project=project)
+        Book = factory.createObjectInstance('Book')
+        for i in range(10):
+            b = Book(title=f'These are {random_string()} Tales from the Wood',
+                     author=Iri(f'test:Gaga', validate=False),
+                     pubDate="1995-09-27",
+                     grantsPermission=Iri('oldap:GenericView'))
+            b.create()
+        res = factory.search_fulltext('tales')
+
+        for x, y in res.items():
+            print(x, y)
 
 
 if __name__ == '__main__':

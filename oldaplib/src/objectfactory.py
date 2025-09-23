@@ -1,6 +1,6 @@
 import re
 from functools import partial
-from typing import Type, Any, Self
+from typing import Type, Any, Self, cast
 
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.action import Action
@@ -25,6 +25,7 @@ from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
@@ -843,6 +844,56 @@ class ResourceInstanceFactory:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
         Instance = self.createObjectInstance(objtype)
         return Instance(iri=iri, **kwargs)
+
+    def search_fulltext(self, s: str, count_only: bool = False, limit: int = 100, offset: int = 0) -> int | dict[Iri, dict[str, Xsd]]:
+        graph = self._project.projectShortName
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        if (count_only):
+            sparql += "SELECT (COUNT(DISTINCT ?s) as ?numResult)"
+        else:
+            sparql += "SELECT DISTINCT ?s ?t ?p ?o"
+        sparql += f'''
+        FROM oldap:onto
+        FROM shared:onto
+        FROM {graph}:onto
+        FROM NAMED oldap:admin
+        FROM NAMED {graph}:data
+        WHERE {{
+            GRAPH {graph}:data {{
+                ?s ?p ?o .
+                ?s rdf:type ?t .
+                ?s oldap:grantsPermission ?permset .
+            }}
+            FILTER(isLiteral(?o) && 
+                (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))
+            FILTER(CONTAINS(LCASE(STR(?o)), "{s}"))  # case-insensitive substring match
+            BIND({self._con.userIri.toRdf} as ?user)
+            GRAPH oldap:admin {{
+    	        ?user oldap:hasPermissions ?permset .
+    	        ?permset oldap:givesPermission ?DataPermission .
+    	        ?DataPermission oldap:permissionValue ?permval .
+            }}
+            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
+        }}
+        '''
+        if not count_only:
+            sparql += f'LIMIT {limit} OFFSET {offset}'
+        jsonres = self._con.query(sparql)
+        res = QueryProcessor(context, jsonres)
+        if count_only:
+            if isinstance(res[0]['numResult'], Xsd_integer):
+                tmp = cast(Xsd_integer, res[0]['numResult'])
+                return int(tmp)
+            else:
+                raise OldapErrorInconsistency(f'Expected integer as value, got "{res[0]["numResult"]}"')
+        else:
+            result: dict[Iri, dict[str, Xsd]] = {}
+            for r in res:
+                iri = cast(Iri, r['s'])
+                resclass = cast(Iri, r['t'])
+                result[iri] = {'resclass': resclass, 'property': r['p'], 'value': r['o']}
+            return result
 
 
 

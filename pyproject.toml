@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oldaplib"
-version = "0.2.3"
+version = "0.2.5"
 description = "Open Media Access Server Library (Linked Open Data middleware/RESTApi)"
 authors = ["Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>"]
 license = "GNU Affero General Public License version 3"
@@ -33,7 +33,7 @@ lazydocs = "^0.4.8"
 mkdocstrings = "^0.30.0"
 mkdocstrings-python = "^1.17.0"
 pyjwt = "^2.8.0"
-coverage = "^7.10.4"
+coverage = "^7.10.7"
 validators = "^0.35.0"
 mkdocs-material = "^9.6.17"
 pymdown-extensions = "^10.10.2"

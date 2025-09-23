@@ -1,4 +1,5 @@
 import json
+import os
 from copy import deepcopy
 from threading import Lock
 from typing import Any
@@ -73,7 +74,11 @@ class CacheSingletonRedis:
     """
     def __init__(self):
         # default connection to local redis server on port 6379
-        self._r = redis.Redis(host='localhost', port=6379, db=0)
+
+        #self._r = redis.Redis(host=os.getenv("OLDAP_REDIS_HOST", 'localhost'), port=os.getenv("OLDAP_REDIS_PORT", 6379), db=0)
+
+        redis_url = os.getenv("OLDAP_REDIS_URL", "redis://localhost:6379")
+        self._r = redis.from_url(redis_url)
 
     def get(self, key: Iri | Xsd_NCName | Xsd_QName, connection: IConnection | None = None) -> Any:
         value = self._r.get(str(key))
