@@ -1,7 +1,10 @@
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from pprint import pprint
 from time import sleep
+
+import jwt
 
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
@@ -70,6 +73,16 @@ class TestBasicConnection(unittest.TestCase):
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), "Wrong credentials")
 
+    def test_basic_connection_no_user(self):
+        con = Connection(context_name="DEFAULT")
+        self.assertIsInstance(con, Connection)
+        self.assertEqual(con.server, 'http://localhost:7200')
+        self.assertEqual(con.repo, 'oldap')
+        self.assertEqual(con.context_name, 'DEFAULT')
+        payload = jwt.decode(jwt=con.token, key=con.wtkey, algorithms="HS256")
+        self.assertEqual(payload['iss'], 'http://oldap.org')
+
+
     def test_basic_connection_unknown_user(self):
         with self.assertRaises(OldapErrorNotFound) as ex:
             con = Connection(userId="XXX",
@@ -98,6 +111,7 @@ class TestBasicConnection(unittest.TestCase):
                              context_name="DEFAULT")
         self.assertEqual(str(ex.exception), 'Wrong credentials')
 
+    #@unittest.skip('No longer used')
     def test_token(self):
         Connection.jwtkey = "This is a very special secret, yeah!"
         con = Connection(userId="rosenth",

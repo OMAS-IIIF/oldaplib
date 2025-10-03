@@ -32,29 +32,6 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 # SPARQL-console:
 #
 """
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-PREFIX oldap: <http://oldap.org/base#>
-PREFIX dcterms: <http://purl.org/dc/terms/>
-PREFIX schema: <http://schema.org/>
-
-INSERT DATA {
-	GRAPH oldap:admin {
-		<https://orcid.org/0000-0003-1681-4036> a oldap:User ;
-        	oldap:userId "rosenth"^^xsd:NCName ;
-		    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-		    dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-		    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-		    dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        	schema:familyName "Rosenthaler"^^xsd:string ;
-        	schema:givenName "Lukas"^^xsd:string ;
-        	oldap:credentials "$2b$12$N00UMBBJG9XfPV6R5NxulOTKi0qRBpypTFe82dKwSdTFrWZS7nat2"^^xsd:string ;
-        	oldap:isActive "true"^^xsd:boolean .
-            
-        <<<https://orcid.org/0000-0003-1681-4036> oldap:inProject oldap:SystemProject>> oldap:hasAdminPermission oldap:ADMIN_OLDAP .
-        <<<https://orcid.org/0000-0003-1681-4036> oldap:inProject oldap:SharedProject>> oldap:hasAdminPermission oldap:ADMIN_RESOURCES, oldap:ADMIN_MODEL, oldap:ADMIN_LISTS .
-	}
-}
-
 """
 #
 # Then, executing the __main__ of the file "connection.py" will initialize the triple store with all the data
@@ -116,7 +93,7 @@ class Connection(IConnection):
     _query_url: str
     _update_url: str
     _transaction_url: Optional[str]
-    jwtkey: str = "You have to change this!!! +D&RWG+"
+    __jwtkey: str = os.getenv("OLDAP_JWT_SECRET", "You have to change this!!! +D&RWG+")
     _switcher = {
         SparqlResultFormat.XML: lambda a: a.text,
         SparqlResultFormat.JSON: lambda a: a.json(),
@@ -170,7 +147,7 @@ class Connection(IConnection):
         context = Context(name=context_name)
         if token is not None:
             try:
-                payload = jwt.decode(jwt=token, key=Connection.jwtkey, algorithms="HS256")
+                payload = jwt.decode(jwt=token, key=Connection.__jwtkey, algorithms="HS256")
             except InvalidTokenError:
                 raise OldapError("Wrong credentials")
             self._userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
@@ -180,7 +157,7 @@ class Connection(IConnection):
             userId = Xsd_NCName("unknown", validate=False)
         if not isinstance(userId, Xsd_NCName):
             userId = Xsd_NCName(userId)
-        if userId is None or credentials is None:
+        if userId is None:
             raise OldapError("Wrong credentials")
         sparql = UserData.sparql_query(context=context, userId=userId)
         headers = {
@@ -190,6 +167,9 @@ class Connection(IConnection):
         data = {
             'query': sparql,
         }
+        #
+        # if we have protected the triplestore by a user/password, add it tothe request
+        #
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
         if res.status_code == 200:
@@ -215,7 +195,7 @@ class Connection(IConnection):
         }
         self._token = jwt.encode(
             payload=payload,
-            key=Connection.jwtkey,
+            key=Connection.__jwtkey,
             algorithm="HS256")
         #
         # Get projects and add to Context
@@ -249,6 +229,15 @@ class Connection(IConnection):
         res = QueryProcessor(context=context, query_result=jsonobj)
         for r in res:
             context[r['sname']] = r['ns']
+
+    @property
+    def jwtkey(self) -> str:
+        """Getter for the JWT token"""
+        return self.__jwtkey
+
+    @jwtkey.setter
+    def wtkey(self, value: str) -> None:
+        self.__jwtkey = value
 
     @property
     def server(self) -> str:

@@ -177,7 +177,6 @@
         schema:givenName "John"^^xsd:string ;
         schema:email "john.doe@nowhere.com"^^xsd:string ;
         :credentials "*"^^xsd:string ;
-        #:inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
         :hasPermissions :GenericRestricted ;
         :isActive true .
 
