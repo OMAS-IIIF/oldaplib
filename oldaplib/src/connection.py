@@ -14,6 +14,9 @@ from pathlib import Path
 
 from requests.auth import HTTPBasicAuth
 
+from oldaplib.src.oldaplogging import get_logger
+from oldaplib.src.version import __version__
+
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.userdataclass import UserData
@@ -144,11 +147,15 @@ class Connection(IConnection):
         self._query_url = f'{self._server}/repositories/{self._repo}'
         self._update_url = f'{self._server}/repositories/{self._repo}/statements'
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
+
+        logger = get_logger()
+
         context = Context(name=context_name)
         if token is not None:
             try:
                 payload = jwt.decode(jwt=token, key=Connection.__jwtkey, algorithms="HS256")
             except InvalidTokenError:
+                logger.error("Connection with invalid token")
                 raise OldapError("Wrong credentials")
             self._userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
             self._token = token
@@ -158,6 +165,7 @@ class Connection(IConnection):
         if not isinstance(userId, Xsd_NCName):
             userId = Xsd_NCName(userId)
         if userId is None:
+            logger.error("Connection with wrong credentials")
             raise OldapError("Wrong credentials")
         sparql = UserData.sparql_query(context=context, userId=userId)
         headers = {
@@ -168,22 +176,25 @@ class Connection(IConnection):
             'query': sparql,
         }
         #
-        # if we have protected the triplestore by a user/password, add it tothe request
+        # if we have protected the triplestore by a user/password, add it to the request
         #
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
         if res.status_code == 200:
             jsonobj = res.json()
         else:
+            logger.error(f"Could not connect to triplestore: {res.text}")
             raise OldapError(res.status_code, res.text)
         res = QueryProcessor(context=context, query_result=jsonobj)
 
         self._userdata = UserData.from_query(res)
         if not self._userdata.isActive:
+            logger.error("Connection with wrong credentials")
             raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
         if userId != "unknown":
             hashed = str(self._userdata.credentials).encode('utf-8')
             if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
+                logger.error("Connection with wrong credentials")
                 raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
 
         expiration = datetime.now().astimezone() + timedelta(days=1)
@@ -225,10 +236,16 @@ class Connection(IConnection):
         if res.status_code == 200:
             jsonobj = res.json()
         else:
+            logger.error(f"Could not connect to triplestore: {res.text}")
             raise OldapError(res.status_code, res.text)
         res = QueryProcessor(context=context, query_result=jsonobj)
         for r in res:
             context[r['sname']] = r['ns']
+        logger.info(f'Connection established. User "{str(self._userdata.userId)}".')
+
+    @staticmethod
+    def version(self) -> str:
+        return __version__
 
     @property
     def jwtkey(self) -> str:
@@ -236,7 +253,7 @@ class Connection(IConnection):
         return self.__jwtkey
 
     @jwtkey.setter
-    def wtkey(self, value: str) -> None:
+    def jwtkey(self, value: str) -> None:
         self.__jwtkey = value
 
     @property
@@ -267,7 +284,9 @@ class Connection(IConnection):
                                         permission to clear the graph.
         :raises OldapError: If the SPARQL update operation fails.
         """
+        logger = get_logger()
         if not self._userdata:
+            logger.error("Connection with no permission to clear graph.")
             raise OldapErrorNoPermission("No permission")
         actor = self._userdata
         sysperms = actor.inProject.get(Xsd_QName('oldap:SystemProject'))
@@ -289,7 +308,9 @@ class Connection(IConnection):
                             data=data,
                             auth=auth)
         if not req.ok:
+            logger.error(f'Clearing of graph "{graph_iri}" failed: {req.text}')
             raise OldapError(req.text)
+        logger.info(f'Graph "{graph_iri}" cleared.')
 
     def clear_repo(self) -> None:
         """
@@ -344,6 +365,7 @@ class Connection(IConnection):
         # if not is_root:
         #     raise OldapErrorNoPermission("No permission")
 
+        logger = get_logger()
         with open(filename, encoding="utf-8") as f:
             content = f.read()
             ext = Path(filename).suffix
@@ -390,7 +412,9 @@ class Connection(IConnection):
                                 data=jsondata,
                                 auth=auth)
         if not req.ok:
+            logger.error(f'Upload of file "{filename}" failed: {req.text}')
             raise OldapError(req.text)
+        logger.info(f'File "{filename}" uploaded.')
 
     def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
         """
@@ -404,7 +428,9 @@ class Connection(IConnection):
         :rtype: Any
         :raises OldapError: Raised if not logged in or if there is an issue with the query execution.
         """
+        logger = get_logger()
         if not self._userdata:
+            logger.error("Not a valid user session.")
             raise OldapError("No login")
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -421,6 +447,7 @@ class Connection(IConnection):
         if res.status_code == 200:
             return Connection._switcher[format](res)
         else:
+            logger.error(f"SPARQL query failed: {res.text}")
             raise OldapError(res.text)
 
     def update_query(self, query: str) -> Dict[str,str]:
@@ -436,7 +463,9 @@ class Connection(IConnection):
         :rtype: Dict[str, str
         :raises OldapError: If user authentication is missing or the SPARQL UPDATE execution fails.
         """
+        logger = get_logger()
         if not self._userdata:
+            logger.error("Not a valid user session.")
             raise OldapError("No login")
         headers = {
             "Accept": "*/*"
@@ -445,6 +474,7 @@ class Connection(IConnection):
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         res = requests.post(url, data={"update": query}, headers=headers, auth=auth)
         if not res.ok:
+            logger.error(f"SPARQL update query failed: {res.text}")
             raise OldapError(f'Update query failed. Reason: "{res.text}"')
 
     def transaction_start(self) -> None:

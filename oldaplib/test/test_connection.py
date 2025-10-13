@@ -79,7 +79,7 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(con.server, 'http://localhost:7200')
         self.assertEqual(con.repo, 'oldap')
         self.assertEqual(con.context_name, 'DEFAULT')
-        payload = jwt.decode(jwt=con.token, key=con.wtkey, algorithms="HS256")
+        payload = jwt.decode(jwt=con.token, key=con.jwtkey, algorithms="HS256")
         self.assertEqual(payload['iss'], 'http://oldap.org')
 
 
