@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oldaplib"
-version = "0.2.6"
+version = "0.2.7"
 description = "Open Media Access Server Library (Linked Open Data middleware/RESTApi)"
 authors = ["Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>"]
 license = "GNU Affero General Public License version 3"
