@@ -250,11 +250,7 @@ class Connection(IConnection):
     @property
     def jwtkey(self) -> str:
         """Getter for the JWT token"""
-        return self.__jwtkey
-
-    @jwtkey.setter
-    def jwtkey(self, value: str) -> None:
-        self.__jwtkey = value
+        return Connection.__jwtkey
 
     @property
     def server(self) -> str:

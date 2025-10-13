@@ -1,3 +1,5 @@
+import json
+import os
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,6 +13,7 @@ from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.dtypes.bnode import BNode
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -113,11 +116,15 @@ class TestBasicConnection(unittest.TestCase):
 
     #@unittest.skip('No longer used')
     def test_token(self):
-        Connection.jwtkey = "This is a very special secret, yeah!"
+        os.environ["OLDAP_JWT_SECRET"] = "This is a very special secret, yeah!"
         con = Connection(userId="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         token = con.token
+        tokendata = jwt.decode(jwt=token, key=con.jwtkey, algorithms="HS256")
+        userdata = json.loads(tokendata['userdata'], object_hook=serializer.decoder_hook)
+        self.assertEqual(userdata.userId, "rosenth")
+
         con = Connection(token=token,
                          context_name="DEFAULT")
         self.assertEqual(con.userid, Xsd_NCName("rosenth"))
