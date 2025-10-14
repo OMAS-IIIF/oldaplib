@@ -96,7 +96,7 @@ class Connection(IConnection):
     _query_url: str
     _update_url: str
     _transaction_url: Optional[str]
-    __jwtkey: str = os.getenv("OLDAP_JWT_SECRET", "You have to change this!!! +D&RWG+")
+    __jwtkey: str
     _switcher = {
         SparqlResultFormat.XML: lambda a: a.text,
         SparqlResultFormat.JSON: lambda a: a.json(),
@@ -140,6 +140,7 @@ class Connection(IConnection):
                             in specific scenarios.
         """
         super().__init__(context_name=context_name)
+        self.__jwtkey = os.getenv("OLDAP_JWT_SECRET", "You have to change this!!! +D&RWG+")
         self._server = server or os.getenv("OLDAP_TS_SERVER", "http://localhost:7200")
         self._repo = repo or os.getenv("OLDAP_TS_REPO", "oldap")
         self._dbuser = dbuser or os.getenv("OLDAP_TS_USER", "")
@@ -153,7 +154,7 @@ class Connection(IConnection):
         context = Context(name=context_name)
         if token is not None:
             try:
-                payload = jwt.decode(jwt=token, key=Connection.__jwtkey, algorithms="HS256")
+                payload = jwt.decode(jwt=token, key=self.__jwtkey, algorithms="HS256")
             except InvalidTokenError:
                 logger.error("Connection with invalid token")
                 raise OldapError("Wrong credentials")
@@ -206,7 +207,7 @@ class Connection(IConnection):
         }
         self._token = jwt.encode(
             payload=payload,
-            key=Connection.__jwtkey,
+            key=self.__jwtkey,
             algorithm="HS256")
         #
         # Get projects and add to Context
@@ -250,7 +251,7 @@ class Connection(IConnection):
     @property
     def jwtkey(self) -> str:
         """Getter for the JWT token"""
-        return Connection.__jwtkey
+        return self.__jwtkey
 
     @property
     def server(self) -> str:
