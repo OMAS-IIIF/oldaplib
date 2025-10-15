@@ -17,6 +17,20 @@
     :shapes dcterms:hasVersion "0.1.0"^^xsd:string .
 
     #
+    # Here we add some SHACL definition in order to indicate that a property is a "statement property"
+    # for RDF*star statements about statements.
+    #
+    :statementProperty a sh:Property ;
+        sh:annotationProperty :statementProperty .
+
+    :statementPropertyShape
+        a sh:PropertyShape ;
+        sh:path :statementProperty ;
+        sh:datatype xsd:boolean ;
+        sh:minCount 0 ;
+        sh:maxCount 1 .
+
+    #
     # Define a SHACL property group for all system properties. This info can be used to hide these properties from
     # a GUI. These properties should be handled by OLDAPLIB...
     #
@@ -45,6 +59,10 @@
             ] ;
         sh:property rdfs:labelShape ;
         sh:property rdfs:commentShape .
+
+    :hasAdminPermissionShape a sh:PropertyShape ;
+        sh:path :hasAdminPermission ;
+        sh:class :AdminPermission .
 
     :DataPermissionShape a sh:NodeShape, :DataPermission ;
         sh:targetClass :DataPermission ;
@@ -336,6 +354,7 @@
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:class :Project ;
+                :statementShape :inProjectStatementShape ;
             ] ;
         sh:property
             [
@@ -358,6 +377,13 @@
                 sh:class :PermissionSet ;
             ] ;
         sh:closed true .
+
+    :inProjectStatementShape a sh:NodeShape ;
+        sh:property
+            [
+                sh:path :hasAdminPermission ;
+                sh:class :AdminPermission ;
+            ] .
 
     #
     # Hierarchical lists are implemented using :List's and :ListNodes. We will use some skos vocabulary
@@ -695,11 +721,20 @@
         owl:versionInfo "0.1.0"^^xsd:string ;
         owl:imports <http://www.w3.org/2004/02/skos/core>, <http://purl.org/dc/terms/> .
 
+    ###############################################################################
+    # Extension (non-standard) for RDF*star
+    ###############################################################################
+    oldap:statementShape a owl:ObjectProperty ;
+        rdfs:label "statement shape for RDF-star annotation"@en ;
+        rdfs:comment "Links a sh:PropertyShape to a sh:NodeShape that constrains annotations on <<S P O>>."@en ;
+        rdfs:domain sh:PropertyShape ;
+        rdfs:range  sh:NodeShape .
 
     ###############################################################################
     # Standard Properties that are used everywhere
     ###############################################################################
-
+    :hasAdminPermission a owl:ObjectProperty ;
+        rdfs:range :AdminPermission .
 
     ###############################################################################
     # Properties that are used by skos,

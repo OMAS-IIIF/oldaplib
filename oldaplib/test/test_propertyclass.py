@@ -91,6 +91,20 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
 
+    def test_star_propertyclass_constructor(self):
+        p = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Iri('test:testpropstar'),
+                          statement_property=True,
+                          datatype=XsdDatatypes.string,
+                          name=LangString(["Test property@en", "Testprädikat@de"]),
+                          description={"A property for testing...@en", "Property für Tests@de"})
+        self.assertEqual(p.property_class_iri, Iri('test:testpropstar'))
+        self.assertTrue(p.statementProperty)
+        self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
+        self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
+        self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
+
     def test_propertyclass_inset_datatypes(self):
         p = PropertyClass(con=self._connection,
                           project=self._project,
@@ -266,7 +280,7 @@ class TestPropertyClass(unittest.TestCase):
                          RdfSet({Xsd_string("very good"), Xsd_string("good"), Xsd_string("fair"), Xsd_string("insufficient")}))
 
     # @unittest.skip('Work in progress')
-    def test_propertyclass_create(self):
+    def test_propertyclass_create_A(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
@@ -288,6 +302,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1[PropClassAttr.IN],
                          RdfSet(Iri("http://www.test.org/comment1"), Iri("http://www.test.org/comment2")))
 
+    def test_propertyclass_create_B(self):
         p2 = PropertyClass(
             con=self._connection,
             project=self._project,
@@ -309,6 +324,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropClassAttr.LANGUAGE_IN],
                          LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
+    def test_propertyclass_create_C(self):
         p3 = PropertyClass(
             con=self._connection,
             project=self._project,
@@ -323,7 +339,7 @@ class TestPropertyClass(unittest.TestCase):
                                 ignore_cache=True)
         self.assertEqual(p3.pattern, r"^[\w\.-]+@[a-zA-Z\d-]+(\.[a-zA-Z\d-]+)*\.[a-zA-Z]{2,}$")
 
-
+    def test_propertyclass_create_D(self):
         pX = PropertyClass(
             con=self._connection,
             #graph=Xsd_NCName('test'),
@@ -334,6 +350,22 @@ class TestPropertyClass(unittest.TestCase):
         with self.assertRaises(OldapErrorAlreadyExists) as ex:
             pX.create()
         self.assertEqual(str(ex.exception), 'Property "test:testWrite" already exists.')
+
+    def test_propertyclass_create_E(self):
+        p = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Iri('test:testWriteStar'),
+            statement_property=True,
+            datatype=XsdDatatypes.string,
+        )
+        p.create()
+        p = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Iri('test:testWriteStar'),
+                                ignore_cache=True)
+        self.assertTrue(p.statementProperty)
+        self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
 
     def test_propertyclass_create_nopermission(self):
         p1 = PropertyClass(

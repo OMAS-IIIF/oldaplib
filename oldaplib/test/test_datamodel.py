@@ -380,7 +380,8 @@ class TestDataModel(unittest.TestCase):
             Iri("dcterms:accessRights"),
             Iri("schema:givenName"),
             Iri("schema:familyName"),
-            Iri("schema:email")
+            Iri("schema:email"),
+            Iri("oldap:hasAdminPermission")
         })
         self.assertEqual(set(model.get_resclasses()), {
             Iri("oldap:Project"),
@@ -391,7 +392,8 @@ class TestDataModel(unittest.TestCase):
             Iri("oldap:DataPermission"),
             Iri("oldap:PermissionSet"),
             Iri("oldap:Thing"),
-            Iri("oldap:OldapChronolgyStatement")
+            Iri("oldap:OldapChronolgyStatement"),
+            Iri("oldap:inProjectStatement")
         })
 
     def test_datamodel_cache(self):

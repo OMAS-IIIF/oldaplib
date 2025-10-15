@@ -165,6 +165,7 @@ class PropertyClass(Model, Notify):
     _projectShortName: Xsd_NCName
     _projectIri: Iri
     _property_class_iri: Iri | None
+    _statementProperty: bool
     _internal: Iri | None
     _force_external: bool
     #_attributes: PropClassAttrContainer
@@ -194,6 +195,7 @@ class PropertyClass(Model, Notify):
                  property_class_iri: Iri | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
+                 statement_property: bool = False,
                  _internal: Iri | None = None,  # DO NOT USE!! Only for serialization!
                  _force_external: bool | None = None,  # DO NOT USE!! Only for serialization!
                  _from_triplestore: bool = False,
@@ -234,6 +236,7 @@ class PropertyClass(Model, Notify):
                        validate=validate)
         Notify.__init__(self, notifier, notify_data)
 
+        self._statementProperty = statement_property
         if not isinstance(project, Project):
             if not isinstance(project, (Iri, Xsd_NCName)):
                 project = IriOrNCName(project, validate=validate)
@@ -290,12 +293,15 @@ class PropertyClass(Model, Notify):
             raise OldapErrorInconsistency(f'It\'s not possible to use both DATATYPE="{self._attributes[PropClassAttr.DATATYPE]}" and CLASS={self._attributes[PropClassAttr.CLASS]} restrictions.')
 
         # setting property type for OWL which distinguished between Data- and Object-properties
-        if self._attributes.get(PropClassAttr.CLASS) is not None:
-            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
-            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
-                raise OldapError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
+        if self._statementProperty:
+            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.StatementProperty
         else:
-            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
+            if self._attributes.get(PropClassAttr.CLASS) is not None:
+                self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
+                if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+                    raise OldapError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
+            else:
+                self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
 
         #
         # set the class properties
@@ -468,6 +474,7 @@ class PropertyClass(Model, Notify):
                         notifier=self._notifier,
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
+        instance._statementProperty = deepcopy(self._statementProperty, memo)
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
         # Copy remaining PropertyClass attributes
@@ -527,6 +534,15 @@ class PropertyClass(Model, Notify):
         :rtype: Iri | None
         """
         return self._internal
+
+    @property
+    def statementProperty(self) -> bool:
+        """
+        Return the statementProperty
+        :return: statementProperty
+        :rtype: bool
+        """
+        return self._statementProperty
 
     def force_external(self) -> None:
         """
@@ -737,6 +753,11 @@ class PropertyClass(Model, Notify):
                     self._modified = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "dcterms:modified"')
+            elif key == 'oldap:statementProperty':
+                if isinstance(val, Xsd_boolean):
+                    self._statementProperty = val
+                else:
+                    raise OldapError(f'Inconsistency in SHACL "oldap:statementProperty (type={type(val)}"')
             elif key == 'sh:node':
                 if str(val).endswith("Shape"):
                     refprop = Iri(str(val)[:-5], validate=False)
@@ -806,6 +827,8 @@ class PropertyClass(Model, Notify):
                         self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
                     elif obj == 'owl:ObjectProperty':
                         self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
+                    elif obj == 'rdf:Property':
+                        self._attributes[PropClassAttr.TYPE] = OwlPropertyType.StatementProperty
                 case 'owl:subPropertyOf':
                     self._attributes[PropClassAttr.SUBPROPERTY_OF] = obj
                 case 'rdfs:range':
@@ -832,6 +855,12 @@ class PropertyClass(Model, Notify):
         #
         # Consistency checks
         #
+        if self._statementProperty:
+            if self._attributes.get(PropClassAttr.TYPE) != OwlPropertyType.StatementProperty:
+                raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" is a statementProperty, but not an StatementProperty.')
+        else:
+            if self._attributes.get(PropClassAttr.TYPE) == OwlPropertyType.StatementProperty:
+                raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" is not a statementProperty, but an StatementProperty.')
         if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlDataProperty:
             if not datatype:
                 raise OldapError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
@@ -951,6 +980,8 @@ class PropertyClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        if self._statementProperty:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty true'
         for prop, value in self._attributes.items():
             if prop == PropClassAttr.TYPE:
                 continue
@@ -1114,7 +1145,6 @@ class PropertyClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError as err:
-            print(sparql)
             self._con.transaction_abort()
             raise
         try:
