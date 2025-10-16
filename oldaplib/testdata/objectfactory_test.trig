@@ -27,7 +27,7 @@ oldap:admin {
 }
 
 test:shacl {
-    test:shapes dcterms:hasVersion "0.1.0"^^xsd:string .
+    test:shapes schema:version "0.1.0"^^xsd:string .
 
     test:PersonShape a sh:NodeShape, test:Person ;
         sh:targetClass test:Person ;
@@ -56,7 +56,7 @@ test:shacl {
 
         test:PageShape a sh:NodeShape, test:Page ;
             sh:targetClass test:Page ;
-            dcterms:hasVersion "0.1.0"^^xsd:string ;
+            schema:version "0.1.0"^^xsd:string ;
             dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -73,7 +73,7 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:pageDesignation ;
-                    dcterms:hasVersion "0.1.0"^^xsd:string ;
+                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -87,7 +87,7 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:pageNum ;
-                    dcterms:hasVersion "0.1.0"^^xsd:string ;
+                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -103,7 +103,7 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:pageDescription ;
-                    dcterms:hasVersion "0.1.0"^^xsd:string ;
+                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -117,7 +117,7 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:pageContent ;
-                    dcterms:hasVersion "0.1.0"^^xsd:string ;
+                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -130,7 +130,7 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:pageInBook ;
-                    dcterms:hasVersion "0.1.0"^^xsd:string ;
+                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -143,7 +143,7 @@ test:shacl {
 
         test:BookShape a sh:NodeShape, test:Book ;
             sh:targetClass test:Book ;
-            dcterms:hasVersion "0.1.0"^^xsd:string ;
+            schema:version "0.1.0"^^xsd:string ;
             dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -159,7 +159,7 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:title ;
-                    dcterms:hasVersion "0.1.0"^^xsd:string ;
+                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -173,7 +173,7 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:author ;
-                    dcterms:hasVersion "0.1.0"^^xsd:string ;
+                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -185,7 +185,7 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:pubDate ;
-                    dcterms:hasVersion "0.1.0"^^xsd:string ;
+                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -198,7 +198,7 @@ test:shacl {
 
         test:SetterTesterShape a sh:NodeShape, test:SetterTester ;
             sh:targetClass test:SetterTester ;
-            dcterms:hasVersion "0.1.0"^^xsd:string ;
+            schema:version "0.1.0"^^xsd:string ;
             dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -214,7 +214,7 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:stringSetter ;
-                    dcterms:hasVersion "0.1.0"^^xsd:string ;
+                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -276,7 +276,7 @@ test:shacl {
 #
         test:AllTypesShape a sh:NodeShape, test:AllTypes ;
             sh:targetClass test:AllTypes ;
-            dcterms:hasVersion "0.1.0"^^xsd:string ;
+            schema:version "0.1.0"^^xsd:string ;
             dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -836,7 +836,7 @@ test:onto {
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
 
     test:Page rdf:type owl:Class ;
-        dcterms:hasVersion "0.1.0"^^xsd:string ;
+        schema:version "0.1.0"^^xsd:string ;
         dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -897,7 +897,7 @@ test:onto {
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
 
     test:Book rdf:type owl:Class ;
-        dcterms:hasVersion "0.1.0"^^xsd:string ;
+        schema:version "0.1.0"^^xsd:string ;
         dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -965,7 +965,7 @@ test:onto {
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
 
     test:SetterTester rdf:type owl:Class ;
-        dcterms:hasVersion "0.1.0"^^xsd:string ;
+        schema:version "0.1.0"^^xsd:string ;
         dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -1329,7 +1329,7 @@ test:onto {
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
 
     test:AllTypes rdf:type owl:Class ;
-        dcterms:hasVersion "0.1.0"^^xsd:string ;
+        schema:version "0.1.0"^^xsd:string ;
         dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;

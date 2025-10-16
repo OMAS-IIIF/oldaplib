@@ -177,7 +177,7 @@ class TestBasicConnection(unittest.TestCase):
             Iri("sh:property"): Xsd_QName("test:testShape"),
             Iri("sh:closed"): Xsd_boolean(True),
             Iri("sh:targetClass"): Xsd_QName("test:testMyRes"),
-            Iri("dcterms:hasVersion"): '1.0.0',
+            Iri("schema:version"): '1.0.0',
             Iri("dcterms:creator"): Iri("https://orcid.org/0000-0003-1681-4036"),
             Iri("dcterms:created"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)),
             Iri("dcterms:contributor"):  Iri("https://orcid.org/0000-0003-1681-4036"),

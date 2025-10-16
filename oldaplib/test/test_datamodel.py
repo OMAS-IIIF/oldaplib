@@ -48,6 +48,7 @@ class TestDataModel(unittest.TestCase):
     _project: Project
     _dmproject: Project
     _sysproject: Project
+    _sharedproject: Project
 
     @classmethod
     def setUp(cls):
@@ -114,6 +115,7 @@ class TestDataModel(unittest.TestCase):
         cls._dmprojectH = Project.read(cls._connection, "dmtestH", ignore_cache=True)
         cls._dmprojectI = Project.read(cls._connection, "dmtestI", ignore_cache=True)
         cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
+        cls._sharedproject = Project.read(cls._connection, "shared", ignore_cache=True)
 
 
     def tearDown(self):
@@ -381,7 +383,8 @@ class TestDataModel(unittest.TestCase):
             Iri("schema:givenName"),
             Iri("schema:familyName"),
             Iri("schema:email"),
-            Iri("oldap:hasAdminPermission")
+            Iri("oldap:hasAdminPermission"),
+            Iri("oldap:statementProperty")
         })
         self.assertEqual(set(model.get_resclasses()), {
             Iri("oldap:Project"),
@@ -395,6 +398,9 @@ class TestDataModel(unittest.TestCase):
             Iri("oldap:OldapChronolgyStatement"),
             Iri("oldap:inProjectStatement")
         })
+
+    def test_datamodel_read_shared(self):
+        model = DataModel.read(self._connection, self._sharedproject, ignore_cache=True)
 
     def test_datamodel_cache(self):
         start = time()

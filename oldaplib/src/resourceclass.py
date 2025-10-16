@@ -719,7 +719,7 @@ class ResourceClass(Model, Notify):
         for key, val in attributes.items():
             if key == 'sh:targetClass':
                 continue
-            if key == 'dcterms:hasVersion':
+            if key == 'schema:version':
                 self.__version = SemanticVersion.fromString(val[0])
             elif key == 'dcterms:creator':
                 self._creator = val[0]
@@ -1095,7 +1095,7 @@ class ResourceClass(Model, Notify):
         sparql = ''
         sparql += f'{blank:{(indent + 1)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:targetClass {self._owlclass_iri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:hasVersion {self.__version.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}schema:version {self.__version.toRdf}'
         self._created = timestamp
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:creator {self._creator.toRdf}'
@@ -1158,7 +1158,7 @@ class ResourceClass(Model, Notify):
                 sparql += hp.prop.create_owl_part1(timestamp, indent + 2) + '\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owlclass_iri} rdf:type owl:Class ;\n'
-        sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:hasVersion {self.__version.toRdf} ;\n'
+        sparql += f'{blank:{(indent + 3) * indent_inc}}schema:version {self.__version.toRdf} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._creator.toRdf} ;\n'
         sparql += f'{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf} ;\n'

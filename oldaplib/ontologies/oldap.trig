@@ -14,7 +14,7 @@
 
 :shacl {
 
-    :shapes dcterms:hasVersion "0.1.0"^^xsd:string .
+    :shapes schema:version "0.1.0"^^xsd:string .
 
     #
     # Here we add some SHACL definition in order to indicate that a property is a "statement property"
@@ -46,7 +46,7 @@
     #
     :AdminPermissionShape a sh:NodeShape, :AdminPermission ;
         sh:targetClass :AdminPermission ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -66,7 +66,7 @@
 
     :DataPermissionShape a sh:NodeShape, :DataPermission ;
         sh:targetClass :DataPermission ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -98,7 +98,7 @@
     #
     :PermissionSetShape a sh:NodeShape, :PermissionSet ;
         sh:targetClass :PermissionSet ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -132,7 +132,7 @@
         sh:property
             [
                 sh:path :givesPermission ;
-                dcterms:hasVersion "1.0.0"^^xsd:string ;
+                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -153,7 +153,7 @@
         sh:property
             [
                 sh:path :definedByProject ;
-                dcterms:hasVersion "1.0.0"^^xsd:string ;
+                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -176,7 +176,7 @@
     #
     :ProjectShape a sh:NodeShape, :Project ;
         sh:targetClass :Project ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -213,7 +213,7 @@
         sh:property
             [
                 sh:path :projectShortName ;
-                dcterms:hasVersion "1.0.0"^^xsd:string ;
+                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -228,7 +228,7 @@
         sh:property
             [
                 sh:path :namespaceIri ;
-                dcterms:hasVersion "1.0.0"^^xsd:string ;
+                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -243,7 +243,7 @@
         sh:property
             [
                 sh:path :projectStart ;
-                dcterms:hasVersion "1.0.0"^^xsd:string ;
+                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -258,7 +258,7 @@
         sh:property
             [
                 sh:path :projectEnd ;
-                dcterms:hasVersion "1.0.0"^^xsd:string ;
+                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -276,7 +276,7 @@
     #
     :UserShape a sh:NodeShape, :User ;
         sh:targetClass :User ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -724,11 +724,17 @@
     ###############################################################################
     # Extension (non-standard) for RDF*star
     ###############################################################################
-    oldap:statementShape a owl:ObjectProperty ;
+    :statementShape a owl:ObjectProperty ;
         rdfs:label "statement shape for RDF-star annotation"@en ;
         rdfs:comment "Links a sh:PropertyShape to a sh:NodeShape that constrains annotations on <<S P O>>."@en ;
         rdfs:domain sh:PropertyShape ;
         rdfs:range  sh:NodeShape .
+
+    :statementProperty a owl:DatatypeProperty ;
+        rdfs:domain sh:PropertyShape ;
+        rdfs:range xsd:boolean ;
+        rdfs:label "Statement property flag"@en ;
+        rdfs:comment "Indicates whether the SHACL property is used as a statement-level (RDF-star) annotation property."@en .
 
     ###############################################################################
     # Standard Properties that are used everywhere

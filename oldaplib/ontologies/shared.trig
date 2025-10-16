@@ -15,14 +15,14 @@
 @prefix : <http://oldap.org/shared#> .
 
 shared:shacl {
-    shared:shapes dcterms:hasVersion "0.1.0"^^xsd:string .
+    shared:shapes schema:version "0.1.0"^^xsd:string .
 
     #
     # Define the SHACL for OLAPDLIB's use of rdfs:label
     #
     rdfs:labelShape a sh:PropertyShape ;
         sh:path rdfs:label ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -38,7 +38,7 @@ shared:shacl {
     #
     rdfs:commentShape a sh:PropertyShape ;
         sh:path rdfs:comment ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -55,7 +55,7 @@ shared:shacl {
 
     dcterms:descriptionShape a sh:PropertyShape ;
         sh:path dcterms:description ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -69,7 +69,7 @@ shared:shacl {
 
     dcterms:rightsShape a sh:PropertyShape ;
         sh:path dcterms:rights ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -83,7 +83,7 @@ shared:shacl {
 
     dcterms:abstractShape a sh:PropertyShape ;
         sh:path dcterms:abstract ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -99,7 +99,7 @@ shared:shacl {
 
     dcterms:accessRightsShape a sh:PropertyShape ;
         sh:path dcterms:accessRights ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -119,7 +119,7 @@ shared:shacl {
     #
     dcterms:creatorShape a sh:PropertyShape ;
         sh:path dcterms:creator ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -131,7 +131,7 @@ shared:shacl {
     #
     dcterms:createdShape a sh:PropertyShape ;
         sh:path dcterms:created ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -143,7 +143,7 @@ shared:shacl {
     #
     dcterms:contributorShape a sh:PropertyShape ;
         sh:path dcterms:contributor ;
-        dcterms:hasVersion "1.0.0"^^xsd:string ;
+        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;

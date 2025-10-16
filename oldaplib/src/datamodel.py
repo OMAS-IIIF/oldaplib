@@ -372,7 +372,7 @@ class DataModel(Model):
         SELECT ?version
         FROM {cls.__graph}:shacl
         WHERE {{
-            {cls.__graph}:shapes dcterms:hasVersion ?version .
+            {cls.__graph}:shapes schema:version ?version .
         }}
         """
         jsonobj = con.query(query)
@@ -490,7 +490,7 @@ class DataModel(Model):
 
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:hasVersion {self.__version.toRdf} .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n'
         sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
@@ -644,7 +644,7 @@ class DataModel(Model):
             f.write('\n')
             f.write(context.turtle_context)
             f.write(f'\n{blank:{indent * indent_inc}}{self.__graph}:shacl {{\n')
-            f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes dcterms:hasVersion {self.__version.toRdf} .\n')
+            f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n')
             f.write('\n')
             for iri, prop in self.__propclasses.items():
                 if not prop.internal:

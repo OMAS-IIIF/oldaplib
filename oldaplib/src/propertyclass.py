@@ -728,11 +728,11 @@ class PropertyClass(Model, Notify):
                     self._property_class_iri = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}"')
-            elif key == 'dcterms:hasVersion':
+            elif key == 'schema:version':
                 if isinstance(val, Xsd_string):
                     self.__version = SemanticVersion.fromString(str(val))
                 else:
-                    raise OldapError(f'Inconsistency in SHACL "dcterms:hasVersion"')
+                    raise OldapError(f'Inconsistency in SHACL "schema:version"')
             elif key == 'dcterms:creator':
                 if isinstance(val, Iri):
                     self._creator = val
@@ -975,7 +975,7 @@ class PropertyClass(Model, Notify):
             sparql += f'\n{blank:{(indent + 1) * indent_inc}} {bnode} sh:path {self._property_class_iri.toRdf}'
         else:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:hasVersion {self.__version.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}schema:version {self.__version.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
