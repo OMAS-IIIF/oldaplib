@@ -95,8 +95,8 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtestH:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtestI:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtestI:onto'))
-        #cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
-        #cls._connection.clear_graph(Xsd_QName('hyha:onto'))
+        cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
+        cls._connection.clear_graph(Xsd_QName('hyha:onto'))
 
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
@@ -906,7 +906,6 @@ class TestDataModel(unittest.TestCase):
                                   lessThan="hyha:testProp",
                                   lessThanOrEquals="hyha:testProp")
 
-
         Sheep = ResourceClass(con=self._connection,
                               project=proj,
                               owlclass_iri=Iri("hyha:Sheep"),
@@ -923,6 +922,14 @@ class TestDataModel(unittest.TestCase):
 
         del dm[Iri('hyha:Sheep')][Iri('hyha:testProp2')]
         dm.update()
+
+        dm = DataModel.read(self._connection, proj, ignore_cache=True)
+        self.assertIsNone(dm[Iri('hyha:Sheep')][Iri('hyha:testProp2')])
+
+        dm = DataModel(con=self._connection,
+                       project=proj)
+        with self.assertRaises(OldapErrorAlreadyExists):
+            dm.create()
 
     def test_incremental_and_del(self):
         dm = DataModel(con=self._connection,

@@ -1536,6 +1536,8 @@ class TestOldapListNode(unittest.TestCase):
         self.assertEqual(Xsd_integer(5), olBA.rightIndex)
 
     def test_delete_in_use(self):
+        dm = DataModel(con=self._connection, project=self._dmproject)
+        dm.create()
         #
         # load hierarchical list from YAML
         #
@@ -1546,8 +1548,6 @@ class TestOldapListNode(unittest.TestCase):
         testnode = get_node_by_id(oldaplists[0].nodes, Xsd_NCName("node_A"))
 
         node_classIri = oldaplists[0].node_classIri
-        dm = DataModel(con=self._connection,project=self._dmproject)
-        dm.create()
         dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
         dm_name = self._dmproject.projectShortName
 
@@ -3021,12 +3021,13 @@ class TestOldapListNode(unittest.TestCase):
                                                      order=1),
                                          HasProperty(con=self._connection, project=project, prop=category, minCount=Xsd_integer(1),
                                                      order=2)])
-        dm = DataModel(con=self._connection,
-                       project=project,
-                       resclasses=[categoryitem])
-        dm.create()
+        #dm = DataModel(con=self._connection, project=project, resclasses=[categoryitem])
+        #dm.create()
 
         dm = DataModel.read(con=self._connection, project=project)
+        dm[Iri(f'{dm_name}:CategoryItem')] = categoryitem
+        dm.update()
+
         factory = ResourceInstanceFactory(con=self._connection, project=project)
         CategoryItem = factory.createObjectInstance("CategoryItem")
 

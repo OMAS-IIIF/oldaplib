@@ -168,3 +168,7 @@ cython_debug/
 /propclass_test.trig
 /oldaplib/test/propclass_test.trig
 /oldaplib/test/gaga.trig
+/oldaplib/ontologies/standard/dcterms.ttl
+/oldaplib/ontologies/standard/schemaorg.ttl
+/oldaplib/ontologies/standard/skos.ttl
+/oldaplib/ontologies/standard/skos.xml

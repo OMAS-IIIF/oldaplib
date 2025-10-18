@@ -83,6 +83,7 @@ class ResourceClass(Model, Notify):
     _project: Project
     _sysproject: Project = None
     _sharedproject: Project = None
+    _externalOntology: Xsd_boolean
     _owlclass_iri: Iri | None
     _attributes: ResourceClassAttributesContainer
     _properties: dict[Iri, HasProperty]
@@ -224,6 +225,7 @@ class ResourceClass(Model, Notify):
                  project: Project | Iri | Xsd_NCName | str,
                  owlclass_iri: Iri | str | None = None,
                  hasproperties: List[HasProperty] | None = None,
+                 external_ontology: bool | Xsd_boolean = False,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
                  creator: Iri | None = None,  # DO NO USE! Only for jsonify!!
@@ -275,6 +277,7 @@ class ResourceClass(Model, Notify):
                        validate=validate)
         #Notify.__init__(self, notifier, notify_data)
 
+        self._externalOntology = external_ontology if isinstance(external_ontology, Xsd_boolean) else Xsd_boolean(external_ontology)
         if isinstance(project, Project):
             self._project = project
         else:
@@ -510,6 +513,7 @@ class ResourceClass(Model, Notify):
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changeset = deepcopy(self._changeset, memo)
+        instance._externalOntology = deepcopy(self._externalOntology, memo)
 
         instance._graph = deepcopy(self._graph, memo)
         instance._project = deepcopy(self._project, memo)
@@ -598,6 +602,10 @@ class ResourceClass(Model, Notify):
     @property
     def version(self) -> SemanticVersion:
         return self.__version
+
+    @property
+    def externalOntology(self) -> Xsd_boolean:
+        return self._externalOntology
 
     @property
     def properties(self) -> dict[Iri, HasProperty]:
@@ -729,6 +737,8 @@ class ResourceClass(Model, Notify):
                 self._contributor = val[0]
             elif key == 'dcterms:modified':
                 self._modified = val[0]
+            elif key == 'oldap:externalOntology':
+                self._externalOntology = Xsd_boolean(val[0])
             elif key == 'sh:node':
                 #
                 # we expect sh:node only if the superclass is also defined as SHACL and we can read it's
@@ -737,17 +747,18 @@ class ResourceClass(Model, Notify):
                 #
                 if self._attributes.get(ResClassAttribute.SUPERCLASS) is None:
                     self._attributes[ResClassAttribute.SUPERCLASS] = ObservableDict(on_change=self.__sc_changed)
-                if str(val[0]).endswith("Shape"):
-                    owliri = Iri(str(val[0])[:-5], validate=False)
-                    if owliri.prefix == 'oldap':
-                        conf = GlobalConfig(self._con)
-                        sysproj = conf.sysproject
-                        superclass = ResourceClass.read(self._con, sysproj, owliri)
+                for v in val:
+                    if str(v).endswith("Shape"):
+                        owliri = Iri(str(v)[:-5], validate=False)
+                        if owliri.prefix == 'oldap':
+                            conf = GlobalConfig(self._con)
+                            sysproj = conf.sysproject
+                            superclass = ResourceClass.read(self._con, sysproj, owliri)
+                        else:
+                            superclass = ResourceClass.read(self._con, self._project, owliri)
+                        self._attributes[ResClassAttribute.SUPERCLASS][owliri] = superclass
                     else:
-                        superclass = ResourceClass.read(self._con, self._project, owliri)
-                    self._attributes[ResClassAttribute.SUPERCLASS][owliri] = superclass
-                else:
-                    raise OldapErrorInconsistency(f'Value "{val[0]}" must end with "Shape".')
+                        raise OldapErrorInconsistency(f'Value "{val[0]}" must end with "Shape".')
             else:
                 attr = ResClassAttribute.from_value(key.as_qname)
                 if attr.datatype == LangString:
@@ -912,7 +923,9 @@ class ResourceClass(Model, Notify):
                                                 group=haspropdata.group))  # TODO: Callback ????
         return proplist
 
-    def __read_owl(self):
+    def __read_owl(self) -> None:
+        if self._externalOntology:
+            return
         context = Context(name=self._con.context_name)
         query1 = context.sparql_context
         query1 += f"""
@@ -1044,7 +1057,8 @@ class ResourceClass(Model, Notify):
         #             raise OldapError(f'Invalid datatype: {type(hasprop.prop).__name}')
         attributes = ResourceClass.__query_shacl(con, project=project, owl_class_iri=owl_class_iri)
         resclass._parse_shacl(attributes=attributes)
-        resclass.__read_owl()
+        if not resclass.externalOntology:
+            resclass.__read_owl()
 
         resclass.changeset_clear()
 
@@ -1102,6 +1116,7 @@ class ResourceClass(Model, Notify):
         self._modified = timestamp
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:contributor {self._contributor.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}oldap:externalOntology {self._externalOntology.toRdf}'
         for attr, value in self._attributes.items():
             if attr == ResClassAttribute.SUPERCLASS:
                 #
@@ -1148,7 +1163,9 @@ class ResourceClass(Model, Notify):
         sparql += ' .\n'
         return sparql
 
-    def create_owl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4):
+    def create_owl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
+        if self._externalOntology:
+            return ''
         blank = ''
         sparql = ''
         for iri, hp in self._properties.items():
@@ -1191,7 +1208,7 @@ class ResourceClass(Model, Notify):
         sparql += ' .\n'
         return sparql
 
-    def set_creation_metadata(self, timestamp: Xsd_dateTime):
+    def set_creation_metadata(self, timestamp: Xsd_dateTime) -> None:
         self._created = timestamp
         self._creator = self._con.userIri
         self._modified = timestamp
@@ -1235,9 +1252,10 @@ class ResourceClass(Model, Notify):
         sparql += self.create_shacl(timestamp=timestamp)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
-        sparql += self.create_owl(timestamp=timestamp)
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        if not self._externalOntology:
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
+            sparql += self.create_owl(timestamp=timestamp)
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         self._con.transaction_start()
@@ -1250,14 +1268,22 @@ class ResourceClass(Model, Notify):
             lprint(sparql)
             self._con.transaction_abort()
             raise
-        modtime_shacl = self.read_modtime_shacl(context=context, graph=self._graph)
-        modtime_owl = self.read_modtime_owl(context=context, graph=self._graph)
-        if modtime_shacl == timestamp and modtime_owl == timestamp:
-            self._con.transaction_commit()
-            self.set_creation_metadata(timestamp=timestamp)
+
+        if not self._externalOntology:
+            try:
+                modtime_shacl = self.read_modtime_shacl(context=context, graph=self._graph)
+                modtime_owl = self.read_modtime_owl(context=context, graph=self._graph)
+            except:
+                self._con.transaction_abort()
+                raise
+            if modtime_shacl == timestamp and modtime_owl == timestamp:
+                self._con.transaction_commit()
+                self.set_creation_metadata(timestamp=timestamp)
+            else:
+                self._con.transaction_abort()
+                raise OldapErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
         else:
-            self._con.transaction_abort()
-            raise OldapErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
+            self._con.transaction_commit()
         self.changeset_clear()
         cache = CacheSingletonRedis()
         cache.set(self._owlclass_iri, self)
@@ -1289,9 +1315,10 @@ class ResourceClass(Model, Notify):
             f.write(self.create_shacl(timestamp=timestamp))
             f.write(f'\n{blank:{indent * indent_inc}}}}\n')
 
-            f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
-            f.write(self.create_owl(timestamp=timestamp))
-            f.write(f'{blank:{indent * indent_inc}}}}\n')
+            if not self._externalOntology:
+                f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
+                f.write(self.create_owl(timestamp=timestamp))
+                f.write(f'{blank:{indent * indent_inc}}}}\n')
 
     def __add_new_property_ref_shacl(self, *,
                                      iri: Iri,
@@ -1786,8 +1813,9 @@ class ResourceClass(Model, Notify):
         sparql1 = context.sparql_context
         sparql1 += self.__update_shacl(timestamp=timestamp)
 
-        sparql2 = context.sparql_context
-        sparql2 += self.__update_owl(timestamp=timestamp)
+        if not self._externalOntology:
+            sparql2 = context.sparql_context
+            sparql2 += self.__update_owl(timestamp=timestamp)
 
         self._con.transaction_start()
 
@@ -1799,18 +1827,26 @@ class ResourceClass(Model, Notify):
                 raise OldapErrorInUse(f'Cannot update: resource "{self._owlclass_iri}" is in use')
 
         self.safe_update(sparql1)
-        self.safe_update(sparql2)
+        if not self._externalOntology:
+            self.safe_update(sparql2)
 
-        modtime_shacl = self.read_modtime_shacl(context=context, graph=self._graph)
-        modtime_owl = self.read_modtime_owl(context=context, graph=self._graph)
-        if modtime_shacl == timestamp and modtime_owl == timestamp:
-            self._con.transaction_commit()
-            self.changeset_clear()
-            self._modified = timestamp
-            self._contributor = self._con.userIri
+        if not self._externalOntology:
+            try:
+                modtime_shacl = self.read_modtime_shacl(context=context, graph=self._graph)
+                modtime_owl = self.read_modtime_owl(context=context, graph=self._graph)
+            except:
+                self._con.transaction_abort()
+                raise
+            if modtime_shacl == timestamp and modtime_owl == timestamp:
+                self._con.transaction_commit()
+            else:
+                self._con.transaction_abort()
+                raise OldapErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
         else:
-            self._con.transaction_abort()
-            raise OldapErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
+            self._con.transaction_commit()
+        self.changeset_clear()
+        self._modified = timestamp
+        self._contributor = self._con.userIri
         self._test_in_use = False
         cache = CacheSingletonRedis()
         cache.set(self._owlclass_iri, self)
@@ -1893,26 +1929,29 @@ class ResourceClass(Model, Notify):
         sparql0 = self.in_use
         sparql = context.sparql_context
         sparql += self.__delete_shacl()
-        sparql += ' ;\n'
-        sparql += self.__delete_owl()
+        if not self._externalOntology:
+            sparql += ' ;\n'
+            sparql += self.__delete_owl()
 
         self._con.transaction_start()
         result = self.safe_query(sparql0)
         if result['boolean']:
             self._con.transaction_abort()
             raise OldapErrorInUse(f'Cannot delete: resource class {self._owlclass_iri} is in use!')
-
         self.safe_update(sparql)
+
         sparql = context.sparql_context
         sparql += f"SELECT * FROM {self._graph}:shacl WHERE {{ {self._owlclass_iri}Shape ?p ?v }}"
-
         jsonobj = self.safe_query(sparql)
-
         res_shacl = QueryProcessor(context, jsonobj)
-        sparql = context.sparql_context
-        sparql += f"SELECT * FROM {self._graph}:onto WHERE {{ {self._owlclass_iri.toRdf} ?p ?v }}"
-        jsonobj = self.safe_query(sparql)
-        res_onto = QueryProcessor(context, jsonobj)
+
+        if not self._externalOntology:
+            sparql = context.sparql_context
+            sparql += f"SELECT * FROM {self._graph}:onto WHERE {{ {self._owlclass_iri.toRdf} ?p ?v }}"
+            jsonobj = self.safe_query(sparql)
+            res_onto = QueryProcessor(context, jsonobj)
+        else:
+            res_onto = []
         if len(res_shacl) > 0 or len(res_onto) > 0:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Could not delete "{self._owlclass_iri}".')

@@ -31,7 +31,8 @@ shared:shacl {
         sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true ;
         sh:name "Label"@en,  "Label"@de, "Label"@fr, "Label"@it ;
-        sh:description "A human readable name for something."@en .
+        sh:description "A human readable name for something."@en ;
+        oldap:externalOntology true .
 
     #
     # Define SHACl for OLDAPLIB's use rdf:description
@@ -47,7 +48,8 @@ shared:shacl {
         sh:languageIn ( "en" "de" "fr" "it" ) ;
         sh:uniqueLang true ;
         sh:name "Description"@en ;
-        sh:description "A description for something."@en .
+        sh:description "A description for something."@en ;
+        oldap:externalOntology true .
 
     #--------------------------------------------------------------------------
     # dcterms properties
@@ -65,7 +67,8 @@ shared:shacl {
                            "Die Beschreibung kann eine Zusammenfassung, ein Inhaltsverzeichnis, eine grafische Darstellung oder eine Freitextbeschreibung der Ressource umfassen, ist aber nicht darauf beschränkt."@de,
                            "La description peut inclure, sans s'y limiter, un résumé, une table des matières, une représentation graphique ou un compte rendu en texte libre de la ressource."@fr,
                            "La descrizione può includere, a titolo esemplificativo ma non esaustivo: un abstract, un indice, una rappresentazione grafica o un resoconto a testo libero della risorsa."@it ;
-        sh:datatype rdf:langString .
+        sh:datatype rdf:langString ;
+        oldap:externalOntology true .
 
     dcterms:rightsShape a sh:PropertyShape ;
         sh:path dcterms:rights ;
@@ -79,7 +82,8 @@ shared:shacl {
                        "In der Regel enthalten die Informationen zu den Rechten eine Erklärung zu den verschiedenen mit der Ressource verbundenen Eigentumsrechten, einschließlich der Rechte an geistigem Eigentum. Es wird empfohlen, mit einem URI auf eine Rechteerklärung zu verweisen. Ist dies nicht möglich oder praktikabel, kann ein literarischer Wert (Name, Bezeichnung oder Kurztext) angegeben werden."@de,
                        "En général, les informations sur les droits comprennent une déclaration sur les divers droits de propriété associés à la ressource, y compris les droits de propriété intellectuelle. La pratique recommandée est de faire référence à une déclaration de droits avec un URI. Si cela n'est pas possible ou réalisable, une valeur littérale (nom, étiquette ou texte court) peut être fournie."@fr,
                        "In genere, le informazioni sui diritti includono una dichiarazione sui vari diritti di proprietà associati alla risorsa, compresi i diritti di proprietà intellettuale. La prassi consigliata è quella di fare riferimento a una dichiarazione sui diritti con un URI. Se ciò non è possibile o fattibile, si può fornire un valore letterale (nome, etichetta o testo breve)."@it ;
-        sh:datatype xsd:string .
+        sh:datatype xsd:string ;
+        oldap:externalOntology true .
 
     dcterms:abstractShape a sh:PropertyShape ;
         sh:path dcterms:abstract ;
@@ -95,7 +99,8 @@ shared:shacl {
             "Un résumé de la ressource."@fr,
             "Una sintesi della risorsa."@it ;
         rdfs:subPropertyOf dcterms:description ;
-        sh:datatype rdf:langString .
+        sh:datatype rdf:langString ;
+        oldap:externalOntology true .
 
     dcterms:accessRightsShape a sh:PropertyShape ;
         sh:path dcterms:accessRights ;
@@ -111,7 +116,8 @@ shared:shacl {
                 "Informations sur les personnes qui accèdent à la ressource ou indication de son état de sécurité."@fr,
                 "Informazioni su chi accede alla risorsa o un'indicazione del suo stato di sicurezza."@it ;
         rdfs:subPropertyOf dcterms:rights ;
-        sh:datatype xsd:string .
+        sh:datatype xsd:string ;
+        oldap:externalOntology true .
 
 
     #
@@ -124,7 +130,8 @@ shared:shacl {
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:class oldap:User .
+        sh:class oldap:User ;
+        oldap:externalOntology true .
 
     #
     # Definitionm of SHACL for OLDAPLIB's use of dcterms:created
@@ -136,7 +143,8 @@ shared:shacl {
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:datatype xsd:dateTime .
+        sh:datatype xsd:dateTime ;
+        oldap:externalOntology true .
 
     #
     # Define SHACL for OLDAPLIB's use of dcterms:contributer. Points an oldap:User .
@@ -148,7 +156,8 @@ shared:shacl {
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:class oldap:User .
+        sh:class oldap:User ;
+        oldap:externalOntology true .
 
     #
     # Define SHACL of OLDAPLIB's use of dcterms:modified
@@ -159,7 +168,8 @@ shared:shacl {
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:datatype xsd:dateTime .
+        sh:datatype xsd:dateTime ;
+        oldap:externalOntology true .
 
     dcterms:PhysicalResourceShape a sh:NodeShape, dcterms:PhysicalResource ;
         sh:targetClass dcterms:PhysicalResource ;
@@ -172,7 +182,8 @@ shared:shacl {
         sh:property
             [
                 sh:path rdf:type ;
-            ] .
+            ] ;
+        oldap:externalOntology true .
 
 
     schema:familyNameShape a sh:PropertyShape ;
@@ -183,7 +194,8 @@ shared:shacl {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:string ;
         sh:name "Family name"@en, "Familiennamen"@de, "Nom de famillie"@fr, "Nome della famiglia"@it ;
-        sh:description "The family name of some person."@en .
+        sh:description "The family name of some person."@en ;
+        oldap:externalOntology true .
 
     schema:givenNameShape a sh:PropertyShape ;
         sh:path schema:givenName ;
@@ -193,7 +205,8 @@ shared:shacl {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:string ;
         sh:name "Given name"@en, "Vornamen"@de, "Prénom"@fr, "Nome"@it ;
-        sh:description "The given name of some person"@en .
+        sh:description "The given name of some person"@en ;
+        oldap:externalOntology true .
 
     schema:emailShape a sh:PropertyShape ;
         sh:path schema:email ;
@@ -203,7 +216,8 @@ shared:shacl {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:datatype xsd:string ;
         sh:name "Email"@en, "Email"@de, "Courriel"@fr, "Email"@it ;
-        sh:description "The email adress of some person"@en .
+        sh:description "The email adress of some person"@en ;
+        oldap:externalOntology true .
 
 }
 

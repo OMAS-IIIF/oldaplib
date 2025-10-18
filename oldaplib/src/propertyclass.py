@@ -165,7 +165,8 @@ class PropertyClass(Model, Notify):
     _projectShortName: Xsd_NCName
     _projectIri: Iri
     _property_class_iri: Iri | None
-    _statementProperty: bool
+    _statementProperty: Xsd_boolean
+    _externalOntology: Xsd_boolean
     _internal: Iri | None
     _force_external: bool
     #_attributes: PropClassAttrContainer
@@ -195,37 +196,55 @@ class PropertyClass(Model, Notify):
                  property_class_iri: Iri | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
-                 statement_property: bool = False,
+                 statement_property: bool  | Xsd_boolean= False,
+                 external_ontology: bool | Xsd_boolean = False,
                  _internal: Iri | None = None,  # DO NOT USE!! Only for serialization!
                  _force_external: bool | None = None,  # DO NOT USE!! Only for serialization!
                  _from_triplestore: bool = False,
                  validate: bool = False,
                  **kwargs):
         """
-        Constructor of the PropertyClass. If the property is created as link to a resource by defininf
-        the "toClass" attribute, only the restriction "inSet" is allowed which could restrict the
-        property to a given set of resourtce IRI's.
+        Defines the constructor for the PropertyClass. This class is used to define
+        properties in a given project context. Properties can point to resources,
+        supporting restrictions such as "inSet" for valid resource IRIs. Furthermore,
+        this class ensures consistency in validation, datatype restrictions, and
+        relationships with other project attributes.
 
-        :param con: Instance of a subclass of IConnection
-        :type con: IConnection or subclass of IConnection
-        :param creator: Iri of the user that creates the property [DO NOT USE! FOR INTERNAL USE ONLY!]
+        :param con: Connection instance to a database or triplestore
+        :type con: IConnection
+        :param creator: Creator's IRI or string, defaults to None. [internal use only].
         :type creator: Iri | str | None
-        :param created: Creation date [DO NOT USE! FOR INTERNAL USE ONLY!]
+        :param created: Date and time of creation, defaults to None. [internal use only].
         :type created: Xsd_dateTime | datetime | str | None
-        :param contributor: Iri of the user that modifies a proeprty [DO NOT USE! FOR INTERNAL USE ONLY!]
-        :type contributor: Iri | str | None
-        :param modified: Last modification date [DO NOT USE! FOR INTERNAL USE ONLY!]
+        :param contributor: IRI of the last contributor, defaults to None. [internal use only].
+        :type contributor: Iri | None
+        :param modified: Date and time of the last modification, defaults to None. [internal use only].
         :type modified: Xsd_dateTime | datetime | str | None
-        :param project: The project the property is associated with
+        :param project: Project to which the property belongs; can be a Project object,
+            IRI, QName, or string representation.
         :type project: Project | Iri | Xsd_NCName | str
-        :param property_class_iri: The Iri of the property. This parameter can be a fully qualified Iri or q Xsd QName
+        :param property_class_iri: IRI of the property class; can be a full IRI or a QName,
+            optional.
         :type property_class_iri: Iri | str | None
-        :param notifier: Notifier callback [DO NOT USE! FOR INTERNAL USE ONLY!]
+        :param notifier: Function or method used internally as callback for notifications, optional.
         :type notifier: Callable[[PropClassAttr], None] | None
-        :param notify_data: Data for the notifier callback
+        :param notify_data: Data or attribute passed to the notifier function, optional.
         :type notify_data: PropClassAttr | None
-        :param kwargs: Other attributes of the property
-        :raises OldapErrorInconsistency: A link property with invalid restrictions
+        :param statement_property: Boolean indicating if the property is a statement-property
+            (used for RDF*star statements).
+        :type statement_property: bool
+        :param external_ontology: Boolean indicating whether this property comes from an
+            external ontology (false by default).
+        :type external_ontology: bool
+        :param validate: Boolean that determines whether validation is active.
+        :type validate: bool
+        :param kwargs: Arbitrary additional named arguments that might be used
+            for attribute settings.
+
+        :raises OldapErrorInconsistency: If a link property is created with invalid or
+            unsupported restrictions.
+        :raises OldapErrorValue: If certain invalid combinations of restrictions, datatypes,
+            or prefixes are found during property creation.
         """
         Model.__init__(self,
                        connection=con,
@@ -236,7 +255,10 @@ class PropertyClass(Model, Notify):
                        validate=validate)
         Notify.__init__(self, notifier, notify_data)
 
-        self._statementProperty = statement_property
+        self._statementProperty = statement_property if isinstance(statement_property, Xsd_boolean) else Xsd_boolean(statement_property, validate=True)
+        self._externalOntology = external_ontology if isinstance(external_ontology, Xsd_boolean) else Xsd_boolean(external_ontology, validate=True)
+        if self._externalOntology:
+            self._force_external = True
         if not isinstance(project, Project):
             if not isinstance(project, (Iri, Xsd_NCName)):
                 project = IriOrNCName(project, validate=validate)
@@ -321,6 +343,8 @@ class PropertyClass(Model, Notify):
         self._test_in_use = False
         self._internal = _internal
         self._force_external = _force_external
+        if self._externalOntology:  # a property from an external ontology must be a standalone property!!
+            self._force_external = True
         self.__version = SemanticVersion()
         self.__from_triplestore = _from_triplestore
 
@@ -475,6 +499,7 @@ class PropertyClass(Model, Notify):
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
         instance._statementProperty = deepcopy(self._statementProperty, memo)
+        instance._externalOntology = deepcopy(self._externalOntology, memo)
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
         # Copy remaining PropertyClass attributes
@@ -536,13 +561,22 @@ class PropertyClass(Model, Notify):
         return self._internal
 
     @property
-    def statementProperty(self) -> bool:
+    def statementProperty(self) -> Xsd_boolean:
         """
         Return the statementProperty
         :return: statementProperty
         :rtype: bool
         """
         return self._statementProperty
+
+    @property
+    def externalOntology(self) -> Xsd_boolean:
+        """
+        Return the externalOntology
+        :return: externalOntology
+        :rtype: bool
+        """
+        return self._externalOntology
 
     def force_external(self) -> None:
         """
@@ -732,32 +766,37 @@ class PropertyClass(Model, Notify):
                 if isinstance(val, Xsd_string):
                     self.__version = SemanticVersion.fromString(str(val))
                 else:
-                    raise OldapError(f'Inconsistency in SHACL "schema:version"')
+                    raise OldapError(f'Inconsistency in SHACL "schema:version (type={type(val)})"')
             elif key == 'dcterms:creator':
                 if isinstance(val, Iri):
                     self._creator = val
                 else:
-                    raise OldapError(f'Inconsistency in SHACL "dcterms:creator"')
+                    raise OldapError(f'Inconsistency in SHACL "dcterms:creator (type={type(val)})"')
             elif key == 'dcterms:created':
                 if isinstance(val, Xsd_dateTime):
                     self._created = val
                 else:
-                    raise OldapError(f'Inconsistency in SHACL "dcterms:created"')
+                    raise OldapError(f'Inconsistency in SHACL "dcterms:created (type={type(val)})"')
             elif key == 'dcterms:contributor':
                 if isinstance(val, Iri):
                     self._contributor = val
                 else:
-                    raise OldapError(f'Inconsistency in SHACL "dcterms:contributor"')
+                    raise OldapError(f'Inconsistency in SHACL "dcterms:contributor (type={type(val)})"')
             elif key == 'dcterms:modified':
                 if isinstance(val, Xsd_dateTime):
                     self._modified = val
                 else:
-                    raise OldapError(f'Inconsistency in SHACL "dcterms:modified"')
+                    raise OldapError(f'Inconsistency in SHACL "dcterms:modified (type={type(val)})"')
             elif key == 'oldap:statementProperty':
                 if isinstance(val, Xsd_boolean):
                     self._statementProperty = val
                 else:
-                    raise OldapError(f'Inconsistency in SHACL "oldap:statementProperty (type={type(val)}"')
+                    raise OldapError(f'Inconsistency in SHACL "oldap:statementProperty (type={type(val)})"')
+            elif key == 'oldap:externalOntology':
+                if isinstance(val, Xsd_boolean):
+                    self._externalOntology = val
+                else:
+                    raise OldapError(f'Inconsistency in SHACL "oldap:externalOntology (type={type(val)}"')
             elif key == 'sh:node':
                 if str(val).endswith("Shape"):
                     refprop = Iri(str(val)[:-5], validate=False)
@@ -802,7 +841,9 @@ class PropertyClass(Model, Notify):
         self.__from_triplestore = True
         return HasPropertyData(refprop, minCount, maxCount, order, group)
 
-    def read_owl(self):
+    def read_owl(self) -> None:
+        if self._externalOntology:
+            return
         context = Context(name=self._con.context_name)
         query1 = context.sparql_context
         query1 += f"""
@@ -980,8 +1021,8 @@ class PropertyClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        if self._statementProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty true'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty {self._statementProperty.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:externalOntology {self._externalOntology.toRdf}'
         for prop, value in self._attributes.items():
             if prop == PropClassAttr.TYPE:
                 continue
@@ -1118,14 +1159,15 @@ class PropertyClass(Model, Notify):
                                         owlclass_iri=self._internal,
                                         haspropdata=haspropdata,
                                         indent=2)
-        else:  # external standalone (reusable) property -> no minCount, maxCount
+        else:  # standalone (reusable) property -> no minCount, maxCount
             sparql += self.create_shacl(timestamp=timestamp,
                                         indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
-        sparql += self.create_owl_part1(timestamp=timestamp, indent=2)
-        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        if not self._externalOntology:  # project specific property, write also OWL!
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
+            sparql += self.create_owl_part1(timestamp=timestamp, indent=2)
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -1147,17 +1189,20 @@ class PropertyClass(Model, Notify):
         except OldapError as err:
             self._con.transaction_abort()
             raise
-        try:
-            modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
-            modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
-        except OldapError as err:
-            self._con.transaction_abort()
-            raise
-        if modtime_shacl == timestamp and modtime_owl == timestamp:
-            self._con.transaction_commit()
+        if not self._externalOntology:  # it's a project specific property -> OWL has been written -> check consistency!
+            try:
+                modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
+                modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+            except OldapError as err:
+                self._con.transaction_abort()
+                raise
+            if modtime_shacl == timestamp and modtime_owl == timestamp:
+                self._con.transaction_commit()
+            else:
+                self._con.transaction_abort()
+                raise OldapErrorUpdateFailed(f"Update of RDF didn't work!")
         else:
-            self._con.transaction_abort()
-            raise OldapErrorUpdateFailed(f"Update of RDF didn't work!")
+            self._con.transaction_commit()
         self.set_creation_metadata(timestamp)
 
         self.clear_changeset()
@@ -1195,9 +1240,10 @@ class PropertyClass(Model, Notify):
                 f.write(self.create_shacl(timestamp=timestamp, indent=2))
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
-            f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
-            f.write(self.create_owl_part1(timestamp=timestamp, indent=2))
-            f.write(f'{blank:{indent * indent_inc}}}}\n')
+            if not self._externalOntology:  # project specific property, write also OWL!
+                f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
+                f.write(self.create_owl_part1(timestamp=timestamp, indent=2))
+                f.write(f'{blank:{indent * indent_inc}}}}\n')
 
     def update_shacl(self, *,
                      owlclass_iri: Iri | None = None,
@@ -1489,38 +1535,39 @@ class PropertyClass(Model, Notify):
 
         sparql += self.update_shacl(owlclass_iri=self._internal,
                                     timestamp=timestamp)
-        sparql += " ;\n"
-        sparql += self.update_owl(owlclass_iri=self._internal,
-                                  timestamp=timestamp)
+
+        if not self._externalOntology:  # it's a project specific property, write also OWL!
+            sparql += " ;\n"
+            sparql += self.update_owl(owlclass_iri=self._internal,
+                                      timestamp=timestamp)
         try:
             self._con.transaction_update(sparql)
         except OldapError as e:
             self._con.transaction_abort()
             raise
-        try:
-            modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
-        except OldapError as e:
-            self._con.transaction_abort()
-            raise
-        try:
-            modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
-        except OldapError as e:
-            self._con.transaction_abort()
-            raise
 
-        if modtime_shacl == timestamp and modtime_owl == timestamp:
-            self._con.transaction_commit()
-            self._modified = timestamp
-            self._contributor = self._con.userIri
-            for prop, change in self._changeset.items():
-                if change.action == Action.MODIFY:
-                    self._attributes[prop].changeset_clear()
-            self._changeset = {}
+        if not self._externalOntology:
+            try:
+                modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
+                modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+            except OldapError as e:
+                self._con.transaction_abort()
+                raise
+
+            if modtime_shacl == timestamp and modtime_owl == timestamp:
+                self._con.transaction_commit()
+            else:
+                self._con.transaction_abort()
+                raise OldapErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} owl={modtime_owl} timestamp={timestamp}')
         else:
-            self._con.transaction_abort()
-            raise OldapErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} owl={modtime_owl} timestamp={timestamp}')
+            self._con.transaction_commit()
+
         self._modified = timestamp
         self._contributor = self._con.userIri
+        for prop, change in self._changeset.items():
+            if change.action == Action.MODIFY:
+                self._attributes[prop].changeset_clear()
+        self._changeset = {}
         cache = CacheSingletonRedis()
         cache.set(self._property_class_iri, self)
 
@@ -1648,17 +1695,25 @@ class PropertyClass(Model, Notify):
         sparql = context.sparql_context
 
         sparql += self.delete_shacl()
-        sparql += ' ;\n'
-        sparql += self.delete_owl()
+        if not self._externalOntology:  # it's a project specific property, delete also OWL!'
+            sparql += ' ;\n'
+            sparql += self.delete_owl()
 
         self.__from_triplestore = False
         self._con.transaction_start()
         self._con.transaction_update(sparql)
-        modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
-        modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
-        if modtime_shacl is not None or modtime_owl is not None:
-            self._con.transaction_abort()
-            raise OldapErrorUpdateFailed("Deleting Property failed")
+        if not self._externalOntology:
+            try:
+                modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
+                modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
+            except OldapError as e:
+                self._con.transaction_abort()
+                raise
+            if modtime_shacl is not None or modtime_owl is not None:
+                self._con.transaction_abort()
+                raise OldapErrorUpdateFailed("Deleting Property failed")
+            else:
+                self._con.transaction_commit()
         else:
             self._con.transaction_commit()
         cache = CacheSingletonRedis()

@@ -182,7 +182,7 @@ class HasProperty(Model, Notify):
             sparql += f' ;\n{blank:{indent * indent_inc}}sh:group {self._attributes[HasPropertyAttr.GROUP].toRdf}'
         return sparql
 
-    def create_owl(self, indent: int = 0, indent_inc: int = 4):
+    def create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
         min_count = Xsd_nonNegativeInteger(int(self._attributes[HasPropertyAttr.MIN_COUNT])) if self._attributes.get(HasPropertyAttr.MIN_COUNT) else None

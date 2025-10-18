@@ -1502,22 +1502,23 @@ class TestResourceClass(unittest.TestCase):
                            closed=Xsd_boolean(True),
                            hasproperties=hasproperties)
         r1.create()
+        r1 = ResourceClass.read(con=self._connection,
+                                project=self._project,
+                                owl_class_iri=Iri("test:TestResourceInUse"), ignore_cache=True)
 
         factory = ResourceInstanceFactory(con=self._connection, project=self._project)
         TestResourceInUse = factory.createObjectInstance('TestResourceInUse')
         data = TestResourceInUse(
             label=['lanel_aaa@en', 'label_bbb@de'],
             comment=['comment_aaa@en', 'comment_bbb@de'],
-            prop_A="WAELIWAS SOLL DENN DAS?",
+            prop_A="WASELIWAS SOLL DENN DAS?",
             grantsPermission=Iri('oldap:GenericView')
         )
         data.create()
         data2 = TestResourceInUse.read(con=self._connection,
                                        iri=data.iri)
 
-        r1 = ResourceClass.read(con=self._connection,
-                                project=self._project,
-                                owl_class_iri=Iri("test:TestResourceInUse"), ignore_cache=True)
+
         with self.assertRaises(OldapErrorInUse):
             r1.delete()
 

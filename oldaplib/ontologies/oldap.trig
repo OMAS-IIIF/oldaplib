@@ -721,6 +721,11 @@
         owl:versionInfo "0.1.0"^^xsd:string ;
         owl:imports <http://www.w3.org/2004/02/skos/core>, <http://purl.org/dc/terms/> .
 
+    #
+    # used for SHACL definition of external ontologies like dcterms etc.
+    #
+    oldap:externalOntology a owl:AnnotationProperty .
+
     ###############################################################################
     # Extension (non-standard) for RDF*star
     ###############################################################################

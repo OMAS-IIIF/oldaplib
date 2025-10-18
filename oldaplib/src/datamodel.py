@@ -486,6 +486,17 @@ class DataModel(Model):
         timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
+
+        #
+        # first we check if the graph already exists
+        #
+        sparql = context.sparql_context
+        sparql += f"ASK {{ GRAPH {self.__graph}:shacl {{ ?s ?p ?o }} }}"
+        sparql += '\n'
+        result = self._con.query(sparql)
+        if result['boolean']:
+            raise OldapErrorAlreadyExists(f'Datamodel "{self.__graph}" already exists.')
+
         sparql = context.sparql_context
 
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
@@ -509,7 +520,8 @@ class DataModel(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:onto {{\n'
 
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} ;\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionIRI <http://oldap.org/ontology/{self.__graph}/version/{str(self.__version)}> .\n'
         sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
