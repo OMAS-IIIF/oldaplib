@@ -51,173 +51,91 @@ shared:shacl {
         sh:description "A description for something."@en ;
         oldap:externalOntology true .
 
-    #--------------------------------------------------------------------------
-    # dcterms properties
-    #
-
-    dcterms:descriptionShape a sh:PropertyShape ;
-        sh:path dcterms:description ;
-        schema:version "1.0.0"^^xsd:string ;
+    ###########################################################################
+    # Chronology Date definitions
+    ###########################################################################
+    oldap:ChronolgyStatementShape a sh:NodeShape, oldap:ChronolgyStatement ;
+        sh:targetClass :OldapListNode ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:name "Description"@en, "Beschreibung"@de, "Description"@fr, "Descrizione"@it ;
-        sh:description "Description may include but is not limited to: an abstract, a table of contents, a graphical representation, or a free-text account of the resource."@en,
-                           "Die Beschreibung kann eine Zusammenfassung, ein Inhaltsverzeichnis, eine grafische Darstellung oder eine Freitextbeschreibung der Ressource umfassen, ist aber nicht darauf beschränkt."@de,
-                           "La description peut inclure, sans s'y limiter, un résumé, une table des matières, une représentation graphique ou un compte rendu en texte libre de la ressource."@fr,
-                           "La descrizione può includere, a titolo esemplificativo ma non esaustivo: un abstract, un indice, una rappresentazione grafica o un resoconto a testo libero della risorsa."@it ;
-        sh:datatype rdf:langString ;
-        oldap:externalOntology true .
-
-    dcterms:rightsShape a sh:PropertyShape ;
-        sh:path dcterms:rights ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:name "Rights"@en, "Rechte"@de, "Droits"@fr, "Diritti"@it ;
-        sh:description "Typically, rights information includes a statement about various property rights associated with the resource, including intellectual property rights. Recommended practice is to refer to a rights statement with a URI. If this is not possible or feasible, a literal value (name, label, or short text) may be provided."@en,
-                       "In der Regel enthalten die Informationen zu den Rechten eine Erklärung zu den verschiedenen mit der Ressource verbundenen Eigentumsrechten, einschließlich der Rechte an geistigem Eigentum. Es wird empfohlen, mit einem URI auf eine Rechteerklärung zu verweisen. Ist dies nicht möglich oder praktikabel, kann ein literarischer Wert (Name, Bezeichnung oder Kurztext) angegeben werden."@de,
-                       "En général, les informations sur les droits comprennent une déclaration sur les divers droits de propriété associés à la ressource, y compris les droits de propriété intellectuelle. La pratique recommandée est de faire référence à une déclaration de droits avec un URI. Si cela n'est pas possible ou réalisable, une valeur littérale (nom, étiquette ou texte court) peut être fournie."@fr,
-                       "In genere, le informazioni sui diritti includono una dichiarazione sui vari diritti di proprietà associati alla risorsa, compresi i diritti di proprietà intellettuale. La prassi consigliata è quella di fare riferimento a una dichiarazione sui diritti con un URI. Se ciò non è possibile o fattibile, si può fornire un valore letterale (nome, etichetta o testo breve)."@it ;
-        sh:datatype xsd:string ;
-        oldap:externalOntology true .
-
-    dcterms:abstractShape a sh:PropertyShape ;
-        sh:path dcterms:abstract ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:name "Abstract"@en, "Abstrakt"@de, "Résumé"@fr, "Astratto"@it ;
-        sh:description
-            "A summary of the resource."@en,
-            "Eine Zusammenfassung der Ressource."@de,
-            "Un résumé de la ressource."@fr,
-            "Una sintesi della risorsa."@it ;
-        rdfs:subPropertyOf dcterms:description ;
-        sh:datatype rdf:langString ;
-        oldap:externalOntology true .
-
-    dcterms:accessRightsShape a sh:PropertyShape ;
-        sh:path dcterms:accessRights ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:name "Access Rights"@en, "Zugangsrechte"@de, "Droits d'accès"@fr, "Diritti di accesso"@it ;
-        sh:description
-                "Information about who access the resource or an indication of its security status."@en,
-                "Informationen darüber, wer auf die Ressource zugreift, oder ein Hinweis auf ihren Sicherheitsstatus."@de,
-                "Informations sur les personnes qui accèdent à la ressource ou indication de son état de sécurité."@fr,
-                "Informazioni su chi accede alla risorsa o un'indicazione del suo stato di sicurezza."@it ;
-        rdfs:subPropertyOf dcterms:rights ;
-        sh:datatype xsd:string ;
-        oldap:externalOntology true .
-
-
-    #
-    # Definition of SHACL for OLDAP's use of dcterms:creator. Points an oldap:User .
-    #
-    dcterms:creatorShape a sh:PropertyShape ;
-        sh:path dcterms:creator ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:class oldap:User ;
-        oldap:externalOntology true .
-
-    #
-    # Definitionm of SHACL for OLDAPLIB's use of dcterms:created
-    #
-    dcterms:createdShape a sh:PropertyShape ;
-        sh:path dcterms:created ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:datatype xsd:dateTime ;
-        oldap:externalOntology true .
-
-    #
-    # Define SHACL for OLDAPLIB's use of dcterms:contributer. Points an oldap:User .
-    #
-    dcterms:contributorShape a sh:PropertyShape ;
-        sh:path dcterms:contributor ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:class oldap:User ;
-        oldap:externalOntology true .
-
-    #
-    # Define SHACL of OLDAPLIB's use of dcterms:modified
-    #
-    dcterms:modifiedShape a sh:PropertyShape ;
-        sh:path dcterms:modified ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:datatype xsd:dateTime ;
-        oldap:externalOntology true .
-
-    dcterms:PhysicalResourceShape a sh:NodeShape, dcterms:PhysicalResource ;
-        sh:targetClass dcterms:PhysicalResource ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "Physical Resource"@en, "Physische Ressource"@de, "Ressources physiques"@fr, "Risorse fisiche"@it ;
-        rdfs:comment "A material thing."@en, "Eine materielle Sache."@de, "Une chose matérielle."@fr, "Una cosa materiale."@it ;
         sh:property
             [
                 sh:path rdf:type ;
             ] ;
-        oldap:externalOntology true .
+        sh:property
+            [
+                sh:path oldap:startJDC ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:maxCount "1"^^xsd:integer ;
+                sh:datatype xsd:decimal ;
+            ] ;
+        sh:property
+            [
+                sh:path oldap:endJDC ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:maxCount "1"^^xsd:integer ;
+                sh:datatype xsd:decimal ;
+            ] ;
+        sh:property
+            [
+                sh:path oldap:calendar ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:maxCount "1"^^xsd:integer ;
+                sh:datatype xsd:string ;
+                sh:in ("GREGORIAN"^^xsd:string "JULIAN"^^xsd:string "HEBREW"^^xsd:string "ISLAMIC"^^xsd:string "PERSIAN"^^xsd:string) ;
+           ] ;
+        sh:property
+            [
+                sh:path oldap:before ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:maxCount "1"^^xsd:integer ;
+                sh:class oldap:ChronolgyStatement ;
+            ] ;
+        sh:property
+            [
+                sh:path oldap:after ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:maxCount "1"^^xsd:integer ;
+                sh:class oldap:ChronolgyStatement ;
+            ] ;
+        sh:property
+            [
+                sh:path oldap:minDelta ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:maxCount "1"^^xsd:integer ;
+                sh:datatype xsd:decimal ;
+            ] ;
+        sh:property
+            [
+                sh:path oldap:maxDelta ;
+                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+                sh:maxCount "1"^^xsd:integer ;
+                sh:datatype xsd:decimal ;
+            ] .
 
-
-    schema:familyNameShape a sh:PropertyShape ;
-        sh:path schema:familyName ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:datatype xsd:string ;
-        sh:name "Family name"@en, "Familiennamen"@de, "Nom de famillie"@fr, "Nome della famiglia"@it ;
-        sh:description "The family name of some person."@en ;
-        oldap:externalOntology true .
-
-    schema:givenNameShape a sh:PropertyShape ;
-        sh:path schema:givenName ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:datatype xsd:string ;
-        sh:name "Given name"@en, "Vornamen"@de, "Prénom"@fr, "Nome"@it ;
-        sh:description "The given name of some person"@en ;
-        oldap:externalOntology true .
-
-    schema:emailShape a sh:PropertyShape ;
-        sh:path schema:email ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:datatype xsd:string ;
-        sh:name "Email"@en, "Email"@de, "Courriel"@fr, "Email"@it ;
-        sh:description "The email adress of some person"@en ;
-        oldap:externalOntology true .
 
 }
 
@@ -225,113 +143,117 @@ shared:onto {
     shared:ontology rdf:type owl:Ontology ;
         owl:versionInfo "0.1.0"^^xsd:string .
 
-    rdfs:label a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:range rdf:langString .
+    ###############################################################################
+    # Properties used for :Project
+    ###############################################################################
 
-    rdfs:comment a owl:DatatypeProperty ;
+    oldap:startJDC rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:range rdf:langString .
+        rdfs:domain oldap:ChronolgyStatement ;
+        rdfs:range xsd:decimal .
 
-    dcterms:description a owl:DatatypeProperty ;
+    oldap:endJDC rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:label "Description" ;
-        rdfs:range rdf:langString .
+        rdfs:domain oldap:ChronolgyStatement ;
+        rdfs:range xsd:decimal .
 
-    dcterms:rights a owl:DatatypeProperty ;
+    oldap:calendar rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:label "Rights" ;
+        rdfs:domain oldap:ChronolgyStatement ;
         rdfs:range xsd:string .
 
-    dcterms:abstract a owl:DatatypeProperty ;
+    oldap:before rdf:type owl:ObjectProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:label "Abstract" ;
-        rdfs:subPropertyOf dcterms:description ;
-        rdfs:range rdf:langString .
+        rdfs:domain oldap:ChronolgyStatement ;
+        rdfs:range oldap:ChronolgyStatement .
 
-    dcterms:accessRights a owl:DatatypeProperty ;
+    oldap:after rdf:type owl:ObjectProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:label "Access Rights" ;
-        rdfs:subPropertyOf dcterms:rights ;
-        rdfs:range xsd:string .
+        rdfs:domain oldap:ChronolgyStatement ;
+        rdfs:range oldap:ChronolgyStatement .
 
-
-    dcterms:creator a owl:ObjectProperty ;
+    oldap:minDelta rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:range oldap:User .
+        rdfs:domain oldap:ChronolgyStatement ;
+        rdfs:range xsd:decimal .
 
-    dcterms:created a owl:DatatypeProperty ;
+    oldap:maxDelta rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:range xsd:dateTime .
+        rdfs:domain oldap:ChronolgyStatement ;
+        rdfs:range xsd:decimal .
 
-    dcterms:contributor a owl:ObjectProperty ;
+    ###########################################################################
+    # Chronology Date Resource
+    ###########################################################################
+    oldap:ChronolgyStatement rdf:type owl:Class ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:range oldap:User .
-
-    dcterms:modified a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:range xsd:dateTime .
-
-    dcterms:PhysicalResource a owl:class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "Physical Resource"@en, "Physische Ressource"@de, "Ressources physiques"@fr, "Risorse fisiche"@it ;
-        rdfs:comment "A material thing."@en, "Eine materielle Sache."@de, "Une chose matérielle."@fr, "Una cosa materiale."@it .
-
-
-
-    schema:familyName a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:range xsd:string .
-
-    schema:givenName a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:range xsd:string .
-
-    schema:email a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:range xsd:string .
+        rdfs:subClassOf
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty oldap:startJDC ;
+                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:decimal
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty oldap:endJDC ;
+                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:decimal
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty oldap:chronoCalendar ;
+                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:string
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty oldap:before ;
+                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onClass oldap:ChronolgyStatement
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty oldap:after ;
+                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onClass oldap:ChronolgyStatement
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty oldap:minDelta ;
+                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:decimal
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty oldap:maxDelta ;
+                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDatatype xsd:decimal
+            ] .
 
 }
 

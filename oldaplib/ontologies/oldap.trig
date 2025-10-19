@@ -604,122 +604,11 @@
                 sh:class :PermissionSet ;
             ] .
 
-    :OldapChronolgyStatementShape a sh:NodeShape, :OldapChronolgyStatement ;
-        sh:targetClass :OldapListNode ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:property
-            [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
-                sh:path :chronoStartJDC ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:minCount "1"^^xsd:integer ;
-                sh:datatype xsd:decimal ;
-            ] ;
-        sh:property
-            [
-                sh:path :chronoStartPrecision ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:minCount "1"^^xsd:integer ;
-                sh:datatype xsd:string ;
-                sh:in ("YEAR"^^xsd:string "MONTH"^^xsd:string "DAY"^^xsd:string)
-            ] ;
-        sh:property
-            [
-                sh:path :chronoEndJDC ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:minCount "1"^^xsd:integer ;
-                sh:datatype xsd:decimal ;
-            ] ;
-        sh:property
-            [
-                sh:path :chronoEndPrecision ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:minCount "1"^^xsd:integer ;
-                sh:datatype xsd:string ;
-                sh:in ("YEAR"^^xsd:string "MONTH"^^xsd:string "DAY"^^xsd:string)
-            ] ;
-        sh:property
-            [
-                sh:path :chronoCalendar ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:minCount "1"^^xsd:integer ;
-                sh:datatype xsd:string ;
-                sh:in ("GREGORIAN"^^xsd:string "JULIAN"^^xsd:string "HEBREW"^^xsd:string "ISLAMIC"^^xsd:string "PERSIAN"^^xsd:string) ;
-           ] ;
-        sh:property
-            [
-                sh:path :chronoBefore ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:class :OldapChronolgyStatement ;
-            ] ;
-        sh:property
-            [
-                sh:path :chronoAfter ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:class :OldapChronolgyStatement ;
-            ] ;
-        sh:property
-            [
-                sh:path :chronoMinDelta ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:datatype xsd:decimal ;
-            ] ;
-        sh:property
-            [
-                sh:path :chronoMaxDelta ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:datatype xsd:decimal ;
-            ] .
-
 }
 
 :onto {
     oldap:ontology rdf:type owl:Ontology ;
-        #owl:versionIRI <http://oldap.org/ontology/version/1.0.0> ;
         owl:versionInfo "0.1.0"^^xsd:string ;
-        owl:imports <http://www.w3.org/2004/02/skos/core>, <http://purl.org/dc/terms/> .
 
     #
     # used for SHACL definition of external ontologies like dcterms etc.
@@ -746,28 +635,6 @@
     ###############################################################################
     :hasAdminPermission a owl:ObjectProperty ;
         rdfs:range :AdminPermission .
-
-    ###############################################################################
-    # Properties that are used by skos,
-    ###############################################################################
-
-    ###  http://www.w3.org/2004/02/skos/core#definition
-    skos:definition rdf:type owl:DatatypeProperty ;
-                    rdfs:range rdf:langString .
-
-    ###  http://www.w3.org/2004/02/skos/core#editorialNote
-    skos:editorialNote rdf:type owl:DatatypeProperty ;
-                       rdfs:range xsd:string .
-
-    skos:inScheme rdf:type owl:ObjectProperty ;
-                           rdfs:range :OldapList .
-
-    ###  http://www.w3.org/2004/02/skos/core#prefLabel
-    skos:prefLabel rdf:type owl:DatatypeProperty ;
-              rdfs:range rdf:langString .
-
-    skos:broaderTransitive rdf:type owl:ObjectProperty ;
-              rdfs:range :OldapListNode .
 
 
     ###############################################################################
@@ -949,81 +816,6 @@
         rdfs:domain :OldapListNode ;
         rdfs:range xsd:positiveInteger .
 
-    ###############################################################################
-    # Properties used for :Project
-    ###############################################################################
-
-    :chronoStartJDC rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapChronolgyStatement ;
-        rdfs:range xsd:decimal .
-
-    :chronoStartPrecision rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapChronolgyStatement ;
-        rdfs:range xsd:string .
-
-    :chronoEndJDC rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapChronolgyStatement ;
-        rdfs:range xsd:decimal .
-
-    :chronoEndPrecision rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapChronolgyStatement ;
-        rdfs:range xsd:string .
-
-    :chronoCalendar rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapChronolgyStatement ;
-        rdfs:range xsd:string .
-
-    :chronoBefore rdf:type owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapChronolgyStatement ;
-        rdfs:range :OldapChronolgyStatement .
-
-    :chronoAfter rdf:type owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapChronolgyStatement ;
-        rdfs:range :OldapChronolgyStatement .
-
-    :chronoMinDelta rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapChronolgyStatement ;
-        rdfs:range xsd:decimal .
-
-    :chronoMaxDelta rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapChronolgyStatement ;
-        rdfs:range xsd:decimal .
 
 
     #################################################################
@@ -1457,68 +1249,6 @@
                 owl:onClass :PermissionSet
             ] ;
         rdfs:comment "General super class of all things (resources) in tghe OMAS universe"@en .
-
-
-    :OldapChronolgyStatement rdf:type owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :chronoStartJDC ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:decimal
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :chronoStartPrecision ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:string
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :chronoEndJDC ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:decimal
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :chronoEndPrecision ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:string
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :chronoCalendar ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:string
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :chronoBefore ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onClass :OldapChronolgyStatement
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :chronoAfter ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onClass :OldapChronolgyStatement
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :chronoMinDelta ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:decimal
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :chronoMaxDelta ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:decimal
-            ] .
 
 }
 
