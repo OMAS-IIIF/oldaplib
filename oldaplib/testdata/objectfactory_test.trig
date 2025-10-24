@@ -785,13 +785,13 @@ test:onto {
             rdf:type owl:Restriction ;
             owl:onProperty schema:familyName ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:string
+            owl:onDataRange xsd:string
         ] ,
         [
             rdf:type owl:Restriction ;
             owl:onProperty schema:givenName ;
             owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:string
+            owl:onDataRange xsd:string
         ] .
 
 
@@ -846,24 +846,24 @@ test:onto {
                 rdf:type owl:Restriction ;
                 owl:onProperty test:pageDesignation ;
                 owl:minQualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:string ;
+                owl:onDataRange xsd:string ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:pageNum ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype owl:onDatatype ;
+                owl:onDataRange owl:onDataRange ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:pageDescription ;
-                owl:onDatatype rdf:langString ;
+                owl:onDataRange rdf:langString ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:pageContent ;
                 owl:maxQualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:string ;
+                owl:onDataRange xsd:string ;
             ] ,
             [
                 rdf:type owl:Restriction ;
@@ -907,7 +907,7 @@ test:onto {
                 rdf:type owl:Restriction ;
                 owl:onProperty test:title ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:string ;
+                owl:onDataRange xsd:string ;
             ] ,
             [
                 rdf:type owl:Restriction ;
@@ -918,7 +918,7 @@ test:onto {
                 rdf:type owl:Restriction ;
                 owl:onProperty test:pubDate ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:date ;
+                owl:onDataRange xsd:date ;
             ] .
 
     #
@@ -975,13 +975,13 @@ test:onto {
                 rdf:type owl:Restriction ;
                 owl:onProperty test:stringSetter ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype rdf:langString ;
+                owl:onDataRange rdf:langString ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:langStringSetter ;
                 owl:minQualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:string ;
+                owl:onDataRange xsd:string ;
             ] ,
             [
                 rdf:type owl:Restriction ;

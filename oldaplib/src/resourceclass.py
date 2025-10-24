@@ -985,7 +985,7 @@ class ResourceClass(Model, Notify):
             elif p == 'owl:qualifiedCardinality':
                 propdict[bnode_id]['min_count'] = r['o']
                 propdict[bnode_id]['max_count'] = r['o']
-            elif p == 'owl:onDatatype':
+            elif p == 'owl:onDataRange':
                 propdict[bnode_id]['datatype'] = r['o']
             else:
                 print(f'ERROR ERROR ERROR: Unknown restriction property: "{p}"')

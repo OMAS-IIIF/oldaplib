@@ -226,6 +226,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop4[PropClassAttr.IN],
                          RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
+    @unittest.skip('Used only for development of currect SHACL/OWL....')
     def test_gaga(self):
         ep = PropertyClass(con=self._connection,
                            project="test",
@@ -251,7 +252,7 @@ class TestResourceClass(unittest.TestCase):
                            closed=Xsd_boolean(True),
                            hasproperties=hasproperties)
         p2 = r1[Iri('schema:description')]
-        r1.write_as_trig("0000000.trig")
+        #r1.write_as_trig("0000000.trig")
         r1.create()
         p2 = r1[Iri('schema:description')]
 
@@ -259,7 +260,7 @@ class TestResourceClass(unittest.TestCase):
                                 project="test",
                                 owl_class_iri=Iri('test:Gaga'),
                                 ignore_cache=True)
-        r2.write_as_trig("111111111.trig")
+        #r2.write_as_trig("111111111.trig")
         p1 = r2[Iri('schema:comment')]
         self.assertIsInstance(p1.prop.property_class_iri, Iri)
         p2 = r2[Iri('schema:description')]

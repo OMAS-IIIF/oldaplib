@@ -174,19 +174,19 @@ shared:onto {
                 rdf:type owl:Restriction ;
                 owl:onProperty oldap:startJDC ;
                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:decimal
+                owl:onDataRange xsd:decimal
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty oldap:endJDC ;
                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:decimal
+                owl:onDataRange xsd:decimal
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty oldap:chronoCalendar ;
                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:string
+                owl:onDataRange xsd:string
             ] ,
             [
                 rdf:type owl:Restriction ;
@@ -204,13 +204,13 @@ shared:onto {
                 rdf:type owl:Restriction ;
                 owl:onProperty oldap:minDelta ;
                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:decimal
+                owl:onDataRange xsd:decimal
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty oldap:maxDelta ;
                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDatatype xsd:decimal
+                owl:onDataRange xsd:decimal
             ] .
 
 }

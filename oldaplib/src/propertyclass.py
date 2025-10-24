@@ -1101,12 +1101,12 @@ class PropertyClass(Model, Notify):
             if haspropdata.maxCount:
                 sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality {haspropdata.maxCount.toRdf}'
         #
-        # (NOTE: owl:onClass and owl:onDatatype can be used only in a restriction and are "local" to the use
+        # (NOTE: owl:onClass and owl:onDataRange can be used only in a restriction and are "local" to the use
         # of the property within the given resource. However, rdfs:range is "global" for all use of this property!
         #
         if self._attributes.get(PropClassAttr.DATATYPE) or self._attributes.get(PropClassAttr.CLASS):
             if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlDataProperty:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDatatype {self._attributes[PropClassAttr.DATATYPE].value}'
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDataRange {self._attributes[PropClassAttr.DATATYPE].value}'
             elif self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlObjectProperty:
                 sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._attributes[PropClassAttr.CLASS]}'
         sparql += f' ;\n{blank:{indent * indent_inc}}]'

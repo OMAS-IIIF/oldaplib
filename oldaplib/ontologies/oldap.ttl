@@ -326,14 +326,14 @@ oldap:AdminPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:label ;
-            owl:onDatatype rdf:langString ;
+            owl:onDataRange rdf:langString ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger
         ] ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:comment ;
-            owl:onDatatype rdf:langString ;
+            owl:onDataRange rdf:langString ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger
         ] .
 
@@ -351,21 +351,21 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:label ;
-            owl:onDatatype rdf:langString ;
+            owl:onDataRange rdf:langString ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger
         ] ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:comment ;
-            owl:onDatatype rdf:langString ;
+            owl:onDataRange rdf:langString ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger
         ] ;
     rdfs:subClassOf
         [
             rdf:type owl:Restriction ;
             owl:onProperty oldap:permissionValue ;
-            owl:onDatatype xsd:integer ;
+            owl:onDataRange xsd:integer ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger
         ] .
 
@@ -389,7 +389,7 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:created ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
                         [
@@ -401,7 +401,7 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:modified ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
@@ -419,13 +419,13 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:label ;
-            owl:onDatatype rdf:langString ;
+            owl:onDataRange rdf:langString ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:comment ;
-            owl:onDatatype rdf:langString ;
+            owl:onDataRange rdf:langString ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ] .
 
@@ -448,7 +448,7 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:created ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
@@ -460,44 +460,44 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:modified ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:label ;
-            owl:onDatatype rdf:langString ;
+            owl:onDataRange rdf:langString ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty rdfs:comment ;
-            owl:onDatatype rdf:langString ;
+            owl:onDataRange rdf:langString ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :projectShortName ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:NCName
+            owl:onDataRange xsd:NCName
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :namespaceIri ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:anyURI ;
+            owl:onDataRange xsd:anyURI ;
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :projectStart ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:date
+            owl:onDataRange xsd:date
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :projectEnd ;
             owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:date
+            owl:onDataRange xsd:date
         ] .
 
 #################################################################
@@ -518,7 +518,7 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:created ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
                         [
@@ -531,31 +531,31 @@ oldap:DataPermission rdf:type owl:Class ;
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:modified ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :userId ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:NCName
+            owl:onDataRange xsd:NCName
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :credentials ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:string
+            owl:onDataRange xsd:string
         ] ,
         [
             rdf:type owl:Restriction ;
             owl:onProperty foaf:familyName ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:string
+            owl:onDataRange xsd:string
         ] ,
         [
             rdf:type owl:Restriction ;
             owl:onProperty foaf:givenName ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:string
+            owl:onDataRange xsd:string
         ] ,
         [
             rdf:type owl:Restriction ;
@@ -567,7 +567,7 @@ oldap:DataPermission rdf:type owl:Class ;
             rdf:type owl:Restriction ;
             owl:onProperty :isActive ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:boolean
+            owl:onDataRange xsd:boolean
         ] ,
         [
             rdf:type owl:Restriction ;
@@ -596,7 +596,7 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:created ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
                         [
@@ -608,20 +608,20 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:modified ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty skos:prefLabel ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:string
+            owl:onDataRange xsd:string
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty skos:definition ;
             owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:string
+            owl:onDataRange xsd:string
         ] .
 
 
@@ -644,7 +644,7 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:created ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
                         [
@@ -656,7 +656,7 @@ oldap:DataPermission rdf:type owl:Class ;
         [
             rdf:type owl:Restriction ;
             owl:onProperty dcterms:modified ;
-            owl:onDatatype xsd:dateTime ;
+            owl:onDataRange xsd:dateTime ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
         ],
         [
@@ -681,25 +681,25 @@ oldap:DataPermission rdf:type owl:Class ;
             rdf:type owl:Restriction ;
             owl:onProperty skos:prefLabel ;
             owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:string
+            owl:onDataRange xsd:string
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :leftIndex ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:positiveInteger
+            owl:onDataRange xsd:positiveInteger
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :rightIndex ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:positiveInteger
+            owl:onDataRange xsd:positiveInteger
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty skos:definition ;
             owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:string
+            owl:onDataRange xsd:string
         ].
 
 
@@ -727,13 +727,13 @@ oldap:DataPermission rdf:type owl:Class ;
             rdf:type owl:Restriction ;
             owl:onProperty :creationDate ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:dateTimeStamp
+            owl:onDataRange xsd:dateTimeStamp
         ],
         [
             rdf:type owl:Restriction ;
             owl:onProperty :lastModificationDate ;
             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            owl:onDatatype xsd:dateTimeStamp
+            owl:onDataRange xsd:dateTimeStamp
         ] ,
         [
             rdf:type owl:Restriction ;
