@@ -66,8 +66,8 @@ Attributes = dict[Iri, PropTypes]
 @serializer
 class HasPropertyData:
     refprop: Iri | None = None
-    minCount: Xsd_integer | None = None
-    maxCount: Xsd_integer | None = None
+    minCount: Xsd_nonNegativeInteger | None = None
+    maxCount: Xsd_nonNegativeInteger | None = None
     order: Xsd_decimal | None = None
     group: Iri | None = None
 
@@ -88,18 +88,15 @@ class HasPropertyData:
         def create_owl(self, indent: int = 0, indent_inc: int = 4):
             blank = ''
             sparql = ''
-            min_count = Xsd_nonNegativeInteger(int(self.minCount)) if self.minCount else None
-            max_count = Xsd_nonNegativeInteger(int(self.maxCount)) if self.maxCount else None
 
-            if min_count and max_count and min_count == max_count:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {min_count.toRdf}'
+            if self.minCount and self.maxCount and self.minCount == self.maxCount:
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {self.minCount.toRdf}'
             else:
-                if min_count:
-                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {min_count.toRdf}'
-                if max_count:
-                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {max_count.toRdf}'
+                if self.minCount:
+                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {self.minCount.toRdf}'
+                if self.maxCount:
+                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {self.maxCount.toRdf}'
             return sparql
-
 
 #@strict
 @serializer
@@ -322,7 +319,7 @@ class PropertyClass(Model, Notify):
                 self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
                 if self._attributes.get(PropClassAttr.DATATYPE) is not None:
                     raise OldapError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
-            else:
+            elif self._attributes.get(PropClassAttr.DATATYPE) is not None:
                 self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
 
         #
@@ -347,6 +344,9 @@ class PropertyClass(Model, Notify):
             self._force_external = True
         self.__version = SemanticVersion()
         self.__from_triplestore = _from_triplestore
+
+    def __len__(self) -> int:
+        return len(self._attributes)
 
     def update_notifier(self,
                         notifier: Callable[[PropClassAttr], None] | None = None,
@@ -1021,11 +1021,12 @@ class PropertyClass(Model, Notify):
             sparql += f'\n{blank:{(indent + 1) * indent_inc}} {bnode} sh:path {self._property_class_iri.toRdf}'
         else:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}schema:version {self.__version.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        if len(self._attributes) > 0:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}schema:version {self.__version.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty {self._statementProperty.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:externalOntology {self._externalOntology.toRdf}'
         for prop, value in self._attributes.items():

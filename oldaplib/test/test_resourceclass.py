@@ -227,9 +227,21 @@ class TestResourceClass(unittest.TestCase):
                          RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
     def test_gaga(self):
+        ep = PropertyClass(con=self._connection,
+                           project="test",
+                           property_class_iri=Iri("schema:givenName"),
+                           datatype=XsdDatatypes.string,
+                           maxLength=64,
+                           minLength=3,
+                           _externalOntology=Xsd_boolean(True))
+        ep2 = PropertyClass(con=self._connection,
+                            project="test",
+                            property_class_iri=Iri("schema:comment"),
+                            toClass='schema:Comment')
         hasproperties: list[HasProperty] = [
-            HasProperty(con=self._connection, project=self._project, prop=Iri('schema:comment'), minCount=1, order=1),
+            HasProperty(con=self._connection, project=self._project, prop=ep2, minCount=1, order=1),
             HasProperty(con=self._connection, project=self._project, prop=Iri('schema:description')),
+            HasProperty(con=self._connection, project=self._project, prop=ep, minCount=1, maxCount=1, order=3.0),
         ]
         r1 = ResourceClass(con=self._connection,
                            project="test",
@@ -239,6 +251,7 @@ class TestResourceClass(unittest.TestCase):
                            closed=Xsd_boolean(True),
                            hasproperties=hasproperties)
         p2 = r1[Iri('schema:description')]
+        r1.write_as_trig("0000000.trig")
         r1.create()
         p2 = r1[Iri('schema:description')]
 
@@ -246,10 +259,10 @@ class TestResourceClass(unittest.TestCase):
                                 project="test",
                                 owl_class_iri=Iri('test:Gaga'),
                                 ignore_cache=True)
+        r2.write_as_trig("111111111.trig")
         p1 = r2[Iri('schema:comment')]
         self.assertIsInstance(p1.prop.property_class_iri, Iri)
         p2 = r2[Iri('schema:description')]
-        pass
 
     def test_create_next_generation(self):
         #

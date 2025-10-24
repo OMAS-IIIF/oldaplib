@@ -1154,28 +1154,20 @@ class ResourceClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}]'
 
         for iri, hp in self._properties.items():
-            match hp.type:
-                case PropType.EXTERNAL:  # from an external ontology like dcterms, skos, schema etc.
-                    sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property ['
+            if hp.type == PropType.STANDALONE:
+                if hp.minCount or hp.maxCount or hp.order or hp.group:
+                    sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {iri}Shape, ['
                     sparql += f'\n{blank:{(indent + 3) * indent_inc}}sh:path {iri.toRdf}'
-                    if hp.minCount or hp.maxCount or hp.order or hp.group:
-                        sparql += hp.create_shacl(indent=3)
-                    sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}]'
-                case PropType.INTERNAL:
-                    sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property ['
-                    sparql += hp.prop.property_node_shacl(timestamp=timestamp,
-                                                          haspropdata=hp.haspropdata,
-                                                          indent=3)
-                    sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}]'
-                case PropType.STANDALONE:
-                    if hp.minCount or hp.maxCount or hp.order or hp.group:
-                        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {iri}Shape, ['
-                        sparql += f'\n{blank:{(indent + 3) * indent_inc}}sh:path {iri.toRdf}'
-                        sparql += hp.create_shacl(indent=2)
-                        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
-                    else:
-                        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {iri}Shape'
-        #if len(self._properties) > 0:
+                    sparql += hp.create_shacl(indent=2)
+                    sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
+                else:
+                    sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {iri}Shape'
+            else:
+                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property ['
+                sparql += hp.prop.property_node_shacl(timestamp=timestamp,
+                                                      haspropdata=hp.haspropdata,
+                                                      indent=3)
+                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}]'
         sparql += ' .\n'
         return sparql
 
