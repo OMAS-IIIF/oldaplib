@@ -1,0 +1,52 @@
+@prefix dc:      <http://purl.org/dc/elements/1.1/> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix schema:  <http://schema.org/> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix oldap:   <http://oldap.org/base#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+
+@prefix ex: <http://example.org/> .
+@prefix :  <http://example.org/> .
+
+:shacl {
+  # Reusable standalone PropertyShape
+  :reusableShape a sh:PropertyShape ;
+    sh:path :reusable ;
+    sh:datatype xsd:string .
+
+  # Resource shape
+  :TestThingShape a sh:NodeShape ;
+    sh:targetClass :TestThing ;
+
+    # Reuse the standalone property shape (datatype xsd:string)
+    sh:property :reusableShape ,
+
+    # Add local cardinality for the same path
+    [
+      sh:path :reusable ;
+      sh:minCount 1 ;
+      sh:maxCount 1 ;
+      sh:order 1.0
+    ] ;
+
+    # Constrain a standard property (inline)
+    sh:property [
+      sh:path dcterms:description ;
+      sh:maxCount 1 ;
+      sh:order 2.0
+      # (Optionally add: sh:datatype rdf:langString or allow literals with language)
+    ] ;
+
+    # Define an internal property inline
+    sh:property [
+      sh:path :internal ;
+      sh:datatype xsd:string ;
+      sh:minCount 1 ;
+      sh:order 3.0
+    ] .
+}

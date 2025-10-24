@@ -64,7 +64,7 @@ It identifies a hierarchical list, but is itself not a list item.
 A list item object is a `skos:Concept` with the following properties:
 
 - `skos:inScheme`: points to the list object
-- `skos:broaderTransitive`: points to the parent node if there is one
+- `skos:broader`: points to the parent node if there is one
 - `skos:prefLabel`: A description of the list item. Must be a LangString.
 - `skos:definition`: A LangString describing the list item more verbose.
 - `oldap:nextNode`: Pointer to the next list item (will be automatically managed by OLDAP)
@@ -370,7 +370,7 @@ class OldapList(Model):
                     ?node skos:definition ?definition .
                 }}
                 OPTIONAL {{
-                    ?node skos:broaderTransitive ?parent .
+                    ?node skos:broader ?parent .
                 }}
             }}
         }}

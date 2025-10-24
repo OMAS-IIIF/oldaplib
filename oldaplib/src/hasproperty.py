@@ -1,5 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
+from enum import Enum
 from functools import partial
 from pprint import pprint
 from typing import Callable, Self, Any
@@ -23,6 +24,13 @@ from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 
+
+class PropType(Enum):
+    INTERNAL = 1
+    STANDALONE = 2
+    EXTERNAL = 3
+
+
 @serializer
 class HasProperty(Model, Notify):
     """
@@ -42,8 +50,11 @@ class HasProperty(Model, Notify):
                       as a single `HasPropertyData` object.
     :type haspropdata: HasPropertyData
     """
+
+
     _prop: PropertyClass | Iri | None
     _project: Project | None
+    _type: PropType
 
     def __init__(self, *,
                  con: IConnection,
@@ -87,11 +98,17 @@ class HasProperty(Model, Notify):
             fixed_prop = Iri(str(prop).removesuffix("Shape"))
             try:
                 self._prop = PropertyClass.read(self._con, self._project, fixed_prop)
+                self._type = PropType.STANDALONE
             except OldapErrorNotFound as err:
                 self._prop = fixed_prop
+                self._type = PropType.EXTERNAL
         else:
             self._prop = prop
-        self._prop = prop
+            if prop.externalOntology:
+                self._type = PropType.EXTERNAL
+            else:
+                self._type = PropType.INTERNAL
+        #self._prop = prop  # TODO: this overwrites the code above!!!!  CHECK WHY???
         self.set_attributes(kwargs, HasPropertyAttr)
 
         for attr in HasPropertyAttr:
@@ -113,9 +130,16 @@ class HasProperty(Model, Notify):
                 value.set_notifier(self.notifier, attr)
 
     def _as_dict(self):
+        if isinstance(self._prop, PropertyClass):
+            if not self._prop.internal:
+                ppp = self._prop.property_class_iri
+            else:
+                ppp = self._prop
+        else:
+            ppp = self._prop
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
             'project': self._project,
-            'prop': self._prop.property_class_iri if not self._prop.internal else self.prop
+            'prop': ppp
         }
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
@@ -144,6 +168,10 @@ class HasProperty(Model, Notify):
         s = f'HasProperty: {iri}\n'
         s += Model.__str__(self)
         return s
+
+    @property
+    def type(self) -> PropType:
+        return self._type
 
     @property
     def prop(self) -> PropertyClass | Iri | None:

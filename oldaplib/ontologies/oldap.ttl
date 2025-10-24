@@ -98,7 +98,7 @@ skos:inScheme rdf:type owl:ObjectProperty ;
 skos:prefLabel rdf:type owl:DatatypeProperty ;
           rdfs:range rdf:langString .
 
-skos:broaderTransitive rdf:type owl:ObjectProperty ;
+skos:broader rdf:type owl:ObjectProperty ;
           rdfs:range :OldapListNode .
 
 
@@ -667,7 +667,7 @@ oldap:DataPermission rdf:type owl:Class ;
         ],
         [
             rdf:type owl:Restriction ;
-            owl:onProperty skos:broaderTransitive ;
+            owl:onProperty skos:broader ;
             owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
             owl:onClass :OldapListNode
         ],

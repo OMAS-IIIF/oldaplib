@@ -17,124 +17,82 @@
 shared:shacl {
     shared:shapes schema:version "0.1.0"^^xsd:string .
 
-    #
-    # Define the SHACL for OLAPDLIB's use of rdfs:label
-    #
-    rdfs:labelShape a sh:PropertyShape ;
-        sh:path rdfs:label ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:datatype rdf:langString ;
-        sh:languageIn ( "en" "de" "fr" "it" ) ;
-        sh:uniqueLang true ;
-        sh:name "Label"@en,  "Label"@de, "Label"@fr, "Label"@it ;
-        sh:description "A human readable name for something."@en ;
-        oldap:externalOntology true .
-
-    #
-    # Define SHACl for OLDAPLIB's use rdf:description
-    #
-    rdfs:commentShape a sh:PropertyShape ;
-        sh:path rdfs:comment ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:datatype rdf:langString ;
-        sh:languageIn ( "en" "de" "fr" "it" ) ;
-        sh:uniqueLang true ;
-        sh:name "Description"@en ;
-        sh:description "A description for something."@en ;
-        oldap:externalOntology true .
-
     ###########################################################################
     # Chronology Date definitions
     ###########################################################################
-    oldap:ChronolgyStatementShape a sh:NodeShape, oldap:ChronolgyStatement ;
-        sh:targetClass :OldapListNode ;
+    oldap:ChronolgyStatementShape a sh:NodeShape ;
+        sh:targetClass oldap:ChronolgyStatement ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:property
-            [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
-                sh:path oldap:startJDC ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:datatype xsd:decimal ;
-            ] ;
-        sh:property
-            [
-                sh:path oldap:endJDC ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:datatype xsd:decimal ;
-            ] ;
-        sh:property
-            [
-                sh:path oldap:calendar ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:datatype xsd:string ;
-                sh:in ("GREGORIAN"^^xsd:string "JULIAN"^^xsd:string "HEBREW"^^xsd:string "ISLAMIC"^^xsd:string "PERSIAN"^^xsd:string) ;
-           ] ;
-        sh:property
-            [
-                sh:path oldap:before ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:class oldap:ChronolgyStatement ;
-            ] ;
-        sh:property
-            [
-                sh:path oldap:after ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:class oldap:ChronolgyStatement ;
-            ] ;
-        sh:property
-            [
-                sh:path oldap:minDelta ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:datatype xsd:decimal ;
-            ] ;
-        sh:property
-            [
-                sh:path oldap:maxDelta ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:datatype xsd:decimal ;
-            ] .
+        sh:property [
+            sh:path rdf:type ;
+        ] ;
+        sh:property [
+            sh:path oldap:startJDC ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:datatype xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path oldap:endJDC ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:datatype xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path oldap:calendar ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:datatype xsd:string ;
+            sh:in ("GREGORIAN"^^xsd:string "JULIAN"^^xsd:string "HEBREW"^^xsd:string "ISLAMIC"^^xsd:string "PERSIAN"^^xsd:string) ;
+       ] ;
+        sh:property [
+            sh:path oldap:before ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:class oldap:ChronolgyStatement ;
+        ] ;
+        sh:property [
+            sh:path oldap:after ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:class oldap:ChronolgyStatement ;
+        ] ;
+        sh:property [
+            sh:path oldap:minDelta ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:datatype xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path oldap:maxDelta ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:datatype xsd:decimal ;
+        ] .
 
 
 }

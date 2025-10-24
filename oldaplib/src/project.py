@@ -2,8 +2,9 @@ import json
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
+from pprint import pprint
 
-from typing import List, Self, Any
+from typing import List, Self, Any, Callable
 from datetime import date, datetime
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
@@ -13,6 +14,7 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.helpers.irincname import IriOrNCName
+from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.helpers.tools import lprint
 from oldaplib.src.xsd.iri import Iri
@@ -108,7 +110,7 @@ class Project(Model):
     #_attributes: dict[ProjectAttr, ProjectAttrTypes]
     #__changeset: dict[ProjectAttr, ProjectAttrChange]
 
-    __slots__ = ('projectIri', 'projectShortName', 'label', 'comment', 'namespaceIri', 'projectStart', 'projectEnd')
+    __slots__ = ('projectIri', 'projectShortName', 'label', 'comment', 'namespaceIri', 'projectStart', 'projectEnd', 'usesExternalOntology')
 
     def __init__(self, *,
                  con: IConnection,
@@ -174,12 +176,18 @@ class Project(Model):
                 partial(Project._get_value, attr=attr),
                 partial(Project._set_value, attr=attr),
                 partial(Project._del_value, attr=attr)))
+        if self._attributes.get(ProjectAttr.USES_EXTERNAL_ONTOLOGY):
+            self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].set_on_change(self.eo_notify)
         self._changeset = {}
 
     def update_notifier(self):
         for attr, value in self._attributes.items():
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
+
+    def eo_notify(self, d: ObservableDict):
+        if not self._changeset.get(ProjectAttr.USES_EXTERNAL_ONTOLOGY):
+            self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY] = AttributeChange(self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].copy(), Action.MODIFY)
 
     def _as_dict(self):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict()
@@ -230,6 +238,31 @@ class Project(Model):
         :return: None
         """
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
+
+    def add_external_ontology(self, ontos: dict[Xsd_NCName, NamespaceIRI]):
+        """
+        Adds external ontologies to the project.
+        :param dict[Xsd_NCName, NamespaceIRI]: Dictionary of external ontologies to add
+        :return: None
+        """
+        if not ontos:
+            return
+        if not self._attributes.get(ProjectAttr.USES_EXTERNAL_ONTOLOGY):
+            self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY] = ObservableDict()
+        for prefix, iri in ontos.items():
+            if not self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY]:
+                self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY] = AttributeChange(self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].copy(), Action.MODIFY)
+            self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY][prefix] = iri
+
+    def del_external_ontology(self, ontos: list[Xsd_NCName]):
+        if not ontos:
+            return
+        if not self._attributes.get(ProjectAttr.USES_EXTERNAL_ONTOLOGY):
+            raise OldapErrorInconsistency(f'Project {self} has no external ontologies.')
+        for prefix in ontos:
+            if not self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY]:
+                self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY] = AttributeChange(self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].copy(), Action.MODIFY)
+
 
     @classmethod
     def read(cls,
@@ -295,15 +328,17 @@ class Project(Model):
                     tmp._con = con
                     return tmp
             query += f"""
-                SELECT ?proj ?prop ?val
-                FROM NAMED oldap:admin
+                SELECT ?proj ?prop ?val ?prefix ?iri
                 WHERE {{
                     GRAPH oldap:admin {{
                         ?proj a oldap:Project .
-                        ?proj oldap:projectShortName ?shortname .
+                        ?proj oldap:projectShortName {shortname.toRdf} .
                         ?proj ?prop ?val .
+                        OPTIONAL {{
+                            ?val oldap:prefix ?prefix .
+                            ?val oldap:fullIri ?iri
+                        }}
                     }}
-                    FILTER(?shortname = {shortname.toRdf})
                 }}
             """
         jsonobj = con.query(query)
@@ -320,6 +355,7 @@ class Project(Model):
         comment = LangString()
         projectStart = None
         projectEnd = None
+        usesExternalOntology: dict[Xsd_QName, NamespaceIRI] | None = None
         for r in res:
             if projectIri is None:
                 projectIri = r['proj']
@@ -344,6 +380,10 @@ class Project(Model):
                     projectStart = r['val']
                 case 'oldap:projectEnd':
                     projectEnd = r['val']
+                case 'oldap:usesExternalOntology':
+                    if not usesExternalOntology:
+                        usesExternalOntology = {}
+                    usesExternalOntology[r['prefix']] = NamespaceIRI(r['iri'])
         if label:
             label.changeset_clear()
             label.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.LABEL.value))
@@ -362,7 +402,8 @@ class Project(Model):
                        namespaceIri=namespaceIri,
                        comment=comment,
                        projectStart=projectStart,
-                       projectEnd=projectEnd)
+                       projectEnd=projectEnd,
+                       usesExternalOntology=usesExternalOntology)
         cache = CacheSingletonRedis()
         cache.set(instance.projectIri, instance, instance.projectShortName)
         return instance
@@ -480,7 +521,12 @@ class Project(Model):
         for attr, value in self._attributes.items():
             if not value:
                 continue
-            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
+            if attr == ProjectAttr.USES_EXTERNAL_ONTOLOGY:
+                for prefix, iri in value.items():
+                    sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:usesExternalOntology [ oldap:prefix {prefix.toRdf} ; oldap:fullIri {iri.toRdf} ]'
+                pass
+            else:
+                sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
         sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -520,6 +566,22 @@ class Project(Model):
         :raises OldapErrorUpdateFailed: Raised if the update fails due to timestamp mismatch or other inconsistencies.
         :raises OldapError: Raised for other internal errors.
         """
+
+        def dict_diff(a: dict, b: dict) -> dict:
+            """
+            Compare two dicts and return added, removed, and changed key–values.
+            """
+            a_keys = set(a) if a else set()
+            b_keys = set(b) if b else set()
+            shared = a_keys & b_keys
+
+            return {
+                'added': {k: b[k] for k in b_keys - a_keys},
+                'removed': {k: a[k] for k in a_keys - b_keys},
+                'changed': {k: (a[k], b[k]) for k in shared if a[k] != b[k]},
+                'same': {k: a[k] for k in shared if a[k] == b[k]},
+            }
+
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)
@@ -545,20 +607,89 @@ class Project(Model):
                                                             field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 continue
+            if field == ProjectAttr.USES_EXTERNAL_ONTOLOGY:
+                if change.action == Action.MODIFY:
+                    diff = dict_diff(self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY].old_value, self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY])
+                    #
+                    # first we remove the "removed" and "changed"
+                    #
+                    to_delete = set(diff['removed']) | set(diff['changed'])
+                    for key in to_delete:
+                        sparql = f"""
+                        DELETE {{
+                            GRAPH oldap:admin {{
+                                {self.projectIri.toRdf} oldap:usesExternalOntology ?o .
+                                ?o ?p ?v .
+                            }}
+                        }}
+                        WHERE {{
+                            GRAPH oldap:admin {{
+                                ?o oldap:prefix {key.toRdf} .
+                                ?o oldap:fullIri ?anyiri .
+                            }}
+                        }}
+                        """
+                        sparql_list.append(sparql)
+                    to_add = set(diff['added']) | set(diff['changed'])
+                    sparql = f"""
+                    INSERT DATA {{
+                        GRAPH oldap:admin {{
+                    """
+                    for key in to_add:
+                        sparql += f"   {self.projectIri.toRdf} oldap:usesExternalOntology  [ oldap:prefix {key.toRdf} ; oldap:fullIri {self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY][key].toRdf} ] .\n"
+                    sparql += f"""
+                        }}
+                    }}
+                    """
+                    sparql_list.append(sparql)
+                if change.action == Action.DELETE:
+                    sparql = f"""
+                    DELETE {{
+                        GRAPH oldap:admin {{
+                            {self.projectIri.toRdf} oldap:usesExternalOntology ?o .
+                            ?o ?p ?v .
+                        }}
+                    }}
+                    WHERE {{
+                        GRAPH oldap:admin {{
+                            {self.projectIri.toRdf} oldap:usesExternalOntology ?o .
+                            ?o ?p ?v .
+                        }}
+                    }}
+                    """
+                    sparql_list.append(sparql)
+                if change.action == Action.CREATE:
+                    sparql = f"""
+                    INSERT DATA {{
+                        GRAPH oldap:admin {{
+                    """
+                    for prefix, iri in self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].items():
+                        sparql += f"   {self.projectIri.toRdf} oldap:usesExternalOntology  [ oldap:prefix {prefix.toRdf} ; oldap:fullIri {iri.toRdf} ] .\n"
+                    sparql += f"""
+                        }}
+                    }}
+                    """
+                    sparql_list.append(sparql)
+                continue
             sparql = f'{blank:{indent * indent_inc}}# Project field "{field.value}" with action "{change.action.value}"\n'
-            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
+                sparql += f'{blank:{(indent + 1)* indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {self._attributes[field].toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?project {field.value} {self._attributes[field].toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.projectIri.toRdf} as ?project)\n'
             if change.action != Action.CREATE:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?project {field.value} {change.old_value.toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = context.sparql_context
@@ -570,6 +701,7 @@ class Project(Model):
             self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.projectIri, self.modified, timestamp)
             modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.projectIri)
         except OldapError:
+            print(sparql)
             self._con.transaction_abort()
             raise
         if timestamp != modtime:

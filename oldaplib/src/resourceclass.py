@@ -3,15 +3,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from pprint import pprint
-from typing import Union, List, Dict, Callable, Self, Any, TypeVar, TYPE_CHECKING
-from unittest import case
+from typing import Union, List, Dict, Callable, Self, Any, TypeVar
 
-from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
+from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.globalconfig import GlobalConfig
-from oldaplib.src.hasproperty import HasProperty
+from oldaplib.src.hasproperty import HasProperty, PropType
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.observable_dict import ObservableDict
@@ -225,7 +224,7 @@ class ResourceClass(Model, Notify):
                  project: Project | Iri | Xsd_NCName | str,
                  owlclass_iri: Iri | str | None = None,
                  hasproperties: List[HasProperty] | None = None,
-                 external_ontology: bool | Xsd_boolean = False,
+                 _externalOntology: bool | Xsd_boolean = False,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
                  creator: Iri | None = None,  # DO NO USE! Only for jsonify!!
@@ -275,9 +274,7 @@ class ResourceClass(Model, Notify):
                        contributor=con.userIri,
                        modified=modified,
                        validate=validate)
-        #Notify.__init__(self, notifier, notify_data)
-
-        self._externalOntology = external_ontology if isinstance(external_ontology, Xsd_boolean) else Xsd_boolean(external_ontology)
+        self._externalOntology = _externalOntology if isinstance(_externalOntology, Xsd_boolean) else Xsd_boolean(_externalOntology)
         if isinstance(project, Project):
             self._project = project
         else:
@@ -308,17 +305,18 @@ class ResourceClass(Model, Notify):
             else:
                 new_kwargs[name] = value
         #
-        # now we add if necessary the mandatory superclass "oldap:Thing". Every ResourceClass is OLDAP must be
-        # a subclass of "oldap:Thing"!
+        # now we add, if necessary, the mandatory superclass "oldap:Thing". Every ResourceClass is OLDAP must be
+        # a subclass of "oldap:Thing"! We don't do it for system things with a prefix of "oldap".
         #
-        thing_iri = Iri('oldap:Thing', validate=False)
-        if self._owlclass_iri != thing_iri:
-            if not new_kwargs.get(ResClassAttribute.SUPERCLASS.value.fragment):
-                new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment] = self.assign_superclass(thing_iri)
-            else:
-                if not thing_iri in new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment]:
-                    thing = ResourceClass.read(self._con, self._sysproject, thing_iri)
-                    new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment][thing_iri] = thing
+        if owlclass_iri.prefix != "oldap":
+            thing_iri = Iri('oldap:Thing', validate=False)
+            if self._owlclass_iri != thing_iri:
+                if not new_kwargs.get(ResClassAttribute.SUPERCLASS.value.fragment):
+                    new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment] = self.assign_superclass(thing_iri)
+                else:
+                    if not thing_iri in new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment]:
+                        thing = ResourceClass.read(self._con, self._sysproject, thing_iri)
+                        new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment][thing_iri] = thing
         self.set_attributes(new_kwargs, ResClassAttribute)
 
         self._properties = {}
@@ -329,9 +327,13 @@ class ResourceClass(Model, Notify):
                     try:
                         hasprop.prop = PropertyClass.read(self._con, self._project, fixed_prop)
                     except OldapErrorNotFound as err:
-                        hasprop.prop = fixed_prop
+                        prop = PropertyClass(con=self._con,
+                                             project=self._project,
+                                             property_class_iri=fixed_prop,
+                                             _externalOntology=Xsd_boolean(True))
+                        hasprop.prop = prop
                 elif isinstance(hasprop.prop, PropertyClass):  # an internal, private property definition
-                    if not hasprop.prop._force_external:
+                    if hasprop.type == PropType.INTERNAL and not hasprop.prop._force_external:
                         hasprop.prop._internal = owlclass_iri
                 else:
                     raise OldapErrorValue(f'Unexpected property type: {type(hasprop.prop).__name__}')
@@ -392,6 +394,7 @@ class ResourceClass(Model, Notify):
             'project': self._project.projectShortName,
             'owlclass_iri': self._owlclass_iri,
             'hasproperties': [x for x in self._properties.values()],
+            **({'_externalOntology': self._externalOntology} if self._externalOntology else {}),
         }
 
     def __eq__(self, other: Self):
@@ -443,7 +446,9 @@ class ResourceClass(Model, Notify):
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, key)
+
         if isinstance(key, ResClassAttribute):
+            assert isinstance(key, ResClassAttribute), f"Expected ResClassAttribute type, got {type(value)}"
             super()._change_setter(key, value)
             if self._attributes.get(key) is None:
                 self._changeset[key] = ResourceClassPropertyChange(None, Action.CREATE, False)
@@ -455,7 +460,7 @@ class ResourceClass(Model, Notify):
             if key == ResClassAttribute.SUPERCLASS: # we can only change the superclass in the instance of ResourceClass if it's not in use
                 self._test_in_use = True
 
-        elif isinstance(key, Iri):  # Iri, we add a HasProperty instance
+        elif isinstance(key, Iri):  # Iri, we add a HasProrty instance
             if self._properties.get(key) is None:  # Property not set -> CREATE action
                 self._changeset[key] = ResourceClassPropertyChange(None, Action.CREATE, False)
                 if isinstance(value.prop, Iri):  # we just add a reference to an existing (!) standalone property!
@@ -466,8 +471,9 @@ class ResourceClass(Model, Notify):
                     except OldapErrorNotFound as err:
                         self._properties[key] = value
                 else:
-                    value.prop._internal = self._owlclass_iri  # we need to access the private variable here
-                    value.prop._property_class_iri = key  # we need to access the private variable here
+                    if value.type == PropType.INTERNAL:
+                        value.prop._internal = self._owlclass_iri  # we need to access the private variable here
+                        value.prop._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
             else:  # REPLACE action
                 if self._changeset.get(key) is None:
@@ -676,6 +682,27 @@ class ResourceClass(Model, Notify):
     def __query_shacl(con: IConnection,
                       project: Project,
                       owl_class_iri: Iri) -> Attributes:
+        """
+        Executes a SPARQL query to retrieve the attributes of a given OWL class from a SHACL
+        graph using the provided connection and project context. This function processes the
+        query results and organizes attributes into a dictionary format for further usage.
+        NOTE: It reads only the attributes of a given OWL class, not the properties!
+
+        :param con: Connection instance providing methods to interact with the ontology.
+        :type con: IConnection
+        :param project: Project instance associated with the ontology and used to build the
+            query context and graph.
+        :type project: Project
+        :param owl_class_iri: The IRI of the OWL class for which attributes need to be
+            retrieved.
+        :type owl_class_iri: Iri
+        :return: A dictionary containing attributes of the OWL class. Keys are attribute IRIs
+            and values are lists of corresponding attribute values.
+        :rtype: Attributes
+        :raises OldapErrorNotFound: If the provided OWL class IRI does not correspond to any
+            resource in the SHACL graph.
+        :raises OldapError: If an inconsistent shape is found for the provided OWL class IRI.
+        """
         context = Context(name=con.context_name)
         context[project.projectShortName] = project.namespaceIri
         context.use(project.projectShortName)
@@ -704,7 +731,7 @@ class ResourceClass(Model, Notify):
                 if tmp_owl_class_iri != owl_class_iri:
                     raise OldapError(f'Inconsistent Shape for "{owl_class_iri}": rdf:type="{tmp_owl_class_iri}"')
             elif attriri == 'sh:property':
-                continue  # processes later – points to a BNode containing
+                continue  # processes later – points to a BNode containing the property definition or to a PropertyShape...
             else:
                 attriri = r['attriri']
                 if isinstance(r['value'], Iri):
@@ -797,30 +824,42 @@ class ResourceClass(Model, Notify):
         #
         # There may be several ways to define these properties:
         #
-        # A. sh:property <iri> ;
-        #    Reference to an external property without any additional information. The property may be a foreign
-        #    property (e.g. cidoc:E5_Event) or a standalone property within the given datamodel
-        # B. sh:property [
-        #        sh:node <iri> ;
-        #        sh:maxCount "1"^^xsd:integer
-        #    ]
-        #    Reference to a foreign or standalone property with additional information (sh:minCount, sh:maxCount,
-        #    sh:order, sh:group)
-        # C. sh:property [
+        # A. Standalone property where we add per-property-usage constraints
+        #    HasProperty.type = HasProperty.STANDALONE
+        #
+        #    sh:property <iri>Shape ,
+        #    [
+        #       sh:path <iri> ;
+        #       sh:maxCount 1 ;  # OPTIONAL
+        #       ...  # minCount, orer, group
+        #    ] ;
+        #
+        # B: Internal property
+        #
+        #    sh:property [
+        #       sh:path <iri> ;
         #        dcterm:creation "..." ;
         #        ...
         #        sh:datatype: xsd:string ;
         #        ...
-        #    ]
-        #    An internal property local to this resource. May not be reused for other resources!
+        #    ] ;
+        #
+        # C. External Property from an external ontology
+        #    HasProperty.type = HasProperty.EXTERNAL
+        #
+        #    sh:property [
+        #       sh:path <iri> ;
+        #       sh:maxCount 1 ;  # OPTIONAL
+        #       ...  # minCount, orer, group
+        #    ] ;
+        #
         #
         query = context.sparql_context
         query += f"""
         SELECT ?prop ?attriri ?value ?oo
         FROM {graph}:shacl
         WHERE {{
-            BIND({owlclass_iri}Shape AS ?shape)
-            ?shape sh:property ?prop .
+            {owlclass_iri.toRdf}Shape sh:property ?prop .
             OPTIONAL {{
                 ?prop ?attriri ?value .
                 OPTIONAL {{
@@ -831,96 +870,85 @@ class ResourceClass(Model, Notify):
         """
         jsonobj = con.query(query)
         res = QueryProcessor(context=context, query_result=jsonobj)
-        propinfos: Dict[Iri, Attributes] = {}
+        propinfos: Dict[Iri | BNode, Attributes] = {}
         #
         # first we run over all triples to gather the information about the properties of the possible
         # BNode based sh:property-Shapes.
         # NOTE: some of the nodes may actually be QNames referencing shapes defines as "standalone" sh:PropertyShape's.
         #
         for r in res:
-            if r.get('value') and isinstance(r['value'], Iri) and r['value'] == 'rdf:type':
-                continue
-            if r.get('attriri') and not isinstance(r['attriri'], Iri):
-                raise OldapError(f"There is some inconsistency in this shape! ({r['attriri']})")
-            propnode = r['prop']  # Iri (case A. above) or a BNode (case B. and C. above)
-            prop: PropertyClass | Iri
-            if isinstance(propnode, Iri):
-                qname = propnode
-                propinfos[qname] = propnode
-            elif isinstance(propnode, BNode):
-                if propinfos.get(propnode) is None:
-                    propinfos[propnode]: Attributes = {}
-                PropertyClass.process_triple(r, propinfos[propnode])
-            else:
-                raise OldapError(f'Unexpected type for propnode in SHACL. Type = "{type(propnode)}".')
+            if isinstance(r['prop'], Iri):
+                # we have a reference to a property shape of a standalone property: we read it
+                # and add it to the list of standalone properties if it does not exist yet
+                if str(r['prop']).endswith("Shape"):
+                    refprop = Iri(str(r['prop'])[:-5], validate=False)
+                    if not sa_props:
+                        sa_props: dict[Iri, PropertyClass] = {}
+                    if not refprop in sa_props:
+                        sa_props[refprop] = PropertyClass.read(con=con, project=project, property_class_iri=refprop)
+                        sa_props[refprop]._externalOntology = Xsd_boolean(True)
+                else:
+                    raise OldapErrorInconsistency(f'Value "{r['prop']}" must end with "Shape".')
+            if isinstance(r['prop'], BNode):
+                # it's a blank node containing the property information
+                # if it's a new BNode, let's add the property attributes for this new property defintion
+                if r['attriri'] == 'sh:path' and r['value'] == 'rdf:type':
+                    continue  # TODO: get rid of the triple "BNODE sh:path sh:type !!!
+                if r['prop'] not in propinfos:
+                    propinfos[r['prop']]: Attributes = {}
+                if r.get('attriri') and not isinstance(r['attriri'], Iri):
+                    raise OldapError(f"There is some inconsistency in this shape! ({r['attriri']})")
+                # now let's process the triples of the property (blank) node
+                PropertyClass.process_triple(r, propinfos[r['prop']])
+
+        propinfos2 = {v["sh:path"]: v for v in propinfos.values() if "sh:path" in v}
+
         #
         # now we collected all the information from the triple store. Let's process the information into
         # a list of full PropertyClasses or QName's to external definitions
         #
         proplist: List[HasProperty] = []
-        for prop_iri, attributes in propinfos.items():
-            if isinstance(attributes, Iri):
-                #
-                # Case A.: sh:property <iri> ;
-                #
-                if sa_props and prop_iri in sa_props:
-                    proplist.append(HasProperty(con=con,
-                                                project=project,
-                                                prop=sa_props[prop_iri]))
-                else:
-                    proplist.append(HasProperty(con=con,
-                                                project=project,
-                                                prop=prop_iri))
+        for prop_iri, attributes in propinfos2.items():
+            #
+            # Case A, standalone property
+            #
+            if sa_props and prop_iri in sa_props:
+                proplist.append(HasProperty(con=con,
+                                            project=project,
+                                            prop=sa_props[prop_iri],
+                                            minCount=attributes.get(Iri('sh:minCount')),
+                                            maxCount=attributes.get(Iri('sh:maxCount')),
+                                            order=attributes.get(Iri('sh:order')),
+                                            group=attributes.get(Iri('sh:group'))))
             else:
                 prop = PropertyClass(con=con, project=project)
                 haspropdata = prop.parse_shacl(attributes=attributes)
-                if haspropdata.refprop:
+                if prop.property_class_iri.as_qname.prefix in [project.projectShortName, 'oldap', 'shared']:
                     #
-                    # Case B.
+                    # Case B, internal property
                     #
-                    if sa_props and haspropdata.refprop in sa_props:
-                        proplist.append(HasProperty(con=con,
-                                                    project=project,
-                                                    prop=sa_props[haspropdata.refprop],
-                                                    minCount=haspropdata.minCount,
-                                                    maxCount=haspropdata.maxCount,
-                                                    order=haspropdata.order,
-                                                    group=haspropdata.group))  # TODO: Callback ????
-                    else:
-                        if haspropdata.refprop.is_qname:
-                            if haspropdata.refprop.as_qname.prefix != project.projectShortName:
-                                # TODO: the list has to come from outside! Config?? Or read from triplestore? !!!!!!!!!!
-                                if haspropdata.refprop.as_qname.prefix in {'rdfs', 'dcterms', 'schema'}:
-                                    propproj = Project.read(con=con, projectIri_SName='oldap')
-                                else:
-                                    propproj = Project.read(con=con, projectIri_SName=haspropdata.refprop.as_qname.prefix)
-                            else:
-                                propproj = project
-                        else:
-                            propproj = project
-                        prop = PropertyClass.read(con, propproj, haspropdata.refprop)
-                        prop.force_external()
-                        proplist.append(HasProperty(con=con,
-                                                    project=project,
-                                                    prop=prop,
-                                                    minCount=haspropdata.minCount,
-                                                    maxCount=haspropdata.maxCount,
-                                                    order=haspropdata.order,
-                                                    group=haspropdata.group))  # TODO: Callback ????
-                else:
-                    #
-                    # Case C.
-                    #
-                    prop.read_owl()
-                    if prop._internal != owlclass_iri:
-                        OldapErrorInconsistency(f'ERRROR ERROR ERROR')
+                    prop._internal = owlclass_iri
                     proplist.append(HasProperty(con=con,
                                                 project=project,
                                                 prop=prop,
                                                 minCount=haspropdata.minCount,
                                                 maxCount=haspropdata.maxCount,
                                                 order=haspropdata.order,
-                                                group=haspropdata.group))  # TODO: Callback ????
+                                                group=haspropdata.group))
+                else:
+                    #
+                    # Case C, external property
+                    #
+                    # we check, if the external property is already defined somewhere in the project or the shared
+                    prop._externalOntology = Xsd_boolean(True)
+                    proplist.append(HasProperty(con=con,
+                                                project=project,
+                                                #prop=sa_props[prop_iri] if sa_props and prop_iri in sa_props else prop.property_class_iri,
+                                                prop=prop,
+                                                minCount=haspropdata.minCount,
+                                                maxCount=haspropdata.maxCount,
+                                                order=haspropdata.order,
+                                                group=haspropdata.group))
         return proplist
 
     def __read_owl(self) -> None:
@@ -968,7 +996,8 @@ class ResourceClass(Model, Notify):
             prop = [x for x in self._properties if x == property_iri]
             if len(prop) != 1:
                 raise OldapError(f'Property "{property_iri}" of "{self._owlclass_iri}" from OWL has no SHACL definition!')
-            self._properties[prop[0]].prop.read_owl()
+            if isinstance(self._properties[prop[0]].prop, PropertyClass) and not self._properties[prop[0]].prop._externalOntology:
+                self._properties[prop[0]].prop.read_owl()
         #
         # now get all the subClassOf of other classes
         #
@@ -1046,15 +1075,6 @@ class ResourceClass(Model, Notify):
                                                                                       sa_props=sa_props)
         resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, hasproperties=hasproperties)
         resclass.update_notifier()
-        # for hasprop in hasproperties:
-        #     if isinstance(hasprop, HasProperty):  # not an Iri...
-        #         if isinstance(hasprop.prop, PropertyClass):
-        #             hasprop.prop.set_notifier(resclass.notifier, hasprop.prop.property_class_iri)
-        #             hasprop.set_notifier(resclass.hp_notifier, hasprop.prop.property_class_iri)
-        #         elif isinstance(hasprop.prop, Iri):
-        #             hasprop.set_notifier(resclass.hp_notifier, hasprop.prop)
-        #         else:
-        #             raise OldapError(f'Invalid datatype: {type(hasprop.prop).__name}')
         attributes = ResourceClass.__query_shacl(con, project=project, owl_class_iri=owl_class_iri)
         resclass._parse_shacl(attributes=attributes)
         if not resclass.externalOntology:
@@ -1077,8 +1097,7 @@ class ResourceClass(Model, Notify):
         sparql += f"{blank:{indent * indent_inc}}SELECT ?modified\n"
         sparql += f"{blank:{indent * indent_inc}}FROM {graph}:shacl\n"
         sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
-        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._owlclass_iri}Shape as ?res)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{self._owlclass_iri}Shape dcterms:modified ?modified .\n'
         sparql += f"{blank:{indent * indent_inc}}}}"
         jsonobj = self.safe_query(sparql)
         res = QueryProcessor(context, jsonobj)
@@ -1095,8 +1114,7 @@ class ResourceClass(Model, Notify):
         sparql += f"{blank:{indent * indent_inc}}SELECT ?modified\n"
         sparql += f"{blank:{indent * indent_inc}}FROM {graph}:onto\n"
         sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
-        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._owlclass_iri} as ?res)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}{self._owlclass_iri} dcterms:modified ?modified .\n'
         sparql += f"{blank:{indent * indent_inc}}}}"
         jsonobj = self.safe_query(sparql)
         res = QueryProcessor(context, jsonobj)
@@ -1107,9 +1125,8 @@ class ResourceClass(Model, Notify):
     def create_shacl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
-        sparql += f'{blank:{(indent + 1)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape, {self._owlclass_iri.toRdf}'
+        sparql += f'{blank:{(indent + 1)*indent_inc}}{self._owlclass_iri}Shape a sh:NodeShape'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:targetClass {self._owlclass_iri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}schema:version {self.__version.toRdf}'
         self._created = timestamp
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}dcterms:creator {self._creator.toRdf}'
@@ -1131,34 +1148,33 @@ class ResourceClass(Model, Notify):
             else:
                 sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}{attr.value} {value.toRdf}'
 
-        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property'
-        sparql += f'\n{blank:{(indent + 3) * indent_inc}}['
-        sparql += f'\n{blank:{(indent + 4) * indent_inc}}sh:path rdf:type'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
+        # TODO: Check if the following is needed.
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property ['
+        sparql += f'\n{blank:{(indent + 3) * indent_inc}}sh:path rdf:type'
+        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}]'
 
         for iri, hp in self._properties.items():
-            if isinstance(hp.prop, Iri):
-                # just a property Iri (to some foreign property in an "unknown" ontology...
-                sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {hp.prop.toRdf}'
-                continue
-            if hp.prop.internal is not None:
-                # it's an internal property
-                sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property'
-                sparql += f'\n{blank:{(indent + 3)*indent_inc}}[\n'
-                sparql += hp.prop.property_node_shacl(timestamp=timestamp,
-                                                      haspropdata=hp.haspropdata,
-                                                      indent=4)
-                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
-            else:
-                # it's an external but well known property within the ontolopgy...
-                if hp.minCount or hp.maxCount or hp.order or hp.group:
-                    sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property'
-                    sparql += f'\n{blank:{(indent + 3) * indent_inc}}['
-                    sparql += f'\n{blank:{(indent + 4) * indent_inc}}sh:node {iri}Shape'
-                    sparql += hp.create_shacl(indent=4)
-                    sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
-                else:
-                    sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property {iri}Shape'
+            match hp.type:
+                case PropType.EXTERNAL:  # from an external ontology like dcterms, skos, schema etc.
+                    sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property ['
+                    sparql += f'\n{blank:{(indent + 3) * indent_inc}}sh:path {iri.toRdf}'
+                    if hp.minCount or hp.maxCount or hp.order or hp.group:
+                        sparql += hp.create_shacl(indent=3)
+                    sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}]'
+                case PropType.INTERNAL:
+                    sparql += f' ;\n{blank:{(indent + 2)*indent_inc}}sh:property ['
+                    sparql += hp.prop.property_node_shacl(timestamp=timestamp,
+                                                          haspropdata=hp.haspropdata,
+                                                          indent=3)
+                    sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}]'
+                case PropType.STANDALONE:
+                    if hp.minCount or hp.maxCount or hp.order or hp.group:
+                        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {iri}Shape, ['
+                        sparql += f'\n{blank:{(indent + 3) * indent_inc}}sh:path {iri.toRdf}'
+                        sparql += hp.create_shacl(indent=2)
+                        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
+                    else:
+                        sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {iri}Shape'
         #if len(self._properties) > 0:
         sparql += ' .\n'
         return sparql
@@ -1169,7 +1185,7 @@ class ResourceClass(Model, Notify):
         blank = ''
         sparql = ''
         for iri, hp in self._properties.items():
-            if isinstance(hp.prop, Iri):
+            if hp.type == PropType.EXTERNAL:
                 continue
             if not hp.prop.from_triplestore:
                 sparql += hp.prop.create_owl_part1(timestamp, indent + 2) + '\n'
@@ -1195,6 +1211,8 @@ class ResourceClass(Model, Notify):
         sparql += f'{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {valstr}'
         i = 0
         for iri, hp in self._properties.items():
+            if not (hp.minCount or hp.maxCount or self._attributes.get(PropClassAttr.DATATYPE) or self._attributes.get(PropClassAttr.CLASS)):
+                continue
             sparql += ' ,\n'
             if isinstance(hp.prop, Iri):
                 sparql += f'{blank:{(indent + 3) * indent_inc}}[\n'
@@ -1265,7 +1283,7 @@ class ResourceClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError:
-            lprint(sparql)
+            print(sparql)
             self._con.transaction_abort()
             raise
 
@@ -1391,6 +1409,7 @@ class ResourceClass(Model, Notify):
         # we loop over all items in the changeset of the resource
         #
         for item, change in self._changeset.items():
+            item: Union[Iri, HasProperty]
             if isinstance(item, ResClassAttribute):  # we have just an attribute or ResourceClass
                 #
                 # Do the changes to the ResourceClass attributes
@@ -1440,7 +1459,7 @@ class ResourceClass(Model, Notify):
                                                 last_modified=self._modified)
                 if sparql:
                     sparql_list.append(sparql)
-            elif isinstance(item, Iri):  # Something affected the self._properties
+            elif isinstance(item, Iri): # noinspection PyUnreachableCode
                 #
                 # Something affected the self._properties
                 #
@@ -1531,7 +1550,8 @@ class ResourceClass(Model, Notify):
                                                                                      timestamp=timestamp)
                                 if sparql:
                                     sparql_list.append(sparql)
-
+            else:
+                pass
         #
         #######################################
         #
@@ -1612,6 +1632,7 @@ class ResourceClass(Model, Notify):
         # we loop over all items in the changeset of the resource
         #
         for item, change in self._changeset.items():
+            item: Union[ResClassAttribute, Iri]
             if isinstance(item, ResClassAttribute):  # we have just an attribute or ResourceClass
                 #
                 # Do the changes to the ResourceClass attributes

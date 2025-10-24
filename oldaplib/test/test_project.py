@@ -133,11 +133,10 @@ class Testproject(unittest.TestCase):
 
     def test_project_search_all(self):
         projects = Project.search(con=self._connection)
-        print(projects)
-        self.assertEqual({ProjectSearchResult(Iri("oldap:SystemProject"), Xsd_NCName("oldap")),
+        self.assertTrue(set(projects) >= {ProjectSearchResult(Iri("oldap:SystemProject"), Xsd_NCName("oldap")),
                           ProjectSearchResult(Iri("oldap:SharedProject"), Xsd_NCName("shared")),
                           ProjectSearchResult(Iri("oldap:HyperHamlet"), Xsd_NCName("hyha")),
-                          ProjectSearchResult(Iri("http://www.salsah.org/version/2.0/SwissBritNet"), Xsd_NCName("britnet"))}, set(projects))
+                          ProjectSearchResult(Iri("http://www.salsah.org/version/2.0/SwissBritNet"), Xsd_NCName("britnet"))})
 
     def test_project_create_simplest(self):
         project = Project(con=self._connection,
@@ -260,6 +259,83 @@ class Testproject(unittest.TestCase):
         project.delete()
         project = Project.read(con=self._connection, projectIri_SName="unittest6", ignore_cache=True)
         project.delete()
+
+    def test_project_create_with_external_ontologies_A(self):
+        project = Project(con=self._connection,
+                          projectShortName="WithExternalOntologiesA",
+                          label=LangString("External Ontologies"),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittestXX#"),
+                          comment=LangString(["For testingXX@en", "Für TestsXX@de"]),
+                          projectStart=Xsd_date(2024, 3, 3),
+                          projectEnd=Xsd_date(2027, 3, 2),
+                          usesExternalOntology={
+                              Xsd_NCName("prefix1"): NamespaceIRI("http://prefix1.org/"),
+                              Xsd_NCName("prefix2"): NamespaceIRI("http://prefix2.org/")
+                          })
+        project.create()
+        project = Project.read(con=self._connection, projectIri_SName="WithExternalOntologiesA", ignore_cache=True)
+        self.assertEqual(project.usesExternalOntology, {
+                              Xsd_NCName("prefix1"): NamespaceIRI("http://prefix1.org/"),
+                              Xsd_NCName("prefix2"): NamespaceIRI("http://prefix2.org/")
+                          })
+
+    def test_project_create_with_external_ontologies_B(self):
+        project = Project(con=self._connection,
+                          projectShortName="WithExternalOntologiesB",
+                          label=LangString("External Ontologies"),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittestXX#"),
+                          comment=LangString(["For testingXX@en", "Für TestsXX@de"]),
+                          projectStart=Xsd_date(2024, 3, 3),
+                          projectEnd=Xsd_date(2027, 3, 2),
+                          usesExternalOntology={
+                              Xsd_NCName("prefix1"): NamespaceIRI("http://prefix1.org/"),
+                              Xsd_NCName("prefix2"): NamespaceIRI("http://prefix2.org/")
+                          })
+        project.create()
+        project = Project.read(con=self._connection, projectIri_SName="WithExternalOntologiesB", ignore_cache=True)
+        del project.usesExternalOntology
+        project.update()
+        project = Project.read(con=self._connection, projectIri_SName="WithExternalOntologiesB", ignore_cache=True)
+        self.assertIsNone(project.usesExternalOntology)
+
+    def test_project_create_with_external_ontologies_C(self):
+        project = Project(con=self._connection,
+                          projectShortName="WithExternalOntologiesC",
+                          label=LangString("External Ontologies"),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittestXX#"),
+                          comment=LangString(["For testingXX@en", "Für TestsXX@de"]),
+                          projectStart=Xsd_date(2024, 3, 3),
+                          projectEnd=Xsd_date(2027, 3, 2))
+        project.create()
+        project = Project.read(con=self._connection, projectIri_SName="WithExternalOntologiesC", ignore_cache=True)
+        project.usesExternalOntology = {Xsd_NCName('prefix') : NamespaceIRI('http://prefix.org/')}
+        project.update()
+        project = Project.read(con=self._connection, projectIri_SName="WithExternalOntologiesC", ignore_cache=True)
+        self.assertEqual(project.usesExternalOntology, {Xsd_NCName('prefix') : NamespaceIRI('http://prefix.org/')})
+
+    def test_project_create_with_external_ontologies_D(self):
+        project = Project(con=self._connection,
+                          projectShortName="WithExternalOntologiesD",
+                          label=LangString("External Ontologies"),
+                          namespaceIri=NamespaceIRI("http://unitest.org/project/unittestXX#"),
+                          comment=LangString(["For testingXX@en", "Für TestsXX@de"]),
+                          projectStart=Xsd_date(2024, 3, 3),
+                          projectEnd=Xsd_date(2027, 3, 2),
+                          usesExternalOntology={
+                              Xsd_NCName("prefix1"): NamespaceIRI("http://prefix1.org/"),
+                              Xsd_NCName("prefix2"): NamespaceIRI("http://prefix2.org/")
+                          })
+        project.create()
+        project = Project.read(con=self._connection, projectIri_SName="WithExternalOntologiesD", ignore_cache=True)
+        del project.usesExternalOntology['prefix1']
+        project.usesExternalOntology[Xsd_NCName('prefix2')] = NamespaceIRI("http://prefix2.org/CHANGED/")
+        project.usesExternalOntology[Xsd_NCName('prefix3')] = NamespaceIRI("http://prefix3.org/")
+        project.update()
+        project = Project.read(con=self._connection, projectIri_SName="WithExternalOntologiesD", ignore_cache=True)
+        self.assertEqual(project.usesExternalOntology, {
+                              Xsd_NCName("prefix2"): NamespaceIRI("http://prefix2.org/CHANGED/"),
+                              Xsd_NCName("prefix3"): NamespaceIRI("http://prefix3.org/")
+                          })
 
 
     def test_project_create_without_label_comment(self):

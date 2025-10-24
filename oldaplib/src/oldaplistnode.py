@@ -564,14 +564,14 @@ class OldapListNode(Model):
             update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.DEFINITION.value} {self.definition.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:leftIndex ?nlindex'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex ?nrindex'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:broaderTransitive ?parent_node'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:broader ?parent_node'
         update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}WHERE {{'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:lists {{'
         update1 += f' \n{blank:{(indent + 2) * indent_inc}}{leftnode.iri.toRdf} oldap:rightIndex ?rindex'
         update1 += f' ;\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
-        update1 += f'\n{blank:{(indent + 3) * indent_inc}}{leftnode.iri.toRdf} skos:broaderTransitive ?parent_node'
+        update1 += f'\n{blank:{(indent + 3) * indent_inc}}{leftnode.iri.toRdf} skos:broader ?parent_node'
         update1 += f' .\n{blank:{(indent + 2) * indent_inc}}}}'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}BIND((?rindex + 1) AS ?nlindex)'
@@ -718,7 +718,7 @@ class OldapListNode(Model):
             update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.DEFINITION.value} {self.definition.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:leftIndex ?lindex'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex ?nrindex'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:broaderTransitive ?parent_node'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:broader ?parent_node'
         update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}WHERE {{'
@@ -726,7 +726,7 @@ class OldapListNode(Model):
         update1 += f' \n{blank:{(indent + 2) * indent_inc}}{rightnode.iri.toRdf} oldap:leftIndex ?lindex'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex ?rindex'
         update1 += f' ;\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
-        update1 += f'\n{blank:{(indent + 3) * indent_inc}}{rightnode.iri.toRdf} skos:broaderTransitive ?parent_node'
+        update1 += f'\n{blank:{(indent + 3) * indent_inc}}{rightnode.iri.toRdf} skos:broader ?parent_node'
         update1 += f' .\n{blank:{(indent + 2) * indent_inc}}}}'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{(indent + 1) * indent_inc}}BIND((?lindex + 1) AS ?nrindex)'
@@ -857,7 +857,7 @@ class OldapListNode(Model):
         SELECT ?node
         WHERE {{
             GRAPH {self.__graph}:lists {{
-                ?node skos:broaderTransitive {parentnode.iri.toRdf} .
+                ?node skos:broader {parentnode.iri.toRdf} .
             }}
         }}
         """
@@ -885,7 +885,7 @@ class OldapListNode(Model):
             update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}{OldapListNodeAttr.DEFINITION.value} {self.definition.toRdf}'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:leftIndex ?nlindex'
         update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:rightIndex ?nrindex'
-        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:broaderTransitive {parentnode.iri.toRdf}'
+        update1 += f' ;\n{blank:{(indent + 3) * indent_inc}}skos:broader {parentnode.iri.toRdf}'
         update1 += f' .\n{blank:{(indent + 1) * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}}}'
         update1 += f'\n{blank:{indent * indent_inc}}WHERE {{'
@@ -1074,7 +1074,7 @@ class OldapListNode(Model):
         SELECT ?node
         WHERE {{
             GRAPH {self.__graph}:lists {{
-                ?node skos:broaderTransitive {self.__iri.toRdf}
+                ?node skos:broader {self.__iri.toRdf}
             }}
         }}
         """
@@ -1082,7 +1082,7 @@ class OldapListNode(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OldapErrorInUse(f'Cannot delete node with skos:broaderTransitive pointing to it!')
+            raise OldapErrorInUse(f'Cannot delete node with skos:broader pointing to it!')
 
         query2 = context.sparql_context
         query2 += f"""
@@ -1314,7 +1314,7 @@ class OldapListNode(Model):
         Moves a node and its subtree below a target node within a hierarchical structure. This operation
         modifies the index values (`leftIndex` and `rightIndex`) of the nodes to reflect their new position
         in the hierarchy. The function ensures consistency in the index values and prevents any invalid
-        hierarchical relationships. The function also updates the parent reference (`broaderTransitive`)
+        hierarchical relationships. The function also updates the parent reference (`broader`)
         after the move and commits the changes to the graph.
 
         :param con: The connection interface to interact with the graph/database.
@@ -1356,7 +1356,7 @@ class OldapListNode(Model):
                     oldap:leftIndex ?lindex ;
                     oldap:rightIndex ?rindex ;
                 OPTIONAL {{
-                    {self.__iri.toRdf} skos:broaderTransitive ?parent_iri .
+                    {self.__iri.toRdf} skos:broader ?parent_iri .
                 }}
             }}
         }}
@@ -1530,27 +1530,27 @@ class OldapListNode(Model):
         self.safe_update(update4)
 
         #
-        # update parent (skos:broaderTransitive)
+        # update parent (skos:broader)
         #
         update5 = context.sparql_context
         if moving_parent_iri:
             update5 += f"""
             DELETE {{
                 GRAPH {self.__graph}:lists {{
-                    ?subject skos:broaderTransitive ?parent .
+                    ?subject skos:broader ?parent .
                 }}
             }}
             """
         update5 += f"""
         INSERT {{
             GRAPH {self.__graph}:lists {{
-                ?subject skos:broaderTransitive {target.__iri.toRdf} .
+                ?subject skos:broader {target.__iri.toRdf} .
             }}
         }}
         WHERE {{
             BIND({self.__iri.toRdf} AS ?subject)
             OPTIONAL {{
-                ?subject skos:broaderTransitive ?parent .
+                ?subject skos:broader ?parent .
             }}
         }}
         """
@@ -1609,7 +1609,7 @@ class OldapListNode(Model):
                     oldap:leftIndex ?lindex ;
                     oldap:rightIndex ?rindex .
                 OPTIONAL {{
-                    {self.__iri.toRdf} skos:broaderTransitive ?parent_iri .
+                    {self.__iri.toRdf} skos:broader ?parent_iri .
                 }}
             }}
         }}
@@ -1640,7 +1640,7 @@ class OldapListNode(Model):
                     oldap:leftIndex ?lindex ;
                     oldap:rightIndex ?rindex ;
                 OPTIONAL {{
-                    {leftnode.__iri.toRdf} skos:broaderTransitive ?parent_iri .
+                    {leftnode.__iri.toRdf} skos:broader ?parent_iri .
                 }}
             }}
         }}
@@ -1793,7 +1793,7 @@ class OldapListNode(Model):
             update5 += f"""
             DELETE {{
                 GRAPH {self.__graph}:lists {{
-                    ?subject skos:broaderTransitive ?parent .
+                    ?subject skos:broader ?parent .
                 }}
             }}
         """
@@ -1801,14 +1801,14 @@ class OldapListNode(Model):
             update5 += f"""
             INSERT {{
                 GRAPH {self.__graph}:lists {{
-                    ?subject skos:broaderTransitive {left_parent_iri.toRdf} .
+                    ?subject skos:broader {left_parent_iri.toRdf} .
                 }}
             }}
         """
         update5 += f"""
         WHERE {{
             BIND({self.__iri.toRdf} AS ?subject)
-            ?subject skos:broaderTransitive ?parent .
+            ?subject skos:broader ?parent .
         }}
         """
         if moving_parent_iri or left_parent_iri:
@@ -1865,7 +1865,7 @@ class OldapListNode(Model):
                     oldap:leftIndex ?lindex ;
                     oldap:rightIndex ?rindex .
                 OPTIONAL {{
-                    {self.__iri.toRdf} skos:broaderTransitive ?parent_iri .
+                    {self.__iri.toRdf} skos:broader ?parent_iri .
                 }}
             }}
         }}
@@ -1896,7 +1896,7 @@ class OldapListNode(Model):
                     oldap:leftIndex ?lindex ;
                     oldap:rightIndex ?rindex ;
                 OPTIONAL {{
-                    {rightnode.__iri.toRdf} skos:broaderTransitive ?parent_iri .
+                    {rightnode.__iri.toRdf} skos:broader ?parent_iri .
                 }}
             }}
         }}
@@ -2049,7 +2049,7 @@ class OldapListNode(Model):
             update5 += f"""
             DELETE {{
                 GRAPH {self.__graph}:lists {{
-                    ?subject skos:broaderTransitive ?parent .
+                    ?subject skos:broader ?parent .
                 }}
             }}
         """
@@ -2057,14 +2057,14 @@ class OldapListNode(Model):
             update5 += f"""
             INSERT {{
                 GRAPH {self.__graph}:lists {{
-                    ?subject skos:broaderTransitive {right_parent_iri.toRdf} .
+                    ?subject skos:broader {right_parent_iri.toRdf} .
                 }}
             }}
         """
         update5 += f"""
         WHERE {{
             BIND({self.__iri.toRdf} AS ?subject)
-            ?subject skos:broaderTransitive ?parent .
+            ?subject skos:broader ?parent .
         }}
         """
         if moving_parent_iri or right_parent_iri:

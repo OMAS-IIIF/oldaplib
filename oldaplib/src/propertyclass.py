@@ -196,8 +196,8 @@ class PropertyClass(Model, Notify):
                  property_class_iri: Iri | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
-                 statement_property: bool  | Xsd_boolean= False,
-                 external_ontology: bool | Xsd_boolean = False,
+                 _statementProperty: bool | Xsd_boolean= False,
+                 _externalOntology: bool | Xsd_boolean = False,
                  _internal: Iri | None = None,  # DO NOT USE!! Only for serialization!
                  _force_external: bool | None = None,  # DO NOT USE!! Only for serialization!
                  _from_triplestore: bool = False,
@@ -230,12 +230,12 @@ class PropertyClass(Model, Notify):
         :type notifier: Callable[[PropClassAttr], None] | None
         :param notify_data: Data or attribute passed to the notifier function, optional.
         :type notify_data: PropClassAttr | None
-        :param statement_property: Boolean indicating if the property is a statement-property
+        :param _statementProperty: Boolean indicating if the property is a statement-property
             (used for RDF*star statements).
-        :type statement_property: bool
-        :param external_ontology: Boolean indicating whether this property comes from an
+        :type _statementProperty: bool
+        :param _externalOntology: Boolean indicating whether this property comes from an
             external ontology (false by default).
-        :type external_ontology: bool
+        :type _externalOntology: bool
         :param validate: Boolean that determines whether validation is active.
         :type validate: bool
         :param kwargs: Arbitrary additional named arguments that might be used
@@ -255,8 +255,8 @@ class PropertyClass(Model, Notify):
                        validate=validate)
         Notify.__init__(self, notifier, notify_data)
 
-        self._statementProperty = statement_property if isinstance(statement_property, Xsd_boolean) else Xsd_boolean(statement_property, validate=True)
-        self._externalOntology = external_ontology if isinstance(external_ontology, Xsd_boolean) else Xsd_boolean(external_ontology, validate=True)
+        self._statementProperty = _statementProperty if isinstance(_statementProperty, Xsd_boolean) else Xsd_boolean(_statementProperty, validate=True)
+        self._externalOntology = _externalOntology if isinstance(_externalOntology, Xsd_boolean) else Xsd_boolean(_externalOntology, validate=True)
         if self._externalOntology:
             self._force_external = True
         if not isinstance(project, Project):
@@ -363,6 +363,8 @@ class PropertyClass(Model, Notify):
             'property_class_iri': self.property_class_iri,
             **({'_internal': self._internal} if self._internal else {}),
             **({'_force_external': self._force_external} if self._force_external else {}),
+            **({'_externalOntology': self._externalOntology} if self._externalOntology else {}),
+            **({'_statementProperty': self._statementProperty} if self._statementProperty else {}),
             '_from_triplestore': self.__from_triplestore,
         }
 
@@ -700,6 +702,8 @@ class PropertyClass(Model, Notify):
             if attributes.get(attriri) is None:
                 attributes[attriri] = XsdSet()
             attributes[attriri].add(r['oo'])
+        elif r['attriri'].fragment == 'or':
+            return  # TODO: ignore sh:or for the moment... It's in SHACL, but we do not yet support it
         else:
             if isinstance(r['value'], Xsd_string) and r['value'].lang is not None:
                 if attributes.get(attriri) is None:
@@ -710,6 +714,7 @@ class PropertyClass(Model, Notify):
                     raise OldapError(f'Invalid value for attribute {attriri}: {err}.')
             else:
                 if attributes.get(attriri) is not None:
+                    print("===>", r)
                     raise OldapError(f'Property ({propiri}) attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
                 attributes[attriri] = r['value']
 
@@ -1080,6 +1085,8 @@ class PropertyClass(Model, Notify):
     def create_owl_part2(self, *,
                          haspropdata: HasPropertyData | None = None,
                          indent: int = 0, indent_inc: int = 4) -> str:
+        if not (haspropdata.minCount or haspropdata.maxCount or self._attributes.get(PropClassAttr.DATATYPE) or self._attributes.get(PropClassAttr.CLASS)):
+            return ''  # no OWL to be added!
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}[\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
@@ -1096,10 +1103,11 @@ class PropertyClass(Model, Notify):
         # (NOTE: owl:onClass and owl:onDatatype can be used only in a restriction and are "local" to the use
         # of the property within the given resource. However, rdfs:range is "global" for all use of this property!
         #
-        if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlDataProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDatatype {self._attributes[PropClassAttr.DATATYPE].value}'
-        elif self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlObjectProperty:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._attributes[PropClassAttr.CLASS]}'
+        if self._attributes.get(PropClassAttr.DATATYPE) or self._attributes.get(PropClassAttr.CLASS):
+            if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlDataProperty:
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDatatype {self._attributes[PropClassAttr.DATATYPE].value}'
+            elif self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlObjectProperty:
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._attributes[PropClassAttr.CLASS]}'
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
 

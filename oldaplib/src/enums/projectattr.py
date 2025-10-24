@@ -3,7 +3,10 @@ from enum import unique
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
+from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_date import Xsd_date
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
@@ -21,3 +24,4 @@ class ProjectAttr(AttributeClass):
     NAMESPACE_IRI = ('oldap:namespaceIri', True, True, NamespaceIRI)
     PROJECT_START = ('oldap:projectStart', False, False, Xsd_date)
     PROJECT_END = ('oldap:projectEnd', False, False, Xsd_date)
+    USES_EXTERNAL_ONTOLOGY = ('oldap:usesExternalOntology', False, False, ObservableDict)

@@ -20,7 +20,7 @@ help:
 docs:
 	poetry run mkdocs serve
 
-test:
+test: loadontos
 	OLDAP_TS_SERVER=http://localhost:7200 \
 	OLDAP_TS_REPO=oldap \
 	OLDAP_REDIS_URL=redis://localhost:6379 \

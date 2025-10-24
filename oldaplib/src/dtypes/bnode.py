@@ -44,3 +44,4 @@ class BNode(Xsd_QName):
         :return: Python representation of the BNode
         """
         return f'BNode("{self._value}")'
+

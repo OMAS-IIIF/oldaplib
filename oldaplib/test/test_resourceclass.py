@@ -226,6 +226,131 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop4[PropClassAttr.IN],
                          RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
+    def test_gaga(self):
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, project=self._project, prop=Iri('schema:comment'), minCount=1, order=1),
+            HasProperty(con=self._connection, project=self._project, prop=Iri('schema:description')),
+        ]
+        r1 = ResourceClass(con=self._connection,
+                           project="test",
+                           owlclass_iri=Iri("test:Gaga"),
+                           label=LangString(["Test gaga@en", "Resource de gaga@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           hasproperties=hasproperties)
+        p2 = r1[Iri('schema:description')]
+        r1.create()
+        p2 = r1[Iri('schema:description')]
+
+        r2 = ResourceClass.read(con=self._connection,
+                                project="test",
+                                owl_class_iri=Iri('test:Gaga'),
+                                ignore_cache=True)
+        p1 = r2[Iri('schema:comment')]
+        self.assertIsInstance(p1.prop.property_class_iri, Iri)
+        p2 = r2[Iri('schema:description')]
+        pass
+
+    def test_create_next_generation(self):
+        #
+        # first we create a standalone property
+        #
+        p0 = PropertyClass(con=self._connection,
+                           project="test",
+                           property_class_iri=Iri('test:standalone'),
+                           datatype=XsdDatatypes.integer)
+        p0.create()
+        p0 = PropertyClass.read(con=self._connection,
+                                project="test",
+                                property_class_iri=Iri('test:standalone'),
+                                ignore_cache=True)
+
+        #
+        # now we create an internal property with no super property
+        #
+        p1 = PropertyClass(con=self._connection,
+                           project="test",
+                           property_class_iri=Iri('test:internal'),
+                           datatype=XsdDatatypes.langString,
+                           name=LangString(["internal@en", "internal@de"]),
+                           description=LangString("A property for testing...@en"),
+                           uniqueLang=Xsd_boolean(True),
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        #
+        # now we create an internal property with a super property
+        #
+        p2 = PropertyClass(con=self._connection,
+                           project="test",
+                           property_class_iri=Iri('test:internalWithSuper'),
+                           subPropertyOf=Iri('dcterms:description'),
+                           datatype=XsdDatatypes.langString,
+                           name=LangString(["internalWithSuper@en", "internalWithSuper@de"]),
+                           description=LangString("A property for testing...@en"),
+                           uniqueLang=Xsd_boolean(True),
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        #
+        # now let's create a resource class with all possible combinations of properties
+        #
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, project=self._project, prop=p1, maxCount=1, order=1),
+            HasProperty(con=self._connection, project=self._project, prop=p2, minCount=1, maxCount=1, order=2),
+            HasProperty(con=self._connection, project=self._project, prop=Iri('schema:comment'), minCount=1, order=3),
+            HasProperty(con=self._connection, project=self._project, prop=Iri('schema:description')),
+            HasProperty(con=self._connection, project=self._project, prop=Iri('test:standalone'), maxCount=1, order=4)
+        ]
+        r1 = ResourceClass(con=self._connection,
+                           project="test",
+                           owlclass_iri=Iri("test:TestResourceNextGeneration"),
+                           label=LangString(["Test resource@en", "Resource de test@fr"]),
+                           comment=LangString("For testing purposes@en"),
+                           closed=Xsd_boolean(True),
+                           hasproperties=hasproperties)
+        r1.create()
+
+        r1 = ResourceClass.read(con=self._connection,
+                                project="test",
+                                owl_class_iri=Iri('test:TestResourceNextGeneration'),
+                                ignore_cache=True)
+        p1 = r1[Iri('test:internal')]
+        self.assertEqual(p1.prop.datatype, XsdDatatypes.langString)
+        self.assertEqual(p1.prop.name, LangString(["internal@en", "internal@de"]))
+        self.assertEqual(p1.maxCount, 1)
+        self.assertIsNone(p1.minCount)
+        self.assertEqual(p1.order, 1)
+
+        p2 = r1[Iri('test:internalWithSuper')]
+        self.assertEqual(p2.maxCount, 1)
+        self.assertEqual(p2.minCount, 1)
+        self.assertEqual(p2.order, 2)
+        self.assertEqual(p2.prop.subPropertyOf, Iri('dcterms:description'))
+        self.assertEqual(p2.prop.datatype, XsdDatatypes.langString)
+        self.assertEqual(p2.prop.name, LangString(["internalWithSuper@en", "internalWithSuper@de"]))
+        self.assertEqual(p2.prop.description, LangString("A property for testing..."))
+        self.assertEqual(p2.prop.uniqueLang,  Xsd_boolean(True))
+        self.assertEqual(p2.prop.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        p3 = r1[Iri('schema:comment')]
+        self.assertEqual(p3.minCount, 1)
+        self.assertIsNone(p3.maxCount)
+        self.assertEqual(p3.order, 3)
+        self.assertIsNone(p3.group)
+        self.assertIsInstance(p3.prop.property_class_iri, Iri)
+
+        p4 = r1[Iri('schema:description')]
+        self.assertIsNone(p4.minCount)
+        self.assertIsNone(p4.maxCount)
+        self.assertIsNone(p4.order)
+        self.assertIsInstance(p4.prop.property_class_iri, Iri)
+
+        p5 = r1[Iri('test:standalone')]
+        self.assertIsNone(p5.minCount)
+        self.assertEqual(p5.maxCount, 1)
+        self.assertEqual(p5.order, 4)
+        self.assertIsNone(p5.group)
+        self.assertIsInstance(p5.prop, PropertyClass)
+        self.assertEqual(p5.prop.datatype, XsdDatatypes.integer)
 
     def test_constructor_projectns(self):
         p1 = PropertyClass(con=self._connection,
@@ -360,7 +485,7 @@ class TestResourceClass(unittest.TestCase):
                                 owl_class_iri=Iri('oldap:User'),
                                 ignore_cache=True)
         self.assertEqual(r1.owl_class_iri, Iri('oldap:User'))
-        self.assertEqual(r1.version, SemanticVersion(1, 0, 0))
+        self.assertEqual(r1.version, SemanticVersion(0, 1, 0))
         self.assertEqual(r1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(r1.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
         self.assertEqual(r1.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
@@ -370,20 +495,12 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.minCount, Xsd_integer(1))
         self.assertEqual(prop1.maxCount, Xsd_integer(1))
         self.assertEqual(prop1.prop.property_class_iri, Iri('dcterms:creator'))
-        self.assertEqual(prop1.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
-        self.assertEqual(prop1.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
-        self.assertEqual(prop1.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
-        self.assertEqual(prop1.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
         self.assertEqual(prop1.prop.toClass, Iri('oldap:User'))
 
         prop2 = r1[Iri('dcterms:created')]
         self.assertEqual(prop2.minCount, Xsd_integer(1))
         self.assertEqual(prop2.maxCount, Xsd_integer(1))
         self.assertEqual(prop2.prop.property_class_iri, Iri('dcterms:created'))
-        self.assertEqual(prop2.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
-        self.assertEqual(prop2.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
-        self.assertEqual(prop2.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
-        self.assertEqual(prop2.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
         self.assertEqual(prop2.prop.datatype, XsdDatatypes.dateTime)
 
         prop3 = r1[Iri('dcterms:contributor')]

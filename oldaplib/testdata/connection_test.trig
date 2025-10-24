@@ -167,9 +167,8 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime .
 
-    :testMyResShape a sh:NodeShape, :testMyRes ;
+    :testMyResShape a sh:NodeShape ;
         sh:targetClass :testMyRes ;
-        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -180,9 +179,10 @@ oldap:admin {
             [
                 sh:path rdf:type ;
             ] ;
+        sh:property :testShape ;
         sh:property
             [
-                sh:node :testShape ;
+                sh:path :test ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
                 sh:order "3"^^xsd:decimal ;
@@ -190,7 +190,6 @@ oldap:admin {
         sh:property
             [
                 sh:path :hasText ;
-                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -206,7 +205,6 @@ oldap:admin {
         sh:property
             [
                 sh:path :hasEnum ;
-                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -216,9 +214,8 @@ oldap:admin {
             ] ;
         sh:closed "true"^^xsd:boolean .
 
-    :testMyResMinimalShape a sh:NodeShape, :testMyResMinimal ;
+    :testMyResMinimalShape a sh:NodeShape ;
         sh:targetClass :testMyResMinimal ;
-        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -230,7 +227,6 @@ oldap:admin {
         sh:property
             [
                 sh:path :hasMinimal ;
-                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -239,9 +235,8 @@ oldap:admin {
             ] ;
         sh:closed "true"^^xsd:boolean .
 
-    :testMyResMinimalAShape a sh:NodeShape, :testMyResMinimalA ;
+    :testMyResMinimalAShape a sh:NodeShape ;
         sh:targetClass :testMyResMinimalA ;
-        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -262,9 +257,8 @@ oldap:admin {
             ] ;
         sh:closed "true"^^xsd:boolean .
 
-    :testMyResMinimalBShape a sh:NodeShape, :testMyResMinimalB ;
+    :testMyResMinimalBShape a sh:NodeShape ;
         sh:targetClass :testMyResMinimalB ;
-        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -276,7 +270,6 @@ oldap:admin {
         sh:property
             [
                 sh:path :hasMinimalB ;
-                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -285,9 +278,8 @@ oldap:admin {
             ] ;
         sh:closed "true"^^xsd:boolean .
 
-    :testMyResMinimalCShape a sh:NodeShape, :testMyResMinimalC ;
+    :testMyResMinimalCShape a sh:NodeShape ;
         sh:targetClass :testMyResMinimalC ;
-        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -299,7 +291,6 @@ oldap:admin {
         sh:property
             [
                 sh:path :hasMinimalC ;
-                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -308,9 +299,8 @@ oldap:admin {
             ] ;
         sh:closed "true"^^xsd:boolean .
 
-    :testMyResInheritShape a sh:NodeShape, :testMyResInherit ;
+    :testMyResInheritShape a sh:NodeShape ;
         sh:targetClass :testMyResInherit ;
-        schema:version "1.0.0"^^xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -323,7 +313,6 @@ oldap:admin {
         sh:property
             [
                 sh:path :hasMore ;
-                schema:version "1.0.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;

@@ -95,7 +95,7 @@ class TestPropertyClass(unittest.TestCase):
         p = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Iri('test:testpropstar'),
-                          statement_property=True,
+                          _statementProperty=True,
                           datatype=XsdDatatypes.string,
                           name=LangString(["Test property@en", "Testprädikat@de"]),
                           description={"A property for testing...@en", "Property für Tests@de"})
@@ -356,7 +356,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Iri('test:testWriteStar'),
-            statement_property=True,
+            _statementProperty=True,
             datatype=XsdDatatypes.string,
         )
         p.create()
