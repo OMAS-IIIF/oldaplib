@@ -403,6 +403,26 @@ class TestResourceClass(unittest.TestCase):
         self.assertTrue(r1[ResClassAttribute.CLOSED])
         self.assertTrue(r1.closed)
 
+    def test_resourceclass_serialize_deserialize_A(self):
+        hasproperties: list[HasProperty] = [
+            HasProperty(con=self._connection, project=self._project, prop=Iri("test:comment"), maxCount=1, order=1),
+            HasProperty(con=self._connection, project=self._project, prop=Iri("test:test"), minCount=1, order=2),
+        ]
+
+        r1 = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Iri("test:TestResourceDeepcopyA"),
+                           hasproperties=hasproperties)
+        r1.create()
+        jsonstr = json.dumps(r1, default=serializer.encoder_default)
+        r2 = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(connection=self._connection))
+
+        p_a = r1[Iri("test:comment")].prop
+        self.assertIsNone(p_a.internal)
+        p_b = r2[Iri("test:comment")].prop
+        self.assertIsNone(p_b.internal)
+
+
     #@unittest.skip('Work in progress')
     def test_resourceclass_serialize_deserialize(self):
         p1 = PropertyClass(con=self._connection,

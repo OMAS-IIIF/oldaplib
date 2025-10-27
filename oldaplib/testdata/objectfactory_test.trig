@@ -29,7 +29,7 @@ oldap:admin {
 test:shacl {
     test:shapes schema:version "0.1.0"^^xsd:string .
 
-    test:PersonShape a sh:NodeShape, test:Person ;
+    test:PersonShape a sh:NodeShape ;
         sh:targetClass test:Person ;
         dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -44,19 +44,22 @@ test:shacl {
                 sh:path rdf:type ;
             ] ;
         sh:property [
-                sh:node schema:familyNameShape ;
+                sh:path schema:familyName ;
+                oldap:externalOntology true ;
+                sh:datatype xsd:string ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
             ] ;
         sh:property
             [
-                sh:node schema:givenNameShape ;
+                sh:path schema:givenName ;
+                oldap:externalOntology true ;
+                sh:datatype xsd:string ;
                 sh:minCount "1"^^xsd:integer ;
             ] .
 
-        test:PageShape a sh:NodeShape, test:Page ;
+        test:PageShape a sh:NodeShape ;
             sh:targetClass test:Page ;
-            schema:version "0.1.0"^^xsd:string ;
             dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -73,7 +76,6 @@ test:shacl {
                 [
                     # PropertyClass.property_node_shacl()
                     sh:path test:pageDesignation ;
-                    schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
                     dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -141,7 +143,7 @@ test:shacl {
                     sh:maxCount "1"^^xsd:integer ;
                 ] .
 
-        test:BookShape a sh:NodeShape, test:Book ;
+        test:BookShape a sh:NodeShape ;
             sh:targetClass test:Book ;
             schema:version "0.1.0"^^xsd:string ;
             dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -157,7 +159,6 @@ test:shacl {
                 ] ;
             sh:property
                 [
-                    # PropertyClass.property_node_shacl()
                     sh:path test:title ;
                     schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -171,7 +172,6 @@ test:shacl {
                 ] ;
             sh:property
                 [
-                    # PropertyClass.property_node_shacl()
                     sh:path test:author ;
                     schema:version "0.1.0"^^xsd:string ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -196,7 +196,7 @@ test:shacl {
                     sh:maxCount "1"^^xsd:integer ;
                 ] .
 
-        test:SetterTesterShape a sh:NodeShape, test:SetterTester ;
+        test:SetterTesterShape a sh:NodeShape ;
             sh:targetClass test:SetterTester ;
             schema:version "0.1.0"^^xsd:string ;
             dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -274,7 +274,7 @@ test:shacl {
 #
 # Shape for all possible and supported datatypes
 #
-        test:AllTypesShape a sh:NodeShape, test:AllTypes ;
+        test:AllTypesShape a sh:NodeShape ;
             sh:targetClass test:AllTypes ;
             schema:version "0.1.0"^^xsd:string ;
             dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -873,7 +873,7 @@ test:onto {
             ] .
 
     test:title rdf:type owl:DatatypeProperty ;
-        rdfs:domain test:Person ;
+        rdfs:domain test:Book ;
         rdfs:range xsd:string ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -881,7 +881,7 @@ test:onto {
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
 
     test:author rdf:type owl:ObjectProperty ;
-        rdfs:domain test:Person ;
+        rdfs:domain test:Book ;
         rdfs:range test:Person ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -889,7 +889,7 @@ test:onto {
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
 
     test:pubDate rdf:type owl:DatatypeProperty ;
-        rdfs:domain test:Person ;
+        rdfs:domain test:Book ;
         rdfs:range xsd:date ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -987,19 +987,19 @@ test:onto {
                 rdf:type owl:Restriction ;
                 owl:onProperty test:booleanSetter ;
                 owl:maxQualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:string ;
+                owl:onDataRange xsd:string ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:decimalSetter ;
                 owl:maxQualifiedCardinality "1"^^xsd:integer ;
                 owl:maxQualifiedCardinality "3"^^xsd:integer ;
-                owl:onDatatype xsd:decimal ;
+                owl:onDataRange xsd:decimal ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:integerSetter ;
-                owl:onDatatype xsd:decimal ;
+                owl:onDataRange xsd:decimal ;
             ] .
 
 
@@ -1339,241 +1339,241 @@ test:onto {
                 rdf:type owl:Restriction ;
                 owl:onProperty test:stringProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:string ;
+                owl:onDataRange xsd:string ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:langStringProp ;
                 owl:minQualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype rdf:langString ;
+                owl:onDataRange rdf:langString ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:booleanProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:boolean ;
+                owl:onDataRange xsd:boolean ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:decimalProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:decimal ;
+                owl:onDataRange xsd:decimal ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:floatProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:float ;
+                owl:onDataRange xsd:float ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:doubleProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:double ;
+                owl:onDataRange xsd:double ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:durationProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:duration ;
+                owl:onDataRange xsd:duration ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:dateTimeProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:dateTime ;
+                owl:onDataRange xsd:dateTime ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:dateTimeStampProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:dateTimeStamp ;
+                owl:onDataRange xsd:dateTimeStamp ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:timeProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:time ;
+                owl:onDataRange xsd:time ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:dateProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:date ;
+                owl:onDataRange xsd:date ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:gYearMonthProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:gYearMonth ;
+                owl:onDataRange xsd:gYearMonth ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:gYearProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:gYear ;
+                owl:onDataRange xsd:gYear ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:gMonthDayProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:gMonthDay ;
+                owl:onDataRange xsd:gMonthDay ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:gDayProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:gDay ;
+                owl:onDataRange xsd:gDay ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:gMonthProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:gMonth ;
+                owl:onDataRange xsd:gMonth ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:hexBinaryProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:hexBinary ;
+                owl:onDataRange xsd:hexBinary ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:base64BinaryProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:base64Binary ;
+                owl:onDataRange xsd:base64Binary ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:anyURIProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:anyURI ;
+                owl:onDataRange xsd:anyURI ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:QNameProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:QName ;
+                owl:onDataRange xsd:QName ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:normalizedStringProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:normalizedString ;
+                owl:onDataRange xsd:normalizedString ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:tokenProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:token ;
+                owl:onDataRange xsd:token ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:languageProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:language ;
+                owl:onDataRange xsd:language ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:nCNameProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:NCName ;
+                owl:onDataRange xsd:NCName ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:nMTOKENProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:NMTOKEN ;
+                owl:onDataRange xsd:NMTOKEN ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:iDProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:ID ;
+                owl:onDataRange xsd:ID ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:iDREFProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:IDREF ;
+                owl:onDataRange xsd:IDREF ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:integerProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:integer ;
+                owl:onDataRange xsd:integer ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:nonPositiveIntegerProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:nonPositiveInteger ;
+                owl:onDataRange xsd:nonPositiveInteger ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:negativeIntegerProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:negativeInteger ;
+                owl:onDataRange xsd:negativeInteger ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:longProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:long ;
+                owl:onDataRange xsd:long ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:intProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:int ;
+                owl:onDataRange xsd:int ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:shortProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:short ;
+                owl:onDataRange xsd:short ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:byteProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:byte ;
+                owl:onDataRange xsd:byte ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:nonNegativeIntegerProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:nonNegativeInteger ;
+                owl:onDataRange xsd:nonNegativeInteger ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:unsignedLongProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:unsignedLong ;
+                owl:onDataRange xsd:unsignedLong ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:unsignedIntProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:unsignedInt ;
+                owl:onDataRange xsd:unsignedInt ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:unsignedShortProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:unsignedShort ;
+                owl:onDataRange xsd:unsignedShort ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:unsignedByteProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:unsignedByte ;
+                owl:onDataRange xsd:unsignedByte ;
             ] ,
             [
                 rdf:type owl:Restriction ;
                 owl:onProperty test:positiveIntegerProp ;
                 owl:qualifiedCardinality "1"^^xsd:integer ;
-                owl:onDatatype xsd:positiveInteger ;
+                owl:onDataRange xsd:positiveInteger ;
             ] .
 
 }

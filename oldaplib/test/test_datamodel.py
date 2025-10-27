@@ -370,19 +370,6 @@ class TestDataModel(unittest.TestCase):
     def test_datamodel_read(self):
         model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)
         self.assertEqual(set(model.get_propclasses()), {
-            Iri("dcterms:creator"),
-            Iri("rdfs:label"),
-            Iri("rdfs:comment"),
-            Iri("dcterms:created"),
-            Iri("dcterms:contributor"),
-            Iri("dcterms:modified"),
-            Iri("dcterms:rights"),
-            Iri("dcterms:description"),
-            Iri("dcterms:abstract"),
-            Iri("dcterms:accessRights"),
-            Iri("schema:givenName"),
-            Iri("schema:familyName"),
-            Iri("schema:email"),
             Iri("oldap:hasAdminPermission"),
             Iri("oldap:statementProperty")
         })
@@ -395,7 +382,7 @@ class TestDataModel(unittest.TestCase):
             Iri("oldap:DataPermission"),
             Iri("oldap:PermissionSet"),
             Iri("oldap:Thing"),
-            Iri("oldap:OldapChronolgyStatement"),
+            Iri("oldap:ExternalOntology"),
             Iri("oldap:inProjectStatement")
         })
 
@@ -1069,4 +1056,22 @@ class TestDataModel(unittest.TestCase):
                        resclasses=[page, book, person])
         dm.write_as_trig('gaga.trig')
 
+    unittest.skip('Only during development....')
+    def test_cache(self):
+        project_root = find_project_root(__file__)
+        self._connection.clear_graph(Xsd_QName('test:shacl'))
+        self._connection.clear_graph(Xsd_QName('test:onto'))
+        self._connection.clear_graph(Xsd_QName('test:data'))
 
+        file = project_root / 'oldaplib' / 'testdata' / 'objectfactory_test.trig'
+        self._connection.upload_turtle(file)
+
+        sleep(1)  # upload may take a while...
+
+        cache = CacheSingletonRedis()
+        cache.clear()
+        dm1 = DataModel.read(self._connection, self._project, ignore_cache=False)
+        in_cache = cache.exists(Xsd_QName(self._project.projectShortName, 'shacl'))
+        dm2 = DataModel.read(self._connection, self._project, ignore_cache=False)
+
+        pass

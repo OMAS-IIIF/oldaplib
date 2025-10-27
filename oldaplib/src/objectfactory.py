@@ -769,7 +769,7 @@ class ResourceInstanceFactory:
         else:
             self._project = Project.read(self._con, project)
 
-        self._datamodel = DataModel.read(con=self._con, project=self._project)
+        self._datamodel = DataModel.read(con=self._con, project=self._project, ignore_cache=True)
 
         #self._oldap_project = Project.read(self._con, "oldap")
         #self._oldap_datamodel = DataModel.read(con=self._con, project=self._oldap_project)

@@ -10,6 +10,7 @@ from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.iconnection import IConnection
@@ -24,7 +25,7 @@ from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 
-
+@serializer
 class PropType(Enum):
     INTERNAL = 1
     STANDALONE = 2
@@ -54,11 +55,11 @@ class HasProperty(Model, Notify):
 
     _prop: PropertyClass | Iri | None
     _project: Project | None
-    _type: PropType
+    _type: PropType | None
 
     def __init__(self, *,
                  con: IConnection,
-                 project: Project,
+                 project: Project | Iri | Xsd_NCName | str,
                  prop: PropertyClass | Iri | None = None,
                  notifier: Callable[[Iri], None] | None = None,
                  notify_data: Iri | None = None,
@@ -66,6 +67,8 @@ class HasProperty(Model, Notify):
                  created: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
                  contributor: Iri | None = None,  # DO NO USE! Only for jsonify!!
                  modified: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
+                 validate: bool = False,
+                 _type: PropType | None = None,
                  **kwargs):
         """
         Initializes the class with the given parameters and configurations.
@@ -93,7 +96,13 @@ class HasProperty(Model, Notify):
                        contributor=contributor,
                        modified=modified)
         Notify.__init__(self, notifier, notify_data)
-        self._project = project
+        self._type = _type
+        if isinstance(project, Project):
+            self._project = project
+        else:
+            if not isinstance(project, (Iri, Xsd_NCName)):
+                project = IriOrNCName(project, validate=validate)
+            self._project = Project.read(self._con, project)
         if isinstance(prop, Iri):
             fixed_prop = Iri(str(prop).removesuffix("Shape"))
             try:
@@ -104,11 +113,11 @@ class HasProperty(Model, Notify):
                 self._type = PropType.EXTERNAL
         else:
             self._prop = prop
-            if prop.externalOntology:
-                self._type = PropType.EXTERNAL
-            else:
-                self._type = PropType.INTERNAL
-        #self._prop = prop  # TODO: this overwrites the code above!!!!  CHECK WHY???
+            if self._type is None:
+                if prop.externalOntology:
+                    self._type = PropType.EXTERNAL
+                else:
+                    self._type = PropType.INTERNAL
         self.set_attributes(kwargs, HasPropertyAttr)
 
         for attr in HasPropertyAttr:
@@ -130,16 +139,10 @@ class HasProperty(Model, Notify):
                 value.set_notifier(self.notifier, attr)
 
     def _as_dict(self):
-        if isinstance(self._prop, PropertyClass):
-            if not self._prop.internal:
-                ppp = self._prop.property_class_iri
-            else:
-                ppp = self._prop
-        else:
-            ppp = self._prop
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
-            'project': self._project,
-            'prop': ppp
+            'project': self._project.projectShortName,
+            '_type': self._type,
+            'prop': self._prop
         }
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:

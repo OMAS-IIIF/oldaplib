@@ -12,7 +12,7 @@ class _Serializer:
     This class is responsible for serializing and deserializing custom objects and classes to and from json. The whole
     class is used, to serialize a complex custom objects and rebuild it after it got transmitted.
     It works as follows:
-    - The class itself has to be instanciated (thus i have the magic function __call__ which makes the instance callable)
+    - The class itself has to be instanciated (thus it have the magic function __call__ which makes the instance callable)
     - During the instantiation, the dict-key to enter the name of the class into the dictionary is defined and stored.
         In addition, the dict which will store the class names as key and the class constructors as value, is initialized.
     - Serializer demands, that each custom class that is to be serialized has a _as_dict methode, that transforms the

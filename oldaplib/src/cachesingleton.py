@@ -97,3 +97,7 @@ class CacheSingletonRedis:
 
     def clear(self):
         self._r.flushdb()
+
+    def exists(self, key: Iri | Xsd_NCName | Xsd_QName) -> bool:
+        value = self._r.get(str(key))
+        return value is not None

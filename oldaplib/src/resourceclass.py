@@ -173,16 +173,16 @@ class ResourceClass(Model, Notify):
         """
         if isinstance(superclass, (list, tuple, set)):
             for sc in superclass:
-                if sc is None or sc in self.superclass:
+                if sc is None or sc in self._attributes[ResClassAttribute.SUPERCLASS]:
                     continue
                 iri, sucla = self.__check(sc, validate=validate)
-                self.superclass[iri] = sucla
+                self._attributes[ResClassAttribute.SUPERCLASS][iri] = sucla
                 self.notify()
         else:
-            if superclass in self.superclass:
+            if superclass in self._attributes[ResClassAttribute.SUPERCLASS]:
                 raise OldapErrorAlreadyExists(f'Superclass "{superclass}" already exists in superclass list of {self._owlclass_iri}.')
             iri, sucla = self.__check(superclass, validate=validate)
-            self.superclass[iri] = sucla
+            self._attributes[ResClassAttribute.SUPERCLASS][iri] = sucla
             self.notify()
 
     def del_superclasses(self, superclass: SuperclassParam, validate = False):
@@ -207,15 +207,15 @@ class ResourceClass(Model, Notify):
         if isinstance(superclass, (list, tuple, set)):
             for sc in superclass:
                 scIri = Iri(sc, validate=validate)
-                if scIri not in self.superclass:
+                if scIri not in self._attributes[ResClassAttribute.SUPERCLASS]:
                     raise OldapErrorValue(f'Superclass "{scIri}" not found in superclass list')
-                del self.superclass[scIri]
+                del self._attributes[ResClassAttribute.SUPERCLASS][scIri]
                 self.notify()
         else:
             superclassIri = Iri(superclass, validate=validate)
-            if superclassIri not in self.superclass:
+            if superclassIri not in self._attributes[ResClassAttribute.SUPERCLASS]:
                 raise OldapErrorValue(f'Superclass "{superclass}" not found in superclass list')
-            del self.superclass[superclassIri]
+            del self._attributes[ResClassAttribute.SUPERCLASS][superclassIri]
             self.notify()
 
 
@@ -1338,7 +1338,7 @@ class ResourceClass(Model, Notify):
         sparql = f'INSERT DATA {{#B\n'
         sparql += f'    GRAPH {self._graph}:shacl {{\n'
         sparql += f'{blank:{indent * indent_inc}}{self._owlclass_iri}Shape sh:property [\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}sh:node {iri.toRdf}'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}sh:path {iri.toRdf}'
         sparql += hasprop.create_shacl()
         sparql += f' ; \n{blank:{indent * indent_inc}}] .\n'
         sparql += f'    }}\n'
@@ -1360,7 +1360,7 @@ class ResourceClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}{{\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}?propnode sh:node {propclass_iri.toRdf}Shape .\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}?propnode sh:path {propclass_iri.toRdf} .\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}}} UNION {{\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}FILTER(?propnode = {propclass_iri.toRdf}Shape)\n'
@@ -1429,12 +1429,12 @@ class ResourceClass(Model, Notify):
                         if to_be_deleted:
                             sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                             for ov in to_be_deleted:
-                                sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {ov.toRdf}Shape .\n'
+                                sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {ov}Shape .\n'
                             sparql += f'{blank:{indent * indent_inc}}}}\n'
                         if to_be_added:
                             sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                             for nv in to_be_added:
-                                sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {nv.toRdf}Shape .\n'
+                                sparql += f'{blank:{(indent + 1) * indent_inc}}?res sh:node {nv}Shape .\n'
                             sparql += f'{blank:{indent * indent_inc}}}}\n'
                         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                         sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri.toRdf}Shape as ?res)\n'
@@ -1605,7 +1605,7 @@ class ResourceClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:node {self.propclass_iri}Shape .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self.propclass_iri} .\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql

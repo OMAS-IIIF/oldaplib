@@ -448,13 +448,20 @@ class DataModel(Model):
             # TODO: If ignore cache is not True, _prop_changeset of resourceclass is not empty!
             # create empty data model -> update -> add resource without property -> add property -> update
             # _prop_changeset is not empoty after update... ERROR!!!!!!!!!!!!!!!!!!!!!
-            resclass = ResourceClass.read(con, project, Iri(resclassiri, validate=False), sa_props=sa_props, ignore_cache=ignore_cache)
+            try:
+                if resclassiri == 'test:Book':
+                    pass
+                resclass = ResourceClass.read(con, project, Iri(resclassiri, validate=False), sa_props=sa_props, ignore_cache=ignore_cache)
+            except OldapError as er:
+                print(f'Error reading resource class {resclassiri}: {er}')
+
             resclasses.append(resclass)
         instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses)
         for qname in instance.get_propclasses():
             instance[qname].set_notifier(instance.notifier, qname)
         for qname in instance.get_resclasses():
             instance[qname].set_notifier(instance.notifier, qname)
+
         cache.set(Xsd_QName(project.projectShortName, 'shacl'), instance)
 
         instance.changeset_clear()
