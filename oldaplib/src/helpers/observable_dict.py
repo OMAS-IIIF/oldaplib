@@ -16,14 +16,39 @@ class ObservableDict(UserDict):
     def __init__(self,
                  obj: Iterable | Mapping | None = None, *,
                  on_change: Callable[[Self], None] | None = None,
+                 obsdict: dict | None = None,
                  validate: bool = False,
                  **kwargs):
+        """
+        Initializes a new instance of the class with optional data and settings for
+        notifications and validation.
+
+        :param obj: An optional iterable or mapping containing initial data for the
+            instance. Defaults to None.
+        :type obj: Iterable | Mapping | None
+        :param on_change: A callable function that will be invoked when a change is made
+            to the instance. The function is passed the instance itself as an argument.
+            Defaults to None.
+        :type on_change: Callable[[Self], None] | None
+        :param obsdict: This is used in conjunction with the method _as_dict to serialize
+            the instance's data to JSON and back. It preserves the dataclasses also of the keys.
+            *NOTE": It should never be used directly – it's reserved for the @serializer decorator.
+        :type obsdict: dict | None
+        :param validate: A boolean flag indicating whether to enforce validation checks
+            on the data. Defaults to False.
+        :type validate: bool
+        :param kwargs: Additional keyword arguments forwarded to the superclass
+            initializer.
+        """
         self.__on_change = on_change
         self._changeset = {}
         if obj:
             super().__init__(obj, **kwargs)
         else:
             super().__init__(**kwargs)
+        if obsdict:
+            for item in obsdict:
+                self[item['key']] = item['val']
 
     def __setitem__(self, key, value):
         if key in self.data:
@@ -48,8 +73,7 @@ class ObservableDict(UserDict):
         self.__on_change = on_change
 
     def _as_dict(self):
-        #return self.data
-        return {str(key): val for key, val in self.data.items()}
+        return {'obsdict': [{'key': key, 'val': val} for key, val in self.data.items()]}
 
     def clear_changeset(self):
         self._changeset = {}

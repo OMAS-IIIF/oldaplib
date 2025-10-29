@@ -24,6 +24,6 @@ class TestObservableDict(unittest.TestCase):
     def test_json(self):
         obs = ObservableDict({Iri('http://gaga.com/a'): 1, Iri('http://gaga.com/b'): 2, Iri('http://gaga.com/c'): 3, Iri('http://gaga.com/d'): 4})
         jsonstr = json.dumps(obs, default=serializer.encoder_default)
-        print(jsonstr)
         obs2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        pass
         self.assertEqual(obs2, {Iri('http://gaga.com/a'): 1, Iri('http://gaga.com/b'): 2, Iri('http://gaga.com/c'): 3, Iri('http://gaga.com/d'): 4})
