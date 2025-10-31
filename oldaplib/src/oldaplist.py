@@ -383,7 +383,7 @@ class OldapList(Model):
         last_nodeiri = None
         for r in res:
             nodeiri = r['node']
-            if last_nodeiri != nodeiri:
+            if last_nodeiri is None or last_nodeiri != nodeiri:
                 prefix, id = str(nodeiri).split(':')
                 ln = OldapListNode(con=self._con,
                                    **self.info,

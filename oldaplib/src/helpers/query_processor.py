@@ -73,7 +73,8 @@ class QueryProcessor:
                     if tmp is None:
                         row[name] = Iri(valobj["value"], validate=False)
                     else:
-                        row[name] = Iri(tmp, validate=False)
+                        #row[name] = Iri(tmp, validate=False)
+                        row[name] = tmp
                 elif valobj["type"] == "bnode":
                     row[name] = BNode(f'_:{valobj["value"]}', validate=False)
                 elif valobj["type"] == "literal":

@@ -55,7 +55,7 @@ class PermissionSet(Model):
     :type iri: Iri
     """
 
-    __permset_iri: Iri | None
+    __permset_iri: Xsd_QName | None
     __project: Project | None
 
     def __init__(self, *,
@@ -112,7 +112,8 @@ class PermissionSet(Model):
         # The IRI of the permission set is a QName consisting of the prefix of the project (aka projectShortname)
         # and the permissionSetId. Thus, the same permission set ID could be used in different projects...
         #
-        self.__permset_iri = Iri.fromPrefixFragment(self.__project.projectShortName, self._attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
+        self.__permset_iri = Xsd_QName(self.__project.projectShortName, self._attributes[PermissionSetAttr.PERMISSION_SET_ID])
+        #self.__permset_iri = Iri.fromPrefixFragment(self.__project.projectShortName, self._attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
 
         for attr in PermissionSetAttr:
             setattr(PermissionSet, attr.value.fragment, property(
@@ -182,7 +183,11 @@ class PermissionSet(Model):
         self._changeset[what] = AttributeChange(None, Action.MODIFY)
 
     @property
-    def iri(self) -> Iri:
+    def iri(self) -> Xsd_QName:
+        return self.__permset_iri
+
+    @property
+    def qname(self) -> Xsd_QName:
         return self.__permset_iri
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -274,7 +279,7 @@ class PermissionSet(Model):
     @classmethod
     def read(cls, *,
              con: IConnection,
-             iri: Iri | str | None = None,
+             qname: Xsd_QName | str | None = None,
              permissionSetId: Xsd_NCName | str | None = None,
              definedByProject: Project | Iri | Xsd_NCName | str | None = None,
              ignore_cache: bool = False) -> Self:
@@ -284,7 +289,7 @@ class PermissionSet(Model):
         an instance of the permission set if found.
 
         :param con: The connection object used to interact with the system.
-        :param iri: The Internationalized Resource Identifier of the permission set. If provided,
+        :param qname: The Internationalized Resource Identifier of the permission set. If provided,
                     it will be used to read the permission set.
         :param permissionSetId: The unique identifier of the permission set within a project.
                                 Required if `iri` is not provided.
@@ -302,8 +307,8 @@ class PermissionSet(Model):
         :raises OldapErrorInconsistency: Raised if the permission set contains inconsistencies
                                          in its data during retrieval.
         """
-        if iri:
-            permset_iri = Iri(iri, validate=True)
+        if qname:
+            permset_iri = Xsd_QName(qname, validate=True)
         elif permissionSetId and definedByProject:
             id = Xsd_NCName(permissionSetId, validate=True)
 
@@ -311,7 +316,7 @@ class PermissionSet(Model):
                 project = definedByProject
             else:
                 project = Project.read(con, definedByProject)
-            permset_iri = Iri.fromPrefixFragment(project.projectShortName, permissionSetId, validate=False)
+            permset_iri = Xsd_QName(project.projectShortName, permissionSetId)
         else:
             raise OldapErrorValue('Either the parameter "iri" of both "permissionSetId" and "definedByProject" must be provided.')
         if not ignore_cache:
@@ -336,7 +341,7 @@ class PermissionSet(Model):
         if len(res) == 0:
             raise OldapErrorNotFound(f'No permission set "{permset_iri}"')
 
-        permset_iri: Iri | None = None
+        permset_iri: Xsd_QName | None = None
         creator: Iri | None = None
         created: Xsd_dateTime | None = None
         contributor: Iri | None = None
@@ -470,7 +475,7 @@ class PermissionSet(Model):
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        permissionSets: list[Iri] = []
+        permissionSets: list[Xsd_QName] = []
         for r in res:
             if definedByProject:
                 #context[r['projectShortName']] = r['namespaceIri']

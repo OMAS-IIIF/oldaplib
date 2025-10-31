@@ -71,10 +71,10 @@ class DataModel(Model):
     _project: Project
     __context: Context
     __version: SemanticVersion
-    __propclasses: dict[Iri, PropertyClass | None]
-    __resclasses: dict[Iri, ResourceClass | None]
-    __resclasses_changeset: dict[Iri, ResourceClassChange]
-    __propclasses_changeset: dict[Iri, PropertyClassChange]
+    __propclasses: dict[Xsd_QName, PropertyClass | None]
+    __resclasses: dict[Xsd_QName, ResourceClass | None]
+    __resclasses_changeset: dict[Xsd_QName, ResourceClassChange]
+    __propclasses_changeset: dict[Xsd_QName, PropertyClassChange]
 
     def __init__(self, *,
                  con: IConnection,
@@ -219,7 +219,7 @@ class DataModel(Model):
         instance.__propclasses_changeset = deepcopy(self.__propclasses_changeset, memo)
         return instance
 
-    def __getitem__(self, key: Iri) -> PropertyClass | ResourceClass:
+    def __getitem__(self, key: Xsd_QName) -> PropertyClass | ResourceClass:
         if key in self.__resclasses:
             return self.__resclasses[key]
         if key in self.__propclasses:
@@ -227,7 +227,7 @@ class DataModel(Model):
         else:
             raise KeyError(key)
 
-    def __setitem__(self, key: Iri, value: PropertyClass | ResourceClass) -> None:
+    def __setitem__(self, key: Xsd_QName, value: PropertyClass | ResourceClass) -> None:
         if isinstance(value, PropertyClass):
             if self.__propclasses.get(key) is None:
                 self.__propclasses_changeset[key] = PropertyClassChange(None, Action.CREATE)
@@ -243,9 +243,9 @@ class DataModel(Model):
         else:
             raise OldapErrorValue(f'"{key}" must be either PropertyClass or ResourceClass (is "{type(value).__name__}")')
 
-    def __delitem__(self, key: Iri | str) -> None:
-        if not isinstance(key, Iri):
-            key = Iri(key, validate=True)
+    def __delitem__(self, key: Xsd_QName | str) -> None:
+        if not isinstance(key, Xsd_QName):
+            key = Xsd_QName(key, validate=True)
         if key in self.__propclasses:
             self.__propclasses_changeset[key] = PropertyClassChange(self.__propclasses[key], Action.DELETE)
             del self.__propclasses[key]
@@ -255,7 +255,7 @@ class DataModel(Model):
         else:
             raise OldapErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
 
-    def get(self, key: Iri | str) -> PropertyClass | ResourceClass | None:
+    def get(self, key: Xsd_QName | str) -> PropertyClass | ResourceClass | None:
         """
         Retrieves an instance of `PropertyClass` or `ResourceClass` associated with the
         specified `key`. The `key` can be either an `Iri` instance or a string. If the
@@ -270,8 +270,8 @@ class DataModel(Model):
         :raises OldapErrorValue: If the `key` is not a valid Iri object.
         :raises OldapErrorNotFound: If no instance is found for the given `key`.
         """
-        if not isinstance(key, Iri):
-            key = Iri(key, validate=True)
+        if not isinstance(key, Xsd_QName):
+            key = Xsd_QName(key, validate=True)
         if key in self.__propclasses:
             return self.__propclasses[key]
         elif key in self.__resclasses:
@@ -279,7 +279,7 @@ class DataModel(Model):
         else:
             return None
 
-    def get_propclasses(self) -> list[Iri]:
+    def get_propclasses(self) -> list[Xsd_QName]:
         """
         Get a list of the IRIs of the standalone property classes.
 
@@ -291,7 +291,7 @@ class DataModel(Model):
         """
         return [x for x in self.__propclasses]
 
-    def get_resclasses(self) -> list[Iri]:
+    def get_resclasses(self) -> list[Xsd_QName]:
         """
         Get a list of the IRIs of the resource classes.
 
@@ -304,7 +304,7 @@ class DataModel(Model):
         return [x for x in self.__resclasses]
 
     @property
-    def changeset(self) -> dict[Iri, PropertyClassChange | ResourceClassChange]:
+    def changeset(self) -> dict[Xsd_QName, PropertyClassChange | ResourceClassChange]:
         return self.__resclasses_changeset | self.__propclasses_changeset
 
     def changeset_clear(self) -> None:
@@ -318,7 +318,7 @@ class DataModel(Model):
         self.__resclasses_changeset = {}
         self.clear_changeset()
 
-    def notifier(self, what: Iri) -> None:
+    def notifier(self, what: Xsd_QName) -> None:
         if what in self.__propclasses:
             self.__propclasses_changeset[what] = PropertyClassChange(None, Action.MODIFY)
         elif what in self.__resclasses:
@@ -329,7 +329,7 @@ class DataModel(Model):
     @classmethod
     def read(cls,
              con: IConnection,
-             project: Project | Iri | Xsd_NCName | str,
+             project: Project | Xsd_QName | Xsd_NCName | str,
              ignore_cache: bool = False):
         """
         Reads the data model from the given project by querying the triple store.
@@ -421,7 +421,7 @@ class DataModel(Model):
             projectid = r['graph'].prefix
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
-            propclass = PropertyClass.read(con, projectid, Iri(propclassiri, validate=False), ignore_cache=ignore_cache)
+            propclass = PropertyClass.read(con, projectid, Xsd_QName(propclassiri, validate=False), ignore_cache=ignore_cache)
             propclass.force_external()
             propclasses.append(propclass)
         sa_props = {x.property_class_iri: x for x in propclasses}
@@ -451,7 +451,7 @@ class DataModel(Model):
             try:
                 if resclassiri == 'test:Book':
                     pass
-                resclass = ResourceClass.read(con, project, Iri(resclassiri, validate=False), sa_props=sa_props, ignore_cache=ignore_cache)
+                resclass = ResourceClass.read(con, project, Xsd_QName(resclassiri, validate=False), sa_props=sa_props, ignore_cache=ignore_cache)
             except OldapError as er:
                 print(f'Error reading resource class {resclassiri}: {er}')
 

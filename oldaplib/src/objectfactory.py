@@ -72,7 +72,7 @@ class ResourceInstance:
     :type changeset: dict[Iri, AttributeChange]
     """
     _iri: Iri
-    _values: dict[Iri, LangString | ObservableSet]
+    _values: dict[Xsd_QName, LangString | ObservableSet]
     _graph: Xsd_NCName
     _changeset: dict[Iri, AttributeChange]
 
@@ -104,7 +104,7 @@ class ResourceInstance:
         self._superclass_objs = {}
         self._changeset = {}
 
-        def set_values(propclass: dict[Iri, HasProperty]):
+        def set_values(propclass: dict[Xsd_QName, HasProperty]):
             for prop_iri, hasprop in propclass.items():
                 if kwargs.get(str(prop_iri)) or kwargs.get(prop_iri.fragment):
                     value = kwargs[str(prop_iri)] if kwargs.get(str(prop_iri)) else kwargs[prop_iri.fragment]
@@ -143,20 +143,20 @@ class ResourceInstance:
                         else:
                             self.validate_value(self._values[prop_iri], hasprop.prop)
 
-        def process_superclasses(superclass: dict[Iri, ResourceClass]):
+        def process_superclasses(superclass: dict[Xsd_QName, ResourceClass]):
            for sc_iri, sc in superclass.items():
                 if sc.superclass:
                     process_superclasses(sc.superclass)
-                if sc.owl_class_iri == Iri("oldap:Thing", validate=False):
+                if sc.owl_class_iri == Xsd_QName("oldap:Thing", validate=False):
                     timestamp = Xsd_dateTimeStamp()
-                    if not self._values.get(Iri('oldap:createdBy', validate=False)):
-                        self._values[Iri('oldap:createdBy', validate=False)] = ObservableSet({self._con.userIri})
-                    if not self._values.get(Iri('oldap:creationDate', validate=False)):
-                        self._values[Iri('oldap:creationDate', validate=False)] = ObservableSet({timestamp})
-                    if not self._values.get(Iri('oldap:lastModifiedBy', validate=False)):
-                        self._values[Iri('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
-                    if not self._values.get(Iri('oldap:lastModificationDate', validate=False)):
-                        self._values[Iri('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
+                    if not self._values.get(Xsd_QName('oldap:createdBy', validate=False)):
+                        self._values[Xsd_QName('oldap:createdBy', validate=False)] = ObservableSet({self._con.userIri})
+                    if not self._values.get(Xsd_QName('oldap:creationDate', validate=False)):
+                        self._values[Xsd_QName('oldap:creationDate', validate=False)] = ObservableSet({timestamp})
+                    if not self._values.get(Xsd_QName('oldap:lastModifiedBy', validate=False)):
+                        self._values[Xsd_QName('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
+                    if not self._values.get(Xsd_QName('oldap:lastModificationDate', validate=False)):
+                        self._values[Xsd_QName('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
                 set_values(sc.properties)
                 for iri, prop in sc.properties.items():
                     self.properties[iri] = prop
@@ -289,7 +289,7 @@ class ResourceInstance:
                     raise OldapErrorInconsistency(
                         f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
 
-    def notifier(self, prop_iri: Iri):
+    def notifier(self, prop_iri: Xsd_QName):
         hasprop = self.properties[prop_iri]
         self.validate_value(self._values[prop_iri], hasprop)
 
@@ -329,14 +329,14 @@ class ResourceInstance:
                 return False, f'Actor does not have {permission} in project "{self.project.projectShortName}".'
 
     def __get_value(self: Self, prefix: str, fragment: str) -> Xsd | ValueType | None:
-        attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
+        attr = Xsd_QName(prefix, fragment, validate=False)
         tmp = self._values.get(attr, None)
         if tmp is not None and str(attr) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate'}:
             return next(iter(tmp))
         return tmp
 
     def __set_value(self: Self, value: ValueType | Xsd | None, prefix: str, fragment: str) -> None:
-        prop_iri = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
+        prop_iri = Xsd_QName(prefix, fragment, validate=False)
         hasprop = self.properties.get(prop_iri)
 
         #
@@ -388,7 +388,7 @@ class ResourceInstance:
                 self._values[prop_iri] = convert2datatype(value, hasprop.prop.datatype)
 
     def __del_value(self: Self, prefix: str, fragment: str) -> None:
-        prop_iri = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
+        prop_iri = Xsd_QName(prefix, fragment, validate=False)
         hasprop = self.properties.get(prop_iri)
 
         if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
@@ -396,7 +396,7 @@ class ResourceInstance:
                 raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} cannot be deleted.')
 
         self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.DELETE)
-        attr = Iri(Xsd_QName(prefix, fragment, validate=False), validate=False)
+        attr = Xsd_QName(prefix, fragment, validate=False)
         del self._values[attr]
 
     @property
@@ -404,7 +404,7 @@ class ResourceInstance:
         return self._iri
 
     @property
-    def changeset(self) -> dict[Iri, AttributeChange]:
+    def changeset(self) -> dict[Xsd_QName, AttributeChange]:
         return self._changeset
 
     def clear_changeset(self) -> None:
@@ -451,10 +451,10 @@ class ResourceInstance:
 
         timestamp = Xsd_dateTimeStamp()
         if self.name == "Thing":
-            self._values[Iri('oldap:createdBy', validate=False)] = ObservableSet({self._con.userIri})
-            self._values[Iri('oldap:creationDate', validate=False)] = ObservableSet({timestamp})
-            self._values[Iri('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
-            self._values[Iri('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
+            self._values[Xsd_QName('oldap:createdBy', validate=False)] = ObservableSet({self._con.userIri})
+            self._values[Xsd_QName('oldap:creationDate', validate=False)] = ObservableSet({timestamp})
+            self._values[Xsd_QName('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
+            self._values[Xsd_QName('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
 
         indent: int = 0
         indent_inc: int = 4

@@ -635,10 +635,10 @@ class TestUser(unittest.TestCase):
                     hasPermissions={Iri('oldap:GenericRestricted'), Iri('oldap:GenericView')})
         user.create()
         user = User.read(con=self._connection, userId="fourier", ignore_cache=True)
-        user.hasPermissions.remove(Iri('oldap:GenericRestricted'))
+        user.hasPermissions.remove(Xsd_QName('oldap:GenericRestricted'))
         user.update()
         user = User.read(con=self._connection, userId="fourier", ignore_cache=True)
-        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericView')})
+        self.assertEqual(user.hasPermissions, {Xsd_QName('oldap:GenericView')})
 
     #  #unittest.skip('Work in progress')
     def test_update_user(self):
@@ -660,9 +660,9 @@ class TestUser(unittest.TestCase):
         user2.givenName = "Thomas"
         user2.email = "th.edison@audiorec.com"
 
-        user2.hasPermissions.add(Iri('oldap:GenericRestricted'))
-        user2.hasPermissions.add(Iri('hyha:HyperHamletMember'))
-        user2.hasPermissions.remove(Iri('oldap:GenericView'))
+        user2.hasPermissions.add(Xsd_QName('oldap:GenericRestricted'))
+        user2.hasPermissions.add(Xsd_QName('hyha:HyperHamletMember'))
+        user2.hasPermissions.remove(Xsd_QName('oldap:GenericView'))
         user2.inProject[Iri('oldap:SystemProject')] = {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES}
         user2.inProject[Iri('oldap:HyperHamlet')].remove(AdminPermission.ADMIN_USERS)
         user2.inProject[Iri('oldap:HyperHamlet')].add(AdminPermission.ADMIN_LISTS)
@@ -1217,11 +1217,11 @@ class TestUser(unittest.TestCase):
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        user.hasPermissions.discard(Iri('hyha:HyperHamletMember'))
+        user.hasPermissions.discard(Xsd_QName('hyha:HyperHamletMember'))
         user.update()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        self.assertEqual(user.hasPermissions, {Iri('oldap:GenericView')})
+        self.assertEqual(user.hasPermissions, {Xsd_QName('oldap:GenericView')})
 
     #  unittest.skip('Work in progress')
     def test_update_user_unexisting_has_permissions(self):
@@ -1236,7 +1236,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasPermissions={Iri('oldap:GenericView'), Iri('hyha:HyperHamletMember')})
+                    hasPermissions={Xsd_QName('oldap:GenericView'), Xsd_QName('hyha:HyperHamletMember')})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)

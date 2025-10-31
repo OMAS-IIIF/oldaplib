@@ -58,18 +58,18 @@ from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
-PropTypes = Iri | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | XsdSet | Numeric | None
+PropTypes = Iri | Xsd_QName | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | XsdSet | Numeric | None
 PropClassAttrContainer = dict[PropClassAttr, PropTypes]
-Attributes = dict[Iri, PropTypes]
+Attributes = dict[Xsd_QName, PropTypes]
 
 @dataclass
 @serializer
 class HasPropertyData:
-    refprop: Iri | None = None
+    refprop: Xsd_QName | None = None
     minCount: Xsd_nonNegativeInteger | None = None
     maxCount: Xsd_nonNegativeInteger | None = None
     order: Xsd_decimal | None = None
-    group: Iri | None = None
+    group: Xsd_QName | None = None
 
     def create_shacl(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -161,10 +161,10 @@ class PropertyClass(Model, Notify):
     _graph: Xsd_NCName
     _projectShortName: Xsd_NCName
     _projectIri: Iri
-    _property_class_iri: Iri | None
+    _property_class_iri: Xsd_QName | None
     _statementProperty: Xsd_boolean
     _externalOntology: Xsd_boolean
-    _internal: Iri | None
+    _internal: Xsd_QName | None
     _force_external: bool
     #_attributes: PropClassAttrContainer
     _test_in_use: bool
@@ -190,12 +190,12 @@ class PropertyClass(Model, Notify):
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
                  project: Project | Iri | Xsd_NCName | str,
-                 property_class_iri: Iri | str | None = None,
+                 property_class_iri: Xsd_QName | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
                  _statementProperty: bool | Xsd_boolean= False,
                  _externalOntology: bool | Xsd_boolean = False,
-                 _internal: Iri | None = None,  # DO NOT USE!! Only for serialization!
+                 _internal: Xsd_QName | None = None,  # DO NOT USE!! Only for serialization!
                  _force_external: bool | None = None,  # DO NOT USE!! Only for serialization!
                  _from_triplestore: bool = False,
                  validate: bool = False,
@@ -267,7 +267,7 @@ class PropertyClass(Model, Notify):
         context.use(self._projectShortName)
         self._graph = self._projectShortName
 
-        self._property_class_iri = Iri(property_class_iri, validate=validate) if property_class_iri else None
+        self._property_class_iri = Xsd_QName(property_class_iri, validate=validate) if property_class_iri else None
         datatype = kwargs.get('datatype', None)
         if datatype and kwargs.get('inSet'):
             if datatype == XsdDatatypes.langString:
@@ -535,7 +535,7 @@ class PropertyClass(Model, Notify):
         return self._projectIri
 
     @property
-    def property_class_iri(self) -> Iri:
+    def property_class_iri(self) -> Xsd_QName:
         """
         Return the Iri identifying the property
         :return: Iri identifying the property
@@ -553,7 +553,7 @@ class PropertyClass(Model, Notify):
         return self.__version
 
     @property
-    def internal(self) -> Iri | None:
+    def internal(self) -> Xsd_QName | None:
         """
         Return the Iri of the ResourceClass, if the property is internal to a ResourceClass.
         If it is a standalone property, return None
@@ -685,7 +685,7 @@ class PropertyClass(Model, Notify):
                 return False
 
     @staticmethod
-    def process_triple(r: RowType, attributes: Attributes, propiri: Iri | None = None) -> None:
+    def process_triple(r: RowType, attributes: Attributes, propiri: Xsd_QName | None = None) -> None:
         """
         INTERNAL USE ONLY! Used for processing triple while rreading a property.
         :param r:
@@ -714,12 +714,11 @@ class PropertyClass(Model, Notify):
                     raise OldapError(f'Invalid value for attribute {attriri}: {err}.')
             else:
                 if attributes.get(attriri) is not None:
-                    print("===>", r)
                     raise OldapError(f'Property ({propiri}) attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
                 attributes[attriri] = r['value']
 
     @staticmethod
-    def __query_shacl(con: IConnection, graph: Xsd_NCName, property_class_iri: Iri) -> Attributes:
+    def __query_shacl(con: IConnection, graph: Xsd_NCName, property_class_iri: Xsd_QName) -> Attributes:
         context = Context(name=con.context_name)
         query = context.sparql_context
         query += f"""
@@ -751,22 +750,22 @@ class PropertyClass(Model, Notify):
         #
         # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
         #
-        refprop: Iri | None = None
+        refprop: Xsd_QName | None = None
         minCount: Xsd_integer | None = None
         maxCount: Xsd_integer | None = None
         order: Xsd_decimal | None = None
-        group: Iri | None = None
-        propkeys = {Iri(x.value) for x in PropClassAttr}
+        group: Xsd_QName | None = None
+        propkeys = {Xsd_QName(x.value) for x in PropClassAttr}
         for key, val in attributes.items():
             if key == 'rdf:type':
                 if val != 'sh:PropertyShape':
                     raise OldapError(f'Inconsistency, expected "sh:PropertyType", got "{val}".')
                 continue
             elif key == 'sh:path':
-                if isinstance(val, Iri):
+                if isinstance(val, Xsd_QName):
                     self._property_class_iri = val
                 else:
-                    raise OldapError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}"')
+                    raise OldapError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}" (type={type(val).__name__}).')
             elif key == 'schema:version':
                 if isinstance(val, Xsd_string):
                     self.__version = SemanticVersion.fromString(str(val))
@@ -804,7 +803,7 @@ class PropertyClass(Model, Notify):
                     raise OldapError(f'Inconsistency in SHACL "oldap:externalOntology (type={type(val)}"')
             elif key == 'sh:node':
                 if str(val).endswith("Shape"):
-                    refprop = Iri(str(val)[:-5], validate=False)
+                    refprop = Xsd_QName(str(val)[:-5], validate=False)
                 else:
                     refprop = val
             elif key == 'sh:minCount':
@@ -816,7 +815,7 @@ class PropertyClass(Model, Notify):
             elif key == 'sh:group':
                 group = val
             elif key in propkeys:
-                attr = PropClassAttr.from_value(key.as_qname)
+                attr = PropClassAttr.from_value(key)
                 if attr.datatype == Numeric:
                     if not isinstance(val, (Xsd_integer, Xsd_float)):
                         raise OldapErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
@@ -923,7 +922,7 @@ class PropertyClass(Model, Notify):
     @classmethod
     def read(cls, con: IConnection,
              project: Project | Iri | Xsd_NCName | str,
-             property_class_iri: Iri | str,
+             property_class_iri: Xsd_QName | str,
              ignore_cache: bool = False) -> Self:
         """
         Reads a property from the triple store.
@@ -948,8 +947,8 @@ class PropertyClass(Model, Notify):
         """
         logger = get_logger()
 
-        if not isinstance(property_class_iri, Iri):
-            property_class_iri = Iri(property_class_iri)
+        if not isinstance(property_class_iri, Xsd_QName):
+            property_class_iri = Xsd_QName(property_class_iri)
         cache = CacheSingletonRedis()
         if not ignore_cache:
             tmp = cache.get(property_class_iri, connection=con)
@@ -1042,7 +1041,7 @@ class PropertyClass(Model, Notify):
 
     def create_shacl(self, *,
                      timestamp: Xsd_dateTime,
-                     owlclass_iri: Iri | None = None,
+                     owlclass_iri: Xsd_QName | None = None,
                      haspropdata: HasPropertyData | None = None,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -1255,7 +1254,7 @@ class PropertyClass(Model, Notify):
                 f.write(f'{blank:{indent * indent_inc}}}}\n')
 
     def update_shacl(self, *,
-                     owlclass_iri: Iri | None = None,
+                     owlclass_iri: Xsd_QName | None = None,
                      timestamp: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
@@ -1639,7 +1638,7 @@ class PropertyClass(Model, Notify):
         return sparql
 
     def delete_owl_subclass_str(self, *,
-                                owlclass_iri: Iri,
+                                owlclass_iri: Xsd_QName,
                                 indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''

@@ -330,18 +330,18 @@ class TestOldapList(unittest.TestCase):
 
         selection = PropertyClass(con=self._connection,
                                   project=self._project,
-                                  property_class_iri=Iri(f'{dm_name}:selection'),
+                                  property_class_iri=Xsd_QName(f'{dm_name}:selection'),
                                   toClass=node_classIri,
                                   name=LangString(["Selection@en", "Selektion@de"]))
 
         resobj = ResourceClass(con=self._connection,
                                project=self._project,
-                               owlclass_iri=Iri(f'{dm_name}:Resobj'),
+                               owlclass_iri=Xsd_QName(f'{dm_name}:Resobj'),
                                label=LangString(["Resobj@en", "Resobj@de"]),
                                hasproperties=[
                                    HasProperty(con=self._connection, project=self._project, prop=selection, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
-        dm[Iri(f'{dm_name}:resobj')] = resobj
+        dm[Xsd_QName(f'{dm_name}:resobj')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
 
@@ -373,22 +373,22 @@ class TestOldapList(unittest.TestCase):
         iris = OldapList.search(con=self._connection,
                                 project=self._project,
                                 prefLabel=Xsd_string("Animals", "en"))
-        self.assertEqual(iris, [Iri('test:animals')])
+        self.assertEqual(iris, [Xsd_QName('test:animals')])
 
         iris = OldapList.search(con=self._connection,
                                 project=self._project,
                                 prefLabel=Xsd_string("Animals"))
-        self.assertEqual(iris, [Iri('test:animals')])
+        self.assertEqual(iris, [Xsd_QName('test:animals')])
 
         iris = OldapList.search(con=self._connection,
                                 project=self._project,
                                 prefLabel=Xsd_string("Pflanzen", "de"))
-        self.assertEqual(iris, [Iri('test:plants')])
+        self.assertEqual(iris, [Xsd_QName('test:plants')])
 
         iris = OldapList.search(con=self._connection,
                                 project=self._project,
                                 prefLabel=Xsd_string("Tier"))
-        self.assertEqual(iris, [Iri('test:animals')])
+        self.assertEqual(iris, [Xsd_QName('test:animals')])
 
         iris = OldapList.search(con=self._connection,
                                 project=self._project,
@@ -404,8 +404,8 @@ class TestOldapList(unittest.TestCase):
         iris = OldapList.search(con=self._connection,
                                 project=self._project,
                                 definition=Xsd_string("hierarchical"))
-        self.assertTrue(Iri('test:animals') in iris)
-        self.assertTrue(Iri('test:plants') in iris)
+        self.assertTrue(Xsd_QName('test:animals') in iris)
+        self.assertTrue(Xsd_QName('test:plants') in iris)
 
 
 

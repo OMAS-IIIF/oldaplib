@@ -197,3 +197,24 @@ class Xsd_QName(Xsd):
         """
         parts = self._value.split(':')
         return parts[1]
+
+    @property
+    def is_qname(self) -> bool:
+        """
+        Checks if the Iri is an Iri QName
+        :return: True if the Iri is an Iri QName, False otherwise
+        :rtype: bool
+        """
+        return True
+
+    @property
+    def as_qname(self) -> Self:
+        """
+        Return the Iri as a QName instance
+        :return: QName instance, or None if the Iri is represented as QName
+        :rtype: Xsd_QName | None
+        """
+        return self
+
+if __name__ == "__main__":
+    q = Xsd_QName({})

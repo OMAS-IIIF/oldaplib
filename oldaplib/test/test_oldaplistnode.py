@@ -1553,7 +1553,7 @@ class TestOldapListNode(unittest.TestCase):
 
         selection = PropertyClass(con=self._connection,
                                   project=self._dmproject,
-                                  property_class_iri=Iri(f'{dm_name}:selection'),
+                                  property_class_iri=Xsd_QName(f'{dm_name}:selection'),
                                   toClass=node_classIri,
                                   name=LangString(["Selection@en", "Selektion@de"]))
 
@@ -1562,12 +1562,12 @@ class TestOldapListNode(unittest.TestCase):
         #
         resobj = ResourceClass(con=self._connection,
                                project=self._dmproject,
-                               owlclass_iri=Iri(f'{dm_name}:Resobj'),
+                               owlclass_iri=Xsd_QName(f'{dm_name}:Resobj'),
                                label=LangString(["Resobj@en", "Resobj@de"]),
                                hasproperties=[
                                    HasProperty(con=self._connection, project=self._dmproject, prop=selection, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
-        dm[Iri(f'{dm_name}:resobj')] = resobj
+        dm[Xsd_QName(f'{dm_name}:resobj')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
 
@@ -1669,18 +1669,18 @@ class TestOldapListNode(unittest.TestCase):
         #
         selection = PropertyClass(con=self._connection,
                                   project=self._project,
-                                  property_class_iri=Iri(f'{dm_name}:selection2'),
+                                  property_class_iri=Xsd_QName(f'{dm_name}:selection2'),
                                   toClass=node_classIri,
                                   name=LangString(["Selection2@en", "Selektion2@de"]))
 
         resobj = ResourceClass(con=self._connection,
                                project=self._project,
-                               owlclass_iri=Iri(f'{dm_name}:Resobj2'),
+                               owlclass_iri=Xsd_QName(f'{dm_name}:Resobj2'),
                                label=LangString(["Resobj2@en", "Resobj2@de"]),
                                hasproperties=[
                                    HasProperty(con=self._connection, project=self._project, prop=selection, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
-        dm[Iri(f'{dm_name}:Resobj2')] = resobj
+        dm[Xsd_QName(f'{dm_name}:Resobj2')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
 
@@ -2750,61 +2750,61 @@ class TestOldapListNode(unittest.TestCase):
         self.assertEqual(Xsd_integer(8), olBAB.rightIndex)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, id="Node_BA", exactMatch=True)
-        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
+        self.assertEqual([Xsd_QName("L-TestListY:Node_BA")], irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, id="Node_XX", exactMatch=True)
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, id="BA")
-        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, prefLabel="BA@en")
-        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, prefLabel="BA@zu")
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, prefLabel="Neud_BA@fr", exactMatch=True)
-        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
+        self.assertEqual([Xsd_QName("L-TestListY:Node_BA")], irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, prefLabel="BA@en")
-        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, prefLabel="XX")
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, prefLabel="Neud_BA", exactMatch=True)
-        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
+        self.assertEqual([Xsd_QName("L-TestListY:Node_BA")], irilist)
 
         ##
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, definition="BA@en")
-        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, definition="BA@zu")
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, definition="Eine Liste zum Testen BA@de", exactMatch=True)
-        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
+        self.assertEqual([Xsd_QName("L-TestListY:Node_BA")], irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, definition="BA@en")
-        self.assertTrue(Iri("L-TestListY:Node_BA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAA") in irilist)
-        self.assertTrue(Iri("L-TestListY:Node_BAB") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAA") in irilist)
+        self.assertTrue(Xsd_QName("L-TestListY:Node_BAB") in irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, definition="XX")
         self.assertEqual([], irilist)
 
         irilist = OldapListNode.search(con=self._connection, **oldaplist.info, definition="Eine Liste zum Testen BA", exactMatch=True)
-        self.assertEqual([Iri("L-TestListY:Node_BA")], irilist)
+        self.assertEqual([Xsd_QName("L-TestListY:Node_BA")], irilist)
 
     def test_invalid_move_A(self):
         oldaplist = OldapList(con=self._connection,
@@ -2996,7 +2996,7 @@ class TestOldapListNode(unittest.TestCase):
 
         title = PropertyClass(con=self._connection,
                               project=project,
-                              property_class_iri=Iri(f'{dm_name}:title'),
+                              property_class_iri=Xsd_QName(f'{dm_name}:title'),
                               datatype=XsdDatatypes.langString,
                               name=LangString(["Title@en", "Titel@de"]),
                               description=LangString(["Title of book@en", "Titel des Buches@de"]),
@@ -3005,14 +3005,14 @@ class TestOldapListNode(unittest.TestCase):
 
         category = PropertyClass(con=self._connection,
                                  project=project,
-                                 property_class_iri=Iri(f'{dm_name}:category'),
+                                 property_class_iri=Xsd_QName(f'{dm_name}:category'),
                                  toClass=oldaplist.node_classIri,
                                  name=LangString(["Category@en", "Kategorie@de"]),
                                  description=LangString(["Category@en", "Kategorie@de"]))
 
         categoryitem = ResourceClass(con=self._connection,
                                      project=project,
-                                     owlclass_iri=Iri(f'{dm_name}:CategoryItem'),
+                                     owlclass_iri=Xsd_QName(f'{dm_name}:CategoryItem'),
                                      label=LangString(["CategoryItem@en", "CategoryItem@de"]),
                                      comment=LangString("Something with categories@en"),
                                      closed=Xsd_boolean(True),
@@ -3025,7 +3025,7 @@ class TestOldapListNode(unittest.TestCase):
         #dm.create()
 
         dm = DataModel.read(con=self._connection, project=project)
-        dm[Iri(f'{dm_name}:CategoryItem')] = categoryitem
+        dm[Xsd_QName(f'{dm_name}:CategoryItem')] = categoryitem
         dm.update()
 
         factory = ResourceInstanceFactory(con=self._connection, project=project)

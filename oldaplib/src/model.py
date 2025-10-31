@@ -46,7 +46,7 @@ class Model:
     _contributor: Iri | None
     _modified: Xsd_dateTime | None
     _attributes: dict[Enum, Any]
-    _changeset: dict[AttributeClass | Iri, AttributeChange]
+    _changeset: dict[AttributeClass | Xsd_QName, AttributeChange]
     _validate: bool
 
     def __init__(self, *,

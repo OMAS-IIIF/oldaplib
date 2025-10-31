@@ -106,7 +106,7 @@ class TestObjectFactory(unittest.TestCase):
         sleep(1)  # upload may take a while...
 
         user = User.read(cls._connection, "rosenth")
-        user.hasPermissions.add(Iri('oldap:GenericUpdate'))
+        user.hasPermissions.add(Iri('oldap:GenericUpdate'))  # TODO: SHOULD WORK WITH Xsd_QName
         user.update()
 
         ps = PermissionSet(con=cls._connection,

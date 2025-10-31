@@ -202,7 +202,7 @@ class TestPermissionSet(unittest.TestCase):
         self.assertFalse(ps.definedByProject is ps2.definedByProject)
 
     def test_read_permission_with_iri(self):
-        ps = PermissionSet.read(con=self._connection, iri=Iri('hyha:HyperHamletMember'), ignore_cache=True)
+        ps = PermissionSet.read(con=self._connection, qname=Xsd_QName('hyha:HyperHamletMember'), ignore_cache=True)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_UPDATE)  # add assertion here
         self.assertEqual(ps.label, LangString("HyHaUpdate@en", "HyHaUpdate@de", "HyHaUpdate@fr", "HyHaUpdate@it"))
         self.assertEqual(ps.definedByProject, Iri('oldap:HyperHamlet'))
@@ -309,26 +309,26 @@ class TestPermissionSet(unittest.TestCase):
     def test_search_permission_sets(self):
         iris = PermissionSet.search(self._connection, label="GenericView")
         self.assertEqual(len(iris), 1)
-        self.assertTrue(Iri('oldap:GenericView') in iris)
+        self.assertTrue(Xsd_QName('oldap:GenericView') in iris)
 
         iris = PermissionSet.search(self._connection, label=Xsd_string("GenericView@de"))
         self.assertEqual(len(iris), 1)
-        self.assertTrue(Iri('oldap:GenericView') in iris)
+        self.assertTrue(Xsd_QName('oldap:GenericView') in iris)
 
         iris = PermissionSet.search(self._connection, definedByProject=Iri("oldap:HyperHamlet"))
         self.assertEqual(len(iris), 1)
-        self.assertEqual(Iri('hyha:HyperHamletMember'), iris[0])
+        self.assertEqual(Xsd_QName('hyha:HyperHamletMember'), iris[0])
 
         iris = PermissionSet.search(self._connection, givesPermission=DataPermission.DATA_RESTRICTED)
         #self.assertEqual(len(iris), 1)
-        self.assertEqual([Iri('oldap:GenericRestricted')], iris)
+        self.assertEqual([Xsd_QName('oldap:GenericRestricted')], iris)
 
         iris = PermissionSet.search(self._connection)
-        self.assertEqual({Iri("oldap:GenericRestricted"),
-                          Iri("oldap:GenericView"),
-                          Iri("hyha:HyperHamletMember"),
-                          Iri("oldap:GenericExtend"),
-                          Iri("oldap:GenericUpdate")}, set(iris))
+        self.assertEqual({Xsd_QName("oldap:GenericRestricted"),
+                          Xsd_QName("oldap:GenericView"),
+                          Xsd_QName("hyha:HyperHamletMember"),
+                          Xsd_QName("oldap:GenericExtend"),
+                          Xsd_QName("oldap:GenericUpdate")}, set(iris))
 
     def test_update_permission_set(self):
         ps = PermissionSet(con=self._connection,
@@ -409,7 +409,7 @@ class TestPermissionSet(unittest.TestCase):
 
         irgendwas = PropertyClass(con=self._connection,
                                   project=self._project,
-                                  property_class_iri=Iri(f'{dm_name}:irgendwas'),
+                                  property_class_iri=Xsd_QName(f'{dm_name}:irgendwas'),
                                   datatype=XsdDatatypes.string,
                                   name=LangString(["AnyString@en", "Irgendwas@de"]))
 
@@ -418,18 +418,18 @@ class TestPermissionSet(unittest.TestCase):
         #
         resobj = ResourceClass(con=self._connection,
                                project=self._project,
-                               owlclass_iri=Iri(f'{dm_name}:DummyClass'),
+                               owlclass_iri=Xsd_QName(f'{dm_name}:DummyClass'),
                                label=LangString(["Dummy@en", "Dummy@de"]),
                                hasproperties=[
                                    HasProperty(con=self._connection, project=self._project, prop=irgendwas, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
-        dm[Iri(f'{dm_name}:resobj')] = resobj
+        dm[Xsd_QName(f'{dm_name}:resobj')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
 
         factory = ResourceInstanceFactory(con=self._connection, project=self._project)
         DummyClass = factory.createObjectInstance('DummyClass')
-        r = DummyClass(irgendwas="Dies ist irgend ein String", grantsPermission=Iri('oldap:GenericUpdate'))
+        r = DummyClass(irgendwas="Dies ist irgend ein String", grantsPermission=Xsd_QName('oldap:GenericUpdate'))
         r.create()
 
         ps = PermissionSet.read(con=self._connection, permissionSetId="GenericUpdate", definedByProject=Iri('oldap:SystemProject'), ignore_cache=True)

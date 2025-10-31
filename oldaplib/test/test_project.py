@@ -124,7 +124,7 @@ class Testproject(unittest.TestCase):
     # @unittest.skip('Work in progress')
     def test_project_search(self):
         projects = Project.search(con=self._connection, label="HyperHamlet")
-        self.assertEqual({ProjectSearchResult(Iri("oldap:HyperHamlet"), Xsd_NCName("hyha"))}, set(projects))
+        self.assertEqual({ProjectSearchResult(Xsd_QName("oldap:HyperHamlet"), Xsd_NCName("hyha"))}, set(projects))
 
     # @unittest.skip('Work in progress')
     def test_project_search_fail(self):
@@ -133,9 +133,9 @@ class Testproject(unittest.TestCase):
 
     def test_project_search_all(self):
         projects = Project.search(con=self._connection)
-        self.assertTrue(set(projects) >= {ProjectSearchResult(Iri("oldap:SystemProject"), Xsd_NCName("oldap")),
-                          ProjectSearchResult(Iri("oldap:SharedProject"), Xsd_NCName("shared")),
-                          ProjectSearchResult(Iri("oldap:HyperHamlet"), Xsd_NCName("hyha")),
+        self.assertTrue(set(projects) >= {ProjectSearchResult(Xsd_QName("oldap:SystemProject"), Xsd_NCName("oldap")),
+                          ProjectSearchResult(Xsd_QName("oldap:SharedProject"), Xsd_NCName("shared")),
+                          ProjectSearchResult(Xsd_QName("oldap:HyperHamlet"), Xsd_NCName("hyha")),
                           ProjectSearchResult(Iri("http://www.salsah.org/version/2.0/SwissBritNet"), Xsd_NCName("britnet"))})
 
     def test_project_create_simplest(self):

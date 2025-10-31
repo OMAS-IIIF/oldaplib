@@ -50,7 +50,7 @@ class ObservableDict(UserDict):
             for item in obsdict:
                 self[item['key']] = item['val']
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if key in self.data:
             self._changeset[key] = AttributeChange(self.data[key], Action.MODIFY)
         else:
@@ -59,12 +59,14 @@ class ObservableDict(UserDict):
             self.__on_change(self.copy())
         super().__setitem__(key, value)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         self._changeset[key] = AttributeChange(self.data[key], Action.DELETE)
         if self.__on_change:
             self.__on_change(self.copy())
         super().__delitem__(key)
 
+    def __bool__(self) -> bool:
+        return len(self) > 0
 
     def copy(self) -> Self:
         return ObservableDict(self.data.copy())

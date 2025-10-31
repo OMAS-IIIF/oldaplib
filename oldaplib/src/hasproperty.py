@@ -1,14 +1,11 @@
 from copy import deepcopy
-from dataclasses import dataclass
 from enum import Enum
 from functools import partial
-from pprint import pprint
 from typing import Callable, Self, Any
 
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
-from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
@@ -20,10 +17,10 @@ from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass, HasPropertyData
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
-from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
-from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+
 
 @serializer
 class PropType(Enum):
@@ -53,16 +50,16 @@ class HasProperty(Model, Notify):
     """
 
 
-    _prop: PropertyClass | Iri | None
+    _prop: PropertyClass | Xsd_QName | None
     _project: Project | None
     _type: PropType | None
 
     def __init__(self, *,
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str,
-                 prop: PropertyClass | Iri | None = None,
-                 notifier: Callable[[Iri], None] | None = None,
-                 notify_data: Iri | None = None,
+                 prop: PropertyClass | Xsd_QName | None = None,
+                 notifier: Callable[[Xsd_QName], None] | None = None,
+                 notify_data: Xsd_QName | None = None,
                  creator: Iri | None = None,  # DO NO USE! Only for jsonify!!
                  created: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
                  contributor: Iri | None = None,  # DO NO USE! Only for jsonify!!
@@ -103,8 +100,8 @@ class HasProperty(Model, Notify):
             if not isinstance(project, (Iri, Xsd_NCName)):
                 project = IriOrNCName(project, validate=validate)
             self._project = Project.read(self._con, project)
-        if isinstance(prop, Iri):
-            fixed_prop = Iri(str(prop).removesuffix("Shape"))
+        if isinstance(prop, Xsd_QName):
+            fixed_prop = Xsd_QName(str(prop).removesuffix("Shape"))
             try:
                 self._prop = PropertyClass.read(self._con, self._project, fixed_prop)
                 self._type = PropType.STANDALONE
@@ -129,8 +126,8 @@ class HasProperty(Model, Notify):
         self._changeset = {}
 
     def update_notifier(self,
-                        notifier: Callable[[AttributeClass | Iri], None] | None = None,
-                        notify_data: HasPropertyAttr | Iri | None = None):
+                        notifier: Callable[[AttributeClass | Xsd_QName], None] | None = None,
+                        notify_data: HasPropertyAttr | Xsd_QName | None = None):
         self.set_notifier(notifier, notify_data)
         if isinstance(self._prop, PropertyClass):
             self._prop.set_notifier(self.notifier, self._prop.property_class_iri)
@@ -177,11 +174,11 @@ class HasProperty(Model, Notify):
         return self._type
 
     @property
-    def prop(self) -> PropertyClass | Iri | None:
+    def prop(self) -> PropertyClass | Xsd_QName | None:
         return self._prop
 
     @prop.setter
-    def prop(self, prop: PropertyClass | Iri) -> None:
+    def prop(self, prop: PropertyClass | Xsd_QName) -> None:
         self._prop = prop
 
     @property
@@ -191,12 +188,12 @@ class HasProperty(Model, Notify):
                                order=self._attributes.get(HasPropertyAttr.ORDER, None),
                                group=self._attributes.get(HasPropertyAttr.GROUP, None))
 
-    def notifier(self, attr: HasPropertyAttr | Iri) -> None:
+    def notifier(self, attr: HasPropertyAttr | Iri | Xsd_QName) -> None:
         #if attr == HasPropertyAttr.PROP:
         #    return
         if isinstance(attr, HasPropertyAttr):
             self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
-        elif isinstance(attr, Iri):
+        elif isinstance(attr, Xsd_QName):
             self._changeset[attr] = AttributeChange(None, Action.MODIFY)
         self.notify()
 
@@ -230,13 +227,13 @@ class HasProperty(Model, Notify):
 
     def update_shacl(self,
                      graph: Xsd_NCName,
-                     resclass_iri: Iri,
-                     propclass_iri: Iri,
+                     resclass_iri: Xsd_QName,
+                     propclass_iri: Xsd_QName,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
         for attr, change in self._changeset.items():
-            if isinstance(attr, Iri):  # if it's an IRI, the attached PropertyClass has changed. We don't process this here
+            if isinstance(attr, Xsd_QName):  # if it's an IRI, the attached PropertyClass has changed. We don't process this here
                 continue
             sparql = f'WITH {graph}:shacl\n'
             if change.action != Action.CREATE:
@@ -251,7 +248,7 @@ class HasProperty(Model, Notify):
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}{resclass_iri}Shape sh:property ?prop .\n'
-            if isinstance(self._prop, Iri) or self._prop.internal is None:
+            if isinstance(self._prop, Xsd_QName) or self._prop.internal is None:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:node {propclass_iri}Shape.\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {propclass_iri} .\n'
@@ -264,8 +261,8 @@ class HasProperty(Model, Notify):
 
     def update_owl(self,
                      graph: Xsd_NCName,
-                     resclass_iri: Iri,
-                     propclass_iri: Iri,
+                     resclass_iri: Xsd_QName,
+                     propclass_iri: Xsd_QName,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         if HasPropertyAttr.MIN_COUNT in self._changeset or HasPropertyAttr.MAX_COUNT in self._changeset:
@@ -302,3 +299,5 @@ class HasProperty(Model, Notify):
             sparql += f'{blank:{indent * indent_inc}}}}'
 
             return sparql
+        else:
+            return ''
