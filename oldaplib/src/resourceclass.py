@@ -309,7 +309,7 @@ class ResourceClass(Model, Notify):
         # now we add, if necessary, the mandatory superclass "oldap:Thing". Every ResourceClass is OLDAP must be
         # a subclass of "oldap:Thing"! We don't do it for system things with a prefix of "oldap".
         #
-        if owlclass_iri.prefix != "oldap":
+        if self._owlclass_iri.prefix != "oldap":
             thing_iri = Xsd_QName('oldap:Thing', validate=False)
             if self._owlclass_iri != thing_iri:
                 if not new_kwargs.get(ResClassAttribute.SUPERCLASS.value.fragment):
