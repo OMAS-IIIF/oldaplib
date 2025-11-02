@@ -110,7 +110,7 @@ class Project(Model):
     #_attributes: dict[ProjectAttr, ProjectAttrTypes]
     #__changeset: dict[ProjectAttr, ProjectAttrChange]
 
-    __slots__ = ('projectIri', 'projectShortName', 'label', 'comment', 'namespaceIri', 'projectStart', 'projectEnd', 'usesExternalOntology')
+    __slots__ = ('projectIri', 'projectShortName', 'label', 'comment', 'namespaceIri', 'projectStart', 'projectEnd')
 
     def __init__(self, *,
                  con: IConnection,
@@ -176,18 +176,12 @@ class Project(Model):
                 partial(Project._get_value, attr=attr),
                 partial(Project._set_value, attr=attr),
                 partial(Project._del_value, attr=attr)))
-        if self._attributes.get(ProjectAttr.USES_EXTERNAL_ONTOLOGY):
-            self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].set_on_change(self.eo_notify)
         self._changeset = {}
 
     def update_notifier(self):
         for attr, value in self._attributes.items():
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
-
-    def eo_notify(self, d: ObservableDict):
-        if not self._changeset.get(ProjectAttr.USES_EXTERNAL_ONTOLOGY):
-            self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY] = AttributeChange(self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].copy(), Action.MODIFY)
 
     def _as_dict(self):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict()
@@ -239,29 +233,6 @@ class Project(Model):
         """
         self._changeset[attr] = AttributeChange(self._attributes[attr], Action.MODIFY)
 
-    def add_external_ontology(self, ontos: dict[Xsd_NCName, NamespaceIRI]):
-        """
-        Adds external ontologies to the project.
-        :param dict[Xsd_NCName, NamespaceIRI]: Dictionary of external ontologies to add
-        :return: None
-        """
-        if not ontos:
-            return
-        if not self._attributes.get(ProjectAttr.USES_EXTERNAL_ONTOLOGY):
-            self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY] = ObservableDict()
-        for prefix, iri in ontos.items():
-            if not self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY]:
-                self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY] = AttributeChange(self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].copy(), Action.MODIFY)
-            self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY][prefix] = iri
-
-    def del_external_ontology(self, ontos: list[Xsd_NCName]):
-        if not ontos:
-            return
-        if not self._attributes.get(ProjectAttr.USES_EXTERNAL_ONTOLOGY):
-            raise OldapErrorInconsistency(f'Project {self} has no external ontologies.')
-        for prefix in ontos:
-            if not self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY]:
-                self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY] = AttributeChange(self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].copy(), Action.MODIFY)
 
 
     @classmethod
@@ -355,7 +326,6 @@ class Project(Model):
         comment = LangString()
         projectStart = None
         projectEnd = None
-        usesExternalOntology: dict[Xsd_QName, NamespaceIRI] | None = None
         for r in res:
             if projectIri is None:
                 projectIri = r['proj']
@@ -380,10 +350,6 @@ class Project(Model):
                     projectStart = r['val']
                 case 'oldap:projectEnd':
                     projectEnd = r['val']
-                case 'oldap:usesExternalOntology':
-                    if not usesExternalOntology:
-                        usesExternalOntology = {}
-                    usesExternalOntology[r['prefix']] = NamespaceIRI(r['iri'])
         if label:
             label.changeset_clear()
             label.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.LABEL.value))
@@ -402,8 +368,7 @@ class Project(Model):
                        namespaceIri=namespaceIri,
                        comment=comment,
                        projectStart=projectStart,
-                       projectEnd=projectEnd,
-                       usesExternalOntology=usesExternalOntology)
+                       projectEnd=projectEnd)
         cache = CacheSingletonRedis()
         cache.set(instance.projectIri, instance, instance.projectShortName)
         return instance
@@ -521,12 +486,7 @@ class Project(Model):
         for attr, value in self._attributes.items():
             if not value:
                 continue
-            if attr == ProjectAttr.USES_EXTERNAL_ONTOLOGY:
-                for prefix, iri in value.items():
-                    sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:usesExternalOntology [ oldap:prefix {prefix.toRdf} ; oldap:fullIri {iri.toRdf} ]'
-                pass
-            else:
-                sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
+            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
         sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -607,70 +567,7 @@ class Project(Model):
                                                             field=Xsd_QName(field.value))
                     sparql_list.append(sparql)
                 continue
-            if field == ProjectAttr.USES_EXTERNAL_ONTOLOGY:
-                if change.action == Action.MODIFY:
-                    diff = dict_diff(self._changeset[ProjectAttr.USES_EXTERNAL_ONTOLOGY].old_value, self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY])
-                    #
-                    # first we remove the "removed" and "changed"
-                    #
-                    to_delete = set(diff['removed']) | set(diff['changed'])
-                    for key in to_delete:
-                        sparql = f"""
-                        DELETE {{
-                            GRAPH oldap:admin {{
-                                {self.projectIri.toRdf} oldap:usesExternalOntology ?o .
-                                ?o ?p ?v .
-                            }}
-                        }}
-                        WHERE {{
-                            GRAPH oldap:admin {{
-                                ?o oldap:prefix {key.toRdf} .
-                                ?o oldap:fullIri ?anyiri .
-                            }}
-                        }}
-                        """
-                        sparql_list.append(sparql)
-                    to_add = set(diff['added']) | set(diff['changed'])
-                    sparql = f"""
-                    INSERT DATA {{
-                        GRAPH oldap:admin {{
-                    """
-                    for key in to_add:
-                        sparql += f"   {self.projectIri.toRdf} oldap:usesExternalOntology  [ oldap:prefix {key.toRdf} ; oldap:fullIri {self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY][key].toRdf} ] .\n"
-                    sparql += f"""
-                        }}
-                    }}
-                    """
-                    sparql_list.append(sparql)
-                if change.action == Action.DELETE:
-                    sparql = f"""
-                    DELETE {{
-                        GRAPH oldap:admin {{
-                            {self.projectIri.toRdf} oldap:usesExternalOntology ?o .
-                            ?o ?p ?v .
-                        }}
-                    }}
-                    WHERE {{
-                        GRAPH oldap:admin {{
-                            {self.projectIri.toRdf} oldap:usesExternalOntology ?o .
-                            ?o ?p ?v .
-                        }}
-                    }}
-                    """
-                    sparql_list.append(sparql)
-                if change.action == Action.CREATE:
-                    sparql = f"""
-                    INSERT DATA {{
-                        GRAPH oldap:admin {{
-                    """
-                    for prefix, iri in self._attributes[ProjectAttr.USES_EXTERNAL_ONTOLOGY].items():
-                        sparql += f"   {self.projectIri.toRdf} oldap:usesExternalOntology  [ oldap:prefix {prefix.toRdf} ; oldap:fullIri {iri.toRdf} ] .\n"
-                    sparql += f"""
-                        }}
-                    }}
-                    """
-                    sparql_list.append(sparql)
-                continue
+
             sparql = f'{blank:{indent * indent_inc}}# Project field "{field.value}" with action "{change.action.value}"\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'

@@ -20,7 +20,7 @@
 :onto {
 
     :ontology rdf:type owl:Ontology ;
-        owl:versionInfo "0.1.0"^^xsd:string ;
+        owl:versionInfo "1.0.0"^^xsd:string ;
         owl:versionIRI <http://oldap.org/ontology/version/1.0.0> ;
 
 }

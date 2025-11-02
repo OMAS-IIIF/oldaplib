@@ -38,6 +38,7 @@ class PropClassAttr(AttributeClass):
     SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri)
     TYPE = ('rdf:type', False, True, OwlPropertyType)
     CLASS = ('sh:class', False, False, Iri)
+    NODEKIND = ('sh:nodeKind', False, False, Iri)
     DATATYPE = ('sh:datatype', False, False, XsdDatatypes)
     NAME = ('sh:name', False, False, LangString)  # needs notifier
     DESCRIPTION = ('sh:description', False, False, LangString)  # needs notifier

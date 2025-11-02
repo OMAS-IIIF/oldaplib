@@ -199,20 +199,52 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "Project"@en, "Projekt"@de, "Projet"@fr, "Progetto"@it ;
-        rdfs:comment "Metadata about a project"@en ;
+        rdfs:label "External Ontology"@en, "Externe Ontology"@de, "Ontologie externe"@fr, "External Ontology"@it ;
+        rdfs:comment "Reference to an external ontology that is being used. Includes prefix and namespace IRI."@en ;
         sh:property [
             sh:path rdf:type ;
         ] ;
         sh:property [
+            sh:path dcterms:creator ;
+            sh:class :User ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:minCount "1"^^xsd:integer ;
+        ] ;
+        sh:property [
+            sh:path dcterms:created ;
+            sh:datatype xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:minCount "1"^^xsd:integer ;
+        ] ;
+        sh:property [
+            sh:path dcterms:contributor ;
+            sh:class :User ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:minCount "1"^^xsd:integer ;
+        ] ;
+        sh:property [
+            sh:path dcterms:modified ;
+            sh:datatype xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:minCount "1"^^xsd:integer ;
+        ] ;
+        sh:property [
             sh:path :prefix ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
             sh:datatype xsd:NCName ;
             sh:maxCount "1"^^xsd:integer ;
             sh:minCount "1"^^xsd:integer ;
         ] ;
         sh:property [
-            sh:path :fullIri ;
-            sh:datatype xsd:anyURI ;
+            sh:path :namespaceIri ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:nodeKind sh:IRI ;
             sh:maxCount "1"^^xsd:integer ;
             sh:minCount "1"^^xsd:integer ;
         ] .
@@ -321,14 +353,6 @@
             sh:datatype xsd:date ;
             sh:name "The date when the project wll end/has ended"@en ;
             sh:order "6"^^xsd:decimal ;
-        ] ;
-        sh:property [
-            sh:path :usesExternalOntology ;
-            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:class :ExternalOntology ;
         ] .
 
 
@@ -729,6 +753,26 @@
     :hasAdminPermission a owl:ObjectProperty ;
         rdfs:range :AdminPermission .
 
+    ###############################################################################
+    # Properties used for extrernal ontologies
+    ###############################################################################
+    :prefix a owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:domain :ExternalOntology ;
+        rdfs:range xsd:NCName .
+
+    :namespaceIri a owl:ObjectProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:domain :ExternalOntology ;
+        rdfs:range owl:Thing .
+
+
 
     ###############################################################################
     # Properties that are used by the :DataPermission class
@@ -918,6 +962,45 @@
     #################################################################
     # AdminPermission class (template for administrative permissions)
     #################################################################
+
+    :ExternalOntology rdf:type owl:Class ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:subClassOf [
+            rdf:type owl:Restriction ;
+            owl:onProperty dcterms:creator ;
+            owl:onClass :User ;
+            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        ] , [
+            rdf:type owl:Restriction ;
+            owl:onProperty dcterms:created ;
+            owl:onDataRange xsd:dateTime ;
+            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        ] , [
+            rdf:type owl:Restriction ;
+            owl:onProperty dcterms:contributor ;
+            owl:onClass :User ;
+            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        ] , [
+            rdf:type owl:Restriction ;
+            owl:onProperty dcterms:modified ;
+            owl:onDataRange xsd:dateTime ;
+            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        ] , [
+            rdf:type owl:Restriction ;
+            owl:onProperty :prefix ;
+            owl:onDataRange xsd:NCname ;
+            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        ] ,
+        [
+            rdf:type owl:Restriction ;
+            owl:onProperty :namespaceIri ;
+            owl:onClass owl:Thing ;
+            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        ] .
+
 
     oldap:AdminPermission rdf:type owl:Class ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;

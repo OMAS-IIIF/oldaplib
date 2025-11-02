@@ -179,7 +179,7 @@ class PermissionSet(Model):
                     return False, f'Actor has no ADMIN_PERMISSION_SETS permission for project {self.definedByProject}'
             return True, "OK"
 
-    def notifier(self, what: PermissionSetAttr) -> None:
+    def notifier(self, what: PermissionSetAttr, value: Any = None) -> None:
         self._changeset[what] = AttributeChange(None, Action.MODIFY)
 
     @property

@@ -389,6 +389,10 @@ class TestDataModel(unittest.TestCase):
     def test_datamodel_read_shared(self):
         model = DataModel.read(self._connection, self._sharedproject, ignore_cache=True)
 
+    def test_datamodel_read_system(self):
+        model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)
+        pass
+
     def test_datamodel_cache(self):
         start = time()
         model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)

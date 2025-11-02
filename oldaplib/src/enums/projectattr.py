@@ -24,4 +24,3 @@ class ProjectAttr(AttributeClass):
     NAMESPACE_IRI = ('oldap:namespaceIri', True, True, NamespaceIRI)
     PROJECT_START = ('oldap:projectStart', False, False, Xsd_date)
     PROJECT_END = ('oldap:projectEnd', False, False, Xsd_date)
-    USES_EXTERNAL_ONTOLOGY = ('oldap:usesExternalOntology', False, False, ObservableDict)

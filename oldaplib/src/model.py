@@ -45,7 +45,7 @@ class Model:
     _created: Xsd_dateTime | None
     _contributor: Iri | None
     _modified: Xsd_dateTime | None
-    _attributes: dict[Enum, Any]
+    _attributes: dict[AttributeClass, Any]
     _changeset: dict[AttributeClass | Xsd_QName, AttributeChange]
     _validate: bool
 
