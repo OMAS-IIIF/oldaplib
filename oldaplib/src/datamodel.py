@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Union, Any, Self
 
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.enums.adminpermissions import AdminPermission
+from oldaplib.src.externalontology import ExternalOntology
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.helpers.irincname import IriOrNCName
@@ -23,6 +24,10 @@ from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
+@dataclass
+class ExternalOntologyChange:
+    old_value: ExternalOntology | None
+    action: Action
 
 @dataclass
 class ResourceClassChange:
@@ -71,8 +76,10 @@ class DataModel(Model):
     _project: Project
     __context: Context
     __version: SemanticVersion
+    __extontos: dict[Xsd_QName, ExternalOntology]
     __propclasses: dict[Xsd_QName, PropertyClass | None]
     __resclasses: dict[Xsd_QName, ResourceClass | None]
+    __extontos_changeset: dict[Xsd_QName, ExternalOntologyChange]
     __resclasses_changeset: dict[Xsd_QName, ResourceClassChange]
     __propclasses_changeset: dict[Xsd_QName, PropertyClassChange]
 
@@ -83,6 +90,7 @@ class DataModel(Model):
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
                  project: Project | Iri | Xsd_NCName | str,
+                 extontos: list[ExternalOntology] | None = None,
                  propclasses: list[PropertyClass] | None = None,
                  resclasses: list[ResourceClass] | None = None,
                  validate: bool = False) -> None:
@@ -152,6 +160,10 @@ class DataModel(Model):
         self.__context.use(self._project.projectShortName)
         self.__graph = self._project.projectShortName
 
+        self.__extontos = {}
+        if extontos is not None:
+            for e in extontos:
+                self.__extontos[e.extonto_qname] = e
         self.__propclasses = {}
         if propclasses is not None:
             for p in propclasses:
@@ -160,12 +172,14 @@ class DataModel(Model):
         if resclasses is not None:
             for r in resclasses:
                 self.__resclasses[r.owl_class_iri] = r
+        self.__extontos_changeset = {}
         self.__propclasses_changeset = {}
         self.__resclasses_changeset = {}
 
     def _as_dict(self):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
             'project': self._project.projectShortName,
+            **({'extontos': [x for x in self.__extontos.values()]} if self.__extontos else {}),
             **({'propclasses': [x for x in self.__propclasses.values()]} if self.__propclasses else {}),
             **({'resclasses': [x for x in self.__resclasses.values()]} if self.__resclasses else {}),
         }
@@ -213,13 +227,16 @@ class DataModel(Model):
         instance.__context = deepcopy(self.__context, memo)
         instance.__version = deepcopy(self.__version, memo)
         instance._project = deepcopy(self._project, memo)
+        instance.__extontos = deepcopy(self.__extontos, memo)
         instance.__propclasses = deepcopy(self.__propclasses, memo)
         instance.__resclasses = deepcopy(self.__resclasses, memo)
         instance.__resclasses_changeset = deepcopy(self.__resclasses_changeset, memo)
         instance.__propclasses_changeset = deepcopy(self.__propclasses_changeset, memo)
         return instance
 
-    def __getitem__(self, key: Xsd_QName) -> PropertyClass | ResourceClass:
+    def __getitem__(self, key: Xsd_QName) -> ExternalOntology | PropertyClass | ResourceClass:
+        if key in self.__extontos:
+            return self.__extontos[key]
         if key in self.__resclasses:
             return self.__resclasses[key]
         if key in self.__propclasses:
@@ -227,8 +244,14 @@ class DataModel(Model):
         else:
             raise KeyError(key)
 
-    def __setitem__(self, key: Xsd_QName, value: PropertyClass | ResourceClass) -> None:
-        if isinstance(value, PropertyClass):
+    def __setitem__(self, key: Xsd_QName, value: ExternalOntology | PropertyClass | ResourceClass) -> None:
+        if isinstance(value, ExternalOntology):
+            if self.__extontos.get(key) is None:
+                self.__extontos_changeset[key] = ExternalOntologyChange(None, Action.CREATE)
+            else:
+                raise OldapErrorAlreadyExists(f'The external ontology "{key}" already exists. It cannot be replaced. Update/delete it.')
+            self.__extontos[key] = value
+        elif isinstance(value, PropertyClass):
             if self.__propclasses.get(key) is None:
                 self.__propclasses_changeset[key] = PropertyClassChange(None, Action.CREATE)
             else:
@@ -246,7 +269,10 @@ class DataModel(Model):
     def __delitem__(self, key: Xsd_QName | str) -> None:
         if not isinstance(key, Xsd_QName):
             key = Xsd_QName(key, validate=True)
-        if key in self.__propclasses:
+        if key in self.__extontos:
+            self.__extontos_changeset[key] = ExternalOntologyChange(self.__extontos[key], Action.DELETE)
+            del self.__extontos[key]
+        elif key in self.__propclasses:
             self.__propclasses_changeset[key] = PropertyClassChange(self.__propclasses[key], Action.DELETE)
             del self.__propclasses[key]
         elif key in self.__resclasses:
@@ -255,7 +281,7 @@ class DataModel(Model):
         else:
             raise OldapErrorValue(f'"{key}" must be either PropertyClass or ResourceClass')
 
-    def get(self, key: Xsd_QName | str) -> PropertyClass | ResourceClass | None:
+    def get(self, key: Xsd_QName | str) -> ExternalOntology | PropertyClass | ResourceClass | None:
         """
         Retrieves an instance of `PropertyClass` or `ResourceClass` associated with the
         specified `key`. The `key` can be either an `Iri` instance or a string. If the
@@ -272,12 +298,26 @@ class DataModel(Model):
         """
         if not isinstance(key, Xsd_QName):
             key = Xsd_QName(key, validate=True)
-        if key in self.__propclasses:
+        if key in self.__extontos:
+            return self.__extontos[key]
+        elif key in self.__propclasses:
             return self.__propclasses[key]
         elif key in self.__resclasses:
             return self.__resclasses[key]
         else:
             return None
+
+    def get_extontos(self) -> list[Xsd_QName]:
+        """
+        Extract and return the list of extended ontologies.
+
+        This method retrieves the extended ontologies by iterating over an internal
+        attribute and returning the values.
+
+        :return: A list containing the extended ontologies.
+        :rtype: list[Xsd_QName]
+        """
+        return [x for x in self.__extontos]
 
     def get_propclasses(self) -> list[Xsd_QName]:
         """
@@ -308,6 +348,9 @@ class DataModel(Model):
         return self.__resclasses_changeset | self.__propclasses_changeset
 
     def changeset_clear(self) -> None:
+        for onto, change in self.__extontos_changeset.items():
+            if change.action == Action.MODIFY:
+                self.__extontos[onto].clear_changeset()
         for prop, change in self.__propclasses_changeset.items():
             if change.action == Action.MODIFY:
                 self.__propclasses[prop].clear_changeset()
@@ -319,7 +362,9 @@ class DataModel(Model):
         self.clear_changeset()
 
     def notifier(self, what: Xsd_QName) -> None:
-        if what in self.__propclasses:
+        if what in self.__extontos:
+            self.__extontos_changeset[what] = ExternalOntologyChange(None, Action.MODIFY)
+        elif what in self.__propclasses:
             self.__propclasses_changeset[what] = PropertyClassChange(None, Action.MODIFY)
         elif what in self.__resclasses:
             self.__resclasses_changeset[what] = ResourceClassChange(None, Action.MODIFY)
@@ -380,6 +425,7 @@ class DataModel(Model):
         if len(res) == 0:
             raise OldapErrorNotFound(f'Datamodel "{cls.__graph}:shacl" not found')
         cls.__version = SemanticVersion.fromString(res[0]['version'])
+
         #
         # now we read the OWL ontology metadata
         #
@@ -398,6 +444,11 @@ class DataModel(Model):
         version = SemanticVersion.fromString(res[0]['version'])
         if version != cls.__version:
             raise OldapErrorInconsistency(f'Versionnumber of SHACL ({cls.__version}) and OWL ({version}) do not match')
+        #
+        # now read the external ontologies that are used in this datamodel
+        #
+        cls.__extontos = ExternalOntology.search(con=con, graph=cls.__graph)
+
         #
         # now get the QNames of all standalone properties within the data model
         #
@@ -425,6 +476,7 @@ class DataModel(Model):
             propclass.force_external()
             propclasses.append(propclass)
         sa_props = {x.property_class_iri: x for x in propclasses}
+
         #
         # now get all resources defined in the data model
         #
@@ -511,6 +563,10 @@ class DataModel(Model):
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n'
         sparql += '\n'
 
+        for qname, onto in self.__extontos.items():
+            sparql += onto.create_shacl(timestamp=timestamp, indent=2)
+            sparql += '\n'
+
         for propiri, propclass in self.__propclasses.items():
             if propclass.internal:
                 raise OldapErrorInconsistency(f"Property class {propclass.property_class_iri} is internal and cannot be used here.")
@@ -530,6 +586,8 @@ class DataModel(Model):
         sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} ;\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}}owl:versionIRI <http://oldap.org/ontology/{self.__graph}/version/{str(self.__version)}> .\n'
         sparql += '\n'
+
+        # no OWL for ExternalOntologies
 
         for propiri, propclass in self.__propclasses.items():
             sparql += propclass.create_owl_part1(timestamp=timestamp, indent=2)
@@ -575,6 +633,15 @@ class DataModel(Model):
         if not result:
             raise OldapErrorNoPermission(message)
 
+        for qname, change in self.__extontos_changeset.items():
+            match(change.action):
+                case Action.CREATE:
+                    self.__extontos[qname].create()
+                case Action.MODIFY:
+                    self.__extontos[qname].update()
+                case Action.DELETE:
+                    change.old_value.delete()
+
         for qname, change in self.__propclasses_changeset.items():
             match(change.action):
                 case Action.CREATE:
@@ -584,6 +651,7 @@ class DataModel(Model):
                 case Action.DELETE:
                     #self.__propclasses[qname].delete()
                     change.old_value.delete()
+
         for qname, change in self.__resclasses_changeset.items():
             match (change.action):
                 case Action.CREATE:
@@ -665,6 +733,8 @@ class DataModel(Model):
             f.write(f'\n{blank:{indent * indent_inc}}{self.__graph}:shacl {{\n')
             f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n')
             f.write('\n')
+            for qname, onto in self.__extontos.items():
+                f.write(onto.create_shacl(timestamp=timestamp, indent=1))
             for iri, prop in self.__propclasses.items():
                 if not prop.internal:
                     f.write(prop.create_shacl(timestamp=timestamp, indent=1))

@@ -7,6 +7,7 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix oldap: <http://oldap.org/base#> .
+@prefix schema: <http://schema.org/> .
 @prefix test: <http://oldap.org/test#> .
 @prefix : <http://oldap.org/test#> .
 
