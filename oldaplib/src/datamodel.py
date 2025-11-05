@@ -415,9 +415,10 @@ class DataModel(Model):
         query = cls.__context.sparql_context
         query += f"""
         SELECT ?version
-        FROM {cls.__graph}:shacl
         WHERE {{
-            {cls.__graph}:shapes schema:version ?version .
+            GRAPH {cls.__graph}:shacl {{
+                {cls.__graph}:shapes schema:version ?version .
+            }}
         }}
         """
         jsonobj = con.query(query)
@@ -447,7 +448,7 @@ class DataModel(Model):
         #
         # now read the external ontologies that are used in this datamodel
         #
-        cls.__extontos = ExternalOntology.search(con=con, graph=cls.__graph)
+        cls.__extontos = ExternalOntology.search(con=con, projectShortName=project.projectShortName)
 
         #
         # now get the QNames of all standalone properties within the data model

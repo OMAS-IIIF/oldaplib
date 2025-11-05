@@ -32,9 +32,9 @@ class TestexternalOntologies(unittest.TestCase):
     _connection: Connection
     _unpriv: Connection
 
-    #@classmethod
-    def setUp(cls):
-        super().setUp()
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
         project_root = find_project_root(__file__)
         cls._context = Context(name="DEFAULT")
 
@@ -55,7 +55,7 @@ class TestexternalOntologies(unittest.TestCase):
 
         project = Project(con=cls._connection,
                           projectIri=Iri("http://extonto.test.org/test"),
-                          projectShortName="test",
+                          projectShortName="testext",
                           namespaceIri=NamespaceIRI("http://extonto.test.org/test/ns/"))
         project.create()
 
@@ -63,78 +63,110 @@ class TestexternalOntologies(unittest.TestCase):
         dm.create()
 
 
-    #@classmethod
-    def tearDown(cls):
-        cls._connection.clear_graph(Xsd_QName('test:shacl'))
-        cls._connection.clear_graph(Xsd_QName('test:onto'))
+    @classmethod
+    def tearDownClass(cls):
+        cls._connection.clear_graph(Xsd_QName('testext:shacl'))
+        cls._connection.clear_graph(Xsd_QName('testext:onto'))
         #cls._connection.upload_turtle("oldaplib/ontologies/admin.trig")
         #sleep(1)  # upload may take a while...
         pass
 
     def test_create(self):
-        p = Project.read(con=self._connection, projectIri_SName="test", ignore_cache=True)
-        dm = DataModel.read(con=self._connection, project="test", ignore_cache=True)
+        p = Project.read(con=self._connection, projectIri_SName="testext", ignore_cache=True)
+        dm = DataModel.read(con=self._connection, project="testext", ignore_cache=True)
 
         eo1 = ExternalOntology(con=self._connection,
-                               graph="test",
-                               prefix="gaga",
-                               label=LangString("GAGA ontology@en", "Gaga Ontologie@de"),
-                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gaga/"))
+                               projectShortName="testext",
+                               prefix="gagaA",
+                               label=LangString("GAGA A ontology@en", "Gaga A Ontologie@de"),
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaA/"))
         eo1.create()
         del eo1
 
-        eo1 = ExternalOntology.read(con=self._connection, graph="test", prefix="gaga", ignore_cache=True)
-        self.assertEqual(eo1.prefix, "gaga")
-        self.assertEqual(eo1.label, LangString("GAGA ontology@en", "Gaga Ontologie@de"))
-        self.assertEqual(eo1.namespaceIri, NamespaceIRI("http://gaga.org/ns/gaga/"))
+        eo1 = ExternalOntology.read(con=self._connection, projectShortName="testext", prefix="gagaA", ignore_cache=True)
+        self.assertEqual(eo1.prefix, "gagaA")
+        self.assertEqual(eo1.label, LangString("GAGA A ontology@en", "Gaga A Ontologie@de"))
+        self.assertEqual(eo1.namespaceIri, NamespaceIRI("http://gaga.org/ns/gagaA/"))
+
+        ExternalOntology.delete_all(con=self._connection, projectShortName="testext")
+
 
     def test_update(self):
-        p = Project.read(con=self._connection, projectIri_SName="test", ignore_cache=True)
-        dm = DataModel.read(con=self._connection, project="test", ignore_cache=True)
+        p = Project.read(con=self._connection, projectIri_SName="testext", ignore_cache=True)
+        dm = DataModel.read(con=self._connection, project="testext", ignore_cache=True)
 
         eo1 = ExternalOntology(con=self._connection,
-                               graph="test",
-                               prefix="gaga2",
-                               label=LangString("GAGA ontology2@en", "Gaga Ontologie2@de"),
-                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gaga2/"))
+                               projectShortName="testext",
+                               prefix="gagaB",
+                               label=LangString("GAGA B ontology@en", "Gaga B Ontologie@de"),
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaB/"))
         eo1.create()
 
         del eo1
-        eo1 = ExternalOntology.read(con=self._connection, graph="test", prefix="gaga2", ignore_cache=True)
+        eo1 = ExternalOntology.read(con=self._connection, projectShortName="testext", prefix="gagaB", ignore_cache=True)
         eo1.prefix = "gugus"
         eo1.comment = LangString("Gugus comment@en", "Gugus Kommentar@de")
         del eo1.label[Language.DE]
-        eo1.label[Language.FR] = "GAGA ontologie2"
+        eo1.label[Language.FR] = "GAGA B ontologie"
         eo1.update()
 
-
         del eo1
-        eo1 = ExternalOntology.read(con=self._connection, graph="test", prefix="gaga2", ignore_cache=True)
+        eo1 = ExternalOntology.read(con=self._connection, projectShortName="testext", prefix="gagaB", ignore_cache=True)
         self.assertEqual(eo1.prefix, "gugus")
-        self.assertEqual(eo1.label, LangString("GAGA ontology2@en", "GAGA ontologie2@fr"))
+        self.assertEqual(eo1.label, LangString("GAGA B ontology@en", "GAGA B ontologie@fr"))
         self.assertEqual(eo1.comment, LangString("Gugus comment@en", "Gugus Kommentar@de"))
-        self.assertEqual(eo1.namespaceIri, NamespaceIRI("http://gaga.org/ns/gaga2/"))
+        self.assertEqual(eo1.namespaceIri, NamespaceIRI("http://gaga.org/ns/gagaB/"))
 
         with self.assertRaises(OldapErrorImmutable):
             eo1.namespaceIri = NamespaceIRI("http://gaga.org/ns/gaga2/new/")
 
+        ExternalOntology.delete_all(con=self._connection, projectShortName="testext")
+
     def test_search(self):
-        p = Project.read(con=self._connection, projectIri_SName="test", ignore_cache=True)
-        dm = DataModel.read(con=self._connection, project="test", ignore_cache=True)
+        p = Project.read(con=self._connection, projectIri_SName="testext", ignore_cache=True)
+        dm = DataModel.read(con=self._connection, project="testext", ignore_cache=True)
 
         eo1 = ExternalOntology(con=self._connection,
-                               graph="test",
-                               prefix="gaga1",
-                               label=LangString("GAGA1 ontology@en", "Gaga1 Ontologie@de"),
-                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gaga1/"))
+                               projectShortName="testext",
+                               prefix="gagaC",
+                               label=LangString("GAGA C ontology@en", "Gaga C Ontologie@de"),
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaC/"))
         eo1.create()
 
         eo2 = ExternalOntology(con=self._connection,
-                               graph="test",
-                               prefix="gaga2",
-                               label=LangString("GAGA2 ontology@en", "Gaga2 Ontologie@de"),
-                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gaga2/"))
+                               projectShortName="testext",
+                               prefix="gagaD",
+                               label=LangString("GAGA D ontology@en", "Gaga D Ontologie@de"),
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaD/"))
         eo2.create()
 
-        res = ExternalOntology.search(con=self._connection, graph="test")
-        self.assertEqual(set(res.keys()), {Xsd_QName('test:gaga1'), Xsd_QName('test:gaga2')})
+        res = ExternalOntology.search(con=self._connection, projectShortName="testext")
+        self.assertEqual(set(res.keys()), {Xsd_QName('testext:gagaC'), Xsd_QName('testext:gagaD')})
+
+        ExternalOntology.delete_all(con=self._connection, projectShortName="testext")
+
+    def test_delete(self):
+        p = Project.read(con=self._connection, projectIri_SName="testext", ignore_cache=True)
+        dm = DataModel.read(con=self._connection, project="testext", ignore_cache=True)
+
+        eo1 = ExternalOntology(con=self._connection,
+                               projectShortName="testext",
+                               prefix="gagaE",
+                               label=LangString("GAGA E ontology@en", "Gaga E Ontologie@de"),
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaE/"))
+        eo1.create()
+
+        eo2 = ExternalOntology(con=self._connection,
+                               projectShortName="testext",
+                               prefix="gagaF",
+                               label=LangString("GAGA F ontology@en", "Gaga F Ontologie@de"),
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaF/"))
+        eo2.create()
+        res = ExternalOntology.search(con=self._connection, projectShortName="testext")
+        res[Xsd_QName('testext:gagaF')].delete()
+
+        ExternalOntology.delete_all(con=self._connection, projectShortName="testext")
+
+
+
+

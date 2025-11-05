@@ -15,7 +15,7 @@ from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission, OldapErrorAlreadyExists, \
-    OldapErrorNotFound, OldapErrorUpdateFailed
+    OldapErrorNotFound, OldapErrorUpdateFailed, OldapErrorInUse
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.iconnection import IConnection
@@ -35,7 +35,7 @@ class ExternalOntology(Model, Notify):
     This class provides methods for managing external ontologies.
     """
     __extonto_qname: Xsd_QName | None
-    __graph: Xsd_NCName | None
+    __projectShortName: Xsd_NCName | None
 
     def __init__(self, *,
                  con: IConnection,
@@ -45,7 +45,7 @@ class ExternalOntology(Model, Notify):
                  modified: Xsd_dateTime | datetime | str | None = None,
                  notifier: Callable[[Xsd_QName], None] | None = None,
                  notify_data: Xsd_QName | None = None,
-                 graph: Xsd_NCName | str,
+                 projectShortName: Xsd_NCName | str,
                  validate: bool = False,
                  **kwargs):
         Model.__init__(self,
@@ -56,12 +56,12 @@ class ExternalOntology(Model, Notify):
                        modified=modified,
                        validate=validate)
         Notify.__init__(self, notifier, notify_data)
-        if isinstance(graph, Xsd_NCName):
-            self.__graph = graph
+        if isinstance(projectShortName, Xsd_NCName):
+            self.__projectShortName = projectShortName
         else:
-            self.__graph = Xsd_NCName(graph, validate=validate)
+            self.__projectShortName = Xsd_NCName(projectShortName, validate=validate)
         self.set_attributes(kwargs, ExternalOntologyAttr)
-        self.__extonto_qname = Xsd_QName(self.__graph, self._attributes[ExternalOntologyAttr.PREFIX])
+        self.__extonto_qname = Xsd_QName(self.__projectShortName, self._attributes[ExternalOntologyAttr.PREFIX])
 
         for attr in ExternalOntologyAttr:
             setattr(ExternalOntology, attr.value.fragment, property(
@@ -81,7 +81,7 @@ class ExternalOntology(Model, Notify):
 
     def _as_dict(self):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
-            'graph': self.__graph
+            'projectShortName': self.__projectShortName
         }
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
@@ -99,7 +99,7 @@ class ExternalOntology(Model, Notify):
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
-        instance.__graph = deepcopy(self.__graph, memo)
+        instance.__projectShortName = deepcopy(self.__projectShortName, memo)
         instance.__extonto_qname = deepcopy(self.__extonto_qname, memo)
         return instance
 
@@ -137,7 +137,7 @@ class ExternalOntology(Model, Notify):
         blank = ''
         sparql = ''
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__graph}:shacl {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self.__projectShortName}:shacl {{\n'
         sparql += f'{blank:{(indent + 2) * indent_inc}} {self.__extonto_qname.toRdf} a oldap:ExternalOntology'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
@@ -164,7 +164,7 @@ class ExternalOntology(Model, Notify):
         query1 = context.sparql_context
         query1 += f"""
         ASK {{
-            GRAPH {self.__graph}:shacl {{
+            GRAPH {self.__projectShortName}:shacl {{
                 {self.__extonto_qname.toRdf} a oldap:ExternalOntology .
             }}
         }}
@@ -177,7 +177,7 @@ class ExternalOntology(Model, Notify):
         res1 = self.safe_query(query1)
         if res1['boolean']:
             self._con.transaction_abort()
-            raise OldapErrorAlreadyExists(f'An ExternalOntology with a graphIri "{self.__graph}" already exists.')
+            raise OldapErrorAlreadyExists(f'An ExternalOntology with a graphIri "{self.__projectShortName}" already exists.')
         self.safe_update(sparql)
         self._con.transaction_commit()
         self._created = timestamp
@@ -191,16 +191,16 @@ class ExternalOntology(Model, Notify):
     @classmethod
     def read(cls, *,
              con: IConnection,
-             graph: Xsd_NCName | str,
+             projectShortName: Xsd_NCName | str,
              prefix: NCName | str | None = None,
              validate: bool = False,
              ignore_cache: bool = False):
-        if not isinstance(graph, Xsd_NCName):
-            graph = Xsd_NCName(graph, validate=validate)
+        if not isinstance(projectShortName, Xsd_NCName):
+            projectShortName = Xsd_NCName(projectShortName, validate=validate)
         if isinstance(prefix, NCName):
-            extonto_qname = Xsd_QName(graph, prefix, validate=validate)
+            extonto_qname = Xsd_QName(projectShortName, prefix, validate=validate)
         else:
-            extonto_qname = Xsd_QName(graph, Xsd_NCName(prefix, validate=validate), validate=validate)
+            extonto_qname = Xsd_QName(projectShortName, Xsd_NCName(prefix, validate=validate), validate=validate)
         if not ignore_cache:
             cache = CacheSingletonRedis()
             tmp = cache.get(extonto_qname, connection=con)
@@ -211,9 +211,9 @@ class ExternalOntology(Model, Notify):
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?extonto ?p ?o
-        FROM {graph}:shacl
+        FROM {projectShortName}:shacl
         WHERE {{
-            BIND({extonto_qname.toRdf} as ?extonto)
+            BIND({extonto_qname} as ?extonto)
             ?extonto a oldap:ExternalOntology .
             ?extonto ?p ?o .
         }}
@@ -255,7 +255,7 @@ class ExternalOntology(Model, Notify):
             label.changeset_clear()
             label.set_notifier(cls.notifier, Xsd_QName(ExternalOntologyAttr.LABEL.value))
         instance = cls(con=con,
-                       graph=graph,
+                       projectShortName=projectShortName,
                        creator=creator,
                        created=created,
                        contributor=contributor,
@@ -265,24 +265,25 @@ class ExternalOntology(Model, Notify):
                        label=label,
                        comment=comment,
                        validate=False)
+        context[instance._attributes[ExternalOntologyAttr.PREFIX]] = NamespaceIRI(str(instance._attributes[ExternalOntologyAttr.NAMESPACE_IRI]))
         cache = CacheSingletonRedis()
         cache.set(instance.__extonto_qname, instance)
         return instance
 
     @staticmethod
     def search(con: IConnection, *,  # TODO: finish work here!!! This is just a small sceleton!
-               graph: Xsd_NCName | str,
+               projectShortName: Xsd_NCName | str,
                prefix: NCName | str | None = None,
                namespaceIri: NamespaceIRI | str | None = None,
                label: Xsd_string | str | None = None,
                validate: bool = False) -> dict[Xsd_QName, 'ExternalOntology']:
-        if not isinstance(graph, Xsd_NCName):
-            graph = Xsd_NCName(graph, validate=validate)
+        if not isinstance(projectShortName, Xsd_NCName):
+            projectShortName = Xsd_NCName(projectShortName, validate=validate)
 
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f"SELECT DISTINCT ?extonto ?p ?o"
-        sparql += f"\nFROM {graph}:shacl"
+        sparql += f"\nFROM {projectShortName}:shacl"
         sparql += "\nWHERE {"
         sparql += "\n    ?extonto a oldap:ExternalOntology ."
         sparql += "\n    ?extonto ?p ?o ."
@@ -308,7 +309,7 @@ class ExternalOntology(Model, Notify):
             if working_on is None or working_on != r['extonto']:
                 if working_on:
                     result[working_on] = ExternalOntology(con=con,
-                                                          graph=graph,
+                                                          projectShortName=projectShortName,
                                                           **data)
                 data = {}
                 data['label'] = LangString()
@@ -324,10 +325,15 @@ class ExternalOntology(Model, Notify):
                 data['namespaceIri'] = NamespaceIRI(r['o'])
             else:
                 data[str(r['p'].fragment)] = r['o']
+        cache = CacheSingletonRedis()
         if working_on:
             result[working_on] = ExternalOntology(con=con,
-                                                  graph=graph,
+                                                  projectShortName=projectShortName,
                                                   **data)
+            context[result[working_on]._attributes[ExternalOntologyAttr.PREFIX]] = NamespaceIRI(
+                str(result[working_on]._attributes[ExternalOntologyAttr.NAMESPACE_IRI]))
+            cache.set(result[working_on].__extonto_qname, result[working_on])
+
         return result
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -342,21 +348,22 @@ class ExternalOntology(Model, Notify):
         for attr, change in self._changeset.items():
             if attr == ExternalOntologyAttr.LABEL or attr == ExternalOntologyAttr.COMMENT:
                 if change.action == Action.MODIFY:
-                    sparql_list.extend(self._attributes[attr].update(graph=Xsd_QName(self.__graph, 'shacl'),
-                                                                     subject=self.__extonto_qname,
-                                                                     field=attr.value))
+                    sparql_list.extend(
+                        self._attributes[attr].update(graph=Xsd_QName(self.__projectShortName, 'shacl'),
+                                                      subject=self.__extonto_qname,
+                                                      field=attr.value))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
-                    sparql = self._changeset[attr].old_value.delete(graph=Xsd_QName(self.__graph, 'shacl'),
-                                                            subject=self.__extonto_qname,
-                                                            field=attr.value)
+                    sparql = self._changeset[attr].old_value.delete(graph=Xsd_QName(self.__projectShortName, 'shacl'),
+                                                                    subject=self.__extonto_qname,
+                                                                    field=attr.value)
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
-                    sparql = self._attributes[attr].create(graph=Xsd_QName(self.__graph, 'shacl'),
-                                                            subject=self.__extonto_qname,
-                                                            field=attr.value)
+                    sparql = self._attributes[attr].create(graph=Xsd_QName(self.__projectShortName, 'shacl'),
+                                                           subject=self.__extonto_qname,
+                                                           field=attr.value)
                     sparql_list.append(sparql)
                 continue
-            sparql = f'{blank:{indent * indent_inc}}WITH {self.__graph}:shacl\n'
+            sparql = f'{blank:{indent * indent_inc}}WITH {self.__projectShortName}:shacl\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}{self.__extonto_qname.toRdf} {attr.value} {change.old_value.toRdf} .\n'
@@ -375,8 +382,8 @@ class ExternalOntology(Model, Notify):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(Xsd_QName(self.__graph, 'shacl'), self.__extonto_qname, self._modified, timestamp)
-            modtime = self.get_modified_by_iri(Xsd_QName(self.__graph, 'shacl'), self.__extonto_qname)
+            self.set_modified_by_iri(Xsd_QName(self.__projectShortName, 'shacl'), self.__extonto_qname, self._modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName(self.__projectShortName, 'shacl'), self.__extonto_qname)
         except OldapError:
             self._con.transaction_abort()
             raise
@@ -416,7 +423,7 @@ class ExternalOntology(Model, Notify):
         query1 = context.sparql_context
         query1 += f"""
         ASK {{
-            GRAPH {self.__graph}:shacl {{
+            GRAPH {self.__projectShortName}:shacl {{
                 ?s ?p ?o .
                 FILTER(
                     STRSTARTS(STR(?s), "{self.namespaceIri}") ||
@@ -433,7 +440,7 @@ class ExternalOntology(Model, Notify):
         query2 = context.sparql_context
         query2 += f"""
         ASK {{
-            VALUES ?g {{ {self.__graph}:data {self.__graph}:lists }}
+            VALUES ?g {{ {self.__projectShortName}:data {self.__projectShortName}:lists }}
             GRAPH ?g {{
                 ?s ?p ?o .
                  FILTER(
@@ -443,9 +450,89 @@ class ExternalOntology(Model, Notify):
            }}
         }}
         """
+        return query1, query2
 
+    def in_use(self) -> bool:
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
+        query1, query2 = self.in_use_queries()
+        result1 = self._con.query(query1)
+        if result1['boolean']:
+            return True
+        result2 = self._con.query(query2)
+        if result2['boolean']:
+            return True
+        return False
 
     def delete(self, indent: int = 0, indent_inc: int = 4) -> None:
-        pass
+        result, message = self.check_for_permissions()
+        if not result:
+            raise OldapErrorNoPermission(message)
+
+        query1, query2 = self.in_use_queries()
+        context = Context(name=self._con.context_name)
+
+        #
+        # Now prepare the queries for deleting the permission set
+        #
+        sparql = context.sparql_context
+        sparql += f"""
+        DELETE WHERE {{
+            GRAPH {self.__projectShortName}:shacl {{
+                {self.__extonto_qname.toRdf} ?prop ?val .
+            }}
+        }} 
+        """
+
+        self._con.transaction_start()
+        result1 = self.safe_query(query1)
+        if result1['boolean']:
+            self._con.transaction_abort()
+            raise OldapErrorInUse(f"External ontology is used in the data model.")
+        result2 = self.safe_query(query2)
+        if result2['boolean']:
+            self._con.transaction_abort()
+            raise OldapErrorInUse("External ontology is used in the data.")
+        self.safe_update(sparql)
+        self._con.transaction_commit()
+        cache = CacheSingletonRedis()
+        cache.delete(self.__extonto_qname)
+
+    @classmethod
+    def delete_all(cls, *,
+                   con: IConnection,
+                   projectShortName: Xsd_NCName | str,
+                   validate: bool = False) -> None:
+        if not isinstance(projectShortName, Xsd_NCName):
+            projectShortName = Xsd_NCName(projectShortName, validate=validate)
+        context = Context(name=con.context_name)
+
+        query0 = context.sparql_context
+        query0 += f"""
+        SELECT DISTINCT ?extonto
+        FROM {projectShortName}:shacl
+        WHERE {{
+            ?extonto a oldap:ExternalOntology .
+        }}
+        """
+
+        sparql = context.sparql_context
+        sparql += f"""
+        DELETE {{
+            GRAPH {projectShortName}:shacl {{
+                ?s ?p ?o .
+            }}
+        }}
+        WHERE {{
+            GRAPH {projectShortName}:shacl {{
+                ?s a oldap:ExternalOntology .
+                ?s ?p ?o .
+            }}
+        }}
+        """
+        con.update_query(sparql)
+
 
 

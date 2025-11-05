@@ -27,6 +27,7 @@ oldap:admin {
 }
 
 test:shacl {
+
     test:shapes schema:version "0.1.0"^^xsd:string .
 
     test:PersonShape a sh:NodeShape ;

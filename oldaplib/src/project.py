@@ -464,6 +464,17 @@ class Project(Model):
 
         context = Context(name=self._con.context_name)
 
+        sparql0 = context.sparql_context
+        sparql0 += f"""
+        ASK {{
+            GRAPH oldap:admin {{
+    	        ?p a oldap:Project ;
+    		        oldap:projectShortName ?sname .
+    	        FILTER(?sname = {self.projectShortName.toRdf})
+	        }}
+        }}
+        """
+
         sparql1 = context.sparql_context
         sparql1 += f"""
         SELECT ?project
@@ -471,6 +482,23 @@ class Project(Model):
         WHERE {{
             ?project a oldap:Project .
             FILTER(?project = {self.projectIri.toRdf})
+        }}
+        """
+        sparql1a = context.sparql_context
+        sparql1a += f"""
+        ASK {{
+            GRAPH oldap:admin {{
+                ?project oldap:namespaceIri {self.namespaceIri.toRdf} .
+            }}
+        }}
+        """
+
+        sparql1b = context.sparql_context
+        sparql1b += f"""
+        ASK {{
+            GRAPH oldap:admin {{
+                {self.projectIri.toRdf} ?p ?o .
+            }}
         }}
         """
 
@@ -491,11 +519,20 @@ class Project(Model):
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 
         self._con.transaction_start()
-        jsonobj = self.safe_query(sparql1)
-        res = QueryProcessor(context, jsonobj)
-        if len(res) > 0:
+        result = self.safe_query(sparql0)
+        if result['boolean']:
             self._con.transaction_abort()
-            raise OldapErrorAlreadyExists(f'A Project with a projectIri "{self.projectIri}" already exists')
+            raise OldapErrorAlreadyExists(f'A Project with a shortname "{self.projectShortName}" already exists.')
+
+        result = self.safe_query(sparql1a)
+        if result['boolean']:
+            self._con.transaction_abort()
+            raise OldapErrorAlreadyExists(f'A Project with a namespace IRI "{self.namespaceIri}" already exists.')
+
+        result = self.safe_query(sparql1b)
+        if result['boolean']:
+            self._con.transaction_abort()
+            raise OldapErrorAlreadyExists(f'A Project with a project IRI "{self.projectIri}" already exists.')
 
         self.safe_update(sparql2)
         self.safe_commit()

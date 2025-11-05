@@ -16,7 +16,8 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_date import Xsd_date
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency, OldapErrorNoPermission, \
+    OldapErrorAlreadyExists
 from oldaplib.src.project import Project, ProjectSearchResult
 from oldaplib.src.helpers.serializer import serializer
 
@@ -263,6 +264,33 @@ class Testproject(unittest.TestCase):
         project = Project.read(con=self._connection, projectIri_SName="unittest6", ignore_cache=True)
         project.delete()
 
+    def test_duplicate_project_create(self):
+        project1 = Project(con=self._connection,
+                           projectShortName="unittestXX",
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittestXX#"),
+                           label=LangString(["unittestXX@en", "unittestXX@de"]))
+        project1.create()
+        project2 = Project(con=self._connection,
+                           projectShortName="unittestXX",
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittestYY#"),
+                           label=LangString(["unittestXX@en", "unittestXX@de"]))
+        with self.assertRaises(OldapErrorAlreadyExists) as ex:
+            project2.create()
+
+        project3 = Project(con=self._connection,
+                           projectShortName="unittestYY",
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittestXX#"),
+                           label=LangString(["unittestXX@en", "unittestXX@de"]))
+        with self.assertRaises(OldapErrorAlreadyExists) as ex:
+            project3.create()
+
+        project4 = Project(con=self._connection,
+                           projectIri=project1.projectIri,
+                           projectShortName="unittestZZ",
+                           namespaceIri=NamespaceIRI("http://unitest.org/project/unittestZZ#"),
+                           label=LangString(["unittestZZ@en", "unittestZZ@de"]))
+        with self.assertRaises(OldapErrorAlreadyExists) as ex:
+            project4.create()
 
     def test_project_create_without_label_comment(self):
         project = Project(con=self._connection,
