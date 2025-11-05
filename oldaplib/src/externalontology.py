@@ -6,9 +6,12 @@ from typing import Any, Self, Callable
 from elementpath.datatypes import NCName
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
+from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.dtypes.xsdset import XsdSet
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.adminpermissions import AdminPermission
+from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.externalontologyattr import ExternalOntologyAttr
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.attributechange import AttributeChange
@@ -68,13 +71,21 @@ class ExternalOntology(Model, Notify):
                 partial(ExternalOntology._get_value, attr=attr),
                 partial(ExternalOntology._set_value, attr=attr),
                 partial(ExternalOntology._del_value, attr=attr)))
-        self._changeset = {}
+        self.update_notifier()
+        #self._changeset = {}
+
+    def __len__(self):
+        return len(self._attributes)
+
 
     @property
     def extonto_qname(self) -> Xsd_QName:
         return self.__extonto_qname
 
-    def update_notifier(self):
+    def update_notifier(self,
+                        notifier: Callable[[AttributeClass | Xsd_QName], None] | None = None,
+                        notify_data: AttributeClass | None = None,):
+        self.set_notifier(notifier, notify_data)
         for attr, value in self._attributes.items():
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
@@ -96,6 +107,9 @@ class ExternalOntology(Model, Notify):
                        created=deepcopy(self._created, memo),
                        contributor=deepcopy(self._contributor, memo),
                        modified=deepcopy(self._modified, memo))
+        Notify.__init__(instance,
+                        notifier=self._notifier,
+                        data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
@@ -127,8 +141,9 @@ class ExternalOntology(Model, Notify):
                     return False, f'Actor has no ADMIN_MODEL permission for project {self.__project.projectIri}'
             return True, "OK"
 
-    def notifier(self, what: ExternalOntologyAttr, value: Any = None) -> None:
-        self._changeset[what] = AttributeChange(None, Action.MODIFY)
+    def notifier(self, attr: ExternalOntologyAttr, value: Any = None) -> None:
+        self._changeset[attr] = AttributeChange(None, Action.MODIFY)
+        self.notify()
 
     def create_shacl(self, *,
                      timestamp: Xsd_dateTime,
@@ -184,7 +199,7 @@ class ExternalOntology(Model, Notify):
         self._creator = self._con.userIri
         self._modified = timestamp
         self._contributor = self._con.userIri
-        context[self._attributes[ExternalOntologyAttr.PREFIX]] = NamespaceIRI(str(self._attributes[ExternalOntologyAttr.NAMESPACE_IRI]))
+        #context[self._attributes[ExternalOntologyAttr.PREFIX]] = NamespaceIRI(str(self._attributes[ExternalOntologyAttr.NAMESPACE_IRI]))
         cache = CacheSingletonRedis()
         cache.set(self.__extonto_qname, self)
 
@@ -265,7 +280,7 @@ class ExternalOntology(Model, Notify):
                        label=label,
                        comment=comment,
                        validate=False)
-        context[instance._attributes[ExternalOntologyAttr.PREFIX]] = NamespaceIRI(str(instance._attributes[ExternalOntologyAttr.NAMESPACE_IRI]))
+        instance.update_notifier()
         cache = CacheSingletonRedis()
         cache.set(instance.__extonto_qname, instance)
         return instance
@@ -276,7 +291,7 @@ class ExternalOntology(Model, Notify):
                prefix: NCName | str | None = None,
                namespaceIri: NamespaceIRI | str | None = None,
                label: Xsd_string | str | None = None,
-               validate: bool = False) -> dict[Xsd_QName, 'ExternalOntology']:
+               validate: bool = False) -> list['ExternalOntology']:
         if not isinstance(projectShortName, Xsd_NCName):
             projectShortName = Xsd_NCName(projectShortName, validate=validate)
 
@@ -288,7 +303,7 @@ class ExternalOntology(Model, Notify):
         sparql += "\n    ?extonto a oldap:ExternalOntology ."
         sparql += "\n    ?extonto ?p ?o ."
         if prefix:
-            sparql += f'\n    FILTER( REPLACE(STR(?extonto), ".+[#/]", "") = "{prefix}" ) )'
+            sparql += f'\n    FILTER( REPLACE(STR(?extonto), ".+[#/]", "") = "{prefix}" )'
         elif namespaceIri:
             sparql += f'\n    ?extonto oldap:namespaceIri ?namespaceIri .'
             sparql += f'\n    FILTER( ?namespaceIri = "{namespaceIri}" )'
@@ -302,15 +317,18 @@ class ExternalOntology(Model, Notify):
         sparql += "\nORDER BY ?extonto"
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        result: dict[Xsd_QName, ExternalOntology] = {}
+        result: list[ExternalOntology] = []
         working_on: Xsd_QName | None = None
         data: dict = {}
+        cache = CacheSingletonRedis()
         for r in res:
             if working_on is None or working_on != r['extonto']:
                 if working_on:
-                    result[working_on] = ExternalOntology(con=con,
-                                                          projectShortName=projectShortName,
-                                                          **data)
+                    tmp = ExternalOntology(con=con,
+                                           projectShortName=projectShortName,
+                                           **data)
+                    result.append(tmp)
+                    cache.set(tmp.__extonto_qname, tmp)
                 data = {}
                 data['label'] = LangString()
                 data['comment'] = LangString()
@@ -325,14 +343,12 @@ class ExternalOntology(Model, Notify):
                 data['namespaceIri'] = NamespaceIRI(r['o'])
             else:
                 data[str(r['p'].fragment)] = r['o']
-        cache = CacheSingletonRedis()
         if working_on:
-            result[working_on] = ExternalOntology(con=con,
-                                                  projectShortName=projectShortName,
-                                                  **data)
-            context[result[working_on]._attributes[ExternalOntologyAttr.PREFIX]] = NamespaceIRI(
-                str(result[working_on]._attributes[ExternalOntologyAttr.NAMESPACE_IRI]))
-            cache.set(result[working_on].__extonto_qname, result[working_on])
+            tmp = ExternalOntology(con=con,
+                                   projectShortName=projectShortName,
+                                   **data)
+            result.append(tmp)
+            cache.set(tmp.__extonto_qname, tmp)
 
         return result
 

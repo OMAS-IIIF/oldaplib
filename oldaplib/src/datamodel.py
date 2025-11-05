@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Union, Any, Self
 
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.externalontology import ExternalOntology
 from oldaplib.src.helpers.context import Context
@@ -344,8 +345,12 @@ class DataModel(Model):
         return [x for x in self.__resclasses]
 
     @property
-    def changeset(self) -> dict[Xsd_QName, PropertyClassChange | ResourceClassChange]:
-        return self.__resclasses_changeset | self.__propclasses_changeset
+    def context(self) -> Context:
+        return self.__context
+
+    @property
+    def changeset(self) -> dict[Xsd_QName, ExternalOntologyChange | PropertyClassChange | ResourceClassChange]:
+        return self.__extontos_changeset | self.__resclasses_changeset | self.__propclasses_changeset
 
     def changeset_clear(self) -> None:
         for onto, change in self.__extontos_changeset.items():
@@ -448,7 +453,9 @@ class DataModel(Model):
         #
         # now read the external ontologies that are used in this datamodel
         #
-        cls.__extontos = ExternalOntology.search(con=con, projectShortName=project.projectShortName)
+        extontos = ExternalOntology.search(con=con, projectShortName=project.projectShortName)
+        for onto in extontos:
+            cls.__context[onto.prefix] = NamespaceIRI(str(onto.namespaceIri))
 
         #
         # now get the QNames of all standalone properties within the data model
@@ -509,7 +516,9 @@ class DataModel(Model):
                 print(f'Error reading resource class {resclassiri}: {er}')
 
             resclasses.append(resclass)
-        instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses)
+        instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses, extontos=extontos)
+        for qname in instance.get_extontos():
+            instance[qname].set_notifier(instance.notifier, qname)
         for qname in instance.get_propclasses():
             instance[qname].set_notifier(instance.notifier, qname)
         for qname in instance.get_resclasses():

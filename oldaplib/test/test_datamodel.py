@@ -9,6 +9,7 @@ from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel, PropertyClassChange, ResourceClassChange
 from oldaplib.src.dtypes.languagein import LanguageIn
+from oldaplib.src.externalontology import ExternalOntology
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -391,7 +392,16 @@ class TestDataModel(unittest.TestCase):
 
     def test_datamodel_read_system(self):
         model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)
-        pass
+
+    def test_datamodel_read_test(self):
+        model = DataModel.read(self._connection, self._project, ignore_cache=True)
+        ontos = model.get_extontos()
+        crm = model[Xsd_QName('test:crm')]
+        self.assertEqual(crm.prefix, 'crm')
+        self.assertEqual(crm.namespaceIri, 'http://www.cidoc-crm.org/cidoc-crm/')
+        context = model.context
+        self.assertEqual(context['crm'], 'http://www.cidoc-crm.org/cidoc-crm/')
+
 
     def test_datamodel_cache(self):
         start = time()
@@ -588,6 +598,39 @@ class TestDataModel(unittest.TestCase):
         tmp = set([key for key, val in dm[Xsd_QName(f'{dm_name}:Book')].superclass.items()])
         assert tmp == {'oldap:Thing', 'dcterms:Event'}
 
+    def test_datamodel_extonto_motify(self):
+        model = DataModel.read(self._connection, self._project, ignore_cache=True)
+        model[Xsd_QName('test:crm')].label['it'] = 'CIDOC-CRM (it)'
+        model.update()
+        model = DataModel.read(self._connection, self._project, ignore_cache=True)
+
+        crm = model[Xsd_QName('test:crm')]
+        self.assertEqual(crm.prefix, 'crm')
+        self.assertEqual(crm.namespaceIri, 'http://www.cidoc-crm.org/cidoc-crm/')
+        self.assertEqual(crm.label, LangString("CIDOC-CRM@en", "CIDOC-CRM@de", "CIDOC-CRM@fr", "CIDOC-CRM (it)@it"))
+
+    def test_datamodel_extonto_delete(self):
+        model = DataModel.read(self._connection, self._project, ignore_cache=True)
+        self.assertIsInstance(model.get(Xsd_QName('test:edm')), ExternalOntology)
+        del model[Xsd_QName('test:edm')]
+        model.update()
+        model = DataModel.read(self._connection, self._project, ignore_cache=True)
+        self.assertIsNone(model.get(Xsd_QName('test:edm')))
+
+    def test_datamodel_extonto_add(self):
+        model = DataModel.read(self._connection, self._project, ignore_cache=True)
+        eo = ExternalOntology(con=self._connection,
+                             projectShortName=self._project.projectShortName,
+                             prefix='testonto',
+                             namespaceIri='http://www.example.org/ns/testonto#',
+                             label=LangString("Test ontology@en", "Test ontology@de"))
+        model[Xsd_QName('test:testonto')] = eo
+        model.update()
+        model = DataModel.read(self._connection, self._project, ignore_cache=True)
+        self.assertIsInstance(model.get(Xsd_QName('test:testonto')), ExternalOntology)
+
+        context = model.context
+        self.assertEqual(context['testonto'], 'http://www.example.org/ns/testonto#')
 
     def test_incremental_generation(self):
         dm = DataModel(con=self._connection,

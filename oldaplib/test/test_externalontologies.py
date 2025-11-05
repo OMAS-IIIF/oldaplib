@@ -141,7 +141,8 @@ class TestexternalOntologies(unittest.TestCase):
         eo2.create()
 
         res = ExternalOntology.search(con=self._connection, projectShortName="testext")
-        self.assertEqual(set(res.keys()), {Xsd_QName('testext:gagaC'), Xsd_QName('testext:gagaD')})
+        qnames = [x.extonto_qname for x in res]
+        self.assertEqual(set(qnames), {Xsd_QName('testext:gagaC'), Xsd_QName('testext:gagaD')})
 
         ExternalOntology.delete_all(con=self._connection, projectShortName="testext")
 
@@ -162,8 +163,9 @@ class TestexternalOntologies(unittest.TestCase):
                                label=LangString("GAGA F ontology@en", "Gaga F Ontologie@de"),
                                namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaF/"))
         eo2.create()
-        res = ExternalOntology.search(con=self._connection, projectShortName="testext")
-        res[Xsd_QName('testext:gagaF')].delete()
+        res = ExternalOntology.search(con=self._connection, projectShortName="testext", prefix="gagaF")
+        self.assertEqual(len(res), 1)
+        res[0].delete()
 
         ExternalOntology.delete_all(con=self._connection, projectShortName="testext")
 
