@@ -17,7 +17,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "test"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/test#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/test#> ;
         rdfs:label "Test"@en, "Test"@de, "Test"@fr, "Test"@it ;
         rdfs:comment "For testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -28,7 +28,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtest"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/dmtest#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/dmtest#> ;
         rdfs:label "DmTest"@en, "DmTest"@de, "DmTest"@fr, "DmTest"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -39,7 +39,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtestA"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/dmtestA#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/dmtestA#> ;
         rdfs:label "DmTestA"@en, "DmTestA"@de, "DmTestA"@fr, "DmTestA"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -50,7 +50,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtestB"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/dmtestB#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/dmtestB#> ;
         rdfs:label "DmTestB"@en, "DmTestB"@de, "DmTestB"@fr, "DmTestB"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -61,7 +61,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtestC"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/dmtestC#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/dmtestC#> ;
         rdfs:label "DmTestC"@en, "DmTestC"@de, "DmTestC"@fr, "DmTestC"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -72,7 +72,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtestE"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/dmtestE#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/dmtestE#> ;
         rdfs:label "DmTestE"@en, "DmTestE"@de, "DmTestE"@fr, "DmTestE"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -83,7 +83,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtestF"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/dmtestF#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/dmtestF#> ;
         rdfs:label "DmTestF"@en, "DmTestF"@de, "DmTestF"@fr, "DmTestF"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -94,7 +94,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtestG"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/dmtestG#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/dmtestG#> ;
         rdfs:label "DmTestG"@en, "DmTestG"@de, "DmTestG"@fr, "DmTestG"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -105,7 +105,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtestH"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/dmtestH#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/dmtestH#> ;
         rdfs:label "DmTestH"@en, "DmTestH"@de, "DmTestH"@fr, "DmTestH"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -116,7 +116,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtestI"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/dmtestI#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/dmtestI#> ;
         rdfs:label "DmTestI"@en, "DmTestI"@de, "DmTestI"@fr, "DmTestI"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .
@@ -134,7 +134,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         oldap:prefix "crm"^^xsd:NCName ;
-        oldap:namespaceIri "http://www.cidoc-crm.org/cidoc-crm/"^^xsd:anyURI ;
+        oldap:namespaceIri <http://www.cidoc-crm.org/cidoc-crm/> ;
         rdfs:label "CIDOC-CRM"@en, "CIDOC-CRM"@de, "CIDOC-CRM"@fr .
 
     :edm a oldap:ExternalOntology ;
@@ -143,7 +143,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         oldap:prefix "edm"^^xsd:NCName ;
-        oldap:namespaceIri "http://www.europeana.eu/schemas/edm/"^^xsd:anyURI ;
+        oldap:namespaceIri <http://www.europeana.eu/schemas/edm/> ;
         rdfs:label "Europeana Ontology"@en, "Europeana Ontologie"@de, "Ontologie d l'Europeana"@fr .
 
     :commentShape a sh:PropertyShape ;

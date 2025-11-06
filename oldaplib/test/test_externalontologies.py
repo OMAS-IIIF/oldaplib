@@ -89,6 +89,7 @@ class TestexternalOntologies(unittest.TestCase):
         self.assertEqual(eo1.namespaceIri, NamespaceIRI("http://gaga.org/ns/gagaA/"))
 
         ExternalOntology.delete_all(con=self._connection, projectShortName="testext")
+        pass
 
 
     def test_update(self):

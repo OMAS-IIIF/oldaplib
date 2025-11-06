@@ -13,6 +13,7 @@ from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorType
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_float import Xsd_float
@@ -93,7 +94,7 @@ class MyTestCase(unittest.TestCase):
         ns1 = NamespaceIRI('http://www.org/test/')
         self.assertEqual(str(ns1), 'http://www.org/test/')
         self.assertEqual(repr(ns1), 'NamespaceIRI("http://www.org/test/")')
-        self.assertEqual(ns1.toRdf, '"http://www.org/test/"^^xsd:anyURI')
+        self.assertEqual(ns1.toRdf, '<http://www.org/test/>')
         self.assertEqual(ns1 + "gaga", Xsd_anyURI("http://www.org/test/gaga"))
 
         ns2 = NamespaceIRI('http://www.org/test#')
@@ -106,7 +107,7 @@ class MyTestCase(unittest.TestCase):
 
         self.create_triple("NamespaceIRI", ns1)
         valx = self.get_triple("NamespaceIRI")
-        self.assertIsInstance(valx, Xsd_anyURI)
+        self.assertIsInstance(valx, Iri)
         if isinstance(valx, Xsd_anyURI):
             self.assertEqual(ns1, NamespaceIRI(valx))
 

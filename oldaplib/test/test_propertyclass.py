@@ -70,6 +70,8 @@ class TestPropertyClass(unittest.TestCase):
         cls._connection.upload_turtle(file)
         sleep(1)  # upload may take a while...
         cls._project = Project.read(cls._connection, "test")
+        cls._sysproject = Project.read(cls._connection, "oldap")
+
 
     @classmethod
     def tearDownClass(cls):
@@ -237,6 +239,12 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p6.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.DE, Language.FR))
         self.assertEqual(p6.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
 
+
+    def test_propertyclass_read_projectshape(self):
+        p = PropertyClass.read(con=self._connection,
+                               project=self._sysproject,
+                               property_class_iri=Xsd_QName('oldap:namespaceIri'),
+                               ignore_cache=True)
 
     # @unittest.skip('Work in progress')
     def test_propertyclass_read_shacl(self):

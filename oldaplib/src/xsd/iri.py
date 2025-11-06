@@ -169,6 +169,9 @@ class Iri(Xsd):
         """
         return hash(self.__value)
 
+    def startswith(self, value, start=None, end=None):
+        return self.__value.startswith(value, start, end)
+
     @property
     def toRdf(self) -> str:
         """

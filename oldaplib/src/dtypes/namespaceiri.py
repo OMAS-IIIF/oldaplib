@@ -48,7 +48,12 @@ class NamespaceIRI(Xsd_anyURI):
     def __add__(self, other: str) -> Xsd_anyURI:
         return Xsd_anyURI(self._value + other)
 
-    def expand(self, name: Xsd_NCName):
+
+    @property
+    def toRdf(self) -> str:
+        return f'<{self._value}>'
+
+    def expand(self, name: Xsd_NCName | str):
         """
         Expands the current namespace URI by appending a name to it, separated by a '/'
         and followed by a '#'. The expanded URI is then returned as a new NamespaceIRI
@@ -58,5 +63,15 @@ class NamespaceIRI(Xsd_anyURI):
             the current namespace's URI.
         :return: A new NamespaceIRI object with the expanded URI.
         """
+        if not isinstance(name, Xsd_NCName):
+            name = Xsd_NCName(name)
         return NamespaceIRI(self.value[:-1] + '/' + name.value + '#')
+
+
+if __name__ == '__main__':
+    ns = NamespaceIRI('http://example.com/ns/')
+    print(ns)
+    print(ns + 'foo')
+    print(ns.expand('foo'))
+    print(ns.toRdf)
 

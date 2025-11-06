@@ -58,8 +58,11 @@ class Xsd_QName(Xsd):
                 raise OldapErrorValue(f'Invalid value for QName "{value}"')
         else:
             prefix = Xsd_NCName(value, validate=validate)
-            fragment = Xsd_NCName(fragment, validate=validate)
-            self._value = f'{prefix}:{fragment}'
+            if fragment:
+                fragment = Xsd_NCName(fragment, validate=validate)
+                self._value = f'{prefix}:{fragment}'
+            else:
+                self._value = f'{prefix}:'
 
     def __len__(self) -> int:
         """

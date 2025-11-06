@@ -58,7 +58,6 @@ class XsdDatatypes(Enum):
     """
     string = 'xsd:string'
     langString = 'rdf:langString'
-    nodeKind = 'sh:nodeKind'
     boolean = 'xsd:boolean'
     decimal = 'xsd:decimal'
     float = 'xsd:float'

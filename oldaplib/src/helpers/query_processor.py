@@ -3,6 +3,7 @@ from typing import List, Dict
 
 from pystrict import strict
 
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.dtypes.bnode import BNode
 from oldaplib.src.xsd.iri import Iri
@@ -72,6 +73,8 @@ class QueryProcessor:
                     tmp = context.iri2qname(valobj["value"], validate=False)
                     if tmp is None:
                         row[name] = Iri(valobj["value"], validate=False)
+                    elif not tmp.fragment:
+                        row[name] = NamespaceIRI(valobj["value"], validate=False)
                     else:
                         #row[name] = Iri(tmp, validate=False)
                         row[name] = tmp

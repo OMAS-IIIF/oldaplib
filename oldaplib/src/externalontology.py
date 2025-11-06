@@ -442,9 +442,9 @@ class ExternalOntology(Model, Notify):
             GRAPH {self.__projectShortName}:shacl {{
                 ?s ?p ?o .
                 FILTER(
-                    STRSTARTS(STR(?s), "{self.namespaceIri}") ||
-                    STRSTARTS(STR(?p), "{self.namespaceIri}") ||
-                    (isIRI(?o) && STRSTARTS(STR(?o), "{self.namespaceIri}"))
+                    (STRSTARTS(STR(?p), "{self.namespaceIri}") ||
+                    (isIRI(?o) && STRSTARTS(STR(?o), "{self.namespaceIri}"))) &&
+                    ?p != oldap:namespaceIri
                 )
             }}
         }}

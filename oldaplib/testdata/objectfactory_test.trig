@@ -19,7 +19,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         oldap:projectShortName "test"^^xsd:NCName ;
-        oldap:namespaceIri "http://oldap.org/test#"^^xsd:anyURI ;
+        oldap:namespaceIri <http://oldap.org/test#> ;
         rdfs:label "Test"@en, "Test"@de, "Test"@fr, "Test"@it ;
         rdfs:comment "For testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .

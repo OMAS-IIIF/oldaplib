@@ -372,7 +372,8 @@ class TestDataModel(unittest.TestCase):
         model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)
         self.assertEqual(set(model.get_propclasses()), {
             Xsd_QName("oldap:hasAdminPermission"),
-            Xsd_QName("oldap:statementProperty")
+            Xsd_QName("oldap:statementProperty"),
+            Xsd_QName("oldap:namespaceIri")
         })
         self.assertEqual(set(model.get_resclasses()), {
             Xsd_QName("oldap:Project"),

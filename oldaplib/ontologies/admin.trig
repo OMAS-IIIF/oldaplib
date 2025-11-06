@@ -85,7 +85,7 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         :projectShortName "shared"^^xsd:NCName ;
-        :namespaceIri "http://oldap.org/shared#"^^xsd:anyURI ;
+        :namespaceIri <http://oldap.org/shared#> ;
         rdfs:label "Shared"@en, "Shared"@de, "Shared"@fr, "Shared"@it ;
         rdfs:comment "Project for shared ontologies"@en ;
         :projectStart "2024-01-01"^^xsd:date .
@@ -96,7 +96,7 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         :projectShortName "oldap"^^xsd:NCName ;
-        :namespaceIri "http://oldap.org/base#"^^xsd:anyURI ;
+        :namespaceIri <http://oldap.org/base#> ;
         rdfs:label "System"@en, "System"@de, "Système"@fr, "Systema"@it ;
         rdfs:comment "Project for system administration"@en ;
         :projectStart "2024-01-01"^^xsd:date .
