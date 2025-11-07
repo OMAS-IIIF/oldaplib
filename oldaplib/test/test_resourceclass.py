@@ -212,7 +212,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r1[Xsd_QName("test:testprop")].order, Xsd_decimal(3))
         self.assertEqual(prop3.internal, Xsd_QName('test:TestResource'))
         self.assertEqual(prop3.property_class_iri, Xsd_QName("test:testprop"))
-        self.assertEqual(prop3.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop3.type, {OwlPropertyType.OwlDataProperty})
         self.assertEqual(prop3.datatype, XsdDatatypes.langString)
         self.assertEqual(prop3.name, LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(prop3.subPropertyOf, Xsd_QName("test:comment"))
@@ -657,7 +657,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
         self.assertEqual(prop1.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop1.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
-        self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.type, {OwlPropertyType.OwlDataProperty})
         self.assertEqual(prop1.datatype, XsdDatatypes.string)
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
         self.assertEqual(r1[Xsd_QName('test:test')].minCount, Xsd_integer(1))
@@ -671,7 +671,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.created, Xsd_dateTime('2023-11-04T12:00:00Z'))
         self.assertEqual(prop2.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop2.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
-        self.assertEqual(prop2.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop2.type, {OwlPropertyType.OwlDataProperty})
         self.assertEqual(prop2.datatype, XsdDatatypes.langString)
         self.assertEqual(prop2.name, LangString(["A text@en", "Ein Text@de"]))
         self.assertEqual(prop2.description, LangString("A longer text..."))
@@ -680,7 +680,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(r1[Xsd_QName('test:hasText')].order, Xsd_decimal(1))
 
         prop3 = r1[Xsd_QName('test:hasEnum')].prop
-        self.assertEqual(prop3.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop3.type, {OwlPropertyType.OwlDataProperty})
         self.assertEqual(prop3.datatype, XsdDatatypes.string)
         self.assertEqual(prop3.inSet,
                          RdfSet(Xsd_string('red'), Xsd_string('green'), Xsd_string('blue'), Xsd_string('yellow')))
@@ -826,7 +826,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.name, LangString(["comment@en", "Kommentar@de"]))
         self.assertEqual(prop1.description, LangString("This is a test property@de"))
         self.assertIsNone(prop1.subPropertyOf)
-        self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.type, {OwlPropertyType.OwlDataProperty})
         self.assertEqual(prop1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop1.created, Xsd_dateTime("2023-11-04T12:00:00Z"))
         self.assertEqual(r2[Xsd_QName("test:comment")].order, Xsd_decimal(1))
@@ -838,7 +838,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.name, LangString("Test"))
         self.assertEqual(prop2.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop2.datatype, XsdDatatypes.string)
-        self.assertEqual(prop2.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop2.type, {OwlPropertyType.OwlDataProperty})
         self.assertEqual(r2[Xsd_QName("test:test")].order, Xsd_decimal(2))
 
         prop3 = r2[Xsd_QName("test:testone")].prop
@@ -1159,7 +1159,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop1.datatype, XsdDatatypes.string)
         self.assertEqual(r2[Xsd_QName('test:test')].order, Xsd_decimal(3))
-        self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.type, {OwlPropertyType.OwlDataProperty})
 
     def test_updating_add_int_prop(self):
         r1 = ResourceClass.read(con=self._connection,
@@ -1185,7 +1185,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.internal, Xsd_QName("test:testMyResMinimalB"))
         self.assertEqual(prop1.toClass, Xsd_QName('test:Person'))
         self.assertEqual(r2[Xsd_QName('dcterms:contributor')].maxCount, Xsd_integer(1))
-        self.assertEqual(prop1.type, OwlPropertyType.OwlObjectProperty)
+        self.assertEqual(prop1.type, {OwlPropertyType.OwlObjectProperty})
 
     # @unittest.skip('Work in progress')
     def test_updating_add(self):
@@ -1234,7 +1234,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.name, LangString("Test"))
         self.assertEqual(prop1.description, LangString("Property shape for testing purposes"))
         self.assertEqual(prop1.datatype, XsdDatatypes.string)
-        self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.type, {OwlPropertyType.OwlDataProperty})
         self.assertEqual(r2[Xsd_QName('test:test')].minCount, Xsd_integer(1))
         self.assertEqual(r2[Xsd_QName('test:test')].order, Xsd_decimal(3))
 
@@ -1242,7 +1242,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop2.internal, Xsd_QName("test:testMyResMinimalC"))
         self.assertEqual(prop2.toClass, Xsd_QName('test:Person'))
         self.assertEqual(r2[Xsd_QName('dcterms:creator')].maxCount, Xsd_integer(1))
-        self.assertEqual(prop1.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(prop1.type, {OwlPropertyType.OwlDataProperty})
 
         prop3 = r2[Xsd_QName('test:color')].prop
         self.assertEqual(prop3.internal, Xsd_QName("test:testMyResMinimalC"))

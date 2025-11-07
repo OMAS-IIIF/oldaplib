@@ -448,6 +448,15 @@ class LangString(Notify):
         """
         self._changeset = {}
 
+    def clear_changset(self) -> None:
+        """
+        Clear changeset to an empty dict
+        :return: Nothing
+        :rtype: None
+        """
+        self._changeset = {}
+
+
     def create(self, *,
                graph: Xsd_QName,
                subject: Iri,

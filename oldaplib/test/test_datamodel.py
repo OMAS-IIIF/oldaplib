@@ -503,6 +503,7 @@ class TestDataModel(unittest.TestCase):
         #
         dm[Xsd_QName(f'{dm_name}:Book')][Xsd_QName(f'{dm_name}:authors')].prop.name[Language.FR] = "Ecrivain(s)"
 
+
         #
         # Add a new property as internal property
         #

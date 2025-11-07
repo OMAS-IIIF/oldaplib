@@ -22,6 +22,7 @@ from pprint import pprint
 from typing import Callable, Self, Any
 
 from oldaplib.src.helpers.irincname import IriOrNCName
+from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.oldaplogging import get_logger
 from oldaplib.src.cachesingleton import CacheSingletonRedis
@@ -312,15 +313,16 @@ class PropertyClass(Model, Notify):
             raise OldapErrorInconsistency(f'It\'s not possible to use both DATATYPE="{self._attributes[PropClassAttr.DATATYPE]}" and CLASS={self._attributes[PropClassAttr.CLASS]} restrictions.')
 
         # setting property type for OWL which distinguished between Data- and Object-properties
+        if not self._attributes.get(PropClassAttr.TYPE):
+            self._attributes[PropClassAttr.TYPE] = ObservableSet(notifier=self.notifier, notify_data=PropClassAttr.TYPE)
         if self._statementProperty:
-            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.StatementProperty
-        else:
-            if self._attributes.get(PropClassAttr.CLASS) is not None:
-                self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
-                if self._attributes.get(PropClassAttr.DATATYPE) is not None:
-                    raise OldapError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
-            elif self._attributes.get(PropClassAttr.DATATYPE) is not None:
-                self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
+            self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.StatementProperty)
+        if self._attributes.get(PropClassAttr.CLASS) is not None:
+            self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
+            if self._attributes.get(PropClassAttr.DATATYPE) is not None:
+                raise OldapError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
+        elif self._attributes.get(PropClassAttr.DATATYPE) is not None:
+            self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlDataProperty)
 
         #
         # set the class properties
@@ -344,6 +346,7 @@ class PropertyClass(Model, Notify):
             self._force_external = True
         self.__version = SemanticVersion()
         self.__from_triplestore = _from_triplestore
+        self.clear_changeset()
 
     def __len__(self) -> int:
         return len(self._attributes)
@@ -755,11 +758,15 @@ class PropertyClass(Model, Notify):
         maxCount: Xsd_integer | None = None
         order: Xsd_decimal | None = None
         group: Xsd_QName | None = None
+        nodeKind: Xsd_QName | None = None
         propkeys = {Xsd_QName(x.value) for x in PropClassAttr}
         for key, val in attributes.items():
             if key == 'rdf:type':
                 if val != 'sh:PropertyShape':
                     raise OldapError(f'Inconsistency, expected "sh:PropertyType", got "{val}".')
+                continue
+            elif key == 'sh:nodeKind':
+                nodeKind = val
                 continue
             elif key == 'sh:path':
                 if isinstance(val, Xsd_QName):
@@ -831,12 +838,15 @@ class PropertyClass(Model, Notify):
                                    group=group)
 
         if self._attributes.get(PropClassAttr.CLASS) is not None:
-            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
+            self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
             dt = self._attributes.get(PropClassAttr.DATATYPE)
             if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
                 raise OldapError(f'Datatype "{dt}" not valid for OwlObjectProperty')
         else:
-            self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
+            if nodeKind in {Xsd_QName('sh:IRI'), Xsd_QName('sh:BlankNode'), Xsd_QName('sh:BlankNodeOrIRI')}:
+                self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
+            else:
+                self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlDataProperty)
         #
         # update all notifiers of properties
         #
@@ -869,11 +879,23 @@ class PropertyClass(Model, Notify):
             match attr:
                 case 'rdf:type':
                     if obj == 'owl:DatatypeProperty':
-                        self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlDataProperty
+                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlDataProperty)
                     elif obj == 'owl:ObjectProperty':
-                        self._attributes[PropClassAttr.TYPE] = OwlPropertyType.OwlObjectProperty
+                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
                     elif obj == 'rdf:Property':
-                        self._attributes[PropClassAttr.TYPE] = OwlPropertyType.StatementProperty
+                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.StatementProperty)
+                    elif obj == 'owl:TransitiveProperty':
+                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.TransitiveProperty)
+                    elif obj == 'owl:SymmetricProperty':
+                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.SymmetricProperty)
+                    elif obj == 'owl:ReflexiveProperty':
+                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.ReflexiveProperty)
+                    elif obj == 'owl:IrreflexiveProperty':
+                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.IrreflexiveProperty)
+                    elif obj == 'owl:InverseFunctionalProperty':
+                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.InverseFunctionalProperty)
+                    else:
+                        raise OldapErrorNotFound(f'Unknown owl:Property type "{obj}"')
                 case 'owl:subPropertyOf':
                     self._attributes[PropClassAttr.SUBPROPERTY_OF] = obj
                 case 'rdfs:range':
@@ -901,18 +923,18 @@ class PropertyClass(Model, Notify):
         # Consistency checks
         #
         if self._statementProperty:
-            if self._attributes.get(PropClassAttr.TYPE) != OwlPropertyType.StatementProperty:
+            if OwlPropertyType.StatementProperty not in self._attributes.get(PropClassAttr.TYPE):
                 raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" is a statementProperty, but not an StatementProperty.')
         else:
-            if self._attributes.get(PropClassAttr.TYPE) == OwlPropertyType.StatementProperty:
+            if OwlPropertyType.StatementProperty in self._attributes.get(PropClassAttr.TYPE):
                 raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" is not a statementProperty, but an StatementProperty.')
-        if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlDataProperty:
+        if OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
             if not datatype:
                 raise OldapError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
             if datatype != self._attributes.get(PropClassAttr.DATATYPE).value:
                 raise OldapError(
                     f'Property "{self._property_class_iri}" has inconsistent datatype definitions: OWL: "{datatype}" vs. SHACL: "{self._attributes[PropClassAttr.DATATYPE].value}"')
-        if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlObjectProperty:
+        if OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
             if not to_node_iri:
                 raise OldapError(f'OwlObjectProperty "{self._property_class_iri}" has no rdfs:range resource class defined!')
             if to_node_iri != self._attributes.get(PropClassAttr.CLASS):
@@ -960,9 +982,10 @@ class PropertyClass(Model, Notify):
         attributes = PropertyClass.__query_shacl(con, property._graph, property_class_iri)
         property.parse_shacl(attributes=attributes)
         property.read_owl()
-        cache.set(property.property_class_iri, property)
+        property.clear_changeset()
 
         property.update_notifier()
+        cache.set(property.property_class_iri, property)
 
         return property
 
@@ -1062,14 +1085,14 @@ class PropertyClass(Model, Notify):
 
     def create_owl_part1(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} rdf:type {self._attributes[PropClassAttr.TYPE].value}'
+        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} rdf:type {self._attributes[PropClassAttr.TYPE].toRdf}'
         if self._attributes.get(PropClassAttr.SUBPROPERTY_OF):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropClassAttr.SUBPROPERTY_OF].toRdf}'
         if self._internal:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal.toRdf}'
-        if self._attributes.get(PropClassAttr.TYPE) == OwlPropertyType.OwlDataProperty:
+        if self._attributes.get(PropClassAttr.TYPE) and  OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.DATATYPE].value}'
-        elif self._attributes.get(PropClassAttr.TYPE) == OwlPropertyType.OwlObjectProperty:
+        elif self._attributes.get(PropClassAttr.TYPE) and OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.CLASS].toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
@@ -1104,9 +1127,9 @@ class PropertyClass(Model, Notify):
         # of the property within the given resource. However, rdfs:range is "global" for all use of this property!
         #
         if self._attributes.get(PropClassAttr.DATATYPE) or self._attributes.get(PropClassAttr.CLASS):
-            if self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlDataProperty:
+            if OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
                 sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDataRange {self._attributes[PropClassAttr.DATATYPE].value}'
-            elif self._attributes[PropClassAttr.TYPE] == OwlPropertyType.OwlObjectProperty:
+            elif OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
                 sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._attributes[PropClassAttr.CLASS]}'
         sparql += f' ;\n{blank:{indent * indent_inc}}]'
         return sparql
@@ -1269,6 +1292,17 @@ class PropertyClass(Model, Notify):
                                                                   attr=prop,
                                                                   modified=self._modified,
                                                                   indent=indent, indent_inc=indent_inc)
+                elif prop.datatype == ObservableSet:
+                    if prop == PropClassAttr.TYPE:
+                        pass
+                        #continue
+                    gaga = self._attributes[prop].update_shacl(graph=self._graph,
+                                                                  owlclass_iri=owlclass_iri,
+                                                                  prop_iri=self._property_class_iri,
+                                                                  attr=prop,
+                                                                  modified=self._modified,
+                                                                  indent=indent, indent_inc=indent_inc)
+                    print(gaga)
                 else:
                     raise OldapError(f'SHACL property {prop.value} should not have update action "MODIFY" ({prop.datatype}).')
                 sparql_list.append(sparql)

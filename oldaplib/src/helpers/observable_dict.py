@@ -77,6 +77,9 @@ class ObservableDict(UserDict):
     def _as_dict(self):
         return {'obsdict': [{'key': key, 'val': val} for key, val in self.data.items()]}
 
-    def clear_changeset(self):
+    def clear_changeset(self) -> None:
+        for item in self.data.values():
+            if hasattr(item, 'clear_changeset'):
+                item.clear_changeset()
         self._changeset = {}
 

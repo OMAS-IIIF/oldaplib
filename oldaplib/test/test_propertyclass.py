@@ -16,6 +16,7 @@ from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString, LangStringChange
+from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, \
     OldapErrorInconsistency
 from oldaplib.src.helpers.query_processor import QueryProcessor
@@ -92,6 +93,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
+        self.assertEqual(p.get(PropClassAttr.TYPE), {OwlPropertyType.OwlDataProperty})
 
     def test_star_propertyclass_constructor(self):
         p = PropertyClass(con=self._connection,
@@ -106,6 +108,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
+        self.assertEqual(p[PropClassAttr.TYPE], {OwlPropertyType.StatementProperty, OwlPropertyType.OwlDataProperty})
 
     def test_propertyclass_inset_datatypes(self):
         p = PropertyClass(con=self._connection,
@@ -168,6 +171,7 @@ class TestPropertyClass(unittest.TestCase):
                            project=self._project,
                            toClass=Xsd_QName('test:Person'))
         self.assertEqual(p2.get(PropClassAttr.CLASS), Xsd_QName('test:Person'))
+        self.assertEqual(p2.get(PropClassAttr.TYPE), {OwlPropertyType.OwlObjectProperty})
 
     def test_propertyclass_toclass_constructor_invalid_A(self):
         with self.assertRaises(OldapErrorValue):
@@ -263,8 +267,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p1.description, LangString("This is a test property@de"))
         self.assertIsNone(p1.get(PropClassAttr.SUBPROPERTY_OF))
         self.assertIsNone(p1.subPropertyOf)
-        self.assertEqual(p1.get(PropClassAttr.TYPE), OwlPropertyType.OwlDataProperty)
-        self.assertEqual(p1.type, OwlPropertyType.OwlDataProperty)
+        self.assertEqual(p1.get(PropClassAttr.TYPE), {OwlPropertyType.OwlDataProperty})
+        self.assertEqual(p1.type, {OwlPropertyType.OwlDataProperty})
         self.assertEqual(p1.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(p1.created, Xsd_dateTime("2023-11-04T12:00:00Z"))
 
@@ -276,7 +280,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2[PropClassAttr.NAME], LangString("Test"))
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("Property shape for testing purposes"))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.string)
-        self.assertEqual(p2[PropClassAttr.TYPE], OwlPropertyType.OwlDataProperty)
+        self.assertEqual(p2[PropClassAttr.TYPE], {OwlPropertyType.OwlDataProperty})
 
         p3 = PropertyClass.read(con=self._connection,
                                 project=self._project,
@@ -350,14 +354,20 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_create_D(self):
         pX = PropertyClass(
             con=self._connection,
-            #graph=Xsd_NCName('test'),
             project=self._project,
-            property_class_iri=Xsd_QName('test:testWrite'),
+            property_class_iri=Xsd_QName('test:testWriteABC'),
+            datatype=XsdDatatypes.int
+        )
+        pX.create()
+        pX = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Xsd_QName('test:testWriteABC'),
             datatype=XsdDatatypes.int
         )
         with self.assertRaises(OldapErrorAlreadyExists) as ex:
             pX.create()
-        self.assertEqual(str(ex.exception), 'Property "test:testWrite" already exists.')
+        self.assertEqual(str(ex.exception), 'Property "test:testWriteABC" already exists.')
 
     def test_propertyclass_create_E(self):
         p = PropertyClass(

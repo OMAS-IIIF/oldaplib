@@ -18,6 +18,8 @@ from oldaplib.src.helpers.oldaperror import OldapErrorKey, OldapErrorNotImplemen
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 
 #@strict
@@ -265,7 +267,10 @@ class ObservableSet(Notify):
             self.__setdata = self.__old_value.to_set()
         self.__old_value = None
 
-    def clear_changeset(self):
+    def clear_changeset(self) -> None:
+        for item in self.__setdata:
+            if hasattr(item, 'clear_changeset'):
+                item.clear_changeset()
         self.__old_value = None
 
     def update_sparql(self, *,
@@ -273,8 +278,8 @@ class ObservableSet(Notify):
                       subject: Iri,
                       field: Iri,
                       indent: int = 0, indent_inc: int = 4) -> list[str]:
-        items_to_add = self.__setdata - self.__old_value.__setdata
-        items_to_delete = self.__old_value.__setdata - self.__setdata
+        items_to_add = self.__setdata - self.__old_value
+        items_to_delete = self.__old_value - self.__setdata
         blank = ''
         sparql_list = []
 
@@ -297,3 +302,47 @@ class ObservableSet(Notify):
             sparql_list.append(sparql)
 
         return sparql_list
+
+    def update_shacl(self, *,
+                     graph: Xsd_NCName,
+                     owlclass_iri: Iri | None = None,
+                     prop_iri: Iri,
+                     attr: AttributeClass,
+                     modified: Xsd_dateTime,
+                     indent: int = 0, indent_inc: int = 4) -> list[str]:
+        items_to_add = self.__setdata - self.__old_value
+        items_to_delete = self.__old_value - self.__setdata
+
+        blank = ''
+        sparql_list = []
+        sparql = f'# ObservableSet: Update SHACL\n'
+        sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl\n'
+
+        if items_to_add:
+            sparql = f'{blank:{indent * indent_inc}}INSERT {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+            for item in items_to_add:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {attr.value.toRdf} {item.toRdf} .'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+
+        if items_to_delete:
+            sparql = f'{blank:{indent * indent_inc}}DELETE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+            for item in items_to_delete:
+                sparql += f'{blank:{(indent + 2) * indent_inc}}?prop {attr.value.toRdf} {item.toRdf} .'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql_list.append(sparql)
+
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            if owlclass_iri:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
+            else:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+        return sparql

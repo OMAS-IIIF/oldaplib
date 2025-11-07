@@ -8,6 +8,7 @@ from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
+from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
@@ -36,7 +37,7 @@ class PropClassAttr(AttributeClass):
     """
     # order: (QName, mandatory, immutable, datatype)
     SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri)
-    TYPE = ('rdf:type', False, True, OwlPropertyType)
+    TYPE = ('rdf:type', False, True, ObservableSet)
     CLASS = ('sh:class', False, False, Iri)
     NODEKIND = ('sh:nodeKind', False, False, Iri)
     DATATYPE = ('sh:datatype', False, False, XsdDatatypes)
