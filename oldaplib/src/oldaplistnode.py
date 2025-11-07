@@ -352,10 +352,10 @@ class OldapListNode(Model):
                 case 'oldap:rightIndex':
                     rightIndex = r['val']
         if prefLabel:
-            prefLabel.changeset_clear()
+            prefLabel.clear_changeset()
             prefLabel.set_notifier(cls.notifier, Xsd_QName(OldapListNodeAttr.PREF_LABEL.value))
         if definition:
-            definition.changeset_clear()
+            definition.clear_changeset()
             definition.set_notifier(cls.notifier, Xsd_QName(OldapListNodeAttr.DEFINITION.value))
         return cls(con=con,
                    projectShortName=projectShortName,

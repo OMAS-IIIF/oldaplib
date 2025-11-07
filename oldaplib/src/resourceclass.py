@@ -639,7 +639,9 @@ class ResourceClass(Model, Notify):
             s += f'{blank:{indent*2}}{qname} = {hasprop.prop} (minCount={hasprop.minCount}, maxCount={hasprop.maxCount}\n'
         return s
 
-    def changeset_clear(self) -> None:
+    def clear_changeset(self) -> None:
+        for prop in self._properties.values():
+            prop.clear_changeset()
         super().clear_changeset()
 
     def notifier(self, what: ResClassAttribute | Xsd_QName):
@@ -797,7 +799,7 @@ class ResourceClass(Model, Notify):
                     self._attributes[attr].set_notifier(self.notifier, attr)
 
         self.__from_triplestore = True
-        self.changeset_clear()
+        self.clear_changeset()
 
     @staticmethod
     def __query_resource_props(con: IConnection,
@@ -1082,7 +1084,7 @@ class ResourceClass(Model, Notify):
         if not resclass.externalOntology:
             resclass.__read_owl()
 
-        resclass.changeset_clear()
+        resclass.clear_changeset()
 
         resclass.update_notifier()
 
@@ -1296,7 +1298,7 @@ class ResourceClass(Model, Notify):
                 raise OldapErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
         else:
             self._con.transaction_commit()
-        self.changeset_clear()
+        self.clear_changeset()
         cache = CacheSingletonRedis()
         cache.set(self._owlclass_iri, self)
 
@@ -1859,7 +1861,7 @@ class ResourceClass(Model, Notify):
                 raise OldapErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {modtime_owl} {timestamp}')
         else:
             self._con.transaction_commit()
-        self.changeset_clear()
+        self.clear_changeset()
         self._modified = timestamp
         self._contributor = self._con.userIri
         self._test_in_use = False

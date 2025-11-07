@@ -379,10 +379,10 @@ class PermissionSet(Model):
                     _definedByProject = r['o']
         cls.__permset_iri = permset_iri
         if comment:
-            comment.changeset_clear()
+            comment.clear_changeset()
             comment.set_notifier(cls.notifier, Xsd_QName(PermissionSetAttr.LABEL.value))
         if label:
-            label.changeset_clear()
+            label.clear_changeset()
             label.set_notifier(cls.notifier, Xsd_QName(PermissionSetAttr.LABEL.value))
         instance = cls(con=con,
                        permissionSetId=Xsd_NCName(_permissionSetId, validate=False),

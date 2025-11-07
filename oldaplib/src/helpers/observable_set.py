@@ -20,6 +20,7 @@ from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
 #@strict
@@ -30,8 +31,8 @@ class ObservableSet(Notify):
     is items are added or removed. For this purpose, a callback function can be added to the set which is
     called whenever the set changes.
     """
-    __setdata: Set[Any]
-    __old_value: Self | None
+    _setdata: Set[Any]
+    _old_value: Self | None
 
     def __init__(self,
                  setitems: Self | Iterable | None = None,
@@ -46,56 +47,56 @@ class ObservableSet(Notify):
         :param on_change: Callback function to be called when an item is added/removed
         :param on_change_data: data supplied to the callback function
         """
-        self.__old_value = old_value
+        self._old_value = old_value
         super().__init__(notifier=notifier, data=notify_data)
         if isinstance(setitems, ObservableSet):
-            self.__setdata = setitems.__setdata
+            self._setdata = setitems._setdata
         else:
-            self.__setdata = set(setitems if setitems else [])
+            self._setdata = set(setitems if setitems else [])
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         new_copy = self.__class__.__new__(self.__class__)
         memo[id(self)] = new_copy
         #new_copy.__data = deepcopy(self.__data, memo)
-        new_copy.__setdata = set(self.__setdata)
+        new_copy._setdata = set(self._setdata)
         #new_copy._notifier = deepcopy(self._notifier, memo)
         new_copy._notifier = self._notifier
         new_copy._notify_data = deepcopy(self._notify_data, memo)
         return new_copy
 
     def __iter__(self):
-        return iter(self.__setdata)
+        return iter(self._setdata)
 
     def __len__(self) -> int:
-        return len(self.__setdata)
+        return len(self._setdata)
 
     def __contains__(self, item: Any) -> bool:
-        return item in self.__setdata
+        return item in self._setdata
 
     def __repr__(self) -> str:
-        l = [repr(x) for x in self.__setdata]
+        l = [repr(x) for x in self._setdata]
         return ", ".join(l)
 
     def __str__(self) -> str:
-        return str(self.__setdata)
+        return str(self._setdata)
 
     def __eq__(self, other: Iterable) -> bool:
         if isinstance(other, ObservableSet):
-            return self.__setdata == other.__setdata
+            return self._setdata == other._setdata
         elif isinstance(other, set):
-            return self.__setdata == other
+            return self._setdata == other
         elif isinstance(other, Iterable):
-            return self.__setdata == set(other)
+            return self._setdata == set(other)
         else:
             raise OldapErrorNotImplemented(f'Set.__eq__() not implemented for {type(other).__name__}')
 
     def __or__(self, other: Iterable) -> Self:
         if isinstance(other, ObservableSet):
-            return ObservableSet(self.__setdata.__or__(other.__setdata), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__or__(other._setdata), self._notifier, self._notify_data)
         elif isinstance(other, set):
-            return ObservableSet(self.__setdata.__or__(other), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__or__(other), self._notifier, self._notify_data)
         elif isinstance(other, Iterable):
-            return ObservableSet(self.__setdata.__or__(set(other)), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__or__(set(other)), self._notifier, self._notify_data)
         else:
             raise OldapErrorNotImplemented(f'Set.__or__() not implemented for {type(other).__name__}')
 
@@ -105,40 +106,40 @@ class ObservableSet(Notify):
     def __ior__(self, other: Iterable) -> Self:
         tmp_copy = deepcopy(self)
         if isinstance(other, ObservableSet):
-            self.__setdata.__ior__(other.__setdata)
+            self._setdata.__ior__(other._setdata)
         elif isinstance(other, set):
-            self.__setdata.__ior__(other)
+            self._setdata.__ior__(other)
         elif isinstance(other, Iterable):
-            return ObservableSet(self.__setdata.__ior__(set(other)), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__ior__(set(other)), self._notifier, self._notify_data)
         else:
             raise OldapErrorNotImplemented(f'Set.i__or__() not implemented for {type(other).__name__}')
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
         return self
 
     def __and__(self, other: Iterable) -> Self:
         if isinstance(other, ObservableSet):
-            return ObservableSet(self.__setdata.__and__(other.__setdata), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__and__(other._setdata), self._notifier, self._notify_data)
         elif isinstance(other, set):
-            return ObservableSet(self.__setdata.__and__(other), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__and__(other), self._notifier, self._notify_data)
         elif isinstance(other, Iterable):
-            return ObservableSet(self.__setdata.__and__(set(other)), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__and__(set(other)), self._notifier, self._notify_data)
         else:
             raise OldapErrorNotImplemented(f'Set.__and__() not implemented for {type(other).__name__}')
 
     def __iand__(self, other: Iterable) -> Self:
         tmp_copy = deepcopy(self)
         if isinstance(other, ObservableSet):
-            self.__setdata.__iand__(other.__setdata)
+            self._setdata.__iand__(other._setdata)
         elif isinstance(other, set):
-            self.__setdata.__iand__(other)
+            self._setdata.__iand__(other)
         elif isinstance(other, Iterable):
-            self.__setdata.__iand__(set(other))
+            self._setdata.__iand__(set(other))
         else:
             raise OldapErrorNotImplemented(f'Set.__iand__() not implemented for {type(other).__name__}')
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
         return self
 
@@ -147,139 +148,144 @@ class ObservableSet(Notify):
 
     def __sub__(self, other: Iterable) -> Self:
         if isinstance(other, ObservableSet):
-            return ObservableSet(self.__setdata.__sub__(other.__setdata), self.notify, self._notify_data)
+            return ObservableSet(self._setdata.__sub__(other._setdata), self.notify, self._notify_data)
         elif isinstance(other, set):
-            return ObservableSet(self.__setdata.__sub__(other), self.notify, self._notify_data)
+            return ObservableSet(self._setdata.__sub__(other), self.notify, self._notify_data)
         elif isinstance(other, Iterable):
-            return ObservableSet(self.__setdata.__sub__(set(other)), self.notify, self._notify_data)
+            return ObservableSet(self._setdata.__sub__(set(other)), self.notify, self._notify_data)
         else:
             raise OldapErrorNotImplemented(f'Set.__sub__() not implemented for {type(other).__name__}')
 
     def __isub__(self, other: Iterable) -> Self:
         tmp_copy = deepcopy(self)
         if isinstance(other, ObservableSet):
-            self.__setdata.__isub__(other.__setdata)
+            self._setdata.__isub__(other._setdata)
         elif isinstance(other, set):
-            self.__setdata.__isub__(other)
+            self._setdata.__isub__(other)
         elif isinstance(other, Iterable):
-            self.__setdata.__isub__(set(other))
+            self._setdata.__isub__(set(other))
         else:
             raise OldapErrorNotImplemented(f'Set.__isub__() not implemented for {type(other).__name__}')
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
         return self
 
     def update(self, items: Iterable):
         tmp_copy = deepcopy(self)
-        self.__setdata.update(items)
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        self._setdata.update(items)
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
 
     def intersection_update(self, items: Iterable):
         tmp_copy = deepcopy(self)
-        self.__setdata.intersection_update(items)
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        self._setdata.intersection_update(items)
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
 
     def difference_update(self, items: Iterable):
         tmp_copy = deepcopy(self)
-        self.__setdata.difference_update(items)
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        self._setdata.difference_update(items)
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
 
     def symmetric_difference_update(self, items: Iterable):
         tmp_copy = deepcopy(self)
-        self.__setdata.symmetric_difference_update(items)
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        self._setdata.symmetric_difference_update(items)
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
 
     def add(self, item: Any) -> None:
         tmp_copy = deepcopy(self)
-        self.__setdata.add(item)
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        self._setdata.add(item)
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
 
     def remove(self, item: Any) -> None:
         tmp_copy = deepcopy(self)
-        self.__setdata.remove(item)
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        self._setdata.remove(item)
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
 
     def discard(self, item: Any):
         tmp_copy = deepcopy(self)
-        self.__setdata.discard(item)
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        self._setdata.discard(item)
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
 
     def pop(self):
         tmp_copy = deepcopy(self)
-        item = self.__setdata.pop()
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        item = self._setdata.pop()
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
         return item
 
     def clear(self) -> None:
         tmp_copy = deepcopy(self)
-        self.__setdata.clear()
-        if not self.__old_value:
-            self.__old_value = tmp_copy
+        self._setdata.clear()
+        if not self._old_value:
+            self._old_value = tmp_copy
         self.notify()
 
     @property
     def old_value(self) -> Self | None:
-        return self.__old_value
+        return self._old_value
 
     def clear_old_value(self) -> None:
         """
         Clear the changeset. This method is only for internal use or debugging...
         :return: None
         """
-        self.__old_value = None
+        self._old_value = None
 
     def copy(self) -> Self:
-        return ObservableSet(self.__setdata.copy(), notifier=self._notifier, notify_data=self._notify_data)
+        return ObservableSet(self._setdata.copy(), notifier=self._notifier, notify_data=self._notify_data)
 
     @property
     def toRdf(self) -> str:
-        l = [x.toRdf if getattr(x, "toRdf", None) else x for x in self.__setdata]
+        l = [x.toRdf if getattr(x, "toRdf", None) else x for x in self._setdata]
         return ", ".join(l)
 
     def _as_dict(self):
-        return {'setitems': list(self.__setdata)}
+        return {'setitems': list(self._setdata)}
 
     def asSet(self) -> set:
-        return self.__setdata.copy()
+        return self._setdata.copy()
 
     def to_set(self) -> set:
-        return self.__setdata
+        return self._setdata
 
     def undo(self) -> None:
-        if self.__old_value:
-            self.__setdata = self.__old_value.to_set()
-        self.__old_value = None
+        if self._old_value:
+            self._setdata = self._old_value.to_set()
+        self._old_value = None
 
     def clear_changeset(self) -> None:
-        for item in self.__setdata:
+        for item in self._setdata:
             if hasattr(item, 'clear_changeset'):
                 item.clear_changeset()
-        self.__old_value = None
+        self._old_value = None
 
     def update_sparql(self, *,
-                      graph: Iri,
+                      graph: Iri | Xsd_QName,
                       subject: Iri,
                       field: Iri,
+                      ignoreitems: Set[Any] | None = None,
                       indent: int = 0, indent_inc: int = 4) -> list[str]:
-        items_to_add = self.__setdata - self.__old_value
-        items_to_delete = self.__old_value - self.__setdata
+        items_to_add = self._setdata - self._old_value.to_set()
+        if ignoreitems:
+            items_to_add = items_to_add - ignoreitems
+        items_to_delete = self._old_value.to_set() - self._setdata
+        if ignoreitems:
+            items_to_delete = items_to_delete - ignoreitems
         blank = ''
         sparql_list = []
 
@@ -310,8 +316,8 @@ class ObservableSet(Notify):
                      attr: AttributeClass,
                      modified: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> list[str]:
-        items_to_add = self.__setdata - self.__old_value
-        items_to_delete = self.__old_value - self.__setdata
+        items_to_add = self._setdata - self._old_value
+        items_to_delete = self._old_value - self._setdata
 
         blank = ''
         sparql_list = []

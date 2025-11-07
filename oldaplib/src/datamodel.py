@@ -352,7 +352,19 @@ class DataModel(Model):
     def changeset(self) -> dict[Xsd_QName, ExternalOntologyChange | PropertyClassChange | ResourceClassChange]:
         return self.__extontos_changeset | self.__resclasses_changeset | self.__propclasses_changeset
 
-    def changeset_clear(self) -> None:
+    def clear_changeset(self) -> None:
+        """
+        Clears all recorded changes from the current changeset. The function iterates through
+        various internal tracking structures and resets or clears their state as needed. This
+        ensures that the current changeset reflects no modifications and all marked changes
+        are reverted or cleared.
+
+        Raises:
+            No explicit errors are raised by this function
+
+        Returns:
+            None
+        """
         for onto, change in self.__extontos_changeset.items():
             if change.action == Action.MODIFY:
                 self.__extontos[onto].clear_changeset()
@@ -362,9 +374,9 @@ class DataModel(Model):
         self.__propclasses_changeset = {}
         for res, change in self.__resclasses_changeset.items():
             if change.action == Action.MODIFY:
-                self.__resclasses[res].changeset_clear()
+                self.__resclasses[res].clear_changeset()
         self.__resclasses_changeset = {}
-        self.clear_changeset()
+        self._changeset = {}
 
     def notifier(self, what: Xsd_QName) -> None:
         if what in self.__extontos:
@@ -526,7 +538,7 @@ class DataModel(Model):
 
         cache.set(Xsd_QName(project.projectShortName, 'shacl'), instance)
 
-        instance.changeset_clear()
+        instance.clear_changeset()
         return instance
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -671,7 +683,7 @@ class DataModel(Model):
                 case Action.DELETE:
                     #self.__resclasses[qname].delete()
                     change.old_value.delete()
-        self.changeset_clear()
+        self.clear_changeset()
         cache = CacheSingletonRedis()
         cache.delete(Xsd_QName(self._project.projectShortName, 'shacl'))
         #cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)

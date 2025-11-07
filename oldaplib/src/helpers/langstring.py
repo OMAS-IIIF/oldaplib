@@ -66,7 +66,7 @@ class LangString(Notify):
     - _add()_: Add a string
     - _undo_(): Forget all changes
     - _changeset()_: Return the changeset dict (Note: this is not for generic use)
-    - _changeset_clear()_: Clear changeset to an empty dict
+    - _clear_changeset()_: Clear changeset to an empty dict
     - _update_shacl_(): Return the SPARQL code piece that updates a Language string SHACL part of the triple store.
     - _delete_shacl_(): Return the SPARQL code piece that deletes an LanguageString
     """
@@ -440,7 +440,7 @@ class LangString(Notify):
         """
         return self._changeset
 
-    def changeset_clear(self) -> None:
+    def clear_changeset(self) -> None:
         """
         Clear changeset to an empty dict
         :return: Nothing

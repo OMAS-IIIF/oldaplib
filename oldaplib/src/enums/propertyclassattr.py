@@ -37,7 +37,7 @@ class PropClassAttr(AttributeClass):
     """
     # order: (QName, mandatory, immutable, datatype)
     SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri)
-    TYPE = ('rdf:type', False, True, ObservableSet)
+    TYPE = ('rdf:type', False, False, ObservableSet)
     CLASS = ('sh:class', False, False, Iri)
     NODEKIND = ('sh:nodeKind', False, False, Iri)
     DATATYPE = ('sh:datatype', False, False, XsdDatatypes)

@@ -218,6 +218,24 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p4a.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.FR))
         self.assertEqual(p4a.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
 
+    def test_propertyclass_owltype_constructor(self):
+        p4 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Xsd_QName('test:testprop4c'),
+                           type={OwlPropertyType.SymmetricProperty},
+                           datatype=XsdDatatypes.string)
+        p4.create()
+        self.assertEqual(p4.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty})
+        p4 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testprop4c'),
+                                ignore_cache=True)
+        self.assertEqual(p4.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty})
+
+        p4.type.add(OwlPropertyType.TransitiveProperty)
+        p4.update()
+        self.assertEqual(p4.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.TransitiveProperty, OwlPropertyType.OwlDataProperty})
+
     def test_propertyclass_inconsistent_constructor(self):
         with self.assertRaises(OldapErrorValue):
             p5 = PropertyClass(con=self._connection,
@@ -384,6 +402,19 @@ class TestPropertyClass(unittest.TestCase):
                                 ignore_cache=True)
         self.assertTrue(p.statementProperty)
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
+
+    def test_propertyclass_create_F(self):
+        p4 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Xsd_QName('test:testpropF'),
+                           type={OwlPropertyType.SymmetricProperty},
+                           datatype=XsdDatatypes.string)
+        p4.create()
+        p4 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testpropF'),
+                                ignore_cache=True)
+        self.assertEqual(p4.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty})
 
     def test_propertyclass_create_nopermission(self):
         p1 = PropertyClass(
@@ -780,6 +811,44 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(len(res), 2)
         for r in res:
             self.assertIn(r['comment'], [Xsd_string("description english@en"), Xsd_string("description français@fr")])
+
+    def test_propertyclass_update7(self):
+        p7 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Xsd_QName('test:testprop7'),
+                           type={OwlPropertyType.SymmetricProperty},
+                           datatype=XsdDatatypes.string)
+        p7.create()
+        p7 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testprop7'),
+                                ignore_cache=True)
+        p7.type.add(OwlPropertyType.TransitiveProperty)
+        p7.update()
+        p7 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testprop7'),
+                                ignore_cache=True)
+        self.assertEqual(p7.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.TransitiveProperty, OwlPropertyType.OwlDataProperty})
+
+    def test_propertyclass_update8(self):
+        p8 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Xsd_QName('test:testprop8'),
+                           type={OwlPropertyType.SymmetricProperty, OwlPropertyType.TransitiveProperty},
+                           datatype=XsdDatatypes.string)
+        p8.create()
+        p8 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testprop8'),
+                                ignore_cache=True)
+        p8.type.remove(OwlPropertyType.TransitiveProperty)
+        p8.update()
+        p8 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testprop8'),
+                                ignore_cache=True)
+        self.assertEqual(p8.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty})
 
     # @unittest.skip('Work in progress')
     def test_propertyclass_delete_attrs(self):

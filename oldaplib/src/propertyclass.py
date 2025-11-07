@@ -1294,15 +1294,14 @@ class PropertyClass(Model, Notify):
                                                                   indent=indent, indent_inc=indent_inc)
                 elif prop.datatype == ObservableSet:
                     if prop == PropClassAttr.TYPE:
-                        pass
-                        #continue
-                    gaga = self._attributes[prop].update_shacl(graph=self._graph,
-                                                                  owlclass_iri=owlclass_iri,
-                                                                  prop_iri=self._property_class_iri,
-                                                                  attr=prop,
-                                                                  modified=self._modified,
-                                                                  indent=indent, indent_inc=indent_inc)
-                    print(gaga)
+                        continue
+                #     sparql += self._attributes[prop].update_shacl(graph=self._graph,
+                #                                                   owlclass_iri=owlclass_iri,
+                #                                                   prop_iri=self._property_class_iri,
+                #                                                   attr=prop,
+                #                                                   modified=self._modified,
+                #                                                   indent=indent, indent_inc=indent_inc)
+                #     print(gaga)
                 else:
                     raise OldapError(f'SHACL property {prop.value} should not have update action "MODIFY" ({prop.datatype}).')
                 sparql_list.append(sparql)
@@ -1401,6 +1400,13 @@ class PropertyClass(Model, Notify):
                                              last_modified=self._modified,
                                              indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
+            if prop == PropClassAttr.TYPE:
+
+                sparql = self._attributes[prop].update_sparql(graph=Xsd_QName(str(self._graph), 'onto'),
+                                                              subject=self._property_class_iri,
+                                                              ignoreitems={OwlPropertyType.OwlDataProperty,OwlPropertyType.OwlObjectProperty},
+                                                              field=prop)
+                sparql_list.extend(sparql)
             if prop == PropClassAttr.NAME:
                 if change.action == Action.CREATE:
                     sparql = self.name.create(graph=Xsd_QName(self._graph, 'onto'),
@@ -1608,7 +1614,7 @@ class PropertyClass(Model, Notify):
         self._contributor = self._con.userIri
         for prop, change in self._changeset.items():
             if change.action == Action.MODIFY:
-                self._attributes[prop].changeset_clear()
+                self._attributes[prop].clear_changeset()
         self._changeset = {}
         cache = CacheSingletonRedis()
         cache.set(self._property_class_iri, self)

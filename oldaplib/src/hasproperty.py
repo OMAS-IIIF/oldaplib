@@ -188,6 +188,11 @@ class HasProperty(Model, Notify):
                                order=self._attributes.get(HasPropertyAttr.ORDER, None),
                                group=self._attributes.get(HasPropertyAttr.GROUP, None))
 
+    def clear_changeset(self) -> None:
+        if hasattr(self._prop, 'clear_changeset'):
+            self._prop.clear_changeset()
+        super().clear_changeset()
+
     def notifier(self, attr: HasPropertyAttr | Iri | Xsd_QName) -> None:
         #if attr == HasPropertyAttr.PROP:
         #    return

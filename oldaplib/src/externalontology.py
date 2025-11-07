@@ -264,10 +264,10 @@ class ExternalOntology(Model, Notify):
                 case 'rdfs:comment':
                     comment.add(r['o'])
         if comment:
-            comment.changeset_clear()
+            comment.clear_changeset()
             comment.set_notifier(cls.notifier, Xsd_QName(ExternalOntologyAttr.LABEL.value))
         if label:
-            label.changeset_clear()
+            label.clear_changeset()
             label.set_notifier(cls.notifier, Xsd_QName(ExternalOntologyAttr.LABEL.value))
         instance = cls(con=con,
                        projectShortName=projectShortName,
