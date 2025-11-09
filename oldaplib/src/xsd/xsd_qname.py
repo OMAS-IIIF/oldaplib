@@ -55,7 +55,7 @@ class Xsd_QName(Xsd):
                     raise OldapErrorValue(f'Invalid string "{value}" for QName. Error: {err}')
                 self._value = f'{prefix}:{fragment}'
             else:
-                raise OldapErrorValue(f'Invalid value for QName "{value}"')
+                raise OldapErrorValue(f'Invalid value for QName "{value}" (type: {type(value).__name__})')
         else:
             prefix = Xsd_NCName(value, validate=validate)
             if fragment:

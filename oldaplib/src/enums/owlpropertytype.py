@@ -19,8 +19,8 @@ class OwlPropertyType(Enum):
     IrreflexiveProperty = 'owl:IrreflexiveProperty'
     FunctionalProperty = 'owl:FunctionalProperty'
     InverseFunctionalProperty = 'owl:InverseFunctionalProperty'
-    # InverseOfProperty = 'owl:InverseOfProperty'
-    # EquivalentProperty = 'owl:EquivalentProperty'
+    # InverseOfProperty = 'owl:inverseOf'
+    # EquivalentProperty = 'owl:equivalentProperty'
     # _owl_inverseOf: Xsd_QName  # :hasParent owl:inverseOf :hasChild .
     # _owl_equivalent: Xsd_QName  # :hasSpouse owl:equivalentProperty :marriedTo .
 

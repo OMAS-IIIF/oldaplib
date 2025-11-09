@@ -110,6 +110,22 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
         self.assertEqual(p[PropClassAttr.TYPE], {OwlPropertyType.StatementProperty, OwlPropertyType.OwlDataProperty})
 
+    def test_propertyclass_constructor_owlprop(self):
+        p = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isParent'),
+                          toClass=Iri('test:Human'),
+                          name=LangString(["Parent"]),
+                          description={"Parent of the human"})
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChild'),
+                          toClass=Iri('test:Human'),
+                          inverseOf=Xsd_QName('test:isParent'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        self.assertEqual(i.inverseOf, Xsd_QName('test:isParent'))
+
     def test_propertyclass_inset_datatypes(self):
         p = PropertyClass(con=self._connection,
                           project=self._project,
@@ -415,6 +431,30 @@ class TestPropertyClass(unittest.TestCase):
                                 property_class_iri=Xsd_QName('test:testpropF'),
                                 ignore_cache=True)
         self.assertEqual(p4.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty})
+
+    def test_propertyclass_create_G(self):
+        p = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isParentG'),
+                          toClass=Iri('test:Human'),
+                          name=LangString(["Parent"]),
+                          description={"Parent of the human"})
+        p.create()
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChildG'),
+                          toClass=Iri('test:Human'),
+                          inverseOf=Xsd_QName('test:isParentG'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        self.assertEqual(i.inverseOf, Xsd_QName('test:isParentG'))
+        i.create()
+        i2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:isChildG'),
+                                ignore_cache=True)
+        self.assertEqual(i2.get(PropClassAttr.INVERSE_OF), Xsd_QName('test:isParentG'))
+
 
     def test_propertyclass_create_nopermission(self):
         p1 = PropertyClass(
@@ -850,6 +890,24 @@ class TestPropertyClass(unittest.TestCase):
                                 ignore_cache=True)
         self.assertEqual(p8.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty})
 
+    def test_propertyclass_update9(self):
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChild9'),
+                          toClass=Iri('test:Human'),
+                          inverseOf=Xsd_QName('test:isParent9'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        self.assertEqual(i.inverseOf, Xsd_QName('test:isParent9'))
+        i.create()
+        i.inverseOf = Xsd_QName('test:anotherParent')
+        i.update()
+        i2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:isChild9'),
+                                ignore_cache=True)
+        self.assertEqual(i2.get(PropClassAttr.INVERSE_OF), Xsd_QName('test:anotherParent'))
+
     # @unittest.skip('Work in progress')
     def test_propertyclass_delete_attrs(self):
         p1 = PropertyClass(
@@ -893,6 +951,23 @@ class TestPropertyClass(unittest.TestCase):
         jsonres = self._connection.query(cstr + 'SELECT ?s ?p ?o WHERE { ?s ?p "A" . ?s ?p ?o}')
         res = QueryProcessor(self._context, jsonres)
         self.assertEqual(len(res), 0)
+
+    def test_propertyclass_delete_owlattr(self):
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChildDel'),
+                          toClass=Iri('test:Human'),
+                          inverseOf=Xsd_QName('test:isParentDel'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        i.create()
+        i.inverseOf = None
+        i.update()
+        i2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:isChildDel'),
+                                ignore_cache=True)
+        self.assertIsNone(i2.get(PropClassAttr.INVERSE_OF))
 
     # @unittest.skip('Work in progress')
     def test_propertyclass_delete(self):

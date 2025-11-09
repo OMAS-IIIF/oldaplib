@@ -3,7 +3,7 @@ from typing import Self
 
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet
-from oldaplib.src.enums.attributeclass import AttributeClass
+from oldaplib.src.enums.attributeclass import AttributeClass, Target
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.numeric import Numeric
@@ -12,6 +12,7 @@ from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
@@ -35,26 +36,28 @@ class PropClassAttr(AttributeClass):
     - `PropertyClassAttribute.DESCRIPTION`: Description of the property. The literal is a string that may
       have attached a language id.
     """
-    # order: (QName, mandatory, immutable, datatype)
+    # order: (QName, mandatory, immutable, datatype, target)
     SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri)
-    TYPE = ('rdf:type', False, False, ObservableSet)
-    CLASS = ('sh:class', False, False, Iri)
-    NODEKIND = ('sh:nodeKind', False, False, Iri)
-    DATATYPE = ('sh:datatype', False, False, XsdDatatypes)
-    NAME = ('sh:name', False, False, LangString)  # needs notifier
-    DESCRIPTION = ('sh:description', False, False, LangString)  # needs notifier
-    LANGUAGE_IN = ('sh:languageIn', False, False, LanguageIn)  # needs notifier
-    UNIQUE_LANG = ('sh:uniqueLang', False, False, Xsd_boolean)
-    IN = ('sh:in', False, False, XsdSet)  # needs notifier
-    MIN_LENGTH = ('sh:minLength', False, False, Xsd_integer)
-    MAX_LENGTH = ('sh:maxLength', False, False, Xsd_integer)
-    PATTERN = ('sh:pattern', False, False, Xsd_string)
-    MIN_EXCLUSIVE = ('sh:minExclusive', False, False, Numeric)
-    MIN_INCLUSIVE = ('sh:minInclusive', False, False, Numeric)
-    MAX_EXCLUSIVE = ('sh:maxExclusive', False, False, Numeric)
-    MAX_INCLUSIVE = ('sh:maxInclusive', False, False, Numeric)
-    LESS_THAN = ('sh:lessThan', False, False, Iri)
-    LESS_THAN_OR_EQUALS = ('sh:lessThanOrEquals', False, False, Iri)
+    TYPE = ('rdf:type', False, False, ObservableSet, Target.OWL)
+    CLASS = ('sh:class', False, False, Iri, Target.SHACL)
+    NODEKIND = ('sh:nodeKind', False, False, Iri, Target.SHACL)
+    DATATYPE = ('sh:datatype', False, False, XsdDatatypes, Target.SHACL)
+    NAME = ('sh:name', False, False, LangString, Target.SHACL)  # needs notifier
+    DESCRIPTION = ('sh:description', False, False, LangString, Target.SHACL)  # needs notifier
+    LANGUAGE_IN = ('sh:languageIn', False, False, LanguageIn, Target.SHACL)  # needs notifier
+    UNIQUE_LANG = ('sh:uniqueLang', False, False, Xsd_boolean, Target.SHACL)
+    IN = ('sh:in', False, False, XsdSet, Target.SHACL)  # needs notifier
+    MIN_LENGTH = ('sh:minLength', False, False, Xsd_integer, Target.SHACL)
+    MAX_LENGTH = ('sh:maxLength', False, False, Xsd_integer, Target.SHACL)
+    PATTERN = ('sh:pattern', False, False, Xsd_string, Target.SHACL)
+    MIN_EXCLUSIVE = ('sh:minExclusive', False, False, Numeric, Target.SHACL)
+    MIN_INCLUSIVE = ('sh:minInclusive', False, False, Numeric, Target.SHACL)
+    MAX_EXCLUSIVE = ('sh:maxExclusive', False, False, Numeric, Target.SHACL)
+    MAX_INCLUSIVE = ('sh:maxInclusive', False, False, Numeric, Target.SHACL)
+    LESS_THAN = ('sh:lessThan', False, False, Iri, Target.SHACL)
+    LESS_THAN_OR_EQUALS = ('sh:lessThanOrEquals', False, False, Iri, Target.SHACL)
+    INVERSE_OF = ('owl:inverseOf', False, False, Xsd_QName, Target.OWL)
+    EQUIVALEND_PROPERTY = ('owl:equivalentProperty', False, False, Xsd_QName, Target.OWL)
 
 
     @classmethod

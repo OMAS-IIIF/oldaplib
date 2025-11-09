@@ -1,7 +1,12 @@
-from enum import Enum
-from typing import Type, Self
+from enum import Enum, Flag, auto
+from typing import Type, Self, Any
 
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+
+class Target(Flag):
+    SHACL = auto()
+    OWL = auto()
+    BOTH = SHACL | OWL    # convenience alias
 
 
 class AttributeClass(Enum):
@@ -10,7 +15,12 @@ class AttributeClass(Enum):
     Project, PropertyClass, ResourceClass, User etc.,
     """
 
-    def __new__(cls, value: Xsd_QName | str, mandatory: bool, immutable: bool, datatype: Type):
+    def __new__(cls,
+                value: Xsd_QName | str,
+                mandatory: bool,
+                immutable: bool,
+                datatype: Type,
+                target: Target = Target.BOTH):
         """
         :param value: The value of the attribute-enum item. Must have the form of a QName!
         :param mandatory: True, if this attribute is mandatory, False otherwise.
@@ -23,6 +33,7 @@ class AttributeClass(Enum):
         member._mandatory = mandatory
         member._immutable = immutable
         member._datatype = datatype
+        member._target = target
         return member
 
     def __str__(self) -> str:
@@ -47,6 +58,23 @@ class AttributeClass(Enum):
     @property
     def immutable(self) -> bool:
         return self._immutable
+
+    @property
+    def target(self) -> Target:
+        """Where this attribute should be emitted/used (SHACL, OWL, BOTH)."""
+        return self._target
+
+    @property
+    def in_shacl(self) -> bool:
+        return bool(self._target & Target.SHACL)
+
+    @property
+    def in_owl(self) -> bool:
+        return bool(self._target & Target.OWL)
+
+    @property
+    def to_rdf(self) -> str:
+        return self._value.toRdf
 
     @classmethod
     def from_value(cls, value: Xsd_QName | str) -> Self:
@@ -73,6 +101,3 @@ class AttributeClass(Enum):
                 return member
         raise ValueError(f"No member with name {name} found")
 
-    @property
-    def to_rdf(self) -> str:
-        return self._value.toRdf

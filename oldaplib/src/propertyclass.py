@@ -823,6 +823,8 @@ class PropertyClass(Model, Notify):
                 group = val
             elif key in propkeys:
                 attr = PropClassAttr.from_value(key)
+                if not attr.in_shacl:
+                    continue
                 if attr.datatype == Numeric:
                     if not isinstance(val, (Xsd_integer, Xsd_float)):
                         raise OldapErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
@@ -858,6 +860,7 @@ class PropertyClass(Model, Notify):
     def read_owl(self) -> None:
         if self._externalOntology:
             return
+        propkeys = {Xsd_QName(x.value) for x in PropClassAttr}
         context = Context(name=self._con.context_name)
         query1 = context.sparql_context
         query1 += f"""
@@ -878,24 +881,12 @@ class PropertyClass(Model, Notify):
             obj = r['o']
             match attr:
                 case 'rdf:type':
-                    if obj == 'owl:DatatypeProperty':
-                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlDataProperty)
-                    elif obj == 'owl:ObjectProperty':
-                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
-                    elif obj == 'rdf:Property':
-                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.StatementProperty)
-                    elif obj == 'owl:TransitiveProperty':
-                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.TransitiveProperty)
-                    elif obj == 'owl:SymmetricProperty':
-                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.SymmetricProperty)
-                    elif obj == 'owl:ReflexiveProperty':
-                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.ReflexiveProperty)
-                    elif obj == 'owl:IrreflexiveProperty':
-                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.IrreflexiveProperty)
-                    elif obj == 'owl:InverseFunctionalProperty':
-                        self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.InverseFunctionalProperty)
-                    else:
-                        raise OldapErrorNotFound(f'Unknown owl:Property type "{obj}"')
+                    try:
+                        # If obj is already a member, keep it; otherwise look it up by value
+                        prop_type = obj if isinstance(obj, OwlPropertyType) else OwlPropertyType(obj)
+                    except ValueError as e:
+                        raise OldapErrorNotFound(f'Unknown owl:Property type "{obj}"') from e
+                    self._attributes[PropClassAttr.TYPE].add(prop_type)
                 case 'owl:subPropertyOf':
                     self._attributes[PropClassAttr.SUBPROPERTY_OF] = obj
                 case 'rdfs:range':
@@ -919,6 +910,11 @@ class PropertyClass(Model, Notify):
                     dt = obj
                     if self._modified != dt:
                         raise OldapError(f'Inconsistency between SHACL and OWL: created "{self._modified}" vs "{dt}" for property "{self._property_class_iri}".')
+                case _:
+                    if attr in propkeys:
+                        pcattr = PropClassAttr.from_value(attr)
+                        if pcattr.in_owl:
+                            self._attributes[pcattr] = pcattr.datatype(obj)
         #
         # Consistency checks
         #
@@ -1052,7 +1048,7 @@ class PropertyClass(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty {self._statementProperty.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:externalOntology {self._externalOntology.toRdf}'
         for prop, value in self._attributes.items():
-            if prop == PropClassAttr.TYPE:
+            if not prop.in_shacl:
                 continue
             if not value and not isinstance(value, bool):
             #if value is None:
@@ -1085,24 +1081,47 @@ class PropertyClass(Model, Notify):
 
     def create_owl_part1(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} rdf:type {self._attributes[PropClassAttr.TYPE].toRdf}'
-        if self._attributes.get(PropClassAttr.SUBPROPERTY_OF):
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropClassAttr.SUBPROPERTY_OF].toRdf}'
+        sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} {PropClassAttr.TYPE.toRdf} {self._attributes[PropClassAttr.TYPE].toRdf}'
         if self._internal:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal.toRdf}'
         if self._attributes.get(PropClassAttr.TYPE) and  OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.DATATYPE].value}'
         elif self._attributes.get(PropClassAttr.TYPE) and OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.CLASS].toRdf}'
+        for attr, val in self._attributes.items():
+            #attr = PropClassAttr.from_value(key)
+            if not attr.in_owl or attr == PropClassAttr.TYPE or val is None:
+                continue
+            if attr == PropClassAttr.NAME:
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:label {val.toRdf}'
+            elif attr == PropClassAttr.DESCRIPTION:
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:comment {val.toRdf}'
+            else:
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{attr.toRdf} {val.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        if self.name:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:label {self.name.toRdf}'
-        if self.description:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:comment {self.description.toRdf}'
         sparql += ' .\n'
+
+        # sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} rdf:type {self._attributes[PropClassAttr.TYPE].toRdf}'
+        # if self._attributes.get(PropClassAttr.SUBPROPERTY_OF):
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropClassAttr.SUBPROPERTY_OF].toRdf}'
+        # if self._internal:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal.toRdf}'
+        # if self._attributes.get(PropClassAttr.TYPE) and  OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.DATATYPE].value}'
+        # elif self._attributes.get(PropClassAttr.TYPE) and OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.CLASS].toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        # if self.name:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:label {self.name.toRdf}'
+        # if self.description:
+        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:comment {self.description.toRdf}'
+        # sparql += ' .\n'
         return sparql
 
     def create_owl_part2(self, *,
@@ -1218,6 +1237,7 @@ class PropertyClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError as err:
+            print(sparql)
             self._con.transaction_abort()
             raise
         if not self._externalOntology:  # it's a project specific property -> OWL has been written -> check consistency!
@@ -1362,12 +1382,14 @@ class PropertyClass(Model, Notify):
                    owlclass_iri: Xsd_QName | None = None,
                    timestamp: Xsd_dateTime,
                    indent: int = 0, indent_inc: int = 4) -> str:
+        tmp = {x for x in PropClassAttr if x.in_owl and x != PropClassAttr.TYPE}
         owl_propclass_attributes = {PropClassAttr.SUBPROPERTY_OF,  # should be in OWL ontology
                                     PropClassAttr.DATATYPE,  # used for rdfs:range in OWL ontology
-                                    PropClassAttr.CLASS}  # used for rdfs:range in OWL ontology
+                                    PropClassAttr.CLASS} | tmp # used for rdfs:range in OWL ontology
+        tmp = {x: x.value.toRdf for x in PropClassAttr if x.in_owl and x != PropClassAttr.TYPE}
         owl_prop = {PropClassAttr.SUBPROPERTY_OF: PropClassAttr.SUBPROPERTY_OF.value,
                     PropClassAttr.DATATYPE: "rdfs:range",
-                    PropClassAttr.CLASS: "rdfs:range"}
+                    PropClassAttr.CLASS: "rdfs:range"} | tmp
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
