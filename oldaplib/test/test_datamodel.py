@@ -622,10 +622,10 @@ class TestDataModel(unittest.TestCase):
     def test_datamodel_extonto_add(self):
         model = DataModel.read(self._connection, self._project, ignore_cache=True)
         eo = ExternalOntology(con=self._connection,
-                             projectShortName=self._project.projectShortName,
-                             prefix='testonto',
-                             namespaceIri='http://www.example.org/ns/testonto#',
-                             label=LangString("Test ontology@en", "Test ontology@de"))
+                              projectShortName=self._project.projectShortName,
+                              prefix='testonto',
+                              namespaceIri='http://www.example.org/ns/testonto#',
+                              label=LangString("Test ontology@en", "Test ontology@de"))
         model[Xsd_QName('test:testonto')] = eo
         model.update()
         model = DataModel.read(self._connection, self._project, ignore_cache=True)

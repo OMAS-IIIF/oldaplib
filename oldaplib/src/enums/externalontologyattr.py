@@ -15,7 +15,7 @@ class ExternalOntologyAttr(AttributeClass):
     (QName, mandatory, immutable, datatype)
     """
     # order: (QName, mandatory, immutable, datatype)
-    PREFIX = ('oldap:prefix', True, False, Xsd_NCName)
+    PREFIX = ('oldap:prefix', True, True, Xsd_NCName)
     NAMESPACE_IRI = ('oldap:namespaceIri', True, True, NamespaceIRI)
     LABEL = ('rdfs:label', False, False, LangString)
     COMMENT = ('rdfs:comment', False, False, LangString)
