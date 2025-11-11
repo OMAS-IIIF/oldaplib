@@ -6,6 +6,8 @@ from pathlib import Path
 from pprint import pprint
 from time import sleep
 
+from oldaplib.src.cachesingleton import CacheSingletonRedis
+from oldaplib.src.datamodel import DataModel
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
@@ -129,6 +131,8 @@ class TestObjectFactory(unittest.TestCase):
                     isActive=True)
         user.create()
         cls._tuser = User.read(cls._connection, "factorytestuser")
+        cache = CacheSingletonRedis()
+        cache.clear()
 
 
     @classmethod
@@ -336,6 +340,14 @@ class TestObjectFactory(unittest.TestCase):
                  pubDate="1995-09-27",
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
+
+    def test_constructor_D(self):
+        dm = DataModel.read(con=self._connection, project='test')
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Cat = factory.createObjectInstance('Cat')
+
+        mycat = Cat(name="Fluffy", subName="Fluffy the Cat")
+        mycat.create()
 
     def test_read_A(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')

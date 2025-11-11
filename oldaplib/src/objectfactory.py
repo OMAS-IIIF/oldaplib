@@ -144,7 +144,9 @@ class ResourceInstance:
                             self.validate_value(self._values[prop_iri], hasprop.prop)
 
         def process_superclasses(superclass: dict[Xsd_QName, ResourceClass]):
-           for sc_iri, sc in superclass.items():
+            for sc_iri, sc in superclass.items():
+                if not sc:
+                    continue
                 if sc.superclass:
                     process_superclasses(sc.superclass)
                 if sc.owl_class_iri == Xsd_QName("oldap:Thing", validate=False):
