@@ -508,11 +508,6 @@ class ResourceInstance:
         sparql = context.sparql_context
         sparql += f'''
 SELECT ?predicate ?value
-FROM oldap:onto
-FROM shared:onto
-FROM {graph}:onto
-FROM NAMED oldap:admin
-FROM NAMED {graph}:data
 WHERE {{
 	BIND({iri.toRdf} as ?iri)
     GRAPH {graph}:data {{
@@ -791,6 +786,47 @@ class ResourceInstanceFactory:
             'properties': resclass.properties,
             'superclass': resclass.superclass})
 
+    @staticmethod
+    def read_data(con: IConnection, projectShortName: Xsd_NCName | str, iri: Iri | str) -> dict[Xsd_QName, Any]:
+        if not isinstance(iri, Iri):
+            iri = Iri(iri, validate=True)
+        if not isinstance(projectShortName, Xsd_NCName):
+            graph = Xsd_NCName(projectShortName)
+        else:
+            graph = projectShortName
+
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        sparql += f'''
+        SELECT ?predicate ?value
+        WHERE {{
+            GRAPH {graph}:data {{
+                {iri.toRdf} ?predicate ?value .
+                {iri.toRdf} oldap:grantsPermission ?permset .
+            }}
+            GRAPH oldap:admin {{
+            	{con.userIri.toRdf} oldap:hasPermissions ?permset .
+            	?permset oldap:givesPermission ?DataPermission .
+            	?DataPermission oldap:permissionValue ?permval .
+            }}
+            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
+        }}
+        '''
+        jsonres = con.query(sparql)
+        res = QueryProcessor(context, jsonres)
+        data = {}
+        for r in res:
+            if r['predicate'].is_qname:
+                if not data.get(r['predicate'].as_qname):
+                    data[r['predicate'].as_qname] = []
+                data[str(r['predicate'].as_qname)].append(str(r['value']))
+            else:
+                raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
+        if not data.get('rdf:type'):
+            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+        return data
+
+
     def read(self, iri: Iri | str) -> ResourceInstance:
         if not isinstance(iri, Iri):
             iri = Iri(iri, validate=True)
@@ -799,11 +835,6 @@ class ResourceInstanceFactory:
         sparql = context.sparql_context
         sparql += f'''
         SELECT ?predicate ?value
-        FROM oldap:onto
-        FROM shared:onto
-        FROM {graph}:onto
-        FROM NAMED oldap:admin
-        FROM NAMED {graph}:data
         WHERE {{
         	BIND({iri.toRdf} as ?iri)
             GRAPH {graph}:data {{

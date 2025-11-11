@@ -357,6 +357,19 @@ class TestObjectFactory(unittest.TestCase):
                  pubDate="2001-01-01",
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
+        data = factory.read_data(con=self._connection, iri=b.iri, projectShortName='test')
+        self.assertEqual(data['rdf:type'], ['test:Book'])
+        self.assertEqual(data['test:title'], ['The Life and Times of Scrooge'])
+        self.assertEqual(data['test:author'], ['test:TuomasHolopainen'])
+
+    def test_read_B(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Book = factory.createObjectInstance('Book')
+        b = Book(title="The Life and Times of Scrooge",
+                 author="test:TuomasHolopainen",
+                 pubDate="2001-01-01",
+                 grantsPermission=Iri('oldap:GenericView'))
+        b.create()
         bb = factory.read(iri=b.iri)
         self.assertEqual(bb.name, "Book")
         self.assertEqual(bb.title, {Xsd_string("The Life and Times of Scrooge")})
@@ -365,6 +378,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(jsonobj['test:author'], ['test:TuomasHolopainen'])
         self.assertEqual(jsonobj['test:pubDate'], ['2001-01-01'])
         self.assertEqual(jsonobj['test:title'], ['The Life and Times of Scrooge'])
+
 
     def test_value_setter(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
