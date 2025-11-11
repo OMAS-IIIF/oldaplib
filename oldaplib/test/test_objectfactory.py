@@ -357,7 +357,7 @@ class TestObjectFactory(unittest.TestCase):
                  pubDate="2001-01-01",
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
-        data = factory.read_data(con=self._connection, iri=b.iri, projectShortName='test')
+        data = ResourceInstanceFactory.read_data(con=self._connection, iri=b.iri, projectShortName='test')
         self.assertEqual(data['rdf:type'], ['test:Book'])
         self.assertEqual(data['test:title'], ['The Life and Times of Scrooge'])
         self.assertEqual(data['test:author'], ['test:TuomasHolopainen'])
