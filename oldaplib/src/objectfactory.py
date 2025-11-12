@@ -99,7 +99,7 @@ class ResourceInstance:
         if iri and isinstance(iri, str):
             iri = Iri(Xsd_QName(self.project.projectShortName, iri))
         self._iri = Iri(iri, validate=True) if iri else Iri()
-        self._values = {}
+        self._values: dict[Xsd_QName, ValueType] = {}
         self._graph = self.project.projectShortName
         self._superclass_objs = {}
         self._changeset = {}
@@ -170,10 +170,32 @@ class ResourceInstance:
 
         for propname in self.properties.keys():
             setattr(ResourceInstance, propname.fragment, property(
-                partial(ResourceInstance.__get_value, prefix=propname.prefix, fragment=propname.fragment),
-                partial(ResourceInstance.__set_value, prefix=propname.prefix, fragment=propname.fragment),
-                partial(ResourceInstance.__del_value, prefix=propname.prefix, fragment=propname.fragment)))
+                partial(ResourceInstance.__get_value, attr=propname),
+                partial(ResourceInstance.__set_value, attr=propname),
+                partial(ResourceInstance.__del_value, attr=propname)))
         self.clear_changeset()
+
+    def __setitem__(self, key: Xsd_QName, value: ValueType | Xsd | None):
+        if self._values.get(key):
+            self.__set_value(value, key)
+        else:
+            raise OldapErrorValue(f'{self.name}: Property {key} does not exist.')
+
+    def __getitem__(self, key: Xsd_QName) -> ValueType | Xsd | None:
+        if self._values.get(key):
+            return self.__get_value(key)
+        else:
+            raise OldapErrorValue(f'{self.name}: Property {key} does not exist.')
+
+    def __delitem__(self, key: Xsd_QName):
+        if self._values.get(key):
+            self.__del_value(key)
+
+    def get(self, key: Xsd_QName) -> ValueType | Xsd | None:
+        if self._values.get(key):
+            return self._values[key]
+        else:
+            return None
 
     def validate_value(self, values: ValueType, property: PropertyClass):
         """
@@ -330,16 +352,19 @@ class ResourceInstance:
             else:
                 return False, f'Actor does not have {permission} in project "{self.project.projectShortName}".'
 
-    def __get_value(self: Self, prefix: str, fragment: str) -> Xsd | ValueType | None:
-        attr = Xsd_QName(prefix, fragment, validate=False)
+    def __get_value(self: Self, attr: Xsd_QName | str) -> Xsd | ValueType | None:
+        #attr = Xsd_QName(prefix, fragment, validate=False)
+        if not isinstance(attr, Xsd_QName):
+            attr = Xsd_QName(attr)
         tmp = self._values.get(attr, None)
         if tmp is not None and str(attr) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate'}:
             return next(iter(tmp))
         return tmp
 
-    def __set_value(self: Self, value: ValueType | Xsd | None, prefix: str, fragment: str) -> None:
-        prop_iri = Xsd_QName(prefix, fragment, validate=False)
-        hasprop = self.properties.get(prop_iri)
+    def __set_value(self: Self, value: ValueType | Xsd | None, attr: Xsd_QName | str) -> None:
+        if not isinstance(attr, Xsd_QName):
+            attr = Xsd_QName(attr)
+        hasprop = self.properties.get(attr)
 
         #
         # Validate
@@ -347,58 +372,58 @@ class ResourceInstance:
         if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
             if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not value:
                 raise OldapErrorValue(
-                    f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+                    f'{self.name}: Property {attr} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
             elif isinstance(value, (list, tuple, set, ObservableSet)) and len(value) < hasprop[HasPropertyAttr.MIN_COUNT]:
                 raise OldapErrorValue(
-                    f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has not enough values')
+                    f'{self.name}: Property {attr} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has not enough values')
         if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
             if isinstance(value, (list, tuple, set, ObservableSet)) and len(value) > hasprop[HasPropertyAttr.MAX_COUNT]:
                 raise OldapErrorValue(
-                    f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(value)})')
+                    f'{self.name}: Property {attr} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(value)})')
         if value:
             if isinstance(value, LangString):
                 self.validate_value(value, hasprop.prop)
             else:
                 if isinstance(value, (list, tuple, set, ObservableSet)):
-                    for val in self._values[prop_iri]:
+                    for val in self._values[attr]:
                         self.validate_value(val, hasprop.prop)
                 else:
                     self.validate_value(value, hasprop.prop)
 
         if not value:
-            self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.DELETE)
-            del self._values[prop_iri]
+            self._changeset[attr] = AttributeChange(self._values.get(attr), Action.DELETE)
+            del self._values[attr]
         elif isinstance(value, (list, tuple, set, LangString)):  # we may have multiple values...
-            if self._values.get(prop_iri):
-                self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.REPLACE)
+            if self._values.get(attr):
+                self._changeset[attr] = AttributeChange(self._values.get(attr), Action.REPLACE)
             else:
-                self._changeset[prop_iri] = AttributeChange(None, Action.CREATE)
+                self._changeset[attr] = AttributeChange(None, Action.CREATE)
             if hasprop.prop.datatype == XsdDatatypes.langString:
-                self._values[prop_iri] = LangString(value, notifier=self.notifier, notify_data=prop_iri)
+                self._values[attr] = LangString(value, notifier=self.notifier, notify_data=attr)
             else:
-                self._values[prop_iri] = ObservableSet({
+                self._values[attr] = ObservableSet({
                     convert2datatype(x, hasprop.prop.datatype) for x in value
-                }, notifier=self.notifier, notify_data=prop_iri)
+                }, notifier=self.notifier, notify_data=attr)
         else:
-            if self._values.get(prop_iri):
-                self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.REPLACE)
+            if self._values.get(attr):
+                self._changeset[attr] = AttributeChange(self._values.get(attr), Action.REPLACE)
             else:
-                self._changeset[prop_iri] = AttributeChange(None, Action.CREATE)
+                self._changeset[attr] = AttributeChange(None, Action.CREATE)
             try:
-                self._values[prop_iri] = ObservableSet({convert2datatype(value, hasprop.prop.datatype)})
+                self._values[attr] = ObservableSet({convert2datatype(value, hasprop.prop.datatype)})
             except TypeError:
-                self._values[prop_iri] = convert2datatype(value, hasprop.prop.datatype)
+                self._values[attr] = convert2datatype(value, hasprop.prop.datatype)
 
-    def __del_value(self: Self, prefix: str, fragment: str) -> None:
-        prop_iri = Xsd_QName(prefix, fragment, validate=False)
-        hasprop = self.properties.get(prop_iri)
+    def __del_value(self: Self, attr: Xsd_QName | str) -> None:
+        if not isinstance(attr, Xsd_QName):
+            attr = Xsd_QName(attr)
+        hasprop = self.properties.get(attr)
 
         if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
             if hasprop[HasPropertyAttr.MIN_COUNT] > 0:
-                raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} cannot be deleted.')
+                raise OldapErrorValue(f'{self.name}: Property {attr} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} cannot be deleted.')
 
-        self._changeset[prop_iri] = AttributeChange(self._values.get(prop_iri), Action.DELETE)
-        attr = Xsd_QName(prefix, fragment, validate=False)
+        self._changeset[attr] = AttributeChange(self._values.get(attr), Action.DELETE)
         del self._values[attr]
 
     @property
@@ -507,21 +532,19 @@ class ResourceInstance:
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f'''
-SELECT ?predicate ?value
-WHERE {{
-	BIND({iri.toRdf} as ?iri)
-    GRAPH {graph}:data {{
-        ?iri ?predicate ?value .
-        ?iri oldap:grantsPermission ?permset .
-    }}
-    BIND({con.userIri.toRdf} as ?user)
-    GRAPH oldap:admin {{
-    	?user oldap:hasPermissions ?permset .
-    	?permset oldap:givesPermission ?DataPermission .
-    	?DataPermission oldap:permissionValue ?permval .
-    }}
-    FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
-}}'''
+        SELECT ?predicate ?value
+        WHERE {{
+            GRAPH {graph}:data {{
+                {iri.toRdf} ?predicate ?value .
+                {iri.toRdf} oldap:grantsPermission ?permset .
+            }}
+            GRAPH oldap:admin {{
+                {con.userIri.toRdf} oldap:hasPermissions ?permset .
+                ?permset oldap:givesPermission ?DataPermission .
+                ?DataPermission oldap:permissionValue ?permval .
+            }}
+            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
+        }}'''
         jsonres = con.query(sparql)
         res = QueryProcessor(context, jsonres)
         objtype = None
@@ -887,11 +910,6 @@ class ResourceInstanceFactory:
         else:
             sparql += "SELECT DISTINCT ?s ?t ?p ?o"
         sparql += f'''
-        FROM oldap:onto
-        FROM shared:onto
-        FROM {graph}:onto
-        FROM NAMED oldap:admin
-        FROM NAMED {graph}:data
         WHERE {{
             GRAPH {graph}:data {{
                 ?s ?p ?o .
@@ -901,9 +919,8 @@ class ResourceInstanceFactory:
             FILTER(isLiteral(?o) && 
                 (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))
             FILTER(CONTAINS(LCASE(STR(?o)), "{s}"))  # case-insensitive substring match
-            BIND({self._con.userIri.toRdf} as ?user)
             GRAPH oldap:admin {{
-    	        ?user oldap:hasPermissions ?permset .
+    	        {self._con.userIri.toRdf} oldap:hasPermissions ?permset .
     	        ?permset oldap:givesPermission ?DataPermission .
     	        ?DataPermission oldap:permissionValue ?permval .
             }}

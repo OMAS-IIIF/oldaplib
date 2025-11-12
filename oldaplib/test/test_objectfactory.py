@@ -379,6 +379,23 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(jsonobj['test:pubDate'], ['2001-01-01'])
         self.assertEqual(jsonobj['test:title'], ['The Life and Times of Scrooge'])
 
+    def test_read_C(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Book = factory.createObjectInstance('Book')
+        b = Book(title="The Life and Times of Scrooge",
+                 author="test:TuomasHolopainen",
+                 pubDate="2001-01-01",
+                 grantsPermission=Iri('oldap:GenericView'))
+        b.create()
+        bb = Book.read(con=self._connection, iri=b.iri)
+        self.assertEqual(bb.name, "Book")
+        self.assertEqual(bb.title, {Xsd_string("The Life and Times of Scrooge")})
+        self.assertEqual(bb.author, {Iri("test:TuomasHolopainen")})
+        jsonobj = bb.toJsonObject()
+        self.assertEqual(jsonobj['test:author'], ['test:TuomasHolopainen'])
+        self.assertEqual(jsonobj['test:pubDate'], ['2001-01-01'])
+        self.assertEqual(jsonobj['test:title'], ['The Life and Times of Scrooge'])
+
 
     def test_value_setter(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -433,7 +450,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj2.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
         self.assertFalse(obj2.integerSetter)
 
-    def test_value_modifier(self):
+    def test_value_modifier_A(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
@@ -452,6 +469,32 @@ class TestObjectFactory(unittest.TestCase):
             obj1.stringSetter.pop()
         with self.assertRaises(OldapErrorValue):
             del obj1.stringSetter
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        self.assertEqual(obj1.stringSetter, {"This is a test string"})
+        self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
+        self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
+        self.assertFalse(obj1.booleanSetter)
+
+    def test_value_modifier_B(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            integerSetter={-10, 20},
+                            booleanSetter=True,
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        obj1[Xsd_QName('test:langStringSetter')][Language.FR] = "Qu'est-ce que c'est?"
+        obj1[Xsd_QName('test:integerSetter')].add(42)
+        obj1[Xsd_QName('test:integerSetter')].discard(-10)
+        obj1[Xsd_QName('test:booleanSetter')] = False
+        with self.assertRaises(OldapErrorValue):
+            obj1[Xsd_QName('test:stringSetter')].pop()
+        with self.assertRaises(OldapErrorValue):
+            del obj1[Xsd_QName('test:stringSetter')]
         obj1.update()
         obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
         self.assertEqual(obj1.stringSetter, {"This is a test string"})

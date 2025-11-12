@@ -8,6 +8,7 @@ from typing import Set, Dict, Any, Self
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.attributeclass import AttributeClass
+from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.numeric import Numeric

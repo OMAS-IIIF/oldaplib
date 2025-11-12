@@ -105,7 +105,8 @@ class TestexternalOntologies(unittest.TestCase):
 
         del eo1
         eo1 = ExternalOntology.read(con=self._connection, projectShortName="testext", prefix="gagaB", ignore_cache=True)
-        eo1.prefix = "gugus"
+        with self.assertRaises(OldapErrorImmutable):
+            eo1.prefix = "gugus"
         eo1.comment = LangString("Gugus comment@en", "Gugus Kommentar@de")
         del eo1.label[Language.DE]
         eo1.label[Language.FR] = "GAGA B ontologie"
@@ -113,7 +114,7 @@ class TestexternalOntologies(unittest.TestCase):
 
         del eo1
         eo1 = ExternalOntology.read(con=self._connection, projectShortName="testext", prefix="gagaB", ignore_cache=True)
-        self.assertEqual(eo1.prefix, "gugus")
+        self.assertEqual(eo1.prefix, "gagaB")
         self.assertEqual(eo1.label, LangString("GAGA B ontology@en", "GAGA B ontologie@fr"))
         self.assertEqual(eo1.comment, LangString("Gugus comment@en", "Gugus Kommentar@de"))
         self.assertEqual(eo1.namespaceIri, NamespaceIRI("http://gaga.org/ns/gagaB/"))

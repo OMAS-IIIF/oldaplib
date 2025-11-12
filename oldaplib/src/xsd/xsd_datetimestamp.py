@@ -54,7 +54,7 @@ class Xsd_dateTimeStamp(Xsd):
         Constructor string representation of the Xsd_dateTimeStamp instance as ISO datetimestamp
         :return: Constructor string
         """
-        return f'Xsd_dateTimeSTamp("{self.__value.isoformat()}")'
+        return f'Xsd_dateTimeStamp("{self.__value.isoformat()}")'
 
     def __eq__(self, other: Self | datetime | str | None) -> bool:
         """
