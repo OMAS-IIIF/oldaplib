@@ -443,33 +443,24 @@ class ResourceInstance:
 
     def get_data_permission(self, context: Context, permission: DataPermission) -> bool:
         permission_query = context.sparql_context
-        # language=sparql
         permission_query += f'''
-        SELECT (COUNT(?permset) as ?numOfPermsets)
-        FROM oldap:onto
-        FROM shared:onto
-        FROM {self._graph}:onto
-        FROM NAMED oldap:admin
-        FROM NAMED {self._graph}:data
-        WHERE {{
-            BIND({self._iri.toRdf} as ?iri)
+        ASK {{
             GRAPH {self._graph}:data {{
-                ?iri oldap:grantsPermission ?permset .
+                {self._iri.toRdf} oldap:grantsPermission ?permset .
             }}
-            BIND({self._con.userIri.toRdf} as ?user)
             GRAPH oldap:admin {{
-                ?user oldap:hasPermissions ?permset .
+                {self._con.userIri.toRdf} oldap:hasPermissions ?permset .
                 ?permset oldap:givesPermission ?DataPermission .
                 ?DataPermission oldap:permissionValue ?permval .
             }}
             FILTER(?permval >= {permission.numeric.toRdf})
         }}'''
+
         if self._con.in_transaction():
-            jsonobj = self._con.transaction_query(permission_query)
+            result = self._con.transaction_query(permission_query)
         else:
-            jsonobj = self._con.query(permission_query)
-        res = QueryProcessor(context, jsonobj)
-        return res[0]['numOfPermsets'] > 0
+            result = self._con.query(permission_query)
+        return result['boolean']
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> str:
         result, message = self.check_for_permissions(AdminPermission.ADMIN_CREATE)
@@ -707,12 +698,13 @@ class ResourceInstance:
 
         context = Context(name=self._con.context_name)
         inuse = context.sparql_context
-        inuse = f'''
-        SELECT (COUNT(?res) as ?nres)
-        WHERE {{
-            ?res ?prop {self._iri.toRdf} .
+        inuse += f"""
+        ASK {{
+            GRAPH ?g {{
+                ?res ?prop {self._iri.toRdf} .
+            }}
         }}
-        '''
+        """
 
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
@@ -730,9 +722,8 @@ class ResourceInstance:
                 self._con.transaction_abort()
                 raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
         try:
-            jsonobj = self._con.transaction_query(inuse)
-            res = QueryProcessor(context, jsonobj)
-            if res[0]['nres'] > 0:
+            result = self._con.transaction_query(inuse)
+            if result['boolean']:
                 raise OldapErrorInUse(f'Resource "{self._iri}" is in use and cannot be deleted.')
         except OldapError:
             self._con.transaction_abort()
@@ -791,9 +782,6 @@ class ResourceInstanceFactory:
 
         self._datamodel = DataModel.read(con=self._con, project=self._project, ignore_cache=True)
 
-        #self._oldap_project = Project.read(self._con, "oldap")
-        #self._oldap_datamodel = DataModel.read(con=self._con, project=self._oldap_project)
-
     def createObjectInstance(self, name: Xsd_NCName | str) -> Type:  ## ToDo: Get name automatically from IRI
         classiri = Xsd_QName(self._project.projectShortName, name)
         resclass = self._datamodel.get(classiri)
@@ -849,7 +837,6 @@ class ResourceInstanceFactory:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
         return data
 
-
     def read(self, iri: Iri | str) -> ResourceInstance:
         if not isinstance(iri, Iri):
             iri = Iri(iri, validate=True)
@@ -901,9 +888,18 @@ class ResourceInstanceFactory:
         Instance = self.createObjectInstance(objtype)
         return Instance(iri=iri, **kwargs)
 
-    def search_fulltext(self, s: str, count_only: bool = False, limit: int = 100, offset: int = 0) -> int | dict[Iri, dict[str, Xsd]]:
-        graph = self._project.projectShortName
-        context = Context(name=self._con.context_name)
+    @staticmethod
+    def search_fulltext(con: IConnection,
+                        projectShortName: Xsd_NCName | str,
+                        s: str,
+                        count_only: bool = False,
+                        limit: int = 100,
+                        offset: int = 0) -> int | dict[Iri, dict[str, Xsd]]:
+        if not isinstance(projectShortName, Xsd_NCName):
+            graph = Xsd_NCName(projectShortName)
+        else:
+            graph = projectShortName
+        context = Context(name=con.context_name)
         sparql = context.sparql_context
         if (count_only):
             sparql += "SELECT (COUNT(DISTINCT ?s) as ?numResult)"
@@ -920,7 +916,7 @@ class ResourceInstanceFactory:
                 (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))
             FILTER(CONTAINS(LCASE(STR(?o)), "{s}"))  # case-insensitive substring match
             GRAPH oldap:admin {{
-    	        {self._con.userIri.toRdf} oldap:hasPermissions ?permset .
+    	        {con.userIri.toRdf} oldap:hasPermissions ?permset .
     	        ?permset oldap:givesPermission ?DataPermission .
     	        ?DataPermission oldap:permissionValue ?permval .
             }}
@@ -929,21 +925,31 @@ class ResourceInstanceFactory:
         '''
         if not count_only:
             sparql += f'LIMIT {limit} OFFSET {offset}'
-        jsonres = self._con.query(sparql)
+        try:
+            jsonres = con.query(sparql)
+        except OldapError:
+            print(sparql)
+            raise
         res = QueryProcessor(context, jsonres)
         if count_only:
-            if isinstance(res[0]['numResult'], Xsd_integer):
-                tmp = cast(Xsd_integer, res[0]['numResult'])
-                return int(tmp)
-            else:
-                raise OldapErrorInconsistency(f'Expected integer as value, got "{res[0]["numResult"]}"')
+            return res[0]['numResult']
         else:
-            result: dict[Iri, dict[str, Xsd]] = {}
-            for r in res:
-                iri = cast(Iri, r['s'])
-                resclass = cast(Iri, r['t'])
-                result[iri] = {'resclass': resclass, 'property': r['p'], 'value': r['o']}
-            return result
+            return {Iri(r['s']): {r['p']: r['o']} for r in res}
+        # jsonres = con.query(sparql)
+        # res = QueryProcessor(context, jsonres)
+        # if count_only:
+        #     if isinstance(res[0]['numResult'], Xsd_integer):
+        #         tmp = cast(Xsd_integer, res[0]['numResult'])
+        #         return int(tmp)
+        #     else:
+        #         raise OldapErrorInconsistency(f'Expected integer as value, got "{res[0]["numResult"]}"')
+        # else:
+        #     result: dict[Iri, dict[str, Xsd]] = {}
+        #     for r in res:
+        #         iri = cast(Iri, r['s'])
+        #         resclass = cast(Iri, r['t'])
+        #         result[iri] = {'resclass': resclass, 'property': r['p'], 'value': r['o']}
+        #     return result
 
 
 

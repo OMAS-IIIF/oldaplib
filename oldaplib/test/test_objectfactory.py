@@ -645,7 +645,9 @@ class TestObjectFactory(unittest.TestCase):
                      pubDate="1995-09-27",
                      grantsPermission=Iri('oldap:GenericView'))
             b.create()
-        res = factory.search_fulltext('tales')
+        res = ResourceInstanceFactory.search_fulltext(con=self._connection,
+                                                      projectShortName='test',
+                                                      s='tales')
 
         for x, y in res.items():
             print(x, y)
