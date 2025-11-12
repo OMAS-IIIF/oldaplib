@@ -80,7 +80,7 @@ class ObservableSet(Notify):
     def __str__(self) -> str:
         return str(self._setdata)
 
-    def __eq__(self, other: Iterable) -> bool:
+    def __eq__(self, other: Iterable[Any]) -> bool:
         if isinstance(other, ObservableSet):
             return self._setdata == other._setdata
         elif isinstance(other, set):
@@ -90,7 +90,7 @@ class ObservableSet(Notify):
         else:
             raise OldapErrorNotImplemented(f'Set.__eq__() not implemented for {type(other).__name__}')
 
-    def __or__(self, other: Iterable) -> Self:
+    def __or__(self, other: Iterable[Any]) -> Self:
         if isinstance(other, ObservableSet):
             return ObservableSet(self._setdata.__or__(other._setdata), self._notifier, self._notify_data)
         elif isinstance(other, set):
@@ -100,25 +100,24 @@ class ObservableSet(Notify):
         else:
             raise OldapErrorNotImplemented(f'Set.__or__() not implemented for {type(other).__name__}')
 
-    def __ror__(self, other: Self) -> Self:
-        pass
+    def __ror__(self, other: Iterable[Any]) -> Self:
+        return ObservableSet(set(other).__or__(self._setdata), self._notifier, self._notify_data)
 
-    def __ior__(self, other: Iterable) -> Self:
+    def __rsub__(self, other: Iterable[Any]) -> Self:
+        return ObservableSet(set(other).__sub__(self._setdata), self._notifier, self._notify_data)
+
+    def __ior__(self, other: Iterable[Any]) -> Self:
         tmp_copy = deepcopy(self)
         if isinstance(other, ObservableSet):
             self._setdata.__ior__(other._setdata)
-        elif isinstance(other, set):
-            self._setdata.__ior__(other)
-        elif isinstance(other, Iterable):
-            return ObservableSet(self._setdata.__ior__(set(other)), self._notifier, self._notify_data)
         else:
-            raise OldapErrorNotImplemented(f'Set.i__or__() not implemented for {type(other).__name__}')
+            self._setdata.__ior__(set(other))
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
         return self
 
-    def __and__(self, other: Iterable) -> Self:
+    def __and__(self, other: Iterable[Any]) -> Self:
         if isinstance(other, ObservableSet):
             return ObservableSet(self._setdata.__and__(other._setdata), self._notifier, self._notify_data)
         elif isinstance(other, set):
@@ -128,7 +127,7 @@ class ObservableSet(Notify):
         else:
             raise OldapErrorNotImplemented(f'Set.__and__() not implemented for {type(other).__name__}')
 
-    def __iand__(self, other: Iterable) -> Self:
+    def __iand__(self, other: Iterable[Any]) -> Self:
         tmp_copy = deepcopy(self)
         if isinstance(other, ObservableSet):
             self._setdata.__iand__(other._setdata)
@@ -146,7 +145,7 @@ class ObservableSet(Notify):
     def __rsub__(self, other: Self) -> Self:
         pass
 
-    def __sub__(self, other: Iterable) -> Self:
+    def __sub__(self, other: Iterable[Any]) -> Self:
         if isinstance(other, ObservableSet):
             return ObservableSet(self._setdata.__sub__(other._setdata), self.notify, self._notify_data)
         elif isinstance(other, set):
@@ -156,7 +155,7 @@ class ObservableSet(Notify):
         else:
             raise OldapErrorNotImplemented(f'Set.__sub__() not implemented for {type(other).__name__}')
 
-    def __isub__(self, other: Iterable) -> Self:
+    def __isub__(self, other: Iterable[Any]) -> Self:
         tmp_copy = deepcopy(self)
         if isinstance(other, ObservableSet):
             self._setdata.__isub__(other._setdata)
@@ -171,30 +170,41 @@ class ObservableSet(Notify):
         self.notify()
         return self
 
-    def update(self, items: Iterable):
+    @classmethod
+    def coerce(cls, value: Iterable[Any], *, notifier=None, notify_data=None) -> "ObservableSet":
+        return value if isinstance(value, cls) else cls(value, notifier=notifier, notify_data=notify_data)
+
+    def update(self, items: Iterable[Any]):
         tmp_copy = deepcopy(self)
         self._setdata.update(items)
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
 
-    def intersection_update(self, items: Iterable):
+    def intersection_update(self, items: Iterable[Any]):
         tmp_copy = deepcopy(self)
         self._setdata.intersection_update(items)
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
 
-    def difference_update(self, items: Iterable):
+    def difference_update(self, items: Iterable[Any]):
         tmp_copy = deepcopy(self)
         self._setdata.difference_update(items)
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
 
-    def symmetric_difference_update(self, items: Iterable):
+    def symmetric_difference_update(self, items: Iterable[Any]):
         tmp_copy = deepcopy(self)
         self._setdata.symmetric_difference_update(items)
+        if not self._old_value:
+            self._old_value = tmp_copy
+        self.notify()
+
+    def replace(self, items: Iterable[Any]) -> None:
+        tmp_copy = deepcopy(self)
+        self._setdata = set(items)
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
