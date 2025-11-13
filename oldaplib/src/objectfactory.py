@@ -1,4 +1,5 @@
 import re
+from enum import Flag, auto
 from functools import partial
 from typing import Type, Any, Self, cast
 
@@ -30,6 +31,11 @@ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 ValueType = LangString | ObservableSet | Xsd
+
+class SortBy(Flag):
+    PROPVAL = auto()
+    CREATED = auto()
+    LASTMOD = auto()
 
 
 #@strict
@@ -463,6 +469,27 @@ class ResourceInstance:
         return result['boolean']
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> str:
+        """
+        Generates an RDF/SPARQL INSERT DATA query for creating a resource with associated
+        metadata and verifies permissions before execution.
+
+        This method first checks for the necessary permissions to create a resource.
+        It assigns metadata such as the creation and modification information if
+        the resource name matches specific criteria. It ensures that no resource
+        with the same IRI exists before proceeding with the resource creation.
+        If a conflict is detected, an error is raised. The method finalizes the
+        creation of the resource by executing a SPARQL query in a transactional context.
+
+        :param indent: The current level of indentation (default is 0).
+        :type indent: int
+        :param indent_inc: The incremental spaces per indentation level (default is 4).
+        :type indent_inc: int
+        :return: A string representing the RDF/SPARQL query for creation.
+        :rtype: str
+        :raises OldapErrorNoPermission: If the user does not have the required permissions to create the resource.
+        :raises OldapErrorAlreadyExists: If a resource with the same IRI already exists.
+        :raises OldapError: For errors encountered during the SPARQL transaction execution.
+        """
         result, message = self.check_for_permissions(AdminPermission.ADMIN_CREATE)
         if not result:
             raise OldapErrorNoPermission(message)
@@ -519,6 +546,19 @@ class ResourceInstance:
     def read(cls,
              con: IConnection,
              iri: Iri) -> Self:
+        """
+        Reads an object of the specific class type from the RDF data source using the provided connection
+        and IRI. Validates that the retrieved RDF data matches the expected class type and ensures proper
+        permissions have been granted to access the resource.
+
+        :param con: The connection object to the data source (IConnection).
+        :param iri: The IRI of the resource to read (Iri).
+        :return: An object of the invoking class loaded with data from the RDF resource.
+
+        :raises OldapErrorInconsistency: If an expected QName is not found or if the retrieved object type
+                                          does not match the expected class type.
+        :raises OldapErrorNotFound: If the resource associated with the provided IRI is not found.
+        """
         graph = cls.project.projectShortName
         context = Context(name=con.context_name)
         sparql = context.sparql_context
@@ -567,6 +607,26 @@ class ResourceInstance:
         return cls(iri=iri, **kwargs)
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
+        """
+        Updates the current resource by creating and executing SPARQL queries to modify, insert, or
+        delete data based on the changeset. This method also verifies user permissions and ensures
+        data consistency using timestamps. It commits modifications within a transaction while
+        rolling back changes upon encountering errors.
+
+        The `update` method processes changes in resource attributes specified in a changeset. It
+        constructs appropriate SPARQL queries for CREATE, MODIFY, and DELETE actions for each
+        field. Additionally, it updates the last modification timestamp for the resource and records
+        the user performing the update. If permissions are insufficient or an update fails, the
+        transaction is aborted.
+
+        :param indent: The initial level of indentation for the generated SPARQL queries.
+        :type indent: int
+        :param indent_inc: The incremental level of indentation for nested sections in SPARQL
+                           queries.
+        :type indent_inc: int
+        :return: None
+        :rtype: None
+        """
         admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
         context = Context(name=self._con.context_name)
@@ -694,6 +754,22 @@ class ResourceInstance:
         self.clear_changeset()
 
     def delete(self) -> None:
+        """
+        Deletes the specified resource represented by the object's IRI from the associated graph
+        if the proper permissions are granted and the resource is not in use. This method initiates
+        a transactional sequence to ensure data consistency and rollback in case of an error.
+        The process includes checking permissions, querying whether the resource is in use,
+        and finally issuing a SPARQL DELETE query to remove the resource.
+
+        Raises appropriate exceptions if the resource is in use, permissions are insufficient,
+        or any other transaction-related error occurs.
+
+        :raises OldapErrorNoPermission: If the user lacks the necessary permissions to
+            delete the resource.
+        :raises OldapErrorInUse: If the resource is currently in use and cannot be deleted.
+        :raises OldapError: If any error occurs during transaction start, query, update,
+            or commit phases.
+        """
         admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
         context = Context(name=self._con.context_name)
@@ -738,6 +814,329 @@ class ResourceInstance:
         except OldapError:
             self._con.transaction_abort()
             raise
+
+    @staticmethod
+    def read_data(con: IConnection, projectShortName: Xsd_NCName | str, iri: Iri | str) -> dict[Xsd_QName, Any]:
+        """
+        Reads and processes data from a given IConnection instance based on a specified
+        project short name and a resource IRI. This method fetches the data from a graph
+        in the RDF database, verifies user permissions, and returns selected data in a
+        dictionary format.
+
+        :param con: The connection object used to query the RDF data.
+        :type con: IConnection
+        :param projectShortName: The short name of the project used to identify the graph
+            in the RDF store. Accepts either Xsd_NCName or a string.
+        :param iri: The IRI of the resource being queried. Accepts either Iri or a string.
+        :return: A dictionary mapping predicates to their associated values from the
+            selected resource.
+        :rtype: dict[Xsd_QName, Any]
+        :raises OldapErrorInconsistency: If a non-QName predicate is found in the results.
+        :raises OldapErrorNotFound: If the resource with the given IRI is not found.
+        """
+        if not isinstance(iri, Iri):
+            iri = Iri(iri, validate=True)
+        if not isinstance(projectShortName, Xsd_NCName):
+            graph = Xsd_NCName(projectShortName)
+        else:
+            graph = projectShortName
+
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        sparql += f'''
+        SELECT ?predicate ?value
+        WHERE {{
+            GRAPH {graph}:data {{
+                {iri.toRdf} ?predicate ?value .
+                {iri.toRdf} oldap:grantsPermission ?permset .
+            }}
+            GRAPH oldap:admin {{
+            	{con.userIri.toRdf} oldap:hasPermissions ?permset .
+            	?permset oldap:givesPermission ?DataPermission .
+            	?DataPermission oldap:permissionValue ?permval .
+            }}
+            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
+        }}
+        '''
+        jsonres = con.query(sparql)
+        res = QueryProcessor(context, jsonres)
+        data = {}
+        for r in res:
+            if r['predicate'].is_qname:
+                if not data.get(r['predicate'].as_qname):
+                    data[r['predicate'].as_qname] = []
+                data[str(r['predicate'].as_qname)].append(str(r['value']))
+            else:
+                raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
+        if not data.get('rdf:type'):
+            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+        return data
+
+    @staticmethod
+    def search_fulltext(con: IConnection,
+                        projectShortName: Xsd_NCName | str,
+                        s: str,
+                        resClass: Xsd_QName | str | None = None,
+                        count_only: bool = False,
+                        sortBy: SortBy | None = None,
+                        limit: int = 100,
+                        offset: int = 0,
+                        indent: int = 0, indent_inc: int = 4) -> int | dict[Iri, dict[str, Xsd]]:
+        """
+        Search for entities in a project using a full-text search query, with optional filters and sorting
+        based on resource class and properties.
+
+        :param con: The connection instance to interact with the SPARQL endpoint or database.
+        :type con: IConnection
+        :param projectShortName: The project short name (identifier). Can be provided as an Xsd_NCName or a
+            string. If a string, it is automatically validated and converted to an Xsd_NCName.
+        :type projectShortName: Xsd_NCName | str
+        :param s: The full-text search query to identify entities matching the specified string values.
+        :type s: str
+        :param resClass: An optional entity class (Xsd_QName) used to filter results. If provided as a string,
+            it is validated and converted to Xsd_QName.
+        :type resClass: Xsd_QName | str | None
+        :param count_only: If True, only the count of matching entities will be returned. Defaults to False.
+        :type count_only: bool
+        :param sortBy: Optional sorting criterion for the results, such as creation date, last modification date,
+            or property values. Defaults to None.
+        :type sortBy: SortBy | None
+        :param limit: The maximum number of records to return when count_only is False. Defaults to 100.
+        :type limit: int
+        :param offset: The number of records to skip for paginated queries. Defaults to 0.
+        :type offset: int
+        :param indent: Initial indentation level for the generated SPARQL query. Defaults to 0.
+        :type indent: int
+        :param indent_inc: Incremental indentation used during SPARQL query generation. Defaults to 4.
+        :type indent_inc: int
+        :return: If count_only is True, an integer representing the count of matching entities. If count_only is
+            False, a dictionary with entity IRIs as keys and their respective property-to-value mappings
+            as values.
+        :rtype: int | dict[Iri, dict[str, Xsd]]
+
+        The SPARQL generated is as follows
+
+        ```sparql
+        SELECT DISTINCT ?s ?t ?p ?o ?creationDate
+        WHERE {
+            GRAPH test:data {
+                ?s oldap:creationDate ?creationDate .
+                ?s ?p ?o .
+                ?s rdf:type ?t .
+                ?s rdf:type test:Book .
+                ?s oldap:grantsPermission ?permset .
+            }
+            FILTER(isLiteral(?o) && (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))
+            FILTER(CONTAINS(LCASE(STR(?o)), "gaga"))  # case-insensitive substring match
+            GRAPH oldap:admin {
+                <https://orcid.org/0000-0003-1681-4036> oldap:hasPermissions ?permset .
+                ?permset oldap:givesPermission ?DataPermission .
+                ?DataPermission oldap:permissionValue ?permval .
+            }
+            FILTER(?permval >= "2"^^xsd:integer)
+        }
+        ORDER BY ASC(?creationDate)LIMIT 100 OFFSET 0
+        ```
+        """
+        if not isinstance(projectShortName, Xsd_NCName):
+            graph = Xsd_NCName(projectShortName, validate=True)
+        else:
+            graph = projectShortName
+        if resClass and not isinstance(resClass, Xsd_QName):
+            resClass = Xsd_QName(resClass, validate=True)
+
+        blank = ''
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+
+        if (count_only):
+            sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
+        else:
+            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s ?t ?p ?o'
+            if sortBy:
+                if sortBy == SortBy.CREATED:
+                    sparql += ' ?creationDate'
+                if sortBy == SortBy.LASTMOD:
+                    sparql += '?lastModificationDate'
+        sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
+        if sortBy:
+            if sortBy == SortBy.CREATED:
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:creationDate ?creationDate .'
+            if sortBy == SortBy.LASTMOD:
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:lastModificationDate ?lastModificationDate .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s ?p ?o .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type ?t .'
+        if resClass:
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:grantsPermission ?permset .'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER(isLiteral(?o) && (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER(CONTAINS(LCASE(STR(?o)), "{s}"))  # case-insensitive substring match'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasPermissions ?permset .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?permset oldap:givesPermission ?DataPermission .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?DataPermission oldap:permissionValue ?permval .'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
+        sparql += f'\n{blank:{indent * indent_inc}}}}'
+
+        if sortBy:
+            if sortBy == SortBy.CREATED:
+                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?creationDate)'
+            if sortBy == SortBy.LASTMOD:
+                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?lastModificationDate)'
+            if sortBy == SortBy.PROPVAL:
+                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(LCASE(STR(?o)))'
+
+        if not count_only:
+            sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
+        sparql += '\n'
+
+
+        try:
+            jsonres = con.query(sparql)
+        except OldapError:
+            print(sparql)
+            raise
+        res = QueryProcessor(context, jsonres)
+        if count_only:
+            return res[0]['numResult']
+        else:
+            result = {}
+            for r in res:
+                tmp = {
+                    r['p']: r['o'],
+                    Xsd_QName('owl:Class'): r['t']
+                }
+                if sortBy:
+                    if sortBy == SortBy.CREATED:
+                        tmp['oldap:creationDate'] = r['creationDate'],
+                    if sortBy == SortBy.LASTMOD:
+                        tmp['oldap:lastModificationDate'] = r['lastModificationDate']
+                result[r['s']] = tmp
+            return result
+
+    @staticmethod
+    def all_resources(con: IConnection,
+                      projectShortName: Xsd_NCName | str,
+                      resClass: Xsd_QName | str,
+                      includeProperties: list[Xsd_QName] | None = None,
+                      count_only: bool = False,
+                      sortBy: SortBy | None = None,
+                      limit: int = 100,
+                      offset: int = 0,
+                      indent: int = 0, indent_inc: int = 4) -> dict[Iri, dict[str, Xsd]]:
+        """
+        Retrieves all resources matching the specified parameters from a data store using a SPARQL query.
+        Depending on the `count_only` flag, it can return either a count of matching resources or detailed
+        information about each resource.
+
+        :param con: The connection object used to execute the SPARQL query.
+        :type con: IConnection
+        :param projectShortName: The short name of the project being queried.
+        :type projectShortName: Xsd_NCName | str
+        :param resClass: The resource class to filter the results by.
+        :type resClass: Xsd_QName | str
+        :param includeProperties: A list of resource properties to include in the query and results.
+        :type includeProperties: list[Xsd_QName] | None
+        :param count_only: If True, returns only the count of matching resources. Defaults to False.
+        :type count_only: bool
+        :param sortBy: The sorting criterion for the results. Defaults to None.
+        :type sortBy: SortBy | None
+        :param limit: The maximum number of results to retrieve. Defaults to 100.
+        :type limit: int
+        :param offset: The starting point for result retrieval in pagination. Defaults to 0.
+        :type offset: int
+        :param indent: The initial level of indentation for the SPARQL query strings. Defaults to 0.
+        :type indent: int
+        :param indent_inc: The incremental level of indentation for the SPARQL query strings. Defaults to 4.
+        :type indent_inc: int
+        :return: A dictionary where keys are resource IRIs and values are dictionaries containing resource
+            properties and their corresponding values. If `count_only` is True, returns the total count of
+            matching resources as an integer.
+        :rtype: dict[Iri, dict[str, Xsd]]
+        :raises OldapError: If there is an error during query execution in the connection object.
+        """
+        if not isinstance(projectShortName, Xsd_NCName):
+            graph = Xsd_NCName(projectShortName, validate=True)
+        else:
+            graph = projectShortName
+        if not isinstance(resClass, Xsd_QName):
+            resClass = Xsd_QName(resClass, validate=True)
+
+        blank = ''
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+
+        if (count_only):
+            sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
+        else:
+            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s'
+            for index, item in enumerate(includeProperties):
+                sparql += f' ?o{index}'
+            if sortBy:
+                if sortBy == SortBy.CREATED:
+                    sparql += ' ?creationDate'
+                if sortBy == SortBy.LASTMOD:
+                    sparql += '?lastModificationDate'
+        sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
+        if sortBy:
+            if sortBy == SortBy.CREATED:
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:creationDate ?creationDate .'
+            if sortBy == SortBy.LASTMOD:
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:lastModificationDate ?lastModificationDate .'
+        for index, prop in enumerate(includeProperties):
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s {prop} ?o{index} .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:grantsPermission ?permset .'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasPermissions ?permset .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?permset oldap:givesPermission ?DataPermission .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?DataPermission oldap:permissionValue ?permval .'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
+        sparql += f'\n{blank:{indent * indent_inc}}}}'
+
+        if sortBy:
+            if sortBy == SortBy.CREATED:
+                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?creationDate)'
+            if sortBy == SortBy.LASTMOD:
+                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?lastModificationDate)'
+            if sortBy == SortBy.PROPVAL:
+                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY'
+                for index, item in enumerate(includeProperties):
+                    sparql += f'\n{blank:{indent * indent_inc}} ?o{index}'
+
+        if not count_only:
+            sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
+        sparql += '\n'
+
+        try:
+            jsonres = con.query(sparql)
+        except OldapError:
+            print(sparql)
+            raise
+        res = QueryProcessor(context, jsonres)
+        if count_only:
+            return res[0]['numResult']
+        else:
+            result = {}
+            for r in res:
+                tmp = {}
+                for index, item in enumerate(includeProperties):
+                    tmp[item] = r[f'o{index}']
+
+                if sortBy:
+                    if sortBy == SortBy.CREATED:
+                        tmp[Xsd_QName('oldap:creationDate')] = r['creationDate']
+                    if sortBy == SortBy.LASTMOD:
+                        tmp[Xsd_QName('oldap:lastModificationDate')] = r['lastModificationDate']
+                result[r['s']] = tmp
+            return result
+
 
     def toJsonObject(self) -> dict[str, list[str] | str]:
         result = {'iri': str(self._iri)}
@@ -797,45 +1196,6 @@ class ResourceInstanceFactory:
             'properties': resclass.properties,
             'superclass': resclass.superclass})
 
-    @staticmethod
-    def read_data(con: IConnection, projectShortName: Xsd_NCName | str, iri: Iri | str) -> dict[Xsd_QName, Any]:
-        if not isinstance(iri, Iri):
-            iri = Iri(iri, validate=True)
-        if not isinstance(projectShortName, Xsd_NCName):
-            graph = Xsd_NCName(projectShortName)
-        else:
-            graph = projectShortName
-
-        context = Context(name=con.context_name)
-        sparql = context.sparql_context
-        sparql += f'''
-        SELECT ?predicate ?value
-        WHERE {{
-            GRAPH {graph}:data {{
-                {iri.toRdf} ?predicate ?value .
-                {iri.toRdf} oldap:grantsPermission ?permset .
-            }}
-            GRAPH oldap:admin {{
-            	{con.userIri.toRdf} oldap:hasPermissions ?permset .
-            	?permset oldap:givesPermission ?DataPermission .
-            	?DataPermission oldap:permissionValue ?permval .
-            }}
-            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
-        }}
-        '''
-        jsonres = con.query(sparql)
-        res = QueryProcessor(context, jsonres)
-        data = {}
-        for r in res:
-            if r['predicate'].is_qname:
-                if not data.get(r['predicate'].as_qname):
-                    data[r['predicate'].as_qname] = []
-                data[str(r['predicate'].as_qname)].append(str(r['value']))
-            else:
-                raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
-        if not data.get('rdf:type'):
-            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
-        return data
 
     def read(self, iri: Iri | str) -> ResourceInstance:
         if not isinstance(iri, Iri):
@@ -887,69 +1247,6 @@ class ResourceInstanceFactory:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
         Instance = self.createObjectInstance(objtype)
         return Instance(iri=iri, **kwargs)
-
-    @staticmethod
-    def search_fulltext(con: IConnection,
-                        projectShortName: Xsd_NCName | str,
-                        s: str,
-                        count_only: bool = False,
-                        limit: int = 100,
-                        offset: int = 0) -> int | dict[Iri, dict[str, Xsd]]:
-        if not isinstance(projectShortName, Xsd_NCName):
-            graph = Xsd_NCName(projectShortName)
-        else:
-            graph = projectShortName
-        context = Context(name=con.context_name)
-        sparql = context.sparql_context
-        if (count_only):
-            sparql += "SELECT (COUNT(DISTINCT ?s) as ?numResult)"
-        else:
-            sparql += "SELECT DISTINCT ?s ?t ?p ?o"
-        sparql += f'''
-        WHERE {{
-            GRAPH {graph}:data {{
-                ?s ?p ?o .
-                ?s rdf:type ?t .
-                ?s oldap:grantsPermission ?permset .
-            }}
-            FILTER(isLiteral(?o) && 
-                (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))
-            FILTER(CONTAINS(LCASE(STR(?o)), "{s}"))  # case-insensitive substring match
-            GRAPH oldap:admin {{
-    	        {con.userIri.toRdf} oldap:hasPermissions ?permset .
-    	        ?permset oldap:givesPermission ?DataPermission .
-    	        ?DataPermission oldap:permissionValue ?permval .
-            }}
-            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
-        }}
-        '''
-        if not count_only:
-            sparql += f'LIMIT {limit} OFFSET {offset}'
-        try:
-            jsonres = con.query(sparql)
-        except OldapError:
-            print(sparql)
-            raise
-        res = QueryProcessor(context, jsonres)
-        if count_only:
-            return res[0]['numResult']
-        else:
-            return {Iri(r['s']): {r['p']: r['o']} for r in res}
-        # jsonres = con.query(sparql)
-        # res = QueryProcessor(context, jsonres)
-        # if count_only:
-        #     if isinstance(res[0]['numResult'], Xsd_integer):
-        #         tmp = cast(Xsd_integer, res[0]['numResult'])
-        #         return int(tmp)
-        #     else:
-        #         raise OldapErrorInconsistency(f'Expected integer as value, got "{res[0]["numResult"]}"')
-        # else:
-        #     result: dict[Iri, dict[str, Xsd]] = {}
-        #     for r in res:
-        #         iri = cast(Iri, r['s'])
-        #         resclass = cast(Iri, r['t'])
-        #         result[iri] = {'resclass': resclass, 'property': r['p'], 'value': r['o']}
-        #     return result
 
 
 

@@ -8,7 +8,7 @@ from time import sleep
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
-from oldaplib.src.objectfactory import ResourceInstanceFactory
+from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -357,7 +357,7 @@ class TestObjectFactory(unittest.TestCase):
                  pubDate="2001-01-01",
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
-        data = ResourceInstanceFactory.read_data(con=self._connection, iri=b.iri, projectShortName='test')
+        data = ResourceInstance.read_data(con=self._connection, iri=b.iri, projectShortName='test')
         self.assertEqual(data['rdf:type'], ['test:Book'])
         self.assertEqual(data['test:title'], ['The Life and Times of Scrooge'])
         self.assertEqual(data['test:author'], ['test:TuomasHolopainen'])
@@ -638,19 +638,84 @@ class TestObjectFactory(unittest.TestCase):
 
         project = Project.read(con=self._connection, projectIri_SName='test')
         factory = ResourceInstanceFactory(con=self._connection, project=project)
+
+        Person = factory.createObjectInstance('Person')
+        persons = []
+        for i in range(4):
+            if i % 2 == 0:
+                familyName = 'Gaga' + random_string()
+            else:
+                familyName = random_string()
+            p = Person(familyName=familyName,
+                       givenName=random_string(),
+                       grantsPermission=Iri('oldap:GenericView'))
+            p.create()
+            persons.append(p.iri)
+
         Book = factory.createObjectInstance('Book')
         for i in range(10):
-            b = Book(title=f'These are {random_string()} Tales from the Wood',
-                     author=Iri(f'test:Gaga', validate=False),
+            title = f'These are {random_string()} Tales from the Wood'
+            if i % 2 == 0:
+                title = 'GAGA' + title
+            b = Book(title=title,
+                     author=persons[i % 4],
                      pubDate="1995-09-27",
                      grantsPermission=Iri('oldap:GenericView'))
             b.create()
-        res = ResourceInstanceFactory.search_fulltext(con=self._connection,
-                                                      projectShortName='test',
-                                                      s='tales')
 
+
+        res = ResourceInstance.search_fulltext(con=self._connection,
+                                               projectShortName='test',
+                                               resClass='test:Book',
+                                               s='gaga',
+                                               sortBy=SortBy.CREATED)
+
+        self.assertEqual(len(res), 5)
         for x, y in res.items():
-            print(x, y)
+            self.assertEqual(y[Xsd_QName("owl:Class")], Xsd_QName('test:Book'))
+
+        res = ResourceInstance.search_fulltext(con=self._connection,
+                                               projectShortName='test',
+                                               s='gaga',
+                                               sortBy=SortBy.CREATED)
+
+        self.assertEqual(len(res), 7)
+        for x, y in res.items():
+            self.assertTrue(y[Xsd_QName("owl:Class")] in {Xsd_QName('test:Book'), Xsd_QName('test:Person')})
+
+    def test_search_resource_B(self):
+
+        def random_string(length=12):
+            chars = string.ascii_letters + string.digits
+            return ''.join(random.choices(chars, k=length))
+
+        project = Project.read(con=self._connection, projectIri_SName='test')
+        factory = ResourceInstanceFactory(con=self._connection, project=project)
+        Page = factory.createObjectInstance('Page')
+        for i in range(1, 11):
+            b = Page(pageNum=Xsd_positiveInteger(i),
+                     pageDesignation=f'Seite {i}',
+                     pageContent=random_string(16),
+                     pageInBook=Xsd_QName('test', 'gaga', validate=False),
+                     grantsPermission=Iri('oldap:GenericView'))
+            b.create()
+
+        Person = factory.createObjectInstance('Person')
+        for i in range(4):
+            p = Person(familyName=random_string(),
+                       givenName=random_string(),
+                       grantsPermission=Iri('oldap:GenericView'))
+            p.create()
+
+        res = ResourceInstance.all_resources(con=self._connection,
+                                             projectShortName='test',
+                                             resClass='test:Page',
+                                             includeProperties=[Xsd_QName('test:pageNum'), Xsd_QName('test:pageContent')],
+                                             sortBy = SortBy.CREATED)
+        self.assertEqual(len(res), 10)
+        for r in res:
+            self.assertEqual(len(res[r]), 3)
+
 
 
 if __name__ == '__main__':

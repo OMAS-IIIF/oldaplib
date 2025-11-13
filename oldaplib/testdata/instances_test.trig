@@ -1,0 +1,119 @@
+@prefix : <http://oldap.org/base#> .
+@prefix test: <http://oldap.org/test#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+test:data {
+  <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> a test:Book;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:21.284536+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:21.284536+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:title "Die Geschichte der tQh5OAgXOaK5"@de;
+    test:pubDate "2026-01-01"^^xsd:date .
+  
+  <urn:uuid:57141a6b-46b5-4c82-a74c-d48a15437c4f> a test:Page;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:22.598149+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:22.598149+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:pageDesignation "Page 1";
+    test:pageNum "1"^^xsd:positiveInteger;
+    test:pageDescription "Description for page 1"@en;
+    test:pageContent "Content for page 1\\nXpVzpnoxhxZEhp0hRWWcBmOLA3h62KT4f8FLxwL3kpGUdhLWBveN9KiML34YXk86SW6PDnZgz4GELOiZOqMvo9chdXhR1e0W3FIn";
+    test:pageInBook <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> .
+  
+  <urn:uuid:b382c2bc-6a61-4f60-a963-ec1eb5bc7428> a test:Page;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:23.323339+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:23.323339+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:pageDesignation "Page 2";
+    test:pageNum "2"^^xsd:positiveInteger;
+    test:pageDescription "Description for page 2"@en;
+    test:pageContent "Waseliwas for page 2\\nP7OGEXPNRcM62O2gVVmTzp8xSjnMM0jNTdyFpDI3Cf1VTH1AcvrFt3AYSWCLEQIBttAs23DHkAXzaehFbA81TwkIKLKUSz9v1qAV";
+    test:pageInBook <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> .
+  
+  <urn:uuid:a8f0ec0c-28ed-449c-8f22-81ee20bfb0a3> a test:Page;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:24.013627+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:24.013627+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:pageDesignation "Page 3";
+    test:pageNum "3"^^xsd:positiveInteger;
+    test:pageDescription "Description for page 3"@en;
+    test:pageContent "Content for page 3\\nAdjA5kTzS7lT6W7F2bgLYtcXBkDxOAelvXThXNt5uranbB2WgsSsPu5uklCy8IVdRhqod6iWhMVWdqMhZWnv1NkgJQ2vjhHB57bh";
+    test:pageInBook <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> .
+  
+  <urn:uuid:098df661-de13-4fa7-b3aa-2ed5aa1180a8> a test:Page;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:24.742317+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:24.742317+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:pageDesignation "Page 4";
+    test:pageNum "4"^^xsd:positiveInteger;
+    test:pageDescription "Description for page 4"@en;
+    test:pageContent "Waseliwas for page 4\\nMc6l85dn7CMgYyL5qmQVRUpoICNxJ7f3GpydUY67gfXssGOokV3CPoSmre5MHWpcFaKHlHxWDSrL0qNEcECe28AS438654klipu4";
+    test:pageInBook <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> .
+  
+  <urn:uuid:9bf6ae23-bf2f-4466-abe3-65efe6afe589> a test:Book;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:25.444141+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:25.444141+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:title "Die Geschichte der fGqkycKqu4Fg"@de;
+    test:pubDate "2026-01-01"^^xsd:date .
+  
+  <urn:uuid:cda5bacb-4082-4fef-9a17-990cf16e2f56> a test:Page;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:26.755559+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:26.755559+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:pageDesignation "Page 1";
+    test:pageNum "1"^^xsd:positiveInteger;
+    test:pageDescription "Description for page 1"@en;
+    test:pageContent "Content for page 1\\nTnfJDOE1D0hFuY9B2zKJW7g5oW48XTqKSd9nNYL0QrjxAk38Aka6g9zEr6q8OdAoxWePellSt4Ixq3jfaF1YlkOYBLyWft0LpzjS";
+    test:pageInBook <urn:uuid:9bf6ae23-bf2f-4466-abe3-65efe6afe589> .
+  
+  <urn:uuid:674467a8-8fbe-425c-a2f6-06d2e52adc99> a test:Page;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:27.463742+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:27.463742+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:pageDesignation "Page 2";
+    test:pageNum "2"^^xsd:positiveInteger;
+    test:pageDescription "Description for page 2"@en;
+    test:pageContent "Waseliwas for page 2\\npwZym6JetP02VeGCX5cVddgaBGWwy2AStfs6W3elfpweFYdS5Z81dvPEPYAo1xDgBSQcAwqnP1pfVEj1YBkz2X7aNCob22SKCztw";
+    test:pageInBook <urn:uuid:9bf6ae23-bf2f-4466-abe3-65efe6afe589> .
+  
+  <urn:uuid:dc2704cf-8352-43c1-94ef-a7a81e838532> a test:Page;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:28.161174+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:28.161174+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:pageDesignation "Page 3";
+    test:pageNum "3"^^xsd:positiveInteger;
+    test:pageDescription "Description for page 3"@en;
+    test:pageContent "Content for page 3\\nmEbj4wfY55KWkSqIlMkOK6LpHlHdlCa3vq3GtTkvvHhzieT0FIax7U489xSGJNOxPEdeNk8Ywhtk1ETo0AIBoNNywvyFV6jLxe5H";
+    test:pageInBook <urn:uuid:9bf6ae23-bf2f-4466-abe3-65efe6afe589> .
+  
+  <urn:uuid:f46ea23a-65ab-47ce-908d-586d6c8091a6> a test:Page;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:28.861171+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:28.861171+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    test:pageDesignation "Page 4";
+    test:pageNum "4"^^xsd:positiveInteger;
+    test:pageDescription "Description for page 4"@en;
+    test:pageContent "Waseliwas for page 4\\n9pB6yFsJs7zcCkyF9j9flbGUcNczytEsw1nSUYCBLIN3P63wePvVQnWDX5dgUDXyeEwUwoBycRPcrp6kG2wsknVjfajQI30lZ73E";
+    test:pageInBook <urn:uuid:9bf6ae23-bf2f-4466-abe3-65efe6afe589> .
+}
