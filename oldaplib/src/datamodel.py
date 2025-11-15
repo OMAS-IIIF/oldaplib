@@ -753,15 +753,18 @@ class DataModel(Model):
             f.write('\n')
             f.write(context.turtle_context)
             f.write(f'\n{blank:{indent * indent_inc}}{self.__graph}:shacl {{\n')
-            f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n')
+            f.write(f'{blank:{(indent + 1) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n')
             f.write('\n')
             for qname, onto in self.__extontos.items():
                 f.write(onto.create_shacl(timestamp=timestamp, indent=1))
+            f.write('\n\n')
             for iri, prop in self.__propclasses.items():
                 if not prop.internal:
                     f.write(prop.create_shacl(timestamp=timestamp, indent=1))
+            f.write('\n\n')
             for iri, resclass in self.__resclasses.items():
                 f.write(resclass.create_shacl(timestamp=timestamp, indent=1))
+            f.write('\n\n')
             f.write(f'\n{blank:{indent * indent_inc}}}}\n')
 
             f.write(f'{blank:{indent * indent_inc}}{self.__graph}:onto {{\n')

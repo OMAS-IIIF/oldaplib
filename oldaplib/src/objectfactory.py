@@ -877,7 +877,7 @@ class ResourceInstance:
                         projectShortName: Xsd_NCName | str,
                         s: str,
                         resClass: Xsd_QName | str | None = None,
-                        count_only: bool = False,
+                        countOnly: bool = False,
                         sortBy: SortBy | None = None,
                         limit: int = 100,
                         offset: int = 0,
@@ -896,8 +896,8 @@ class ResourceInstance:
         :param resClass: An optional entity class (Xsd_QName) used to filter results. If provided as a string,
             it is validated and converted to Xsd_QName.
         :type resClass: Xsd_QName | str | None
-        :param count_only: If True, only the count of matching entities will be returned. Defaults to False.
-        :type count_only: bool
+        :param countOnly: If True, only the count of matching entities will be returned. Defaults to False.
+        :type countOnly: bool
         :param sortBy: Optional sorting criterion for the results, such as creation date, last modification date,
             or property values. Defaults to None.
         :type sortBy: SortBy | None
@@ -949,7 +949,7 @@ class ResourceInstance:
         context = Context(name=con.context_name)
         sparql = context.sparql_context
 
-        if (count_only):
+        if (countOnly):
             sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
         else:
             sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s ?t ?p ?o'
@@ -989,7 +989,7 @@ class ResourceInstance:
             if sortBy == SortBy.PROPVAL:
                 sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(LCASE(STR(?o)))'
 
-        if not count_only:
+        if not countOnly:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
         sparql += '\n'
 
@@ -1000,7 +1000,7 @@ class ResourceInstance:
             print(sparql)
             raise
         res = QueryProcessor(context, jsonres)
-        if count_only:
+        if countOnly:
             return res[0]['numResult']
         else:
             result = {}
@@ -1073,8 +1073,9 @@ class ResourceInstance:
             sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
         else:
             sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s'
-            for index, item in enumerate(includeProperties):
-                sparql += f' ?o{index}'
+            if includeProperties:
+                for index, item in enumerate(includeProperties):
+                    sparql += f' ?o{index}'
             if sortBy:
                 if sortBy == SortBy.CREATED:
                     sparql += ' ?creationDate'
@@ -1087,8 +1088,9 @@ class ResourceInstance:
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:creationDate ?creationDate .'
             if sortBy == SortBy.LASTMOD:
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:lastModificationDate ?lastModificationDate .'
-        for index, prop in enumerate(includeProperties):
-            sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s {prop} ?o{index} .'
+        if includeProperties:
+            for index, prop in enumerate(includeProperties):
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s {prop} ?o{index} .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:grantsPermission ?permset .'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
@@ -1107,8 +1109,9 @@ class ResourceInstance:
                 sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?lastModificationDate)'
             if sortBy == SortBy.PROPVAL:
                 sparql += f'\n{blank:{indent * indent_inc}}ORDER BY'
-                for index, item in enumerate(includeProperties):
-                    sparql += f'\n{blank:{indent * indent_inc}} ?o{index}'
+                if includeProperties:
+                    for index, item in enumerate(includeProperties):
+                        sparql += f'\n{blank:{indent * indent_inc}} ?o{index}'
 
         if not count_only:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
@@ -1126,8 +1129,9 @@ class ResourceInstance:
             result = {}
             for r in res:
                 tmp = {}
-                for index, item in enumerate(includeProperties):
-                    tmp[item] = r[f'o{index}']
+                if includeProperties:
+                    for index, item in enumerate(includeProperties):
+                        tmp[item] = r[f'o{index}']
 
                 if sortBy:
                     if sortBy == SortBy.CREATED:

@@ -105,6 +105,9 @@ class TestObjectFactory(unittest.TestCase):
         file = project_root / 'oldaplib' / 'testdata' / 'objectfactory_test.trig'
         cls._connection.upload_turtle(file)
 
+        file = project_root / 'oldaplib' / 'testdata' / 'instances_test.trig'
+        cls._connection.upload_turtle(file)
+
         sleep(1)  # upload may take a while...
 
         user = User.read(cls._connection, "rosenth")
@@ -193,6 +196,9 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(p2.creationDate, p1.creationDate)
         self.assertEqual(p2.lastModifiedBy, p1.lastModifiedBy)
         self.assertEqual(p2.lastModificationDate, p1.lastModificationDate)
+
+        b2.delete()
+        p2.delete()
 
     def test_constructor_B(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -341,6 +347,8 @@ class TestObjectFactory(unittest.TestCase):
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
 
+        b.delete()
+
     def test_constructor_D(self):
         dm = DataModel.read(con=self._connection, project='test')
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -361,6 +369,8 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(data['rdf:type'], ['test:Book'])
         self.assertEqual(data['test:title'], ['The Life and Times of Scrooge'])
         self.assertEqual(data['test:author'], ['test:TuomasHolopainen'])
+
+        b.delete()
 
     def test_read_B(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -396,6 +406,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(jsonobj['test:pubDate'], ['2001-01-01'])
         self.assertEqual(jsonobj['test:title'], ['The Life and Times of Scrooge'])
 
+        bb.delete()
 
     def test_value_setter(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -450,6 +461,8 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj2.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
         self.assertFalse(obj2.integerSetter)
 
+        obj2.delete()
+
     def test_value_modifier_A(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         SetterTester = factory.createObjectInstance('SetterTester')
@@ -475,6 +488,8 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
         self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
         self.assertFalse(obj1.booleanSetter)
+
+        obj1.delete()
 
     def test_value_modifier_B(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -502,6 +517,8 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
         self.assertFalse(obj1.booleanSetter)
 
+        obj1.delete()
+
     def test_value_maxcount_mincount(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         Person = factory.createObjectInstance('Person')
@@ -519,25 +536,9 @@ class TestObjectFactory(unittest.TestCase):
         with self.assertRaises(OldapErrorValue):
             del obj1.familyName
 
-    def test_value_modifier_norights(self):
-        # ps = PermissionSet(con=self._connection,
-        #                    permissionSetId="testNoUpdate",
-        #                    label=LangString("testNoUpdate@en"),
-        #                    comment=LangString("Testing PermissionSet@en"),
-        #                    givesPermission=DataPermission.DATA_VIEW,
-        #                    definedByProject="test")
-        # ps.create()
-        #
-        # user = User(con=self._connection,
-        #             userId=Xsd_NCName("factorytestuser"),
-        #             familyName="FactoryTest",
-        #             givenName="FactoryTest",
-        #             credentials="Waseliwas",
-        #             inProject={'oldap:Test': {}},
-        #             hasPermissions={ps.iri.as_qname},
-        #             isActive=True)
-        # user.create()
+        obj1.delete()
 
+    def test_value_modifier_norights(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
@@ -563,6 +564,11 @@ class TestObjectFactory(unittest.TestCase):
         obj.decimalSetter.discard(Xsd_decimal(3.14159))
         with self.assertRaises(OldapErrorNoPermission):
             obj.update()
+
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj = SetterTester.read(con=self._connection, iri=obj1.iri)
+        obj.delete()
 
     def test_delete_resource(self):
         project = Project.read(con=self._connection, projectIri_SName='test')
@@ -630,92 +636,50 @@ class TestObjectFactory(unittest.TestCase):
         with self.assertRaises(OldapErrorNoPermission):
             b.update()
 
-    def test_search_resource_A(self):
+        with self.assertRaises(OldapErrorNoPermission):
+            b.delete()
 
-        def random_string(length=12):
-            chars = string.ascii_letters + string.digits
-            return ''.join(random.choices(chars, k=length))
-
-        project = Project.read(con=self._connection, projectIri_SName='test')
         factory = ResourceInstanceFactory(con=self._connection, project=project)
-
-        Person = factory.createObjectInstance('Person')
-        persons = []
-        for i in range(4):
-            if i % 2 == 0:
-                familyName = 'Gaga' + random_string()
-            else:
-                familyName = random_string()
-            p = Person(familyName=familyName,
-                       givenName=random_string(),
-                       grantsPermission=Iri('oldap:GenericView'))
-            p.create()
-            persons.append(p.iri)
-
         Book = factory.createObjectInstance('Book')
-        for i in range(10):
-            title = f'These are {random_string()} Tales from the Wood'
-            if i % 2 == 0:
-                title = 'GAGA' + title
-            b = Book(title=title,
-                     author=persons[i % 4],
-                     pubDate="1995-09-27",
-                     grantsPermission=Iri('oldap:GenericView'))
-            b.create()
+        b = Book.read(con=self._connection,
+                      iri=b.iri)
+        b.delete()
 
-
+    def test_search_resource_A(self):
         res = ResourceInstance.search_fulltext(con=self._connection,
                                                projectShortName='test',
                                                resClass='test:Book',
-                                               s='gaga',
+                                               s='geschichte',
                                                sortBy=SortBy.CREATED)
 
-        self.assertEqual(len(res), 5)
+        self.assertEqual(len(res), 2)
         for x, y in res.items():
             self.assertEqual(y[Xsd_QName("owl:Class")], Xsd_QName('test:Book'))
 
         res = ResourceInstance.search_fulltext(con=self._connection,
                                                projectShortName='test',
-                                               s='gaga',
+                                               s='spez',
                                                sortBy=SortBy.CREATED)
 
-        self.assertEqual(len(res), 7)
+        self.assertEqual(len(res), 5)
         for x, y in res.items():
-            self.assertTrue(y[Xsd_QName("owl:Class")] in {Xsd_QName('test:Book'), Xsd_QName('test:Person')})
+            self.assertTrue(y[Xsd_QName("owl:Class")] in {Xsd_QName('test:Book'), Xsd_QName('test:Page')})
 
     def test_search_resource_B(self):
-
-        def random_string(length=12):
-            chars = string.ascii_letters + string.digits
-            return ''.join(random.choices(chars, k=length))
-
-        project = Project.read(con=self._connection, projectIri_SName='test')
-        factory = ResourceInstanceFactory(con=self._connection, project=project)
-        Page = factory.createObjectInstance('Page')
-        for i in range(1, 11):
-            b = Page(pageNum=Xsd_positiveInteger(i),
-                     pageDesignation=f'Seite {i}',
-                     pageContent=random_string(16),
-                     pageInBook=Xsd_QName('test', 'gaga', validate=False),
-                     grantsPermission=Iri('oldap:GenericView'))
-            b.create()
-
-        Person = factory.createObjectInstance('Person')
-        for i in range(4):
-            p = Person(familyName=random_string(),
-                       givenName=random_string(),
-                       grantsPermission=Iri('oldap:GenericView'))
-            p.create()
-
         res = ResourceInstance.all_resources(con=self._connection,
                                              projectShortName='test',
                                              resClass='test:Page',
                                              includeProperties=[Xsd_QName('test:pageNum'), Xsd_QName('test:pageContent')],
                                              sortBy = SortBy.CREATED)
-        self.assertEqual(len(res), 10)
+        self.assertEqual(len(res), 8)
         for r in res:
             self.assertEqual(len(res[r]), 3)
 
+    def test_search_resource_C(self):
+        res = ResourceInstance.all_resources(con=self._connection,
+                                             projectShortName='test',
+                                             resClass='test:Page')
+        self.assertEqual(len(res), 8)
 
 
 if __name__ == '__main__':

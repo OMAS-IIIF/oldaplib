@@ -9,7 +9,7 @@ test:data {
     :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
     :lastModificationDate "2025-11-13T16:43:21.284536+01:00"^^xsd:dateTimeStamp;
     :grantsPermission :GenericView;
-    test:title "Die Geschichte der tQh5OAgXOaK5"@de;
+    test:title "Die Geschichte der Spez. tQh5OAgXOaK5"@de;
     test:pubDate "2026-01-01"^^xsd:date .
   
   <urn:uuid:57141a6b-46b5-4c82-a74c-d48a15437c4f> a test:Page;
@@ -21,7 +21,7 @@ test:data {
     test:pageDesignation "Page 1";
     test:pageNum "1"^^xsd:positiveInteger;
     test:pageDescription "Description for page 1"@en;
-    test:pageContent "Content for page 1\\nXpVzpnoxhxZEhp0hRWWcBmOLA3h62KT4f8FLxwL3kpGUdhLWBveN9KiML34YXk86SW6PDnZgz4GELOiZOqMvo9chdXhR1e0W3FIn";
+    test:pageContent "Content for page 1\\Spez. nXpVzpnoxhxZEhp0hRWWcBmOLA3h62KT4f8FLxwL3kpGUdhLWBveN9KiML34YXk86SW6PDnZgz4GELOiZOqMvo9chdXhR1e0W3FIn";
     test:pageInBook <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> .
   
   <urn:uuid:b382c2bc-6a61-4f60-a963-ec1eb5bc7428> a test:Page;
@@ -33,7 +33,7 @@ test:data {
     test:pageDesignation "Page 2";
     test:pageNum "2"^^xsd:positiveInteger;
     test:pageDescription "Description for page 2"@en;
-    test:pageContent "Waseliwas for page 2\\nP7OGEXPNRcM62O2gVVmTzp8xSjnMM0jNTdyFpDI3Cf1VTH1AcvrFt3AYSWCLEQIBttAs23DHkAXzaehFbA81TwkIKLKUSz9v1qAV";
+    test:pageContent "Waseliwas for page 2\\Spez. nP7OGEXPNRcM62O2gVVmTzp8xSjnMM0jNTdyFpDI3Cf1VTH1AcvrFt3AYSWCLEQIBttAs23DHkAXzaehFbA81TwkIKLKUSz9v1qAV";
     test:pageInBook <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> .
   
   <urn:uuid:a8f0ec0c-28ed-449c-8f22-81ee20bfb0a3> a test:Page;
@@ -45,7 +45,7 @@ test:data {
     test:pageDesignation "Page 3";
     test:pageNum "3"^^xsd:positiveInteger;
     test:pageDescription "Description for page 3"@en;
-    test:pageContent "Content for page 3\\nAdjA5kTzS7lT6W7F2bgLYtcXBkDxOAelvXThXNt5uranbB2WgsSsPu5uklCy8IVdRhqod6iWhMVWdqMhZWnv1NkgJQ2vjhHB57bh";
+    test:pageContent "Content for page 3\\Spez. nAdjA5kTzS7lT6W7F2bgLYtcXBkDxOAelvXThXNt5uranbB2WgsSsPu5uklCy8IVdRhqod6iWhMVWdqMhZWnv1NkgJQ2vjhHB57bh";
     test:pageInBook <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> .
   
   <urn:uuid:098df661-de13-4fa7-b3aa-2ed5aa1180a8> a test:Page;
@@ -78,7 +78,7 @@ test:data {
     test:pageDesignation "Page 1";
     test:pageNum "1"^^xsd:positiveInteger;
     test:pageDescription "Description for page 1"@en;
-    test:pageContent "Content for page 1\\nTnfJDOE1D0hFuY9B2zKJW7g5oW48XTqKSd9nNYL0QrjxAk38Aka6g9zEr6q8OdAoxWePellSt4Ixq3jfaF1YlkOYBLyWft0LpzjS";
+    test:pageContent "Content for page 1\\nSpez. TnfJDOE1D0hFuY9B2zKJW7g5oW48XTqKSd9nNYL0QrjxAk38Aka6g9zEr6q8OdAoxWePellSt4Ixq3jfaF1YlkOYBLyWft0LpzjS";
     test:pageInBook <urn:uuid:9bf6ae23-bf2f-4466-abe3-65efe6afe589> .
   
   <urn:uuid:674467a8-8fbe-425c-a2f6-06d2e52adc99> a test:Page;
