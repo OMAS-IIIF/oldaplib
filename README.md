@@ -43,3 +43,10 @@ http://oldap.org/<location>/<project>/data#
 The project name must be unique to the location and is of
 type [NCName](https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-NCName).
 
+## Media object
+
+- originalName: `<http://purl.org/dc/terms/originalName>`
+- originalMimeType: `<http://purl.org/dc/terms/format>`
+- mediaserverUri: xsd:anyURI
+- project: `<http://oldap.org/base#project>`
+

@@ -67,8 +67,8 @@ Attributes = dict[Xsd_QName, PropTypes]
 @serializer
 class HasPropertyData:
     refprop: Xsd_QName | None = None
-    minCount: Xsd_nonNegativeInteger | None = None
-    maxCount: Xsd_nonNegativeInteger | None = None
+    minCount: Xsd_integer | None = None
+    maxCount: Xsd_integer | None = None
     order: Xsd_decimal | None = None
     group: Xsd_QName | None = None
 
@@ -91,12 +91,15 @@ class HasPropertyData:
             sparql = ''
 
             if self.minCount and self.maxCount and self.minCount == self.maxCount:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {self.minCount.toRdf}'
+                tmp = Xsd_nonNegativeInteger(self.minCount)  # Convert to nonNegativeInteger
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {tmp.toRdf}'
             else:
                 if self.minCount:
-                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {self.minCount.toRdf}'
+                    tmp = Xsd_nonNegativeInteger(self.minCount)
+                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {tmp.toRdf}'
                 if self.maxCount:
-                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {self.maxCount.toRdf}'
+                    tmp = Xsd_nonNegativeInteger(self.maxCount)
+                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {tmp.toRdf}'
             return sparql
 
 #@strict
@@ -1135,12 +1138,15 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri.toRdf}'
 
         if haspropdata.minCount and haspropdata.maxCount  and haspropdata.minCount == haspropdata.maxCount:
-            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:qualifiedCardinality {haspropdata.minCount.toRdf}'
+            tmp = Xsd_nonNegativeInteger(haspropdata.minCount)
+            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:qualifiedCardinality {tmp.toRdf}'
         else:
             if haspropdata.minCount:
-                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality {haspropdata.minCount.toRdf}'
+                tmp = Xsd_nonNegativeInteger(haspropdata.minCount)
+                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality {tmp.toRdf}'
             if haspropdata.maxCount:
-                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality {haspropdata.maxCount.toRdf}'
+                tmp = Xsd_nonNegativeInteger(haspropdata.maxCount)
+                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality {tmp.toRdf}'
         #
         # (NOTE: owl:onClass and owl:onDataRange can be used only in a restriction and are "local" to the use
         # of the property within the given resource. However, rdfs:range is "global" for all use of this property!

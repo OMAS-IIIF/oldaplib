@@ -222,12 +222,15 @@ class HasProperty(Model, Notify):
         max_count = Xsd_nonNegativeInteger(int(self._attributes[HasPropertyAttr.MAX_COUNT])) if self._attributes.get(HasPropertyAttr.MAX_COUNT) else None
 
         if min_count and max_count and min_count == max_count:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {min_count.toRdf}'
+            tmp = Xsd_nonNegativeInteger(min_count)
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {tmp.toRdf}'
         else:
             if min_count:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {min_count.toRdf}'
+                tmp = Xsd_nonNegativeInteger(min_count)
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {tmp.toRdf}'
             if max_count:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {max_count.toRdf}'
+                tmp = Xsd_nonNegativeInteger(max_count)
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {tmp.toRdf}'
         return sparql
 
     def update_shacl(self,
@@ -287,12 +290,15 @@ class HasProperty(Model, Notify):
             if min_count or max_count:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 if min_count and max_count and min_count == max_count:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:qualifiedCardinality {min_count.toRdf} .\n'
+                    tmp = Xsd_nonNegativeInteger(min_count)
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:qualifiedCardinality {tmp.toRdf} .\n'
                 else:
                     if min_count:
-                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:minQualifiedCardinality {min_count.toRdf} .\n'
+                        tmp = Xsd_nonNegativeInteger(min_count)
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:minQualifiedCardinality {tmp.toRdf} .\n'
                     if max_count:
-                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:maxQualifiedCardinality {max_count.toRdf} .\n'
+                        tmp = Xsd_nonNegativeInteger(max_count)
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop owl:maxQualifiedCardinality {tmp.toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'

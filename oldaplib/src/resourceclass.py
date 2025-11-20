@@ -983,12 +983,12 @@ class ResourceClass(Model, Notify):
             elif p == 'owl:onClass':
                 propdict[bnode_id]['to_node_iri'] = r['o']
             elif p == 'owl:minQualifiedCardinality':
-                propdict[bnode_id]['min_count'] = r['o']
+                propdict[bnode_id]['min_count'] = Xsd_integer(r['o'])
             elif p == 'owl:maxQualifiedCardinality':
-                propdict[bnode_id]['max_count'] = r['o']
+                propdict[bnode_id]['max_count'] = Xsd_integer(r['o'])
             elif p == 'owl:qualifiedCardinality':
-                propdict[bnode_id]['min_count'] = r['o']
-                propdict[bnode_id]['max_count'] = r['o']
+                propdict[bnode_id]['min_count'] = Xsd_integer(r['o'])
+                propdict[bnode_id]['max_count'] = Xsd_integer(r['o'])
             elif p == 'owl:onDataRange':
                 propdict[bnode_id]['datatype'] = r['o']
             else:
