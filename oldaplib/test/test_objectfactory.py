@@ -357,6 +357,25 @@ class TestObjectFactory(unittest.TestCase):
         mycat = Cat(name="Fluffy", subName="Fluffy the Cat")
         mycat.create()
 
+    def test_create_from_shared(self):
+        dm = DataModel.read(con=self._connection, project='test')
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        MO = factory.createObjectInstance('shared:MediaObject')
+        mo = MO(originalName='Cat.tif',
+                originalMimeType='image/tiff',
+                serverUrl='http://iiif.oldap.org/iiif/3/',
+                imageId='cat.tif',
+                grantsPermission=Iri('oldap:GenericView'))
+        mo.create()
+        data = ResourceInstance.read_data(con=self._connection, iri=mo.iri, projectShortName='test')
+        print(data)
+        self.assertEqual(data[Xsd_QName("oldap:grantsPermission")], ['oldap:GenericView'])
+        self.assertEqual(data[Xsd_QName("shared:originalName")], ['Cat.tif'])
+        self.assertEqual(data[Xsd_QName("shared:originalMimeType")], ['image/tiff'])
+        self.assertEqual(data[Xsd_QName("shared:serverUrl")], ['http://iiif.oldap.org/iiif/3/'])
+        self.assertEqual(data[Xsd_QName("shared:imageId")], ['cat.tif'])
+        mo.delete()
+
     def test_read_A(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         Book = factory.createObjectInstance('Book')
@@ -381,7 +400,7 @@ class TestObjectFactory(unittest.TestCase):
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
         bb = factory.read(iri=b.iri)
-        self.assertEqual(bb.name, "Book")
+        self.assertEqual(bb.name, "test:Book")
         self.assertEqual(bb.title, {Xsd_string("The Life and Times of Scrooge")})
         self.assertEqual(bb.author, {Iri("test:TuomasHolopainen")})
         jsonobj = bb.toJsonObject()
@@ -398,7 +417,7 @@ class TestObjectFactory(unittest.TestCase):
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
         bb = Book.read(con=self._connection, iri=b.iri)
-        self.assertEqual(bb.name, "Book")
+        self.assertEqual(bb.name, "test:Book")
         self.assertEqual(bb.title, {Xsd_string("The Life and Times of Scrooge")})
         self.assertEqual(bb.author, {Iri("test:TuomasHolopainen")})
         jsonobj = bb.toJsonObject()

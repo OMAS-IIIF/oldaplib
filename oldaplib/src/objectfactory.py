@@ -495,7 +495,7 @@ class ResourceInstance:
             raise OldapErrorNoPermission(message)
 
         timestamp = Xsd_dateTimeStamp()
-        if self.name == "Thing":
+        if self.name in ("Thing", "oldap:Thing"):
             self._values[Xsd_QName('oldap:createdBy', validate=False)] = ObservableSet({self._con.userIri})
             self._values[Xsd_QName('oldap:creationDate', validate=False)] = ObservableSet({timestamp})
             self._values[Xsd_QName('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
@@ -517,7 +517,7 @@ class ResourceInstance:
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{'
 
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} a {self._graph}:{self.name}'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} a {self.name}'
 
         for prop_iri, values in self._values.items():
             if self.properties.get(prop_iri) and self.properties[prop_iri].prop.datatype == XsdDatatypes.QName:
@@ -537,6 +537,7 @@ class ResourceInstance:
                 raise OldapErrorAlreadyExists(f'Resource with IRI {self._iri} already exists.')
             self._con.transaction_update(sparql)
         except OldapError as e:
+            print(sparql)
             self._con.transaction_abort()
             raise
         self._con.transaction_commit()
@@ -1172,7 +1173,9 @@ class ResourceInstanceFactory:
     """
     _con: IConnection
     _project: Project
+    _sharedProject: Project
     _datamodel: DataModel
+    _sharedModel: DataModel
 
     def __init__(self,
                  con: IConnection,
@@ -1182,20 +1185,30 @@ class ResourceInstanceFactory:
             self._project = project
         else:
             self._project = Project.read(self._con, project)
+        self._sharedProject = Project.read(self._con, "oldap:SharedProject")
 
-        self._datamodel = DataModel.read(con=self._con, project=self._project, ignore_cache=True)
+        self._datamodel = DataModel.read(con=self._con, project=self._project)
+        self._sharedModel = DataModel.read(con=self._con, project=self._sharedProject)
 
-    def createObjectInstance(self, name: Xsd_NCName | str) -> Type:  ## ToDo: Get name automatically from IRI
-        classiri = Xsd_QName(self._project.projectShortName, name)
+    def createObjectInstance(self, name: Xsd_NCName | Xsd_QName | str) -> Type:  ## ToDo: Get name automatically from IRI
+        if isinstance(name, Xsd_QName):
+            classiri = name
+        else:
+            try:
+                classiri = Xsd_QName(name, validate=True)
+            except (ValueError, OldapErrorValue):
+                if not isinstance(name, Xsd_NCName):
+                    name = Xsd_NCName(name, validate=True)
+                classiri = Xsd_QName(self._project.projectShortName, name)
         resclass = self._datamodel.get(classiri)
-        if not isinstance(name, Xsd_NCName):
-            name = Xsd_NCName(name)
+        if not resclass:
+            resclass = self._sharedModel.get(classiri)
         if resclass is None:
             raise OldapErrorNotFound(f'Given Resource Class "{classiri}" not found.')
         return type(str(name), (ResourceInstance,), {
             '_con': self._con,
             'project': self._project,
-            'name': name,
+            'name': resclass.owl_class_iri,
             'factory': self,
             'properties': resclass.properties,
             'superclass': resclass.superclass})

@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     origname = PropertyClass(con=con,
                             project=project,
-                            property_class_iri=Xsd_QName(f'oldap:originalName'),
+                            property_class_iri=Xsd_QName(f'shared:originalName'),
                             datatype=XsdDatatypes.string,
                             name=LangString(["Original Filename@en",
                                              "Originaler Dateiname@de",
@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     mimetype = PropertyClass(con=con,
                             project=project,
-                            property_class_iri=Xsd_QName(f'oldap:originalMimeType'),
+                            property_class_iri=Xsd_QName(f'shared:originalMimeType'),
                             datatype=XsdDatatypes.string,
                             name=LangString(["Original mimetype@en",
                                              "Originaler Mimetype@de",
@@ -37,7 +37,7 @@ if __name__ == '__main__':
                                              "Mimetype originale@it"]))
     server = PropertyClass(con=con,
                            project=project,
-                           property_class_iri=Xsd_QName(f'oldap:serverUrl'),
+                           property_class_iri=Xsd_QName(f'shared:serverUrl'),
                            datatype=XsdDatatypes.anyURI,
                            name=LangString(["Server URL@en",
                                             "URL des servers@de",
@@ -45,7 +45,7 @@ if __name__ == '__main__':
                                             "Server URL@it"]))
     imageid = PropertyClass(con=con,
                            project=project,
-                           property_class_iri=Xsd_QName(f'oldap:imageId'),
+                           property_class_iri=Xsd_QName(f'shared:imageId'),
                            datatype=XsdDatatypes.string,
                            name=LangString(["Image ID@en",
                                             "ID des Bilder@de",
@@ -53,7 +53,7 @@ if __name__ == '__main__':
                                             "ID de l'immagine@it"]))
     mediaobj = ResourceClass(con=con,
                              project=project,
-                             owlclass_iri=Xsd_QName(f'oldap:MediaObject'),
+                             owlclass_iri=Xsd_QName(f'shared:MediaObject'),
                              label=LangString(
                                  ["MediaObject@en", "Medienobjekt@de", "MediaObject@fr", "MediaObject@it"]),
                              comment=LangString("Page of a book@en", "Seite eines Buches@de"),
