@@ -184,7 +184,7 @@ class PropertyClass(Model, Notify):
     __slots__ = ('subPropertyOf', 'type', 'toClass', 'datatype', 'name', 'description', 'languageIn', 'uniqueLang',
                  'inSet', 'minCount', 'maxCount', 'pattern',
                  'minExclusive', 'maxExclusive', 'minInclusive', 'maxInclusive', 'minLength', 'maxLength',
-                 'lessThan', 'lessThanOrEqual')
+                 'lessThan', 'lessThanOrEqual', 'inverseOf', 'equivalentProperty')
 
 
     def __init__(self, *,
@@ -321,10 +321,14 @@ class PropertyClass(Model, Notify):
         if self._statementProperty:
             self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.StatementProperty)
         if self._attributes.get(PropClassAttr.CLASS) is not None:
+            if OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
+                raise OldapErrorInconsistency(f'Property {self._property_class_iri} cannot be both a link property and a data property.')
             self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
             if self._attributes.get(PropClassAttr.DATATYPE) is not None:
                 raise OldapError(f'Datatype "{self._attributes.get(PropClassAttr.DATATYPE)}" not possible for OwlObjectProperty')
         elif self._attributes.get(PropClassAttr.DATATYPE) is not None:
+            if OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
+                raise OldapErrorInconsistency(f'Property {self._property_class_iri} cannot be both a link property and a data property.')
             self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlDataProperty)
 
         #

@@ -57,7 +57,7 @@ class PropClassAttr(AttributeClass):
     LESS_THAN = ('sh:lessThan', False, False, Iri, Target.SHACL)
     LESS_THAN_OR_EQUALS = ('sh:lessThanOrEquals', False, False, Iri, Target.SHACL)
     INVERSE_OF = ('owl:inverseOf', False, False, Xsd_QName, Target.OWL)
-    EQUIVALEND_PROPERTY = ('owl:equivalentProperty', False, False, Xsd_QName, Target.OWL)
+    EQUIVALENT_PROPERTY = ('owl:equivalentProperty', False, False, Xsd_QName, Target.OWL)
 
 
     @classmethod

@@ -14,6 +14,7 @@ from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.language import Language
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString, LangStringChange
 from oldaplib.src.helpers.observable_set import ObservableSet
@@ -252,21 +253,69 @@ class TestPropertyClass(unittest.TestCase):
         p4.update()
         self.assertEqual(p4.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.TransitiveProperty, OwlPropertyType.OwlDataProperty})
 
-    def test_propertyclass_inconsistent_constructor(self):
+    def test_propertyclass_inconsistent_constructor_A(self):
         with self.assertRaises(OldapErrorValue):
             p5 = PropertyClass(con=self._connection,
                                project=self._project,
-                               property_class_iri=Xsd_QName('test:testprop5'),
+                               property_class_iri=Xsd_QName('test:testprop5a'),
                                datatype=XsdDatatypes.string,
                                languageIn=LanguageIn(Language.EN, Language.DE, Language.FR))
 
-    def test_propertyclass_invalid_constructor(self):
+    def test_propertyclass_inconsistent_constructor_B(self):
+        with self.assertRaises(OldapErrorInconsistency):
+            p5 = PropertyClass(con=self._connection,
+                               project=self._project,
+                               type={OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlObjectProperty},
+                               property_class_iri=Xsd_QName('test:testprop5b'),
+                               datatype=XsdDatatypes.string)
+
+    def test_propertyclass_inconsistent_constructor_C(self):
+        with self.assertRaises(OldapErrorInconsistency):
+            p5 = PropertyClass(con=self._connection,
+                               project=self._project,
+                               type={OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty},
+                               property_class_iri=Xsd_QName('test:testprop5c'),
+                               toClass=Xsd_QName('test:comment'))
+
+    def test_propertyclass_invalid_constructor_A(self):
         with self.assertRaises(OldapErrorInconsistency):
             px = PropertyClass(con=self._connection,
                                project=self._project,
                                property_class_iri=Xsd_QName('test:testpropX'),
                                toClass=Xsd_QName('test:comment'),
                                minLength=42)
+
+    def test_propertyclass_invalid_constructor_B(self):
+        px = PropertyClass(con=self._connection,
+                           project=self._project,
+                           type={OwlPropertyType.SymmetricProperty, OwlPropertyType.FunctionalProperty},
+                           property_class_iri=Xsd_QName('test:testpropBa'),
+                           toClass=Xsd_QName('test:comment'))
+        hp = HasProperty(con=self._connection, project=self._project, prop=px, maxCount=1)
+
+        with self.assertRaises(OldapErrorInconsistency):
+            px = PropertyClass(con=self._connection,
+                               project=self._project,
+                               type={OwlPropertyType.SymmetricProperty, OwlPropertyType.FunctionalProperty},
+                               property_class_iri=Xsd_QName('test:testpropBb'),
+                               toClass=Xsd_QName('test:comment'))
+            hp = HasProperty(con=self._connection, project=self._project, prop=px)
+
+    def test_propertyclass_invalid_constructor_C(self):
+        px = PropertyClass(con=self._connection,
+                           project=self._project,
+                           type={OwlPropertyType.SymmetricProperty, OwlPropertyType.InverseFunctionalProperty},
+                           property_class_iri=Xsd_QName('test:testpropC'),
+                           toClass=Xsd_QName('test:comment'))
+        hp = HasProperty(con=self._connection, project=self._project, prop=px, minCount=1, maxCount=1)
+
+        with self.assertRaises(OldapErrorInconsistency):
+            px = PropertyClass(con=self._connection,
+                               project=self._project,
+                               type={OwlPropertyType.SymmetricProperty, OwlPropertyType.InverseFunctionalProperty},
+                               property_class_iri=Xsd_QName('test:testpropC'),
+                               toClass=Xsd_QName('test:comment'))
+            hp = HasProperty(con=self._connection, project=self._project, prop=px)
 
     def test_propertyclass_projectsn_constructor(self):
         p6 = PropertyClass(con=self._connection,

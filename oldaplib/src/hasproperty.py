@@ -6,9 +6,10 @@ from typing import Callable, Self, Any
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
+from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.irincname import IriOrNCName
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorInconsistency
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
@@ -116,6 +117,25 @@ class HasProperty(Model, Notify):
                 else:
                     self._type = PropType.INTERNAL
         self.set_attributes(kwargs, HasPropertyAttr)
+
+        #
+        # Check consistency for owl:FunctionalProperty. It must have a maxCount=1
+        #
+        if isinstance(self._prop, PropertyClass) and OwlPropertyType.FunctionalProperty in self._prop.type:
+            if not self._attributes.get(HasPropertyAttr.MAX_COUNT):
+                raise OldapErrorInconsistency(f'FunctionalProperty {self._prop.property_class_iri} must have maxCount=1')
+            if self._attributes[HasPropertyAttr.MAX_COUNT] != 1:
+                raise OldapErrorInconsistency(f'FunctionalProperty {self._prop.property_class_iri} must have maxCount=1')
+
+        #
+        # Check consistency for owl:InverseFunctionalProperty. It must have a cardinality of 1..1
+        #
+        if isinstance(self._prop, PropertyClass) and OwlPropertyType.InverseFunctionalProperty in self._prop.type:
+            if not self._attributes.get(HasPropertyAttr.MIN_COUNT) or not self._attributes.get(HasPropertyAttr.MAX_COUNT):
+                raise OldapErrorInconsistency(f'InverseFunctionalProperty {self._prop.property_class_iri} must have cardinality=1..1')
+            if self._attributes[HasPropertyAttr.MIN_COUNT] != 1 or self._attributes[HasPropertyAttr.MAX_COUNT] != 1:
+                raise OldapErrorInconsistency(f'InverseFunctionalProperty {self._prop.property_class_iri} must have cardinality=1..1')
+
 
         for attr in HasPropertyAttr:
             setattr(HasProperty, attr.value.fragment, property(

@@ -9,6 +9,7 @@ from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 
 if __name__ == '__main__':
     con = Connection(server='http://localhost:7200',
