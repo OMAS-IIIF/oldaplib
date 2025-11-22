@@ -315,11 +315,20 @@ class PropertyClass(Model, Notify):
         if self._attributes.get(PropClassAttr.DATATYPE) is not None and self._attributes.get(PropClassAttr.CLASS) is not None:
             raise OldapErrorInconsistency(f'It\'s not possible to use both DATATYPE="{self._attributes[PropClassAttr.DATATYPE]}" and CLASS={self._attributes[PropClassAttr.CLASS]} restrictions.')
 
-        # setting property type for OWL which distinguished between Data- and Object-properties
         if not self._attributes.get(PropClassAttr.TYPE):
             self._attributes[PropClassAttr.TYPE] = ObservableSet(notifier=self.notifier, notify_data=PropClassAttr.TYPE)
-        if self._statementProperty:
+
+        #
+        # process the statement property stuff
+        #
+        if self._statementProperty and OwlPropertyType.StatementProperty not in self._attributes[PropClassAttr.TYPE]:
             self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.StatementProperty)
+        if not self._statementProperty and OwlPropertyType.StatementProperty in self._attributes[PropClassAttr.TYPE]:
+            self._statementProperty = Xsd_boolean(True)
+
+        #
+        # setting property type for OWL which distinguished between Data- and Object-properties
+        #
         if self._attributes.get(PropClassAttr.CLASS) is not None:
             if OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
                 raise OldapErrorInconsistency(f'Property {self._property_class_iri} cannot be both a link property and a data property.')
