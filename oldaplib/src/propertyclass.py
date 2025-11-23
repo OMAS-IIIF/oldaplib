@@ -166,7 +166,7 @@ class PropertyClass(Model, Notify):
     _projectShortName: Xsd_NCName
     _projectIri: Iri
     _property_class_iri: Xsd_QName | None
-    _statementProperty: Xsd_boolean
+    __statementProperty: Xsd_boolean
     _externalOntology: Xsd_boolean
     _internal: Xsd_QName | None
     _force_external: bool
@@ -197,7 +197,6 @@ class PropertyClass(Model, Notify):
                  property_class_iri: Xsd_QName | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
-                 _statementProperty: bool | Xsd_boolean= False,
                  _externalOntology: bool | Xsd_boolean = False,
                  _internal: Xsd_QName | None = None,  # DO NOT USE!! Only for serialization!
                  _force_external: bool | None = None,  # DO NOT USE!! Only for serialization!
@@ -256,7 +255,7 @@ class PropertyClass(Model, Notify):
                        validate=validate)
         Notify.__init__(self, notifier, notify_data)
 
-        self._statementProperty = _statementProperty if isinstance(_statementProperty, Xsd_boolean) else Xsd_boolean(_statementProperty, validate=True)
+        #self.__statementProperty = _statementProperty if isinstance(_statementProperty, Xsd_boolean) else Xsd_boolean(_statementProperty, validate=True)
         self._externalOntology = _externalOntology if isinstance(_externalOntology, Xsd_boolean) else Xsd_boolean(_externalOntology, validate=True)
         if self._externalOntology:
             self._force_external = True
@@ -321,10 +320,10 @@ class PropertyClass(Model, Notify):
         #
         # process the statement property stuff
         #
-        if self._statementProperty and OwlPropertyType.StatementProperty not in self._attributes[PropClassAttr.TYPE]:
-            self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.StatementProperty)
-        if not self._statementProperty and OwlPropertyType.StatementProperty in self._attributes[PropClassAttr.TYPE]:
-            self._statementProperty = Xsd_boolean(True)
+        if OwlPropertyType.StatementProperty in self._attributes[PropClassAttr.TYPE]:
+            self.__statementProperty = Xsd_boolean(True)
+        else:
+            self.__statementProperty = Xsd_boolean(False)
 
         #
         # setting property type for OWL which distinguished between Data- and Object-properties
@@ -383,7 +382,7 @@ class PropertyClass(Model, Notify):
             **({'_internal': self._internal} if self._internal else {}),
             **({'_force_external': self._force_external} if self._force_external else {}),
             **({'_externalOntology': self._externalOntology} if self._externalOntology else {}),
-            **({'_statementProperty': self._statementProperty} if self._statementProperty else {}),
+            **({'__statementProperty': self.__statementProperty} if self.__statementProperty else {}),
             '_from_triplestore': self.__from_triplestore,
         }
 
@@ -478,6 +477,15 @@ class PropertyClass(Model, Notify):
                 self._changeset[PropClassAttr.DATATYPE] = AttributeChange(None, Action.CREATE)
             self._attributes[PropClassAttr.DATATYPE] = value
 
+    def _del_value(self, attr: PropClassAttr) -> None:
+        if attr == PropClassAttr.TYPE:
+            remaining = self._attributes.get(attr) & {OwlPropertyType.OwlObjectProperty, OwlPropertyType.OwlDataProperty}
+            to_delete = self._attributes.get(attr) - remaining
+            for x in to_delete:
+                self._attributes[attr].discard(x)
+                return
+        super()._del_value(attr)
+
     def _change_setter(self: Self, attr: PropClassAttr, value: PropTypes) -> None:
         """
         INTERNAL USE ONLY! Overrides the method _change_setter from the Model class.
@@ -490,6 +498,12 @@ class PropertyClass(Model, Notify):
         """
         if not isinstance(attr, PropClassAttr):
             raise OldapError(f'Unsupported prop {attr}')
+        if attr == PropClassAttr.TYPE and value is None:
+            remaining = self._attributes.get(attr) & {OwlPropertyType.OwlObjectProperty, OwlPropertyType.OwlDataProperty}
+            to_delete = self._attributes.get(attr) - remaining
+            for x in to_delete:
+                self._attributes[attr].discard(x)
+                return
         if self._attributes.get(attr) == value:
             return
         super()._change_setter(attr, value)
@@ -519,7 +533,7 @@ class PropertyClass(Model, Notify):
                         notifier=self._notifier,
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
-        instance._statementProperty = deepcopy(self._statementProperty, memo)
+        instance.__statementProperty = deepcopy(self.__statementProperty, memo)
         instance._externalOntology = deepcopy(self._externalOntology, memo)
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
@@ -581,14 +595,14 @@ class PropertyClass(Model, Notify):
         """
         return self._internal
 
-    @property
-    def statementProperty(self) -> Xsd_boolean:
-        """
-        Return the statementProperty
-        :return: statementProperty
-        :rtype: bool
-        """
-        return self._statementProperty
+    # @property
+    # def statementProperty(self) -> Xsd_boolean:
+    #     """
+    #     Return the statementProperty
+    #     :return: statementProperty
+    #     :rtype: bool
+    #     """
+    #     return self.__statementProperty
 
     @property
     def externalOntology(self) -> Xsd_boolean:
@@ -816,7 +830,7 @@ class PropertyClass(Model, Notify):
                     raise OldapError(f'Inconsistency in SHACL "dcterms:modified (type={type(val)})"')
             elif key == 'oldap:statementProperty':
                 if isinstance(val, Xsd_boolean):
-                    self._statementProperty = val
+                    self.__statementProperty = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "oldap:statementProperty (type={type(val)})"')
             elif key == 'oldap:externalOntology':
@@ -934,12 +948,12 @@ class PropertyClass(Model, Notify):
         #
         # Consistency checks
         #
-        if self._statementProperty:
+        if self.__statementProperty:
             if OwlPropertyType.StatementProperty not in self._attributes.get(PropClassAttr.TYPE):
-                raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" is a statementProperty, but not an StatementProperty.')
+                raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" has SHACL oldap:statementProperty, but missing rdf:type rdf:Property.')
         else:
             if OwlPropertyType.StatementProperty in self._attributes.get(PropClassAttr.TYPE):
-                raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" is not a statementProperty, but an StatementProperty.')
+                raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" has no SHACL oldap:statementProperty, but a rdf:type rdf:Property.')
         if OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
             if not datatype:
                 raise OldapError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
@@ -1061,7 +1075,7 @@ class PropertyClass(Model, Notify):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty {self._statementProperty.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty {self.__statementProperty.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:externalOntology {self._externalOntology.toRdf}'
         for prop, value in self._attributes.items():
             if not prop.in_shacl:
@@ -1333,14 +1347,32 @@ class PropertyClass(Model, Notify):
                                                                   indent=indent, indent_inc=indent_inc)
                 elif prop.datatype == ObservableSet:
                     if prop == PropClassAttr.TYPE:
-                        continue
-                #     sparql += self._attributes[prop].update_shacl(graph=self._graph,
-                #                                                   owlclass_iri=owlclass_iri,
-                #                                                   prop_iri=self._property_class_iri,
-                #                                                   attr=prop,
-                #                                                   modified=self._modified,
-                #                                                   indent=indent, indent_inc=indent_inc)
-                #     print(gaga)
+                        if self._attributes[prop].old_value:
+                            added = set(self._attributes[PropClassAttr.TYPE]) - set(self._attributes[prop].old_value)
+                        else:
+                            added = set(self._attributes[PropClassAttr.TYPE])
+                        if OwlPropertyType.StatementProperty in added:
+                            self.__statementProperty = Xsd_boolean(True)
+                            ele = RdfModifyItem(Xsd_QName('oldap:statementProperty'), Xsd_boolean(False), Xsd_boolean(True))
+                            sparql += RdfModifyProp.shacl(action=change.action,
+                                                          graph=self._graph,
+                                                          owlclass_iri=owlclass_iri,
+                                                          pclass_iri=self._property_class_iri,
+                                                          ele=ele,
+                                                          last_modified=self._modified)
+                        if self._attributes[prop].old_value:
+                            removed = set(self._attributes[prop].old_value) - set(self._attributes[PropClassAttr.TYPE])
+                        else:
+                            removed = set()
+                        if OwlPropertyType.StatementProperty in removed:
+                            self.__statementProperty = Xsd_boolean(False)
+                            ele = RdfModifyItem(Xsd_QName('oldap:statementProperty'), Xsd_boolean(True), Xsd_boolean(False))
+                            sparql += RdfModifyProp.shacl(action=change.action,
+                                                          graph=self._graph,
+                                                          owlclass_iri=owlclass_iri,
+                                                          pclass_iri=self._property_class_iri,
+                                                          ele=ele,
+                                                          last_modified=self._modified)
                 else:
                     raise OldapError(f'SHACL property {prop.value} should not have update action "MODIFY" ({prop.datatype}).')
                 sparql_list.append(sparql)
@@ -1632,6 +1664,7 @@ class PropertyClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError as e:
+            print(sparql)
             self._con.transaction_abort()
             raise
 

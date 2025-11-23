@@ -100,12 +100,12 @@ class TestPropertyClass(unittest.TestCase):
         p = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:testpropstar'),
-                          _statementProperty=True,
+                          type={OwlPropertyType.StatementProperty},
                           datatype=XsdDatatypes.string,
                           name=LangString(["Test property@en", "Testprädikat@de"]),
                           description={"A property for testing...@en", "Property für Tests@de"})
         self.assertEqual(p.property_class_iri, Xsd_QName('test:testpropstar'))
-        self.assertTrue(p.statementProperty)
+        self.assertTrue(OwlPropertyType.StatementProperty in p.type)
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
@@ -457,7 +457,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testWriteStar'),
-            _statementProperty=True,
+            type={OwlPropertyType.StatementProperty},
             datatype=XsdDatatypes.string,
         )
         p.create()
@@ -465,7 +465,7 @@ class TestPropertyClass(unittest.TestCase):
                                 project=self._project,
                                 property_class_iri=Xsd_QName('test:testWriteStar'),
                                 ignore_cache=True)
-        self.assertTrue(p.statementProperty)
+        self.assertTrue(OwlPropertyType.StatementProperty in p.type)
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
 
     def test_propertyclass_create_F(self):
@@ -654,7 +654,7 @@ class TestPropertyClass(unittest.TestCase):
 
 
     # @unittest.skip('Work in progress')
-    def test_propertyclass_update(self):
+    def test_propertyclass_update_01(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
@@ -698,7 +698,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertFalse(p2[PropClassAttr.UNIQUE_LANG])
 
     # @unittest.skip('Work in progress')
-    def test_propertyclass_update2(self):
+    def test_propertyclass_update_02(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
@@ -739,7 +739,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.inSet, RdfSet(Xsd_string("gaga"), Xsd_string("is was")))
         self.assertFalse(p2.uniqueLang)
 
-    def test_propertyclass_update3(self):
+    def test_propertyclass_update_03(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
@@ -784,7 +784,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p2.languageIn)
         self.assertIsNone(p2.uniqueLang)
 
-    def test_propertyclass_update4(self):
+    def test_propertyclass_update_04(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
@@ -817,7 +817,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.description, LangString("An annotation@en"))
 
 
-    def test_propertyclass_update5(self):
+    def test_propertyclass_update_05(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
@@ -851,7 +851,7 @@ class TestPropertyClass(unittest.TestCase):
                                        Xsd_string("nom français@fr"),
                                        Xsd_string("name deutsch@de")])
 
-    def test_propertyclass_update6(self):
+    def test_propertyclass_update_06(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
@@ -901,7 +901,7 @@ class TestPropertyClass(unittest.TestCase):
         for r in res:
             self.assertIn(r['comment'], [Xsd_string("description english@en"), Xsd_string("description français@fr")])
 
-    def test_propertyclass_update7(self):
+    def test_propertyclass_update_07(self):
         p7 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Xsd_QName('test:testprop7'),
@@ -920,7 +920,7 @@ class TestPropertyClass(unittest.TestCase):
                                 ignore_cache=True)
         self.assertEqual(p7.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.TransitiveProperty, OwlPropertyType.OwlDataProperty})
 
-    def test_propertyclass_update8(self):
+    def test_propertyclass_update_08(self):
         p8 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Xsd_QName('test:testprop8'),
@@ -939,7 +939,7 @@ class TestPropertyClass(unittest.TestCase):
                                 ignore_cache=True)
         self.assertEqual(p8.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty})
 
-    def test_propertyclass_update9(self):
+    def test_propertyclass_update_09(self):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChild9'),
@@ -956,6 +956,109 @@ class TestPropertyClass(unittest.TestCase):
                                 property_class_iri=Xsd_QName('test:isChild9'),
                                 ignore_cache=True)
         self.assertEqual(i2.get(PropClassAttr.INVERSE_OF), Xsd_QName('test:anotherParent'))
+
+    def test_propertyclass_update_10(self):
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChild10'),
+                          toClass=Iri('test:Human'),
+                          inverseOf=Xsd_QName('test:isParent10'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        i.create()
+        i.type = [OwlPropertyType.FunctionalProperty]
+        i.update()
+        i2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:isChild10'),
+                                ignore_cache=True)
+        self.assertTrue({OwlPropertyType.FunctionalProperty} <= set(i2.type))
+
+    def test_propertyclass_update_11(self):
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChild11'),
+                          type={OwlPropertyType.FunctionalProperty, OwlPropertyType.StatementProperty, OwlPropertyType.TransitiveProperty},
+                          toClass=Iri('test:Human'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        i.create()
+        i.type.discard(OwlPropertyType.FunctionalProperty)
+        i.update()
+        i2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:isChild11'),
+                                ignore_cache=True)
+        self.assertTrue({OwlPropertyType.StatementProperty, OwlPropertyType.TransitiveProperty} <= set(i2.type))
+        self.assertTrue(OwlPropertyType.FunctionalProperty not in i2.type)
+
+    def test_propertyclass_update_12(self):
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChild12'),
+                          type={OwlPropertyType.FunctionalProperty, OwlPropertyType.TransitiveProperty},
+                          toClass=Iri('test:Human'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        i.create()
+        i.type.add(OwlPropertyType.StatementProperty)
+        i.update()
+        i2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:isChild12'),
+                                ignore_cache=True)
+        self.assertTrue({OwlPropertyType.StatementProperty, OwlPropertyType.FunctionalProperty, OwlPropertyType.TransitiveProperty} <= set(i2.type))
+
+    def test_propertyclass_update_13(self):
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChild13'),
+                          type={OwlPropertyType.StatementProperty},
+                          toClass=Iri('test:Human'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        i.create()
+        i.type.discard(OwlPropertyType.StatementProperty)
+        i.update()
+        i2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:isChild13'),
+                                ignore_cache=True)
+        self.assertTrue(OwlPropertyType.StatementProperty not in set(i2.type))
+
+    def test_propertyclass_update_14(self):
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChild14'),
+                          type={OwlPropertyType.StatementProperty},
+                          toClass=Iri('test:Human'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        i.create()
+        i.type = None
+        i.update()
+        i2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:isChild14'),
+                                ignore_cache=True)
+        self.assertTrue(OwlPropertyType.StatementProperty not in set(i2.type))
+
+    def test_propertyclass_update_15(self):
+        i = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:isChild15'),
+                          type={OwlPropertyType.StatementProperty},
+                          toClass=Iri('test:Human'),
+                          name=LangString(["Child"]),
+                          description={"Child of the human"})
+        i.create()
+        del i.type
+        i.update()
+        i2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:isChild15'),
+                                ignore_cache=True)
+        self.assertTrue(OwlPropertyType.StatementProperty not in set(i2.type))
 
     # @unittest.skip('Work in progress')
     def test_propertyclass_delete_attrs(self):

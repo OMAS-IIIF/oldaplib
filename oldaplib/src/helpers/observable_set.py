@@ -290,10 +290,10 @@ class ObservableSet(Notify):
                       field: Iri,
                       ignoreitems: Set[Any] | None = None,
                       indent: int = 0, indent_inc: int = 4) -> list[str]:
-        items_to_add = self._setdata - self._old_value.to_set()
+        items_to_add = self._setdata - self._old_value.to_set() if self._old_value else self._setdata
         if ignoreitems:
             items_to_add = items_to_add - ignoreitems
-        items_to_delete = self._old_value.to_set() - self._setdata
+        items_to_delete = self._old_value.to_set() - self._setdata if self._old_value else set()
         if ignoreitems:
             items_to_delete = items_to_delete - ignoreitems
         blank = ''
