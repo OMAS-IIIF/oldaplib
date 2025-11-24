@@ -504,7 +504,7 @@ class PropertyClass(Model, Notify):
                 to_delete = self._attributes.get(attr) - remaining
                 for x in to_delete:
                     self._attributes[attr].discard(x)
-                    return
+                return
             else:
                 to_add = set(value) - set(self._attributes.get(attr))
                 to_delete = set(self._attributes.get(attr)) - set(value)
