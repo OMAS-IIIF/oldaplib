@@ -966,7 +966,7 @@ class TestPropertyClass(unittest.TestCase):
                           name=LangString(["Child"]),
                           description={"Child of the human"})
         i.create()
-        i.type = [OwlPropertyType.FunctionalProperty]
+        i.type = {OwlPropertyType.FunctionalProperty, OwlPropertyType.SymmetricProperty}
         i.update()
         i2 = PropertyClass.read(con=self._connection,
                                 project=self._project,

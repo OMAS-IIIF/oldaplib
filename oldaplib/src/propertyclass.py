@@ -498,11 +498,24 @@ class PropertyClass(Model, Notify):
         """
         if not isinstance(attr, PropClassAttr):
             raise OldapError(f'Unsupported prop {attr}')
-        if attr == PropClassAttr.TYPE and value is None:
-            remaining = self._attributes.get(attr) & {OwlPropertyType.OwlObjectProperty, OwlPropertyType.OwlDataProperty}
-            to_delete = self._attributes.get(attr) - remaining
-            for x in to_delete:
-                self._attributes[attr].discard(x)
+        if attr == PropClassAttr.TYPE:
+            if value is None:
+                remaining = self._attributes.get(attr) & {OwlPropertyType.OwlObjectProperty, OwlPropertyType.OwlDataProperty}
+                to_delete = self._attributes.get(attr) - remaining
+                for x in to_delete:
+                    self._attributes[attr].discard(x)
+                    return
+            else:
+                to_add = set(value) - set(self._attributes.get(attr))
+                to_delete = set(self._attributes.get(attr)) - set(value)
+                if OwlPropertyType.OwlObjectProperty in to_delete:
+                    to_delete.remove(OwlPropertyType.OwlObjectProperty)
+                if OwlPropertyType.OwlDataProperty in to_delete:
+                    to_delete.remove(OwlPropertyType.OwlDataProperty)
+                for x in to_delete:
+                    self._attributes[attr].discard(x)
+                for x in to_add:
+                    self._attributes[attr].add(x)
                 return
         if self._attributes.get(attr) == value:
             return
