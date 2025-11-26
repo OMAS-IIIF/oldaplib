@@ -1,12 +1,14 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix schema: <http://schema.org/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix oldap: <http://oldap.org/base#> .
 @prefix : <http://oldap.org/base#> .
 
 @prefix hyha: <http://hyperhamlet.unibas.ch/> .
+@prefix britnet: <http://www.salsah.org/version/2.0/SwissBritNet#> .
 
 :admin {
 
@@ -95,3 +97,22 @@
     <<<https://orcid.org/0000-0002-7403-9595> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission :ADMIN_RESOURCES .
 
 }
+
+hyha:shacl {
+   hyha:shapes schema:version "0.1.0"^^xsd:string .
+}
+
+hyha:onto {
+        hyha:ontology rdf:type owl:Ontology ;
+            owl:versionInfo "0.1.0"^^xsd:string .
+}
+
+britnet:shacl {
+   britnet:shapes schema:version "0.1.0"^^xsd:string .
+}
+
+britnet:onto {
+        britnet:ontology rdf:type owl:Ontology ;
+            owl:versionInfo "0.1.0"^^xsd:string .
+}
+

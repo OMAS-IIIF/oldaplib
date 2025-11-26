@@ -191,5 +191,4 @@
         :inProject :HyperHamlet ;
         :hasPermissions :GenericView ;
         :isActive false .
-
 }
