@@ -521,13 +521,10 @@ class DataModel(Model):
             # create empty data model -> update -> add resource without property -> add property -> update
             # _prop_changeset is not empoty after update... ERROR!!!!!!!!!!!!!!!!!!!!!
             try:
-                if resclassiri == 'test:Book':
-                    pass
                 resclass = ResourceClass.read(con, project, Xsd_QName(resclassiri, validate=False), sa_props=sa_props, ignore_cache=ignore_cache)
+                resclasses.append(resclass)
             except OldapError as er:
                 print(f'Error reading resource class {resclassiri}: {er}')
-
-            resclasses.append(resclass)
         instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses, extontos=extontos)
         for qname in instance.get_extontos():
             instance[qname].set_notifier(instance.notifier, qname)

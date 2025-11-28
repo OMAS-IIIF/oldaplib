@@ -15,6 +15,20 @@ shared:shacl {
     shared:shapes schema:version "0.1.0"^^xsd:string .
 
     ###########################################################################
+    # Shared properties
+    ###########################################################################
+    :commentStringShape a sh:PropertyShape ;
+        sh:path :commentString ;
+        oldap:statementProperty true ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:name "Simple comment"@en ;
+        sh:description "A simple comment as a string"@en ;
+        sh:datatype xsd:string .
+
+    ###########################################################################
     # Chronology Date definitions
     ###########################################################################
     oldap:ChronolgyStatementShape a sh:NodeShape ;
@@ -176,7 +190,18 @@ shared:onto {
         owl:versionInfo "0.1.0"^^xsd:string .
 
     ###############################################################################
-    # Properties used for :Project
+    # Generic comment property
+    ###############################################################################
+
+    :commentString rdf:type rdf:Property, owl:DatatypeProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:range xsd:string .
+
+    ###############################################################################
+    # Properties used for :ChronologyObject
     ###############################################################################
 
     oldap:startJDC rdf:type owl:DatatypeProperty ;
@@ -357,7 +382,6 @@ shared:onto {
                     owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                     owl:onDataRange xsd:string ;
                 ] .
-
 
 }
 

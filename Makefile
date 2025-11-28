@@ -21,6 +21,7 @@ docs:
 	poetry run mkdocs serve
 
 test: loadontos
+	curl -X POST -H 'Content-Type: application/x-trig' --data-binary @oldaplib/ontologies/admin-testing.trig 'http://localhost:7200/repositories/oldap/statements'
 	OLDAP_TS_SERVER=http://localhost:7200 \
 	OLDAP_TS_REPO=oldap \
 	OLDAP_REDIS_URL=redis://localhost:6379 \

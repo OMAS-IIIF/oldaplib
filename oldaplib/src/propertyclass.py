@@ -200,7 +200,7 @@ class PropertyClass(Model, Notify):
                  _externalOntology: bool | Xsd_boolean = False,
                  _internal: Xsd_QName | None = None,  # DO NOT USE!! Only for serialization!
                  _force_external: bool | None = None,  # DO NOT USE!! Only for serialization!
-                 _from_triplestore: bool = False,
+                 _from_triplestore: bool = False,  # DO NOT USE!! Only for serialization!
                  validate: bool = False,
                  **kwargs):
         """
@@ -255,7 +255,6 @@ class PropertyClass(Model, Notify):
                        validate=validate)
         Notify.__init__(self, notifier, notify_data)
 
-        #self.__statementProperty = _statementProperty if isinstance(_statementProperty, Xsd_boolean) else Xsd_boolean(_statementProperty, validate=True)
         self._externalOntology = _externalOntology if isinstance(_externalOntology, Xsd_boolean) else Xsd_boolean(_externalOntology, validate=True)
         if self._externalOntology:
             self._force_external = True
@@ -382,7 +381,7 @@ class PropertyClass(Model, Notify):
             **({'_internal': self._internal} if self._internal else {}),
             **({'_force_external': self._force_external} if self._force_external else {}),
             **({'_externalOntology': self._externalOntology} if self._externalOntology else {}),
-            **({'__statementProperty': self.__statementProperty} if self.__statementProperty else {}),
+            #**({'__statementProperty': self.__statementProperty} if self.__statementProperty else {}),
             '_from_triplestore': self.__from_triplestore,
         }
 
