@@ -474,14 +474,14 @@ class DataModel(Model):
         #
         query = cls.__context.sparql_context
         query += f"""
-        SELECT ?prop ?graph
+        SELECT ?prop
         WHERE {{
-	        GRAPH ?graph {{
-		        ?prop a sh:PropertyShape
-	        }}
-            FILTER (?graph = {cls.__graph}:shacl || ?graph = shared:shacl)
+            GRAPH {cls.__graph}:shacl {{
+                ?prop a sh:PropertyShape
+            }}
         }}
         """
+
         jsonobj = con.query(query)
         res = QueryProcessor(context=cls.__context, query_result=jsonobj)
         #
@@ -489,7 +489,7 @@ class DataModel(Model):
         #
         propclasses: list[PropertyClass] = []
         for r in res:
-            projectid = r['graph'].prefix
+            projectid = cls.__graph
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
             propclass = PropertyClass.read(con, projectid, Xsd_QName(propclassiri, validate=False), ignore_cache=ignore_cache)

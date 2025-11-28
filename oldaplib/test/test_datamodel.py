@@ -374,7 +374,6 @@ class TestDataModel(unittest.TestCase):
             Xsd_QName("oldap:hasAdminPermission"),
             Xsd_QName("oldap:statementProperty"),
             Xsd_QName("oldap:namespaceIri"),
-            Xsd_QName("shared:commentString")
         })
         self.assertEqual(set(model.get_resclasses()), {
             Xsd_QName("oldap:Project"),
