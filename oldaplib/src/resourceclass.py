@@ -671,11 +671,26 @@ class ResourceClass(Model, Notify):
         """
         context = Context(name=self._con.context_name)
         query = context.sparql_context
+        # query += f"""
+        # ASK {{
+        #     GRAPH {self._project.projectShortName}:data {{
+        #         ?resinstance rdf:type {self._owlclass_iri} .
+        #         FILTER(?resinstance != {self._owlclass_iri}Shape)
+        #     }}
+        # }}
+        # """
         query += f"""
         ASK {{
-            GRAPH {self._project.projectShortName}:data {{
-                ?resinstance rdf:type {self._owlclass_iri} .
-                FILTER(?resinstance != {self._owlclass_iri}Shape)
+            {{
+                GRAPH {self._project.projectShortName}:data {{
+                    ?resinstance rdf:type {self._owlclass_iri} .
+                }}
+            }}
+            UNION
+            {{
+                GRAPH {self._project.projectShortName}:onto {{
+                    ?subclass rdfs:subClassOf+ {self._owlclass_iri} .
+                }}
             }}
         }}
         """
