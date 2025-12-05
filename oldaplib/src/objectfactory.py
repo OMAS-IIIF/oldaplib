@@ -229,9 +229,9 @@ class ResourceInstance:
         if property.get(PropClassAttr.UNIQUE_LANG):
             return  # TODO: LangString does not yet allow multiple entries of the same language...
         if property.get(PropClassAttr.IN):
-            for val in values:
-                if not val in property[PropClassAttr.IN]:
-                    raise OldapErrorValue(f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{val}"')
+            #for val in values:
+            if not values in property[PropClassAttr.IN]:
+                raise OldapErrorValue(f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{val}"')
         if property.get(PropClassAttr.MIN_LENGTH):
             for val in values:
                 l = 0
