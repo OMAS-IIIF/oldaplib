@@ -700,6 +700,11 @@ class TestObjectFactory(unittest.TestCase):
                                              resClass='test:Page')
         self.assertEqual(len(res), 8)
 
+    #@unittest.skip('Work in progress')
+    def test_media_object(self):
+        res = ResourceInstance.get_media_object_by_id(con=self._connection,mediaObjectId='Nn3Epw1LMTNS.tif')
+        print(res)
+
 
 if __name__ == '__main__':
     unittest.main()

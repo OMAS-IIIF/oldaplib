@@ -29,6 +29,7 @@ from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 ValueType = LangString | ObservableSet | Xsd
 
@@ -1141,6 +1142,44 @@ class ResourceInstance:
                         tmp[Xsd_QName('oldap:lastModificationDate')] = r['lastModificationDate']
                 result[r['s']] = tmp
             return result
+
+    @staticmethod
+    def get_media_object_by_id(con: IConnection, mediaObjectId: Xsd_string | str) -> dict[str, Xsd] | None:
+        if not isinstance(mediaObjectId, Xsd_string):
+            mediaObjectId = Xsd_string(mediaObjectId, validate=True)
+        blank = ''
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+
+
+
+        sparql += f"""
+        SELECT ?subject ?graph ?path ?permval
+        WHERE {{
+            VALUES ?inputImageId {{ {mediaObjectId.toRdf} }}
+
+            GRAPH ?graph {{
+                ?subject shared:imageId ?inputImageId .
+                ?subject rdf:type shared:MediaObject .
+                ?subject shared:path ?path .
+                ?subject oldap:grantsPermission ?permset .
+            }}
+            GRAPH oldap:admin {{
+                {con.userIri.toRdf} oldap:hasPermissions ?permset .
+                ?permset oldap:givesPermission ?DataPermission .
+                ?DataPermission oldap:permissionValue ?permval .
+            }}
+        }}
+        """
+        try:
+            jsonres = con.query(sparql)
+        except OldapError:
+            print(sparql)
+            raise
+        res = QueryProcessor(context, jsonres)
+        if len(res) == 0 or len(res) > 1:
+            return None
+        return {'iri': res[0]['subject'], 'graph': res[0]['graph'], 'path': res[0]['path'], 'permval': res[0]['permval']}
 
 
     def toJsonObject(self) -> dict[str, list[str] | str]:
