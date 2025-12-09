@@ -1151,8 +1151,6 @@ class ResourceInstance:
         context = Context(name=con.context_name)
         sparql = context.sparql_context
 
-
-
         sparql += f"""
         SELECT ?subject ?graph ?path ?permval
         WHERE {{
