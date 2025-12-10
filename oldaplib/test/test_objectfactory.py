@@ -705,6 +705,5 @@ class TestObjectFactory(unittest.TestCase):
         res = ResourceInstance.get_media_object_by_id(con=self._connection,mediaObjectId='Nn3Epw1LMTNS.tif')
         print(res)
 
-
 if __name__ == '__main__':
     unittest.main()

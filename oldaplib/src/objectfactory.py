@@ -1152,14 +1152,18 @@ class ResourceInstance:
         sparql = context.sparql_context
 
         sparql += f"""
-        SELECT ?subject ?graph ?path ?permval
+        SELECT ?subject ?graph ?path ?permval ?originalName ?serverUrl ?protocol ?originalMimeType
         WHERE {{
             VALUES ?inputImageId {{ {mediaObjectId.toRdf} }}
 
             GRAPH ?graph {{
                 ?subject shared:imageId ?inputImageId .
                 ?subject rdf:type shared:MediaObject .
+                ?subject shared:originalName ?originalName .
+                ?subject shared:originalMimeType ?originalMimeType .
+                ?subject shared:serverUrl ?serverUrl .
                 ?subject shared:path ?path .
+                ?subject shared:protocol ?protocol .
                 ?subject oldap:grantsPermission ?permset .
             }}
             GRAPH oldap:admin {{
@@ -1176,8 +1180,15 @@ class ResourceInstance:
             raise
         res = QueryProcessor(context, jsonres)
         if len(res) == 0 or len(res) > 1:
-            return None
-        return {'iri': res[0]['subject'], 'graph': res[0]['graph'], 'path': res[0]['path'], 'permval': res[0]['permval']}
+            raise OldapErrorNotFound(f'Media object with id {mediaObjectId} not found.')
+        return {'iri': res[0]['subject'],
+                'originalName': res[0]['originalName'],
+                'originalMimeType': res[0]['originalMimeType'],
+                'serverUrl': res[0]['serverUrl'],
+                'protocol': res[0]['protocol'],
+                'graph': res[0]['graph'],
+                'path': res[0]['path'],
+                'permval': res[0]['permval']}
 
 
     def toJsonObject(self) -> dict[str, list[str] | str]:
