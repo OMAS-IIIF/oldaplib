@@ -365,6 +365,8 @@ class TestObjectFactory(unittest.TestCase):
                 originalMimeType='image/tiff',
                 serverUrl='http://iiif.oldap.org/iiif/3/',
                 imageId='cat.tif',
+                path='test',
+                protocol='iiif',
                 grantsPermission=Iri('oldap:GenericView'))
         mo.create()
         data = ResourceInstance.read_data(con=self._connection, iri=mo.iri, projectShortName='test')
