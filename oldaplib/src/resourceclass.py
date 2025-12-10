@@ -799,6 +799,10 @@ class ResourceClass(Model, Notify):
                             conf = GlobalConfig(self._con)
                             sysproj = conf.sysproject
                             superclass = ResourceClass.read(self._con, sysproj, owliri)
+                        elif owliri.prefix == 'shared':
+                            conf = GlobalConfig(self._con)
+                            sharedproj = conf.sharedproject
+                            superclass = ResourceClass.read(self._con, sharedproj, owliri)
                         else:
                             superclass = ResourceClass.read(self._con, self._project, owliri)
                         self._attributes[ResClassAttribute.SUPERCLASS][owliri] = superclass

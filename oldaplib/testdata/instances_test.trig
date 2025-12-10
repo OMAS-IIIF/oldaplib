@@ -1,6 +1,8 @@
+@prefix http: <http://www.w3.org/2011/http#> .
 @prefix : <http://oldap.org/base#> .
 @prefix test: <http://oldap.org/test#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix shared: <http://oldap.org/shared#> .
 
 test:data {
   <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> a test:Book;
@@ -116,4 +118,20 @@ test:data {
     test:pageDescription "Description for page 4"@en;
     test:pageContent "Waseliwas for page 4\\n9pB6yFsJs7zcCkyF9j9flbGUcNczytEsw1nSUYCBLIN3P63wePvVQnWDX5dgUDXyeEwUwoBycRPcrp6kG2wsknVjfajQI30lZ73E";
     test:pageInBook <urn:uuid:9bf6ae23-bf2f-4466-abe3-65efe6afe589> .
+
+  <urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901> a shared:MediaObject;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:28.861171+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:28.861171+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    shared:originalName 'testfile.tif';
+    shared:originalMimeType 'image/tiff';
+    shared:serverUrl 'https://iiif.oldap.org';
+    shared:imageId 'x_34db.tif';
+    shared:protocol 'iiif';
+    shared:path 'test/subtest' .
+
+
+
 }

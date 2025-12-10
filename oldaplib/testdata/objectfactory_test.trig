@@ -10,6 +10,7 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix oldap: <http://oldap.org/base#> .
 @prefix test: <http://oldap.org/test#> .
+@prefix shared: <http://oldap.org/shared#> .
 
 oldap:admin {
 
@@ -61,6 +62,25 @@ test:shacl {
         ],
         [
             sh:path test:subName ;
+            sh:datatype xsd:string ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+        ] .
+
+    test:MediaLibraryEntryShape a sh:NodeShape ;
+        sh:targetClass test:MediaLibraryEntry ;
+        dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        sh:node oldap:ThingShape, shared:MediaObjectShape ;
+        sh:property [
+            sh:path rdf:type ;
+        ],
+        [
+            sh:path test:caption ;
             sh:datatype xsd:string ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
@@ -840,6 +860,18 @@ test:onto {
                 owl:onDataRange xsd:string ;
             ] .
 
+    test:MediaLibraryEntry rdf:type owl:Class ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:subClassOf oldap:Thing, shared:MediaObject, [
+            rdf:type owl:Restriction ;
+            owl:onProperty test:caption ;
+            owl:onDataRange xsd:string ;
+        ] .
+
+
     test:name rdf:type owl:DatatypeProperty ;
         rdfs:domain test:Mammal ;
         rdfs:range xsd:string ;
@@ -856,7 +888,15 @@ test:onto {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
 
-    test:Person rdf:type owl:Class ;
+     test:caption rdf:type owl:DatatypeProperty ;
+        rdfs:domain test:MediaLibraryEntry ;
+        rdfs:range xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
+
+   test:Person rdf:type owl:Class ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -1658,5 +1698,3 @@ test:onto {
             ] .
 
 }
-
-

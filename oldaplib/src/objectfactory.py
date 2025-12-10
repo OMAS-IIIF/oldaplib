@@ -1156,9 +1156,9 @@ class ResourceInstance:
         WHERE {{
             VALUES ?inputImageId {{ {mediaObjectId.toRdf} }}
 
+            ?subject rdf:type shared:MediaObject .
             GRAPH ?graph {{
                 ?subject shared:imageId ?inputImageId .
-                ?subject rdf:type shared:MediaObject .
                 ?subject shared:originalName ?originalName .
                 ?subject shared:originalMimeType ?originalMimeType .
                 ?subject shared:serverUrl ?serverUrl .
@@ -1182,13 +1182,13 @@ class ResourceInstance:
         if len(res) == 0 or len(res) > 1:
             raise OldapErrorNotFound(f'Media object with id {mediaObjectId} not found.')
         return {'iri': res[0]['subject'],
-                'originalName': res[0]['originalName'],
-                'originalMimeType': res[0]['originalMimeType'],
-                'serverUrl': res[0]['serverUrl'],
-                'protocol': res[0]['protocol'],
+                'shared:originalName': res[0]['originalName'],
+                'shared:originalMimeType': res[0]['originalMimeType'],
+                'shared:serverUrl': res[0]['serverUrl'],
+                'shared:protocol': res[0]['protocol'],
                 'graph': res[0]['graph'],
-                'path': res[0]['path'],
-                'permval': res[0]['permval']}
+                'shared:path': res[0]['path'],
+                'oldap:permissionValue': res[0]['permval']}
 
 
     def toJsonObject(self) -> dict[str, list[str] | str]:

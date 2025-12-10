@@ -700,10 +700,48 @@ class TestObjectFactory(unittest.TestCase):
                                              resClass='test:Page')
         self.assertEqual(len(res), 8)
 
-    @unittest.skip('Work in progress')
-    def test_media_object(self):
-        res = ResourceInstance.get_media_object_by_id(con=self._connection,mediaObjectId='Nn3Epw1LMTNS.tif')
-        print(res)
+    #@unittest.skip('Work in progress')
+    def test_read_media_object(self):
+        res = ResourceInstance.get_media_object_by_id(con=self._connection,mediaObjectId='x_34db.tif')
+        self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
+        self.assertEqual(res['shared:originalName'], Xsd_string("testfile.tif"))
+        self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/tiff"))
+        self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
+        self.assertEqual(res['shared:protocol'], Xsd_string("iiif"))
+        self.assertEqual(res['graph'], Xsd_QName("test:data"))
+        self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
+        self.assertEqual(res['oldap:permissionValue'], Xsd_integer(2))
+
+    def test_create_media_object(self):
+        dm = DataModel.read(con=self._connection, project='test')
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        MLE = factory.createObjectInstance('test:MediaLibraryEntry')
+        mle = MLE(originalName='MyCarnivalImagetif',
+                  originalMimeType='image/tiff',
+                  imageId='x_34dbY4.tif',
+                  serverUrl='http://iiif.oldap.org/iiif/3/',
+                  path='test/subtest',
+                  protocol='iiif',
+                  caption='My Carnival Image of 1968 with the Bohrerhof-Clique',
+                  grantsPermission=Iri('oldap:GenericView'))
+        mle.create()
+        data = ResourceInstance.read_data(con=self._connection, iri=mle.iri, projectShortName='test')
+        self.assertEqual(data['shared:originalName'], ["MyCarnivalImagetif"])
+        self.assertEqual(data['shared:originalMimeType'], ['image/tiff'])
+        self.assertEqual(data['shared:serverUrl'], ['http://iiif.oldap.org/iiif/3/'])
+        self.assertEqual(data['shared:imageId'], ['x_34dbY4.tif'])
+        self.assertEqual(data['shared:protocol'], ['iiif'])
+        self.assertEqual(data['shared:path'], ['test/subtest'])
+        self.assertEqual(data['test:caption'], ['My Carnival Image of 1968 with the Bohrerhof-Clique'])
+
+
+        data2 = ResourceInstance.get_media_object_by_id(con=self._connection, mediaObjectId='x_34dbY4.tif')
+        self.assertEqual(data2['shared:originalName'], "MyCarnivalImagetif")
+        self.assertEqual(data2['shared:originalMimeType'], 'image/tiff')
+        self.assertEqual(data2['shared:serverUrl'], 'http://iiif.oldap.org/iiif/3/')
+        self.assertEqual(data2['shared:protocol'], 'iiif')
+        self.assertEqual(data2['shared:path'], 'test/subtest')
+        mle.delete()
 
 if __name__ == '__main__':
     unittest.main()

@@ -193,6 +193,9 @@ shared:shacl {
             oldap:externalOntology "false"^^xsd:boolean ;
             sh:datatype xsd:string ;
             sh:in ( 'iiif' 'http' 'custom') ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "4.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:path ;
@@ -203,7 +206,10 @@ shared:shacl {
             oldap:statementProperty "false"^^xsd:boolean ;
             oldap:externalOntology "false"^^xsd:boolean ;
             sh:datatype xsd:string ;
-        ] .
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "4.0"^^xsd:decimal ;
+       ] .
 }
 
 shared:onto {
