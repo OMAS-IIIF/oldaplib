@@ -1,7 +1,8 @@
+import io
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional, Union, Any, Self
+from typing import Dict, List, Optional, Union, Any, Self, TextIO
 
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -723,57 +724,58 @@ class DataModel(Model):
         cache = CacheSingletonRedis()
         cache.delete(Xsd_QName(self._project.projectShortName, 'shacl'))
 
-
-    def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
+    def __to_trig_format(self, f: TextIO, indent: int = 0, indent_inc: int = 4) -> None:
         """
-        Write the complete datamodel in the trig format to a file.
+        Generates and writes TriG-formatted RDF data to the given TextIO object. The method constructs
+        SHACL and OWL ontology representations based on the internal state and configuration of the
+        object. SHACL validation shapes, ontology metadata, and RDF structure are included. This
+        method is primarily used for exporting RDF data in a standard, compliant format.
 
-        This method serializes the complete datamodel, including its SHACL
-        shapes and OWL ontology, and writes the resulting data in the trig
-        format to the specified file.
-
-        :param filename: The path of the file where the trig data will be
-                         written
-        :type filename: str
-        :param indent: Start level of indentation for serialized data. Defaults
-                       to 0
-        :type indent: int
-        :param indent_inc: Number of characters to increment for each indent
-                           level. Defaults to 4
-        :type indent_inc: int
+        :param f: The output stream (e.g., a file or any TextIO object) where the generated TriG
+            data will be written.
+        :param indent: The base indentation level applied when formatting the output.
+        :param indent_inc: The number of spaces added for each level of indentation to format
+            nested structures cleanly.
         :return: None
         """
+        timestamp = Xsd_dateTime.now()
+        blank = ''
+        context = Context(name=self._con.context_name)
+        f.write('\n')
+        f.write(context.turtle_context)
+        f.write(f'\n{blank:{indent * indent_inc}}{self.__graph}:shacl {{\n')
+        f.write(f'{blank:{(indent + 1) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n')
+        f.write('\n')
+        for qname, onto in self.__extontos.items():
+            f.write(onto.create_shacl(timestamp=timestamp, indent=1))
+        f.write('\n\n')
+        for iri, prop in self.__propclasses.items():
+            if not prop.internal:
+                f.write(prop.create_shacl(timestamp=timestamp, indent=1))
+        f.write('\n\n')
+        for iri, resclass in self.__resclasses.items():
+            f.write(resclass.create_shacl(timestamp=timestamp, indent=1))
+        f.write('\n\n')
+        f.write(f'\n{blank:{indent * indent_inc}}}}\n')
+
+        f.write(f'{blank:{indent * indent_inc}}{self.__graph}:onto {{\n')
+        f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n')
+        f.write(f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n')
+        f.write('\n')
+        for iri, prop in self.__propclasses.items():
+            f.write(prop.create_owl_part1(timestamp=timestamp, indent=2))
+        for iri, resclass in self.__resclasses.items():
+            f.write(resclass.create_owl(timestamp=timestamp))
+        f.write(f'{blank:{indent * indent_inc}}}}\n')
+
+    def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
         with open(filename, 'w') as f:
-            timestamp = Xsd_dateTime.now()
-            blank = ''
-            context = Context(name=self._con.context_name)
-            f.write('\n')
-            f.write(context.turtle_context)
-            f.write(f'\n{blank:{indent * indent_inc}}{self.__graph}:shacl {{\n')
-            f.write(f'{blank:{(indent + 1) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n')
-            f.write('\n')
-            for qname, onto in self.__extontos.items():
-                f.write(onto.create_shacl(timestamp=timestamp, indent=1))
-            f.write('\n\n')
-            for iri, prop in self.__propclasses.items():
-                if not prop.internal:
-                    f.write(prop.create_shacl(timestamp=timestamp, indent=1))
-            f.write('\n\n')
-            for iri, resclass in self.__resclasses.items():
-                f.write(resclass.create_shacl(timestamp=timestamp, indent=1))
-            f.write('\n\n')
-            f.write(f'\n{blank:{indent * indent_inc}}}}\n')
+            self.__to_trig_format(f, indent=indent, indent_inc=indent_inc)
 
-            f.write(f'{blank:{indent * indent_inc}}{self.__graph}:onto {{\n')
-            f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n')
-            f.write(f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n')
-            f.write('\n')
-            for iri, prop in self.__propclasses.items():
-                f.write(prop.create_owl_part1(timestamp=timestamp, indent=2))
-            for iri, resclass in self.__resclasses.items():
-                f.write(resclass.create_owl(timestamp=timestamp))
-            f.write(f'{blank:{indent * indent_inc}}}}\n')
-
+    def write_as_str(self, indent: int = 0, indent_inc: int = 4) -> str:
+        f = io.StringIO()
+        self.__to_trig_format(f, indent=indent, indent_inc=indent_inc)
+        return f.getvalue()
 
 
 
