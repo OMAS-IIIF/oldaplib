@@ -69,15 +69,15 @@ class Xsd_anyURI(Xsd):
                     raise OldapErrorValue(f'Invalid URN format for "{value}".')
             elif value.startswith("http"):
                 if not re.match(self._uri_pattern, str(value)):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI (regexp).')
                 if validate:
                     if not XsdValidator.validate(XsdDatatypes.anyURI, str(value)):
-                        raise OldapErrorValue(f'Invalid string "{value}" for anyURI')
+                        raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI (validator)')
                     else:
                         if not url(str(value)):
-                            raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI.')
+                            raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI (url()).')
             else:
-                raise OldapErrorValue(f'Invalid string "{value}" for anyURI')
+                raise OldapErrorValue(f'Invalid string "{value}" for anyURI (no urn:/http:)')
             self._value = str(value)
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 

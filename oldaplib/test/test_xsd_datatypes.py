@@ -281,7 +281,7 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertEqual(hash(val1), hash(val2))
         with self.assertRaises(OldapErrorValue) as ex:
             val = Xsd_anyURI('waseliwas', validate=True)
-        self.assertEqual(str(ex.exception), 'Invalid string "waseliwas" for anyURI')
+        self.assertEqual(str(ex.exception), 'Invalid string "waseliwas" for anyURI (no urn:/http:)')
 
     def test_xsd_base64binary(self):
         data = base64.b64encode(b'Waseliwas soll den das sein?')

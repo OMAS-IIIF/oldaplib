@@ -190,6 +190,21 @@ class PermissionSet(Model):
     def qname(self) -> Xsd_QName:
         return self.__permset_iri
 
+    def trig_to_str(self, created: Xsd_dateTime, modified: Xsd_dateTime, indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql = ''
+        sparql += f'{blank:{indent * indent_inc}} {self.__permset_iri.toRdf} a oldap:PermissionSet'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {created.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {modified.toRdf}'
+        for attr, value in self._attributes.items():
+            if attr.value.prefix == 'virtual' or not value:
+                continue
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
+        return sparql
+
+
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Creates and stores a permission set in the triple store.
@@ -236,15 +251,16 @@ class PermissionSet(Model):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}} {self.__permset_iri.toRdf} a oldap:PermissionSet'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        for attr, value in self._attributes.items():
-            if attr.value.prefix == 'virtual' or not value:
-                continue
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
+        sparql += self.trig_to_str(created=timestamp, modified=timestamp, indent=indent + 2, indent_inc=indent_inc)
+        # sparql += f'{blank:{(indent + 2) * indent_inc}} {self.__permset_iri.toRdf} a oldap:PermissionSet'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        # for attr, value in self._attributes.items():
+        #     if attr.value.prefix == 'virtual' or not value:
+        #         continue
+        #     sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -307,6 +323,7 @@ class PermissionSet(Model):
         :raises OldapErrorInconsistency: Raised if the permission set contains inconsistencies
                                          in its data during retrieval.
         """
+        context = Context(name=con.context_name)
         if qname:
             permset_iri = Xsd_QName(qname, validate=True)
         elif permissionSetId and definedByProject:
@@ -325,7 +342,6 @@ class PermissionSet(Model):
             if tmp is not None:
                 tmp.update_notifier()
                 return tmp
-        context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += f"""
         SELECT ?permset ?p ?o

@@ -231,8 +231,25 @@ class ResourceInstance:
             return  # TODO: LangString does not yet allow multiple entries of the same language...
         if property.get(PropClassAttr.IN):
             #for val in values:
-            if not values in property[PropClassAttr.IN]:
-                raise OldapErrorValue(f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{val}"')
+            if property.datatype is None:  # no defined datatype, e.h.sh:IRI
+                tmpinset = {str(x) for x in property[PropClassAttr.IN]}
+                if isinstance(values, (list, tuple, set, ObservableSet)):
+                    for val in values:
+                        if not str(val) in tmpinset:
+                            raise OldapErrorValue(
+                                f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{val}"')
+                else:
+                    if not str(values) in tmpinset:
+                        raise OldapErrorValue(f'Property {property.property_class_iri} with IN={property[PropClassAttr.IN]} has invalid value "{values}"')
+            else:
+                if isinstance(values, (list, tuple, set, ObservableSet)):
+                    for val in values:
+                        if not val in property[PropClassAttr.IN]:
+                            raise OldapErrorValue(
+                                f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{val}"')
+                else:
+                    if not values in property[PropClassAttr.IN]:
+                        raise OldapErrorValue(f'Property {property.property_class_iri} with IN={property[PropClassAttr.IN]} has invalid value "{values}"')
         if property.get(PropClassAttr.MIN_LENGTH):
             for val in values:
                 l = 0

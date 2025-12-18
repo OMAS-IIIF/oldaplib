@@ -108,8 +108,6 @@ class TestObjectFactory(unittest.TestCase):
         file = project_root / 'oldaplib' / 'testdata' / 'instances_test.trig'
         cls._connection.upload_turtle(file)
 
-        sleep(1)  # upload may take a while...
-
         user = User.read(cls._connection, "rosenth")
         user.hasPermissions.add(Iri('oldap:GenericUpdate'))  # TODO: SHOULD WORK WITH Xsd_QName
         user.update()
@@ -362,6 +360,7 @@ class TestObjectFactory(unittest.TestCase):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         MO = factory.createObjectInstance('shared:MediaObject')
         mo = MO(originalName='Cat.tif',
+                type='dcmitype:StillImage',
                 originalMimeType='image/tiff',
                 serverUrl='http://iiif.oldap.org/iiif/3/',
                 imageId='cat.tif',
@@ -547,7 +546,7 @@ class TestObjectFactory(unittest.TestCase):
                    givenName="Max",
                    grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
         p.create()
-        sleep(1)
+
         obj1 = Person.read(con=self._connection,
                            iri=p.iri)
         with self.assertRaises(OldapErrorValue):
@@ -719,6 +718,7 @@ class TestObjectFactory(unittest.TestCase):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         MLE = factory.createObjectInstance('test:MediaLibraryEntry')
         mle = MLE(originalName='MyCarnivalImagetif',
+                  type='dcmitype:StillImage',
                   originalMimeType='image/tiff',
                   imageId='x_34dbY4.tif',
                   serverUrl='http://iiif.oldap.org/iiif/3/',

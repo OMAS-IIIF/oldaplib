@@ -51,7 +51,6 @@ class TestexternalOntologies(unittest.TestCase):
         cls._connection.upload_turtle(file)
         file = project_root / 'oldaplib' / 'ontologies' / 'admin-testing.trig'
         cls._connection.upload_turtle(file)
-        sleep(1)  # upload may take a while...
 
         project = Project(con=cls._connection,
                           projectIri=Iri("http://extonto.test.org/test"),

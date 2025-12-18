@@ -426,6 +426,21 @@ class Project(Model):
                 projects.append(ProjectSearchResult(r['project'], r['shortname']))
         return projects
 
+
+    def trig_to_str(self, created: Xsd_dateTime, modified: Xsd_dateTime,indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql = ''
+        sparql += f'\n{blank:{indent * indent_inc}}{self.projectIri.toRdf} a oldap:Project'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {created.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {modified.toRdf}'
+        for attr, value in self._attributes.items():
+            if not value:
+                continue
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
+        return sparql
+
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
         Creates a new project in the triple store. The function starts by
@@ -459,11 +474,14 @@ class Project(Model):
             raise OldapErrorNoPermission(message)
 
         timestamp = Xsd_dateTime.now()
-        indent: int = 0
-        indent_inc: int = 4
+        #indent: int = 0
+        #indent_inc: int = 4
 
         context = Context(name=self._con.context_name)
 
+        #
+        # SPARQL to check if project with the given projectShortName already exists
+        #
         sparql0 = context.sparql_context
         sparql0 += f"""
         ASK {{
@@ -475,15 +493,9 @@ class Project(Model):
         }}
         """
 
-        sparql1 = context.sparql_context
-        sparql1 += f"""
-        SELECT ?project
-        FROM oldap:admin
-        WHERE {{
-            ?project a oldap:Project .
-            FILTER(?project = {self.projectIri.toRdf})
-        }}
-        """
+        #
+        # SPARQL to check if the given namespaceIri is already used by another project
+        #
         sparql1a = context.sparql_context
         sparql1a += f"""
         ASK {{
@@ -493,6 +505,9 @@ class Project(Model):
         }}
         """
 
+        #
+        # SPARQL to check if project with the given projectIri already exists
+        #
         sparql1b = context.sparql_context
         sparql1b += f"""
         ASK {{
@@ -506,15 +521,16 @@ class Project(Model):
         sparql2 = context.sparql_context
         sparql2 += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql2 += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
-        sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.projectIri.toRdf} a oldap:Project'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-        sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        for attr, value in self._attributes.items():
-            if not value:
-                continue
-            sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
+        sparql2 += self.trig_to_str(created=timestamp, modified=timestamp, indent=indent + 2, indent_inc=indent_inc)
+        # sparql2 += f'\n{blank:{(indent + 2) * indent_inc}}{self.projectIri.toRdf} a oldap:Project'
+        # sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+        # sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
+        # sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+        # sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        # for attr, value in self._attributes.items():
+        #     if not value:
+        #         continue
+        #     sparql2 += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
         sparql2 += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql2 += f'{blank:{indent * indent_inc}}}}\n'
 

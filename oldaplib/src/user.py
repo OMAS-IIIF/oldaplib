@@ -363,7 +363,43 @@ class User(Model):
             self._changeset[UserAttr.IN_PROJECT] = AttributeChange(self._attributes[UserAttr.IN_PROJECT], Action.MODIFY)
         self._attributes[UserAttr.IN_PROJECT][project].remove(permission)
 
-    def create(self, indent: int = 0, indent_inc: int = 4) -> None:
+    def trig_to_str(self,
+                    creator: Iri,
+                    created: Xsd_dateTime,
+                    contributor: Iri,
+                    modified: Xsd_dateTime,
+                    indent: int = 0, indent_inc: int = 4):
+        blank = ''
+        sparql = ''
+        sparql += f'{blank:{indent * indent_inc}}{self.userIri.toRdf} a oldap:User'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {creator.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {created.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {contributor.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {modified.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:userId {self.userId.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}schema:familyName {self.familyName.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}schema:givenName {self.givenName.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}schema:email {self.email.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:credentials {self.credentials.toRdf}'
+        activeval = "true" if self.isActive else "false"
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:isActive {activeval}'
+        star = ''
+        if self.inProject:
+            project = [p.toRdf for p in self.inProject.keys()]
+            rdfstr = ", ".join(project)
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:inProject {rdfstr}'
+            for p in self.inProject.keys():
+                for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
+                    star += f'{blank:{indent * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {p.toRdf}>> oldap:hasAdminPermission {admin_p.value} .\n'
+        if self.hasPermissions:
+            rdfstr = ", ".join([str(x) for x in self.hasPermissions])
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:hasPermissions {rdfstr}'
+        sparql += " .\n\n"
+        sparql += star
+        return sparql
+
+
+    def create(self, indent: int = 0, indent_inc: int = 4, keep_dates: bool = False) -> None:
         """
         Creates a user in the triple store with the provided details. Before proceeding with the
         creation, it verifies the uniqueness of the `userId` and `userIri`. The user is created
@@ -444,31 +480,43 @@ class User(Model):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
 
-        sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} a oldap:User'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:userId {self.userId.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:familyName {self.familyName.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:givenName {self.givenName.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:email {self.email.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:credentials {self.credentials.toRdf}'
-        activeval = "true" if self.isActive else "false"
-        sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:isActive {activeval}'
-        star = ''
-        if self.inProject:
-            project = [p.toRdf for p in self.inProject.keys()]
-            rdfstr = ", ".join(project)
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:inProject {rdfstr}'
-            for p in self.inProject.keys():
-                for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
-                    star += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {p.toRdf}>> oldap:hasAdminPermission {admin_p.value} .\n'
-        if self.hasPermissions:
-            rdfstr = ", ".join([str(x) for x in self.hasPermissions])
-            sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:hasPermissions {rdfstr}'
-        sparql += " .\n\n"
-        sparql += star
+        if keep_dates:
+            sparql += self.trig_to_str(creator=self.creator,
+                                       created=self.created,
+                                       contributor=self.contributor,
+                                       modified=self.modified,
+                                       indent=indent + 2, indent_inc=indent_inc)
+        else:
+            sparql += self.trig_to_str(creator=self._con.userIri,
+                                       created=timestamp,
+                                       contributor=self._con.userIri,
+                                       modified=timestamp,
+                                       indent=indent + 2, indent_inc=indent_inc)
+        # sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} a oldap:User'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:userId {self.userId.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:familyName {self.familyName.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:givenName {self.givenName.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:email {self.email.toRdf}'
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:credentials {self.credentials.toRdf}'
+        # activeval = "true" if self.isActive else "false"
+        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:isActive {activeval}'
+        # star = ''
+        # if self.inProject:
+        #     project = [p.toRdf for p in self.inProject.keys()]
+        #     rdfstr = ", ".join(project)
+        #     sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:inProject {rdfstr}'
+        #     for p in self.inProject.keys():
+        #         for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
+        #             star += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {p.toRdf}>> oldap:hasAdminPermission {admin_p.value} .\n'
+        # if self.hasPermissions:
+        #     rdfstr = ", ".join([str(x) for x in self.hasPermissions])
+        #     sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:hasPermissions {rdfstr}'
+        # sparql += " .\n\n"
+        # sparql += star
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 

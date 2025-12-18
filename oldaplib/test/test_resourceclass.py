@@ -137,7 +137,7 @@ class TestResourceClass(unittest.TestCase):
 
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
-        sleep(1)  # upload may take a while...
+
         cls._project = Project.read(cls._connection, "test")
         cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
 

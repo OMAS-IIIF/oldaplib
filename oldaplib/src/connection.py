@@ -1,6 +1,6 @@
 import json
 import os
-from time import sleep
+import time
 
 import bcrypt
 import jwt
@@ -338,80 +338,52 @@ class Connection(IConnection):
         if not req.ok:
             raise OldapError(req.text)
 
+
+
     def upload_turtle(self, filename: str, graphname: Optional[str] = None) -> None:
         """
-        Uploads a turtle or trig file to the specified repository. This function sends the file to the triplestore for
-        import and does not wait for the completion of the import process. The process itself may continue for some time
-        after the command is issued.
+        Upload a TTL/TRiG file to GraphDB using the RDF4J /statements endpoint.
 
-        :param filename: Name of the file to be uploaded.
-        :type filename: str
-        :param graphname: Optional; the name of the RDF-graph into which the data is to be imported.
-        :type graphname: str or None
-        :return: None
-        :rtype: None
-        :raises OldapError: Raised when there are issues with the repository or during the HTTP request.
+        This call is synchronous: when it returns without error, the data is loaded.
         """
-        # if not self._userdata:
-        #     raise OldapErrorNoPermission("No permission")
-        # actor = self._userdata
-        # sysperms = actor.inProject.get(QName('oldap:SystemProject'))
-        # is_root: bool = False
-        # if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-        #     is_root = True
-        # if not is_root:
-        #     raise OldapErrorNoPermission("No permission")
-
         logger = get_logger()
-        with open(filename, encoding="utf-8") as f:
-            content = f.read()
-            ext = Path(filename).suffix
-            mime = ""
-            if ext == ".ttl":
-                mime = "text/turtle"
-            elif ext == ".trig":
-                mime = "application/x-trig"
 
-            ct = datetime.now().astimezone()
-            ts = ct.timestamp()
-            data = {
-                "name": f'Data from "{filename}"',
-                "status": None,
-                "message": "",
-                "context": graphname,
-                "replaceGraphs": [],
-                "baseURI": None,
-                "forceSerial": False,
-                "type": "text",
-                "format": mime,
-                "data": content,
-                "timestamp": ts,
-                "parserSettings": {
-                    "preserveBNodeIds": False,
-                    "failOnUnknownDataTypes": False,
-                    "verifyDataTypeValues": False,
-                    "normalizeDataTypeValues": False,
-                    "failOnUnknownLanguageTags": False,
-                    "verifyLanguageTags": True,
-                    "normalizeLanguageTags": True,
-                    "stopOnError": True
-                }
-            }
-            jsondata = json.dumps(data)
-            headers = {
-                "Accept": "application/json, text/plain, */*",
-                "Content-Type": "application/json; charset=utf-8"
-            }
-            url = f"{self._server}/rest/repositories/{self._repo}/import/upload/text"
-            auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
-            req = requests.post(url,
-                                headers=headers,
-                                data=jsondata,
-                                auth=auth)
-        if not req.ok:
-            logger.error(f'Upload of file "{filename}" failed: {req.text}')
-            raise OldapError(req.text)
-        logger.info(f'File "{filename}" uploaded.')
+        ext = Path(filename).suffix.lower()
+        if ext == ".ttl":
+            mime = "text/turtle"
+        elif ext == ".trig":
+            # use the standard MIME type for TriG
+            mime = "application/trig"
+        else:
+            raise OldapError(f"Unsupported RDF extension: {ext}")
+
+        with open(filename, "rb") as f:
+            data = f.read()
+
+        # RDF4J / GraphDB statements endpoint
+        url = f"{self._server.rstrip('/')}/repositories/{self._repo}/statements"
+
+        # Optional context: only use this if you really want to force
+        # all triples into a single named graph. For TriG you usually
+        # leave this empty so the quads' graph IRIs are respected.
+        params = {}
+        if graphname:
+            # GraphDB expects the context IRI wrapped in < > and URL-encoded
+            params["context"] = f"<{graphname}>"
+
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        headers = {
+            "Content-Type": mime,
+            "Accept": "text/plain"  # or */*, result body is usually empty
+        }
+
+        resp = requests.post(url, params=params, headers=headers, data=data, auth=auth)
+
+        if not resp.ok:
+            logger.error(f'Upload of file "{filename}" failed: {resp.status_code} {resp.text}')
+            raise OldapError(resp.text)
+
+        logger.info(f'File "{filename}" uploaded synchronously via /statements.')
 
     def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
         """

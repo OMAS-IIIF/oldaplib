@@ -48,6 +48,7 @@ class ContextSingleton(type):
             Xsd_NCName('schema'): NamespaceIRI('http://schema.org/'),
             #Xsd_NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
             Xsd_NCName('dcterms'): NamespaceIRI('http://purl.org/dc/terms/'),
+            Xsd_NCName('dcmitype'): NamespaceIRI('http://purl.org/dc/dcmitype/'),
             #Xsd_NCName('foaf'): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
             Xsd_NCName('oldap'): NamespaceIRI('http://oldap.org/base#'),
             Xsd_NCName('shared'): NamespaceIRI('http://oldap.org/shared#')
@@ -63,6 +64,7 @@ class ContextSingleton(type):
             NamespaceIRI('http://schema.org/'): Xsd_NCName('schema'),
             #NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc'),
             NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms'),
+            NamespaceIRI('http://purl.org/dc/dcmitype/'): Xsd_NCName('dcmitype'),
             #NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf'),
             NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap'),
             NamespaceIRI('http://oldap.org/shared#'): Xsd_NCName('shared'),
@@ -237,7 +239,7 @@ class Context(metaclass=ContextSingleton):
             return Xsd_QName(prefix, fragment, validate=validate)
         return None
 
-    def qname2iri(self, qname: Xsd_QName | str, validate: bool = True) -> NamespaceIRI:
+    def qname2iri(self, qname: Xsd_QName | str, validate: bool = True) -> Xsd_anyURI:
         """
         Convert a QName into a IRI string.
 

@@ -55,14 +55,14 @@ class TestContext(unittest.TestCase):
         self.assertIsNone(qn)
         with self.assertRaises(OldapError) as ex:
             qn = context.iri2qname('waseliwas/soll')
-        self.assertEqual(str(ex.exception), 'Invalid string "waseliwas/soll" for anyURI')
+        self.assertEqual(str(ex.exception), 'Invalid string "waseliwas/soll" for anyURI (no urn:/http:)')
 
     def test_context_qname2iri(self):
         context = Context(name='qname2iri')
         self.assertEqual(context.qname2iri(Xsd_QName('skos:gaga')), 'http://www.w3.org/2004/02/skos/core#gaga')
         with self.assertRaises(OldapError) as ex:
             qn = context.iri2qname('gaga')
-        self.assertEqual(str(ex.exception), 'Invalid string "gaga" for anyURI')
+        self.assertEqual(str(ex.exception), 'Invalid string "gaga" for anyURI (no urn:/http:)')
         self.assertIsNone(context.iri2qname('abc:def'))
         t = Xsd_QName('xml:integer')
         self.assertEqual(context.qname2iri(t), 'http://www.w3.org/XML/1998/namespace#integer')
@@ -79,6 +79,7 @@ PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <http://schema.org/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX dcmitype: <http://purl.org/dc/dcmitype/>
 PREFIX oldap: <http://oldap.org/base#>
 PREFIX shared: <http://oldap.org/shared#>
 PREFIX test: <http://www.test.org/gaga#>
@@ -97,6 +98,7 @@ PREFIX test: <http://www.test.org/gaga#>
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix schema: <http://schema.org/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dcmitype: <http://purl.org/dc/dcmitype/> .
 @prefix oldap: <http://oldap.org/base#> .
 @prefix shared: <http://oldap.org/shared#> .
 @prefix test: <http://www.test.org/gaga#> .

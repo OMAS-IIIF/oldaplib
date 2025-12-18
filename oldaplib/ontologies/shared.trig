@@ -4,6 +4,7 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dcmitype: <http://purl.org/dc/dcmitype/> .
 @prefix schema: <http://schema.org/> .
 @prefix oldap: <http://oldap.org/base#> .
 
@@ -109,6 +110,90 @@ shared:shacl {
     # Media object
     ###############################################################################
 
+#    dcmitype:CollectionShape a sh:NodeShape ;
+#        sh:targetClass shared:Collection ;
+#        dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+#        dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+#        oldap:externalOntology "true"^^xsd:boolean ;
+#        rdfs:label "Collection"@en, "Sammlung"@de, "Collection"@fr, "Collezione"@it ;
+#        sh:property [
+#            sh:path rdf:type ;
+#        ] .
+#
+#    dcmitype:DatasetShape a sh:NodeShape ;
+#        sh:targetClass shared:Dataset ;
+#        dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+#        dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+#        oldap:externalOntology "true"^^xsd:boolean ;
+#        rdfs:label "Dataset"@en, "Dataset"@de, "Dataset"@fr, "Dataset"@it ;
+#        sh:property [
+#            sh:path rdf:type ;
+#        ] .
+#
+#    dcmitype:StillImageShape a sh:NodeShape ;
+#        sh:targetClass shared:StillImage ;
+#        dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+#        dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+#        oldap:externalOntology "true"^^xsd:boolean ;
+#        rdfs:label "StillImage"@en, "Standbild"@de, "Image fixe"@fr, "Immagine fissa"@it ;
+#        sh:property [
+#            sh:path rdf:type ;
+#        ] .
+#
+#    dcmitype:ImageShape a sh:NodeShape ;
+#        sh:targetClass shared:Image ;
+#        dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+#        dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+#        oldap:externalOntology "true"^^xsd:boolean ;
+#        rdfs:label "Image"@en, "Bild"@de, "Image"@fr, "Immagine"@it ;
+#        sh:property [
+#            sh:path rdf:type ;
+#        ] .
+#
+#    dcmitype:MovingImageShape a sh:NodeShape ;
+#        sh:targetClass shared:MovingImage ;
+#        dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+#        dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+#        oldap:externalOntology "true"^^xsd:boolean ;
+#        rdfs:label "MovingImage"@en, "Bewegtbild"@de, "Image animée"@fr, "Immagine in movimento"@it ;
+#        sh:property [
+#            sh:path rdf:type ;
+#        ] .
+#
+#    dcmitype:SoundShape a sh:NodeShape ;
+#        sh:targetClass shared:Sound ;
+#        dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+#        dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+#        oldap:externalOntology "true"^^xsd:boolean ;
+#        rdfs:label "Sound"@en, "Ton"@de, "Son"@fr, "Sound"@it ;
+#        sh:property [
+#            sh:path rdf:type ;
+#        ] .
+#
+#    dcmitype:TextShape a sh:NodeShape ;
+#        sh:targetClass shared:Text ;
+#        dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+#        dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+#        oldap:externalOntology "true"^^xsd:boolean ;
+#        rdfs:label "Text"@en, "Text"@de, "Texte"@fr, "Testo"@it ;
+#        sh:property [
+#            sh:path rdf:type ;
+#        ] .
+
     shared:MediaObjectShape a sh:NodeShape ;
         sh:targetClass shared:MediaObject ;
         dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
@@ -117,11 +202,32 @@ shared:shacl {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         oldap:externalOntology "false"^^xsd:boolean ;
         rdfs:label "MediaObject"@en, "Medienobjekt"@de, "MediaObject"@fr, "MediaObject"@it ;
-        rdfs:comment "Page of a book"@en, "Seite eines Buches"@de ;
         sh:closed "true"^^xsd:boolean ;
         sh:node oldap:ThingShape ;
         sh:property [
             sh:path rdf:type ;
+        ] ;
+        sh:property [
+            sh:path dcterms:type ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+            oldap:statementProperty "false"^^xsd:boolean ;
+            oldap:externalOntology "false"^^xsd:boolean ;
+            sh:nodeKind sh:IRI ;
+            sh:in (
+                dcmitype:Collection
+                dcmitype:Dataset
+                dcmitype:StillImage
+                dcmitype:Image
+                dcmitype:MovingImage
+                dcmitype:Sound
+                dcmitype:Text
+            ) ;
+            sh:minCount 1 ;
+            sh:maxCount 1 ;
+            sh:order "0.5"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:originalName ;
@@ -344,6 +450,15 @@ shared:onto {
     # Media object
     ###########################################################################
 
+#        shared:mediaType rdf:type owl:ObjectProperty ;
+#            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+#            dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+#            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+#            dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime .
+#            #owl:subPropertyOf dcterms:type ;
+#            rdfs:domain shared:MediaObject ;
+#            rdfs:range rdfs:Class ;
+
         shared:originalName rdf:type owl:DatatypeProperty ;
             rdfs:domain shared:MediaObject ;
             rdfs:range xsd:string ;
@@ -401,6 +516,12 @@ shared:onto {
             rdfs:label "MediaObject"@en, "Medienobjekt"@de, "MediaObject"@fr, "MediaObject"@it ;
             rdfs:comment "Page of a book"@en, "Seite eines Buches"@de ;
             rdfs:subClassOf oldap:Thing ,
+                [
+                    rdf:type owl:Restriction ;
+                    owl:onProperty dcterms:type ;
+                    owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                    owl:onClass rdfs:Class ;
+                ] ,
                 [
                     rdf:type owl:Restriction ;
                     owl:onProperty shared:originalName ;

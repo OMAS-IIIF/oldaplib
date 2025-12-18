@@ -78,7 +78,7 @@ class TestPermissionSet(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:data'))
         file = cls._project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
-        sleep(1)
+
         cls._project = Project.read(cls._connection, "test")
         LangString.defaultLanguage = Language.EN
 
@@ -346,6 +346,7 @@ class TestPermissionSet(unittest.TestCase):
         ps.givesPermission = DataPermission.DATA_VIEW
         ps.update()
         ps = PermissionSet.read(con=self._connection, permissionSetId=psId, definedByProject=Iri('oldap:SystemProject'))
+        self.assertEqual(ps.givesPermission, DataPermission.DATA_VIEW)
         self.assertEqual(ps.givesPermission, DataPermission.DATA_VIEW)
         self.assertEqual(ps.label, LangString("testUpdatePerm@en", "testVerändernPerm@de", "testeModificationPerm@fr"))
         del ps.comment

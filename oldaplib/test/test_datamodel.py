@@ -102,9 +102,6 @@ class TestDataModel(unittest.TestCase):
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
 
-
-        sleep(1)  # upload may take a while...
-
         cls._project = Project.read(cls._connection, "test", ignore_cache=True)
         cls._dmproject = Project.read(cls._connection, "dmtest", ignore_cache=True)
         cls._dmprojectA = Project.read(cls._connection, "dmtestA", ignore_cache=True)
@@ -390,6 +387,7 @@ class TestDataModel(unittest.TestCase):
 
     def test_datamodel_read_shared(self):
         model = DataModel.read(self._connection, self._sharedproject, ignore_cache=True)
+        pass
 
     def test_datamodel_read_system(self):
         model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)
@@ -1114,8 +1112,6 @@ class TestDataModel(unittest.TestCase):
         file = project_root / 'oldaplib' / 'testdata' / 'objectfactory_test.trig'
         self._connection.upload_turtle(file)
 
-        sleep(1)  # upload may take a while...
-
         cache = CacheSingletonRedis()
         cache.clear()
         dm1 = DataModel.read(self._connection, self._project, ignore_cache=False)
@@ -1123,3 +1119,4 @@ class TestDataModel(unittest.TestCase):
         dm2 = DataModel.read(self._connection, self._project, ignore_cache=False)
 
         pass
+

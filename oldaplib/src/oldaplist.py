@@ -725,6 +725,7 @@ class OldapList(Model):
         self.clear_changeset()
 
         cache = CacheSingletonRedis()
+        cache.delete(Xsd_QName(self.project.projectShortName, 'shacl'))
         cache.set(self.__iri, self)
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -798,6 +799,7 @@ class OldapList(Model):
         #
         cache = CacheSingletonRedis()
         cache.delete(self.__iri)
+        cache.delete(Xsd_QName(self.project.projectShortName, 'shacl'))
 
 
     def in_use_queries(self) -> (str, str):

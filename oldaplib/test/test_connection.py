@@ -52,7 +52,6 @@ class TestBasicConnection(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:onto'))
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
-        sleep(1)  # upload may take a while...
 
     @classmethod
     def tearDownClass(cls):

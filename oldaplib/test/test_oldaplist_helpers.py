@@ -66,7 +66,7 @@ class OldapListHelperTestCase(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('hyha:data'))
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
-        sleep(1)
+
         cls._project = Project.read(cls._connection, "test")
         LangString.defaultLanguage = Language.EN
 

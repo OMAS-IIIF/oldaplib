@@ -84,7 +84,6 @@ class TestOldapListNode(unittest.TestCase):
 
         file = cls._project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
         cls._connection.upload_turtle(file)
-        sleep(1)
 
         cls._project = Project.read(cls._connection, "test")
         cls._dmproject = Project.read(cls._connection, "dmtest", ignore_cache=True)
