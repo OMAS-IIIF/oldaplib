@@ -1,4 +1,7 @@
 import re
+import jwt
+
+from datetime import datetime, timedelta
 from enum import Flag, auto
 from functools import partial
 from typing import Type, Any, Self, cast
@@ -1046,6 +1049,7 @@ class ResourceInstance:
                       limit: int = 100,
                       offset: int = 0,
                       indent: int = 0, indent_inc: int = 4) -> dict[Iri, dict[str, Xsd]]:
+        # TODO: PROBLEM: does not work for properties which use MAX_COUNT > 1 !!!!!!!
         """
         Retrieves all resources matching the specified parameters from a data store using a SPARQL query.
         Depending on the `count_only` flag, it can return either a count of matching resources or detailed
@@ -1161,7 +1165,22 @@ class ResourceInstance:
             return result
 
     @staticmethod
-    def get_media_object_by_id(con: IConnection, mediaObjectId: Xsd_string | str) -> dict[str, Xsd] | None:
+    def get_media_object_by_id(con: IConnection, mediaObjectId: Xsd_string | str) -> dict[str, Xsd]:
+        """
+        Retrieves a media object by its ID from the system. This method queries a SPARQL endpoint
+        to fetch details about the media object and constructs a resulting dictionary with the
+        media object attributes and its associated metadata. Additionally, a signed JWT token
+        is included in the result for security purposes.
+
+        :param con: A connection interface that provides access to the SPARQL endpoint and user context.
+        :type con: IConnection
+        :param mediaObjectId: The ID of the media object to be fetched, represented as an XSD string or a Python string.
+        :type mediaObjectId: Xsd_string | str
+        :return: A dictionary containing key-value pairs of media object attributes and metadata,
+            with an additional JWT token for security. Returns None if the media object is not found.
+        :rtype: dict[str, Xsd] | None
+        :raises OldapErrorNotFound: Raised when the media object with the specified ID is not found.
+        """
         if not isinstance(mediaObjectId, Xsd_string):
             mediaObjectId = Xsd_string(mediaObjectId, validate=True)
         blank = ''
@@ -1169,19 +1188,14 @@ class ResourceInstance:
         sparql = context.sparql_context
 
         sparql += f"""
-        SELECT ?subject ?graph ?path ?permval ?originalName ?serverUrl ?protocol ?originalMimeType
+        SELECT ?subject ?graph ?path ?prop ?val ?permval
         WHERE {{
             VALUES ?inputImageId {{ {mediaObjectId.toRdf} }}
-
             ?subject rdf:type shared:MediaObject .
             GRAPH ?graph {{
-                ?subject shared:imageId ?inputImageId .
-                ?subject shared:originalName ?originalName .
-                ?subject shared:originalMimeType ?originalMimeType .
-                ?subject shared:serverUrl ?serverUrl .
-                ?subject shared:path ?path .
-                ?subject shared:protocol ?protocol .
                 ?subject oldap:grantsPermission ?permset .
+                ?subject shared:imageId ?inputImageId .
+                ?subject ?prop ?val .
             }}
             GRAPH oldap:admin {{
                 {con.userIri.toRdf} oldap:hasPermissions ?permset .
@@ -1196,16 +1210,110 @@ class ResourceInstance:
             print(sparql)
             raise
         res = QueryProcessor(context, jsonres)
-        if len(res) == 0 or len(res) > 1:
+        if len(res) == 0:
             raise OldapErrorNotFound(f'Media object with id {mediaObjectId} not found.')
-        return {'iri': res[0]['subject'],
-                'shared:originalName': res[0]['originalName'],
-                'shared:originalMimeType': res[0]['originalMimeType'],
-                'shared:serverUrl': res[0]['serverUrl'],
-                'shared:protocol': res[0]['protocol'],
-                'graph': res[0]['graph'],
-                'shared:path': res[0]['path'],
-                'oldap:permissionValue': res[0]['permval']}
+        result: dict[str, Xsd] = {
+            'iri': res[0].get('subject'),
+            'graph': res[0].get('graph'),
+            'permval': res[0].get('permval')
+        }
+        for r in res:
+            if str(r['prop']) == 'rdf:type':
+                continue
+            if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
+                                  'shared:imageId', 'shared:originalName', 'shared:originalMimeType', 'shared:serverUrl', 'shared:path', 'shared:protocol'}:
+                result[str(r['prop'])] = r['val']
+            else:
+                if result.get(str(r['prop'])) is None:
+                    result[str(r['prop'])] = []
+                result[str(r['prop'])].append(r['val'])
+
+        expiration = datetime.now().astimezone() + timedelta(minutes=2)
+        payload = {
+            'userIri': str(con.userIri),
+            'userid': str(con.userid),
+            'id': str(mediaObjectId),
+            'path': str(result.get('shared:path')),
+            'permval': str(result.get('permval')),
+            "exp": expiration.timestamp(),
+            "iat": int(datetime.now().astimezone().timestamp()),
+            "iss": "http://oldap.org"
+        }
+        token = jwt.encode(
+            payload=payload,
+            key=con.jwtkey,
+            algorithm="HS256")
+        result['token'] = token
+
+        return result
+
+    @staticmethod
+    def get_media_object_by_iri(con: IConnection, mediaObjectIri: Iri | str) -> dict[str, Xsd] | None:
+        if not isinstance(mediaObjectIri, Iri):
+            mediaObjectIri = Iri(mediaObjectIri, validate=True)
+        blank = ''
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+
+        sparql += f"""
+        SELECT ?graph ?prop ?val ?permval
+        WHERE {{
+            {mediaObjectIri.toRdf} rdf:type shared:MediaObject .
+            GRAPH ?graph {{
+                {mediaObjectIri.toRdf} oldap:grantsPermission ?permset .
+                {mediaObjectIri.toRdf} shared:imageId ?inputImageId .
+                {mediaObjectIri.toRdf} ?prop ?val .
+            }}
+            GRAPH oldap:admin {{
+                {con.userIri.toRdf} oldap:hasPermissions ?permset .
+                ?permset oldap:givesPermission ?DataPermission .
+                ?DataPermission oldap:permissionValue ?permval .
+            }}
+        }}
+        """
+        print(sparql)
+        try:
+            jsonres = con.query(sparql)
+        except OldapError:
+            print(sparql)
+            raise
+        res = QueryProcessor(context, jsonres)
+        if len(res) == 0:
+            raise OldapErrorNotFound(f'Media object with iri {mediaObjectIri} not found.')
+        result: dict[str, Xsd] = {
+            'iri': mediaObjectIri,
+            'graph': res[0].get('graph'),
+            'permval': res[0].get('permval')
+        }
+        for r in res:
+            if str(r['prop']) == 'rdf:type':
+                continue
+            if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
+                                  'shared:imageId', 'shared:originalName', 'shared:originalMimeType', 'shared:serverUrl', 'shared:path', 'shared:protocol'}:
+                result[str(r['prop'])] = r['val']
+            else:
+                if result.get(str(r['prop'])) is None:
+                    result[str(r['prop'])] = []
+                result[str(r['prop'])].append(r['val'])
+
+        expiration = datetime.now().astimezone() + timedelta(minutes=2)
+        payload = {
+            'userIri': str(con.userIri),
+            'userid': str(con.userid),
+            'id': str(result.get('shared:imageId')),
+            'path': str(result['shared:path']),
+            'permval': str(result['permval']),
+            "exp": expiration.timestamp(),
+            "iat": int(datetime.now().astimezone().timestamp()),
+            "iss": "http://oldap.org"
+        }
+        token = jwt.encode(
+            payload=payload,
+            key=con.jwtkey,
+            algorithm="HS256")
+        result['token'] = token
+
+        return result
 
 
     def toJsonObject(self) -> dict[str, list[str] | str]:

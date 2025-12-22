@@ -150,7 +150,7 @@ def dump_list_to(con: IConnection,
                     make_dict(node, listdict[str(listnode.oldapListNodeId)]['nodes'])
 
     #
-    # We need to get the OldapList IRI for aksing the cache...
+    # We need to get the OldapList IRI for asking the cache...
     #
     if not isinstance(project, Project):
         project = Project.read(con, project)

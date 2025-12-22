@@ -132,6 +132,20 @@ test:data {
     shared:protocol 'iiif';
     shared:path 'test/subtest' .
 
+  <urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999> a shared:MediaObject;
+    :createdBy <https://orcid.org/0000-0003-1681-4036>;
+    :creationDate "2025-11-13T16:43:28.861171+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036>;
+    :lastModificationDate "2025-11-13T16:43:28.861171+01:00"^^xsd:dateTimeStamp;
+    :grantsPermission :GenericView;
+    shared:originalName 'testfile.jpg';
+    shared:originalMimeType 'image/jpeg';
+    shared:serverUrl 'https://iiif.oldap.org';
+    shared:imageId 'x_42db.jpg';
+    shared:protocol 'iiif';
+    shared:path 'test/subtest' ;
+    test:caption 'This is a non-real, non-existing image' .
+
 
 
 }

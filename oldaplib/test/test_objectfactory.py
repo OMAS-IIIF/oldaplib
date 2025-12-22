@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from pprint import pprint
 from time import sleep
+import jwt
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
@@ -702,16 +703,72 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(len(res), 8)
 
     #@unittest.skip('Work in progress')
-    def test_read_media_object(self):
-        res = ResourceInstance.get_media_object_by_id(con=self._connection,mediaObjectId='x_34db.tif')
+    def test_read_media_object_by_id_A(self):
+        res = ResourceInstance.get_media_object_by_id(con=self._connection, mediaObjectId='x_34db.tif')
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
+        self.assertEqual(res['permval'], Xsd_integer(2))
+        self.assertEqual(res['shared:imageId'], Xsd_string('x_34db.tif'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.tif"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/tiff"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
         self.assertEqual(res['shared:protocol'], Xsd_string("iiif"))
         self.assertEqual(res['graph'], Xsd_QName("test:data"))
         self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
-        self.assertEqual(res['oldap:permissionValue'], Xsd_integer(2))
+        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        self.assertEqual(tinfo['id'], 'x_34db.tif')
+        self.assertEqual(tinfo['path'], 'test/subtest')
+        self.assertEqual(tinfo['permval'], '2')
+
+    def test_read_media_object_by_id_B(self):
+        res = ResourceInstance.get_media_object_by_id(con=self._connection, mediaObjectId='x_42db.jpg')
+        self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999"))
+        self.assertEqual(res['permval'], Xsd_integer(2))
+        self.assertEqual(res['shared:imageId'], Xsd_string('x_42db.jpg'))
+        self.assertEqual(res['shared:originalName'], Xsd_string("testfile.jpg"))
+        self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/jpeg"))
+        self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
+        self.assertEqual(res['shared:protocol'], Xsd_string("iiif"))
+        self.assertEqual(res['graph'], Xsd_QName("test:data"))
+        self.assertEqual(res['test:caption'], [Xsd_string("This is a non-real, non-existing image")])
+        self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
+        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        self.assertEqual(tinfo['id'], 'x_42db.jpg')
+        self.assertEqual(tinfo['path'], 'test/subtest')
+        self.assertEqual(tinfo['permval'], '2')
+
+    def test_read_media_object_by_iri_A(self):
+        res = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri='urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901')
+        self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
+        self.assertEqual(res['permval'], Xsd_integer(2))
+        self.assertEqual(res['shared:imageId'], Xsd_string('x_34db.tif'))
+        self.assertEqual(res['shared:originalName'], Xsd_string("testfile.tif"))
+        self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/tiff"))
+        self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
+        self.assertEqual(res['shared:protocol'], Xsd_string("iiif"))
+        self.assertEqual(res['graph'], Xsd_QName("test:data"))
+        self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
+        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        self.assertEqual(tinfo['id'], 'x_34db.tif')
+        self.assertEqual(tinfo['path'], 'test/subtest')
+        self.assertEqual(tinfo['permval'], '2')
+
+    def test_read_media_object_by_iri_B(self):
+        res = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri='urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999')
+        print(res)
+        self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999"))
+        self.assertEqual(res['permval'], Xsd_integer(2))
+        self.assertEqual(res['shared:imageId'], Xsd_string('x_42db.jpg'))
+        self.assertEqual(res['shared:originalName'], Xsd_string("testfile.jpg"))
+        self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/jpeg"))
+        self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
+        self.assertEqual(res['shared:protocol'], Xsd_string("iiif"))
+        self.assertEqual(res['graph'], Xsd_QName("test:data"))
+        self.assertEqual(res['test:caption'], [Xsd_string("This is a non-real, non-existing image")])
+        self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
+        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        self.assertEqual(tinfo['id'], 'x_42db.jpg')
+        self.assertEqual(tinfo['path'], 'test/subtest')
+        self.assertEqual(tinfo['permval'], '2')
 
     def test_create_media_object(self):
         dm = DataModel.read(con=self._connection, project='test')
