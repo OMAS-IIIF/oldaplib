@@ -754,7 +754,6 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_read_media_object_by_iri_B(self):
         res = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri='urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999')
-        print(res)
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999"))
         self.assertEqual(res['permval'], Xsd_integer(2))
         self.assertEqual(res['shared:imageId'], Xsd_string('x_42db.jpg'))
