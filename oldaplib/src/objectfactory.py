@@ -1271,7 +1271,6 @@ class ResourceInstance:
             }}
         }}
         """
-        print(sparql)
         try:
             jsonres = con.query(sparql)
         except OldapError:

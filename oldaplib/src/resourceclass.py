@@ -1601,10 +1601,21 @@ class ResourceClass(Model, Notify):
         sparql = f'INSERT DATA {{#E\n'
         sparql += f'    GRAPH {self._graph}:onto {{\n'
         sparql += f'{blank:{indent * indent_inc}}{self._owlclass_iri} rdfs:subClassOf [\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
         if isinstance(prop, Xsd_QName):
-            sparql += prop.create_owl_part2(haspropdata=hasprop.haspropdata)
+            # sparql += prop.create_owl_part2(haspropdata=hasprop.haspropdata)
+            sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {prop.toRdf}'
+            if hasprop.haspropdata.minCount and hasprop.haspropdata.maxCount and hasprop.haspropdata.minCount == hasprop.haspropdata.maxCount:
+                tmp = Xsd_nonNegativeInteger(hasprop.haspropdata.minCount)
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {tmp.toRdf}'
+            else:
+                if hasprop.haspropdata.minCount:
+                    tmp = Xsd_nonNegativeInteger(hasprop.haspropdata.minCount)
+                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {tmp.toRdf}'
+                if hasprop.haspropdata.maxCount:
+                    tmp = Xsd_nonNegativeInteger(hasprop.haspropdata.maxCount)
+                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {tmp.toRdf}'
         elif isinstance(prop, PropertyClass):
-            sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {prop.property_class_iri.toRdf}'
             sparql += hasprop.create_owl(indent=1)
         else:
