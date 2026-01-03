@@ -22,7 +22,7 @@ class UserAttr(AttributeClass):
     - _UserFields.CREDENTIALS_ (RDF: 'oldap:credentials')
     - _UserFields.ACTIVE_ (RDF: 'oldap:isActive')
     - _UserFields.IN_PROJECT_ (RDF: 'oldap:inProject')
-    - _UserFields.HAS_PERMISSIONS_ (RDF: 'oldap:hasPermissions')
+    - _UserFields.HAS_ROLE_ (RDF: 'oldap:hasRole')
     """
     # order: (QName, mandatory, immutable, datatype)
     USER_IRI = ('oldap:userIri', False, True, Iri)
@@ -33,5 +33,5 @@ class UserAttr(AttributeClass):
     CREDENTIALS = ('oldap:credentials', True, False, Xsd_string)
     ACTIVE = ('oldap:isActive', False, False, Xsd_boolean)
     IN_PROJECT = ('oldap:inProject', False, False, InProjectClass)
-    HAS_PERMISSIONS = ('oldap:hasPermissions', False, False, ObservableSet)
+    HAS_ROLE = ('oldap:hasRole', False, False, ObservableSet)
 

@@ -12,9 +12,10 @@ from functools import partial
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.connection import Connection
-from oldaplib.src.enums.permissionsetattr import PermissionSetAttr
+from oldaplib.src.enums.roleattr import RoleAttr
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.datapermissions import DataPermission
+from oldaplib.src.enums.roleattr import RoleAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.helpers.serializer import serializer
@@ -39,23 +40,23 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 
 #@strict
 @serializer
-class PermissionSet(Model):
+class Role(Model):
     """
-    Represents a Permission Set model, typically for use in a semantic knowledge-based system.
+    Represents a Role, typically for use in a semantic knowledge-based system.
 
-    This class provides methods to define, manage, and manipulate Permission Sets, which specify
+    This class provides methods to define, manage, and manipulate Roles, which specify
     data access permissions within a project. It includes methods for creating permissions in
     a triple store, validating consistency, and managing notifications for changes to attributes.
 
-    Permission Sets are uniquely identified by their association with a project and their ID.
+    Roles are uniquely identified by their association with a project and their ID.
     The class ensures that operations are consistent within a defined project context and
     permissions are compliant with system access controls.
 
-    :ivar iri: The unique IRI of the permission set, derived from the project and permission set ID.
+    :ivar iri: The unique IRI of the role, derived from the project and permission set ID.
     :type iri: Iri
     """
 
-    __permset_iri: Xsd_QName | None
+    __role_iri: Xsd_QName | None
     __project: Project | None
 
     def __init__(self, *,
@@ -101,25 +102,25 @@ class PermissionSet(Model):
                          modified=modified,
                          validate=validate)
         self.__project = None
-        self.set_attributes(kwargs, PermissionSetAttr)
+        self.set_attributes(kwargs, RoleAttr)
         #
         # Consistency checks
         #
-        if self._attributes.get(PermissionSetAttr.DEFINED_BY_PROJECT):
-            self.check_consistency(PermissionSetAttr.DEFINED_BY_PROJECT, self._attributes[PermissionSetAttr.DEFINED_BY_PROJECT])
+        if self._attributes.get(RoleAttr.DEFINED_BY_PROJECT):
+            self.check_consistency(RoleAttr.DEFINED_BY_PROJECT, self._attributes[RoleAttr.DEFINED_BY_PROJECT])
 
         #
         # The IRI of the permission set is a QName consisting of the prefix of the project (aka projectShortname)
         # and the permissionSetId. Thus, the same permission set ID could be used in different projects...
         #
-        self.__permset_iri = Xsd_QName(self.__project.projectShortName, self._attributes[PermissionSetAttr.PERMISSION_SET_ID])
+        self.__role_iri = Xsd_QName(self.__project.projectShortName, self._attributes[RoleAttr.ROLE_ID])
         #self.__permset_iri = Iri.fromPrefixFragment(self.__project.projectShortName, self._attributes[PermissionSetAttr.PERMISSION_SET_ID], validate=False)
 
-        for attr in PermissionSetAttr:
-            setattr(PermissionSet, attr.value.fragment, property(
-                partial(PermissionSet._get_value, attr=attr),
-                partial(PermissionSet._set_value, attr=attr),
-                partial(PermissionSet._del_value, attr=attr)))
+        for attr in RoleAttr:
+            setattr(Role, attr.value.fragment, property(
+                partial(Role._get_value, attr=attr),
+                partial(Role._set_value, attr=attr),
+                partial(Role._del_value, attr=attr)))
         self._changeset = {}
 
     def update_notifier(self):
@@ -145,19 +146,19 @@ class PermissionSet(Model):
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
-        instance.__permset_iri = deepcopy(self.__permset_iri, memo)
+        instance.__role_iri = deepcopy(self.__role_iri, memo)
         instance.__project = deepcopy(self.__project, memo)
         return instance
 
-    def check_consistency(self, attr: PermissionSetAttr, value: Any) -> None:
-        if attr == PermissionSetAttr.DEFINED_BY_PROJECT:
+    def check_consistency(self, attr: RoleAttr, value: Any) -> None:
+        if attr == RoleAttr.DEFINED_BY_PROJECT:
             if not isinstance(value, Project):
                 self.__project = Project.read(self._con, value)
                 self._attributes[attr] = self.__project.projectIri
 
     def check_for_permissions(self) -> (bool, str):
         """
-        Internal method to check if a user may modify the permission set.
+        Internal method to check if a user may modify role.
         :return: a tuple with a boolean (True, False) and the error message (or "OK")
         """
         #
@@ -173,27 +174,27 @@ class PermissionSet(Model):
             return True, "OK"
         else:
             if actor.inProject.get(self.definedByProject) is None:
-                return False, f'Actor has no ADMIN_PERMISSION_SETS permission for project {self.definedByProject}'
+                return False, f'Actor has no ADMIN_ROLES permission for project {self.definedByProject}'
             else:
-                if AdminPermission.ADMIN_PERMISSION_SETS not in actor.inProject.get(self.definedByProject):
-                    return False, f'Actor has no ADMIN_PERMISSION_SETS permission for project {self.definedByProject}'
+                if AdminPermission.ADMIN_ROLES not in actor.inProject.get(self.definedByProject):
+                    return False, f'Actor has no ADMIN_ROLES permission for project {self.definedByProject}'
             return True, "OK"
 
-    def notifier(self, what: PermissionSetAttr, value: Any = None) -> None:
+    def notifier(self, what: RoleAttr, value: Any = None) -> None:
         self._changeset[what] = AttributeChange(None, Action.MODIFY)
 
     @property
     def iri(self) -> Xsd_QName:
-        return self.__permset_iri
+        return self.__role_iri
 
     @property
     def qname(self) -> Xsd_QName:
-        return self.__permset_iri
+        return self.__role_iri
 
     def trig_to_str(self, created: Xsd_dateTime, modified: Xsd_dateTime, indent: int = 0, indent_inc: int = 4):
         blank = ''
         sparql = ''
-        sparql += f'{blank:{indent * indent_inc}} {self.__permset_iri.toRdf} a oldap:PermissionSet'
+        sparql += f'{blank:{indent * indent_inc}} {self.__role_iri.toRdf} a oldap:Role'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {created.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
@@ -207,12 +208,12 @@ class PermissionSet(Model):
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
-        Creates and stores a permission set in the triple store.
+        Creates and stores a role in the triple store.
 
         The method handles creating SPARQL queries to insert data related to
-        the given permission set. The data includes metadata such as creator,
+        the given role. The data includes metadata such as creator,
         creation timestamp, contributors, and other attributes defined in the
-        permission set. It also ensures that no duplicate permission set exists
+        role. It also ensures that no duplicate roles exists
         before attempting insertion. The changes are managed as a transaction,
         and the cache is updated upon successful persistence.
 
@@ -238,11 +239,11 @@ class PermissionSet(Model):
 
         sparql1 = context.sparql_context
         sparql1 += f"""
-        SELECT ?permset
+        SELECT ?role
         FROM oldap:admin
         WHERE {{
-            ?permset a oldap:PermissionSet .
-            FILTER(?permset = {self.__permset_iri.toRdf})       
+            ?role a oldap:Role .
+            FILTER(?role = {self.__role_iri.toRdf})       
         }}
         """
 
@@ -252,15 +253,6 @@ class PermissionSet(Model):
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
 
         sparql += self.trig_to_str(created=timestamp, modified=timestamp, indent=indent + 2, indent_inc=indent_inc)
-        # sparql += f'{blank:{(indent + 2) * indent_inc}} {self.__permset_iri.toRdf} a oldap:PermissionSet'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        # for attr, value in self._attributes.items():
-        #     if attr.value.prefix == 'virtual' or not value:
-        #         continue
-        #     sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -273,7 +265,7 @@ class PermissionSet(Model):
         res = QueryProcessor(context, jsonobj)
         if len(res) > 0:
             self._con.transaction_abort()
-            raise OldapErrorAlreadyExists(f'A permission set "{self.__permset_iri}" already exists')
+            raise OldapErrorAlreadyExists(f'A role "{self.__role_iri}" already exists')
 
         try:
             self._con.transaction_update(sparql)
@@ -290,13 +282,13 @@ class PermissionSet(Model):
         self._modified = timestamp
         self._contributor = self._con.userIri
         cache = CacheSingletonRedis()
-        cache.set(self.__permset_iri, self)
+        cache.set(self.__role_iri, self)
 
     @classmethod
     def read(cls, *,
              con: IConnection,
              qname: Xsd_QName | str | None = None,
-             permissionSetId: Xsd_NCName | str | None = None,
+             roleId: Xsd_NCName | str | None = None,
              definedByProject: Project | Iri | Xsd_NCName | str | None = None,
              ignore_cache: bool = False) -> Self:
         """
@@ -307,7 +299,7 @@ class PermissionSet(Model):
         :param con: The connection object used to interact with the system.
         :param qname: The Internationalized Resource Identifier of the permission set. If provided,
                     it will be used to read the permission set.
-        :param permissionSetId: The unique identifier of the permission set within a project.
+        :param roleId: The unique identifier of the permission set within a project.
                                 Required if `iri` is not provided.
         :param definedByProject: The project either as an object, its IRI, or its short name
                                  which defines the namespace of the permission set. This is
@@ -325,57 +317,56 @@ class PermissionSet(Model):
         """
         context = Context(name=con.context_name)
         if qname:
-            permset_iri = Xsd_QName(qname, validate=True)
-        elif permissionSetId and definedByProject:
-            id = Xsd_NCName(permissionSetId, validate=True)
+            role_iri = Xsd_QName(qname, validate=True)
+        elif roleId and definedByProject:
+            id = Xsd_NCName(roleId, validate=True)
 
             if isinstance(definedByProject, Project):
                 project = definedByProject
             else:
                 project = Project.read(con, definedByProject)
-            permset_iri = Xsd_QName(project.projectShortName, permissionSetId)
+            role_iri = Xsd_QName(project.projectShortName, roleId)
         else:
-            raise OldapErrorValue('Either the parameter "iri" of both "permissionSetId" and "definedByProject" must be provided.')
+            raise OldapErrorValue('Either the parameter "iri" of both "roleId" and "definedByProject" must be provided.')
         if not ignore_cache:
             cache = CacheSingletonRedis()
-            tmp = cache.get(permset_iri, connection=con)
+            tmp = cache.get(role_iri, connection=con)
             if tmp is not None:
                 tmp.update_notifier()
                 return tmp
         sparql = context.sparql_context
         sparql += f"""
-        SELECT ?permset ?p ?o
+        SELECT ?role ?p ?o
         FROM oldap:admin
         WHERE {{
-            BIND({permset_iri.toRdf} as ?permset)
-            ?permset a oldap:PermissionSet .
-            ?permset ?p ?o .
+            BIND({role_iri.toRdf} as ?role)
+            ?role a oldap:Role .
+            ?role ?p ?o .
         }}
         """
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OldapErrorNotFound(f'No permission set "{permset_iri}"')
+            raise OldapErrorNotFound(f'No permission set "{role_iri}"')
 
-        permset_iri: Xsd_QName | None = None
+        role_iri: Xsd_QName | None = None
         creator: Iri | None = None
         created: Xsd_dateTime | None = None
         contributor: Iri | None = None
         modified: Xsd_dateTime | None = None
         label: LangString = LangString()
         comment: LangString = LangString()
-        givesPermission: DataPermission | None = None
-        _permissionSetId: Xsd_NCName | None = None
+        _roleId: Xsd_NCName | None = None
         _definedByProject: Iri | None = None
         for r in res:
-            if not permset_iri:
+            if not role_iri:
                 try:
-                    permset_iri = r['permset']
+                    permset_iri = r['role']
                 except Exception as e:
                     raise OldapErrorInconsistency(f'Invalid project identifier "{r['o']}".')
                 if not permset_iri.is_qname:
                     raise OldapErrorInconsistency(f'Invalid project identifier "{r['o']}".')
-                _permissionSetId = permset_iri.fragment
+                _roleId = permset_iri.fragment
             match str(r['p']):
                 case 'dcterms:creator':
                     creator = r['o']
@@ -389,36 +380,32 @@ class PermissionSet(Model):
                     label.add(r['o'])
                 case 'rdfs:comment':
                     comment.add(r['o'])
-                case 'oldap:givesPermission':
-                    givesPermission = DataPermission.from_string(str(r['o']))
                 case 'oldap:definedByProject':
                     _definedByProject = r['o']
-        cls.__permset_iri = permset_iri
+        cls.__role_iri = role_iri
         if comment:
             comment.clear_changeset()
-            comment.set_notifier(cls.notifier, Xsd_QName(PermissionSetAttr.LABEL.value))
+            comment.set_notifier(cls.notifier, Xsd_QName(RoleAttr.LABEL.value))
         if label:
             label.clear_changeset()
-            label.set_notifier(cls.notifier, Xsd_QName(PermissionSetAttr.LABEL.value))
+            label.set_notifier(cls.notifier, Xsd_QName(RoleAttr.LABEL.value))
         instance = cls(con=con,
-                       permissionSetId=Xsd_NCName(_permissionSetId, validate=False),
+                       roleId=Xsd_NCName(_roleId, validate=False),
                        creator=creator,
                        created=created,
                        contributor=contributor,
                        modified=modified,
                        label=label,
                        comment=comment,
-                       givesPermission=givesPermission,
                        definedByProject=Iri(_definedByProject, validate=False))
         cache = CacheSingletonRedis()
-        cache.set(instance.__permset_iri, instance)
+        cache.set(instance.__role_iri, instance)
         return instance
 
     @staticmethod
     def search(con: IConnection, *,
-               permissionSetId: str | None = None,
+               roleId: str | None = None,
                definedByProject: Iri | str | None = None,
-               givesPermission: DataPermission | None = None,
                label: Xsd_string | str | None = None) -> list[Iri | Xsd_QName]:
         """
         Search for a permission set. At least one of the search criteria is required. Multiple search criteria are
@@ -426,12 +413,10 @@ class PermissionSet(Model):
 
         :param con: A valid Connection object.
         :type con: IConnection
-        :param permissionSetId: Search for the given ID. The given string must be _contained_ in the ID (substring).
-        :type permissionSetId: str | None
+        :param roleId: Search for the given ID. The given string must be _contained_ in the ID (substring).
+        :type roleId: str | None
         :param definedByProject: The project which is responsible for the permission set.
         :type definedByProject: Iri | str | None
-        :param givesPermission: The permission that the permission set should grant.
-        :type givesPermission: DataPermission | None
         :param label: The label string. The given string must be within at least one language label.
         :type label: Xsd_string | str | None
         :return: A list of permission set IRIs (possibly as Xsd_QName).
@@ -446,38 +431,31 @@ class PermissionSet(Model):
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         if definedByProject:
-            sparql += 'SELECT DISTINCT ?permsetIri ?namespaceIri ?projectShortName'
+            sparql += 'SELECT DISTINCT ?roleIri ?namespaceIri ?projectShortName'
             context = Context(name=con.context_name)
         else:
-            sparql += 'SELECT DISTINCT ?permsetIri'
+            sparql += 'SELECT DISTINCT ?roleIri'
         sparql += '\n'
         sparql += 'FROM NAMED oldap:admin\n'
         sparql += 'WHERE {\n'
         sparql += '   GRAPH oldap:admin {\n'
-        sparql += '       ?permsetIri rdf:type oldap:PermissionSet .\n'
+        sparql += '       ?roleIri rdf:type oldap:Role .\n'
         if definedByProject:
-            sparql += '       ?permsetIri oldap:definedByProject ?definedByProject .\n'
+            sparql += '       ?roleIri oldap:definedByProject ?definedByProject .\n'
             sparql += '       ?definedByProject oldap:namespaceIri ?namespaceIri .\n'
             sparql += '       ?definedByProject oldap:projectShortName ?projectShortName .\n'
-        if givesPermission:
-            sparql += '       ?permsetIri oldap:givesPermission ?givesPermission .\n'
         if label:
-            sparql += '       ?permsetIri rdfs:label ?label .\n'
-        if permissionSetId or definedByProject or givesPermission or label:
+            sparql += '       ?roleIri rdfs:label ?label .\n'
+        if roleId or definedByProject or label:
             sparql += '       FILTER('
             use_and = False
-            if permissionSetId:
-                sparql += f'CONTAINS(STR(?permsetIri), "{Xsd_string.escaping(permissionSetId)}")'
+            if roleId:
+                sparql += f'CONTAINS(STR(?roleIri), "{Xsd_string.escaping(roleId)}")'
                 use_and = True
             if definedByProject:
                 if use_and:
                     sparql += ' && '
                 sparql += f'?definedByProject = {definedByProject.toRdf}'
-                use_and = True
-            if givesPermission:
-                if use_and:
-                    sparql += ' && '
-                sparql += f'?givesPermission = {givesPermission.toRdf}'
                 use_and = True
             if label:
                 if use_and:
@@ -491,15 +469,15 @@ class PermissionSet(Model):
         sparql += '}\n'
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
-        permissionSets: list[Xsd_QName] = []
+        roles: list[Xsd_QName] = []
         for r in res:
             if definedByProject:
                 #context[r['projectShortName']] = r['namespaceIri']
-                psqname = r['permsetIri'].as_qname or context.iri2qname(str(r['permsetIri']), validate=False)
-                permissionSets.append(psqname or r['permsetIri'])
+                psqname = r['roleIri'].as_qname or context.iri2qname(str(r['roleIri']), validate=False)
+                roles.append(psqname or r['roleIri'])
             else:
-                permissionSets.append(r['permsetIri'])
-        return permissionSets
+                roles.append(r['roleIri'])
+        return roles
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -528,20 +506,20 @@ class PermissionSet(Model):
         sparql_list = []
 
         for attr, change in self._changeset.items():
-            if attr == PermissionSetAttr.LABEL or attr == PermissionSetAttr.COMMENT:
+            if attr == RoleAttr.LABEL or attr == RoleAttr.COMMENT:
                 if change.action == Action.MODIFY:
                     sparql_list.extend(self._attributes[attr].update(graph=Xsd_QName('oldap:admin'),
-                                                                     subject=self.__permset_iri,
+                                                                     subject=self.__role_iri,
                                                                      field=attr.value))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
                     sparql = self._changeset[attr].old_value.delete(graph=Xsd_QName('oldap:admin'),
-                                                            subject=self.__permset_iri,
-                                                            field=attr.value)
+                                                                    subject=self.__role_iri,
+                                                                    field=attr.value)
                     sparql_list.append(sparql)
                 if change.action == Action.CREATE or change.action == Action.REPLACE:
                     sparql = self._attributes[attr].create(graph=Xsd_QName('oldap:admin'),
-                                                            subject=self.__permset_iri,
-                                                            field=attr.value)
+                                                           subject=self.__role_iri,
+                                                           field=attr.value)
                     sparql_list.append(sparql)
                 continue
             sparql = f'{blank:{indent * indent_inc}}# PermissionSet attribute "{attr.value}" with action "{change.action.value}"\n'
@@ -555,7 +533,7 @@ class PermissionSet(Model):
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {self._attributes[attr].toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.__permset_iri.toRdf} as ?project)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.__role_iri.toRdf} as ?project)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?project {attr.value} {change.old_value.toRdf} .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
@@ -565,8 +543,8 @@ class PermissionSet(Model):
         self._con.transaction_start()
         try:
             self._con.transaction_update(sparql)
-            self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.__permset_iri, self._modified, timestamp)
-            modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.__permset_iri)
+            self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.__role_iri, self._modified, timestamp)
+            modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.__role_iri)
         except OldapError:
             self._con.transaction_abort()
             raise
@@ -581,7 +559,7 @@ class PermissionSet(Model):
         self._modified = timestamp
         self._contributor = self._con.userIri  # TODO: move creator, created etc. to Model!
         cache = CacheSingletonRedis()
-        cache.set(self.__permset_iri, self)
+        cache.set(self.__role_iri, self)
 
 
     def in_use_queries(self) -> (str, str):
@@ -608,7 +586,7 @@ class PermissionSet(Model):
         ASK FROM oldap:admin
         WHERE {{
             ?user a oldap:User ;
-            oldap:hasPermissions {self.__permset_iri.toRdf} .
+            oldap:hasRole {self.__role_iri.toRdf} .
         }}
         """
 
@@ -619,7 +597,7 @@ class PermissionSet(Model):
         query2 += f"""
         ASK {{
             GRAPH ?graph {{
-                ?instance oldap:grantsPermission {self.__permset_iri.toRdf} .
+                ?instance oldap:attachedToRole {self.__role_iri.toRdf} .
             }}
         }}
         """
@@ -671,7 +649,7 @@ class PermissionSet(Model):
         :rtype: None
 
         :raises OldapErrorNoPermission: Insufficient permissions to perform the update
-        :raises OldapErrorInUse: Permission set is still in use
+        :raises OldapErrorInUse: Role is still in use
         :raises OldapError: For any general error encountered during the operation.
         """
         result, message = self.check_for_permissions()
@@ -687,7 +665,7 @@ class PermissionSet(Model):
         sparql += f"""
         DELETE WHERE {{
             GRAPH oldap:admin {{
-                {self.__permset_iri.toRdf} ?prop ?val .
+                {self.__role_iri.toRdf} ?prop ?val .
             }}
         }} 
         """
@@ -706,5 +684,5 @@ class PermissionSet(Model):
             self._con.transaction_abort()
             raise
         cache = CacheSingletonRedis()
-        cache.delete(self.__permset_iri)
+        cache.delete(self.__role_iri)
 

@@ -25,9 +25,9 @@
         rdfs:label "ADMIN_USERS"@en ;
         rdfs:comment "add/modify/delete users."@en .
 
-    :ADMIN_PERMISSION_SETS a :AdminPermission ;
-        rdfs:label "ADMIN_PERMISSION_SETS"@en ;
-        rdfs:comment "Add/change/remove permission sets"@en .
+    :ADMIN_ROLES a :AdminPermission ;
+        rdfs:label "ADMIN_ROLES"@en ;
+        rdfs:comment "Add/change/remove roles"@en .
 
     :ADMIN_RESOURCES a :AdminPermission ;
         rdfs:label "ADMIN_RESOURCES"@en ;
@@ -106,40 +106,12 @@
     #==================================================================
     # Define default permission sets here
     #
-    :GenericRestricted a :PermissionSet ;
+    :Unknown a :Role ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "Restricted"@en, "Restricted"@de, "Restricted"@fr, "Restricted"@it ;
-        :givesPermission :DATA_RESTRICTED ;
-        :definedByProject :SystemProject .
-
-    :GenericView a :PermissionSet ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "GenericView"@en, "GenericView"@de, "GenericView"@fr, "GenericView"@it ;
-        :givesPermission :DATA_VIEW ;
-        :definedByProject :SystemProject .
-
-    :GenericExtend a :PermissionSet ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "GenericExtend"@en, "GenericExtend"@de, "GenericExtend"@fr, "GenericExtend"@it ;
-        :givesPermission :DATA_EXTEND ;
-        :definedByProject :SystemProject .
-
-    :GenericUpdate a :PermissionSet ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "GenericUpdate"@en, "GenericUpdate"@de, "GenericUpdate"@fr, "GenericUpdate"@it ;
-        :givesPermission :DATA_UPDATE ;
+        rdfs:label "Unknown user"@en, "Unbekannte(r) Nutzer:in"@de, "Utilisateur inconnu"@fr, "Utenti sconosciuti"@it ;
         :definedByProject :SystemProject .
 
     #==================================================================
@@ -157,7 +129,7 @@
         schema:email "lukas.rosenthaler@unibas.ch"^^xsd:string ;
         :credentials "$2b$12$jWCJZ.qdXE9MSCPdUc0y4.9swWYJcgLZn0ePtRTu/7U8qH/OXXkB2"^^xsd:string ;
         :inProject :SystemProject, :HyperHamlet, <http://www.salsah.org/version/2.0/SwissBritNet>, :SharedProject ;
-        :hasPermissions :GenericRestricted, :GenericView ;
+        :hasRole :Unknown ;
         :isActive true .
 
     <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_OLDAP .
@@ -175,7 +147,7 @@
         schema:givenName "John"^^xsd:string ;
         schema:email "john.doe@nowhere.com"^^xsd:string ;
         :credentials "*"^^xsd:string ;
-        :hasPermissions :GenericRestricted ;
+        :hasRole :Unknown ;
         :isActive true .
 
     <https://orcid.org/0000-0001-9277-3921> a oldap:User ;
@@ -189,6 +161,6 @@
         schema:email "bugs.bunny@warnerbrothers.com"^^xsd:string ;
         :credentials "$2b$12$YK2g0KFvkelCZwCcE38UguIE/3aMPjO4XIX.9FJgYJoz2m.5sDlZK"^^xsd:string ; # "DuffyDuck"
         :inProject :HyperHamlet ;
-        :hasPermissions :GenericView ;
+        :hasRole :Unknown ;
         :isActive false .
 }

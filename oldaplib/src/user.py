@@ -246,10 +246,10 @@ class User(Model):
         else:
             self._attributes[UserAttr.IN_PROJECT] = InProjectClass(notifier=self.__inProject_cb)
 
-        if self._attributes.get(UserAttr.HAS_PERMISSIONS):
-            self._attributes[UserAttr.HAS_PERMISSIONS].set_notifier(self.__hasPermission_cb, UserAttr.HAS_PERMISSIONS)
+        if self._attributes.get(UserAttr.HAS_ROLE):
+            self._attributes[UserAttr.HAS_ROLE].set_notifier(self.__hasRole_cb, UserAttr.HAS_ROLE)
         else:
-            self._attributes[UserAttr.HAS_PERMISSIONS] = ObservableSet(notifier=self.__hasPermission_cb)
+            self._attributes[UserAttr.HAS_ROLE] = ObservableSet(notifier=self.__hasRole_cb)
 
         if self._attributes.get(UserAttr.CREDENTIALS):
             if not str(self._attributes[UserAttr.CREDENTIALS]).startswith(('$2a$', '$2b$', '$2y$')):
@@ -292,11 +292,11 @@ class User(Model):
                 self._attributes[UserAttr.IN_PROJECT] = InProjectClass(notifier=self.__inProject_cb)
             else:
                 self._attributes[UserAttr.IN_PROJECT] = InProjectClass(value, notifier=self.__inProject_cb)
-        if attr == UserAttr.HAS_PERMISSIONS:
+        if attr == UserAttr.HAS_ROLE:
             if value is None:
-                self._attributes[UserAttr.HAS_PERMISSIONS] = ObservableSet(notifier=self.__hasPermission_cb)
+                self._attributes[UserAttr.HAS_ROLE] = ObservableSet(notifier=self.__hasRole_cb)
             else:
-                self._attributes[UserAttr.HAS_PERMISSIONS] = ObservableSet(value, notifier=self.__hasPermission_cb)
+                self._attributes[UserAttr.HAS_ROLE] = ObservableSet(value, notifier=self.__hasRole_cb)
 
     def check_for_permissions(self) -> (bool, str):
         """
@@ -336,9 +336,9 @@ class User(Model):
     # Callbacks for the `ObservableSet`class. This is used whenever the `hasPermission`or
     # `inProject`properties are being modified
     #
-    def __hasPermission_cb(self, data: Enum | Iri = None) -> None:
-        if self._changeset.get(UserAttr.HAS_PERMISSIONS) is None:
-            self._changeset[UserAttr.HAS_PERMISSIONS] = AttributeChange(None, Action.MODIFY)
+    def __hasRole_cb(self, data: Enum | Iri = None) -> None:
+        if self._changeset.get(UserAttr.HAS_ROLE) is None:
+            self._changeset[UserAttr.HAS_ROLE] = AttributeChange(None, Action.MODIFY)
 
     def __inProject_cb(self, data: Enum | Iri = None) -> None:
         if self._changeset.get(UserAttr.IN_PROJECT) is None:
@@ -391,9 +391,9 @@ class User(Model):
             for p in self.inProject.keys():
                 for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
                     star += f'{blank:{indent * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {p.toRdf}>> oldap:hasAdminPermission {admin_p.value} .\n'
-        if self.hasPermissions:
-            rdfstr = ", ".join([str(x) for x in self.hasPermissions])
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:hasPermissions {rdfstr}'
+        if self.hasRole:
+            rdfstr = ", ".join([str(x) for x in self.hasRole])
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:hasRole {rdfstr}'
         sparql += " .\n\n"
         sparql += star
         return sparql
@@ -461,16 +461,16 @@ class User(Model):
             """
 
         pset_test = None
-        if self.hasPermissions:
-            perms = [x.toRdf for x in self.hasPermissions]
-            perms = ", ".join(perms)
+        if self.hasRole:
+            roles = [x.toRdf for x in self.hasRole]
+            roles = ", ".join(roles)
             pset_test = context.sparql_context
             pset_test += f"""
-            SELECT ?permissionset
+            SELECT ?role
             FROM oldap:admin
             WHERE {{
-                ?permissionset a oldap:PermissionSet .
-                FILTER(?permissionset IN ({perms}))
+                ?role a oldap:Role .
+                FILTER(?role IN ({roles}))
             }}
             """
 
@@ -492,31 +492,6 @@ class User(Model):
                                        contributor=self._con.userIri,
                                        modified=timestamp,
                                        indent=indent + 2, indent_inc=indent_inc)
-        # sparql += f'{blank:{(indent + 2) * indent_inc}}{self.userIri.toRdf} a oldap:User'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:userId {self.userId.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:familyName {self.familyName.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:givenName {self.givenName.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}schema:email {self.email.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:credentials {self.credentials.toRdf}'
-        # activeval = "true" if self.isActive else "false"
-        # sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:isActive {activeval}'
-        # star = ''
-        # if self.inProject:
-        #     project = [p.toRdf for p in self.inProject.keys()]
-        #     rdfstr = ", ".join(project)
-        #     sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:inProject {rdfstr}'
-        #     for p in self.inProject.keys():
-        #         for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
-        #             star += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {p.toRdf}>> oldap:hasAdminPermission {admin_p.value} .\n'
-        # if self.hasPermissions:
-        #     rdfstr = ", ".join([str(x) for x in self.hasPermissions])
-        #     sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}oldap:hasPermissions {rdfstr}'
-        # sparql += " .\n\n"
-        # sparql += star
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -552,16 +527,16 @@ class User(Model):
                 self._con.transaction_abort()
                 raise OldapErrorValue("One of the projects is not existing!")
 
-        if self.hasPermissions:
+        if self.hasRole:
             try:
                 jsonobj = self._con.transaction_query(pset_test)
             except OldapError:
                 self._con.transaction_abort()
                 raise
             res = QueryProcessor(context, jsonobj)
-            if len(res) != len(self.hasPermissions):
+            if len(res) != len(self.hasRole):
                 self._con.transaction_abort()
-                raise OldapErrorValue("One of the permission sets is not existing!")
+                raise OldapErrorValue(f"One of the Roles {self.hasRole} is not existing!")
 
         try:
             self._con.transaction_update(sparql)
@@ -640,7 +615,7 @@ class User(Model):
                        credentials=userdata.credentials,
                        isActive=userdata.isActive,
                        inProject=userdata.inProject,
-                       hasPermissions=userdata.hasPermissions)
+                       hasRole=userdata.hasRole)
         cache = CacheSingletonRedis()
         cache.set(instance.userIri, instance)
         instance.clear_changeset()
@@ -804,7 +779,7 @@ class User(Model):
         blank = ''
         sparql_list = []
         for field, change in self._changeset.items():
-            if field == UserAttr.HAS_PERMISSIONS or field == UserAttr.IN_PROJECT:
+            if field == UserAttr.HAS_ROLE or field == UserAttr.IN_PROJECT:
                 continue
             sparql = f'{blank:{indent * indent_inc}}# User field "{field.value}" with action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
@@ -823,33 +798,33 @@ class User(Model):
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
 
-        if UserAttr.HAS_PERMISSIONS in self._changeset:
+        if UserAttr.HAS_ROLE in self._changeset:
             added = set()
             removed = set()
-            if self._changeset[UserAttr.HAS_PERMISSIONS].action == Action.CREATE:
-                added = self._attributes[UserAttr.HAS_PERMISSIONS]
-            elif self._changeset[UserAttr.HAS_PERMISSIONS].action == Action.DELETE:
-                removed = self._changeset[UserAttr.HAS_PERMISSIONS].old_value
-            elif self._changeset[UserAttr.HAS_PERMISSIONS].action == Action.REPLACE:
-                added = self._attributes[UserAttr.HAS_PERMISSIONS]
-                removed = self._changeset[UserAttr.HAS_PERMISSIONS].old_value
-            elif self._changeset[UserAttr.HAS_PERMISSIONS].action == Action.MODIFY:
-                A = self._attributes[UserAttr.HAS_PERMISSIONS]
-                B = self._attributes[UserAttr.HAS_PERMISSIONS].old_value
+            if self._changeset[UserAttr.HAS_ROLE].action == Action.CREATE:
+                added = self._attributes[UserAttr.HAS_ROLE]
+            elif self._changeset[UserAttr.HAS_ROLE].action == Action.DELETE:
+                removed = self._changeset[UserAttr.HAS_ROLE].old_value
+            elif self._changeset[UserAttr.HAS_ROLE].action == Action.REPLACE:
+                added = self._attributes[UserAttr.HAS_ROLE]
+                removed = self._changeset[UserAttr.HAS_ROLE].old_value
+            elif self._changeset[UserAttr.HAS_ROLE].action == Action.MODIFY:
+                A = self._attributes[UserAttr.HAS_ROLE]
+                B = self._attributes[UserAttr.HAS_ROLE].old_value
                 added = A - B
                 removed = B - A
 
-            sparql = f'{blank:{indent * indent_inc}}# User field "hasPermission"\n'
+            sparql = f'{blank:{indent * indent_inc}}# User field "hasRole"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
             if removed:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 for perm in removed:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasPermissions {perm} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasRole {perm} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if added:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 for perm in added:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasPermissions {perm} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasRole {perm} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
@@ -859,17 +834,17 @@ class User(Model):
                 sparql_list.append(sparql)
 
             #
-            # check if existing :PermissionSet's have been given!
+            # check if existing :Roles's have been given!
             #
             if added:
                 tmp = [x.toRdf for x in added]
                 tmp = ", ".join(tmp)
                 ptest = f"""
-                SELECT ?permissionset
+                SELECT ?role
                 FROM oldap:admin
                 WHERE {{
-                    ?permissionset a oldap:PermissionSet .
-                    FILTER(?permissionset IN ({tmp}))
+                    ?role a oldap:Role .
+                    FILTER(?role IN ({tmp}))
                 }}
                 """
                 ptest_len = len(added)

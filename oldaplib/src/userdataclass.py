@@ -20,32 +20,38 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 @serializer
 class UserData:
     """
-    Represents a user entity and provides management and query functionalities for a user
-    in a specific project context.
+    Represents user data, including personal information, roles, and project involvement,
+    while adhering to a structured and serializable format.
 
-    This class is designed to encapsulate properties and behaviors associated with a user.
-    It provides attributes for managing user metadata, permissions, and project associations.
-    Additionally, it includes utility methods for constructing SPARQL queries and processing
-    query results to instantiate user data instances.
+    The class serves as a model for user-related information in a SPARQL-based system,
+    providing methods for querying, constructing, and managing user-related data.
 
-    :ivar userIri: The IRI uniquely identifying the user.
-    :ivar userId: The NCName uniquely identifying the user.
-    :ivar familyName: The family name of the user.
-    :ivar givenName: The given name of the user.
-    :ivar email: The email address of the user.
-    :ivar credentials: The hashed credentials or identifier for user authentication.
-    :ivar isActive: Indicates whether the user's account is active.
-    :ivar inProject: A representation of the user's association within projects.
-    :ivar hasPermissions: The set of permissions associated with the user.
+    :ivar creator: The IRI of the user who created this entity.
+    :type creator: Iri | None
+    :ivar created: The datetime when this entity was created.
+    :type created: Xsd_dateTime | datetime | None
+    :ivar contributor: The IRI of the user who contributed to this entity.
+    :type contributor: Iri | None
+    :ivar modified: The datetime when this entity was last modified.
+    :type modified: Xsd_dateTime | datetime | None
+    :ivar userIri: The unique IRI identifying the user.
     :type userIri: Iri
+    :ivar userId: The unique non-colonized identifier (NCName) for the user.
     :type userId: Xsd_NCName
+    :ivar familyName: The family name (surname) of the user.
     :type familyName: Xsd_string
+    :ivar givenName: The given name (first name) of the user.
     :type givenName: Xsd_string
+    :ivar email: The user's email address.
     :type email: Xsd_string
-    :type credentials: Xsd_string
+    :ivar credentials: The credentials or authentication key for the user, if provided.
+    :type credentials: Xsd_string | None
+    :ivar isActive: A boolean indicating whether the user is currently active.
     :type isActive: Xsd_boolean
+    :ivar inProject: The project object or relation associated with the user.
     :type inProject: InProjectClass | None
-    :type hasPermissions: SerializeableSet[Iri] | None
+    :ivar hasRole: A serializable set containing the roles or permissions assigned to the user.
+    :type hasRole: SerializeableSet[Iri] | None
     """
     _creator: Iri | None
     _created: Xsd_dateTime | datetime | None
@@ -58,7 +64,8 @@ class UserData:
     _email: Xsd_string
     _credentials: Xsd_string
     _isActive: Xsd_boolean
-    _inProject: InProjectClass
+    _inProject: InProjectClass | None
+    _hasRole: SerializeableSet[Iri] | None
 
     def __init__(self, *,
                  creator: Iri | None = None,
@@ -73,7 +80,7 @@ class UserData:
                  credentials: Xsd_string | None = None,
                  isActive: Xsd_boolean,
                  inProject: InProjectClass | None = None,
-                 hasPermissions: SerializeableSet[Iri] | set[Iri] | None = None,
+                 hasRole: SerializeableSet[Iri] | set[Iri] | None = None,
                  validate: bool = False):
         self._creator = creator
         self._created = created
@@ -87,7 +94,7 @@ class UserData:
         self._credentials = credentials
         self._isActive = isActive
         self._inProject = inProject or InProjectClass()
-        self._hasPermissions = hasPermissions if isinstance(hasPermissions, SerializeableSet) else SerializeableSet(hasPermissions)
+        self._hasRole = hasRole if isinstance(hasRole, SerializeableSet) else SerializeableSet(hasRole)
 
     def __str__(self) -> str:
         res = f'userIri: {self._userIri}\n'
@@ -98,7 +105,7 @@ class UserData:
         res += f', credentials: {self._credentials}\n'
         res += f', isActive: {self._isActive}\n'
         res += f', inProject: {self._inProject}\n'
-        res += f', hasPermissions: {self._hasPermissions}\n'
+        res += f', hasRole: {self._hasRole}\n'
         return res
 
     @property
@@ -150,8 +157,8 @@ class UserData:
         return self._inProject
 
     @property
-    def hasPermissions(self) -> SerializeableSet[Iri] | None:
-        return self._hasPermissions
+    def hasRole(self) -> SerializeableSet[Iri] | None:
+        return self._hasRole
 
     @staticmethod
     def sparql_query(context: Context, userId: IriOrNCName, validate: bool = False) -> str:
@@ -245,7 +252,7 @@ class UserData:
         credentials: Xsd_string | None = None
         isActive: Xsd_boolean | None = None
         inProjectDict: dict[Iri | str, set[AdminPermission]] | None = None
-        hasPermissions: set[Iri] | None = None
+        hasRole: set[Iri] | None = None
         for r in queryresult:
             match str(r.get('prop')):
                 case 'dcterms:creator':
@@ -274,10 +281,10 @@ class UserData:
                         inProjectDict = {r['val']: set()}
                     else:
                         inProjectDict[r['val']] = set()
-                case 'oldap:hasPermissions':
-                    if not hasPermissions:
-                        hasPermissions = set()
-                    hasPermissions.add(r['val'])
+                case 'oldap:hasRole':
+                    if not hasRole:
+                        hasRole = set()
+                    hasRole.add(r['val'])
                 case _:
                     if r.get('proj') and r.get('rval'):
                         if not inProjectDict:
@@ -298,7 +305,7 @@ class UserData:
                    credentials=credentials,
                    isActive=isActive,
                    inProject=inProject,
-                   hasPermissions=hasPermissions,
+                   hasRole=hasRole,
                    validate=False)
 
     def _as_dict(self) -> dict:
@@ -309,7 +316,7 @@ class UserData:
                 'givenName': self._givenName,
                 'email': self._email,
                 'isActive': self._isActive,
-                'hasPermissions': self._hasPermissions,
+                'hasRole': self._hasRole,
                 'inProject': self._inProject
         }
 

@@ -15,7 +15,7 @@ from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplist_helpers import load_list_from_yaml, print_sublist
-from oldaplib.src.permissionset import PermissionSet
+from oldaplib.src.permissionset import Role
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
@@ -153,16 +153,16 @@ if __name__ == '__main__':
                       )
     project.create()
 
-    ps1 = PermissionSet(con=con,
-                       permissionSetId="playgroundFull",
-                       givesPermission=DataPermission.DATA_PERMISSIONS,
-                       definedByProject=project.projectIri)
+    ps1 = Role(con=con,
+               permissionSetId="playgroundFull",
+               givesPermission=DataPermission.DATA_PERMISSIONS,
+               definedByProject=project.projectIri)
     ps1.create()
 
-    ps2 = PermissionSet(con=con,
-                       permissionSetId="playgroundView",
-                       givesPermission=DataPermission.DATA_VIEW,
-                       definedByProject=project.projectIri)
+    ps2 = Role(con=con,
+               permissionSetId="playgroundView",
+               givesPermission=DataPermission.DATA_VIEW,
+               definedByProject=project.projectIri)
     ps2.create()
 
 

@@ -18,7 +18,7 @@ from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorNoPermission, OldapErrorInUse
-from oldaplib.src.permissionset import PermissionSet
+from oldaplib.src.permissionset import Role
 from oldaplib.src.project import Project
 from oldaplib.src.user import User
 from oldaplib.src.xsd.iri import Iri
@@ -113,14 +113,14 @@ class TestObjectFactory(unittest.TestCase):
         user.hasPermissions.add(Iri('oldap:GenericUpdate'))  # TODO: SHOULD WORK WITH Xsd_QName
         user.update()
 
-        ps = PermissionSet(con=cls._connection,
-                           permissionSetId="testNoUpdate",
-                           label=LangString("testNoUpdate@en"),
-                           comment=LangString("Testing PermissionSet@en"),
-                           givesPermission=DataPermission.DATA_VIEW,
-                           definedByProject="test")
+        ps = Role(con=cls._connection,
+                  permissionSetId="testNoUpdate",
+                  label=LangString("testNoUpdate@en"),
+                  comment=LangString("Testing PermissionSet@en"),
+                  givesPermission=DataPermission.DATA_VIEW,
+                  definedByProject="test")
         ps.create()
-        cls._tps = ps.read(con=cls._connection, permissionSetId="testNoUpdate", definedByProject="test")
+        cls._tps = ps.read(con=cls._connection, roleId="testNoUpdate", definedByProject="test")
 
         user = User(con=cls._connection,
                     userId=Xsd_NCName("factorytestuser"),
@@ -625,12 +625,12 @@ class TestObjectFactory(unittest.TestCase):
     def test_change_permissions(self):
         project = Project.read(con=self._connection, projectIri_SName='test')
 
-        ps = PermissionSet(con=self._connection,
-                           permissionSetId="testChangePermission",
-                           label=LangString("testChangePermission@en"),
-                           comment=LangString("Testing PermissionSet@en"),
-                           givesPermission=DataPermission.DATA_PERMISSIONS,
-                           definedByProject="test")
+        ps = Role(con=self._connection,
+                  permissionSetId="testChangePermission",
+                  label=LangString("testChangePermission@en"),
+                  comment=LangString("Testing PermissionSet@en"),
+                  givesPermission=DataPermission.DATA_PERMISSIONS,
+                  definedByProject="test")
         ps.create()
 
         factory = ResourceInstanceFactory(con=self._connection, project=project)
@@ -736,6 +736,11 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], '2')
 
+    def test_read_media_object_by_id_B(self):
+        res = ResourceInstance.get_media_object_by_id(con=self._unpriv, mediaObjectId='Hlon4w5TSplO.tif')
+        pprint(res)
+
+
     def test_read_media_object_by_iri_A(self):
         res = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri='urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901')
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
@@ -768,6 +773,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(tinfo['id'], 'x_42db.jpg')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], '2')
+
 
     def test_create_media_object(self):
         dm = DataModel.read(con=self._connection, project='test')

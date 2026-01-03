@@ -625,13 +625,13 @@ class TestResourceClass(unittest.TestCase):
         self.assertIsNone(prop10.prop.name)
         self.assertIsNone(prop10.prop.description)
 
-        prop11 = r1[Xsd_QName('oldap:hasPermissions')]
-        self.assertEqual(prop11.prop.property_class_iri, Xsd_QName('oldap:hasPermissions'))
+        prop11 = r1[Xsd_QName('oldap:hasRole')]
+        self.assertEqual(prop11.prop.property_class_iri, Xsd_QName('oldap:hasRole'))
         self.assertEqual(prop11.prop.creator, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop11.prop.created, Xsd_dateTime('2023-11-04T12:00:00+00:00'))
         self.assertEqual(prop11.prop.contributor, Iri('https://orcid.org/0000-0003-1681-4036'))
         self.assertEqual(prop11.prop.modified, Xsd_dateTime('2023-11-04T12:00:00Z'))
-        self.assertEqual(prop11.prop.toClass, Xsd_QName('oldap:PermissionSet'))
+        self.assertEqual(prop11.prop.toClass, Xsd_QName('oldap:Role'))
 
     # @unittest.skip('Work in progress')
     def test_reading(self):

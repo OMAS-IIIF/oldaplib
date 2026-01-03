@@ -1204,6 +1204,7 @@ class ResourceInstance:
             }}
         }}
         """
+        print(sparql)
         try:
             jsonres = con.query(sparql)
         except OldapError:
@@ -1221,7 +1222,8 @@ class ResourceInstance:
             if str(r['prop']) == 'rdf:type':
                 continue
             if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
-                                  'shared:imageId', 'shared:originalName', 'shared:originalMimeType', 'shared:serverUrl', 'shared:path', 'shared:protocol'}:
+                                  'dcterms:type', 'shared:imageId', 'shared:originalName', 'shared:originalMimeType',
+                                  'shared:serverUrl', 'shared:path', 'shared:protocol'}:
                 result[str(r['prop'])] = r['val']
             else:
                 if result.get(str(r['prop'])) is None:
@@ -1288,7 +1290,8 @@ class ResourceInstance:
             if str(r['prop']) == 'rdf:type':
                 continue
             if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
-                                  'shared:imageId', 'shared:originalName', 'shared:originalMimeType', 'shared:serverUrl', 'shared:path', 'shared:protocol'}:
+                                  'dcterms:type', 'shared:imageId', 'shared:originalName', 'shared:originalMimeType',
+                                  'shared:serverUrl', 'shared:path', 'shared:protocol'}:
                 result[str(r['prop'])] = r['val']
             else:
                 if result.get(str(r['prop'])) is None:

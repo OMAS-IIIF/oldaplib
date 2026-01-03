@@ -9,10 +9,9 @@ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 
 @unique
-class PermissionSetAttr(AttributeClass):
+class RoleAttr(AttributeClass):
     # order: (QName, mandatory, immutable, datatype)
-    PERMISSION_SET_ID = ('virtual:permissionSetId', True, True, Xsd_NCName)  # virtual property, no equivalent in RDF
+    ROLE_ID = ('virtual:roleId', True, True, Xsd_NCName)  # virtual property, no equivalent in RDF
     DEFINED_BY_PROJECT = ('oldap:definedByProject', True, True, IriOrNCName)
-    GIVES_PERMISSION = ('oldap:givesPermission', True, False, DataPermission)
     LABEL = ('rdfs:label', False, False, LangString)
     COMMENT = ('rdfs:comment', False, False, LangString)

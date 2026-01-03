@@ -39,7 +39,7 @@
     # This property will be reused wherever we need a namespace IRI
     #
     :namespaceIriShape a sh:PropertyShape ;
-        sh:targetClass :namespaceIri ;
+        sh:path :namespaceIri ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -120,7 +120,7 @@
     #
     # SHACL definition of the oldap:AdminPermission class. The AdminPermission instances are attached as
     # RDF*star to the triple that defines to which oldap:project as oldap:User belongs to.
-    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasRights :ADMIN_PROJECT .
+    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_PROJECT .
     #
     :AdminPermissionShape a sh:NodeShape ;
         sh:targetClass :AdminPermission ;
@@ -146,10 +146,22 @@
             sh:uniqueLang true ;
         ] .
 
+    #
+    # Property to assign a admin permission
+    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_PROJECT .
+    #
     :hasAdminPermissionShape a sh:PropertyShape ;
         sh:path :hasAdminPermission ;
+        :statementProperty true ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:class :AdminPermission .
 
+    #
+    # Data permission shape
+    #
     :DataPermissionShape a sh:NodeShape ;
         sh:targetClass :DataPermission ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -185,18 +197,48 @@
             sh:uniqueLang true ;
         ] .
 
+    # TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # SHACL to define a permission sets. A permission set assigns data permissions to both
+    # a given user and a given data instance.
+    # Let's assume a PermissionSet instance :MyPermSet which I will use. Then I can give the following
+    # permissions:
     #
-    # SHACL to define a permission sets. For each resource, there are RDF-triples which define the
-    # permissions for permission sets.
+    #  <<:MyInstance oldap:attachedToRole :MyRole>> oldap:hasDataPermission :DATA_EXTEND .
     #
-    :PermissionSetShape a sh:NodeShape ;
-        sh:targetClass :PermissionSet ;
+    # A user with:
+    #
+    # :ThisUser oldap:hasRole :MyRole, MyRole2 .
+    #
+    # we may add default values that are proposed as standard values for creating instances:
+    #
+    # <<:ThisUser oldap:hasRole :MyRole>> oldap:hasDefaultDataPermission :DATA_EXTEND
+    # <<:ThisUser oldap:hasRole :MyRole2>> oldap:hasDefaultDataPermission :DATA_RESTRICTED
+    #
+    # Thus, the user should have maximal :DATA_VIEW access to the given instance
+    #
+    #    PREFIX : <https://gaga.com/>
+    #    PREFIX o: <http://www.ooo.org/ns#>
+    #
+    #    SELECT ?predicate ?value ?permval
+    #    WHERE {
+    #        GRAPH :test {
+    #            :InstanceA ?predicate ?value ;
+    #            	o:attachedToRole ?role .
+    #            :UserA o:hasRole ?role .
+    #           <<:InstanceA  o:attachedToRole ?role>> o:dataPermission ?permval .
+    #        }
+    #        FILTER(?permval >= 1)
+    #   }
+    #
+
+    :RoleShape a sh:NodeShape ;
+        sh:targetClass :Role ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:label "Permission set"@en, "Berechtigungssatz"@de, "Ensemble de permissions"@fr, "Set di permessi"@it ;
-        rdfs:comment "A set of permissions a user and a resource grants."@en ;
+        rdfs:label "Permission role"@en, "Berechtigungsrolle"@de, "Rôle d'autorisation"@fr, "Ruolo di autorizzazione"@it ;
+        rdfs:comment "Defines a role regarding data permissions, e.g. Editor, Unknown, Contributor etc."@en ;
         sh:property [
             sh:path rdf:type ;
         ] ;
@@ -225,25 +267,6 @@
             sh:minCount 1 ;
         ] ;
         sh:property [
-            sh:path :givesPermission ;
-            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:maxCount 1 ;
-            sh:minCount 1 ;
-            sh:class :DataPermission ;
-            sh:in (:DATA_RESTRICTED :DATA_VIEW :DATA_EXTEND :DATA_UPDATE :DATA_DELETE :DATA_PERMISSIONS) ;
-            sh:name "Data permission"@en,
-                    "Data permission"@de,
-                    "Data permission"@fr,
-                    "Data permission"@it ;
-            sh:description "Permission type to access a resource"@en,
-                           "Berechtigungstyp für Ressource"@de,
-                           "Type d'autorisation pour accéder à une ressource"@fr,
-                           "Tipo di autorizzazione per accedere a una risorsa"@it ;
-        ] ;
-        sh:property [
             sh:path :definedByProject ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
@@ -253,10 +276,10 @@
             sh:maxCount 1 ;
             sh:class :Project;
             sh:name "Defined by"@en, "Definiert durch"@de, "Défini par"@fr, "Definito da"@it ;
-            sh:description "Permission set is define by project"@en,
-                           "Der Berechtigungssatz wird definiert durch das Projekt"@de,
-                           "L'ensemble des autorisations est défini par le projet"@fr,
-                           "Il set di permessi è definito dal progetto"@it ;
+            sh:description "Permission role is define by project"@en,
+                           "Der Berechtigungsrolle wird definiert durch das Projekt"@de,
+                           "Le rôle d'autorisation est défini par projet."@fr,
+                           "Il ruolo di autorizzazione è definito dal progetto"@it ;
         ] ;
         sh:property [
             sh:path rdfs:label ;
@@ -511,12 +534,12 @@
             sh:datatype xsd:boolean ;
         ] ;
         sh:property [
-            sh:path :hasPermissions ;
+            sh:path :hasRole ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:class :PermissionSet ;
+            sh:class :Role ;
         ] .
 
     :inProjectStatementShape a sh:NodeShape ;
@@ -678,6 +701,24 @@
         ] ;
         sh:closed true .
 
+    ###########################################################################
+    # Statment property (RDF#star) for assigning a data permission to a :Thing
+    ###########################################################################
+    :hasDataPermissionShape a sh:PropertyShape ;
+        :statementProperty true ;
+        sh:targetClass :hasDataPermission ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:name "has data permission"@en ;
+        sh:description "Assigns a data permission"@en ;
+        sh:class :DataPermission .
+
+
+    ###########################################################################
+    # :Thing is a superclass of all instance classes that OLDAP defines
+    ###########################################################################
     :ThingShape a sh:NodeShape ;
         sh:targetClass :Thing ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -728,12 +769,12 @@
             sh:datatype xsd:dateTimeStamp ;
         ] ;
         sh:property [
-            sh:path :grantsPermission ;
+            sh:path :attachedToRole ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:class :PermissionSet ;
+            sh:class :Role ;
         ] .
 
 }
@@ -838,28 +879,20 @@
         rdfs:domain :Thing ;
         rdfs:range xsd:dateTimeStamp .
 
-    :grantsPermission rdf:type owl:ObjectProperty ;
+    :attachedToRole rdf:type owl:ObjectProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:domain :Thing ;
-        rdfs:range :PermissionSet .
-
-    :givesPermission rdf:type owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :PermissionSet ;
-        rdfs:range :DataPermission .
+        rdfs:range :Role .
 
     :definedByProject rdf:type owl:ObjectProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :PermissionSet ;
+        rdfs:domain :Role ;
         rdfs:range :Project .
 
 
@@ -899,14 +932,22 @@
         rdfs:domain :User ;
         rdfs:range xsd:boolean .
 
-    :hasPermissions rdf:type owl:ObjectProperty ;
+    :hasRole rdf:type owl:ObjectProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         rdfs:domain :User ;
-        rdfs:range :PermissionSet .
+        rdfs:range :Role .
 
+    #
+    # RDF*Star property to assign an admin permission to a user/project combination
+    :hasAdminPermission a rdf:Property ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:range :AdminPermission .
 
     ###############################################################################
     # Properties used for :Project
@@ -960,6 +1001,19 @@
         rdfs:domain :OldapListNode ;
         rdfs:range xsd:positiveInteger .
 
+    ###############################################################################
+    # Properties used for assigning data permission to an instance (RDF*star)
+    ###############################################################################
+
+    #
+    # Example: <<:MyInstance :attachedToRole>> :hasDataPermission :DATA_RESTRICTED .
+    #
+    :hasDataPermission rdf:type rdf:Property, owl:ObjectProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:range :DataPermission .
 
 
     #################################################################
@@ -1063,10 +1117,10 @@
 
 
     #################################################################
-    # PermissionSet class (Holding class of resource permissions)
+    # Role class (Holding class of resource permissions)
     #################################################################
 
-    :PermissionSet a owl:class ;
+    :Role a owl:class ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -1095,12 +1149,6 @@
                 owl:onProperty dcterms:modified ;
                 owl:onDataRange xsd:dateTime ;
                 owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :givesPermission ;
-                owl:onClass :DataPermission ;
-                owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
             ],
             [
                 rdf:type owl:Restriction ;
@@ -1269,9 +1317,9 @@
             ] ,
             [
                 rdf:type owl:Restriction ;
-                owl:onProperty :hasPermissions ;
+                owl:onProperty :hasRole ;
                 owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
-                owl:onClass :PermissionSet
+                owl:onClass :Role
             ] .
 
 
@@ -1427,9 +1475,9 @@
             ] ,
             [
                 rdf:type owl:Restriction ;
-                owl:onProperty :grantsPermission ;
+                owl:onProperty :attachedToRole ;
                 owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
-                owl:onClass :PermissionSet
+                owl:onClass :Rolse
             ] ;
         rdfs:comment "General super class of all things (resources) in tghe OMAS universe"@en .
 

@@ -927,7 +927,7 @@ class PropertyClass(Model, Notify):
                         # If obj is already a member, keep it; otherwise look it up by value
                         prop_type = obj if isinstance(obj, OwlPropertyType) else OwlPropertyType(obj)
                     except ValueError as e:
-                        raise OldapErrorNotFound(f'Unknown owl:Property type "{obj}"') from e
+                        raise OldapErrorNotFound(f'{self._property_class_iri}: Unknown owl:Property type "{obj}"') from e
                     self._attributes[PropClassAttr.TYPE].add(prop_type)
                 case 'owl:subPropertyOf':
                     self._attributes[PropClassAttr.SUBPROPERTY_OF] = obj
