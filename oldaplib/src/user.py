@@ -140,19 +140,22 @@ user3 = User.read(con=self._connection, userId="aedison")
 user3.delete()
 ```
 """
+import textwrap
 from copy import deepcopy
 from enum import Enum
 from functools import partial
 from pprint import pprint
-from typing import List, Self, Optional, Any
+from typing import List, Self, Optional, Any, Tuple
 
 import bcrypt
 
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.enums.action import Action
+from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.irincname import IriOrNCName
+from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.in_project import InProjectClass
@@ -235,6 +238,18 @@ class User(Model):
                          validate=validate)
 
         self.set_attributes(kwargs, UserAttr)
+
+        #
+        # maybe we have to change the default data permissionss for the user
+        #
+        if self._attributes.get(UserAttr.HAS_ROLE):
+            tmp = ObservableDict()
+            for role, dperm in self._attributes[UserAttr.HAS_ROLE].items():
+                if not isinstance(dperm, DataPermission):
+                    tmp[role] = DataPermission.from_qname(dperm) if isinstance(dperm, Xsd_QName) else DataPermission.from_string(dperm)
+                else:
+                    tmp[role] = dperm
+            self._attributes[UserAttr.HAS_ROLE] = tmp
         #
         # Consistency checks
         #
@@ -247,9 +262,10 @@ class User(Model):
             self._attributes[UserAttr.IN_PROJECT] = InProjectClass(notifier=self.__inProject_cb)
 
         if self._attributes.get(UserAttr.HAS_ROLE):
-            self._attributes[UserAttr.HAS_ROLE].set_notifier(self.__hasRole_cb, UserAttr.HAS_ROLE)
+            #self._attributes[UserAttr.HAS_ROLE].set_on_change(self.__hasRole_cb, UserAttr.HAS_ROLE)
+            self._attributes[UserAttr.HAS_ROLE].set_on_change(self.__hasRole_cb)
         else:
-            self._attributes[UserAttr.HAS_ROLE] = ObservableSet(notifier=self.__hasRole_cb)
+            self._attributes[UserAttr.HAS_ROLE] = ObservableDict(on_change=self.__hasRole_cb)
 
         if self._attributes.get(UserAttr.CREDENTIALS):
             if not str(self._attributes[UserAttr.CREDENTIALS]).startswith(('$2a$', '$2b$', '$2y$')):
@@ -294,11 +310,11 @@ class User(Model):
                 self._attributes[UserAttr.IN_PROJECT] = InProjectClass(value, notifier=self.__inProject_cb)
         if attr == UserAttr.HAS_ROLE:
             if value is None:
-                self._attributes[UserAttr.HAS_ROLE] = ObservableSet(notifier=self.__hasRole_cb)
+                self._attributes[UserAttr.HAS_ROLE] = ObservableDict(on_change=self.__hasRole_cb)
             else:
-                self._attributes[UserAttr.HAS_ROLE] = ObservableSet(value, notifier=self.__hasRole_cb)
+                self._attributes[UserAttr.HAS_ROLE] = ObservableDict(value, on_change=self.__hasRole_cb)
 
-    def check_for_permissions(self) -> (bool, str):
+    def check_for_permissions(self) -> Tuple[bool, str]:
         """
         Evaluates whether the currently logged-in user ("actor") has the necessary permissions
         to create a user for the specified project(s). The function checks if the actor has root
@@ -336,9 +352,9 @@ class User(Model):
     # Callbacks for the `ObservableSet`class. This is used whenever the `hasPermission`or
     # `inProject`properties are being modified
     #
-    def __hasRole_cb(self, data: Enum | Iri = None) -> None:
+    def __hasRole_cb(self, old_value: ObservableDict) -> None:
         if self._changeset.get(UserAttr.HAS_ROLE) is None:
-            self._changeset[UserAttr.HAS_ROLE] = AttributeChange(None, Action.MODIFY)
+            self._changeset[UserAttr.HAS_ROLE] = AttributeChange(old_value, Action.MODIFY)
 
     def __inProject_cb(self, data: Enum | Iri = None) -> None:
         if self._changeset.get(UserAttr.IN_PROJECT) is None:
@@ -392,8 +408,11 @@ class User(Model):
                 for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
                     star += f'{blank:{indent * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {p.toRdf}>> oldap:hasAdminPermission {admin_p.value} .\n'
         if self.hasRole:
-            rdfstr = ", ".join([str(x) for x in self.hasRole])
+            rdfstr = ", ".join([str(x) for x in self.hasRole.keys()])
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:hasRole {rdfstr}'
+            for r, p in self.hasRole.items():
+                if p:
+                    star += f'{blank:{(indent + 1) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {r.toRdf}>> oldap:hasDefaultDataPermission {p.value} .\n'
         sparql += " .\n\n"
         sparql += star
         return sparql
@@ -427,52 +446,66 @@ class User(Model):
             self.userIri = Iri()
         context = Context(name=self._con.context_name)
         sparql1 = context.sparql_context
-        sparql1 += f"""
-        SELECT ?user
+        #
+        # SPARQL to test if a user with the same userId already exists
+        #
+        sparql1 += textwrap.dedent(f"""
+        ASK
         FROM oldap:admin
         WHERE {{
-            ?user a oldap:User .
-            ?user oldap:userId {self.userId.toRdf} .         
+            ?user oldap:userId {self.userId.toRdf} .
         }}
-        """
+        """)
 
+        #
+        # SPARQL to test if a user with the same userIri already exists
+        #
         sparql2 = context.sparql_context
-        sparql2 += f"""
-        SELECT ?user
+        sparql2 += textwrap.dedent(f"""
+        ASK
         FROM oldap:admin
         WHERE {{
-            ?user a oldap:User .
-            FILTER(?user = {self.userIri.toRdf})
+             {self.userIri.toRdf} ?p ?o
         }}
-        """
+        """)
 
+        #
+        # SPARQL to test if the projects the user should be in do exist...
+        #
         proj_test = None
         if self.inProject:
             projs = [x.toRdf for x in self.inProject.keys()]
             projslist = ", ".join(projs)
             proj_test = context.sparql_context
-            proj_test += f"""
+            proj_test += textwrap.dedent(f"""
             SELECT ?project
             FROM oldap:admin
             WHERE {{
                 ?project a oldap:Project .
                 FILTER(?project IN ({projslist}))
             }}
-            """
+            """)
+        else:
+            projs = []
 
-        pset_test = None
+        #
+        # SPARQL to test if the roles the user should have do exist...
+        #
+        roles_test = None
         if self.hasRole:
             roles = [x.toRdf for x in self.hasRole]
             roles = ", ".join(roles)
-            pset_test = context.sparql_context
-            pset_test += f"""
+            roles_test = context.sparql_context
+            roles_test += textwrap.dedent(f"""
             SELECT ?role
             FROM oldap:admin
             WHERE {{
                 ?role a oldap:Role .
                 FILTER(?role IN ({roles}))
             }}
-            """
+            """)
+        else:
+            roles = []
 
         timestamp = Xsd_dateTime.now()
         blank = ''
@@ -501,8 +534,7 @@ class User(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        res = QueryProcessor(context, jsonobj)
-        if len(res) > 0:
+        if jsonobj['boolean']:
             self._con.transaction_abort()
             raise OldapErrorAlreadyExists(f'A user with a user ID "{self.userId}" already exists')
 
@@ -511,8 +543,7 @@ class User(Model):
         except OldapError:
             self._con.transaction_abort()
             raise
-        res = QueryProcessor(context, jsonobj)
-        if len(res) > 0:
+        if jsonobj['boolean']:
             self._con.transaction_abort()
             raise OldapErrorAlreadyExists(f'A user with a user IRI "{self.userIri}" already exists')
 
@@ -529,7 +560,7 @@ class User(Model):
 
         if self.hasRole:
             try:
-                jsonobj = self._con.transaction_query(pset_test)
+                jsonobj = self._con.transaction_query(roles_test)
             except OldapError:
                 self._con.transaction_abort()
                 raise
@@ -720,6 +751,14 @@ class User(Model):
             ?user a oldap:User .
             ?user oldap:userId {self.userId.toRdf} .
         }} ;
+        WITH oldap:admin
+        DELETE {{
+            <<?user oldap:hasRole ?role>> oldap:hasDefaultDataPermission ?dval .    
+        }}
+        WHERE {{
+            ?user a oldap:User .
+            ?user oldap:userId {self.userId.toRdf} .
+        }} ;
         DELETE WHERE {{
             ?user a oldap:User .
             ?user oldap:userId {self.userId.toRdf} .
@@ -799,8 +838,9 @@ class User(Model):
             sparql_list.append(sparql)
 
         if UserAttr.HAS_ROLE in self._changeset:
-            added = set()
-            removed = set()
+            added = {}
+            removed = {}
+            changed = {}
             if self._changeset[UserAttr.HAS_ROLE].action == Action.CREATE:
                 added = self._attributes[UserAttr.HAS_ROLE]
             elif self._changeset[UserAttr.HAS_ROLE].action == Action.DELETE:
@@ -809,28 +849,92 @@ class User(Model):
                 added = self._attributes[UserAttr.HAS_ROLE]
                 removed = self._changeset[UserAttr.HAS_ROLE].old_value
             elif self._changeset[UserAttr.HAS_ROLE].action == Action.MODIFY:
-                A = self._attributes[UserAttr.HAS_ROLE]
-                B = self._attributes[UserAttr.HAS_ROLE].old_value
-                added = A - B
-                removed = B - A
+                if self._changeset[UserAttr.HAS_ROLE].old_value:
+                    added = {key: self._attributes[UserAttr.HAS_ROLE][key] for key in self._attributes[UserAttr.HAS_ROLE].keys() - self._changeset[UserAttr.HAS_ROLE].old_value.keys()}
+                else:
+                    added = self._attributes[UserAttr.HAS_ROLE]
+                if self._changeset[UserAttr.HAS_ROLE].old_value:
+                    removed = {key: self._changeset[UserAttr.HAS_ROLE].old_value[key] for key in self._changeset[UserAttr.HAS_ROLE].old_value.keys() - self._attributes[UserAttr.HAS_ROLE].keys()}
+                else:
+                    removed = {}
+                if self._changeset[UserAttr.HAS_ROLE].old_value:
+                    changed = {key: {'old': self._changeset[UserAttr.HAS_ROLE][key], 'new': self._attributes[UserAttr.HAS_ROLE][key]}
+                               for key in self._changeset[UserAttr.HAS_ROLE].old_value.keys() & self._attributes[UserAttr.HAS_ROLE].keys()
+                               if self._attributes[UserAttr.HAS_ROLE][key] != self._changeset[UserAttr.HAS_ROLE].old_value[key]}
+                else:
+                    changed = {}
 
+            #
+            # first we add new roles or delete removed roles from the user (oldap:hasRole). Roles where the
+            # oldap:hasDefaultDataPermission has changed are not considered here (but below) since its a RDF*star thing!
+            #
             sparql = f'{blank:{indent * indent_inc}}# User field "hasRole"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
             if removed:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                for perm in removed:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasRole {perm} .\n'
+                for role in removed.keys():
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasRole {role.toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             if added:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-                for perm in added:
-                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasRole {perm} .\n'
+                for role in added.keys():
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:hasRole {role.toRdf} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?user a oldap:User .\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             if removed or added:
+                sparql_list.append(sparql)
+
+            #
+            # Now we process the RDF*star triples where a Role has been added/deleted or the
+            # oldap:hasDefaultDataPermission has changed!
+            #
+            rdfstar = False
+            sparql = f'{blank:{indent * indent_inc}}# RDF*Star <<.. oldap:hasRole ...>> oldap:hasDefaultDataPermission ...\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
+            if removed:
+                tmp = [role for role, dperm in removed.items() if dperm] # check if we have roles with dterm not None
+                if tmp:
+                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                    for role, dperm in removed.items():
+                        if dperm:
+                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<?user oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {dperm} .\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    rdfstar = True
+            if changed:  # remove RDF*Star triples of the roles that have changed
+                tmp = [role for role, dperm in changed.items() if dperm['old']]
+                if tmp:
+                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                    for role, changes in changed.items():
+                        if changes['old']:
+                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<?user oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {changes["old"]} .\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    rdfstar = True
+            if added:
+                tmp = [role for role, dperm in added.items() if dperm]  # check if we have roles with dterm not None
+                if tmp:
+                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                    for role, dperm in added.items():
+                        if dperm:
+                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<?user oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {dperm} .\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    rdfstar = True
+            if changed:  # add the RDF*Star triples of the roles that have changed
+                tmp = [role for role, dperm in changed.items() if dperm['new']]
+                if tmp:
+                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                    for role, changes in changed.items():
+                        if changes['new']:
+                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<?user oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {changes["new"]} .\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    rdfstar = True
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user a oldap:User .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            if rdfstar:
                 sparql_list.append(sparql)
 
             #

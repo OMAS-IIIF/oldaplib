@@ -12,6 +12,9 @@
 
 :admin {
 
+    #
+    # add to prohjects for testing
+    #
     :HyperHamlet a :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
@@ -34,6 +37,9 @@
         rdfs:comment "Elite network between Switzerland and Great Britain"@en ;
         :projectStart "2023-07-01"^^xsd:date .
 
+    #
+    # add roles for the two test projects
+    #
     hyha:HyperHamletMember a :Role ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
@@ -50,6 +56,21 @@
         rdfs:label "Team SwissBritNet Editor"@en, "Team SwissBritNet Editor"@de, "Équipe SwissBritNet Editor"@fr, "Team SwissBritNet Editor"@it ;
         :definedByProject <http://www.salsah.org/version/2.0/SwissBritNet> .
 
+    #
+    # Add additional projects admin permissions and roles/default data permissions to user "rosenth"
+    #
+    <https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet .
+    <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
+    <<<https://orcid.org/0000-0003-1681-4036> :hasRole hyha:HyperHamletMember>> :hasDefaultDataPermission :DATA_PERMISSIONS .
+
+    <https://orcid.org/0000-0003-1681-4036> :inProject <http://www.salsah.org/version/2.0/SwissBritNet> .
+    <<<https://orcid.org/0000-0003-1681-4036> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission
+            :ADMIN_USERS, :ADMIN_ROLES, :ADMIN_RESOURCES, :ADMIN_MODEL, :ADMIN_CREATE, :ADMIN_LISTS .
+    <<<https://orcid.org/0000-0003-1681-4036> :hasRole britnet:BritnetEditor>> :hasDefaultDataPermission :DATA_DELETE .
+
+    #
+    # Add more test users
+    #
     <urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
@@ -61,15 +82,12 @@
         schema:email "lukas.rosenthaler@unibas.ch"^^xsd:string ;
         :credentials "$2b$12$i2MZSo1p6sYGnMRFxjP8dempYr6p5/HDa93Dm3cMglqUpfQ4bSdgy"^^xsd:string ; # SwissBritNet
         :inProject <http://www.salsah.org/version/2.0/SwissBritNet> ;
-        :hasRole :Unknown, hyha:HyperHamletMember, britnet:BritnetEditor;
+        :hasRole :Unknown, hyha:HyperHamletMember, britnet:BritnetEditor ;
         :isActive true .
 
     <<<urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>>
         :hasAdminPermission :ADMIN_USERS, :ADMIN_ROLES, :ADMIN_RESOURCES, :ADMIN_CREATE, :ADMIN_LISTS .
-
-    <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
-    <<<https://orcid.org/0000-0003-1681-4036> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission
-            :ADMIN_USERS, :ADMIN_ROLES, :ADMIN_RESOURCES, :ADMIN_MODEL, :ADMIN_CREATE, :ADMIN_LISTS .
+    <<<urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> :hasRole britnet:BritnetEditor>> :hasDefaultDataPermission :DATA_VIEW .
 
     <https://orcid.org/0000-0003-1485-4923> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -85,7 +103,11 @@
         :hasRole :Unknown, hyha:HyperHamletMember ;
         :isActive true .
 
+    <<<https://orcid.org/0000-0003-1485-4923> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES, :ADMIN_CREATE, :ADMIN_LISTS .
+
     <<<https://orcid.org/0000-0003-1485-4923> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
+    <<<https://orcid.org/0000-0003-1485-4923> :hasRole :Unknown>> :hasDefaultDataPermission :DATA_VIEW .
+    <<<https://orcid.org/0000-0003-1485-4923> :hasRole hyha:HyperHamletMember>> :hasDefaultDataPermission :DATA_UPDATE .
 
     <https://orcid.org/0000-0002-7403-9595> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -102,6 +124,26 @@
         :isActive true .
 
     <<<https://orcid.org/0000-0002-7403-9595> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission :ADMIN_RESOURCES .
+
+    <<<https://orcid.org/0000-0002-7403-9595> :hasRole :Unknown>> :hasDefaultDataPermission :DATA_VIEW .
+    <<<https://orcid.org/0000-0002-7403-9595> :hasRole hyha:HyperHamletMember>> :hasDefaultDataPermission :DATA_UPDATE .
+    <<<https://orcid.org/0000-0002-7403-9595> :hasRole britnet:BritnetEditor>> :hasDefaultDataPermission :DATA_UPDATE .
+
+    <https://orcid.org/0000-0001-9277-3921> a oldap:User ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        :userId "bugsbunny"^^xsd:NCName ;
+        schema:familyName "Bunny"^^xsd:string ;
+        schema:givenName "Bugs"^^xsd:string ;
+        schema:email "bugs.bunny@warnerbrothers.com"^^xsd:string ;
+        :credentials "$2b$12$YK2g0KFvkelCZwCcE38UguIE/3aMPjO4XIX.9FJgYJoz2m.5sDlZK"^^xsd:string ; # "DuffyDuck"
+        :inProject :HyperHamlet ;
+        :hasRole :Unknown ;
+        :isActive false .
+
+    <<<https://orcid.org/0000-0001-9277-3921> :hasRole :Unknown>> :hasDefaultDataPermission :DATA_RESTRICTED .
 
 }
 

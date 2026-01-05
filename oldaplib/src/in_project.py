@@ -24,7 +24,6 @@ from oldaplib.src.helpers.serializer import serializer
 import json
 
 
-#@strict
 @serializer
 class InProjectClass(Notify):
     """

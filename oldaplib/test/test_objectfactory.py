@@ -18,7 +18,7 @@ from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorNoPermission, OldapErrorInUse
-from oldaplib.src.permissionset import Role
+from oldaplib.src.role import Role
 from oldaplib.src.project import Project
 from oldaplib.src.user import User
 from oldaplib.src.xsd.iri import Iri

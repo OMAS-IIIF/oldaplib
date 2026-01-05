@@ -35,10 +35,14 @@ class PermissionWithValue(Enum):
     def numeric(self) -> Xsd_integer:
         return self._numeric
 
-    def __eq__(self, other: Self) -> bool:
+    def __eq__(self, other: Self | None) -> bool:
+        if other is None:
+            return False
         return self._numeric == other._numeric
 
-    def __ne__(self, other: Self) -> bool:
+    def __ne__(self, other: Self | None) -> bool:
+        if other is None:
+            return True
         return self._numeric != other._numeric
 
     def __gt__(self, other: Self) -> bool:
@@ -84,11 +88,24 @@ class DataPermission(PermissionWithValue):
         return self.name.removeprefix("oldap:")
 
     @classmethod
-    def from_string(cls, permission_string: str) -> Self:
+    def from_string(cls, permission_string: str | None) -> Self | None:
+        if permission_string is None:
+            return None
         if not permission_string.startswith('oldap:'):
             permission_string = f'oldap:{permission_string}'
         for member in cls:
             if f'oldap:{member.name}' == permission_string:
                 return member
         raise ValueError(f'{permission_string} is not in DataPermission enum.')
+
+    @classmethod
+    def from_qname(cls, permission_string: Xsd_QName | None) -> Self | None:
+        if permission_string is None:
+            return None
+        permission_string = str(permission_string)
+        for member in cls:
+            if f'oldap:{member.name}' == permission_string:
+                return member
+        raise ValueError(f'{permission_string} is not in DataPermission enum.')
+
 

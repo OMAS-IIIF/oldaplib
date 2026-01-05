@@ -1,9 +1,11 @@
+import textwrap
 from datetime import datetime
-from typing import Self, Set, Iterable
+from typing import Self, Dict
 
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.irincname import IriOrNCName
+from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.serializeableset import SerializeableSet
@@ -13,8 +15,8 @@ from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
-
 
 
 @serializer
@@ -65,7 +67,7 @@ class UserData:
     _credentials: Xsd_string
     _isActive: Xsd_boolean
     _inProject: InProjectClass | None
-    _hasRole: SerializeableSet[Iri] | None
+    _hasRole: ObservableDict | None
 
     def __init__(self, *,
                  creator: Iri | None = None,
@@ -80,7 +82,7 @@ class UserData:
                  credentials: Xsd_string | None = None,
                  isActive: Xsd_boolean,
                  inProject: InProjectClass | None = None,
-                 hasRole: SerializeableSet[Iri] | set[Iri] | None = None,
+                 hasRole: ObservableDict | Dict[Xsd_QName, Xsd_QName | None] | Dict[str, str] | None = None,
                  validate: bool = False):
         self._creator = creator
         self._created = created
@@ -94,7 +96,13 @@ class UserData:
         self._credentials = credentials
         self._isActive = isActive
         self._inProject = inProject or InProjectClass()
-        self._hasRole = hasRole if isinstance(hasRole, SerializeableSet) else SerializeableSet(hasRole)
+        if isinstance(hasRole, ObservableDict):
+            self._hasRole = hasRole
+        elif isinstance(hasRole, dict):
+            tmp = {Xsd_QName(key, validate=validate): Xsd_QName(val, validate=validate) if val else None for key, val in hasRole.items()}
+            self._hasRole = ObservableDict(tmp)
+        else:
+            self._hasRole = None
 
     def __str__(self) -> str:
         res = f'userIri: {self._userIri}\n'
@@ -157,7 +165,7 @@ class UserData:
         return self._inProject
 
     @property
-    def hasRole(self) -> SerializeableSet[Iri] | None:
+    def hasRole(self) -> Dict[Xsd_QName, Xsd_QName | None] | None:
         return self._hasRole
 
     @staticmethod
@@ -188,8 +196,8 @@ class UserData:
         user_id, user_iri = userId.value()
         sparql = context.sparql_context
         if user_id is not None:
-            sparql += f"""
-            SELECT ?user ?prop ?val ?proj ?rval
+            sparql += textwrap.dedent(f"""
+            SELECT ?user ?prop ?val ?proj ?rval ?role ?defdp
             FROM oldap:admin
             WHERE {{
                 {{
@@ -200,12 +208,16 @@ class UserData:
                     ?user a oldap:User .
                     ?user oldap:userId {user_id.toRdf} .
                     <<?user oldap:inProject ?proj>> oldap:hasAdminPermission ?rval
+                }} UNION {{
+                    ?user a oldap:User .
+                    ?user oldap:userId {user_id.toRdf} .
+                    <<?user oldap:hasRole ?role>> oldap:hasDefaultDataPermission ?defdp
                 }}
             }}
-            """
+            """)
         elif user_iri is not None:
-            sparql += f"""
-            SELECT ?user ?prop ?val ?proj ?rval
+            sparql += textwrap.dedent(f"""
+            SELECT ?user ?prop ?val ?proj ?rval ?role ?defdp
             FROM oldap:admin
             WHERE {{
                 BIND({user_iri.toRdf} as ?user)
@@ -215,9 +227,12 @@ class UserData:
                 }} UNION {{
                     ?user a oldap:User .
                     <<?user oldap:inProject ?proj>> oldap:hasAdminPermission ?rval
+                }} UNION {{
+                    ?user a oldap:User .
+                    <<?user oldap:hasRole ?role>> oldap:hasDefaultDataPermission ?defdp
                 }}
             }}
-            """
+            """)
 
         return sparql
 
@@ -252,7 +267,7 @@ class UserData:
         credentials: Xsd_string | None = None
         isActive: Xsd_boolean | None = None
         inProjectDict: dict[Iri | str, set[AdminPermission]] | None = None
-        hasRole: set[Iri] | None = None
+        hasRoleDict: ObservableDict | None = None
         for r in queryresult:
             match str(r.get('prop')):
                 case 'dcterms:creator':
@@ -282,9 +297,10 @@ class UserData:
                     else:
                         inProjectDict[r['val']] = set()
                 case 'oldap:hasRole':
-                    if not hasRole:
-                        hasRole = set()
-                    hasRole.add(r['val'])
+                    if not hasRoleDict:
+                        hasRoleDict = ObservableDict({r['val']: None})
+                    else:
+                        hasRoleDict[r['val']] = None
                 case _:
                     if r.get('proj') and r.get('rval'):
                         if not inProjectDict:
@@ -292,6 +308,12 @@ class UserData:
                         if inProjectDict.get(r['proj']) is None:
                             inProjectDict[r['proj']] = set()
                         inProjectDict[r['proj']].add(AdminPermission.from_string(str(r['rval'])))
+                    if r.get('role') and r.get('defdp'):
+                        if not hasRoleDict:
+                            hasRoleDict = {r['role']: None}
+                        if hasRoleDict.get(r['role']) is None:
+                            hasRoleDict[r['role']] = None
+                        hasRoleDict[r['role']] = r['defdp']
         inProject = InProjectClass(inProjectDict) if inProjectDict else InProjectClass()
         return cls(created=created,
                    creator=creator,
@@ -305,7 +327,7 @@ class UserData:
                    credentials=credentials,
                    isActive=isActive,
                    inProject=inProject,
-                   hasRole=hasRole,
+                   hasRole=hasRoleDict,
                    validate=False)
 
     def _as_dict(self) -> dict:

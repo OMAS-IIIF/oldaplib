@@ -1,3 +1,5 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
@@ -158,6 +160,15 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:class :AdminPermission .
+
+    :hasDefaultDataPermissionShape a sh:PropertyShape ;
+        sh:path :hasDefaultDataPermission ;
+        :statementProperty true ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        sh:class :DataPermission .
 
     #
     # Data permission shape
@@ -548,6 +559,12 @@
             sh:class :AdminPermission ;
         ] .
 
+    :hasRoleStatementShape a sh:NodeShape ;
+        sh:property [
+            sh:path :hasDefaultDataPermission ;
+            sh:class :DataPermission ;
+        ] .
+
     #
     # Hierarchical lists are implemented using :List's and :ListNodes. We will use some skos vocabulary
     #
@@ -808,8 +825,11 @@
     ###############################################################################
     # Standard Properties that are used everywhere
     ###############################################################################
-    :hasAdminPermission a owl:ObjectProperty ;
-        rdfs:range :AdminPermission .
+#    :hasAdminPermission a owl:ObjectProperty ;
+#        rdfs:range :AdminPermission .
+#
+#    :hasDefaultDataPermission a owl:Objectproperty ;
+#        rdfs:range :DataPermission .
 
     :namespaceIri a owl:ObjectProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -942,12 +962,20 @@
 
     #
     # RDF*Star property to assign an admin permission to a user/project combination
-    :hasAdminPermission a rdf:Property ;
+    #
+    :hasAdminPermission a rdf:Property, owl:ObjectProperty ;  # TODO: May be owl:ObjectProperty interferes and have to be delete
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         rdfs:range :AdminPermission .
+
+    :hasDefaultDataPermission a rdf:Property, owl:ObjectProperty ;  # TODO: May be owl:ObjectProperty interferes and have to be delete
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        rdfs:range :DataPermission .
 
     ###############################################################################
     # Properties used for :Project

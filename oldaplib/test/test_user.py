@@ -6,6 +6,7 @@ from time import sleep
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.connection import Connection
+from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.observable_set import ObservableSet
@@ -101,7 +102,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Xsd_QName('oldap:Unknown')})
+                    hasRole={Xsd_QName('oldap:Unknown'): None})
 
         self.assertEqual(user.userId, Xsd_NCName("testuser"))
         self.assertEqual(user.familyName, "Test")
@@ -112,7 +113,20 @@ class TestUser(unittest.TestCase):
             AdminPermission.ADMIN_RESOURCES,
             AdminPermission.ADMIN_CREATE
         }}))
-        self.assertEqual(user.hasRole, {Xsd_QName('oldap:Unknown')})
+        self.assertEqual(user.hasRole, {Xsd_QName('oldap:Unknown'): None})
+
+        user = User(con=self._connection,
+                    userId=Xsd_NCName("testuser2"),
+                    familyName="Test2",
+                    givenName="Test2",
+                    email="a.b2@test.com",
+                    credentials="Ein@geheimes&Passw0rt2",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
+                                                         AdminPermission.ADMIN_RESOURCES,
+                                                         AdminPermission.ADMIN_CREATE}},
+                    hasRole={Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE})
+        self.assertEqual(user.hasRole, {Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE})
+
 
     def test_user_deepcopy(self):
         user = User(con=self._connection,
@@ -124,7 +138,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Xsd_QName('oldap:Unknown')})
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         user2 = deepcopy(user)
         self.assertFalse(user is user2)
         self.assertEqual(user.userId, user2.userId)
@@ -146,14 +160,16 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.email, Xsd_string("lukas.rosenthaler@unibas.ch"))
         self.assertEqual(user.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
-            Iri("oldap:SharedProject"): {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS},
+            Iri("oldap:SharedProject"): {AdminPermission.ADMIN_OLDAP},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
             Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                 AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
                 AdminPermission.ADMIN_ROLES, AdminPermission.ADMIN_RESOURCES,
                 AdminPermission.ADMIN_USERS}
         }))
-        self.assertEqual(user.hasRole, {Iri("oldap:Unknown")})
+        self.assertEqual(user.hasRole, {Xsd_QName("oldap:Unknown"): DataPermission.DATA_PERMISSIONS,
+                                        Xsd_QName("hyha:HyperHamletMember"): DataPermission.DATA_PERMISSIONS,
+                                        Xsd_QName("britnet:BritnetEditor"): DataPermission.DATA_DELETE})
 
     def test_read_user_from_id_B(self):
         user = User.read(con=self._connection, userId="habermann", ignore_cache=True)
@@ -165,7 +181,9 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.inProject, InProjectClass({
             Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_RESOURCES}
         }))
-        self.assertEqual(user.hasRole, {Iri("oldap:Unknown"), Iri("hyha:HyperHamletMember"), Iri("britnet:BritnetEditor")})
+        self.assertEqual(user.hasRole, {Xsd_QName("oldap:Unknown"): DataPermission.DATA_VIEW,
+                                        Xsd_QName("hyha:HyperHamletMember"): DataPermission.DATA_UPDATE,
+                                        Xsd_QName("britnet:BritnetEditor"): DataPermission.DATA_UPDATE})
 
     def test_read_user_from_iri(self):
         user = User.read(con=self._connection, userId=Iri("https://orcid.org/0000-0003-1681-4036"), ignore_cache=True)
@@ -176,14 +194,16 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.email, Xsd_string("lukas.rosenthaler@unibas.ch"))
         self.assertEqual(user.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
+            Iri("oldap:SharedProject"): {AdminPermission.ADMIN_OLDAP},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
-            Iri('oldap:SharedProject'): {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS},
             Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                 AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
                 AdminPermission.ADMIN_ROLES, AdminPermission.ADMIN_RESOURCES,
                 AdminPermission.ADMIN_USERS}
         }))
-        self.assertEqual(user.hasRole, {Iri("oldap:Unknown")})
+        self.assertEqual(user.hasRole, {Xsd_QName("oldap:Unknown"): DataPermission.DATA_PERMISSIONS,
+                                        Xsd_QName("hyha:HyperHamletMember"): DataPermission.DATA_PERMISSIONS,
+                                        Xsd_QName("britnet:BritnetEditor"): DataPermission.DATA_DELETE})
 
     #  #unittest.skip('Work in progress')
     def test_read_unknown_user(self):
@@ -218,7 +238,7 @@ class TestUser(unittest.TestCase):
 
         self.assertEqual(user2.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
-            Iri('oldap:SharedProject'): {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS},
+            Iri("oldap:SharedProject"): {AdminPermission.ADMIN_OLDAP},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
             Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                 AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
@@ -228,7 +248,9 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.inProject, user2.inProject)
         self.assertFalse(user.inProject is user2.inProject)
 
-        self.assertEqual(user2.hasRole, {Iri("oldap:Unknown")})
+        self.assertEqual(user2.hasRole, {Xsd_QName("oldap:Unknown"): DataPermission.DATA_PERMISSIONS,
+                                        Xsd_QName("hyha:HyperHamletMember"): DataPermission.DATA_PERMISSIONS,
+                                        Xsd_QName("britnet:BritnetEditor"): DataPermission.DATA_DELETE})
         self.assertEqual(user.hasRole, user2.hasRole)
         self.assertFalse(user.hasRole is user2.hasRole)
 
@@ -257,7 +279,7 @@ class TestUser(unittest.TestCase):
 
         self.assertEqual(user3.inProject, InProjectClass({
             Iri("oldap:SystemProject"): {AdminPermission.ADMIN_OLDAP},
-            Iri('oldap:SharedProject'): {AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_MODEL, AdminPermission.ADMIN_LISTS},
+            Iri("oldap:SharedProject"): {AdminPermission.ADMIN_OLDAP},
             Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES},
             Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {
                 AdminPermission.ADMIN_CREATE, AdminPermission.ADMIN_LISTS, AdminPermission.ADMIN_MODEL,
@@ -267,7 +289,9 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user.inProject, user3.inProject)
         self.assertFalse(user.inProject is user3.inProject)
 
-        self.assertEqual(user3.hasRole, {Iri("oldap:Unknown")})
+        self.assertEqual(user3.hasRole, {Xsd_QName("oldap:Unknown"): DataPermission.DATA_PERMISSIONS,
+                                        Xsd_QName("hyha:HyperHamletMember"): DataPermission.DATA_PERMISSIONS,
+                                        Xsd_QName("britnet:BritnetEditor"): DataPermission.DATA_DELETE})
         self.assertEqual(user.hasRole, user3.hasRole)
         self.assertFalse(user.hasRole is user3.hasRole)
 
@@ -333,7 +357,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                                AdminPermission.ADMIN_RESOURCES,
                                                                AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')},
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_VIEW,},
                     isActive=True)
         user.create()
         self.assertIsNotNone(user.created)
@@ -360,12 +384,13 @@ class TestUser(unittest.TestCase):
                     email="tweety.birdy@looneytunes.com",
                     credentials="Sylvester",
                     inProject={Iri('oldap:HyperHamlet'): set()},
-                    hasRole={Iri('hyha:HyperHamletMember')},
+                    hasRole={Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_VIEW},
                     isActive=True)
         user.create()
         del user
         user = User.read(con=self._connection, userId=Xsd_NCName("birdy"), ignore_cache=True)
         self.assertEqual(user.familyName, "Birdy")
+        self.assertEqual(user.hasRole, {Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_VIEW})
 
     #  #unittest.skip('Work in progress')
     def test_create_user_no_in_project(self):
@@ -376,7 +401,7 @@ class TestUser(unittest.TestCase):
                     givenName="Yogi",
                     email="yogi.baer@yellowstone.gov",
                     credentials="BuBu",
-                    hasRole={Iri('oldap:Unknown')},
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_VIEW},
                     isActive=True)
         user.create()
         del user
@@ -415,7 +440,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                                AdminPermission.ADMIN_RESOURCES,
                                                                AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('hyha:HyperHamletMember')},
+                    hasRole={Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_VIEW},
                     isActive=False)
         user.create()
         del user
@@ -433,10 +458,9 @@ class TestUser(unittest.TestCase):
                     givenName="Petri",
                     email="petri.difornaro@italia.it",
                     credentials="Genius",
-                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
-                                                               AdminPermission.ADMIN_RESOURCES,
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_RESOURCES,
                                                                AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Role')})
+                    hasRole={Iri('oldap:Role'): DataPermission.DATA_VIEW})
         with self.assertRaises(OldapErrorAlreadyExists) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'A user with a user ID "fornaro" already exists')
@@ -454,7 +478,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                                AdminPermission.ADMIN_RESOURCES,
                                                                AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('hyha:HyperHamletMember')})
+                    hasRole={Iri('hyha:HyperHamletMember'): DataPermission.DATA_VIEW})
         with self.assertRaises(OldapErrorAlreadyExists) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'A user with a user IRI "https://orcid.org/0000-0003-1681-4036" already exists')
@@ -471,13 +495,13 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:NotExistingproject'): {AdminPermission.ADMIN_USERS,
                                                                 AdminPermission.ADMIN_RESOURCES,
                                                                 AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_VIEW})
         with self.assertRaises(OldapErrorValue) as ex:
             user.create()
         self.assertEqual(str(ex.exception), 'One of the projects is not existing!')
 
     #  #unittest.skip('Work in progress')
-    def test_create_user_invalid_permset(self):
+    def test_create_user_invalid_role(self):
         """Test that user creation will fail if we give an invalid permission set"""
         user = User(con=self._connection,
                     userId=Xsd_NCName("donald"),
@@ -488,7 +512,8 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown'), Xsd_QName('oldap:Gaga')})
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW,
+                             Xsd_QName('oldap:Gaga'): DataPermission.DATA_DELETE})
         with self.assertRaises(OldapErrorValue) as ex:
             user.create()
 
@@ -502,7 +527,7 @@ class TestUser(unittest.TestCase):
                     email="donald.duck@duckville.com",
                     credentials="Entenhausen@for&Ever",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('hyha:HyperHamletMember')})
+                    hasRole={Iri('hyha:HyperHamletMember'): DataPermission.DATA_VIEW})
         with self.assertRaises(OldapErrorNoPermission) as ex:
             user.create()
         self.assertEqual('Actor has no ADMIN_USERS permission for project oldap:HyperHamlet', str(ex.exception), )
@@ -520,7 +545,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('hyha:HyperHamletMember')})
+                    hasRole={Iri('hyha:HyperHamletMember'): DataPermission.DATA_VIEW})
         user.create()
         user2 = User.read(con=self._connection, userId="edison", ignore_cache=True)
         self.assertEqual(user2.userIri, user.userIri)
@@ -550,10 +575,12 @@ class TestUser(unittest.TestCase):
                                                          AdminPermission.ADMIN_CREATE}})
         user.create()
         user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
-        user.hasRole = {Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')}
+        user.hasRole = {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW,
+                        Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_RESTRICTED}
         user.update()
         user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
-        self.assertEqual(user.hasRole, {Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')})
+        self.assertEqual(user.hasRole, {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW,
+                                        Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_RESTRICTED})
 
     def test_update_user_permission_delete(self):
         user = User(con=self._connection,
@@ -566,7 +593,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('hyha:HyperHamletMember')})
+                    hasRole={Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_PERMISSIONS})
         user.create()
         user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
         del user.hasRole
@@ -585,7 +612,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('hyha:HyperHamletMember')})
+                    hasRole={Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_VIEW})
         user.create()
         user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
         user.hasRole = []
@@ -604,7 +631,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('hyha:HyperHamletMember')})
+                    hasRole={Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_VIEW})
         user.create()
         user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
         user.hasRole = None
@@ -623,13 +650,14 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('hyha:HyperHamletMember')})
+                    hasRole={Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_VIEW})
         user.create()
         user = User.read(con=self._connection, userId="faraday", ignore_cache=True)
-        user.hasRole.add(Iri('oldap:Unknown'))
+        user.hasRole[Xsd_QName('oldap:Unknown')] = DataPermission.DATA_RESTRICTED
         user.update()
         user = User.read(con=self._connection, userId="faraday", ignore_cache=True)
-        self.assertEqual(user.hasRole, {Iri('hyha:HyperHamletMember'), Iri('oldap:Unknown')})
+        self.assertEqual(user.hasRole, {Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_VIEW,
+                                        Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
 
     def test_update_user_permissions_update_B(self):
         user = User(con=self._connection,
@@ -642,13 +670,14 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('hyha:HyperHamletMember'), Iri('oldap:Unknown')})
+                    hasRole={Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE,
+                             Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._connection, userId="fourier", ignore_cache=True)
-        user.hasRole.remove(Xsd_QName('hyha:HyperHamletMember'))
+        del user.hasRole[Xsd_QName('hyha:HyperHamletMember')]
         user.update()
         user = User.read(con=self._connection, userId="fourier", ignore_cache=True)
-        self.assertEqual(user.hasRole, {Xsd_QName('oldap:Unknown')})
+        self.assertEqual(user.hasRole, {Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
 
     #  #unittest.skip('Work in progress')
     def test_update_user(self):
@@ -662,7 +691,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                          AdminPermission.ADMIN_RESOURCES,
                                                          AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user2 = User.read(con=self._connection, userId="edison", ignore_cache=True)
         user2.userId = "aedison"
@@ -670,9 +699,9 @@ class TestUser(unittest.TestCase):
         user2.givenName = "Thomas"
         user2.email = "th.edison@audiorec.com"
 
-        user2.hasRole.add(Xsd_QName('britnet:BritnetEditor'))
-        user2.hasRole.add(Xsd_QName('hyha:HyperHamletMember'))
-        user2.hasRole.remove(Xsd_QName('oldap:Unknown'))
+        user2.hasRole[Xsd_QName('britnet:BritnetEditor')] = DataPermission.DATA_UPDATE
+        user2.hasRole[Xsd_QName('hyha:HyperHamletMember')] = DataPermission.DATA_DELETE
+        del user2.hasRole[Xsd_QName('oldap:Unknown')]
         user2.inProject[Iri('oldap:SystemProject')] = {AdminPermission.ADMIN_USERS, AdminPermission.ADMIN_RESOURCES}
         user2.inProject[Iri('oldap:HyperHamlet')].remove(AdminPermission.ADMIN_USERS)
         user2.inProject[Iri('oldap:HyperHamlet')].add(AdminPermission.ADMIN_LISTS)
@@ -681,11 +710,12 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user3.familyName, "Edison et al.")
         self.assertEqual(user3.givenName, "Thomas")
         self.assertEqual(user3.email, "th.edison@audiorec.com")
-        self.assertEqual({Iri('britnet:BritnetEditor'), Iri('hyha:HyperHamletMember')}, user3.hasRole)
-        user3.hasRole.add(Iri('oldap:DoesNotExist'))
+        self.assertEqual({Xsd_QName('britnet:BritnetEditor'): DataPermission.DATA_UPDATE,
+                          Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_DELETE}, user3.hasRole)
+        user3.hasRole[Xsd_QName('oldap:DoesNotExist')] = DataPermission.DATA_VIEW
         with self.assertRaises(OldapErrorValue) as ex:
             user3.update()
-            self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
+        self.assertEqual(str(ex.exception), 'One of the permission sets is not existing!')
 
         self.assertEqual(user3.inProject[Iri('oldap:HyperHamlet')], {AdminPermission.ADMIN_RESOURCES,
                                                                      AdminPermission.ADMIN_CREATE,
@@ -711,7 +741,7 @@ class TestUser(unittest.TestCase):
                     givenName="Nikolai",
                     email="nikolai.tesla@tesla.com",
                     credentials="Alternative current",
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
         user.inProject = InProjectClass({Iri('http://www.salsah.org/version/2.0/SwissBritNet'): ObservableSet({AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE})})
@@ -729,7 +759,7 @@ class TestUser(unittest.TestCase):
                     credentials="Alternative current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
         del user.inProject
@@ -747,7 +777,7 @@ class TestUser(unittest.TestCase):
                     credentials="Alternative current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
         user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')] = {AdminPermission.ADMIN_RESOURCES}
@@ -767,7 +797,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES},
                                Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_MODEL}},
-                    hasRole={Iri('britnet:BritnetEditor')})
+                    hasRole={Iri('britnet:BritnetEditor'): DataPermission.DATA_UPDATE,})
         user.create()
         user = User.read(con=self._connection, userId="volta", ignore_cache=True)
         user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')].add(AdminPermission.ADMIN_LISTS)
@@ -787,7 +817,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES},
                                Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_MODEL}},
-                    hasRole={Iri('britnet:BritnetEditor')})
+                    hasRole={Iri('britnet:BritnetEditor'): DataPermission.DATA_UPDATE})
         user.create()
         user = User.read(con=self._connection, userId="voltaB", ignore_cache=True)
         user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')] = {AdminPermission.ADMIN_LISTS}
@@ -807,7 +837,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES},
                                Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_MODEL}},
-                    hasRole={Iri('hyha:HyperHamletMember')})
+                    hasRole={Iri('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE})
         user.create()
         user = User.read(con=self._connection, userId="curie", ignore_cache=True)
         user.inProject[Iri('oldap:HyperHamlet')].discard(AdminPermission.ADMIN_RESOURCES)
@@ -826,7 +856,7 @@ class TestUser(unittest.TestCase):
                     credentials="Alternative current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
         user.inProject[Iri('oldap:HyperHamlet')].add(AdminPermission.ADMIN_CREATE)
@@ -845,7 +875,7 @@ class TestUser(unittest.TestCase):
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES},
                                Iri('http://www.salsah.org/version/2.0/SwissBritNet'): {AdminPermission.ADMIN_MODEL}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
         del user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')]
@@ -863,7 +893,7 @@ class TestUser(unittest.TestCase):
                     credentials="Alternative current",
                     inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS,
                                                           AdminPermission.ADMIN_RESOURCES}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._connection, userId="tesla", ignore_cache=True)
         user.inProject[Iri('http://www.salsah.org/version/2.0/SwissBritNet')] = set()
@@ -894,7 +924,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
@@ -913,7 +943,7 @@ class TestUser(unittest.TestCase):
                     givenName="Bart",
                     email="bart.simpson@springfield.com",
                     credentials="AtomicPower",
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         del user
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
@@ -940,7 +970,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
@@ -963,7 +993,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
@@ -986,7 +1016,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         del user
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
@@ -1018,7 +1048,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         del user
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
@@ -1045,7 +1075,7 @@ class TestUser(unittest.TestCase):
                             AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
                         }
                     },
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._connection, userId="fred", ignore_cache=True)
         del user.inProject[Iri('oldap:HyperHamlet')]
@@ -1076,7 +1106,7 @@ class TestUser(unittest.TestCase):
                             AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
                         }
                     },
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
         user.inProject[Iri('oldap:HyperHamlet')] = None
@@ -1106,7 +1136,7 @@ class TestUser(unittest.TestCase):
                             AdminPermission.ADMIN_RESOURCES, AdminPermission.ADMIN_CREATE
                         }
                     },
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         del user
         user = User.read(con=self._connection, userId="bsimpson", ignore_cache=True)
@@ -1135,7 +1165,7 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
@@ -1158,18 +1188,20 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown')})
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_UPDATE})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        user.hasRole.add(Iri('hyha:HyperHamletMember'))
+        user.hasRole[Xsd_QName('hyha:HyperHamletMember')] = DataPermission.DATA_UPDATE
         user.update()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        self.assertEqual(user.hasRole, {Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')})
+        self.assertEqual(user.hasRole, {
+            Xsd_QName('oldap:Unknown'): DataPermission.DATA_UPDATE,
+            Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE})
 
     #  #unittest.skip('Work in progress')
-    def test_update_user_add_has_permissions(self):
+    def test_update_user_add_has_permissions_X(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0001-5925-2956"),
                     userId=Xsd_NCName("chiquet"),
@@ -1184,11 +1216,15 @@ class TestUser(unittest.TestCase):
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        user.hasRole = {Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')}
+        user.hasRole = {Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED,
+                        Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE}
         user.update()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        self.assertEqual(user.hasRole, {Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')})
+        self.assertEqual(user.hasRole, {
+            Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED,
+            Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE
+        })
 
     #  #unittest.skip('Work in progress')
     def test_update_user_add_bad_has_permissions(self):
@@ -1206,7 +1242,8 @@ class TestUser(unittest.TestCase):
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        user.hasRole = {Iri('oldap:GAGA'), Iri('hyha:HyperHamletMember')}
+        user.hasRole = {Xsd_QName('oldap:GAGA'): DataPermission.DATA_RESTRICTED,
+                        Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE}
         with self.assertRaises(OldapErrorValue) as err:
             user.update()
 
@@ -1223,15 +1260,16 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')})
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED,
+                             Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        user.hasRole.discard(Xsd_QName('hyha:HyperHamletMember'))
+        del user.hasRole[Xsd_QName('hyha:HyperHamletMember')]
         user.update()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        self.assertEqual(user.hasRole, {Xsd_QName('oldap:Unknown')})
+        self.assertEqual(user.hasRole, {Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
 
     #  unittest.skip('Work in progress')
     def test_update_user_unexisting_has_permissions(self):
@@ -1246,15 +1284,17 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Xsd_QName('oldap:Unknown'), Xsd_QName('hyha:HyperHamletMember')})
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED,
+                             Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_RESTRICTED})
         user.create()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        user.hasRole.discard(Iri('oldap:Unknown'))
+        del user.hasRole[Xsd_QName('oldap:Unknown')]
         user.update()
         del user
         user = User.read(con=self._connection, userId="chiquet", ignore_cache=True)
-        self.assertEqual(user.hasRole, {Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')})
+        self.assertEqual(user.hasRole, {
+            Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_RESTRICTED})
 
     def test_user_update_active(self):
         user = User(con=self._connection,
@@ -1269,7 +1309,8 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
                     isActive=False,
-                    hasRole={Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')})
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED,
+                             Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_RESTRICTED})
         user.create()
         self.assertFalse(user.isActive)
         del user
@@ -1330,7 +1371,8 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')})
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED,
+                             Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_RESTRICTED})
         with self.assertRaises(OldapErrorNoPermission) as ex:
             user.create()
 
@@ -1345,7 +1387,8 @@ class TestUser(unittest.TestCase):
                         AdminPermission.ADMIN_USERS,
                         AdminPermission.ADMIN_RESOURCES,
                         AdminPermission.ADMIN_CREATE}},
-                    hasRole={Iri('oldap:Unknown'), Iri('hyha:HyperHamletMember')})
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_RESTRICTED,
+                             Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_RESTRICTED})
         user.create()
         user = User.read(con=self._unpriv, userId="niederer", ignore_cache=True)
         user.familyName = "Niederer"

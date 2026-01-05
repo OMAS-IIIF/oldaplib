@@ -1,6 +1,7 @@
 from enum import unique, Enum
 
 from oldaplib.src.enums.attributeclass import AttributeClass
+from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.serializeableset import SerializeableSet
 from oldaplib.src.in_project import InProjectClass
@@ -33,5 +34,5 @@ class UserAttr(AttributeClass):
     CREDENTIALS = ('oldap:credentials', True, False, Xsd_string)
     ACTIVE = ('oldap:isActive', False, False, Xsd_boolean)
     IN_PROJECT = ('oldap:inProject', False, False, InProjectClass)
-    HAS_ROLE = ('oldap:hasRole', False, False, ObservableSet)
+    HAS_ROLE = ('oldap:hasRole', False, False, ObservableDict)
 
