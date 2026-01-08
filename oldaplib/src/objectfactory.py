@@ -1,10 +1,12 @@
 import re
+import textwrap
+
 import jwt
 
 from datetime import datetime, timedelta
 from enum import Flag, auto
 from functools import partial
-from typing import Type, Any, Self, cast
+from typing import Type, Any, Self, cast, Dict
 
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.action import Action
@@ -18,6 +20,7 @@ from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.convert2datatype import convert2datatype
 from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency, \
     OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed, OldapErrorInUse, OldapErrorAlreadyExists
@@ -34,7 +37,7 @@ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
-ValueType = LangString | ObservableSet | Xsd
+ValueType = LangString | ObservableSet | Xsd | Dict[Xsd_QName, DataPermission] | ObservableDict
 
 class SortBy(Flag):
     PROPVAL = auto()
@@ -82,12 +85,13 @@ class ResourceInstance:
     :type changeset: dict[Iri, AttributeChange]
     """
     _iri: Iri
-    _values: dict[Xsd_QName, LangString | ObservableSet]
+    _values: dict[Xsd_QName, LangString | ObservableSet | DataPermission]
     _graph: Xsd_NCName
-    _changeset: dict[Iri, AttributeChange]
+    _changeset: dict[Xsd_QName, AttributeChange]
+    _attached_roles: ObservableDict
 
-    __slots__ = ['_iri', '_values', '_graph', '_changeset', '_superclass_objs',
-                 '_con', 'project', 'name', 'factory', 'properties', 'superclass']
+    __slots__ = ['_iri', '_values', '_graph', '_changeset', '_superclass_objs', '_con', '_attached_roles',
+                 'project', 'name', 'factory', 'properties', 'superclass', 'user_default_roles']
 
 
     def __init__(self, *,
@@ -112,10 +116,31 @@ class ResourceInstance:
         self._values: dict[Xsd_QName, ValueType] = {}
         self._graph = self.project.projectShortName
         self._superclass_objs = {}
-        self._changeset = {}
+        self._changeset: dict[Xsd_QName, AttributeChange] = {}
+        self._attached_roles = ObservableDict(on_change=self.__attachedToRole_cb)
 
         def set_values(propclass: dict[Xsd_QName, HasProperty]):
             for prop_iri, hasprop in propclass.items():
+                if str(prop_iri) == 'oldap:attachedToRole':
+                    if kwargs.get(str(prop_iri)) or kwargs.get(prop_iri.fragment):
+                        #
+                        # we have an attachedToRole property given in the constructor...
+                        #
+                        value = kwargs[str(prop_iri)] if kwargs.get(str(prop_iri)) else kwargs[prop_iri.fragment]
+                        if not isinstance(value, dict):
+                            raise OldapErrorValue(f'{self.name}: Property {prop_iri} with attachedToRole must be a dict')
+                        self._attached_roles = ObservableDict(value, on_change=self.__attachedToRole_cb)
+                        self._values[prop_iri] = ObservableSet({Xsd_QName(x, validate=True) for x in value.keys()},
+                                                               notifier=self.notifier, notify_data=prop_iri)
+                    else:
+                        #
+                        # we take the user default values...
+                        #
+                        self._values[prop_iri] = ObservableSet({Xsd_QName(x) for x in self.user_default_roles.keys()},
+                                                               notifier=self.notifier, notify_data=prop_iri)
+                        self._attached_roles = ObservableDict(self.user_default_roles, on_change=self.__attachedToRole_cb)
+
+                    continue
                 if kwargs.get(str(prop_iri)) or kwargs.get(prop_iri.fragment):
                     value = kwargs[str(prop_iri)] if kwargs.get(str(prop_iri)) else kwargs[prop_iri.fragment]
                     if isinstance(value, (list, tuple, set, LangString)):  # we may have multiple values...
@@ -133,7 +158,7 @@ class ResourceInstance:
 
             for prop_iri, hasprop in propclass.items():
                 #
-                # Validate
+                # Validate cardinalities
                 #
                 if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
                     if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not self._values.get(prop_iri):
@@ -203,7 +228,7 @@ class ResourceInstance:
 
     def get(self, key: Xsd_QName) -> ValueType | Xsd | None:
         if self._values.get(key):
-            return self._values[key]
+            return self.__get_value(key)
         else:
             return None
 
@@ -360,6 +385,11 @@ class ResourceInstance:
 
         self._changeset[prop_iri] = AttributeChange(None, Action.MODIFY)
 
+    def __attachedToRole_cb(self, old_value: ObservableDict):
+        if self._changeset.get(Xsd_QName('oldap:attachedToRole')) is None:
+            self._changeset[Xsd_QName('oldap:attachedToRole')] = AttributeChange(old_value, Action.MODIFY)
+
+
     def check_for_permissions(self, permission: AdminPermission) -> tuple[bool, str]:
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
@@ -383,14 +413,36 @@ class ResourceInstance:
         #attr = Xsd_QName(prefix, fragment, validate=False)
         if not isinstance(attr, Xsd_QName):
             attr = Xsd_QName(attr)
+        if attr == Xsd_QName('oldap:attachedToRole'):
+            return self._attached_roles
         tmp = self._values.get(attr, None)
         if tmp is not None and str(attr) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate'}:
+            if len(tmp) != 1:
+                raise OldapErrorValue(f'{self.name}: Property {attr} should have exactly one value, got {len(tmp)} values.')
             return next(iter(tmp))
         return tmp
 
     def __set_value(self: Self, value: ValueType | Xsd | None, attr: Xsd_QName | str) -> None:
         if not isinstance(attr, Xsd_QName):
             attr = Xsd_QName(attr)
+
+        if attr == Xsd_QName('oldap:attachedToRole'):
+            if value is None:
+                self._changeset[attr] = AttributeChange(self._values.get(attr), Action.DELETE)
+                del self._values[attr]
+                self._attached_roles = ObservableDict(notifier=self.__attachedToRole_cb)
+                return
+            if not isinstance(value, dict):
+                raise OldapErrorValue(f'{self.name}: Property {attr} requires a dict, got {type(value).__name__}.')
+            for role_qname in value.keys():
+                if not isinstance(role_qname, Xsd_QName):
+                    raise OldapErrorValue(f'{self.name}: Property {attr} requires keys to be Xsd_QName, got {type(role_qname).__name__}.')
+                if not isinstance(value[role_qname], DataPermission):
+                    raise OldapErrorValue(f'{self.name}: Property {attr} requires values to be DataPermission, got {type(value[role_qname]).__name__}.')
+            self._changeset[attr] = AttributeChange(self._values.get(attr), Action.REPLACE)
+            self._values[attr] = ObservableSet({value.keys()}, notifier=self.notifier, notify_data=attr)
+            self._attached_roles = ObservableDict(value, notifier=self.__attachedToRole_cb)
+            return
         hasprop = self.properties.get(attr)
 
         #
@@ -444,6 +496,12 @@ class ResourceInstance:
     def __del_value(self: Self, attr: Xsd_QName | str) -> None:
         if not isinstance(attr, Xsd_QName):
             attr = Xsd_QName(attr)
+
+        if attr == Xsd_QName('oldap:attachedToRole'):
+            self._changeset[attr] = AttributeChange(self._values.get(attr), Action.DELETE)
+            del self._values[attr]
+            self._attached_roles = ObservableDict(notifier=self.__attachedToRole_cb)
+            return
         hasprop = self.properties.get(attr)
 
         if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
@@ -461,6 +519,10 @@ class ResourceInstance:
     def changeset(self) -> dict[Xsd_QName, AttributeChange]:
         return self._changeset
 
+    @property
+    def attachedToRoleAnnotation(self) -> ObservableDict:
+        return self._attached_roles
+
     def clear_changeset(self) -> None:
         for item in self._values:
             if hasattr(self._values[item], 'clear_changeset'):
@@ -468,21 +530,29 @@ class ResourceInstance:
         self._changeset = {}
 
 
-    def get_data_permission(self, context: Context, permission: DataPermission) -> bool:
+    def get_data_permission(self, permission: DataPermission) -> bool:
+        context = Context(name=self._con.context_name)
         permission_query = context.sparql_context
-        permission_query += f'''
+        permission_query += textwrap.dedent(f'''
         ASK {{
-            GRAPH {self._graph}:data {{
-                {self._iri.toRdf} oldap:grantsPermission ?permset .
+            {{
+                GRAPH {self._graph}:data {{
+                    {self._iri.toRdf} oldap:createdBy {self._con.userIri.toRdf} .
+                }}
             }}
-            GRAPH oldap:admin {{
-                {self._con.userIri.toRdf} oldap:hasPermissions ?permset .
-                ?permset oldap:givesPermission ?DataPermission .
-                ?DataPermission oldap:permissionValue ?permval .
+            UNION
+            {{
+                GRAPH oldap:admin {{
+                    {self._con.userIri.toRdf} oldap:hasRole ?role .
+                    ?dataperm oldap:permissionValue ?permval .
+                    FILTER(?permval >= {permission.numeric.toRdf})
+                }}
+                GRAPH {self._graph}:data {{
+                    {self._iri.toRdf} oldap:attachedToRole ?role .
+                    <<{self._iri.toRdf} oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
+                }}
             }}
-            FILTER(?permval >= {permission.numeric.toRdf})
-        }}'''
-
+        }}''')
         if self._con.in_transaction():
             result = self._con.transaction_query(permission_query)
         else:
@@ -539,7 +609,6 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{'
 
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} a {self.name}'
-
         for prop_iri, values in self._values.items():
             if self.properties.get(prop_iri) and self.properties[prop_iri].prop.datatype == XsdDatatypes.QName:
                 qnames = {f'"{x}"^^xsd:QName' for x in values}
@@ -547,9 +616,11 @@ class ResourceInstance:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {qnames_rdf}'
             else:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {values.toRdf}'
+        for role, dperm in self._attached_roles.items():
+            sparql += f' .\n{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} oldap:attachedToRole {role.toRdf}>> oldap:hasDataPermission {dperm.toRdf}'
+
         sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-
         self._con.transaction_start()
         try:
             result = self._con.transaction_query(sparql0)
@@ -584,20 +655,30 @@ class ResourceInstance:
         graph = cls.project.projectShortName
         context = Context(name=con.context_name)
         sparql = context.sparql_context
-        sparql += f'''
-        SELECT ?predicate ?value
+        sparql += textwrap.dedent(f'''
+        SELECT DISTINCT ?predicate ?value
         WHERE {{
+            {{
+                GRAPH {graph}:data {{
+                    {iri.toRdf} oldap:createdBy {con.userIri.toRdf} .
+                }}
+            }}
+            UNION
+            {{
+                GRAPH oldap:admin {{
+                    {con.userIri.toRdf} oldap:hasRole ?role .
+                    ?dataperm oldap:permissionValue ?permval .
+                    FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
+                }}
+            }}
             GRAPH {graph}:data {{
                 {iri.toRdf} ?predicate ?value .
-                {iri.toRdf} oldap:grantsPermission ?permset .
+                {iri.toRdf} oldap:attachedToRole ?role .
+                <<{iri.toRdf} oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
             }}
-            GRAPH oldap:admin {{
-                {con.userIri.toRdf} oldap:hasPermissions ?permset .
-                ?permset oldap:givesPermission ?DataPermission .
-                ?DataPermission oldap:permissionValue ?permval .
-            }}
-            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
-        }}'''
+
+        }}
+        ''')
         jsonres = con.query(sparql)
         res = QueryProcessor(context, jsonres)
         objtype = None
@@ -622,8 +703,25 @@ class ResourceInstance:
                             kwargs[r['predicate'].as_qname.fragment] = r['value']
                 else:
                     raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
+
         if objtype is None:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+        sparql = context.sparql_context
+        sparql += textwrap.dedent(f'''
+        SELECT DISTINCT ?role ?dataperm
+        WHERE {{
+            GRAPH {graph}:data {{
+                << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+            }}
+        }}
+        ''')
+        jsonres = con.query(sparql)
+        res = QueryProcessor(context, jsonres)
+        roles = {}
+        for r in res:
+            roles[r['role']] = DataPermission.from_qname(r['dataperm'])
+        kwargs['attachedToRole'] = roles
+
         if cls.__name__ != objtype:
             raise OldapErrorInconsistency(f'Expected class {cls.__name__}, got {objtype} instead.')
         return cls(iri=iri, **kwargs)
@@ -658,8 +756,9 @@ class ResourceInstance:
         sparql_list = []
         required_permission = DataPermission.DATA_EXTEND
         for field, change in self._changeset.items():
-            if field == 'oldap:grantsPermission':
+            if field == 'oldap:attachedToRole':
                 required_permission = DataPermission.DATA_PERMISSIONS
+                continue
             if change.action == Action.MODIFY:
                 continue  # will be processed below!
             if change.action != Action.CREATE:
@@ -695,6 +794,77 @@ class ResourceInstance:
             sparql_list.append(sparql)
 
         for field, change in self._changeset.items():
+            if field == 'oldap:attachedToRole':
+                sparql = f'# Processing field "{field}"\n'
+                add_sparql = False
+                if (change.action == Action.DELETE or change.action == Action.REPLACE) and len(change.old_value) > 0:
+                    sparql += f'{blank:{indent * indent_inc}}DELETE DATA {{\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{\n'
+                    for role, dperm in change.old_value.items():
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} {field.toRdf} {role.toRdf} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} {field.toRdf} {role.toRdf}>> oldap:hasDataPermission  {dperm.toRdf} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    add_sparql = True
+                elif (change.action == Action.CREATE or change.action == Action.REPLACE) and len(self._attached_roles) > 0:
+                    sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{\n'
+                    for role, dperm in self._attached_roles.items():
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} {field.toRdf} {role.toRdf} .\n'
+                        sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} {field.toRdf} {role.toRdf}>> oldap:hasDataPermission  {dperm.toRdf} .\n'
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                    add_sparql = True
+                elif change.action == Action.MODIFY:
+                    added = {}
+                    removed = {}
+                    changed = {}
+                    if change.old_value:
+                        added = {key: self._attached_roles[key] for key in self._attached_roles.keys() - change.old_value.keys()}
+                    else:
+                        added = self._attached_roles
+                    if change.old_value:
+                        removed = {key: change.old_value[key] for key in
+                                   change.old_value.keys() - self._attached_roles.keys()}
+                    else:
+                        removed = {}
+                    if change.old_value:
+                        changed = {key: {'old': change.old_value.get(key),
+                                         'new': self._attached_roles.get(key)}
+                                   for key in change.old_value.keys() & self._attached_roles.keys()
+                                   if self._attached_roles[key] != change.old_value[key]}
+                    else:
+                        changed = {}
+                    if len(removed) > 0 or len(changed) > 0:
+                        sparql += f'{blank:{indent * indent_inc}}DELETE DATA {{\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{\n'
+                        for role, dperm in removed.items():
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} {field.toRdf} {role.toRdf} .\n'
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} {field.toRdf} {role.toRdf}>> oldap:hasDataPermission  {dperm.toRdf} .\n'
+                        for role, data in changed.items():
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} {field.toRdf} {role.toRdf} .\n'
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} {field.toRdf} {role.toRdf}>> oldap:hasDataPermission  {data['old'].toRdf} .\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                        sparql += f'{blank:{indent * indent_inc}}}}\n'
+                        add_sparql = True
+                    if len(added) > 0 or len(changed) > 0:
+                        if add_sparql:
+                            sparql += f'{blank:{indent * indent_inc}}\n;\n'
+                        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{\n'
+                        for role, dperm in added.items():
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} {field.toRdf} {role.toRdf} .\n'
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} {field.toRdf} {role.toRdf}>> oldap:hasDataPermission  {dperm.toRdf} .\n'
+                        for role, data in changed.items():
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} {field.toRdf} {role.toRdf} .\n'
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} {field.toRdf} {role.toRdf}>> oldap:hasDataPermission  {data['old'].toRdf} .\n'
+                        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                        sparql += f'{blank:{indent * indent_inc}}}}\n'
+                        add_sparql = True
+                if add_sparql:
+                    sparql_list.append(sparql)
+                continue
+
             if change.action != Action.MODIFY:
                 continue  # has been processed above
             if self.properties[field].prop.datatype == XsdDatatypes.langString:
@@ -754,7 +924,7 @@ class ResourceInstance:
         # Test permission for Action.REPLACE
         #
         if not admin_resources:
-            if not self.get_data_permission(context, required_permission):
+            if not self.get_data_permission(required_permission):
                 self._con.transaction_abort()
                 raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
         try:
@@ -810,13 +980,14 @@ class ResourceInstance:
         DELETE WHERE {{
             GRAPH {self._graph}:data {{
                 {self._iri.toRdf} ?prop ?val .
+                << {self._iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
             }}
         }} 
         """
 
         self._con.transaction_start()
         if not admin_resources:
-            if not self.get_data_permission(context, DataPermission.DATA_DELETE):
+            if not self.get_data_permission(DataPermission.DATA_DELETE):
                 self._con.transaction_abort()
                 raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
         try:
@@ -840,21 +1011,27 @@ class ResourceInstance:
     @staticmethod
     def read_data(con: IConnection, projectShortName: Xsd_NCName | str, iri: Iri | str) -> dict[Xsd_QName, Any]:
         """
-        Reads and processes data from a given IConnection instance based on a specified
-        project short name and a resource IRI. This method fetches the data from a graph
-        in the RDF database, verifies user permissions, and returns selected data in a
-        dictionary format.
+        Retrieves data from a resource in the specified project with permissions validation.
+        NOTE: It does *NOT* return the attachedToRole data!
 
-        :param con: The connection object used to query the RDF data.
+        This function performs a SPARQL query to fetch data associated with the given
+        IRI within a specific project graph, taking into account user permissions for
+        the resource. If no data is found for the given IRI, or if permission requirements
+        are not met, exceptions are raised.
+
+        :param con: A connection object used to interact with the database.
         :type con: IConnection
-        :param projectShortName: The short name of the project used to identify the graph
-            in the RDF store. Accepts either Xsd_NCName or a string.
-        :param iri: The IRI of the resource being queried. Accepts either Iri or a string.
-        :return: A dictionary mapping predicates to their associated values from the
-            selected resource.
+        :param projectShortName: The short name of the project graph. Can be an Xsd_NCName
+            or string.
+        :type projectShortName: Xsd_NCName | str
+        :param iri: The IRI of the resource to retrieve data for. Can be an Iri instance
+            or string.
+        :type iri: Iri | str
+        :return: A dictionary mapping predicates (of type Xsd_QName) to their corresponding
+            values.
         :rtype: dict[Xsd_QName, Any]
-        :raises OldapErrorInconsistency: If a non-QName predicate is found in the results.
-        :raises OldapErrorNotFound: If the resource with the given IRI is not found.
+        :raises OldapErrorInconsistency: If a predicate is not a valid QName.
+        :raises OldapErrorNotFound: If the resource with the specified IRI cannot be found.
         """
         if not isinstance(iri, Iri):
             iri = Iri(iri, validate=True)
@@ -865,26 +1042,37 @@ class ResourceInstance:
 
         context = Context(name=con.context_name)
         sparql = context.sparql_context
-        sparql += f'''
-        SELECT ?predicate ?value
+        sparql += textwrap.dedent(f'''
+        SELECT DISTINCT ?predicate ?value
         WHERE {{
+            {{
+                GRAPH {graph}:data {{
+                    {iri.toRdf} oldap:createdBy {con.userIri.toRdf} .
+                }}
+            }}
+            UNION
+            {{
+                GRAPH oldap:admin {{
+                    {con.userIri.toRdf} oldap:hasRole ?role .
+                    ?dataperm oldap:permissionValue ?permval .
+                    FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
+                }}
+            }}
             GRAPH {graph}:data {{
                 {iri.toRdf} ?predicate ?value .
-                {iri.toRdf} oldap:grantsPermission ?permset .
+                {iri.toRdf} oldap:attachedToRole ?role .
+                <<{iri.toRdf} oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
             }}
-            GRAPH oldap:admin {{
-            	{con.userIri.toRdf} oldap:hasPermissions ?permset .
-            	?permset oldap:givesPermission ?DataPermission .
-            	?DataPermission oldap:permissionValue ?permval .
-            }}
-            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
         }}
-        '''
+        ''')
+
         jsonres = con.query(sparql)
         res = QueryProcessor(context, jsonres)
         data = {}
         for r in res:
             if r['predicate'].is_qname:
+                if r['predicate'].as_qname == Xsd_QName('oldap:attachedToRole'):
+                    continue
                 if not data.get(r['predicate'].as_qname):
                     data[r['predicate'].as_qname] = []
                 data[str(r['predicate'].as_qname)].append(str(r['value']))
@@ -892,6 +1080,23 @@ class ResourceInstance:
                 raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
         if not data.get('rdf:type'):
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+
+        sparql = context.sparql_context
+        sparql += textwrap.dedent(f'''
+        SELECT DISTINCT ?role ?dataperm
+        WHERE {{
+            GRAPH {graph}:data {{
+                << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+            }}
+        }}
+        ''')
+        jsonres = con.query(sparql)
+        res = QueryProcessor(context, jsonres)
+        roles = {}
+        for r in res:
+            roles[r['role']] = DataPermission.from_qname(r['dataperm'])
+        data[Xsd_QName('oldap:attachedToRole')] = roles
+
         return data
 
     @staticmethod
@@ -981,6 +1186,11 @@ class ResourceInstance:
                 if sortBy == SortBy.LASTMOD:
                     sparql += '?lastModificationDate'
         sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?DataPermission oldap:permissionValue ?permval .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
         if sortBy:
             if sortBy == SortBy.CREATED:
@@ -991,16 +1201,11 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type ?t .'
         if resClass:
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:grantsPermission ?permset .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(isLiteral(?o) && (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(CONTAINS(LCASE(STR(?o)), "{s}"))  # case-insensitive substring match'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER(isLiteral(?o) && (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER(CONTAINS(LCASE(STR(?o)), "{s}"))  # case-insensitive substring match'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasPermissions ?permset .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?permset oldap:givesPermission ?DataPermission .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?DataPermission oldap:permissionValue ?permval .'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
         sparql += f'\n{blank:{indent * indent_inc}}}}'
 
         if sortBy:
@@ -1014,7 +1219,6 @@ class ResourceInstance:
         if not countOnly:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
         sparql += '\n'
-
 
         try:
             jsonres = con.query(sparql)
@@ -1105,7 +1309,14 @@ class ResourceInstance:
                 if sortBy == SortBy.LASTMOD:
                     sparql += '?lastModificationDate'
         sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?dataperm oldap:permissionValue ?permval .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .'
         if sortBy:
             if sortBy == SortBy.CREATED:
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:creationDate ?creationDate .'
@@ -1115,14 +1326,7 @@ class ResourceInstance:
             for index, prop in enumerate(includeProperties):
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s {prop} ?o{index} .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:grantsPermission ?permset .'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasPermissions ?permset .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?permset oldap:givesPermission ?DataPermission .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?DataPermission oldap:permissionValue ?permval .'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
         sparql += f'\n{blank:{indent * indent_inc}}}}'
 
         if sortBy:
@@ -1187,24 +1391,23 @@ class ResourceInstance:
         context = Context(name=con.context_name)
         sparql = context.sparql_context
 
-        sparql += f"""
+        sparql += textwrap.dedent(f"""
         SELECT ?subject ?graph ?path ?prop ?val ?permval
         WHERE {{
             VALUES ?inputImageId {{ {mediaObjectId.toRdf} }}
             ?subject rdf:type shared:MediaObject .
+            GRAPH oldap:admin {{
+                {con.userIri.toRdf} oldap:hasRole ?role .
+                ?dataperm oldap:permissionValue ?permval .
+            }}
             GRAPH ?graph {{
-                ?subject oldap:grantsPermission ?permset .
+                ?subject oldap:attachedToRole ?role .
+                <<?subject oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
                 ?subject shared:imageId ?inputImageId .
                 ?subject ?prop ?val .
             }}
-            GRAPH oldap:admin {{
-                {con.userIri.toRdf} oldap:hasPermissions ?permset .
-                ?permset oldap:givesPermission ?DataPermission .
-                ?DataPermission oldap:permissionValue ?permval .
-            }}
         }}
-        """
-        print(sparql)
+        """)
         try:
             jsonres = con.query(sparql)
         except OldapError:
@@ -1261,15 +1464,14 @@ class ResourceInstance:
         SELECT ?graph ?prop ?val ?permval
         WHERE {{
             {mediaObjectIri.toRdf} rdf:type shared:MediaObject .
-            GRAPH ?graph {{
-                {mediaObjectIri.toRdf} oldap:grantsPermission ?permset .
-                {mediaObjectIri.toRdf} shared:imageId ?inputImageId .
-                {mediaObjectIri.toRdf} ?prop ?val .
-            }}
             GRAPH oldap:admin {{
-                {con.userIri.toRdf} oldap:hasPermissions ?permset .
-                ?permset oldap:givesPermission ?DataPermission .
-                ?DataPermission oldap:permissionValue ?permval .
+                {con.userIri.toRdf} oldap:hasRole ?role .
+                ?dataperm oldap:permissionValue ?permval .
+            }}
+            GRAPH ?graph {{
+                {mediaObjectIri.toRdf} oldap:attachedToRole ?role .
+                <<{mediaObjectIri.toRdf} oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
+                {mediaObjectIri.toRdf} ?prop ?val .
             }}
         }}
         """
@@ -1351,6 +1553,7 @@ class ResourceInstanceFactory:
     _sharedProject: Project
     _datamodel: DataModel
     _sharedModel: DataModel
+    _user_default_roles: Dict[Xsd_QName, DataPermission] = {}
 
     def __init__(self,
                  con: IConnection,
@@ -1361,6 +1564,7 @@ class ResourceInstanceFactory:
         else:
             self._project = Project.read(self._con, project)
         self._sharedProject = Project.read(self._con, "oldap:SharedProject")
+        self._user_default_roles = {r: DataPermission.from_qname(p) for r, p in self._con._userdata.hasRole.items()}
 
         self._datamodel = DataModel.read(con=self._con, project=self._project)
         self._sharedModel = DataModel.read(con=self._con, project=self._sharedProject)
@@ -1386,7 +1590,9 @@ class ResourceInstanceFactory:
             'name': resclass.owl_class_iri,
             'factory': self,
             'properties': resclass.properties,
-            'superclass': resclass.superclass})
+            'superclass': resclass.superclass,
+            'user_default_roles': self._user_default_roles,
+        })
 
 
     def read(self, iri: Iri | str) -> ResourceInstance:
@@ -1395,22 +1601,41 @@ class ResourceInstanceFactory:
         graph = self._project.projectShortName
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
-        sparql += f'''
-        SELECT ?predicate ?value
+        sparql += textwrap.dedent(f'''
+        SELECT DISTINCT ?predicate ?value
         WHERE {{
-        	BIND({iri.toRdf} as ?iri)
+            # 1) compute the max permval for this user + this resource
+            {{
+                SELECT (MAX(?pv) AS ?permval)
+                WHERE {{
+                    GRAPH oldap:admin {{
+                        {self._con.userIri.toRdf} oldap:hasRole ?role .
+                    }}
+                    GRAPH {graph}:data {{
+                        {iri.toRdf} oldap:attachedToRole ?role .
+                        << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+                    }}
+                    GRAPH oldap:admin {{
+                        ?dataperm oldap:permissionValue ?pv .
+                    }}
+                }}
+            }}
+
+            # 2) return the resource triples, but only if there exists a role with that max permval
             GRAPH {graph}:data {{
-                ?iri ?predicate ?value .
-                ?iri oldap:grantsPermission ?permset .
+                {iri.toRdf} ?predicate ?value .
             }}
-            BIND({self._con.userIri.toRdf} as ?user)
-            GRAPH oldap:admin {{
-            	?user oldap:hasPermissions ?permset .
-            	?permset oldap:givesPermission ?DataPermission .
-            	?DataPermission oldap:permissionValue ?permval .
+            FILTER EXISTS {{
+                GRAPH oldap:admin {{
+                    {self._con.userIri.toRdf} oldap:hasRole ?role .
+                    ?dataperm oldap:permissionValue ?permval .
+                }}
+                GRAPH {graph}:data {{
+                    {iri.toRdf} oldap:attachedToRole ?role .
+                    << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+                }}
             }}
-            FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
-        }}'''
+        }}''')
         jsonres = self._con.query(sparql)
         res = QueryProcessor(context, jsonres)
         objtype = None
@@ -1437,6 +1662,22 @@ class ResourceInstanceFactory:
                     raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
         if objtype is None:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+        sparql = context.sparql_context
+        sparql += textwrap.dedent(f'''
+        SELECT DISTINCT ?role ?dataperm
+        WHERE {{
+            GRAPH {graph}:data {{
+                << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+            }}
+        }}
+        ''')
+        jsonres = self._con.query(sparql)
+        res = QueryProcessor(context, jsonres)
+        roles = {}
+        for r in res:
+            roles[r['role']] = DataPermission.from_qname(r['dataperm'])
+        kwargs['attachedToRole'] = roles
+
         Instance = self.createObjectInstance(objtype)
         return Instance(iri=iri, **kwargs)
 

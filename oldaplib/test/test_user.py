@@ -601,6 +601,12 @@ class TestUser(unittest.TestCase):
         user = User.read(con=self._connection, userId="ampere", ignore_cache=True)
         self.assertIsNone(user.hasRole)
 
+    def test_update_user_role_of_existing(self):
+        user = User.read(self._connection, "rosenth")
+        user.hasRole[Xsd_QName('oldap:Unknown')] = DataPermission.DATA_UPDATE
+        user.update()
+
+
     def test_update_user_permission_set_empty(self):
         user = User(con=self._connection,
                     userIri=Iri("https://orcid.org/0000-0002-9991-2055"),

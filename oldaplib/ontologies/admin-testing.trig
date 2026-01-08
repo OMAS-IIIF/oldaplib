@@ -61,11 +61,13 @@
     #
     <https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet .
     <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
+    <https://orcid.org/0000-0003-1681-4036> :hasRole hyha:HyperHamletMember .
     <<<https://orcid.org/0000-0003-1681-4036> :hasRole hyha:HyperHamletMember>> :hasDefaultDataPermission :DATA_PERMISSIONS .
 
     <https://orcid.org/0000-0003-1681-4036> :inProject <http://www.salsah.org/version/2.0/SwissBritNet> .
     <<<https://orcid.org/0000-0003-1681-4036> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission
             :ADMIN_USERS, :ADMIN_ROLES, :ADMIN_RESOURCES, :ADMIN_MODEL, :ADMIN_CREATE, :ADMIN_LISTS .
+    <https://orcid.org/0000-0003-1681-4036> :hasRole britnet:BritnetEditor .
     <<<https://orcid.org/0000-0003-1681-4036> :hasRole britnet:BritnetEditor>> :hasDefaultDataPermission :DATA_DELETE .
 
     #

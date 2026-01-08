@@ -168,47 +168,8 @@ class Connection(IConnection):
         if userId is None:
             logger.error("Connection with wrong credentials")
             raise OldapError("Wrong credentials")
-        sparql = UserData.sparql_query(context=context, userId=userId)
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
-        }
-        data = {
-            'query': sparql,
-        }
-        #
-        # if we have protected the triplestore by a user/password, add it to the request
-        #
+
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
-        res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
-        if res.status_code == 200:
-            jsonobj = res.json()
-        else:
-            logger.error(f"Could not connect to triplestore: {res.text}")
-            raise OldapError(res.status_code, res.text)
-        res = QueryProcessor(context=context, query_result=jsonobj)
-
-        self._userdata = UserData.from_query(res)
-        if not self._userdata.isActive:
-            logger.error("Connection with wrong credentials")
-            raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
-        if userId != "unknown":
-            hashed = str(self._userdata.credentials).encode('utf-8')
-            if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
-                logger.error("Connection with wrong credentials")
-                raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
-
-        expiration = datetime.now().astimezone() + timedelta(days=1)
-        payload = {
-            "userdata": json.dumps(self._userdata, default=serializer.encoder_default),
-            "exp": expiration.timestamp(),
-            "iat": int(datetime.now().astimezone().timestamp()),
-            "iss": "http://oldap.org"
-        }
-        self._token = jwt.encode(
-            payload=payload,
-            key=self.__jwtkey,
-            algorithm="HS256")
         #
         # Get projects and add to Context
         #
@@ -242,6 +203,50 @@ class Connection(IConnection):
         res = QueryProcessor(context=context, query_result=jsonobj)
         for r in res:
             context[r['sname']] = r['ns']
+
+        #
+        # Query the user data
+        #
+        sparql = UserData.sparql_query(context=context, userId=userId)
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
+        }
+        data = {
+            'query': sparql,
+        }
+        #
+        # if we have protected the triplestore by a user/password, add it to the request
+        #
+        res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
+        if res.status_code == 200:
+            jsonobj = res.json()
+        else:
+            logger.error(f"Could not connect to triplestore: {res.text}")
+            raise OldapError(res.status_code, res.text)
+        res = QueryProcessor(context=context, query_result=jsonobj)
+
+        self._userdata = UserData.from_query(res)
+        if not self._userdata.isActive:
+            logger.error("Connection with wrong credentials")
+            raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
+        if userId != "unknown":
+            hashed = str(self._userdata.credentials).encode('utf-8')
+            if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
+                logger.error("Connection with wrong credentials")
+                raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
+
+        expiration = datetime.now().astimezone() + timedelta(days=1)
+        payload = {
+            "userdata": json.dumps(self._userdata, default=serializer.encoder_default),
+            "exp": expiration.timestamp(),
+            "iat": int(datetime.now().astimezone().timestamp()),
+            "iss": "http://oldap.org"
+        }
+        self._token = jwt.encode(
+            payload=payload,
+            key=self.__jwtkey,
+            algorithm="HS256")
         logger.info(f'Connection established. User "{str(self._userdata.userId)}".')
 
     @staticmethod

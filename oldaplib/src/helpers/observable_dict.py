@@ -6,6 +6,7 @@ from typing import Callable, Self, Iterable, Mapping
 from oldaplib.src.enums.action import Action
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
 @serializer

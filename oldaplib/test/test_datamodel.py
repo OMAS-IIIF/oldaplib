@@ -369,6 +369,7 @@ class TestDataModel(unittest.TestCase):
         model = DataModel.read(self._connection, self._sysproject, ignore_cache=True)
         self.assertEqual(set(model.get_propclasses()), {
             Xsd_QName("oldap:hasDataPermission"),
+            Xsd_QName("oldap:hasDefaultDataPermission"),
             Xsd_QName("oldap:hasAdminPermission"),
             Xsd_QName("oldap:statementProperty"),
             Xsd_QName("oldap:namespaceIri"),
@@ -383,7 +384,8 @@ class TestDataModel(unittest.TestCase):
             Xsd_QName("oldap:Role"),
             Xsd_QName("oldap:Thing"),
             Xsd_QName("oldap:ExternalOntology"),
-            Xsd_QName("oldap:inProjectStatement")
+            Xsd_QName("oldap:inProjectStatement"),
+            Xsd_QName("oldap:hasRoleStatement")
         })
 
     def test_datamodel_read_shared(self):

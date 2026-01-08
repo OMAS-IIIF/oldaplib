@@ -296,7 +296,8 @@ class TestPermissionSet(unittest.TestCase):
 
         iris = Role.search(self._connection)
         self.assertEqual({Xsd_QName("oldap:Unknown"),
-                          Xsd_QName("hyha:HyperHamletMember")}, set(iris))
+                          Xsd_QName("hyha:HyperHamletMember"),
+                          Xsd_QName("britnet:BritnetEditor")}, set(iris))
 
     def test_update_permission_set(self):
         ps = Role(con=self._connection,
@@ -396,7 +397,7 @@ class TestPermissionSet(unittest.TestCase):
         r = DummyClass(irgendwas="Dies ist irgend ein String", grantsPermission=Xsd_QName('oldap:GenericUpdate'))
         r.create()
 
-        ps = Role.read(con=self._connection, roleId="GenericUpdate", definedByProject=Iri('oldap:SystemProject'), ignore_cache=True)
+        ps = Role.read(con=self._connection, roleId="Unknown", definedByProject=Iri('oldap:SystemProject'), ignore_cache=True)
         with self.assertRaises(OldapErrorInUse):
             ps.delete()
 

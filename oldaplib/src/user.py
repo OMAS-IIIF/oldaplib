@@ -858,7 +858,7 @@ class User(Model):
                 else:
                     removed = {}
                 if self._changeset[UserAttr.HAS_ROLE].old_value:
-                    changed = {key: {'old': self._changeset[UserAttr.HAS_ROLE][key], 'new': self._attributes[UserAttr.HAS_ROLE][key]}
+                    changed = {key: {'old': self._changeset[UserAttr.HAS_ROLE].old_value.get(key), 'new': self._attributes[UserAttr.HAS_ROLE].get(key)}
                                for key in self._changeset[UserAttr.HAS_ROLE].old_value.keys() & self._attributes[UserAttr.HAS_ROLE].keys()
                                if self._attributes[UserAttr.HAS_ROLE][key] != self._changeset[UserAttr.HAS_ROLE].old_value[key]}
                 else:

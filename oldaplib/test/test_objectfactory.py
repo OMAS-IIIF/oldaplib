@@ -9,6 +9,7 @@ import jwt
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
+from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
@@ -110,14 +111,13 @@ class TestObjectFactory(unittest.TestCase):
         cls._connection.upload_turtle(file)
 
         user = User.read(cls._connection, "rosenth")
-        user.hasPermissions.add(Iri('oldap:GenericUpdate'))  # TODO: SHOULD WORK WITH Xsd_QName
+        user.hasRole[Xsd_QName('oldap:Unknown')] = DataPermission.DATA_UPDATE
         user.update()
 
         ps = Role(con=cls._connection,
-                  permissionSetId="testNoUpdate",
+                  roleId="testNoUpdate",
                   label=LangString("testNoUpdate@en"),
                   comment=LangString("Testing PermissionSet@en"),
-                  givesPermission=DataPermission.DATA_VIEW,
                   definedByProject="test")
         ps.create()
         cls._tps = ps.read(con=cls._connection, roleId="testNoUpdate", definedByProject="test")
@@ -129,10 +129,27 @@ class TestObjectFactory(unittest.TestCase):
                     email="ft@test.com",
                     credentials="Waseliwas",
                     inProject={'oldap:Test': {}},
-                    hasPermissions={ps.iri.as_qname},
+                    hasRole={ps.iri.as_qname: DataPermission.DATA_VIEW},
                     isActive=True)
         user.create()
         cls._tuser = User.read(cls._connection, "factorytestuser")
+
+        user = User(con=cls._connection,
+                    userId=Xsd_NCName("factorytestuser2"),
+                    familyName="FactoryTest2",
+                    givenName="FactoryTest2",
+                    email="ft2@test.com",
+                    credentials="Waseliwas2",
+                    inProject={'oldap:Test': {AdminPermission.ADMIN_CREATE}},
+                    hasRole={ps.iri.as_qname: DataPermission.DATA_VIEW, Xsd_QName('oldap:Unknown'): DataPermission.DATA_UPDATE},
+                    isActive=True)
+        user.create()
+        cls._tuser2 = User.read(cls._connection, "factorytestuser")
+
+        cls._con_tuser2 = Connection(userId="factorytestuser2",
+                                 credentials="Waseliwas2",
+                                 context_name="DEFAULT")
+
         cache = CacheSingletonRedis()
         cache.clear()
 
@@ -144,14 +161,16 @@ class TestObjectFactory(unittest.TestCase):
         #sleep(1)  # upload may take a while...
         pass
 
-    def test_constructor_A(self):
+    def test_constructor_only(self):
         project = Project.read(con=self._connection, projectIri_SName='test')
         factory = ResourceInstanceFactory(con=self._connection, project=project)
         Book = factory.createObjectInstance('Book')
+
         b = Book(title="Hitchhiker's Guide to the Galaxy",
                  author=Iri('test:DouglasAdams', validate=False),
                  pubDate="1995-09-27",
-                 grantsPermission=Iri('oldap:GenericView'))
+                 attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW,
+                                 Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_PERMISSIONS})
         self.assertEqual(b.title, {Xsd_string("Hitchhiker's Guide to the Galaxy")})
         self.assertEqual(b.author, {Iri('test:DouglasAdams')})
         self.assertEqual(b.pubDate, {Xsd_date("1995-09-27")})
@@ -159,6 +178,31 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(b.createdBy, Iri('https://orcid.org/0000-0003-1681-4036', validate=False))
         self.assertIsNotNone(b.lastModificationDate)
         self.assertEqual(b.lastModifiedBy, Iri('https://orcid.org/0000-0003-1681-4036', validate=False))
+        self.assertEqual(dict(b.attachedToRole), {Xsd_QName("oldap:Unknown"): DataPermission.DATA_VIEW,
+                                                      Xsd_QName("hyha:HyperHamletMember"): DataPermission.DATA_PERMISSIONS})
+
+
+    def test_constructor_A(self):
+        project = Project.read(con=self._connection, projectIri_SName='test')
+        factory = ResourceInstanceFactory(con=self._connection, project=project)
+        Book = factory.createObjectInstance('Book')
+
+        project = Project.read(con=self._connection, projectIri_SName='test')
+        factory = ResourceInstanceFactory(con=self._connection, project=project)
+        Book = factory.createObjectInstance('Book')
+
+        b = Book(title="Hitchhiker's Guide to the Galaxy",
+                 author=Iri('test:DouglasAdams', validate=False),
+                 pubDate="1995-09-27",
+                 attachedToRole={Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_PERMISSIONS})
+        self.assertEqual(b.title, {Xsd_string("Hitchhiker's Guide to the Galaxy")})
+        self.assertEqual(b.author, {Iri('test:DouglasAdams')})
+        self.assertEqual(b.pubDate, {Xsd_date("1995-09-27")})
+        self.assertIsNotNone(b.creationDate)
+        self.assertEqual(b.createdBy, Iri('https://orcid.org/0000-0003-1681-4036', validate=False))
+        self.assertIsNotNone(b.lastModificationDate)
+        self.assertEqual(b.lastModifiedBy, Iri('https://orcid.org/0000-0003-1681-4036', validate=False))
+        self.assertEqual(dict(b.attachedToRole), {Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_PERMISSIONS})
         b.create()
         b2 = Book.read(con=self._connection,
                        iri=b.iri)
@@ -169,6 +213,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(b2.creationDate, b.creationDate)
         self.assertEqual(b2.lastModifiedBy, b.lastModifiedBy)
         self.assertEqual(b2.lastModificationDate, b.lastModificationDate)
+        self.assertEqual(dict(b2.attachedToRole), {Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_PERMISSIONS})
 
         #
         # test unprivileged access. Should return "not found"-Error!
@@ -181,7 +226,7 @@ class TestObjectFactory(unittest.TestCase):
                   pageNum=1,
                   pageDescription=LangString("Cover page of book@en", "Vorderseite des Bucheinschlags@de"),
                   pageInBook="test:Hitchhiker",
-                  grantsPermission=Iri('oldap:GenericView'))
+                  attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         self.assertEqual(p1.pageDesignation, {"Cover"})
         self.assertEqual(p1.pageNum, {1})
         self.assertEqual(p1.pageDescription, LangString("Cover page of book@en", "Vorderseite des Bucheinschlags@de"))
@@ -197,7 +242,12 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(p2.lastModificationDate, p1.lastModificationDate)
 
         b2.delete()
+        with self.assertRaises(OldapErrorNotFound):
+            tmp = Book.read(con=self._connection, iri=b2.iri)
+
         p2.delete()
+        with self.assertRaises(OldapErrorNotFound):
+            tmp = Page.read(con=self._connection, iri=p2.iri)
 
     def test_constructor_B(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -242,7 +292,7 @@ class TestObjectFactory(unittest.TestCase):
                       unsignedShortProp=Xsd_unsignedShort(20200),
                       unsignedByteProp=Xsd_unsignedByte(202),
                       positiveIntegerProp=Xsd_unsignedByte(202),
-                      grantsPermission=Iri('oldap:GenericView'))
+                      attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         self.assertEqual(at.stringProp, {Xsd_string("A String Prop")})
         self.assertEqual(at.langStringProp, LangString("A LangString@en", "Ein Sprachtext@de"))
         self.assertEqual(at.booleanProp, Xsd_boolean(1))
@@ -337,14 +387,17 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(at.positiveIntegerProp, at2.positiveIntegerProp)
 
     def test_constructor_C(self):
-        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        factory = ResourceInstanceFactory(con=self._con_tuser2, project='test')
+        context = Context(name=self._con_tuser2.context_name)
         Book = factory.createObjectInstance('Book')
 
         b = Book(title="History of Time",
                  author=[Iri('test:AlbertEinstein', validate=False), Iri('test:JohnWick', validate=False)],
-                 pubDate="1995-09-27",
-                 grantsPermission=Iri('oldap:GenericView'))
+                 pubDate="1995-09-27")
         b.create()
+        self.assertEqual(dict(b.attachedToRole), {Xsd_QName("oldap:Unknown"): DataPermission.DATA_UPDATE,
+                                                  Xsd_QName("test:testNoUpdate"): DataPermission.DATA_VIEW})
+
 
         b.delete()
 
@@ -367,11 +420,10 @@ class TestObjectFactory(unittest.TestCase):
                 imageId='cat.tif',
                 path='test',
                 protocol='iiif',
-                grantsPermission=Iri('oldap:GenericView'))
+                attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         mo.create()
         data = ResourceInstance.read_data(con=self._connection, iri=mo.iri, projectShortName='test')
-        print(data)
-        self.assertEqual(data[Xsd_QName("oldap:grantsPermission")], ['oldap:GenericView'])
+        self.assertEqual(data[Xsd_QName("oldap:attachedToRole")], {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         self.assertEqual(data[Xsd_QName("shared:originalName")], ['Cat.tif'])
         self.assertEqual(data[Xsd_QName("shared:originalMimeType")], ['image/tiff'])
         self.assertEqual(data[Xsd_QName("shared:serverUrl")], ['http://iiif.oldap.org/iiif/3/'])
@@ -398,8 +450,7 @@ class TestObjectFactory(unittest.TestCase):
         Book = factory.createObjectInstance('Book')
         b = Book(title="The Life and Times of Scrooge",
                  author="test:TuomasHolopainen",
-                 pubDate="2001-01-01",
-                 grantsPermission=Iri('oldap:GenericView'))
+                 pubDate="2001-01-01")
         b.create()
         bb = factory.read(iri=b.iri)
         self.assertEqual(bb.name, "test:Book")
@@ -567,7 +618,8 @@ class TestObjectFactory(unittest.TestCase):
                             decimalSetter={Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)},
                             integerSetter={-10, 20},
                             booleanSetter=True,
-                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate'), self._tps.iri})
+                            attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW,
+                                            self._tps.iri.as_qname: DataPermission.DATA_VIEW})
         obj1.create()
 
         unpriv = Connection(userId="factorytestuser",
@@ -582,6 +634,12 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj.decimalSetter, {Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)})
         self.assertEqual(obj.integerSetter, {-10, 20})
 
+        unpriv2 = Connection(userId="factorytestuser2",
+                            credentials="Waseliwas2",
+                            context_name="DEFAULT")
+        factory = ResourceInstanceFactory(con=unpriv2, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj = SetterTester.read(con=unpriv2, iri=obj1.iri)
         obj.decimalSetter.discard(Xsd_decimal(3.14159))
         with self.assertRaises(OldapErrorNoPermission):
             obj.update()
@@ -598,7 +656,7 @@ class TestObjectFactory(unittest.TestCase):
         b = Book(title="Hitchhiker's Guide to the Galaxy",
                  author=Iri('test:DouglasAdams', validate=False),
                  pubDate="1995-09-27",
-                 grantsPermission=Iri('oldap:GenericView'))
+                 attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         b.create()
         b = Book.read(con=self._connection,
                        iri=b.iri)
@@ -607,7 +665,7 @@ class TestObjectFactory(unittest.TestCase):
                   pageNum=1,
                   pageDescription=LangString("Cover page of book@en", "Vorderseite des Bucheinschlags@de"),
                   pageInBook=b.iri,
-                  grantsPermission=Iri('oldap:GenericView'))
+                  attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         p1.create()
 
         with self.assertRaises(OldapErrorInUse):
@@ -622,14 +680,13 @@ class TestObjectFactory(unittest.TestCase):
             b = Book.read(con=self._connection,
                           iri=b.iri)
 
-    def test_change_permissions(self):
+    def test_change_permissions_A(self):
         project = Project.read(con=self._connection, projectIri_SName='test')
 
         ps = Role(con=self._connection,
-                  permissionSetId="testChangePermission",
+                  roleId="testChangePermission",
                   label=LangString("testChangePermission@en"),
                   comment=LangString("Testing PermissionSet@en"),
-                  givesPermission=DataPermission.DATA_PERMISSIONS,
                   definedByProject="test")
         ps.create()
 
@@ -639,12 +696,16 @@ class TestObjectFactory(unittest.TestCase):
         b = Book(title="Hitchhiker's Guide to the Galaxy",
                  author=Iri('test:DouglasAdams', validate=False),
                  pubDate="1995-09-27",
-                 grantsPermission=Iri('oldap:GenericView'))
+                 attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         b.create()
         b = Book.read(con=self._connection,
                       iri=b.iri)
-        b.grantsPermission.add('hyha:HyperHamletMember')
+        b.attachedToRole[Xsd_QName('hyha:HyperHamletMember')] = DataPermission.DATA_UPDATE
         b.update()
+
+        b = Book.read(con=self._connection,iri=b.iri)
+        self.assertEqual(dict(b.attachedToRole), {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW,
+                                            Xsd_QName('hyha:HyperHamletMember'): DataPermission.DATA_UPDATE})
 
         unpriv = Connection(userId="factorytestuser",
                             credentials="Waseliwas",
@@ -653,7 +714,7 @@ class TestObjectFactory(unittest.TestCase):
         Book = factory.createObjectInstance('Book')
         b = Book.read(con=self._connection,
                       iri=b.iri)
-        b.grantsPermission.add('oldap:GenericUpdate')
+        b.attachedToRole['oldap:Unknown'] = DataPermission.DATA_UPDATE
         with self.assertRaises(OldapErrorNoPermission):
             b.update()
 
@@ -736,10 +797,9 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], '2')
 
-    def test_read_media_object_by_id_B(self):
-        res = ResourceInstance.get_media_object_by_id(con=self._unpriv, mediaObjectId='Hlon4w5TSplO.tif')
-        pprint(res)
-
+    def test_read_media_object_by_id_C(self):
+        with self.assertRaises(OldapErrorNotFound):
+            res = ResourceInstance.get_media_object_by_id(con=self._unpriv, mediaObjectId='Hlon4w5TSplO.tif')
 
     def test_read_media_object_by_iri_A(self):
         res = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri='urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901')
