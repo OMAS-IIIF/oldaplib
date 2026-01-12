@@ -127,6 +127,7 @@ class ResourceInstance:
                         # we have an attachedToRole property given in the constructor...
                         #
                         value = kwargs[str(prop_iri)] if kwargs.get(str(prop_iri)) else kwargs[prop_iri.fragment]
+                        value = {Xsd_QName(role): dperm if isinstance(dperm, DataPermission) else DataPermission.from_string(dperm) for role, dperm in value.items()}
                         if not isinstance(value, dict):
                             raise OldapErrorValue(f'{self.name}: Property {prop_iri} with attachedToRole must be a dict')
                         self._attached_roles = ObservableDict(value, on_change=self.__attachedToRole_cb)

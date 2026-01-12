@@ -36,9 +36,9 @@ resources.
 ## Data Permissions
 
 Data permissions are used to define the access rights to the actual resources
-representing the data. The data permission concept is based on the `:PermissionSet` which
+representing the data. The data permission concept is based on the `:Roles` which
 are granted the access permissions. Each resource grants the access permissions based on
-the connection to one or many permission sets using the `:grantsPermissions`-property. A
+the connection to one or many roles using the `:attachedToRole`-property. A
 given user is member of one or many groups based on the `:hasPermissions`-property.
 The permission set itself uses `:gives` to list the permissions in the given set.  
 **NOTE**: A permission set should give all the required permission! The `EXTEND` permission

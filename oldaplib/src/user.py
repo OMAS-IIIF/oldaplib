@@ -892,49 +892,55 @@ class User(Model):
             # oldap:hasDefaultDataPermission has changed!
             #
             rdfstar = False
-            sparql = f'{blank:{indent * indent_inc}}# RDF*Star <<.. oldap:hasRole ...>> oldap:hasDefaultDataPermission ...\n'
-            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
+            sparql = ''
+            if removed or changed:
+                sparql += f'{blank:{indent * indent_inc}}# RDF*Star DELETE: <<.. oldap:hasRole ...>> oldap:hasDefaultDataPermission ...\n'
+                sparql += f'{blank:{indent * indent_inc}}DELETE DATA {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                rdfstar = True
             if removed:
                 tmp = [role for role, dperm in removed.items() if dperm] # check if we have roles with dterm not None
                 if tmp:
-                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     for role, dperm in removed.items():
                         if dperm:
-                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<?user oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {dperm} .\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-                    rdfstar = True
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {dperm.toRdf} .\n'
             if changed:  # remove RDF*Star triples of the roles that have changed
                 tmp = [role for role, dperm in changed.items() if dperm['old']]
                 if tmp:
-                    sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                     for role, changes in changed.items():
                         if changes['old']:
-                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<?user oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {changes["old"]} .\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
-                    rdfstar = True
+                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {changes["old"].toRdf} .\n'
+
+            if rdfstar:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if added or changed:
+                if rdfstar:
+                    sparql += f'{blank:{indent * indent_inc}};\n'
+                sparql += f'{blank:{indent * indent_inc}}# RDF*Star INSERT: <<.. oldap:hasRole ...>> oldap:hasDefaultDataPermission ...\n'
+                sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{\n'
+                rdfstar = True
+            else:
+                rdfstar = False
             if added:
                 tmp = [role for role, dperm in added.items() if dperm]  # check if we have roles with dterm not None
                 if tmp:
-                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                     for role, dperm in added.items():
                         if dperm:
-                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<?user oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {dperm} .\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {dperm.toRdf} .\n'
                     rdfstar = True
             if changed:  # add the RDF*Star triples of the roles that have changed
                 tmp = [role for role, dperm in changed.items() if dperm['new']]
                 if tmp:
-                    sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                     for role, changes in changed.items():
                         if changes['new']:
-                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<?user oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {changes["new"]} .\n'
-                    sparql += f'{blank:{indent * indent_inc}}}}\n'
+                            sparql += f'{blank:{(indent + 1) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {role.toRdf}>> oldap:hasDefaultDataPermission {changes["new"].toRdf} .\n'
                     rdfstar = True
-            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?user a oldap:User .\n'
-            sparql += f'{blank:{indent * indent_inc}}}}'
             if rdfstar:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if sparql:
                 sparql_list.append(sparql)
 
             #
@@ -1115,6 +1121,7 @@ class User(Model):
             self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri, self.modified, timestamp)
             modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri)
         except OldapError:
+            print(sparql)
             self._con.transaction_abort()
             raise
         if timestamp != modtime:

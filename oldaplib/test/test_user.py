@@ -699,6 +699,7 @@ class TestUser(unittest.TestCase):
                                                          AdminPermission.ADMIN_CREATE}},
                     hasRole={Iri('oldap:Unknown'): DataPermission.DATA_RESTRICTED})
         user.create()
+
         user2 = User.read(con=self._connection, userId="edison", ignore_cache=True)
         user2.userId = "aedison"
         user2.familyName = "Edison et al."

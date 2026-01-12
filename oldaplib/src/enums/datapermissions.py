@@ -80,11 +80,14 @@ class DataPermission(PermissionWithValue):
     DATA_DELETE = ('oldap:DATA_DELETE', 5)  # Allow to delete complete resource
     DATA_PERMISSIONS = ('oldap:DATA_PERMISSIONS', 6)  # Allow to modify permissions of resource
 
+    def __str__(self) -> str:
+        return self.to_string()
+
     @property
     def toRdf(self):
         return self.value
 
-    def to_string(self):
+    def to_string(self) -> str:
         return self.name.removeprefix("oldap:")
 
     @classmethod
