@@ -246,6 +246,10 @@ class Iri(Xsd):
         parts = self.__value.split(':')
         return parts[1]
 
+    @property
+    def value(self) -> str:
+        return self.__value
+
 
 if __name__ == '__main__':
     #iri = Iri("oldap:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")

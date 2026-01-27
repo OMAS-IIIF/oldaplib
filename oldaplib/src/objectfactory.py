@@ -1,5 +1,6 @@
 import re
 import textwrap
+from pprint import pprint
 
 import jwt
 
@@ -1073,7 +1074,7 @@ class ResourceInstance:
                     continue
                 if not data.get(r['predicate'].as_qname):
                     data[r['predicate'].as_qname] = []
-                data[str(r['predicate'].as_qname)].append(str(r['value']))
+                data[str(r['predicate'].as_qname)].append(r['value'])
             else:
                 raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
         if not data.get('rdf:type'):
