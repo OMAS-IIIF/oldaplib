@@ -1,6 +1,7 @@
-from enum import Enum, Flag, auto
+from enum import Enum, Flag, auto, unique
 from typing import Type, Self, Any
 
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 class Target(Flag):
@@ -9,6 +10,7 @@ class Target(Flag):
     BOTH = SHACL | OWL    # convenience alias
 
 
+@serializer
 class AttributeClass(Enum):
     """
     The AttributeClass is used as superclass to define the attribute-enums of RDF-classes such as
@@ -100,4 +102,19 @@ class AttributeClass(Enum):
             if member._name == name:
                 return member
         raise ValueError(f"No member with name {name} found")
+
+    @classmethod
+    def _missing_(cls, value: Xsd_QName | str):
+        if isinstance(value, str):
+            v = Xsd_QName(value.strip())
+        if isinstance(value, Xsd_QName):
+            v = value
+        else:
+            return None
+
+        for member in cls:
+            if member.value == v:
+                return member
+        return None
+
 

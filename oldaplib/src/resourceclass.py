@@ -942,7 +942,8 @@ class ResourceClass(Model, Notify):
                                             minCount=attributes.get(Xsd_QName('sh:minCount')),
                                             maxCount=attributes.get(Xsd_QName('sh:maxCount')),
                                             order=attributes.get(Xsd_QName('sh:order')),
-                                            group=attributes.get(Xsd_QName('sh:group'))))
+                                            group=attributes.get(Xsd_QName('sh:group')),
+                                            editor=attributes.get(Xsd_QName('dash:editor'))))
             else:
                 prop = PropertyClass(con=con, project=project)
                 haspropdata = prop.parse_shacl(attributes=attributes)
@@ -957,7 +958,8 @@ class ResourceClass(Model, Notify):
                                                 minCount=haspropdata.minCount,
                                                 maxCount=haspropdata.maxCount,
                                                 order=haspropdata.order,
-                                                group=haspropdata.group))
+                                                group=haspropdata.group,
+                                                editor=haspropdata.editor))
                 else:
                     #
                     # Case C, external property
@@ -971,7 +973,8 @@ class ResourceClass(Model, Notify):
                                                 minCount=haspropdata.minCount,
                                                 maxCount=haspropdata.maxCount,
                                                 order=haspropdata.order,
-                                                group=haspropdata.group))
+                                                group=haspropdata.group,
+                                                editor=haspropdata.editor))
         return proplist
 
     def __read_owl(self) -> None:
@@ -1178,7 +1181,7 @@ class ResourceClass(Model, Notify):
 
         for iri, hp in self._properties.items():
             if hp.type == PropType.STANDALONE:
-                if hp.minCount or hp.maxCount or hp.order or hp.group:
+                if hp.minCount or hp.maxCount or hp.order or hp.group or hp.editor:
                     sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {iri}Shape, ['
                     sparql += f'\n{blank:{(indent + 3) * indent_inc}}sh:path {iri.toRdf}'
                     sparql += hp.create_shacl(indent=2)

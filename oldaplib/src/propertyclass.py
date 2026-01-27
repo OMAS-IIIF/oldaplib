@@ -71,6 +71,7 @@ class HasPropertyData:
     maxCount: Xsd_integer | None = None
     order: Xsd_decimal | None = None
     group: Xsd_QName | None = None
+    editor: Xsd_QName | None = None
 
     def create_shacl(self, indent: int = 0, indent_inc: int = 4):
         blank = ''
@@ -83,6 +84,8 @@ class HasPropertyData:
             sparql += f' ;\n{blank:{indent * indent_inc}}sh:order {self.order.toRdf}'
         if self.group is not None:
             sparql += f' ;\n{blank:{indent * indent_inc}}sh:group {self.group.toRdf}'
+        if self.editor is not None:
+            sparql += f' ;\n{blank:{indent * indent_inc}}dash:editor {self.editor.toRdf}'
         return sparql
 
     def create_owl(self, indent: int = 0, indent_inc: int = 4):
@@ -800,6 +803,7 @@ class PropertyClass(Model, Notify):
         maxCount: Xsd_integer | None = None
         order: Xsd_decimal | None = None
         group: Xsd_QName | None = None
+        editor: Xsd_QName | None = None
         nodeKind: Xsd_QName | None = None
         propkeys = {Xsd_QName(x.value) for x in PropClassAttr}
         for key, val in attributes.items():
@@ -863,6 +867,8 @@ class PropertyClass(Model, Notify):
                 order = val
             elif key == 'sh:group':
                 group = val
+            elif key == 'dash:editor':
+                editor = val
             elif key in propkeys:
                 attr = PropClassAttr.from_value(key)
                 if not attr.in_shacl:
@@ -879,7 +885,8 @@ class PropertyClass(Model, Notify):
                                    minCount=minCount,
                                    maxCount=maxCount,
                                    order=order,
-                                   group=group)
+                                   group=group,
+                                   editor=editor)
 
         if self._attributes.get(PropClassAttr.CLASS) is not None:
             self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
@@ -897,7 +904,7 @@ class PropertyClass(Model, Notify):
         self.update_notifier()
 
         self.__from_triplestore = True
-        return HasPropertyData(refprop, minCount, maxCount, order, group)
+        return HasPropertyData(refprop, minCount, maxCount, order, group, editor)
 
     def read_owl(self) -> None:
         if self._externalOntology:

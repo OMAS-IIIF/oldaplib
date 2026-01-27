@@ -625,3 +625,5 @@ if __name__ == "__main__":
         print("Testinstanzen erfolgreich geladen.")
     else:
         print("Testinstanzen übersprungen.")
+    cache.clear()
+

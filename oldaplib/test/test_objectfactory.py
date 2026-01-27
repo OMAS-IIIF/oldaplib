@@ -480,6 +480,28 @@ class TestObjectFactory(unittest.TestCase):
 
         bb.delete()
 
+    def test_read_D(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        b = SetterTester(stringSetter="This is a test string",
+                         langStringSetter=["C'est un string de test@fr", "Dies ist eine Testzeichenkette@de"],
+                         decimalSetter=Xsd_decimal(3.14),
+                         integerSetter={20200, 30300},
+                         attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
+        b.create()
+        bb = SetterTester.read(con=self._connection, iri=b.iri)
+        self.assertEqual(bb.name, "test:SetterTester")
+        self.assertEqual(bb.stringSetter, {Xsd_string("This is a test string")})
+        print(type(bb.langStringSetter).__name__)
+        print(bb.langStringSetter)
+        # self.assertEqual(bb.author, {Iri("test:TuomasHolopainen")})
+        # jsonobj = bb.toJsonObject()
+        # self.assertEqual(jsonobj['test:author'], ['test:TuomasHolopainen'])
+        # self.assertEqual(jsonobj['test:pubDate'], ['2001-01-01'])
+        # self.assertEqual(jsonobj['test:title'], ['The Life and Times of Scrooge'])
+
+        bb.delete()
+
     def test_value_setter(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         SetterTester = factory.createObjectInstance('SetterTester')

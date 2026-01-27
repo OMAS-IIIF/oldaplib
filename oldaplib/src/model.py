@@ -218,7 +218,8 @@ class Model:
                 if self._changeset.get(attr) is None:
                     self._changeset[attr] = AttributeChange(deepcopy(self._attributes[attr]), Action.REPLACE)
         if value is None:
-            del self._attributes[attr]
+            if self._attributes.get(attr) is not None:
+                del self._attributes[attr]
         else:
             if not isinstance(value, attr.datatype):
                 self._attributes[attr] = attr.datatype(value, validate=True)

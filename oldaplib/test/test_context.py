@@ -80,6 +80,7 @@ PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <http://schema.org/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX dcmitype: <http://purl.org/dc/dcmitype/>
+PREFIX dash: <http://datashapes.org/dash#>
 PREFIX oldap: <http://oldap.org/base#>
 PREFIX shared: <http://oldap.org/shared#>
 PREFIX test: <http://www.test.org/gaga#>
@@ -99,6 +100,7 @@ PREFIX test: <http://www.test.org/gaga#>
 @prefix schema: <http://schema.org/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dcmitype: <http://purl.org/dc/dcmitype/> .
+@prefix dash: <http://datashapes.org/dash#> .
 @prefix oldap: <http://oldap.org/base#> .
 @prefix shared: <http://oldap.org/shared#> .
 @prefix test: <http://www.test.org/gaga#> .

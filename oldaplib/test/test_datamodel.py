@@ -1105,7 +1105,7 @@ class TestDataModel(unittest.TestCase):
                        resclasses=[page, book, person])
         dm.write_as_trig('gaga.trig')
 
-    unittest.skip('Only during development....')
+    @unittest.skip('Only during development....')
     def test_cache(self):
         project_root = find_project_root(__file__)
         self._connection.clear_graph(Xsd_QName('test:shacl'))
@@ -1122,4 +1122,26 @@ class TestDataModel(unittest.TestCase):
         dm2 = DataModel.read(self._connection, self._project, ignore_cache=False)
 
         pass
+
+    @unittest.skip('Only during development....')
+    def test_datamodel_read_fasnacht(self):
+        connection = Connection(userId="rosenth",
+                                     credentials="RioGrande",
+                                     context_name="DEFAULT")
+
+        fasnacht = Project.read(connection, "fasnacht")
+
+        model = DataModel.read(connection, fasnacht, ignore_cache=True)
+        print(model)
+
+    @unittest.skip('Only during development....')
+    def test_datamodel_read_shared(self):
+        connection = Connection(userId="rosenth",
+                                     credentials="RioGrande",
+                                     context_name="DEFAULT")
+
+
+        model = DataModel.read(connection, 'oldap')
+        model = DataModel.read(connection, 'shared')
+        print(model.get_propclasses())
 

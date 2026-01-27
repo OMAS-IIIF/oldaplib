@@ -206,7 +206,8 @@ class HasProperty(Model, Notify):
         return HasPropertyData(minCount=self._attributes.get(HasPropertyAttr.MIN_COUNT, None),
                                maxCount=self._attributes.get(HasPropertyAttr.MAX_COUNT, None),
                                order=self._attributes.get(HasPropertyAttr.ORDER, None),
-                               group=self._attributes.get(HasPropertyAttr.GROUP, None))
+                               group=self._attributes.get(HasPropertyAttr.GROUP, None),
+                               editor=self._attributes.get(HasPropertyAttr.EDITOR, None))
 
     def clear_changeset(self) -> None:
         if hasattr(self._prop, 'clear_changeset'):
@@ -225,14 +226,17 @@ class HasProperty(Model, Notify):
     def create_shacl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = ''
-        if self._attributes.get(HasPropertyAttr.MIN_COUNT, None) is not None:
-            sparql += f' ;\n{blank:{indent * indent_inc}}sh:minCount {self._attributes[HasPropertyAttr.MIN_COUNT].toRdf}'
-        if self._attributes.get(HasPropertyAttr.MAX_COUNT, None) is not None:
-            sparql += f' ;\n{blank:{indent * indent_inc}}sh:maxCount {self._attributes[HasPropertyAttr.MAX_COUNT].toRdf}'
-        if self._attributes.get(HasPropertyAttr.ORDER, None) is not None:
-            sparql += f' ;\n{blank:{indent * indent_inc}}sh:order {self._attributes[HasPropertyAttr.ORDER].toRdf}'
-        if self._attributes.get(HasPropertyAttr.GROUP, None) is not None:
-            sparql += f' ;\n{blank:{indent * indent_inc}}sh:group {self._attributes[HasPropertyAttr.GROUP].toRdf}'
+        for attr, val in self._attributes.items():
+            sparql += f' ;\n{blank:{indent * indent_inc}}{attr.value} {val.toRdf} ;\n'
+
+        # if self._attributes.get(HasPropertyAttr.MIN_COUNT, None) is not None:
+        #     sparql += f' ;\n{blank:{indent * indent_inc}}sh:minCount {self._attributes[HasPropertyAttr.MIN_COUNT].toRdf}'
+        # if self._attributes.get(HasPropertyAttr.MAX_COUNT, None) is not None:
+        #     sparql += f' ;\n{blank:{indent * indent_inc}}sh:maxCount {self._attributes[HasPropertyAttr.MAX_COUNT].toRdf}'
+        # if self._attributes.get(HasPropertyAttr.ORDER, None) is not None:
+        #     sparql += f' ;\n{blank:{indent * indent_inc}}sh:order {self._attributes[HasPropertyAttr.ORDER].toRdf}'
+        # if self._attributes.get(HasPropertyAttr.GROUP, None) is not None:
+        #     sparql += f' ;\n{blank:{indent * indent_inc}}sh:group {self._attributes[HasPropertyAttr.GROUP].toRdf}'
         return sparql
 
     def create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:

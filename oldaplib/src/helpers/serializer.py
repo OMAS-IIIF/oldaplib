@@ -53,8 +53,8 @@ class _Serializer:
         if isinstance(obj, UUID):
             return {self._key: 'UUID', '__value__': str(obj)}
         if isinstance(obj, Enum):
-            if hasattr(obj, '_value'):
-                # It's a "complex" enum....
+            if hasattr(obj, '_value') and hasattr(obj, 'numeric'):
+                # It's a "complex" enum like DataPermission
                 return {self._key: obj.__class__.__name__, '__value__': [obj.value, obj.numeric]}
             else:
                 return {self._key: obj.__class__.__name__, '__value__': obj.value}
@@ -95,7 +95,8 @@ class _Serializer:
                 # for bytes datatype
                 #
                 return b85decode(d['__value__'].encode(encoding='UTF-8'))
-            if type(self._classes[classname]) == type(Enum):
+            #if type(self._classes[classname]) == type(Enum):
+            if isinstance(self._classes[classname], type) and issubclass(self._classes[classname], Enum):
                 #
                 # for Enums and subclasses
                 #

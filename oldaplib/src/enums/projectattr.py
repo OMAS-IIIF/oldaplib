@@ -4,6 +4,7 @@ from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.observable_dict import ObservableDict
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
@@ -11,6 +12,7 @@ from oldaplib.src.xsd.xsd_date import Xsd_date
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 
+@serializer
 @unique
 class ProjectAttr(AttributeClass):
     """

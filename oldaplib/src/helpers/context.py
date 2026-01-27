@@ -49,6 +49,7 @@ class ContextSingleton(type):
             #Xsd_NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
             Xsd_NCName('dcterms'): NamespaceIRI('http://purl.org/dc/terms/'),
             Xsd_NCName('dcmitype'): NamespaceIRI('http://purl.org/dc/dcmitype/'),
+            Xsd_NCName('dash'): NamespaceIRI('http://datashapes.org/dash#'),
             #Xsd_NCName('foaf'): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
             Xsd_NCName('oldap'): NamespaceIRI('http://oldap.org/base#'),
             Xsd_NCName('shared'): NamespaceIRI('http://oldap.org/shared#')
@@ -65,6 +66,7 @@ class ContextSingleton(type):
             #NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc'),
             NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms'),
             NamespaceIRI('http://purl.org/dc/dcmitype/'): Xsd_NCName('dcmitype'),
+            NamespaceIRI('http://datashapes.org/dash#'): Xsd_NCName('dash'),
             #NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf'),
             NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap'),
             NamespaceIRI('http://oldap.org/shared#'): Xsd_NCName('shared'),
