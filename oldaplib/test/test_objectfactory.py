@@ -613,6 +613,21 @@ class TestObjectFactory(unittest.TestCase):
 
         obj1.delete()
 
+    def test_value_modifier_C(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            booleanSetter=True,
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        obj1[Xsd_QName('test:integerSetter')] = [1]
+        obj1.update()
+        self.assertEqual(obj1.integerSetter, {Xsd_int(1)})
+
+
     def test_value_maxcount_mincount(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         Person = factory.createObjectInstance('Person')

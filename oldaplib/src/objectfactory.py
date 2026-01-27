@@ -212,16 +212,13 @@ class ResourceInstance:
         self.clear_changeset()
 
     def __setitem__(self, key: Xsd_QName, value: ValueType | Xsd | None):
-        if self._values.get(key):
-            self.__set_value(value, key)
-        else:
-            raise OldapErrorValue(f'{self.name}: Property {key} does not exist.')
+        self.__set_value(value, key)
 
     def __getitem__(self, key: Xsd_QName) -> ValueType | Xsd | None:
         if self._values.get(key):
             return self.__get_value(key)
         else:
-            raise OldapErrorValue(f'{self.name}: Property {key} does not exist.')
+            raise OldapErrorValue(f'{self.name}: __getitem__: Property {key} does not exist.')
 
     def __delitem__(self, key: Xsd_QName):
         if self._values.get(key):
@@ -465,7 +462,7 @@ class ResourceInstance:
                 self.validate_value(value, hasprop.prop)
             else:
                 if isinstance(value, (list, tuple, set, ObservableSet)):
-                    for val in self._values[attr]:
+                    for val in value:
                         self.validate_value(val, hasprop.prop)
                 else:
                     self.validate_value(value, hasprop.prop)
