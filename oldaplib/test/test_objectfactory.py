@@ -18,7 +18,8 @@ from oldaplib.src.enums.language import Language
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorNoPermission, OldapErrorInUse
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorNoPermission, \
+    OldapErrorInUse, OldapErrorKey
 from oldaplib.src.role import Role
 from oldaplib.src.project import Project
 from oldaplib.src.user import User
@@ -625,8 +626,116 @@ class TestObjectFactory(unittest.TestCase):
         obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
         obj1[Xsd_QName('test:integerSetter')] = [1]
         obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
         self.assertEqual(obj1.integerSetter, {Xsd_int(1)})
 
+    def test_value_modifier_add_lang(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("C'est un teste@fr"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            booleanSetter=True,
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        obj1[Xsd_QName('test:langStringSetter')].add("Dies ist eine Test-Zeichenkette@de")
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        self.assertEqual(obj1.langStringSetter, LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"))
+
+    def test_value_modifier_remove_lang_A(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("Waseliwas@de", "C'est un teste@fr"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            booleanSetter=True,
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        del obj1[Xsd_QName('test:langStringSetter')]['de']
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        self.assertEqual(obj1.langStringSetter, LangString("C'est un teste@fr"))
+
+    def test_value_modifier_remove_lang_B(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("Waseliwas@de", "C'est un teste@fr"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            booleanSetter=True,
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        obj1[Xsd_QName('test:langStringSetter')].remove(Language.DE)
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        self.assertEqual(obj1.langStringSetter, LangString("C'est un teste@fr"))
+
+    def test_value_modifier_remove_lang_D(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("Waseliwas@de", "C'est un teste@fr"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            booleanSetter=True,
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        obj1[Xsd_QName('test:langStringSetter')].discard(Language.EN)
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        self.assertEqual(obj1.langStringSetter, LangString("Waseliwas@de", "C'est un teste@fr"))
+
+        with self.assertRaises(OldapErrorKey):
+            obj1[Xsd_QName('test:langStringSetter')].remove(Language.EN)
+
+    def test_value_modifier_replace(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("C'est un teste@fr"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            booleanSetter=True,
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1[Xsd_QName('test:langStringSetter')] = LangString("FRANCAIS@fr", "DEUTSCH@de")
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        self.assertEqual(obj1.langStringSetter, LangString("FRANCAIS@fr", "DEUTSCH@de"))
+
+
+    def test_value_modifier_delete_A(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("C'est un teste@fr"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            booleanSetter=True,
+                            integerSetter={20200, 30300},
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1[Xsd_QName('test:integerSetter')] = None
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        self.assertIsNone(obj1.integerSetter)
+
+    def test_value_modifier_delete_B(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("C'est un teste@fr"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            booleanSetter=True,
+                            integerSetter={20200, 30300},
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        del obj1[Xsd_QName('test:integerSetter')]
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        self.assertIsNone(obj1.integerSetter)
 
     def test_value_maxcount_mincount(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')

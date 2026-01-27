@@ -418,6 +418,13 @@ class LangString(Notify):
                         f'LangString parameter has wrong datatype: {type(langstring).__name__}, must be "str | Xsd_string | List[str] | Dict[Language | str, str] | LangString"')
         self.notify()
 
+    def remove(self, lang: Language | str):
+        self.__delitem__(lang)
+
+    def discard(self, lang: Language | str):
+        if self.get(lang) is not None:
+            self.__delitem__(lang)
+
     def undo(self) -> None:
         """
         Undo all changes made since last update/creation/read
