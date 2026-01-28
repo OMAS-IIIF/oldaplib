@@ -1,6 +1,7 @@
 from enum import unique
 
 from oldaplib.src.enums.attributeclass import AttributeClass, Target
+from oldaplib.src.enums.editor import Editor
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
@@ -16,5 +17,5 @@ class HasPropertyAttr(AttributeClass):
     MAX_COUNT = ('sh:maxCount', False, False, Xsd_integer)
     ORDER = ('sh:order', False, False, Xsd_decimal, Target.SHACL)
     GROUP = ('sh:group', False, False, Xsd_QName, Target.SHACL)
-    EDITOR = ('dash:editor', False, False, Xsd_QName, Target.SHACL)
+    EDITOR = ('dash:editor', False, False, Editor, Target.SHACL)
 

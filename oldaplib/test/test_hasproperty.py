@@ -4,6 +4,7 @@ from time import sleep
 
 from oldaplib.src.connection import Connection
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.enums.editor import Editor
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
@@ -74,14 +75,14 @@ class TestHasProperty(unittest.TestCase):
                         maxCount=1,
                         group=Xsd_QName('test:group'),
                         order=1,
-                        editor=Xsd_QName("dash:TextAreaEditor")),
+                        editor=Editor.TEXT_AREA),
             HasProperty(con=self._connection,
                         project=self._project,
                         prop=Xsd_QName("test:comment"),
                         maxCount=1,
                         group=Xsd_QName('test:group'),
                         order=2,
-                        editor=Xsd_QName("dash:TextFieldEditor")),
+                        editor=Editor.TEXT_FIELD),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -100,13 +101,13 @@ class TestHasProperty(unittest.TestCase):
         self.assertEqual(r1[Xsd_QName('test:hasprop_test_A')].maxCount, Xsd_integer(1))
         self.assertEqual(r1[Xsd_QName('test:hasprop_test_A')].order, Xsd_decimal(1))
         self.assertEqual(r1[Xsd_QName('test:hasprop_test_A')].group, Xsd_QName('test:group'))
-        self.assertEqual(r1[Xsd_QName('test:hasprop_test_A')].editor, Xsd_QName("dash:TextAreaEditor"))
+        self.assertEqual(r1[Xsd_QName('test:hasprop_test_A')].editor, Editor.TEXT_AREA)
 
         self.assertIsNone(r1[Xsd_QName("test:comment")].minCount)
         self.assertEqual(r1[Xsd_QName("test:comment")].maxCount, Xsd_integer(1))
         self.assertEqual(r1[Xsd_QName("test:comment")].order, Xsd_decimal(2))
         self.assertEqual(r1[Xsd_QName("test:comment")].group, Xsd_QName('test:group'))
-        self.assertEqual(r1[Xsd_QName('test:comment')].editor, Xsd_QName("dash:TextFieldEditor"))
+        self.assertEqual(r1[Xsd_QName('test:comment')].editor, Editor.TEXT_FIELD)
 
     def test_creation_B(self):
         p1 = PropertyClass(con=self._connection,
@@ -117,9 +118,9 @@ class TestHasProperty(unittest.TestCase):
         hasproperties: list[HasProperty] = [
             HasProperty(con=self._connection, project=self._project, prop=p1,
                         minCount=1, maxCount=1, group=Xsd_QName('test:group'),
-                        order=1, editor=Xsd_QName("dash:TextAreaEditor")),
+                        order=1, editor=Editor.TEXT_AREA),
             HasProperty(con=self._connection, project=self._project, prop=Xsd_QName("test:comment"),
-                        maxCount=1, group=Xsd_QName('test:group'), order=2, editor=Xsd_QName("dash:TextFieldEditor")),
+                        maxCount=1, group=Xsd_QName('test:group'), order=2, editor=Editor.TEXT_FIELD),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -137,12 +138,12 @@ class TestHasProperty(unittest.TestCase):
         r1[Xsd_QName('test:hasprop_test_B')].maxCount = Xsd_integer(2)
         r1[Xsd_QName('test:hasprop_test_B')].order = Xsd_decimal(2)
         r1[Xsd_QName('test:hasprop_test_B')].group = Xsd_QName('test:groupB')
-        r1[Xsd_QName('test:hasprop_test_B')].editor = Xsd_QName("dash:TextFieldEditor")
+        r1[Xsd_QName('test:hasprop_test_B')].editor = Editor.TEXT_FIELD
 
         r1[Xsd_QName('test:comment')].maxCount = Xsd_integer(2)
         r1[Xsd_QName('test:comment')].order = Xsd_decimal(1)
         r1[Xsd_QName('test:comment')].group = Xsd_QName('test:groupB')
-        r1[Xsd_QName('test:comment')].editor = Xsd_QName("dash:TextAreaEditor")
+        r1[Xsd_QName('test:comment')].editor = Editor.TEXT_AREA
 
         r1.update()
         r1 = ResourceClass.read(con=self._connection,
@@ -151,11 +152,11 @@ class TestHasProperty(unittest.TestCase):
         self.assertEqual(Xsd_integer(2), r1[Xsd_QName('test:hasprop_test_B')].maxCount)
         self.assertEqual(Xsd_decimal(2), r1[Xsd_QName('test:hasprop_test_B')].order)
         self.assertEqual(Xsd_QName('test:groupB'), r1[Xsd_QName('test:hasprop_test_B')].group)
-        self.assertEqual(Xsd_QName("dash:TextFieldEditor"), r1[Xsd_QName('test:hasprop_test_B')].editor)
+        self.assertEqual(Editor.TEXT_FIELD, r1[Xsd_QName('test:hasprop_test_B')].editor)
 
         self.assertEqual(Xsd_integer(2), r1[Xsd_QName('test:comment')].maxCount)
         self.assertEqual(Xsd_decimal(1), r1[Xsd_QName('test:comment')].order)
-        self.assertEqual(Xsd_QName("dash:TextAreaEditor"), r1[Xsd_QName('test:comment')].editor)
+        self.assertEqual(Editor.TEXT_AREA, r1[Xsd_QName('test:comment')].editor)
 
     def test_modification_add(self):
         p1 = PropertyClass(con=self._connection,
@@ -169,7 +170,7 @@ class TestHasProperty(unittest.TestCase):
                         prop=p1,
                         minCount=1,
                         order=1,
-                        editor=Xsd_QName("dash:TextAreaEditor")),
+                        editor=Editor.TEXT_AREA),
             HasProperty(con=self._connection,
                         project=self._project,
                         prop=Xsd_QName("test:comment"),
@@ -194,7 +195,7 @@ class TestHasProperty(unittest.TestCase):
         r1[Xsd_QName('test:hasprop_test_C')].editor = None
         r1[Xsd_QName("test:comment")].minCount = Xsd_integer(1)
         r1[Xsd_QName("test:comment")].order = Xsd_decimal(1)
-        r1[Xsd_QName("test:comment")].editor = Xsd_QName("dash:TextFieldEditor")
+        r1[Xsd_QName("test:comment")].editor = Editor.TEXT_FIELD
 
         r1.update()
         r1 = ResourceClass.read(con=self._connection,
@@ -205,7 +206,7 @@ class TestHasProperty(unittest.TestCase):
         self.assertIsNone(r1[Xsd_QName('test:hasprop_test_C')].editor)
         self.assertEqual(Xsd_integer(1), r1[Xsd_QName("test:comment")].minCount)
         self.assertEqual(Xsd_decimal(1), r1[Xsd_QName("test:comment")].order)
-        self.assertEqual(Xsd_QName("dash:TextFieldEditor"), r1[Xsd_QName("test:comment")].editor)
+        self.assertEqual(Editor.TEXT_FIELD, r1[Xsd_QName("test:comment")].editor)
 
     def test_modification_delete(self):
         p1 = PropertyClass(con=self._connection,
@@ -216,10 +217,10 @@ class TestHasProperty(unittest.TestCase):
         hasproperties: list[HasProperty] = [
             HasProperty(con=self._connection, project=self._project, prop=p1,
                         minCount=1, maxCount=1, group=Xsd_QName('test:group'), order=1,
-                        editor=Xsd_QName("dash:TextFieldEditor")),
+                        editor=Editor.TEXT_FIELD),
             HasProperty(con=self._connection, project=self._project, prop=Xsd_QName("test:comment"),
                         maxCount=1, group=Xsd_QName('test:group'), order=2,
-                        editor=Xsd_QName("dash:TextAreaEditor")),
+                        editor=Editor.TEXT_AREA),
         ]
         r1 = ResourceClass(con=self._connection,
                            project=self._project,

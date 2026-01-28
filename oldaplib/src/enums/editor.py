@@ -1,3 +1,4 @@
+import json
 from enum import Enum, unique, EnumMeta
 
 from oldaplib.src.helpers.serializer import serializer
@@ -71,8 +72,4 @@ class Editor(Enum, metaclass=_ValidateEnumMeta):
 
     def _as_dict(self):
         return {"value": self.value }
-
-
-if __name__ == "__main__":
-    print(Editor(value="dash:TextFieldWithLangEditor"))
 
