@@ -222,7 +222,10 @@ class Model:
                 del self._attributes[attr]
         else:
             if not isinstance(value, attr.datatype):
-                self._attributes[attr] = attr.datatype(value, validate=True)
+                try:
+                    self._attributes[attr] = attr.datatype(value, validate=True)
+                except Exception as err:
+                    raise Exception(f"Failed to set attribute '{attr}' with value '{value}': {err}")
             else:
                 self._attributes[attr] = value
             if hasattr(self._attributes[attr], 'set_notifier') and hasattr(self, 'notifier'):

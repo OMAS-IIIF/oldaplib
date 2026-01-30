@@ -1095,7 +1095,7 @@ class ResourceInstance:
         for r in res:
             roles[r['role']] = DataPermission.from_qname(r['dataperm'])
         data[Xsd_QName('oldap:attachedToRole')] = roles
-
+        #data[Xsd_QName('virtual:resourceIri')] = iri
         return data
 
     @staticmethod
