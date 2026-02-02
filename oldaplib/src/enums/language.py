@@ -211,6 +211,11 @@ class Language(Enum):
     def toRdf(self) -> str:
         return f'"{self.name.lower()}"^^xsd:string'
 
+    @property
+    def shortlang(self) -> str:
+        """Return the language short name in lowercase (e.g., 'de' for Language.DE)"""
+        return self.name.lower()
+
 
 if __name__ == "__main__":
     print(Language.EN.toRdf)

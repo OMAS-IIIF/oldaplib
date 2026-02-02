@@ -629,6 +629,22 @@ class TestObjectFactory(unittest.TestCase):
         obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
         self.assertEqual(obj1.integerSetter, {Xsd_int(1)})
 
+    def test_value_modifier_D(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+        obj1 = SetterTester(stringSetter="This is a test string",
+                            langStringSetter=LangString("C'est un teste@fr"),
+                            decimalSetter=Xsd_decimal(3.14),
+                            booleanSetter=True,
+                            grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
+        obj1.create()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        obj1[Xsd_QName('test:langStringSetter')][Language.FR] = "Qu'est-ce que c'est?"
+        obj1.update()
+        obj1 = SetterTester.read(con=self._connection, iri=obj1.iri)
+        self.assertEqual(obj1.langStringSetter, LangString("Qu'est-ce que c'est?@fr"))
+
+
     def test_value_modifier_add_lang(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         SetterTester = factory.createObjectInstance('SetterTester')
