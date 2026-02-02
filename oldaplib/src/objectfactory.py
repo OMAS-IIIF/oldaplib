@@ -1247,7 +1247,7 @@ class ResourceInstance:
                       projectShortName: Xsd_NCName | str,
                       resClass: Xsd_QName | str,
                       includeProperties: list[Xsd_QName] | None = None,
-                      count_only: bool = False,
+                      countOnly: bool = False,
                       sortBy: SortBy | None = None,
                       limit: int = 100,
                       offset: int = 0,
@@ -1266,8 +1266,8 @@ class ResourceInstance:
         :type resClass: Xsd_QName | str
         :param includeProperties: A list of resource properties to include in the query and results.
         :type includeProperties: list[Xsd_QName] | None
-        :param count_only: If True, returns only the count of matching resources. Defaults to False.
-        :type count_only: bool
+        :param countOnly: If True, returns only the count of matching resources. Defaults to False.
+        :type countOnly: bool
         :param sortBy: The sorting criterion for the results. Defaults to None.
         :type sortBy: SortBy | None
         :param limit: The maximum number of results to retrieve. Defaults to 100.
@@ -1295,7 +1295,7 @@ class ResourceInstance:
         context = Context(name=con.context_name)
         sparql = context.sparql_context
 
-        if (count_only):
+        if (countOnly):
             sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
         else:
             sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s'
@@ -1339,7 +1339,7 @@ class ResourceInstance:
                     for index, item in enumerate(includeProperties):
                         sparql += f'\n{blank:{indent * indent_inc}} ?o{index}'
 
-        if not count_only:
+        if not countOnly:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
         sparql += '\n'
 
@@ -1349,7 +1349,7 @@ class ResourceInstance:
             print(sparql)
             raise
         res = QueryProcessor(context, jsonres)
-        if count_only:
+        if countOnly:
             return res[0]['numResult']
         else:
             result = {}
