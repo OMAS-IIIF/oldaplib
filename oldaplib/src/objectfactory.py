@@ -172,7 +172,7 @@ class ResourceInstance:
                         raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
                     elif isinstance(self._values[prop_iri], ObservableSet) and len(self._values[prop_iri]) < 1:
                         raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
-                if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
+                if hasprop.get(HasPropertyAttr.MAX_COUNT) and hasprop[HasPropertyAttr.MAX_COUNT] > 0:  # testing for MAX_COUNT conformance
                     if isinstance(self._values.get(prop_iri), ObservableSet) and len(self._values[prop_iri]) > hasprop[HasPropertyAttr.MAX_COUNT]:
                         raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri])})')
                 if self._values.get(prop_iri):
@@ -380,12 +380,12 @@ class ResourceInstance:
                 raise OldapErrorValue(
                     f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has not enough values (n={n}).')
 
-        if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
+        if hasprop.get(HasPropertyAttr.MAX_COUNT) and hasprop[HasPropertyAttr.MAX_COUNT] > 0:  # testing for MAX_COUNT conformance
             n = len(self._values[prop_iri])
             if n > hasprop[HasPropertyAttr.MAX_COUNT]:
                 self._values[prop_iri].undo()
                 raise OldapErrorValue(
-                    f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={n}).')
+                    f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MAX_COUNT]} has to many values (n={n}).')
 
         self._changeset[prop_iri] = AttributeChange(None, Action.MODIFY)
 
@@ -459,7 +459,7 @@ class ResourceInstance:
             elif isinstance(value, (list, tuple, set, ObservableSet)) and len(value) < hasprop[HasPropertyAttr.MIN_COUNT]:
                 raise OldapErrorValue(
                     f'{self.name}: Property {attr} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has not enough values')
-        if hasprop.get(HasPropertyAttr.MAX_COUNT):  # testing for MAX_COUNT conformance
+        if hasprop.get(HasPropertyAttr.MAX_COUNT) and hasprop[HasPropertyAttr.MAX_COUNT] > 0:  # testing for MAX_COUNT conformance
             if isinstance(value, (list, tuple, set, ObservableSet)) and len(value) > hasprop[HasPropertyAttr.MAX_COUNT]:
                 raise OldapErrorValue(
                     f'{self.name}: Property {attr} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(value)})')
@@ -1106,68 +1106,69 @@ class ResourceInstance:
     @staticmethod
     def search_fulltext(con: IConnection,
                         projectShortName: Xsd_NCName | str,
-                        s: str,
+                        searchstr: str,
                         resClass: Xsd_QName | str | None = None,
                         countOnly: bool = False,
-                        sortBy: SortBy | None = None,
+                        sortBy: list[SortBy] = [],
                         limit: int = 100,
                         offset: int = 0,
                         indent: int = 0, indent_inc: int = 4) -> int | dict[Iri, dict[str, Xsd]]:
         """
-        Search for entities in a project using a full-text search query, with optional filters and sorting
-        based on resource class and properties.
+            Searches and retrieves data from the database using a full-text search query. This method allows
+            users to optionally filter and sort the results based on specific criteria. It supports returning
+            either the count of matching results or the results themselves in a structured format.
 
-        :param con: The connection instance to interact with the SPARQL endpoint or database.
-        :type con: IConnection
-        :param projectShortName: The project short name (identifier). Can be provided as an Xsd_NCName or a
-            string. If a string, it is automatically validated and converted to an Xsd_NCName.
-        :type projectShortName: Xsd_NCName | str
-        :param s: The full-text search query to identify entities matching the specified string values.
-        :type s: str
-        :param resClass: An optional entity class (Xsd_QName) used to filter results. If provided as a string,
-            it is validated and converted to Xsd_QName.
-        :type resClass: Xsd_QName | str | None
-        :param countOnly: If True, only the count of matching entities will be returned. Defaults to False.
-        :type countOnly: bool
-        :param sortBy: Optional sorting criterion for the results, such as creation date, last modification date,
-            or property values. Defaults to None.
-        :type sortBy: SortBy | None
-        :param limit: The maximum number of records to return when count_only is False. Defaults to 100.
-        :type limit: int
-        :param offset: The number of records to skip for paginated queries. Defaults to 0.
-        :type offset: int
-        :param indent: Initial indentation level for the generated SPARQL query. Defaults to 0.
-        :type indent: int
-        :param indent_inc: Incremental indentation used during SPARQL query generation. Defaults to 4.
-        :type indent_inc: int
-        :return: If count_only is True, an integer representing the count of matching entities. If count_only is
-            False, a dictionary with entity IRIs as keys and their respective property-to-value mappings
-            as values.
-        :rtype: int | dict[Iri, dict[str, Xsd]]
+            :param con: The connection object used to interact with the database.
+                This must implement the IConnection interface.
+            :type con: IConnection
 
-        The SPARQL generated is as follows
+            :param projectShortName: The short name of the project for which the data
+                needs to be queried.
+            :type projectShortName: Xsd_NCName | str
 
-        ```sparql
-        SELECT DISTINCT ?s ?t ?p ?o ?creationDate
-        WHERE {
-            GRAPH test:data {
-                ?s oldap:creationDate ?creationDate .
-                ?s ?p ?o .
-                ?s rdf:type ?t .
-                ?s rdf:type test:Book .
-                ?s oldap:grantsPermission ?permset .
-            }
-            FILTER(isLiteral(?o) && (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))
-            FILTER(CONTAINS(LCASE(STR(?o)), "gaga"))  # case-insensitive substring match
-            GRAPH oldap:admin {
-                <https://orcid.org/0000-0003-1681-4036> oldap:hasPermissions ?permset .
-                ?permset oldap:givesPermission ?DataPermission .
-                ?DataPermission oldap:permissionValue ?permval .
-            }
-            FILTER(?permval >= "2"^^xsd:integer)
-        }
-        ORDER BY ASC(?creationDate)LIMIT 100 OFFSET 0
-        ```
+            :param searchstr: The search string used for full-text search, with case-insensitive
+                substring matching.
+            :type searchstr: str
+
+            :param resClass: An optional parameter specifying the resource class of the
+                objects to be retrieved. If provided, the query will filter results for the
+                specified class.
+            :type resClass: Xsd_QName | str | None
+
+            :param countOnly: A boolean flag to indicate whether to return only the count
+                of matching results. If set to True, only the count is returned;
+                otherwise, matching records are retrieved.
+            :type countOnly: bool
+
+            :param sortBy: A list of sorting criteria. Each criterion specifies the property
+                and direction (ascending or descending) to sort the results. If not provided,
+                no sorting is applied. SortBy has the following attributes:
+                - property (Xsd_QName): The property to sort by. The property must be one of
+                  Xsd_QName('oldap:creationDate'), Xsd_QName('oldap:lastModificationDate') or
+                  Xsd_QName('oldap:propval') to sort according the property where the match has been found..
+                - direction (str): The sorting direction, either 'asc' for ascending or 'desc' for descending.
+            :type sortBy: list[SortBy]
+
+            :param limit: The maximum number of results to retrieve. Defaults to 100 if not specified.
+            :type limit: int
+
+            :param offset: The number of records to skip before starting to retrieve results.
+                This is useful for paginated responses.
+            :type offset: int
+
+            :param indent: The base indentation level used for formatting the generated SPARQL
+                query string.
+            :type indent: int
+
+            :param indent_inc: The incremental value to add to the base indent for nested query
+                components.
+            :type indent_inc: int
+
+            :return: If `countOnly` is True, an integer representing the count of matching results
+                is returned. Otherwise, a dictionary is returned where the keys are IRIs of the
+                matching resources, and the values are dictionaries containing their respective
+                properties and values.
+            :rtype: int | dict[Iri, dict[str, Xsd]]
         """
         if not isinstance(projectShortName, Xsd_NCName):
             graph = Xsd_NCName(projectShortName, validate=True)
@@ -1185,10 +1186,12 @@ class ResourceInstance:
         else:
             sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s ?t ?p ?o'
             if sortBy:
-                if sortBy == SortBy.CREATED:
-                    sparql += ' ?creationDate'
-                if sortBy == SortBy.LASTMOD:
-                    sparql += '?lastModificationDate'
+                for sortby in sortBy:
+                    if sortby.property == Xsd_QName('oldap:creationDate'):
+                        sparql += ' ?creationDate'
+                    elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
+                        sparql += '?lastModificationDate'
+
         sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .'
@@ -1196,11 +1199,12 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
-        if sortBy:
-            if sortBy == SortBy.CREATED:
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:creationDate ?creationDate .'
-            if sortBy == SortBy.LASTMOD:
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:lastModificationDate ?lastModificationDate .'
+        if not countOnly and sortBy:
+            for sortby in sortBy:
+                if sortby.property == Xsd_QName('oldap:creationDate'):
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:creationDate ?creationDate .'
+                elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:lastModificationDate ?lastModificationDate .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s ?p ?o .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type ?t .'
         if resClass:
@@ -1208,17 +1212,27 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(isLiteral(?o) && (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(CONTAINS(LCASE(STR(?o)), "{s}"))  # case-insensitive substring match'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(CONTAINS(LCASE(STR(?o)), "{searchstr}"))  # case-insensitive substring match'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{indent * indent_inc}}}}'
 
-        if sortBy:
-            if sortBy == SortBy.CREATED:
-                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?creationDate)'
-            if sortBy == SortBy.LASTMOD:
-                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?lastModificationDate)'
-            if sortBy == SortBy.PROPVAL:
-                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(LCASE(STR(?o)))'
+        if not countOnly and sortBy:
+            for sortby in sortBy:
+                if sortby.property == Xsd_QName('oldap:creationDate'):
+                    if sortby.dir == SortDir.asc:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?creationDate)'
+                    else:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?creationDate)'
+                elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
+                    if sortby.dir == SortDir.asc:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?lastModificationDate)'
+                    else:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?lastModificationDate)'
+                elif sortby.property == Xsd_QName('oldap:propval'):
+                    if sortby.dir == SortDir.asc:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?o)'
+                    else:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?o)'
 
         if not countOnly:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
@@ -1240,10 +1254,11 @@ class ResourceInstance:
                     Xsd_QName('owl:Class'): r['t']
                 }
                 if sortBy:
-                    if sortBy == SortBy.CREATED:
-                        tmp['oldap:creationDate'] = r['creationDate'],
-                    if sortBy == SortBy.LASTMOD:
-                        tmp['oldap:lastModificationDate'] = r['lastModificationDate']
+                    for sortby in sortBy:
+                        if sortby.property == Xsd_QName('oldap:creationDate'):
+                            tmp['oldap:creationDate'] = r['creationDate'],
+                        elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
+                            tmp['oldap:lastModificationDate'] = r['lastModificationDate']
                 result[r['s']] = tmp
             return result
 
@@ -1257,7 +1272,6 @@ class ResourceInstance:
                       limit: int = 100,
                       offset: int = 0,
                       indent: int = 0, indent_inc: int = 4) -> dict[Iri, dict[str, Xsd]]:
-        # TODO: PROBLEM: does not work for properties which use MAX_COUNT > 1 !!!!!!!
         """
         Retrieves all resources matching the specified parameters from a data store using a SPARQL query.
         Depending on the `count_only` flag, it can return either a count of matching resources or detailed
@@ -1309,7 +1323,7 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{indent * indent_inc}}}}'
 
-        if sortBy:
+        if not countOnly and sortBy:
             sparql += f'\n{blank:{indent * indent_inc}}ORDER BY'
             for s in sortBy:
                 if s.dir == SortDir.asc:

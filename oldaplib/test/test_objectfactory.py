@@ -63,6 +63,7 @@ from oldaplib.src.xsd.xsd_unsignedbyte import Xsd_unsignedByte
 from oldaplib.src.xsd.xsd_unsignedint import Xsd_unsignedInt
 from oldaplib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
 from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
+from redis.commands.search.aggregation import SortDirection
 
 
 def find_project_root(current_path):
@@ -486,6 +487,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         b = SetterTester(stringSetter="This is a test string",
                          langStringSetter=["C'est un string de test@fr", "Dies ist eine Testzeichenkette@de"],
+                         langStringSetter2=["gagagagag@de"],
                          decimalSetter=Xsd_decimal(3.14),
                          integerSetter={20200, 30300},
                          attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
@@ -508,6 +510,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("This is a test string@de"),
+                            langStringSetter2=LangString("This is a test string2@de"),
                             decimalSetter=Xsd_decimal(3.14),
                             integerSetter={20200, 30300},
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
@@ -563,6 +566,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"),
+                            langStringSetter2=LangString("C'est un teste2@fr", "Dies ist eine Test-Zeichenkette2@de"),
                             decimalSetter=Xsd_decimal(3.14),
                             integerSetter={-10, 20},
                             booleanSetter=True,
@@ -591,6 +595,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"),
+                            langStringSetter2=LangString("C'est un teste2@fr", "Dies ist eine Test-Zeichenkette2@de"),
                             decimalSetter=Xsd_decimal(3.14),
                             integerSetter={-10, 20},
                             booleanSetter=True,
@@ -619,6 +624,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"),
+                            langStringSetter2=LangString("C'est un teste2@fr", "Dies ist eine Test-Zeichenkette2@de"),
                             decimalSetter=Xsd_decimal(3.14),
                             booleanSetter=True,
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
@@ -634,6 +640,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("C'est un teste@fr"),
+                            langStringSetter2=LangString("C'est un teste2@fr"),
                             decimalSetter=Xsd_decimal(3.14),
                             booleanSetter=True,
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
@@ -650,6 +657,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("C'est un teste@fr"),
+                            langStringSetter2=LangString("C'est un teste2@fr"),
                             decimalSetter=Xsd_decimal(3.14),
                             booleanSetter=True,
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
@@ -665,6 +673,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("Waseliwas@de", "C'est un teste@fr"),
+                            langStringSetter2=LangString("Waseliwas2@de", "C'est un teste2@fr"),
                             decimalSetter=Xsd_decimal(3.14),
                             booleanSetter=True,
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
@@ -680,6 +689,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("Waseliwas@de", "C'est un teste@fr"),
+                            langStringSetter2=LangString("Waseliwas2@de", "C'est un teste2@fr"),
                             decimalSetter=Xsd_decimal(3.14),
                             booleanSetter=True,
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
@@ -695,6 +705,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("Waseliwas@de", "C'est un teste@fr"),
+                            langStringSetter2=LangString("Waseliwas2@de", "C'est un teste2@fr"),
                             decimalSetter=Xsd_decimal(3.14),
                             booleanSetter=True,
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
@@ -713,6 +724,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("C'est un teste@fr"),
+                            langStringSetter2=LangString("C'est un teste2@fr"),
                             decimalSetter=Xsd_decimal(3.14),
                             booleanSetter=True,
                             grantsPermission={Iri('oldap:GenericView'), Iri('oldap:GenericUpdate')})
@@ -728,6 +740,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("C'est un teste@fr"),
+                            langStringSetter2=LangString("C'est un teste2@fr"),
                             decimalSetter=Xsd_decimal(3.14),
                             booleanSetter=True,
                             integerSetter={20200, 30300},
@@ -743,6 +756,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("C'est un teste@fr"),
+                            langStringSetter2=LangString("C'est un teste2@fr"),
                             decimalSetter=Xsd_decimal(3.14),
                             booleanSetter=True,
                             integerSetter={20200, 30300},
@@ -777,6 +791,7 @@ class TestObjectFactory(unittest.TestCase):
         SetterTester = factory.createObjectInstance('SetterTester')
         obj1 = SetterTester(stringSetter="This is a test string",
                             langStringSetter=LangString("C'est un teste@fr", "Dies ist eine Test-Zeichenkette@de"),
+                            langStringSetter2=LangString("C'est un teste2@fr", "Dies ist eine Test-Zeichenkette2@de"),
                             decimalSetter={Xsd_decimal(3.14159), Xsd_decimal(2.71828), Xsd_decimal(1.61803)},
                             integerSetter={-10, 20},
                             booleanSetter=True,
@@ -893,8 +908,8 @@ class TestObjectFactory(unittest.TestCase):
         res = ResourceInstance.search_fulltext(con=self._connection,
                                                projectShortName='test',
                                                resClass='test:Book',
-                                               s='geschichte',
-                                               sortBy=SortBy.CREATED)
+                                               searchstr='geschichte',
+                                               sortBy=[SortBy('oldap:creationDate', SortDir.desc)])
 
         self.assertEqual(len(res), 2)
         for x, y in res.items():
@@ -902,8 +917,8 @@ class TestObjectFactory(unittest.TestCase):
 
         res = ResourceInstance.search_fulltext(con=self._connection,
                                                projectShortName='test',
-                                               s='spez',
-                                               sortBy=SortBy.CREATED)
+                                               searchstr='spez',
+                                               sortBy=[SortBy('oldap:creationDate', SortDir.desc)])
 
         self.assertEqual(len(res), 5)
         for x, y in res.items():

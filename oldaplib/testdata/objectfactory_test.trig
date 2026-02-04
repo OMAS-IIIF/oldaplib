@@ -299,6 +299,17 @@ test:shacl {
                 ] ;
             sh:property
                 [
+                    sh:path test:langStringSetter2 ;
+                    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+                    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+                    sh:datatype rdf:langString ;
+                    sh:order "2.0"^^xsd:decimal ;
+                    sh:minCount "1"^^xsd:integer ;
+                ] ;
+            sh:property
+                [
                     sh:path test:booleanSetter ;
                     dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                     dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
