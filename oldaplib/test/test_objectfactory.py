@@ -10,7 +10,7 @@ import jwt
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.adminpermissions import AdminPermission
-from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance
+from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -914,7 +914,7 @@ class TestObjectFactory(unittest.TestCase):
                                              projectShortName='test',
                                              resClass='test:Page',
                                              includeProperties=[Xsd_QName('test:pageNum'), Xsd_QName('test:pageContent')],
-                                             sortBy = SortBy.CREATED)
+                                             sortBy = [SortBy(Xsd_QName('oldap:creationDate'), SortDir.asc)])
         self.assertEqual(len(res), 8)
         for r in res:
             self.assertEqual(len(res[r]), 3)
@@ -924,6 +924,14 @@ class TestObjectFactory(unittest.TestCase):
                                              projectShortName='test',
                                              resClass='test:Page')
         self.assertEqual(len(res), 8)
+
+    def test_search_resource_D(self):
+        res = ResourceInstance.all_resources(con=self._connection,
+                                             projectShortName='test',
+                                             resClass='test:Book',
+                                             includeProperties=[Xsd_QName('test:title'), Xsd_QName('test:author')])
+        #self.assertEqual(len(res), 8)
+        pprint(res)
 
     #@unittest.skip('Work in progress')
     def test_read_media_object_by_id_A(self):

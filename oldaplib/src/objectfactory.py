@@ -1,11 +1,12 @@
 import re
 import textwrap
+from dataclasses import dataclass
 from pprint import pprint
 
 import jwt
 
 from datetime import datetime, timedelta
-from enum import Flag, auto
+from enum import Flag, auto, Enum
 from functools import partial
 from typing import Type, Any, Self, cast, Dict
 
@@ -24,7 +25,7 @@ from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorInconsistency, \
-    OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed, OldapErrorInUse, OldapErrorAlreadyExists
+    OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed, OldapErrorInUse, OldapErrorAlreadyExists, OldapErrorType
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.project import Project
@@ -40,10 +41,14 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 
 ValueType = LangString | ObservableSet | Xsd | Dict[Xsd_QName, DataPermission] | ObservableDict
 
-class SortBy(Flag):
-    PROPVAL = auto()
-    CREATED = auto()
-    LASTMOD = auto()
+class SortDir(str, Enum):
+    asc = "asc"
+    desc = "desc"
+
+@dataclass(frozen=True)
+class SortBy:
+    property: Xsd_QName
+    dir: SortDir = SortDir.asc
 
 
 #@strict
@@ -1248,7 +1253,7 @@ class ResourceInstance:
                       resClass: Xsd_QName | str,
                       includeProperties: list[Xsd_QName] | None = None,
                       countOnly: bool = False,
-                      sortBy: SortBy | None = None,
+                      sortBy: list[SortBy] = [],
                       limit: int = 100,
                       offset: int = 0,
                       indent: int = 0, indent_inc: int = 4) -> dict[Iri, dict[str, Xsd]]:
@@ -1257,39 +1262,25 @@ class ResourceInstance:
         Retrieves all resources matching the specified parameters from a data store using a SPARQL query.
         Depending on the `count_only` flag, it can return either a count of matching resources or detailed
         information about each resource.
-
-        :param con: The connection object used to execute the SPARQL query.
-        :type con: IConnection
-        :param projectShortName: The short name of the project being queried.
-        :type projectShortName: Xsd_NCName | str
-        :param resClass: The resource class to filter the results by.
-        :type resClass: Xsd_QName | str
-        :param includeProperties: A list of resource properties to include in the query and results.
-        :type includeProperties: list[Xsd_QName] | None
-        :param countOnly: If True, returns only the count of matching resources. Defaults to False.
-        :type countOnly: bool
-        :param sortBy: The sorting criterion for the results. Defaults to None.
-        :type sortBy: SortBy | None
-        :param limit: The maximum number of results to retrieve. Defaults to 100.
-        :type limit: int
-        :param offset: The starting point for result retrieval in pagination. Defaults to 0.
-        :type offset: int
-        :param indent: The initial level of indentation for the SPARQL query strings. Defaults to 0.
-        :type indent: int
-        :param indent_inc: The incremental level of indentation for the SPARQL query strings. Defaults to 4.
-        :type indent_inc: int
-        :return: A dictionary where keys are resource IRIs and values are dictionaries containing resource
-            properties and their corresponding values. If `count_only` is True, returns the total count of
-            matching resources as an integer.
-        :rtype: dict[Iri, dict[str, Xsd]]
-        :raises OldapError: If there is an error during query execution in the connection object.
         """
+        # --- ensure re is imported ---
+        import re
+
         if not isinstance(projectShortName, Xsd_NCName):
             graph = Xsd_NCName(projectShortName, validate=True)
         else:
             graph = projectShortName
         if not isinstance(resClass, Xsd_QName):
             resClass = Xsd_QName(resClass, validate=True)
+
+        if sortBy:
+            for s in sortBy:
+                if not isinstance(s, SortBy):
+                    raise OldapErrorType(f'Expected SortBy, got {type(s)}')
+                if not includeProperties or s.property not in includeProperties:
+                    if not includeProperties:
+                        includeProperties = []
+                    includeProperties.append(s.property)
 
         blank = ''
         context = Context(name=con.context_name)
@@ -1302,11 +1293,6 @@ class ResourceInstance:
             if includeProperties:
                 for index, item in enumerate(includeProperties):
                     sparql += f' ?o{index}'
-            if sortBy:
-                if sortBy == SortBy.CREATED:
-                    sparql += ' ?creationDate'
-                if sortBy == SortBy.LASTMOD:
-                    sparql += '?lastModificationDate'
         sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .'
@@ -1316,28 +1302,21 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .'
-        if sortBy:
-            if sortBy == SortBy.CREATED:
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:creationDate ?creationDate .'
-            if sortBy == SortBy.LASTMOD:
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:lastModificationDate ?lastModificationDate .'
         if includeProperties:
             for index, prop in enumerate(includeProperties):
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s {prop} ?o{index} .'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?s {prop} ?o{index} . }}'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{indent * indent_inc}}}}'
 
         if sortBy:
-            if sortBy == SortBy.CREATED:
-                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?creationDate)'
-            if sortBy == SortBy.LASTMOD:
-                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?lastModificationDate)'
-            if sortBy == SortBy.PROPVAL:
-                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY'
-                if includeProperties:
-                    for index, item in enumerate(includeProperties):
-                        sparql += f'\n{blank:{indent * indent_inc}} ?o{index}'
+            sparql += f'\n{blank:{indent * indent_inc}}ORDER BY'
+            for s in sortBy:
+                if s.dir == SortDir.asc:
+                    sparql += f' ASC(?o{includeProperties.index(s.property)})'
+                else:
+                    sparql += f' DESC(?o{includeProperties.index(s.property)})'
+            sparql += '\n'
 
         if not countOnly:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
@@ -1354,17 +1333,28 @@ class ResourceInstance:
         else:
             result = {}
             for r in res:
-                tmp = {}
+                if result.get(r['s'], None) is None:
+                    result[r['s']] = {}
                 if includeProperties:
-                    for index, item in enumerate(includeProperties):
-                        tmp[item] = r[f'o{index}']
+                    for index, property in enumerate(includeProperties):
+                        if result[r['s']].get(property, None) is None:
+                            result[r['s']][property] = []
+                        raw = r.get(f'o{index}')
+                        if raw is None:
+                            continue
+                        if raw not in result[r['s']][property]:
+                            result[r['s']][property].append(raw)
+            if includeProperties:
+                for k, v in result.items():
+                    for index, property in enumerate(includeProperties):
+                        is_langstring = False
+                        for val in v[property]:
+                            if isinstance(val, Xsd_string) and val.lang is not None:
+                                is_langstring = True
+                                break
+                        if is_langstring:
+                            v[property] = LangString(v[property])
 
-                if sortBy:
-                    if sortBy == SortBy.CREATED:
-                        tmp[Xsd_QName('oldap:creationDate')] = r['creationDate']
-                    if sortBy == SortBy.LASTMOD:
-                        tmp[Xsd_QName('oldap:lastModificationDate')] = r['lastModificationDate']
-                result[r['s']] = tmp
             return result
 
     @staticmethod
