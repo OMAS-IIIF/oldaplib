@@ -257,6 +257,54 @@ test:shacl {
                     sh:maxCount "1"^^xsd:integer ;
                 ] .
 
+        test:SortShape a sh:NodeShape ;
+            sh:targetClass test:Sort ;
+            schema:version "0.1.0"^^xsd:string ;
+            dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            sh:node oldap:ThingShape ;
+            rdfs:label "For testing sort"@en, "Testen der Sortierung"@de ;
+            sh:closed "true"^^xsd:boolean ;
+            sh:property
+                [
+                    sh:path rdf:type ;
+                ] ;
+            sh:property
+                [
+                    # PropertyClass.property_node_shacl()
+                    sh:path test:aString ;
+                    schema:version "0.1.0"^^xsd:string ;
+                    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+                    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+                    sh:datatype xsd:string ;
+                    sh:order "1.0"^^xsd:decimal ;
+                ] ;
+            sh:property
+                [
+                    sh:path test:aLangstring;
+                    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+                    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+                    sh:datatype rdf:langString ;
+                    sh:order "2.0"^^xsd:decimal ;
+                ] ;
+            sh:property
+                [
+                    sh:path test:anInteger ;
+                    dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+                    dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+                    dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+                    sh:datatype xsd:integer ;
+                    sh:order "3.0"^^xsd:decimal ;
+                ] .
+
+
         test:SetterTesterShape a sh:NodeShape ;
             sh:targetClass test:SetterTester ;
             schema:version "0.1.0"^^xsd:string ;
@@ -1052,6 +1100,57 @@ test:onto {
                 owl:qualifiedCardinality "1"^^xsd:integer ;
                 owl:onDataRange xsd:date ;
             ] .
+
+    #
+    # SortShape
+    #
+    test:aString rdf:type owl:DatatypeProperty ;
+        rdfs:domain test:Sort ;
+        rdfs:range xsd:string ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
+
+    test:aLangstring rdf:type owl:DatatypeProperty ;
+        rdfs:domain test:Sort ;
+        rdfs:range rdf:langString ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
+
+    test:anInteger rdf:type owl:DatatypeProperty ;
+        rdfs:domain test:Sort ;
+        rdfs:range xsd:integer ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime .
+
+    test:Sort rdf:type owl:Class ;
+        schema:version "0.1.0"^^xsd:string ;
+        dcterms:created "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2024-05-16T18:38:25.551434"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        rdfs:subClassOf oldap:Thing ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty test:sString ;
+                owl:onDataRange xsd:string ;
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty test:sLangstring ;
+                owl:onDataRange rdf:langString ;
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty test:anInteger ;
+                owl:onDataRange xsd:integer ;
+            ] .
+
 
     #
     # SetterTest...

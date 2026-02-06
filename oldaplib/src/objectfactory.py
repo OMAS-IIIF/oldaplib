@@ -1271,15 +1271,45 @@ class ResourceInstance:
                       sortBy: list[SortBy] = [],
                       limit: int = 100,
                       offset: int = 0,
-                      indent: int = 0, indent_inc: int = 4) -> dict[Iri, dict[str, Xsd]]:
+                      indent: int = 0, indent_inc: int = 4) -> list[dict[str | Xsd_QName, list[Xsd] | LangString]] | int:
         """
-        Retrieves all resources matching the specified parameters from a data store using a SPARQL query.
-        Depending on the `count_only` flag, it can return either a count of matching resources or detailed
-        information about each resource.
-        """
-        # --- ensure re is imported ---
-        import re
+        Retrieves all resources associated with a specified project and resource class, with options to include
+        particular properties, count only the number of resources, and apply sorting, pagination, and indentation
+        for query formatting.
 
+        :param con: Connection object used for interfacing with the data store.
+        :type con: IConnection
+        :param projectShortName: Short name of the project under which resources are being queried. Can be a valid
+            `Xsd_NCName` instance or a string fitting the `Xsd_NCName` criteria.
+        :type projectShortName: Xsd_NCName | str
+        :param resClass: The fully-qualified class name of the resource. This can either be an `Xsd_QName` object or
+            a string fitting the `Xsd_QName` criteria.
+        :type resClass: Xsd_QName | str
+        :param includeProperties: List of properties to include in the results. These properties must follow the
+            `Xsd_QName` format. If None, no specific properties are included by default.
+        :type includeProperties: list[Xsd_QName] | None
+        :param countOnly: When set to True, only the count of unique resources is returned. Defaults to False,
+            returning the full resource set.
+        :type countOnly: bool
+        :param sortBy: A list of sort specifications, where each item is an instance of the `SortBy` class
+            specifying property and direction for sorting. Sorting only occurs if `sortBy` is not empty.
+        :type sortBy: list[SortBy]
+        :param limit: The maximum number of resources to retrieve. Defaults to 100. Ignored when `countOnly`
+            is True.
+        :type limit: int
+        :param offset: The index of the first result to retrieve, useful for pagination. Defaults to 0.
+        :type offset: int
+        :param indent: The initial indentation level of the SPARQL query string.
+        :type indent: int
+        :param indent_inc: The number of spaces to increment per indentation level for the SPARQL query formatting.
+        :type indent_inc: int
+        :return: Depending on the `countOnly` flag:
+            - If `countOnly` is True, returns the count of unique resources as an integer.
+            - If `countOnly` is False, returns a list of dictionaries representing the resources and their
+              properties. Each dictionary contains the resource IRI and requested properties, with language
+              strings consolidated under `LangString` if applicable.
+        :rtype: list[dict[str, list[Xsd] | LangString]] | int
+        """
         if not isinstance(projectShortName, Xsd_NCName):
             graph = Xsd_NCName(projectShortName, validate=True)
         else:
@@ -1345,31 +1375,39 @@ class ResourceInstance:
         if countOnly:
             return res[0]['numResult']
         else:
-            result = {}
+            result: list[dict[str, list[Xsd] | LangString]] = []
+
             for r in res:
-                if result.get(r['s'], None) is None:
-                    result[r['s']] = {}
+                resiri = r['s']
+                if not result:
+                    result.append({'iri': [resiri]})
+                resource = None
+                for x in result: # we check if the arre already contains a resource with the given IRI
+                    if resiri == x['iri'][0]:
+                        resource = x  # yes, we assign it to resource
+                if not resource:
+                    resource = {'iri': [r['s']]}  # no, we create it (The resource IRI didn't yet occur in the result
+                    result.append(resource)
                 if includeProperties:
                     for index, property in enumerate(includeProperties):
-                        if result[r['s']].get(property, None) is None:
-                            result[r['s']][property] = []
+                        if resource.get(property, None) is None:
+                            resource[property] = []
                         raw = r.get(f'o{index}')
                         if raw is None:
                             continue
-                        if raw not in result[r['s']][property]:
-                            result[r['s']][property].append(raw)
+                        if raw not in resource[property]:
+                            resource[property].append(raw)
             if includeProperties:
-                for k, v in result.items():
+                for resource in result:
                     for index, property in enumerate(includeProperties):
                         is_langstring = False
-                        for val in v[property]:
+                        for val in resource[property]:
                             if isinstance(val, Xsd_string) and val.lang is not None:
                                 is_langstring = True
                                 break
                         if is_langstring:
-                            v[property] = LangString(v[property])
-
-            return result
+                            resource[property] = LangString(resource[property])
+        return result
 
     @staticmethod
     def get_media_object_by_id(con: IConnection, mediaObjectId: Xsd_string | str) -> dict[str, Xsd]:

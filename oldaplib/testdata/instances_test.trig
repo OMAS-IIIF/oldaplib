@@ -1,6 +1,7 @@
 @prefix test: <https://test4.example.com/> .
 @prefix test: <https://test4.example.com/> .
 @prefix test: <https://test4.example.com/> .
+@prefix test: <https://test4.example.com/> .
 @prefix schema: <http://schema.org/> .
 @prefix schema: <http://schema.org/> .
 @prefix http: <http://www.w3.org/2011/http#> .
@@ -10,6 +11,43 @@
 @prefix shared: <http://oldap.org/shared#> .
 
 test:data {
+
+  test:Item1 a test:Sort ;
+    :createdBy <https://orcid.org/0000-0003-1681-4036> ;
+    :creationDate "2026-01-01T00:00:00.000000+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036> ;
+    :lastModificationDate "2026-01-01T00:00:00.000000+01:00"^^xsd:dateTimeStamp ;
+    test:aString "A is the start of this string" ;
+    test:aLangstring "Z in english"@en, "W in Deutsch"@de ;
+    test:anInteger 100 ;
+    :attachedToRole :Unknown .
+
+  << test:Item1 :attachedToRole :Unknown>> :hasDataPermission :DATA_VIEW .
+
+
+  test:Item2 a test:Sort ;
+    :createdBy <https://orcid.org/0000-0003-1681-4036> ;
+    :creationDate "2026-01-01T00:00:01.000000+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036> ;
+    :lastModificationDate "2026-01-01T00:00:01.000000+01:00"^^xsd:dateTimeStamp ;
+    test:aString "B is the start of this string" ;
+    test:aLangstring "Y in english"@en, "U in Deutsch"@de ;
+    test:anInteger 300 ;
+    :attachedToRole :Unknown .
+
+  << test:Item2 :attachedToRole :Unknown>> :hasDataPermission :DATA_VIEW .
+
+  test:Item3 a test:Sort ;
+    :createdBy <https://orcid.org/0000-0003-1681-4036> ;
+    :creationDate "2026-01-01T00:00:02.000000+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036> ;
+    :lastModificationDate "2026-01-01T00:00:02.000000+01:00"^^xsd:dateTimeStamp ;
+    test:aString "C is the start of this string" ;
+    test:aLangstring "X in english"@en, "V in Deutsch"@de ;
+    test:anInteger 200 ;
+    :attachedToRole :Unknown .
+
+  << test:Item3 :attachedToRole :Unknown>> :hasDataPermission :DATA_VIEW .
 
   test:DouglasAdams a test:Person ;
     :createdBy <https://orcid.org/0000-0003-1681-4036> ;

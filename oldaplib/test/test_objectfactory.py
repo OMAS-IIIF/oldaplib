@@ -65,6 +65,8 @@ from oldaplib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
 from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 from redis.commands.search.aggregation import SortDirection
 
+from oldaplib.src.helpers.query_processor import QueryProcessor
+
 
 def find_project_root(current_path):
     # Climb up the directory hierarchy and check for a marker file
@@ -927,26 +929,53 @@ class TestObjectFactory(unittest.TestCase):
     def test_search_resource_B(self):
         res = ResourceInstance.all_resources(con=self._connection,
                                              projectShortName='test',
-                                             resClass='test:Page',
-                                             includeProperties=[Xsd_QName('test:pageNum'), Xsd_QName('test:pageContent')],
+                                             resClass='test:Sort',
+                                             includeProperties=[Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')],
                                              sortBy = [SortBy(Xsd_QName('oldap:creationDate'), SortDir.asc)])
-        self.assertEqual(len(res), 8)
+        self.assertEqual(len(res), 3)
+        self.assertEqual(res[0]['iri'][0], Xsd_QName('test:Item1'))
+        self.assertEqual(res[1]['iri'][0], Xsd_QName('test:Item2'))
+        self.assertEqual(res[2]['iri'][0], Xsd_QName('test:Item3'))
+
         for r in res:
-            self.assertEqual(len(res[r]), 3)
+            self.assertIsNotNone(r[Xsd_QName('oldap:creationDate')])
+            self.assertIsNotNone(r[Xsd_QName('test:aString')])
+            self.assertIsNotNone(r[Xsd_QName('test:aLangstring')])
 
     def test_search_resource_C(self):
         res = ResourceInstance.all_resources(con=self._connection,
                                              projectShortName='test',
-                                             resClass='test:Page')
-        self.assertEqual(len(res), 8)
+                                             resClass='test:Sort',
+                                             includeProperties=[Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')],
+                                             sortBy = [SortBy(Xsd_QName('test:aString'), SortDir.asc)])
+        self.assertEqual(len(res), 3)
+        self.assertEqual(res[0]['iri'][0], Xsd_QName('test:Item1'))
+        self.assertEqual(res[1]['iri'][0], Xsd_QName('test:Item2'))
+        self.assertEqual(res[2]['iri'][0], Xsd_QName('test:Item3'))
 
     def test_search_resource_D(self):
         res = ResourceInstance.all_resources(con=self._connection,
                                              projectShortName='test',
-                                             resClass='test:Book',
-                                             includeProperties=[Xsd_QName('test:title'), Xsd_QName('test:author')])
-        #self.assertEqual(len(res), 8)
-        pprint(res)
+                                             resClass='test:Sort',
+                                             includeProperties=[Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')],
+                                             sortBy = [SortBy(Xsd_QName('test:aLangstring'), SortDir.asc)])
+        self.assertEqual(len(res), 3)
+        self.assertEqual(res[0]['iri'][0], Xsd_QName('test:Item2'))
+        self.assertEqual(res[1]['iri'][0], Xsd_QName('test:Item3'))
+        self.assertEqual(res[2]['iri'][0], Xsd_QName('test:Item1'))
+
+    def test_search_resource_E(self):
+        res = ResourceInstance.all_resources(con=self._connection,
+                                             projectShortName='test',
+                                             resClass='test:Sort',
+                                             sortBy = [SortBy(Xsd_QName('test:anInteger'), SortDir.desc)])
+        self.assertEqual(len(res), 3)
+        self.assertEqual(res[0]['iri'][0], Xsd_QName('test:Item2'))
+        self.assertEqual(res[0][Xsd_QName('test:anInteger')], [Xsd_integer(300)])
+        self.assertEqual(res[1]['iri'][0], Xsd_QName('test:Item3'))
+        self.assertEqual(res[1][Xsd_QName('test:anInteger')], [Xsd_integer(200)])
+        self.assertEqual(res[2]['iri'][0], Xsd_QName('test:Item1'))
+        self.assertEqual(res[2][Xsd_QName('test:anInteger')], [Xsd_integer(100)])
 
     #@unittest.skip('Work in progress')
     def test_read_media_object_by_id_A(self):
