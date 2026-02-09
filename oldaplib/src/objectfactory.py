@@ -1,5 +1,7 @@
 import re
 import textwrap
+import logging
+
 from dataclasses import dataclass
 from pprint import pprint
 
@@ -38,6 +40,8 @@ from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
+
+logger = logging.getLogger(__name__)
 
 ValueType = LangString | ObservableSet | Xsd | Dict[Xsd_QName, DataPermission] | ObservableDict
 
@@ -690,7 +694,8 @@ class ResourceInstance:
         for r in res:
             if r['predicate'] == 'rdf:type':
                 if r['value'].is_qname:
-                    objtype = r['value'].as_qname.fragment
+                    #objtype = r['value'].as_qname.fragment
+                    objtype = r['value'].as_qname
                 else:
                     raise OldapErrorInconsistency(f"Expected QName as value, got {r['value']}")
             else:
@@ -1684,7 +1689,7 @@ class ResourceInstanceFactory:
         for r in res:
             if r['predicate'] == 'rdf:type':
                 if r['value'].is_qname:
-                    objtype = r['value'].as_qname.fragment
+                    objtype = r['value'].as_qname
                 else:
                     raise OldapErrorInconsistency(f"Expected QName as value, got {r['value']}")
             else:
@@ -1718,7 +1723,7 @@ class ResourceInstanceFactory:
         for r in res:
             roles[r['role']] = DataPermission.from_qname(r['dataperm'])
         kwargs['attachedToRole'] = roles
-
+        print("=====>", objtype, flush=True)
         Instance = self.createObjectInstance(objtype)
         return Instance(iri=iri, **kwargs)
 
