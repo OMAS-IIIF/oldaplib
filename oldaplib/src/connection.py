@@ -612,6 +612,9 @@ if __name__ == "__main__":
                      context_name="DEFAULT")
     cache = CacheSingletonRedis()
     cache.clear()
+    exitus = input("Nur cache löschen? [Y/N] ?(N):").strip().lower()
+    if exitus in ['y', 'yes', 'ja']:
+        exit(0)
     con.clear_repo()
     con.upload_turtle("../ontologies/oldap.trig")
     con.upload_turtle("../ontologies/shared.trig")

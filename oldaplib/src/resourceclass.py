@@ -1811,6 +1811,11 @@ class ResourceClass(Model, Notify):
                                     last_modified=self._modified)
         sparql_list.append(sparql)
 
+        #
+        # now remove empty sparql statements (coming from changes that only affect SHACL but not OWL)!
+        #
+        sparql_list = [sparql for sparql in sparql_list if sparql.strip()]
+
         sparql = " ;\n".join(sparql_list)
         return sparql
 

@@ -1349,8 +1349,8 @@ class ResourceInstance:
         if includeProperties:
             for index, prop in enumerate(includeProperties):
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?s {prop} ?o{index} . }}'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}?s rdf:type {resClass} .'
         sparql += f'\n{blank:{indent * indent_inc}}}}'
 
         if not countOnly and sortBy:
