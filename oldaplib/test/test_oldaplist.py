@@ -250,6 +250,27 @@ class TestOldapList(unittest.TestCase):
                                    oldapListId="TestUpdateListC")
         self.assertFalse(oldaplist.get(OldapListAttr.DEFINITION))
 
+    def test_update_D(self):
+        oldaplist = OldapList(con=self._connection,
+                              project=self._project,
+                              oldapListId="TestUpdateListD",
+                              prefLabel=LangString("TestUpdateListD@en", "TestUpdateListD@de"),
+                              definition="A list for testing updates...")
+        oldaplist.create()
+        del oldaplist
+        oldaplist = OldapList.read(con=self._connection,
+                                   project=self._project,
+                                   oldapListId="TestUpdateListD")
+        oldaplist.prefLabel.discard("en")
+        oldaplist.prefLabel.add("TestUpdateListD NEW@de")
+
+        oldaplist.update()
+        oldaplist = OldapList.read(con=self._connection,
+                                   project=self._project,
+                                   oldapListId="TestUpdateListD")
+        print(oldaplist.prefLabel)
+        #self.assertFalse(oldaplist.get(OldapListAttr.DEFINITION))
+
     def test_delete(self):
         oldaplist = OldapList(con=self._connection,
                               project=self._project,

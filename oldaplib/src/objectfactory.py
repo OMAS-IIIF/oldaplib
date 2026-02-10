@@ -697,6 +697,7 @@ class ResourceInstance:
                     #objtype = r['value'].as_qname.fragment
                     objtype = r['value'].as_qname
                 else:
+                    logger.error(f"Expected QName as value, got {r['value']}")
                     raise OldapErrorInconsistency(f"Expected QName as value, got {r['value']}")
             else:
                 if r['predicate'].is_qname:
@@ -711,6 +712,7 @@ class ResourceInstance:
                         except TypeError:
                             kwargs[r['predicate'].as_qname.fragment] = r['value']
                 else:
+                    logger.error(f"Expected QName as predicate, got {r['predicate']}")
                     raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
 
         if objtype is None:
@@ -724,7 +726,11 @@ class ResourceInstance:
             }}
         }}
         ''')
-        jsonres = con.query(sparql)
+        try:
+            jsonres = con.query(sparql)
+        except Exception as e:
+            logger.error(f'Failed to query data permissions for resource {iri}: {e}')
+            raise
         res = QueryProcessor(context, jsonres)
         roles = {}
         for r in res:
@@ -945,11 +951,13 @@ class ResourceInstance:
             if timestamp != modtime:
                 raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (modtime={modtime}, timestamp={timestamp}).")
         except OldapError:
+            logger.error(f'Failed to update resource "{self._iri}"', exc_info=True)
             self._con.transaction_abort()
             raise
         try:
             self._con.transaction_commit()
         except OldapError:
+            logger.error(f'Failed to commit transaction for resource "{self._iri}"', exc_info=True)
             self._con.transaction_abort()
             raise
         self.clear_changeset()
@@ -1004,16 +1012,19 @@ class ResourceInstance:
             if result['boolean']:
                 raise OldapErrorInUse(f'Resource "{self._iri}" is in use and cannot be deleted.')
         except OldapError:
+            logger.error(f'SPARQL: Failed to check whether resource "{self._iri}" is in use', exc_info=True)
             self._con.transaction_abort()
             raise
         try:
             self._con.transaction_update(sparql)
         except OldapError:
+            logger.error(f'SPARQL: Failed to delete resource "{self._iri}"', exc_info=True)
             self._con.transaction_abort()
             raise
         try:
             self._con.transaction_commit()
         except OldapError:
+            logger.error(f'SPARQL: Failed to commit transaction for resource "{self._iri}"', exc_info=True)
             self._con.transaction_abort()
             raise
 
@@ -1075,6 +1086,11 @@ class ResourceInstance:
         }}
         ''')
 
+        try:
+            jsonres = con.query(sparql)
+        except OldapError:
+            logger.error(f'SPARQL: Failed to retrieve data for resource "{iri}"', exc_info=True)
+            raise
         jsonres = con.query(sparql)
         res = QueryProcessor(context, jsonres)
         data = {}
@@ -1099,7 +1115,11 @@ class ResourceInstance:
             }}
         }}
         ''')
-        jsonres = con.query(sparql)
+        try:
+            jsonres = con.query(sparql)
+        except Exception as e:
+            logger.error(f'SPARQL: Failed to retrieve data permissions for resource "{iri}"', exc_info=True)
+            raise
         res = QueryProcessor(context, jsonres)
         roles = {}
         for r in res:
@@ -1246,7 +1266,7 @@ class ResourceInstance:
         try:
             jsonres = con.query(sparql)
         except OldapError:
-            print(sparql)
+            logger.error(f'SPARQL: Failed to search for resources in project "{projectShortName}"', exc_info=True)
             raise
         res = QueryProcessor(context, jsonres)
         if countOnly:
@@ -1374,7 +1394,7 @@ class ResourceInstance:
         try:
             jsonres = con.query(sparql)
         except OldapError:
-            print(sparql)
+            logger.error(f'SPARQL: Failed to retrieve resources for project "{projectShortName}"', exc_info=True)
             raise
         res = QueryProcessor(context, jsonres)
         if countOnly:
@@ -1457,7 +1477,7 @@ class ResourceInstance:
         try:
             jsonres = con.query(sparql)
         except OldapError:
-            print(sparql)
+            logger.error(f'SPARQL: Failed to retrieve media object with ID "{mediaObjectId}"', exc_info=True)
             raise
         res = QueryProcessor(context, jsonres)
         if len(res) == 0:
@@ -1524,7 +1544,7 @@ class ResourceInstance:
         try:
             jsonres = con.query(sparql)
         except OldapError:
-            print(sparql)
+            logger.error(f'SPARQL: Failed to retrieve media object with IRI "{mediaObjectIri}"', exc_info=True)
             raise
         res = QueryProcessor(context, jsonres)
         if len(res) == 0:
@@ -1683,6 +1703,11 @@ class ResourceInstanceFactory:
             }}
         }}''')
         jsonres = self._con.query(sparql)
+        try:
+            res = QueryProcessor(context, jsonres)
+        except OldapError:
+            logger.error(f'SPARQL: Failed to retrieve resource "{iri}"', exc_info=True)
+            raise
         res = QueryProcessor(context, jsonres)
         objtype = None
         kwargs: dict[str, Any] = {}
@@ -1717,13 +1742,16 @@ class ResourceInstanceFactory:
             }}
         }}
         ''')
-        jsonres = self._con.query(sparql)
+        try:
+            jsonres = self._con.query(sparql)
+        except Exception as e:
+            logger.error(f'SPARQL: Failed to retrieve data permissions for resource "{iri}"', exc_info=True)
+            raise
         res = QueryProcessor(context, jsonres)
         roles = {}
         for r in res:
             roles[r['role']] = DataPermission.from_qname(r['dataperm'])
         kwargs['attachedToRole'] = roles
-        print("=====>", objtype, flush=True)
         Instance = self.createObjectInstance(objtype)
         return Instance(iri=iri, **kwargs)
 
