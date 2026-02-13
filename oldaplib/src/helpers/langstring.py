@@ -502,7 +502,7 @@ class LangString(Notify):
         blank = ''
         sparql_list = []
         for lang, change in self._changeset.items():
-            if change.old_value == self._langstring[lang]:
+            if change.old_value == self._langstring.get(lang):
                 continue
             if change.action != Action.CREATE:
                 sparql = f'{blank:{indent * indent_inc}}DELETE DATA {{\n'

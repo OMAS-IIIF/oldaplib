@@ -1383,9 +1383,9 @@ class TestXsdDatatypes(unittest.TestCase):
         self.assertFalse(val)
 
         val = Xsd_string("Waseliwas\nsoll <denn> das\" sein?", validate=True)
-        self.assertEqual(str(val), "Waseliwas\nsoll <denn> das\" sein?")
+        self.assertEqual(str(val), """Waseliwas\nsoll <denn> das\" sein?""")
         self.assertEqual(repr(val), 'Xsd_string("Waseliwas\nsoll <denn> das\" sein?")')
-        self.assertEqual(val.toRdf, '"Waseliwas\\nsoll <denn> das\\\" sein?"^^xsd:string')
+        self.assertEqual(val.toRdf, '"""Waseliwas\\nsoll <denn> das\\\" sein?"""^^xsd:string')
         nnn: Xsd_string | None = None
         self.assertFalse(val == nnn)
 
@@ -1403,7 +1403,7 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_string("Waseliwas", "de", validate=True)
         self.assertEqual(str(val), "Waseliwas@de")
         self.assertEqual(repr(val), 'Xsd_string("Waseliwas", "de")')
-        self.assertEqual(val.toRdf, '"Waseliwas"@de')
+        self.assertEqual(val.toRdf, '"""Waseliwas"""@de')
         self.assertEqual(len(val), 9)
 
         valc = Xsd_string(val, validate=True)
@@ -1421,7 +1421,7 @@ class TestXsdDatatypes(unittest.TestCase):
         val = Xsd_string("Whateliwhat", Language.EN, validate=True)
         self.assertEqual(str(val), "Whateliwhat@en")
         self.assertEqual(repr(val), 'Xsd_string("Whateliwhat", "en")')
-        self.assertEqual(val.toRdf, '"Whateliwhat"@en')
+        self.assertEqual(val.toRdf, '"""Whateliwhat"""@en')
 
         valc = Xsd_string(val, validate=True)
         self.assertEqual(val, valc)

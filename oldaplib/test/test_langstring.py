@@ -315,34 +315,34 @@ class TestLangstring(unittest.TestCase):
                            subject=Iri("oldaplib:subj"),
                            field=Xsd_QName("oldaplib:prop"))
         qstr = " ;\n".join(qlist)
-        expected = """INSERT DATA {
+        expected = '''INSERT DATA {
     GRAPH oldaplib:test {
-        oldaplib:subj oldaplib:prop "français"@fr .
+        oldaplib:subj oldaplib:prop """français"""@fr .
     }
 }
  ;
 INSERT DATA {
     GRAPH oldaplib:test {
-        oldaplib:subj oldaplib:prop "undefined"@zu .
+        oldaplib:subj oldaplib:prop """undefined"""@zu .
     }
 }
  ;
 DELETE DATA {
     GRAPH oldaplib:test {
-        oldaplib:subj oldaplib:prop "english"@en .
+        oldaplib:subj oldaplib:prop """english"""@en .
     }
 }
-"""
+'''
         self.assertEqual(qstr, expected)
 
         sstr = ls1.update_shacl(graph=Xsd_NCName("test"),
                                 prop_iri=Iri('oldaplib:prop'),
                                 attr=PropClassAttr.NAME,
                                 modified=Xsd_dateTime("2023-11-04T12:00:00Z"))
-        expected = """# LangString: Process "FR" with Action "create"
+        expected = '''# LangString: Process "FR" with Action "create"
 WITH test:shacl
 INSERT {
-    ?prop sh:name "français"@fr .
+    ?prop sh:name """français"""@fr .
 }
 WHERE {
     BIND(oldaplib:propShape as ?prop) .
@@ -352,7 +352,7 @@ WHERE {
 # LangString: Process "ZU" with Action "create"
 WITH test:shacl
 INSERT {
-    ?prop sh:name "undefined"@zu .
+    ?prop sh:name """undefined"""@zu .
 }
 WHERE {
     BIND(oldaplib:propShape as ?prop) .
@@ -362,14 +362,14 @@ WHERE {
 # LangString: Process "EN" with Action "delete"
 WITH test:shacl
 DELETE {
-    ?prop sh:name "english"@en .
+    ?prop sh:name """english"""@en .
 }
 WHERE {
     BIND(oldaplib:propShape as ?prop) .
-    ?prop sh:name "english"@en .
+    ?prop sh:name """english"""@en .
     ?prop dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
-}"""
+}'''
         self.assertEqual(sstr, expected)
 
     def test_langstring_delete_shacl(self):

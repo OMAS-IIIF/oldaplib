@@ -1,7 +1,5 @@
 import unittest
 from pathlib import Path
-from time import sleep
-from tkinter.font import names
 
 from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel

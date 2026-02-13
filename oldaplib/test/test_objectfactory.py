@@ -424,6 +424,7 @@ class TestObjectFactory(unittest.TestCase):
                 imageId='cat.tif',
                 path='test',
                 protocol='iiif',
+                derivativeName='iiif.tif',
                 attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         mo.create()
         data = ResourceInstance.read_data(con=self._connection, iri=mo.iri, projectShortName='test')
@@ -432,6 +433,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(data[Xsd_QName("shared:originalMimeType")], ['image/tiff'])
         self.assertEqual(data[Xsd_QName("shared:serverUrl")], ['http://iiif.oldap.org/iiif/3/'])
         self.assertEqual(data[Xsd_QName("shared:imageId")], ['cat.tif'])
+        self.assertEqual(data[Xsd_QName("shared:derivativeName")], ['iiif.tif'])
         mo.delete()
 
     def test_read_A(self):
@@ -1060,6 +1062,7 @@ class TestObjectFactory(unittest.TestCase):
                   serverUrl='http://iiif.oldap.org/iiif/3/',
                   path='test/subtest',
                   protocol='iiif',
+                  derivativeName='iiif.tif',
                   caption='My Carnival Image of 1968 with the Bohrerhof-Clique',
                   grantsPermission=Iri('oldap:GenericView'))
         mle.create()
@@ -1069,6 +1072,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(data['shared:serverUrl'], ['http://iiif.oldap.org/iiif/3/'])
         self.assertEqual(data['shared:imageId'], ['x_34dbY4.tif'])
         self.assertEqual(data['shared:protocol'], ['iiif'])
+        self.assertEqual(data['shared:derivativeName'], ['iiif.tif'])
         self.assertEqual(data['shared:path'], ['test/subtest'])
         self.assertEqual(data['test:caption'], ['My Carnival Image of 1968 with the Bohrerhof-Clique'])
 

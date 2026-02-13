@@ -152,7 +152,7 @@ class MyTestCase(unittest.TestCase):
         s = s[1:-1]
         s = set(s.split(" "))
 
-        self.assertEqual(s, {'"was"^^xsd:string', '"42"^^xsd:integer', '"das?"^^xsd:string'})
+        self.assertEqual(s, {'"""was"""^^xsd:string', '"42"^^xsd:integer', '"""das?"""^^xsd:string'})
 
         val = XsdSet(Xsd_string("was"), Xsd_string("ist"), Xsd_string("das?"))
         self.assertTrue(Xsd_string("was") in val)
