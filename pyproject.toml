@@ -41,7 +41,6 @@ pyyaml = "^6.0.2"
 yamale = "^6.0.0"
 redis = "^6.4.0"
 cloudpickle = "^3.1.1"
-bump2version = "^1.0.1"
 oldap-tools = "^0.1.2"
 
 
