@@ -502,24 +502,21 @@ class LangString(Notify):
         blank = ''
         sparql_list = []
         for lang, change in self._changeset.items():
+            if change.old_value == self._langstring[lang]:
+                continue
             if change.action != Action.CREATE:
                 sparql = f'{blank:{indent * indent_inc}}DELETE DATA {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-                tmpstr = f'"{change.old_value}"'
-                tmpstr += "@" + lang.name.lower()
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {tmpstr} .\n'
+                tmpstr = Xsd_string(change.old_value, lang)
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {tmpstr.toRdf} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
             if change.action != Action.DELETE:
                 sparql = f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
-                try:
-                    langstr = f'"{self._langstring[lang]}"'
-                except KeyError:
-                    raise OldapErrorKey(f'No language string of language: "{lang}"!')
-                langstr += "@" + lang.name.lower()
-                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {langstr} .\n'
+                langstr = Xsd_string(self._langstring[lang], lang)
+                sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {langstr.toRdf} .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql_list.append(sparql)
@@ -560,7 +557,7 @@ class LangString(Notify):
             sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                tmpstr = f'"{change.old_value}"'
+                tmpstr = f'"""{change.old_value}"""'
                 tmpstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -568,7 +565,7 @@ class LangString(Notify):
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 try:
-                    langstr = f'"{self._langstring[lang]}"'
+                    langstr = f'"""{self._langstring[lang]}"""'
                 except KeyError:
                     raise OldapErrorKey(f'No language string of language: "{lang}"!')
                 langstr += "@" + lang.name.lower()
@@ -582,7 +579,7 @@ class LangString(Notify):
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
             if change.action != Action.CREATE:
-                tmpstr = f'"{change.old_value}"'
+                tmpstr = f'"""{change.old_value}"""'
                 tmpstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'

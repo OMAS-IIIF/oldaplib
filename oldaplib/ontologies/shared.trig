@@ -304,6 +304,19 @@ shared:shacl {
             sh:order "4.0"^^xsd:decimal ;
         ] ;
         sh:property [
+            sh:path shared:derivativeName ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+            oldap:statementProperty "false"^^xsd:boolean ;
+            oldap:externalOntology "false"^^xsd:boolean ;
+            sh:datatype xsd:string ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "5.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
             sh:path shared:path ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
@@ -314,7 +327,7 @@ shared:shacl {
             sh:datatype xsd:string ;
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "4.0"^^xsd:decimal ;
+            sh:order "6.0"^^xsd:decimal ;
        ] .
 }
 
@@ -491,6 +504,14 @@ shared:onto {
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime .
 
+        shared:derivativeName rdf:type owl:DatatypeProperty ;
+            rdfs:domain shared:MediaObject ;
+            rdfs:range xsd:string ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime .
+
         shared:protocol rdf:type owl:DatatypeProperty ;
             rdfs:domain shared:MediaObject ;
             rdfs:range xsd:string ;
@@ -549,6 +570,12 @@ shared:onto {
                 [
                     rdf:type owl:Restriction ;
                     owl:onProperty shared:protocol ;
+                    owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                    owl:onDataRange xsd:string ;
+                ],
+                [
+                    rdf:type owl:Restriction ;
+                    owl:onProperty shared:derivativeName ;
                     owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                     owl:onDataRange xsd:string ;
                 ],

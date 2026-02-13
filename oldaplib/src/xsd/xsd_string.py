@@ -233,9 +233,9 @@ class Xsd_string(Xsd):
         if self.__value is None:
             raise OldapErrorValue(f'Cannot convert empty Xsd_string to RDF string.')
         if self.__lang:
-            return f'"{Xsd_string.escaping(self.__value)}"@{self.__lang.name.lower()}'
+            return f'"""{Xsd_string.escaping(self.__value)}"""@{self.__lang.name.lower()}'
         else:
-            return f'"{Xsd_string.escaping(self.__value)}"^^xsd:string'
+            return f'"""{Xsd_string.escaping(self.__value)}"""^^xsd:string'
 
     def _as_dict(self) -> dict:
         """

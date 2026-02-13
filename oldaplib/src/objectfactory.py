@@ -1,6 +1,7 @@
 import re
 import textwrap
 import logging
+import sys
 
 from dataclasses import dataclass
 from pprint import pprint
@@ -1492,7 +1493,7 @@ class ResourceInstance:
                 continue
             if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
                                   'dcterms:type', 'shared:imageId', 'shared:originalName', 'shared:originalMimeType',
-                                  'shared:serverUrl', 'shared:path', 'shared:protocol'}:
+                                  'shared:serverUrl', 'shared:path', 'shared:protocol', 'shared:derivativeName'}:
                 result[str(r['prop'])] = r['val']
             else:
                 if result.get(str(r['prop'])) is None:
@@ -1505,6 +1506,7 @@ class ResourceInstance:
             'userid': str(con.userid),
             'id': str(mediaObjectId),
             'path': str(result.get('shared:path')),
+            'derivativeName': str(result.get('shared:derivativeName')),
             'permval': str(result.get('permval')),
             "exp": expiration.timestamp(),
             "iat": int(datetime.now().astimezone().timestamp()),
@@ -1559,7 +1561,7 @@ class ResourceInstance:
                 continue
             if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
                                   'dcterms:type', 'shared:imageId', 'shared:originalName', 'shared:originalMimeType',
-                                  'shared:serverUrl', 'shared:path', 'shared:protocol'}:
+                                  'shared:serverUrl', 'shared:path', 'shared:protocol', 'shared:derivativeName'}:
                 result[str(r['prop'])] = r['val']
             else:
                 if result.get(str(r['prop'])) is None:
@@ -1572,6 +1574,7 @@ class ResourceInstance:
             'userid': str(con.userid),
             'id': str(result.get('shared:imageId')),
             'path': str(result['shared:path']),
+            'derivativeName': str(result.get('shared:derivativeName')),
             'permval': str(result['permval']),
             "exp": expiration.timestamp(),
             "iat": int(datetime.now().astimezone().timestamp()),
