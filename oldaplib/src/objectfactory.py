@@ -1470,7 +1470,7 @@ class ResourceInstance:
             GRAPH ?graph {{
                 ?subject oldap:attachedToRole ?role .
                 <<?subject oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
-                ?subject shared:imageId ?inputImageId .
+                ?subject shared:assetId ?inputImageId .
                 ?subject ?prop ?val .
             }}
         }}
@@ -1492,7 +1492,7 @@ class ResourceInstance:
             if str(r['prop']) == 'rdf:type':
                 continue
             if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
-                                  'dcterms:type', 'shared:imageId', 'shared:originalName', 'shared:originalMimeType',
+                                  'dcterms:type', 'shared:assetId', 'shared:originalName', 'shared:originalMimeType',
                                   'shared:serverUrl', 'shared:path', 'shared:protocol', 'shared:derivativeName'}:
                 result[str(r['prop'])] = r['val']
             else:
@@ -1560,7 +1560,7 @@ class ResourceInstance:
             if str(r['prop']) == 'rdf:type':
                 continue
             if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
-                                  'dcterms:type', 'shared:imageId', 'shared:originalName', 'shared:originalMimeType',
+                                  'dcterms:type', 'shared:assetId', 'shared:originalName', 'shared:originalMimeType',
                                   'shared:serverUrl', 'shared:path', 'shared:protocol', 'shared:derivativeName'}:
                 result[str(r['prop'])] = r['val']
             else:
@@ -1572,10 +1572,11 @@ class ResourceInstance:
         payload = {
             'userIri': str(con.userIri),
             'userid': str(con.userid),
-            'id': str(result.get('shared:imageId')),
+            'projectShortName': res[0].get('graph').prefix if res[0].get('graph') else None,
+            'id': str(result.get('shared:assetId')),
             'path': str(result['shared:path']),
             'derivativeName': str(result.get('shared:derivativeName')),
-            'permval': str(result['permval']),
+            'permval': int(result['permval']),
             "exp": expiration.timestamp(),
             "iat": int(datetime.now().astimezone().timestamp()),
             "iss": "http://oldap.org"

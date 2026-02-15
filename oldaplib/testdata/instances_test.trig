@@ -211,7 +211,8 @@ test:data {
     shared:originalName 'testfile.tif';
     shared:originalMimeType 'image/tiff';
     shared:serverUrl 'https://iiif.oldap.org';
-    shared:imageId 'x_34db.tif';
+    shared:assetId 'x_34db.tif';
+    shared:derivativeName 'iiif.tif';
     shared:protocol 'iiif';
     shared:path 'test/subtest' .
 
@@ -226,7 +227,8 @@ test:data {
     shared:originalName 'testfile.jpg';
     shared:originalMimeType 'image/jpeg';
     shared:serverUrl 'https://iiif.oldap.org';
-    shared:imageId 'x_42db.jpg';
+    shared:assetId 'x_42db.jpg';
+    shared:derivativeName 'web4.mp4';
     shared:protocol 'iiif';
     shared:path 'test/subtest' ;
     test:caption 'This is a non-real, non-existing image' .

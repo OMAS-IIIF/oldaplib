@@ -421,7 +421,7 @@ class TestObjectFactory(unittest.TestCase):
                 type='dcmitype:StillImage',
                 originalMimeType='image/tiff',
                 serverUrl='http://iiif.oldap.org/iiif/3/',
-                imageId='cat.tif',
+                assetId='cat.tif',
                 path='test',
                 protocol='iiif',
                 derivativeName='iiif.tif',
@@ -432,7 +432,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(data[Xsd_QName("shared:originalName")], ['Cat.tif'])
         self.assertEqual(data[Xsd_QName("shared:originalMimeType")], ['image/tiff'])
         self.assertEqual(data[Xsd_QName("shared:serverUrl")], ['http://iiif.oldap.org/iiif/3/'])
-        self.assertEqual(data[Xsd_QName("shared:imageId")], ['cat.tif'])
+        self.assertEqual(data[Xsd_QName("shared:assetId")], ['cat.tif'])
         self.assertEqual(data[Xsd_QName("shared:derivativeName")], ['iiif.tif'])
         mo.delete()
 
@@ -984,7 +984,7 @@ class TestObjectFactory(unittest.TestCase):
         res = ResourceInstance.get_media_object_by_id(con=self._connection, mediaObjectId='x_34db.tif')
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
         self.assertEqual(res['permval'], Xsd_integer(2))
-        self.assertEqual(res['shared:imageId'], Xsd_string('x_34db.tif'))
+        self.assertEqual(res['shared:assetId'], Xsd_string('x_34db.tif'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.tif"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/tiff"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1000,7 +1000,7 @@ class TestObjectFactory(unittest.TestCase):
         res = ResourceInstance.get_media_object_by_id(con=self._connection, mediaObjectId='x_42db.jpg')
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999"))
         self.assertEqual(res['permval'], Xsd_integer(2))
-        self.assertEqual(res['shared:imageId'], Xsd_string('x_42db.jpg'))
+        self.assertEqual(res['shared:assetId'], Xsd_string('x_42db.jpg'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.jpg"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/jpeg"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1021,7 +1021,7 @@ class TestObjectFactory(unittest.TestCase):
         res = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri='urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901')
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
         self.assertEqual(res['permval'], Xsd_integer(2))
-        self.assertEqual(res['shared:imageId'], Xsd_string('x_34db.tif'))
+        self.assertEqual(res['shared:assetId'], Xsd_string('x_34db.tif'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.tif"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/tiff"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1031,13 +1031,15 @@ class TestObjectFactory(unittest.TestCase):
         tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
         self.assertEqual(tinfo['id'], 'x_34db.tif')
         self.assertEqual(tinfo['path'], 'test/subtest')
-        self.assertEqual(tinfo['permval'], '2')
+        self.assertEqual(tinfo['permval'], 2)
+        print(res)
+        print(tinfo)
 
     def test_read_media_object_by_iri_B(self):
         res = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri='urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999')
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999"))
         self.assertEqual(res['permval'], Xsd_integer(2))
-        self.assertEqual(res['shared:imageId'], Xsd_string('x_42db.jpg'))
+        self.assertEqual(res['shared:assetId'], Xsd_string('x_42db.jpg'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.jpg"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/jpeg"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1048,7 +1050,7 @@ class TestObjectFactory(unittest.TestCase):
         tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
         self.assertEqual(tinfo['id'], 'x_42db.jpg')
         self.assertEqual(tinfo['path'], 'test/subtest')
-        self.assertEqual(tinfo['permval'], '2')
+        self.assertEqual(tinfo['permval'], 2)
 
 
     def test_create_media_object(self):
@@ -1058,7 +1060,7 @@ class TestObjectFactory(unittest.TestCase):
         mle = MLE(originalName='MyCarnivalImagetif',
                   type='dcmitype:StillImage',
                   originalMimeType='image/tiff',
-                  imageId='x_34dbY4.tif',
+                  assetId='x_34dbY4.tif',
                   serverUrl='http://iiif.oldap.org/iiif/3/',
                   path='test/subtest',
                   protocol='iiif',
@@ -1070,7 +1072,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(data['shared:originalName'], ["MyCarnivalImagetif"])
         self.assertEqual(data['shared:originalMimeType'], ['image/tiff'])
         self.assertEqual(data['shared:serverUrl'], ['http://iiif.oldap.org/iiif/3/'])
-        self.assertEqual(data['shared:imageId'], ['x_34dbY4.tif'])
+        self.assertEqual(data['shared:assetId'], ['x_34dbY4.tif'])
         self.assertEqual(data['shared:protocol'], ['iiif'])
         self.assertEqual(data['shared:derivativeName'], ['iiif.tif'])
         self.assertEqual(data['shared:path'], ['test/subtest'])

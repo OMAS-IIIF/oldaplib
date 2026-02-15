@@ -275,7 +275,7 @@ shared:shacl {
                 sh:order "3.0"^^xsd:decimal ;
         ] ;
         sh:property [
-                sh:path shared:imageId ;
+                sh:path shared:assetId ;
                 schema:version "0.1.0"^^xsd:string ;
                 dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
                 dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
@@ -496,7 +496,7 @@ shared:onto {
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime .
 
-        shared:imageId rdf:type owl:DatatypeProperty ;
+        shared:assetId rdf:type owl:DatatypeProperty ;
             rdfs:domain shared:MediaObject ;
             rdfs:range xsd:string ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -563,7 +563,7 @@ shared:onto {
                 ] ,
                 [
                     rdf:type owl:Restriction ;
-                    owl:onProperty shared:imageId ;
+                    owl:onProperty shared:assetId ;
                     owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                     owl:onDataRange xsd:string ;
                 ],

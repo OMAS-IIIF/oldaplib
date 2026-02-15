@@ -46,7 +46,7 @@ if __name__ == '__main__':
                                             "Server URL@it"]))
     imageid = PropertyClass(con=con,
                            project=project,
-                           property_class_iri=Xsd_QName(f'shared:imageId'),
+                           property_class_iri=Xsd_QName(f'shared:assetId'),
                            datatype=XsdDatatypes.string,
                            name=LangString(["Image ID@en",
                                             "ID des Bilder@de",
