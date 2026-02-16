@@ -994,7 +994,8 @@ class TestObjectFactory(unittest.TestCase):
         tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
         self.assertEqual(tinfo['id'], 'x_34db.tif')
         self.assertEqual(tinfo['path'], 'test/subtest')
-        self.assertEqual(tinfo['permval'], '2')
+        self.assertEqual(tinfo['permval'], 2)
+        self.assertEqual(tinfo['assetId'], 'x_34db.tif')
 
     def test_read_media_object_by_id_B(self):
         res = ResourceInstance.get_media_object_by_id(con=self._connection, mediaObjectId='x_42db.jpg')
@@ -1011,7 +1012,8 @@ class TestObjectFactory(unittest.TestCase):
         tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
         self.assertEqual(tinfo['id'], 'x_42db.jpg')
         self.assertEqual(tinfo['path'], 'test/subtest')
-        self.assertEqual(tinfo['permval'], '2')
+        self.assertEqual(tinfo['permval'], 2)
+        self.assertEqual(tinfo['assetId'], 'x_42db.jpg')
 
     def test_read_media_object_by_id_C(self):
         with self.assertRaises(OldapErrorNotFound):
@@ -1032,8 +1034,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(tinfo['id'], 'x_34db.tif')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)
-        print(res)
-        print(tinfo)
+        self.assertEqual(tinfo['assetId'], 'x_34db.tif')
 
     def test_read_media_object_by_iri_B(self):
         res = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri='urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999')
@@ -1051,6 +1052,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(tinfo['id'], 'x_42db.jpg')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)
+        self.assertEqual(tinfo['assetId'], 'x_42db.jpg')
 
 
     def test_create_media_object(self):

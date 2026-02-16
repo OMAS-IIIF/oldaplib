@@ -1506,8 +1506,9 @@ class ResourceInstance:
             'userid': str(con.userid),
             'id': str(mediaObjectId),
             'path': str(result.get('shared:path')),
+            'assetId': str(result.get('shared:assetId')),
             'derivativeName': str(result.get('shared:derivativeName')),
-            'permval': str(result.get('permval')),
+            'permval': int(result.get('permval')),
             "exp": expiration.timestamp(),
             "iat": int(datetime.now().astimezone().timestamp()),
             "iss": "http://oldap.org"
@@ -1575,6 +1576,7 @@ class ResourceInstance:
             'projectShortName': res[0].get('graph').prefix if res[0].get('graph') else None,
             'id': str(result.get('shared:assetId')),
             'path': str(result['shared:path']),
+            'assetId': str(result.get('shared:assetId')),
             'derivativeName': str(result.get('shared:derivativeName')),
             'permval': int(result['permval']),
             "exp": expiration.timestamp(),
