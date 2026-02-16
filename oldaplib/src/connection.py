@@ -314,6 +314,48 @@ class Connection(IConnection):
             raise OldapError(req.text)
         logger.info(f'Graph "{graph_iri}" cleared.')
 
+    def move_graph(self, from_graph_iri: Xsd_QName, to_graph_iri: Xsd_QName) -> None:
+        """
+        Moves a graph from one IRI to another using SPARQL update requests.
+
+        This method initiates a `MOVE GRAPH` operation by constructing and sending a SPARQL update
+        query. It ensures appropriate permissions are available for the operation and performs
+        authentication if required. Logs the process and handles errors accordingly.
+
+        :param from_graph_iri: The source graph IRI to move from.
+        :type from_graph_iri: Xsd_QName
+        :param to_graph_iri: The target graph IRI to move to.
+        :type to_graph_iri: Xsd_QName
+        :return: None
+        """
+        logger = get_logger()
+        if not self._userdata:
+            logger.error("Connection with no permission to clear graph.")
+            raise OldapErrorNoPermission("No permission")
+        actor = self._userdata
+        sysperms = actor.inProject.get(Xsd_QName('oldap:SystemProject'))
+        is_root: bool = False
+        if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
+            is_root = True
+        if not is_root:
+            raise OldapErrorNoPermission("No permission")
+
+        context = Context(name=self._context_name)
+        headers = {
+            "Content-Type": "application/sparql-update",
+            "Accept": "application/json, text/plain, */*",
+        }
+        data = f"MOVE GRAPH <{context.qname2iri(from_graph_iri)} TO GRAPH {context.qname2iri(to_graph_iri)}>"
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        req = requests.post(self._update_url,
+                            headers=headers,
+                            data=data,
+                            auth=auth)
+        if not req.ok:
+            logger.error(f'Moving graph "{from_graph_iri}" to "{to_graph_iri}" failed: {req.text}')
+            raise OldapError(req.text)
+        logger.info(f'Moving graph "{from_graph_iri}" to "{to_graph_iri}" successfully.')
+
     def clear_repo(self) -> None:
         """
         Deletes the complete repository. This operation is destructive and should
@@ -322,15 +364,6 @@ class Connection(IConnection):
 
         :return: None
         """
-        # if not self._userdata:
-        #     raise OldapErrorNoPermission("No permission")
-        # actor = self._userdata
-        # sysperms = actor.inProject.get(QName('oldap:SystemProject'))
-        # is_root: bool = False
-        # if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
-        #     is_root = True
-        # if not is_root:
-        #     raise OldapErrorNoPermission("No permission")
         headers = {
             "Accept": "application/json, text/plain, */*",
         }
@@ -343,7 +376,30 @@ class Connection(IConnection):
         if not req.ok:
             raise OldapError(req.text)
 
+    def recompute_inference(self) -> None:
+        """
+        Recomputes the inference for the specified repository by sending a request to the server endpoint.
 
+        This method constructs the appropriate URL for the inference recomputation endpoint and sends a
+        POST request with the required authentication headers, if applicable. It verifies the response
+        status and logs the outcome. If the operation fails, it raises an error with the server's response.
+
+        :raises OldapError: If the recomputation of inference fails due to a non-OK response from the server.
+        """
+        logger = get_logger()
+        url = f"{self._server.rstrip('/')}/rest/repositories/{self._repo}/recompute-inference"
+
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        headers = {
+            "Accept": "text/plain"  # or */*, result body is usually empty
+        }
+
+        resp = requests.post(url, headers=headers, auth=auth)
+        if not resp.ok:
+            logger.error(f'Recomputation of inference failed: {resp.status_code} {resp.text}.')
+            raise OldapError(resp.text)
+
+        logger.info(f'Recomputation of inference successful.')
 
     def upload_turtle(self, filename: str, graphname: Optional[str] = None) -> None:
         """
