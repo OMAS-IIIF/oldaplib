@@ -14,6 +14,7 @@ store for each read. If these classes are modified, the `update()`-method will a
 classes is being deleted from the triple store, the class instance will also be deleted from the cache. The
 cache is implemented using a metaclass based singleton and uses locking to be compatible in a threaded environment.
 """
+import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -1602,6 +1603,9 @@ class PropertyClass(Model, Notify):
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
         #
+        logger = logging.getLogger(__name__)
+        logger.debug(f'Updating property class {self._property_class_iri.toRdf}')
+
         result, message = self.check_for_permissions()
         if not result:
             raise OldapErrorNoPermission(message)

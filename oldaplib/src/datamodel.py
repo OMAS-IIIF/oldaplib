@@ -1,4 +1,5 @@
 import io
+import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -645,6 +646,8 @@ class DataModel(Model):
         :raises OldapErrorNoPermission: If the logged-in actor lacks the required permissions.
         :return: None
         """
+        logger = logging.getLogger(__name__)
+
         #
         # First we check if the logged-in user ("actor") has the permission to create resource for
         # the given project!
@@ -654,6 +657,7 @@ class DataModel(Model):
             raise OldapErrorNoPermission(message)
 
         for qname, change in self.__extontos_changeset.items():
+            logger.debug(f'External Ontology {qname} changed: {change.action}')
             match(change.action):
                 case Action.CREATE:
                     self.__extontos[qname].create()
@@ -663,6 +667,7 @@ class DataModel(Model):
                     change.old_value.delete()
 
         for qname, change in self.__propclasses_changeset.items():
+            logger.debug(f'Property class {qname} changed: {change.action}')
             match(change.action):
                 case Action.CREATE:
                     self.__propclasses[qname].create()
@@ -673,6 +678,7 @@ class DataModel(Model):
                     change.old_value.delete()
 
         for qname, change in self.__resclasses_changeset.items():
+            logger.debug(f'Resource class {qname} changed: {change.action}')
             match (change.action):
                 case Action.CREATE:
                     self.__resclasses[qname].create()

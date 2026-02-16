@@ -1,3 +1,4 @@
+import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -1839,6 +1840,8 @@ class ResourceClass(Model, Notify):
         :raises OldapErrorUpdateFailed: When the update operation fails due to timestamp inconsistency.
         :return: None
         """
+        logger = logging.getLogger(__name__)
+
         #
         # First we check if the logged-in user ("actor") has the permission to update resource for
         # the given project!
@@ -1856,7 +1859,19 @@ class ResourceClass(Model, Notify):
                     self._test_in_use = True
             else:
                 if change.action != Action.CREATE:
-                    self._test_in_use = True
+                    for i, c in self._properties[item].changeset.items():
+                        match(i):
+                            case HasPropertyAttr.MIN_COUNT:
+                                if self._properties[item][HasPropertyAttr.MIN_COUNT] is None:
+                                    continue
+                                if (self._properties[item][HasPropertyAttr.MIN_COUNT] > self._properties[item].changeset[HasPropertyAttr.MIN_COUNT].old_value):
+                                    self._test_in_use = True
+                            case HasPropertyAttr.MAX_COUNT:
+                                if self._properties[item][HasPropertyAttr.MAX_COUNT] is None:
+                                    continue
+                                if (self._properties[item][HasPropertyAttr.MAX_COUNT] < self._properties[item].changeset[HasPropertyAttr.MAX_COUNT].old_value):
+                                    self._test_in_use = True
+
 
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
