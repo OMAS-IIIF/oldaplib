@@ -36,15 +36,15 @@ test-secure:
 	poetry run python3 -m unittest -v
 
 bump-patch-level:
-	poetry run bump-my-version --destination pyproject.toml bump patch
+	poetry run bump-my-version bump patch
 	git push
 
 bump-minor-level:
-	poetry run bump-my-version --destination pyproject.toml bump minor
+	poetry run bump-my-version bump minor
 	git push
 
 bump-major-level:
-	poetry run bump-my-version --destination pyproject.toml bump major
+	poetry run bump-my-version bump major
 	git push
 
 build:
