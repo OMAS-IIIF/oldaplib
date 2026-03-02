@@ -1858,7 +1858,7 @@ class ResourceClass(Model, Notify):
                 if item == ResClassAttribute.SUPERCLASS:
                     self._test_in_use = True
             else:
-                if change.action != Action.CREATE:
+                if change.action != Action.CREATE and self._properties.get(item) is not None:
                     for i, c in self._properties[item].changeset.items():
                         match(i):
                             case HasPropertyAttr.MIN_COUNT:
