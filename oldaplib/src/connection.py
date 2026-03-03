@@ -22,7 +22,7 @@ from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission, OldapErrorNotFound
 from oldaplib.src.helpers.context import Context, DEFAULT_CONTEXT
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.serializer import serializer
@@ -268,6 +268,29 @@ class Connection(IConnection):
         """Getter for repository name"""
         return self._repo
 
+
+    def graph_exists(self, graph: Xsd_QName) -> bool:
+        """Checks if the given RDF graph exists in the system.
+
+        This method uses the SPARQL ASK query to determine if the specified graph
+        exists. It returns True if the graph exists, and False otherwise.
+
+        :param graph: RDF graph name as QName. The prefix must be defined
+        :return: True if the graph exists, False otherwise
+        """
+        context = Context(name=self.context_name)
+        sparql = context.sparql_context
+        sparql += f"""
+        ASK {{
+            GRAPH {graph.toRdf} {{
+                ?s ?p ?o
+            }}
+        }}
+        """
+        result = self.query(sparql)
+        return bool(result['boolean'])
+
+
     def clear_graph(self, graph_iri: Xsd_QName) -> None:
         """
         Clears (deletes) the given RDF graph from the system.
@@ -339,6 +362,10 @@ class Connection(IConnection):
             is_root = True
         if not is_root:
             raise OldapErrorNoPermission("No permission")
+
+        if not self.graph_exists(from_graph_iri):
+            logger.warning(f'Graph "{from_graph_iri}" does not exist.')
+            raise OldapErrorNotFound(f'Graph "{from_graph_iri}" does not exist.')
 
         context = Context(name=self._context_name)
         headers = {

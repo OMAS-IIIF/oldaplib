@@ -339,6 +339,15 @@ class TestBasicConnection(unittest.TestCase):
         for r in res:
             self.assertEqual(str(r['o']), "WASELIWAS ISCH DAS DENN AU?")
 
+    def test_graph_existings(self):
+        self.assertTrue(self._connection.graph_exists(Xsd_QName('test:shacl')))
+        self.assertFalse(self._connection.graph_exists(Xsd_QName('test:gaga')))
+
+    def test_move_graph_inexisting(self):
+        with self.assertRaises(OldapErrorNotFound) as ex:
+            self._connection.move_graph(Xsd_QName('test:gaga'), Xsd_QName('test:gugus'))
+
+
     def test_context(self):
         context = Context(name=self._connection.context_name)
         self.assertEqual("http://oldap.org/base#", self._context['oldap'])

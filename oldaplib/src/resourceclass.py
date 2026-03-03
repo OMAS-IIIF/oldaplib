@@ -1864,10 +1864,16 @@ class ResourceClass(Model, Notify):
                             case HasPropertyAttr.MIN_COUNT:
                                 if self._properties[item][HasPropertyAttr.MIN_COUNT] is None:
                                     continue
+                                if self._properties[item].changeset[HasPropertyAttr.MIN_COUNT].old_value is None:
+                                    self._test_in_use = True
+                                    continue
                                 if (self._properties[item][HasPropertyAttr.MIN_COUNT] > self._properties[item].changeset[HasPropertyAttr.MIN_COUNT].old_value):
                                     self._test_in_use = True
                             case HasPropertyAttr.MAX_COUNT:
                                 if self._properties[item][HasPropertyAttr.MAX_COUNT] is None:
+                                    continue
+                                if self._properties[item].changeset[HasPropertyAttr.MAX_COUNT].old_value is None:
+                                    self._test_in_use = True
                                     continue
                                 if (self._properties[item][HasPropertyAttr.MAX_COUNT] < self._properties[item].changeset[HasPropertyAttr.MAX_COUNT].old_value):
                                     self._test_in_use = True
