@@ -345,7 +345,7 @@ class Connection(IConnection):
             "Content-Type": "application/sparql-update",
             "Accept": "application/json, text/plain, */*",
         }
-        data = f"MOVE GRAPH <{context.qname2iri(from_graph_iri)} TO GRAPH {context.qname2iri(to_graph_iri)}>"
+        data = f"MOVE GRAPH <{context.qname2iri(from_graph_iri)}> TO GRAPH <{context.qname2iri(to_graph_iri)}>"
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         req = requests.post(self._update_url,
                             headers=headers,
