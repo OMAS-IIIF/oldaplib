@@ -1636,7 +1636,8 @@ class ResourceInstanceFactory:
         else:
             self._project = Project.read(self._con, project)
         self._sharedProject = Project.read(self._con, "oldap:SharedProject")
-        self._user_default_roles = {r: DataPermission.from_qname(p) for r, p in self._con._userdata.hasRole.items()}
+        if self._con._userdata.hasRole:
+            self._user_default_roles = {r: DataPermission.from_qname(p) for r, p in self._con._userdata.hasRole.items()}
 
         self._datamodel = DataModel.read(con=self._con, project=self._project)
         self._sharedModel = DataModel.read(con=self._con, project=self._sharedProject)
