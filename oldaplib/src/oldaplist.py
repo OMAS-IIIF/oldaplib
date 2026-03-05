@@ -502,11 +502,8 @@ class OldapList(Model):
                     definition.add(r['val'])
         if prefLabel:
             prefLabel.clear_changeset()
-            prefLabel.set_notifier(cls.notifier, Xsd_QName(OldapListAttr.PREF_LABEL.value))
         if definition:
             definition.clear_changeset()
-            definition.set_notifier(cls.notifier, Xsd_QName(OldapListAttr.DEFINITION.value))
-
         instance = cls(con=con,
                        project=project,
                        oldapListId=oldapListId,

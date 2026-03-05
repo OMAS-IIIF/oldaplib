@@ -236,7 +236,7 @@ class ExternalOntology(Model, Notify):
         jsonobj = con.query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
-            raise OldapErrorNotFound(f'No external ontology "{cls.__extonto_qname}" found.')
+            raise OldapErrorNotFound(f'No external ontology "{extonto_qname}" found.')
         creator: Iri | None = None
         created: Xsd_dateTime | None = None
         contributor: Iri | None = None
@@ -265,10 +265,8 @@ class ExternalOntology(Model, Notify):
                     comment.add(r['o'])
         if comment:
             comment.clear_changeset()
-            comment.set_notifier(cls.notifier, Xsd_QName(ExternalOntologyAttr.LABEL.value))
         if label:
             label.clear_changeset()
-            label.set_notifier(cls.notifier, Xsd_QName(ExternalOntologyAttr.LABEL.value))
         instance = cls(con=con,
                        projectShortName=projectShortName,
                        creator=creator,

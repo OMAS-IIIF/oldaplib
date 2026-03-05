@@ -382,13 +382,10 @@ class Role(Model):
                     comment.add(r['o'])
                 case 'oldap:definedByProject':
                     _definedByProject = r['o']
-        cls.__role_iri = role_iri
         if comment:
             comment.clear_changeset()
-            comment.set_notifier(cls.notifier, Xsd_QName(RoleAttr.LABEL.value))
         if label:
             label.clear_changeset()
-            label.set_notifier(cls.notifier, Xsd_QName(RoleAttr.LABEL.value))
         instance = cls(con=con,
                        roleId=Xsd_NCName(_roleId, validate=False),
                        creator=creator,

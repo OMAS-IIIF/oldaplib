@@ -332,6 +332,39 @@ class TestPermissionSet(unittest.TestCase):
         ps = Role.read(con=self._connection, roleId=psId, definedByProject=Iri('oldap:SystemProject'), ignore_cache=True)
         ps.delete()
 
+    def test_update_permission_set_with_cache(self):
+        ps = Role(con=self._connection,
+                  roleId="testUpdatePerm",
+                  label=LangString("testUpdatePerm@en", "testVerändernPerm@de"),
+                  comment=LangString("Testing update of PermissionSet@en", "Test einer Veränderung eines PermissionSet@Perm@de"),
+                  definedByProject=Iri('oldap:SystemProject'))
+        ps.create()
+
+        psId = ps.roleId
+        del ps
+        ps = Role.read(con=self._connection, roleId=psId, definedByProject=Iri('oldap:SystemProject'))
+        ps.label[Language.FR] = "testeModificationPerm"
+        ps.update()
+        ps = Role.read(con=self._connection, roleId=psId, definedByProject=Iri('oldap:SystemProject'))
+        self.assertEqual(ps.label, LangString("testUpdatePerm@en", "testVerändernPerm@de", "testeModificationPerm@fr"))
+        del ps.comment
+        ps.update()
+        self.assertIsNone(ps.comment)
+        self.assertIsNone(ps.get(RoleAttr.COMMENT))
+
+        ps = Role.read(con=self._connection, roleId=psId, definedByProject=Iri('oldap:SystemProject'))
+        ps.comment = LangString("gagagaga@en")
+        with self.assertRaises(OldapErrorImmutable):
+            ps[RoleAttr.DEFINED_BY_PROJECT] = Iri('oldap:HyperHamlet')
+
+        ps = Role.read(con=self._unpriv, roleId=psId, definedByProject=Iri('oldap:SystemProject'))
+        ps.comment = LangString("gagagaga@fr")
+        with self.assertRaises(OldapErrorNoPermission):
+            ps.update()
+
+        ps = Role.read(con=self._connection, roleId=psId, definedByProject=Iri('oldap:SystemProject'))
+        ps.delete()
+
 
     def test_update_permissionset_B(self):
         ps = Role(con=self._connection,

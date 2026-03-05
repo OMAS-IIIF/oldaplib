@@ -352,10 +352,8 @@ class Project(Model):
                     projectEnd = r['val']
         if label:
             label.clear_changeset()
-            label.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.LABEL.value))
         if comment:
             comment.clear_changeset()
-            comment.set_notifier(cls.notifier, Xsd_QName(ProjectAttr.COMMENT.value))
         context[projectShortName] = namespaceIri
         instance = cls(con=con,
                        creator=creator,
