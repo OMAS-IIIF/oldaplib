@@ -415,6 +415,10 @@ class DataModel(Model):
         :raises OldapErrorNotFound: If the data model is not found in the triple store.
         :raises OldapErrorInconsistency: If the SHACL and OWL ontology versions do not match.
         """
+        logger = logging.getLogger(__name__)
+
+        logger.debug(f'Reading datamodel for project {project}')
+
         if isinstance(project, Project):
             project = project
         else:
@@ -424,74 +428,74 @@ class DataModel(Model):
             tmp = cache.get(Xsd_QName(project.projectShortName, 'shacl'), connection=con)
             if tmp is not None:
                 return tmp
-        cls.__context = Context(name=con.context_name)
-        cls.__context[project.projectShortName] = project.namespaceIri
-        cls.__context.use(project.projectShortName)
-        cls.__graph = project.projectShortName
+        context = Context(name=con.context_name)
+        context[project.projectShortName] = project.namespaceIri
+        context.use(project.projectShortName)
+        graph = project.projectShortName
         #
         # first we read the shapes metadata
         #
-        query = cls.__context.sparql_context
+        query = context.sparql_context
         query += f"""
         SELECT ?version
         WHERE {{
-            GRAPH {cls.__graph}:shacl {{
-                {cls.__graph}:shapes schema:version ?version .
+            GRAPH {graph}:shacl {{
+                {graph}:shapes schema:version ?version .
             }}
         }}
         """
         jsonobj = con.query(query)
-        res = QueryProcessor(context=cls.__context, query_result=jsonobj)
+        res = QueryProcessor(context=context, query_result=jsonobj)
         if len(res) == 0:
-            raise OldapErrorNotFound(f'Datamodel "{cls.__graph}:shacl" not found')
-        cls.__version = SemanticVersion.fromString(res[0]['version'])
+            raise OldapErrorNotFound(f'Datamodel "{graph}:shacl" not found')
+        version = SemanticVersion.fromString(res[0]['version'])
 
         #
         # now we read the OWL ontology metadata
         #
-        query = cls.__context.sparql_context
+        query = context.sparql_context
         query += f"""
         SELECT ?version
-        FROM {cls.__graph}:onto
+        FROM {graph}:onto
         WHERE {{
-            {cls.__graph}:ontology owl:versionInfo ?version .
+            {graph}:ontology owl:versionInfo ?version .
         }}
         """
         jsonobj = con.query(query)
-        res = QueryProcessor(context=cls.__context, query_result=jsonobj)
+        res = QueryProcessor(context=context, query_result=jsonobj)
         if len(res) == 0:
-            raise OldapErrorNotFound(f'Datamodel "{cls.__graph}:onto" not found')
-        version = SemanticVersion.fromString(res[0]['version'])
-        if version != cls.__version:
-            raise OldapErrorInconsistency(f'Versionnumber of SHACL ({cls.__version}) and OWL ({version}) do not match')
+            raise OldapErrorNotFound(f'Datamodel "{graph}:onto" not found')
+        owlversion = SemanticVersion.fromString(res[0]['version'])
+        if owlversion != version:
+            raise OldapErrorInconsistency(f'Versionnumber of SHACL ({version}) and OWL ({owlversion}) do not match')
         #
         # now read the external ontologies that are used in this datamodel
         #
         extontos = ExternalOntology.search(con=con, projectShortName=project.projectShortName)
         for onto in extontos:
-            cls.__context[onto.prefix] = NamespaceIRI(str(onto.namespaceIri))
+            context[onto.prefix] = NamespaceIRI(str(onto.namespaceIri))
 
         #
         # now get the QNames of all standalone properties within the data model
         #
-        query = cls.__context.sparql_context
+        query = context.sparql_context
         query += f"""
         SELECT ?prop
         WHERE {{
-            GRAPH {cls.__graph}:shacl {{
+            GRAPH {graph}:shacl {{
                 ?prop a sh:PropertyShape
             }}
         }}
         """
 
         jsonobj = con.query(query)
-        res = QueryProcessor(context=cls.__context, query_result=jsonobj)
+        res = QueryProcessor(context=context, query_result=jsonobj)
         #
         # now read all standalone properties
         #
         propclasses: list[PropertyClass] = []
         for r in res:
-            projectid = cls.__graph
+            projectid = graph
             propnameshacl = str(r['prop'])
             propclassiri = propnameshacl.removesuffix("Shape")
             propclass = PropertyClass.read(con, projectid, Xsd_QName(propclassiri, validate=False), ignore_cache=ignore_cache)
@@ -502,16 +506,17 @@ class DataModel(Model):
         #
         # now get all resources defined in the data model
         #
-        query = cls.__context.sparql_context
+        query = context.sparql_context
         query += f"""
         SELECT ?shape
-        FROM {cls.__graph}:shacl
+        FROM {graph}:shacl
         WHERE {{
             ?shape a sh:NodeShape
         }}
         """
         jsonobj = con.query(query)
-        res = QueryProcessor(context=cls.__context, query_result=jsonobj)
+
+        res = QueryProcessor(context=context, query_result=jsonobj)
         #
         # now read all resource classes
         #
@@ -523,10 +528,11 @@ class DataModel(Model):
             # create empty data model -> update -> add resource without property -> add property -> update
             # _prop_changeset is not empoty after update... ERROR!!!!!!!!!!!!!!!!!!!!!
             try:
-                resclass = ResourceClass.read(con, project, Xsd_QName(resclassiri, validate=False), sa_props=sa_props, ignore_cache=ignore_cache)
+                resclass = ResourceClass.read(con=con, project=project, owl_class_iri=Xsd_QName(resclassiri, validate=False), sa_props=sa_props, ignore_cache=ignore_cache)
+                resclass.clear_changeset()
                 resclasses.append(resclass)
             except OldapError as er:
-                print(f'Error reading resource class {resclassiri}: {er}')
+                print(f'Error reading resource class "{resclassiri}" of project "{graph}": {er}')
         instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses, extontos=extontos)
         for qname in instance.get_extontos():
             instance[qname].set_notifier(instance.notifier, qname)

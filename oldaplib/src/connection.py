@@ -5,6 +5,7 @@ import time
 import bcrypt
 import jwt
 import requests
+import logging
 
 from jwt import InvalidTokenError
 from typing import Dict, Optional, Any
@@ -14,7 +15,6 @@ from pathlib import Path
 
 from requests.auth import HTTPBasicAuth
 
-from oldaplib.src.oldaplogging import get_logger
 from oldaplib.src.version import __version__
 
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
@@ -149,7 +149,7 @@ class Connection(IConnection):
         self._update_url = f'{self._server}/repositories/{self._repo}/statements'
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
 
-        logger = get_logger()
+        logger = logging.getLogger(__name__)
 
         context = Context(name=context_name)
         if token is not None:
@@ -309,7 +309,7 @@ class Connection(IConnection):
                                         permission to clear the graph.
         :raises OldapError: If the SPARQL update operation fails.
         """
-        logger = get_logger()
+        logger = logging.getLogger(__name__)
         if not self._userdata:
             logger.error("Connection with no permission to clear graph.")
             raise OldapErrorNoPermission("No permission")
@@ -351,7 +351,7 @@ class Connection(IConnection):
         :type to_graph_iri: Xsd_QName
         :return: None
         """
-        logger = get_logger()
+        logger = logging.getLogger(__name__)
         if not self._userdata:
             logger.error("Connection with no permission to clear graph.")
             raise OldapErrorNoPermission("No permission")
@@ -413,7 +413,7 @@ class Connection(IConnection):
 
         :raises OldapError: If the recomputation of inference fails due to a non-OK response from the server.
         """
-        logger = get_logger()
+        logger = logging.getLogger(__name__)
         url = f"{self._server.rstrip('/')}/rest/repositories/{self._repo}/recompute-inference"
 
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
@@ -434,7 +434,7 @@ class Connection(IConnection):
 
         This call is synchronous: when it returns without error, the data is loaded.
         """
-        logger = get_logger()
+        logger = logging.getLogger(__name__)
 
         ext = Path(filename).suffix.lower()
         if ext == ".ttl":
@@ -485,7 +485,7 @@ class Connection(IConnection):
         :rtype: Any
         :raises OldapError: Raised if not logged in or if there is an issue with the query execution.
         """
-        logger = get_logger()
+        logger = logging.getLogger(__name__)
         if not self._userdata:
             logger.error("Not a valid user session.")
             raise OldapError("No login")
@@ -520,7 +520,7 @@ class Connection(IConnection):
         :rtype: Dict[str, str
         :raises OldapError: If user authentication is missing or the SPARQL UPDATE execution fails.
         """
-        logger = get_logger()
+        logger = logging.getLogger(__name__)
         if not self._userdata:
             logger.error("Not a valid user session.")
             raise OldapError("No login")

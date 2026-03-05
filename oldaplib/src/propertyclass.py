@@ -25,7 +25,6 @@ from typing import Callable, Self, Any
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.serializer import serializer
-from oldaplib.src.oldaplogging import get_logger
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet
@@ -1013,7 +1012,7 @@ class PropertyClass(Model, Notify):
         :raises OldapError: Generic error indicating an issue when reading from the triple store.
         :raises OldapErrorInconsistency: Inconsistency between SHACL and OWL.
         """
-        logger = get_logger()
+        logger = logging.getLogger(__name__)
 
         if not isinstance(property_class_iri, Xsd_QName):
             property_class_iri = Xsd_QName(property_class_iri)
