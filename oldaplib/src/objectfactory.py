@@ -56,6 +56,67 @@ class SortBy:
     dir: SortDir = SortDir.asc
 
 
+def creator_or_max_perm_block(
+    *,
+    graph_data: str,      # e.g. f"{graph}:data"
+    resource_iri: str,    # e.g. iri.toRdf
+    user_iri: str,        # e.g. con.userIri.toRdf
+    min_perm: str,        # e.g. DataPermission.DATA_VIEW.numeric.toRdf
+    alias: str = "acc",   # avoid var collisions when used multiple times
+    include_creator: bool = True
+) -> str:
+    """
+    Helper class to determine the permissions and act accordingly
+    """
+    r = f"?{alias}_role"
+    dp = f"?{alias}_dataperm"
+    pv = f"?{alias}_permval"
+    pv_sub = f"?{alias}_pv"
+    maxp = f"?{alias}_maxPerm"
+
+    creator_branch = textwrap.dedent(f"""
+    {{
+        GRAPH {graph_data} {{
+            {resource_iri} oldap:createdBy {user_iri} .
+        }}
+    }}
+    """).strip()
+
+    perm_branch = textwrap.dedent(f"""
+    {{
+        {{
+            SELECT (MAX(xsd:integer({pv_sub})) AS {maxp})
+            WHERE {{
+                GRAPH oldap:admin {{
+                    {user_iri} oldap:hasRole {r} .
+                }}
+                GRAPH {graph_data} {{
+                    {resource_iri} oldap:attachedToRole {r} .
+                    <<{resource_iri} oldap:attachedToRole {r}>> oldap:hasDataPermission {dp} .
+                }}
+                GRAPH oldap:admin {{
+                    {dp} oldap:permissionValue {pv_sub} .
+                    FILTER({pv_sub} >= {min_perm})
+                }}
+            }}
+        }}
+        GRAPH oldap:admin {{
+            {user_iri} oldap:hasRole {r} .
+            {dp} oldap:permissionValue {pv} .
+        }}
+        GRAPH {graph_data} {{
+            {resource_iri} oldap:attachedToRole {r} .
+            <<{resource_iri} oldap:attachedToRole {r}>> oldap:hasDataPermission {dp} .
+        }}
+        FILTER({pv} >= {min_perm} && xsd:integer({pv}) = {maxp})
+    }}
+    """).strip()
+
+    if include_creator:
+        return f"{{\n{creator_branch}\n}}\nUNION\n{{\n{perm_branch}\n}}"
+    return perm_branch
+
+
 #@strict
 class ResourceInstance:
     """
@@ -663,31 +724,25 @@ class ResourceInstance:
         """
         graph = cls.project.projectShortName
         context = Context(name=con.context_name)
+        access_block = creator_or_max_perm_block(
+            graph_data=f"{graph}:data",
+            resource_iri=iri.toRdf,
+            user_iri=con.userIri.toRdf,
+            min_perm=DataPermission.DATA_VIEW.numeric.toRdf,
+            alias="read1",
+            include_creator=True
+        )
         sparql = context.sparql_context
         sparql += textwrap.dedent(f'''
         SELECT DISTINCT ?predicate ?value
         WHERE {{
-            {{
-                GRAPH {graph}:data {{
-                    {iri.toRdf} oldap:createdBy {con.userIri.toRdf} .
-                }}
-            }}
-            UNION
-            {{
-                GRAPH oldap:admin {{
-                    {con.userIri.toRdf} oldap:hasRole ?role .
-                    ?dataperm oldap:permissionValue ?permval .
-                    FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
-                }}
-            }}
+            {access_block}
             GRAPH {graph}:data {{
                 {iri.toRdf} ?predicate ?value .
-                {iri.toRdf} oldap:attachedToRole ?role .
-                <<{iri.toRdf} oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
             }}
-
         }}
         ''')
+
         jsonres = con.query(sparql)
         res = QueryProcessor(context, jsonres)
         objtype = None
@@ -1062,27 +1117,21 @@ class ResourceInstance:
             graph = projectShortName
 
         context = Context(name=con.context_name)
+        access_block = creator_or_max_perm_block(
+            graph_data=f"{graph}:data",
+            resource_iri=iri.toRdf,
+            user_iri=con.userIri.toRdf,
+            min_perm=DataPermission.DATA_VIEW.numeric.toRdf,
+            alias="read1",
+            include_creator=True
+        )
         sparql = context.sparql_context
         sparql += textwrap.dedent(f'''
         SELECT DISTINCT ?predicate ?value
         WHERE {{
-            {{
-                GRAPH {graph}:data {{
-                    {iri.toRdf} oldap:createdBy {con.userIri.toRdf} .
-                }}
-            }}
-            UNION
-            {{
-                GRAPH oldap:admin {{
-                    {con.userIri.toRdf} oldap:hasRole ?role .
-                    ?dataperm oldap:permissionValue ?permval .
-                    FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
-                }}
-            }}
+            {access_block}
             GRAPH {graph}:data {{
                 {iri.toRdf} ?predicate ?value .
-                {iri.toRdf} oldap:attachedToRole ?role .
-                <<{iri.toRdf} oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
             }}
         }}
         ''')
@@ -1457,11 +1506,29 @@ class ResourceInstance:
         blank = ''
         context = Context(name=con.context_name)
         sparql = context.sparql_context
-
         sparql += textwrap.dedent(f"""
-        SELECT ?subject ?graph ?path ?prop ?val ?permval
+        SELECT DISTINCT ?subject ?graph ?path ?prop ?val ?permval
         WHERE {{
             VALUES ?inputImageId {{ {mediaObjectId.toRdf} }}
+            {{
+                SELECT ?subject ?graph (MAX(xsd:integer(?pv)) AS ?maxPerm)
+                WHERE {{
+                    ?subject rdf:type shared:MediaObject .
+                    GRAPH oldap:admin {{
+                        {con.userIri.toRdf} oldap:hasRole ?role .
+                    }}
+                    GRAPH ?graph {{
+                        ?subject oldap:attachedToRole ?role .
+                        <<?subject oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
+                        ?subject shared:assetId ?inputImageId .
+                    }}
+                    GRAPH oldap:admin {{
+                        ?dataperm oldap:permissionValue ?pv .
+                    }}
+                }}
+                GROUP BY ?subject ?graph
+            }}
+
             ?subject rdf:type shared:MediaObject .
             GRAPH oldap:admin {{
                 {con.userIri.toRdf} oldap:hasRole ?role .
@@ -1471,8 +1538,11 @@ class ResourceInstance:
                 ?subject oldap:attachedToRole ?role .
                 <<?subject oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
                 ?subject shared:assetId ?inputImageId .
+                OPTIONAL {{ ?subject shared:path ?path . }}
                 ?subject ?prop ?val .
             }}
+
+            FILTER(xsd:integer(?permval) = ?maxPerm)
         }}
         """)
         try:
@@ -1528,22 +1598,44 @@ class ResourceInstance:
         blank = ''
         context = Context(name=con.context_name)
         sparql = context.sparql_context
-
-        sparql += f"""
+        sparql += textwrap.dedent(f"""
         SELECT ?graph ?prop ?val ?permval
         WHERE {{
-            {mediaObjectIri.toRdf} rdf:type shared:MediaObject .
+            BIND({mediaObjectIri.toRdf} AS ?obj)
+            BIND({con.userIri.toRdf} AS ?user)
+            # max permval per graph (remove ?graph/GROUP BY if you want global max)
+            {{
+                SELECT ?graph (MAX(xsd:integer(?pv)) AS ?maxPerm)
+                WHERE {{
+                    ?obj rdf:type shared:MediaObject .
+                    GRAPH oldap:admin {{
+                        ?user oldap:hasRole ?role .
+                    }}
+                    GRAPH ?graph {{
+                        ?obj oldap:attachedToRole ?role .
+                        <<?obj oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
+                    }}
+                    GRAPH oldap:admin {{
+                        ?dataperm oldap:permissionValue ?pv .
+                    }}
+                }}
+                GROUP BY ?graph
+            }}
+
+            ?obj rdf:type shared:MediaObject .
             GRAPH oldap:admin {{
-                {con.userIri.toRdf} oldap:hasRole ?role .
+                ?user oldap:hasRole ?role .
                 ?dataperm oldap:permissionValue ?permval .
             }}
             GRAPH ?graph {{
-                {mediaObjectIri.toRdf} oldap:attachedToRole ?role .
-                <<{mediaObjectIri.toRdf} oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
-                {mediaObjectIri.toRdf} ?prop ?val .
+                ?obj oldap:attachedToRole ?role .
+                <<?obj oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
+                ?obj ?prop ?val .
             }}
+
+            FILTER(xsd:integer(?permval) = ?maxPerm)
         }}
-        """
+        """)
         try:
             jsonres = con.query(sparql)
         except OldapError:

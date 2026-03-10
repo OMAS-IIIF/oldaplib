@@ -6,8 +6,10 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dcmitype: <http://purl.org/dc/dcmitype/> .
 @prefix schema: <http://schema.org/> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix sf:     <http://www.opengis.net/ont/sf#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
 @prefix oldap: <http://oldap.org/base#> .
-
 
 @prefix shared: <http://oldap.org/shared#> .
 @prefix : <http://oldap.org/shared#> .
@@ -32,8 +34,8 @@ shared:shacl {
     ###########################################################################
     # Chronology Date definitions
     ###########################################################################
-    oldap:ChronolgyStatementShape a sh:NodeShape ;
-        sh:targetClass oldap:ChronolgyStatement ;
+    oldap:DatingShape a sh:NodeShape ;
+        sh:targetClass oldap:Dating ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -42,32 +44,41 @@ shared:shacl {
             sh:path rdf:type ;
         ] ;
         sh:property [
-            sh:path oldap:startJDC ;
+            sh:path oldap:verbatimDate ;
             dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:datatype xsd:decimal ;
-        ] ;
-        sh:property [
-            sh:path oldap:endJDC ;
-            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:maxCount "1"^^xsd:nonNegativeInteger ;
-            sh:datatype xsd:decimal ;
-        ] ;
-        sh:property [
-            sh:path oldap:calendar ;
-            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:maxCount "1"^^xsd:nonNegativeInteger ;
             sh:datatype xsd:string ;
-            sh:in ("GREGORIAN"^^xsd:string "JULIAN"^^xsd:string "HEBREW"^^xsd:string "ISLAMIC"^^xsd:string "PERSIAN"^^xsd:string) ;
+        ] ;
+        sh:property [
+            sh:path oldap:normalizedBegin ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:datatype xsd:date ;
+        ] ;
+        sh:property [
+            sh:path oldap:normalizedEnd ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:nonNegativeInteger ;
+            sh:datatype xsd:date ;
+        ] ;
+        sh:property [
+            sh:path oldap:inCalendar ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:maxCount "1"^^xsd:nonNegativeInteger ;
+            sh:class oldap:Calendar ;
+            sh:in (oldap:GregorianCalendar oldap:JulianCalendar oldap:HebrewCalendar oldap:IslamicCalendar oldap:PersianCalendar) ;
        ] ;
         sh:property [
             sh:path oldap:before ;
@@ -75,35 +86,7 @@ shared:shacl {
             dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
             dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
             dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:maxCount "1"^^xsd:nonNegativeInteger ;
-            sh:class oldap:ChronolgyStatement ;
-        ] ;
-        sh:property [
-            sh:path oldap:after ;
-            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:maxCount "1"^^xsd:nonNegativeInteger ;
-            sh:class oldap:ChronolgyStatement ;
-        ] ;
-        sh:property [
-            sh:path oldap:minDelta ;
-            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:maxCount "1"^^xsd:nonNegativeInteger ;
-            sh:datatype xsd:decimal ;
-        ] ;
-        sh:property [
-            sh:path oldap:maxDelta ;
-            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-            sh:maxCount "1"^^xsd:nonNegativeInteger ;
-            sh:datatype xsd:decimal ;
+            sh:class oldap:Dating ;
         ] .
 
     ###############################################################################
@@ -335,6 +318,89 @@ shared:onto {
     shared:ontology rdf:type owl:Ontology ;
         owl:versionInfo "0.1.0"^^xsd:string .
 
+    ###########################################################################
+    # Calendar vocabulary for historical dating
+    ###########################################################################
+
+    oldap:Calendar rdf:type owl:Class ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Calendar"@en, "Kalender"@de, "Calendrier"@fr, "Calendario"@it ;
+        rdfs:comment "Controlled vocabulary of calendrical systems used for historical dating."@en,
+                     "Kontrolliertes Vokabular der Kalendersysteme für historische Datierungen."@de,
+                     "Vocabulaire contrôlé des systèmes calendaires utilisés pour la datation historique."@fr,
+                     "Vocabolario controllato dei sistemi di calendario usati per la datazione storica."@it .
+
+    oldap:GregorianCalendar rdf:type oldap:Calendar, owl:NamedIndividual ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Gregorian calendar"@en, "Gregorianischer Kalender"@de, "Calendrier grégorien"@fr, "Calendario gregoriano"@it ;
+        rdfs:comment "The Gregorian calendar."@en,
+                     "Der gregorianische Kalender."@de,
+                     "Le calendrier grégorien."@fr,
+                     "Il calendario gregoriano."@it .
+
+    oldap:JulianCalendar rdf:type oldap:Calendar, owl:NamedIndividual ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Julian calendar"@en, "Julianischer Kalender"@de, "Calendrier julien"@fr, "Calendario giuliano"@it ;
+        rdfs:comment "The Julian calendar."@en,
+                     "Der julianische Kalender."@de,
+                     "Le calendrier julien."@fr,
+                     "Il calendario giuliano."@it .
+
+    oldap:HebrewCalendar rdf:type oldap:Calendar, owl:NamedIndividual ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Hebrew calendar"@en, "Hebräischer Kalender"@de, "Calendrier hébraïque"@fr, "Calendario ebraico"@it ;
+        rdfs:comment "The Hebrew calendar."@en,
+                     "Der hebräische Kalender."@de,
+                     "Le calendrier hébraïque."@fr,
+                     "Il calendario ebraico."@it .
+
+    oldap:IslamicCalendar rdf:type oldap:Calendar, owl:NamedIndividual ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Islamic calendar"@en, "Islamischer Kalender"@de, "Calendrier islamique"@fr, "Calendario islamico"@it ;
+        rdfs:comment "The Islamic calendar."@en,
+                     "Der islamische Kalender."@de,
+                     "Le calendrier islamique."@fr,
+                     "Il calendario islamico."@it .
+
+    oldap:PersianCalendar rdf:type oldap:Calendar, owl:NamedIndividual ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:label "Persian calendar"@en, "Persischer Kalender"@de, "Calendrier persan"@fr, "Calendario persiano"@it ;
+        rdfs:comment "The Persian calendar."@en,
+                     "Der persische Kalender."@de,
+                     "Le calendrier persan."@fr,
+                     "Il calendario persiano."@it .
+
+    oldap:inCalendar rdf:type owl:ObjectProperty ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
+        rdfs:domain oldap:Dating ;
+        rdfs:range oldap:Calendar ;
+        rdfs:label "calendar"@en, "Kalender"@de, "calendrier"@fr, "calendario"@it ;
+        rdfs:comment "Links a dating resource to the calendrical system in which it is expressed."@en,
+                     "Verknüpft eine Datierungsressource mit dem Kalendersystem, in dem sie ausgedrückt ist."@de,
+                     "Relie une ressource de datation au système calendaire dans lequel elle est exprimée."@fr,
+                     "Collega una risorsa di datazione al sistema di calendario in cui è espressa."@it .
+
     ###############################################################################
     # Generic comment property
     ###############################################################################
@@ -350,67 +416,43 @@ shared:onto {
     # Properties used for :ChronologyObject
     ###############################################################################
 
-    oldap:startJDC rdf:type owl:DatatypeProperty ;
+    oldap:verbatimDate rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain oldap:ChronolgyStatement ;
-        rdfs:range xsd:decimal .
-
-    oldap:endJDC rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain oldap:ChronolgyStatement ;
-        rdfs:range xsd:decimal .
-
-    oldap:calendar rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain oldap:ChronolgyStatement ;
+        rdfs:domain oldap:Dating ;
         rdfs:range xsd:string .
 
-    oldap:before rdf:type owl:ObjectProperty ;
+    oldap:normalizedBegin rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain oldap:ChronolgyStatement ;
-        rdfs:range oldap:ChronolgyStatement .
+        rdfs:domain oldap:Dating ;
+        rdfs:range xsd:date .
 
-    oldap:after rdf:type owl:ObjectProperty ;
+    oldap:normalizedEnd rdf:type owl:DatatypeProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain oldap:ChronolgyStatement ;
-        rdfs:range oldap:ChronolgyStatement .
+        rdfs:domain oldap:Dating ;
+        rdfs:range xsd:date .
 
-    oldap:minDelta rdf:type owl:DatatypeProperty ;
+    oldap:before rdf:type owl:ObjectProperty, owl:TransitiveProperty ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain oldap:ChronolgyStatement ;
-        rdfs:range xsd:decimal .
-
-    oldap:maxDelta rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain oldap:ChronolgyStatement ;
-        rdfs:range xsd:decimal .
+        rdfs:domain oldap:Dating ;
+        rdfs:range oldap:Dating .
 
     ###########################################################################
     # Chronology Date Resource
     ###########################################################################
 
-    oldap:ChronolgyStatement rdf:type owl:Class ;
+    oldap:Dating rdf:type owl:Class ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
@@ -418,45 +460,33 @@ shared:onto {
         rdfs:subClassOf
             [
                 rdf:type owl:Restriction ;
-                owl:onProperty oldap:startJDC ;
-                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:decimal
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty oldap:endJDC ;
-                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:decimal
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty oldap:chronoCalendar ;
+                owl:onProperty oldap:verbatimDate ;
                 owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                 owl:onDataRange xsd:string
             ] ,
             [
                 rdf:type owl:Restriction ;
+                owl:onProperty oldap:normalizedBegin ;
+                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDataRange xsd:date
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty oldap:normalizedEnd ;
+                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onDataRange xsd:date
+            ] ,
+            [
+                rdf:type owl:Restriction ;
+                owl:onProperty oldap:inCalendar ;
+                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                owl:onClass oldap:Calendar
+            ] ,
+            [
+                rdf:type owl:Restriction ;
                 owl:onProperty oldap:before ;
-                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onClass oldap:ChronolgyStatement
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty oldap:after ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onClass oldap:ChronolgyStatement
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty oldap:minDelta ;
-                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:decimal
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty oldap:maxDelta ;
-                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:decimal
+                owl:onClass oldap:Dating ;
+                owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger # TODO: change to owl:allValuesFrom oldap:Dating
             ] .
 
     ###########################################################################
