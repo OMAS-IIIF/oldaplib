@@ -1643,7 +1643,7 @@ class PropertyClass(Model, Notify):
                                  XsdDatatypes.long, XsdDatatypes.integer, XsdDatatypes.short, XsdDatatypes.byte,
                                  XsdDatatypes.nonNegativeInteger, XsdDatatypes.positiveInteger, XsdDatatypes.unsignedLong,
                                  XsdDatatypes.unsignedInt, XsdDatatypes.unsignedShort, XsdDatatypes.unsignedByte,
-                                 XsdDatatypes.dateTime, XsdDatatypes.dateTimeStamp, XsdDatatypes.time, XsdDatatypes.gYearMonth,
+                                 XsdDatatypes.date, XsdDatatypes.dateTime, XsdDatatypes.dateTimeStamp, XsdDatatypes.time, XsdDatatypes.gYearMonth,
                                  XsdDatatypes.gYear}:
                 # numeric literal datatypes, delete string restrictions
                 if self.minLength is not None:

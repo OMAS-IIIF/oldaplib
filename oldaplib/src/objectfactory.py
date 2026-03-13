@@ -328,7 +328,6 @@ class ResourceInstance:
         if property.get(PropClassAttr.UNIQUE_LANG):
             return  # TODO: LangString does not yet allow multiple entries of the same language...
         if property.get(PropClassAttr.IN):
-            #for val in values:
             if property.datatype is None:  # no defined datatype, e.h.sh:IRI
                 tmpinset = {str(x) for x in property[PropClassAttr.IN]}
                 if isinstance(values, (list, tuple, set, ObservableSet)):
@@ -349,70 +348,146 @@ class ResourceInstance:
                     if not values in property[PropClassAttr.IN]:
                         raise OldapErrorValue(f'Property {property.property_class_iri} with IN={property[PropClassAttr.IN]} has invalid value "{values}"')
         if property.get(PropClassAttr.MIN_LENGTH):
-            for val in values:
+            if isinstance(values, (list, tuple, set, ObservableSet)):
+                for val in values:
+                    l = 0
+                    try:
+                        l = len(val)
+                    except TypeError:
+                        raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has no length.')
+                    if l < property[PropClassAttr.MIN_LENGTH]:
+                        raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has length "{len(val)}".')
+            else:
                 l = 0
                 try:
-                    l = len(val)
+                    l = len(values)
                 except TypeError:
                     raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has no length.')
                 if l < property[PropClassAttr.MIN_LENGTH]:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has length "{len(val)}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has length "{len(values)}".')
         if property.get(PropClassAttr.MAX_LENGTH):
-            for val in values:
+            if isinstance(values, (list, tuple, set, ObservableSet)):
+                for val in values:
+                    l = 0
+                    try:
+                        l = len(val)
+                    except TypeError:
+                        raise OldapErrorInconsistency(f'Property {property} with MAX_LENGTH={property[PropClassAttr.MAX_LENGTH]} has no length.')
+                    if l > property[PropClassAttr.MAX_LENGTH]:
+                        raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MAX_LENGTH]} has length "{len(val)}".')
+            else:
                 l = 0
                 try:
-                    l = len(val)
+                    l = len(values)
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_LENGTH={property[PropClassAttr.MAX_LENGTH]} has no length.')
+                    raise OldapErrorInconsistency(
+                        f'Property {property} with MAX_LENGTH={property[PropClassAttr.MAX_LENGTH]} has no length.')
                 if l > property[PropClassAttr.MAX_LENGTH]:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MAX_LENGTH]} has length "{len(val)}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MAX_LENGTH]} has length "{len(values)}".')
+
         if property.get(PropClassAttr.PATTERN):
-            for val in values:
-                if not re.fullmatch(str(property[PropClassAttr.PATTERN]), str(val)):
-                    raise OldapErrorInconsistency(f'Property {property} with PATTERN={property[PropClassAttr.PATTERN]} does not conform ({val}).')
+            if isinstance(values, (list, tuple, set, ObservableSet)):
+                for val in values:
+                    if not re.fullmatch(str(property[PropClassAttr.PATTERN]), str(val)):
+                        raise OldapErrorInconsistency(f'Property {property} with PATTERN={property[PropClassAttr.PATTERN]} does not conform ({val}).')
+            else:
+                if not re.fullmatch(str(property[PropClassAttr.PATTERN]), str(values)):
+                    raise OldapErrorInconsistency(f'Property {property} with PATTERN={property[PropClassAttr.PATTERN]} does not conform ({values}).')
+
         if property.get(PropClassAttr.MIN_EXCLUSIVE):
-            for val in values:
+            if isinstance(values, (list, tuple, set, ObservableSet)):
+                for val in values:
+                    v: bool | None = None
+                    try:
+                        v = val > property[PropClassAttr.MIN_EXCLUSIVE]
+                    except TypeError:
+                        raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} cannot be compared to "{val}".')
+                    if not v:
+                        raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} has invalid "{val}".')
+            else:
                 v: bool | None = None
                 try:
-                    v = val > property[PropClassAttr.MIN_EXCLUSIVE]
+                    v = values > property[PropClassAttr.MIN_EXCLUSIVE]
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} cannot be compared to "{val}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} cannot be compared to "{values}".')
                 if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} has invalid "{val}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} has invalid "{values}".')
+
         if property.get(PropClassAttr.MIN_INCLUSIVE):
-            for val in values:
+            if isinstance(values, (list, tuple, set, ObservableSet)):
+                for val in values:
+                    v: bool | None = None
+                    try:
+                        v = val >= property[PropClassAttr.MIN_INCLUSIVE]
+                    except TypeError:
+                        raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{val}".')
+                    if not v:
+                        raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{val}".')
+            else:
                 v: bool | None = None
                 try:
-                    v = val >= property[PropClassAttr.MIN_INCLUSIVE]
+                    v = values >= property[PropClassAttr.MIN_INCLUSIVE]
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{val}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{values}".')
                 if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{val}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{values}".')
+
         if property.get(PropClassAttr.MAX_EXCLUSIVE):
-            for val in values:
+            print(values, ":", type(values))
+            print(property)
+            if isinstance(values, (list, tuple, set, ObservableSet)):
+                for val in values:
+                    v: bool | None = None
+                    try:
+                        v = val < property[PropClassAttr.MAX_EXCLUSIVE]
+                    except TypeError:
+                        raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{val}".')
+                    if not v:
+                        raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{val}".')
+            else:
                 v: bool | None = None
                 try:
-                    v = val < property[PropClassAttr.MAX_EXCLUSIVE]
+                    v = values < property[PropClassAttr.MAX_EXCLUSIVE]
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{val}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{values}".')
                 if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{val}".')
+                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{values}".')
+
+
         if property.get(PropClassAttr.MAX_INCLUSIVE):
-            for val in values:
+            if isinstance(values, (list, tuple, set, ObservableSet)):
+                for val in values:
+                    v: bool | None = None
+                    try:
+                        v = val <= property[PropClassAttr.MAX_INCLUSIVE]
+                    except TypeError:
+                        raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{val}".')
+                    if not v:
+                        raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{val}".')
+            else:
                 v: bool | None = None
                 try:
-                    v = val <= property[PropClassAttr.MAX_INCLUSIVE]
+                    v = values <= property[PropClassAttr.MAX_INCLUSIVE]
                 except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{val}".')
+                    raise OldapErrorInconsistency(
+                        f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{values}".')
                 if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{val}".')
+                    raise OldapErrorInconsistency(
+                        f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{values}".')
+
         if property.get(PropClassAttr.LESS_THAN):
             other_values = self._values.get(property[PropClassAttr.LESS_THAN])
+            if not isinstance(other_values, (list, tuple, set, ObservableSet)):
+                other_values = [other_values]
             if other_values is not None:
                 b: bool | None = None
                 try:
                     min_other_value = min(other_values)
-                    max_value = max(values)
+                    if not isinstance(values, (list, tuple, set, ObservableSet)):
+                        _values = [values]
+                    else:
+                        _values = values
+                    max_value = max(_values)
                     b = max_value < min_other_value
                 except TypeError:
                     raise OldapErrorInconsistency(
@@ -422,11 +497,17 @@ class ResourceInstance:
                         f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
         if property.get(PropClassAttr.LESS_THAN_OR_EQUALS):
             other_values = self._values.get(property[PropClassAttr.LESS_THAN])
+            if not isinstance(other_values, (list, tuple, set, ObservableSet)):
+                other_values = [other_values]
             if other_values is not None:
                 b: bool | None = None
                 try:
                     min_other_value = min(other_values)
-                    max_value = max(values)
+                    if not isinstance(values, (list, tuple, set, ObservableSet)):
+                        _values = [values]
+                    else:
+                        _values = values
+                    max_value = max(_values)
                     b = max_value <= min_other_value
                 except TypeError:
                     raise OldapErrorInconsistency(
@@ -1256,6 +1337,9 @@ class ResourceInstance:
         context = Context(name=con.context_name)
         sparql = context.sparql_context
 
+
+        select_count = 'SELECT (COUNT(DISTINCT ?s) as ?numResult)'
+        select = 'SELECT DISTINCT ?s ?p ?o'
         if (countOnly):
             sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
         else:
