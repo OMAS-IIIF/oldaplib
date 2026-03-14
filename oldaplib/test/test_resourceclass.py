@@ -1306,7 +1306,6 @@ class TestResourceClass(unittest.TestCase):
     #                             owl_class_iri=Iri("test:testMyRes"))
     #     self.assertEqual(r2[Iri('test:hasText')].maxCount, Xsd_integer(12))
 
-
     # @unittest.skip('Work in progress')
     def test_updating(self):
         r1 = ResourceClass.read(con=self._connection,

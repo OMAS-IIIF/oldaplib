@@ -70,7 +70,8 @@ class TestDataModel(unittest.TestCase):
         cls._context['dmtestG'] = NamespaceIRI('http://oldap.org/dmtestG#')
         cls._context['dmtestH'] = NamespaceIRI('http://oldap.org/dmtestH#')
         cls._context['dmtestI'] = NamespaceIRI('http://oldap.org/dmtestI#')
-        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF', 'dmtestG', 'dmtestH', 'dmtestI')
+        cls._context['dmtestJ'] = NamespaceIRI('http://oldap.org/dmtestJ#')
+        cls._context.use('test', 'dmtest', 'dmtestA', 'dmtestB', 'dmtestC', 'dmtestE', 'dmtestF', 'dmtestG', 'dmtestH', 'dmtestI', 'dmtestJ')
 
         cls._connection = Connection(userId="rosenth",
                                      credentials="RioGrande",
@@ -96,6 +97,8 @@ class TestDataModel(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('dmtestH:onto'))
         cls._connection.clear_graph(Xsd_QName('dmtestI:shacl'))
         cls._connection.clear_graph(Xsd_QName('dmtestI:onto'))
+        cls._connection.clear_graph(Xsd_QName('dmtestJ:shacl'))
+        cls._connection.clear_graph(Xsd_QName('dmtestJ:onto'))
         cls._connection.clear_graph(Xsd_QName('hyha:shacl'))
         cls._connection.clear_graph(Xsd_QName('hyha:onto'))
 
@@ -112,6 +115,7 @@ class TestDataModel(unittest.TestCase):
         cls._dmprojectG = Project.read(cls._connection, "dmtestG", ignore_cache=True)
         cls._dmprojectH = Project.read(cls._connection, "dmtestH", ignore_cache=True)
         cls._dmprojectI = Project.read(cls._connection, "dmtestI", ignore_cache=True)
+        cls._dmprojectJ = Project.read(cls._connection, "dmtestJ", ignore_cache=True)
         cls._sysproject = Project.read(cls._connection, "oldap", ignore_cache=True)
         cls._sharedproject = Project.read(cls._connection, "shared", ignore_cache=True)
 
@@ -600,6 +604,16 @@ class TestDataModel(unittest.TestCase):
         dm = DataModel.read(self._connection, self._dmprojectI, ignore_cache=True)
         tmp = set([key for key, val in dm[Xsd_QName(f'{dm_name}:Book')].superclass.items()])
         assert tmp == {'oldap:Thing', 'dcterms:Event'}
+
+    def test_datamode_modify_J(self):
+        dm_name = self._dmprojectI.projectShortName
+        dm = self.generate_a_datamodel(self._dmprojectI)
+        dm.create()
+        dm = DataModel.read(self._connection, self._dmprojectI, ignore_cache=True)
+        dm[Xsd_QName(f'{dm_name}:Book')][Xsd_QName(f'{dm_name}:authors')].maxCount = Xsd_integer(42)
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmprojectI, ignore_cache=True)
+        assert dm[Xsd_QName(f'{dm_name}:Book')][Xsd_QName(f'{dm_name}:authors')].maxCount == Xsd_integer(42)
 
     def test_datamodel_extonto_motify(self):
         model = DataModel.read(self._connection, self._project, ignore_cache=True)

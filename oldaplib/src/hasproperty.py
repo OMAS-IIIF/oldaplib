@@ -280,6 +280,9 @@ class HasProperty(Model, Notify):
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}{resclass_iri}Shape sh:property ?prop .\n'
+            #
+            # TODO: BIG ERROR!!!!!!!!!!!!!!!!!!!!!!! if is not correct!!!!!!
+            #
             if isinstance(self._prop, Xsd_QName) or self._prop.internal is None:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:node {propclass_iri}Shape.\n'
             else:
