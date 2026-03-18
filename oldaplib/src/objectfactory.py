@@ -1939,9 +1939,3 @@ class ResourceInstanceFactory:
         return Instance(iri=iri, **kwargs)
 
 
-
-
-
-
-
-

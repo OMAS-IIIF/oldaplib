@@ -5,6 +5,8 @@ import unittest
 
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.project import Project
+from oldaplib.src.objectfactory import ResourceInstanceFactory, ResourceInstance, SortBy, SortDir
+
 
 class TestDataModel(unittest.TestCase):
 
@@ -30,3 +32,17 @@ class TestDataModel(unittest.TestCase):
         pp = model.get_propclasses()
         for p in pp:
             print(model[p])
+
+
+    def test_gaga(self):
+        con = Connection(userId="rosenth",
+                         credentials="RioGrande",
+                         context_name="DEFAULT")
+        # dm = DataModel.read(con=con, project='fasnacht')
+        # factory = ResourceInstanceFactory(con=con, project='fasnacht')
+        # NE = factory.createObjectInstance('fasnacht:NewsItem')
+        res = ResourceInstance.search_fulltext(con,
+                                               projectShortName='fasnacht',
+                                               searchstr="neue",
+                                               sortBy=[SortBy('oldap:creationDate', SortDir.desc)])
+        print(res)
