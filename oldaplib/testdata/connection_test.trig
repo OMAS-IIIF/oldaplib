@@ -127,7 +127,7 @@ oldap:admin {
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
         oldap:projectShortName "dmtestJ"^^xsd:NCName ;
-        oldap:namespaceIri <http://oldap.org/dmtestI#> ;
+        oldap:namespaceIri <http://oldap.org/dmtestJ#> ;
         rdfs:label "DmTestJ"@en, "DmTestI"@de, "DmTestI"@fr, "DmTestI"@it ;
         rdfs:comment "For data model testing purposes"@en ;
         oldap:projectStart "2024-01-01"^^xsd:date .

@@ -653,7 +653,7 @@ class DataModel(Model):
         :return: None
         """
         logger = logging.getLogger(__name__)
-
+        logger.debug(f'Updating datamodel for project {self._project.projectShortName}')
         #
         # First we check if the logged-in user ("actor") has the permission to create resource for
         # the given project!

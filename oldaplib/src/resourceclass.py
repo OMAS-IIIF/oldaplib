@@ -1892,7 +1892,6 @@ class ResourceClass(Model, Notify):
         if not self._externalOntology:
             sparql2 = context.sparql_context
             sparql2 += self.__update_owl(timestamp=timestamp)
-
         self._con.transaction_start()
 
         if self._test_in_use:

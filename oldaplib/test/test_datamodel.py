@@ -745,6 +745,36 @@ class TestDataModel(unittest.TestCase):
         self.assertEqual(r1p3.order, Xsd_decimal(3))
 
 
+    def test_datamodel_standalone_link_property(self):
+        dm = DataModel(con=self._connection,
+                       project=self._dmprojectJ)
+        dm.create()
+        dm = DataModel.read(self._connection, self._dmprojectJ, ignore_cache=True)
+        dm_name = self._dmprojectJ.projectShortName
+
+        bookX = ResourceClass(con=self._connection,
+                              project=self._dmprojectJ,
+                              owlclass_iri=Xsd_QName(f'{dm_name}:BookZ'),
+                              label=LangString(["BookZ@en", "BuchZ@de"]),
+                              comment=LangString("Ein Buch mit SeitenZ@en"))
+        dm[Xsd_QName(f'{dm_name}:BookZ')] = bookX
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmprojectJ, ignore_cache=True)
+
+        #
+        # add a standalone property
+        #
+        generic_comment = PropertyClass(con=self._connection,
+                                 project=self._dmprojectJ,
+                                 property_class_iri=Xsd_QName(f'{dm_name}:bookLink'),
+                                 toClass=Xsd_QName(f'{dm_name}:BookZ'),
+                                 name=LangString(["Generic comment@en", "Allgemeiner Kommentar@de"]))
+        generic_comment.force_external()
+        dm[Xsd_QName(f'{dm_name}:bookLink')] = generic_comment
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmprojectJ, ignore_cache=True)
+        self.assertEqual(dm[Xsd_QName(f'{dm_name}:bookLink')].toClass, Xsd_QName(f'{dm_name}:BookZ'))
+
     def test_datamodel_duplicate_standalone_property(self):
         dm = DataModel(con=self._connection,
                        project=self._dmprojectG)
