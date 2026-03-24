@@ -14,6 +14,7 @@ from functools import partial
 from typing import Type, Any, Self, cast, Dict
 
 from oldaplib.src.datamodel import DataModel
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
@@ -31,6 +32,7 @@ from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue,
     OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed, OldapErrorInUse, OldapErrorAlreadyExists, OldapErrorType
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
+from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
@@ -1198,6 +1200,16 @@ class ResourceInstance:
             graph = projectShortName
 
         context = Context(name=con.context_name)
+
+        #
+        # In order for the QueryProcessor to work, we need to add possible list references to the context.
+        # This is done by reading the OldapList (which does add the list to the context)
+        #
+        ols = OldapList.search(con=con, project=projectShortName)  # Get all the lists in the project
+        for ol in ols:
+            oldaplist = OldapList.read(con=con, project=projectShortName, oldapListId=ol.fragment)
+            (oldaplist)
+
         access_block = creator_or_max_perm_block(
             graph_data=f"{graph}:data",
             resource_iri=iri.toRdf,
@@ -1625,7 +1637,6 @@ class ResourceInstance:
                 OPTIONAL {{ ?subject shared:path ?path . }}
                 ?subject ?prop ?val .
             }}
-
             FILTER(xsd:integer(?permval) = ?maxPerm)
         }}
         """)
@@ -1634,6 +1645,21 @@ class ResourceInstance:
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve media object with ID "{mediaObjectId}"', exc_info=True)
             raise
+
+        #
+        # In order for the QueryProcessor to work, we need to add possible list references to the context.
+        # This is done by reading the OldapList (which does add the list to the context)
+        #
+        if len(jsonres['results']['bindings']) > 0:
+            _graph = jsonres['results']['bindings'][0]['graph']['value']  # get the data graph (-> project) where the media object is stored
+            _graph = re.sub(r'([/#])data$', r'\1', _graph)  # extract the project namespace
+            projs = Project.search(con=con, namespace=NamespaceIRI(_graph))  # search the project
+            if len(projs) != 1:
+                raise OldapErrorNotFound(f'Project associated with media object "{mediaObjectId}" not found')
+            ols = OldapList.search(con=con, project=projs[0].projectShortName)  # Get all the lists in the project
+            for ol in ols:
+                oldaplist = OldapList.read(con=con, project=projs[0].projectShortName, oldapListId=ol.fragment)
+
         res = QueryProcessor(context, jsonres)
         if len(res) == 0:
             raise OldapErrorNotFound(f'Media object with id {mediaObjectId} not found.')
@@ -1725,6 +1751,21 @@ class ResourceInstance:
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve media object with IRI "{mediaObjectIri}"', exc_info=True)
             raise
+
+        #
+        # In order for the QueryProcessor to work, we need to add possible list references to the context.
+        # This is done by reading the OldapList (which does add the list to the context)
+        #
+        if len(jsonres['results']['bindings']) > 0:
+            _graph = jsonres['results']['bindings'][0]['graph']['value']  # get the data graph (-> project) where the media object is stored
+            _graph = re.sub(r'([/#])data$', r'\1', _graph)  # extract the project namespace
+            projs = Project.search(con=con, namespace=NamespaceIRI(_graph))  # search the project
+            if len(projs) != 1:
+                raise OldapErrorNotFound(f'Project associated with media object "{mediaObjectIri}" not found')
+            ols = OldapList.search(con=con, project=projs[0].projectShortName)  # Get all the lists in the project
+            for ol in ols:
+                oldaplist = OldapList.read(con=con, project=projs[0].projectShortName, oldapListId=ol.fragment)
+
         res = QueryProcessor(context, jsonres)
         if len(res) == 0:
             raise OldapErrorNotFound(f'Media object with iri {mediaObjectIri} not found.')

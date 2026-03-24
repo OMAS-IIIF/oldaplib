@@ -374,7 +374,8 @@ class Project(Model):
     @staticmethod
     def search(con: IConnection,
                label: Xsd_string | str | None = None,
-               comment: Xsd_string | str | None = None) -> list[ProjectSearchResult]:
+               comment: Xsd_string | str | None = None,
+               namespace: NamespaceIRI | str | None = None) -> list[ProjectSearchResult]:
         """
         Search for projects based on the provided label and/or comment. If no label or comment is provided, all
         existing projects are returned. When both label and comment are specified, the search combines their
@@ -395,6 +396,8 @@ class Project(Model):
         """
         label = Xsd_string(label, validate=True)
         comment = Xsd_string(comment, validate=True)
+        if namespace and not isinstance(namespace, NamespaceIRI):
+            namespace = NamespaceIRI(namespace, validate=True)
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += 'SELECT DISTINCT ?project ?shortname\n'
@@ -413,7 +416,11 @@ class Project(Model):
             sparql += '        ?project rdfs:comment ?comment .\n'
             sparql += '    }\n'
             sparql += f'    FILTER(CONTAINS(STR(?comment), "{Xsd_string.escaping(comment.value)}"))\n'
-        if not label and not comment:
+        if namespace:
+            sparql += '        ?project oldap:namespaceIri ?namespaceIri .\n'
+            sparql += '    }\n'
+            sparql += f'    FILTER(sameTerm(?namespaceIri, {namespace.toRdf}))\n'
+        if not label and not comment and not namespace:
             sparql += '    }\n'
         sparql += '}\n'
         jsonobj = con.query(sparql)

@@ -13,6 +13,7 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -474,6 +475,13 @@ class DataModel(Model):
         extontos = ExternalOntology.search(con=con, projectShortName=project.projectShortName)
         for onto in extontos:
             context[onto.prefix] = NamespaceIRI(str(onto.namespaceIri))
+
+        #
+        # now let's find all the OldapLists in order to set up the Context also for the OldapLists
+        #
+        ols = OldapList.search(con=con, project=project)
+        for ol in ols:
+            oldaplist = OldapList.read(con=con, project=project.projectShortName, oldapListId=ol.fragment)
 
         #
         # now get the QNames of all standalone properties within the data model

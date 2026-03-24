@@ -46,3 +46,10 @@ class TestDataModel(unittest.TestCase):
                                                searchstr="neue",
                                                sortBy=[SortBy('oldap:creationDate', SortDir.desc)])
         print(res)
+
+    def test_media_obj(self):
+        con = Connection(userId="rosenth",
+                         credentials="RioGrande",
+                         context_name="DEFAULT")
+        mo = ResourceInstance.get_media_object_by_id(con, "Io0W1LabrnUk")
+        print(mo)
