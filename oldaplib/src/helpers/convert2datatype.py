@@ -3,6 +3,7 @@ from typing import Any
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorValue
+from oldaplib.src.xsd.geo_wktLiteral import Geo_wktLiteral
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -127,6 +128,8 @@ def convert2datatype(value: Any, datatype: XsdDatatypes, validate: bool = False)
             return Xsd_unsignedByte(value, validate=validate)
         case XsdDatatypes.positiveInteger:
             return Xsd_positiveInteger(value, validate=validate)
+        case XsdDatatypes.wktLiteral:
+            return Geo_wktLiteral(value, validate=validate)
         case None:
             return Iri(value, validate=validate)
         case _:

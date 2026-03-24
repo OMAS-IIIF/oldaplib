@@ -14,7 +14,7 @@ means_of_transportation:
       horse:
         label: [ Horse@en, Pferd@de, Cheval@fr ]
       on_foot:
-        label: [ On_Foot@en, Zu_Fuss@de, À_Pied@fr ]
+        label: [ On Foot@en, Zu Fuss@de, À Pied@fr ]
       ship_or_boat:
-        label: [ Ship_or_Boat@en, Schiff_oder_Boot@de, Navire_ou_Bateau@fr ]
+        label: [ Ship or Boat@en, Schiff oder Boot@de, Navire ou Bateau@fr ]
 

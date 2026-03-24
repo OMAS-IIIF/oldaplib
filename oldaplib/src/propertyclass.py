@@ -939,7 +939,7 @@ class PropertyClass(Model, Notify):
                 case 'owl:subPropertyOf':
                     self._attributes[PropClassAttr.SUBPROPERTY_OF] = obj
                 case 'rdfs:range':
-                    if obj.prefix == 'xsd' or obj.prefix == 'rdf':
+                    if obj.prefix in {'xsd', 'rdf', 'geo'}:
                         datatype = obj
                     else:
                         to_node_iri = obj

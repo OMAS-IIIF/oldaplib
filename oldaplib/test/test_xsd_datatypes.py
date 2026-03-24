@@ -15,6 +15,7 @@ from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapError, OldapEr
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.floatingpoint import FloatingPoint
+from oldaplib.src.xsd.geo_wktLiteral import Geo_wktLiteral
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -1714,6 +1715,21 @@ class TestXsdDatatypes(unittest.TestCase):
         n = Numeric("42")
         self.assertTrue(isinstance(n, Xsd_integer))
 
+    def test_wktLiteral(self):
+        val = Geo_wktLiteral("POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555, 7.540 47.545))", validate=True)
+        self.assertEqual(str(val), "POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555, 7.540 47.545))")
+        self.assertEqual(repr(val), 'Geo_wktLiteral("POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555, 7.540 47.545))")')
+
+        jsonstr = json.dumps(val, default=serializer.encoder_default)
+        val2 = json.loads(jsonstr, object_hook=serializer.decoder_hook)
+        self.assertEqual(val, val2)
+
+        self.create_triple(Xsd_NCName("Geo_wktLiteral"), val)
+        valx = self.get_triple(Xsd_NCName("Geo_wktLiteral"))
+        self.assertEqual(val, valx)
+
+        with self.assertRaises(OldapErrorValue):
+            val = Geo_wktLiteral("POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555))", validate=True)
 
 
 

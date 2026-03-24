@@ -23,6 +23,7 @@ from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue,
 from oldaplib.src.role import Role
 from oldaplib.src.project import Project
 from oldaplib.src.user import User
+from oldaplib.src.xsd.geo_wktLiteral import Geo_wktLiteral
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_base64binary import Xsd_base64Binary
@@ -1088,6 +1089,17 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(data2['shared:protocol'], 'iiif')
         self.assertEqual(data2['shared:path'], 'test/subtest')
         mle.delete()
+
+    def test_create_location(self):
+        dm = DataModel.read(con=self._connection, project='test')
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Location = factory.createObjectInstance('test:Location')
+        loc = Location(loc=Geo_wktLiteral("POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555, 7.540 47.545))"))
+        loc.create()
+        iri = loc.iri
+        loc2 = Location.read(con=self._connection, iri=iri)
+        self.assertEqual(loc2.loc, Geo_wktLiteral("POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555, 7.540 47.545))"))
+        loc.delete()
 
 if __name__ == '__main__':
     unittest.main()

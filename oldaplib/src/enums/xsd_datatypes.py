@@ -97,6 +97,7 @@ class XsdDatatypes(Enum):
     unsignedShort = 'xsd:unsignedShort'
     unsignedByte = 'xsd:unsignedByte'
     positiveInteger = 'xsd:positiveInteger'
+    wktLiteral = 'geo:wktLiteral'
 
     def __str__(self):
         return self.value

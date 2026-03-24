@@ -37,3 +37,5 @@ event_type:
         label: [ Studying@en, Studieren@de, Étudier@fr ]
       travel_stop:
         label: [ Travel_Stop@en, Reisestopp@de, Arrêt_de_Voyage@fr ]
+      in_progress:
+        label:  [ In Progress@en, In Bearbeitung@de, En_Cours@fr ]

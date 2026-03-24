@@ -40,6 +40,9 @@ class ContextSingleton(type):
         cls._predefined_context =  {
             Xsd_NCName('rdf'): NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
             Xsd_NCName('rdfs'): NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'),
+            Xsd_NCName('geo'): NamespaceIRI('http://www.opengis.net/ont/geosparql#'),
+            Xsd_NCName('geof'): NamespaceIRI('http://www.opengis.net/def/function/geosparql/'),
+            Xsd_NCName('uom'): NamespaceIRI('http://www.opengis.net/def/uom/OGC/1.0/'),
             Xsd_NCName('owl'): NamespaceIRI('http://www.w3.org/2002/07/owl#'),
             Xsd_NCName('xsd'): NamespaceIRI('http://www.w3.org/2001/XMLSchema#'),
             Xsd_NCName('xml'): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
@@ -57,6 +60,9 @@ class ContextSingleton(type):
         cls._predefined_inverse = {
             NamespaceIRI('http://www.w3.org/1999/02/22-rdf-syntax-ns#'): Xsd_NCName('rdf'),
             NamespaceIRI('http://www.w3.org/2000/01/rdf-schema#'): Xsd_NCName('rdfs'),
+            NamespaceIRI('http://www.opengis.net/ont/geosparql#'): Xsd_NCName('geo'),
+            NamespaceIRI('http://www.opengis.net/def/function/geosparql/'): Xsd_NCName('geof'),
+            NamespaceIRI('http://www.opengis.net/def/uom/OGC/1.0/'): Xsd_NCName('uom'),
             NamespaceIRI('http://www.w3.org/2002/07/owl#'): Xsd_NCName('owl'),
             NamespaceIRI('http://www.w3.org/2001/XMLSchema#'): Xsd_NCName('xsd'),
             NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml'),

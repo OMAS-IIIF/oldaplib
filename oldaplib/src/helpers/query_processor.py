@@ -6,6 +6,7 @@ from pystrict import strict
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.dtypes.bnode import BNode
+from oldaplib.src.xsd.geo_wktLiteral import Geo_wktLiteral
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_gmonthday import Xsd_gMonthDay
@@ -171,6 +172,8 @@ class QueryProcessor:
                                 row[name] = Xsd_unsignedByte.fromRdf(valobj["value"])
                             case 'xsd:positiveInteger':
                                 row[name] = Xsd_positiveInteger.fromRdf(valobj["value"])
+                            case 'geo:wktLiteral':
+                                row[name] = Geo_wktLiteral.fromRdf(valobj["value"])
                             case _:
                                 row[name] = Xsd_string.fromRdf(valobj["value"])
             self.__rows.append(row)

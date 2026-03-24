@@ -1,0 +1,31 @@
+nationality:
+  label: [Nationality@en, Nationalität@de, Nationalité@fr]
+  definition: [Nationality@en, Nationalität@de, Nationalité@fr]
+  nodes:
+    italian:
+      label: [Italian@en, Italien@de, Italienne@fr]
+      definition: [Italian@en, Italien@de, Italienne@fr]
+    dutch:
+      label: [Dutch@en, Niederländisch@de, Néerlandais@fr]
+      definition: [Dutch@en, Niederländisch@de, Néerlandais@fr]
+    welsh:
+      label: [Welsh@en, Walisisch@de, Walon@fr]
+      definition: [Welsh@en, Walisisch@de, Walon@fr]
+    irish:
+      label: [Irish@en, Irisch@de, Irlandais@fr]
+      definition: [Irish@en, Irisch@de, Irlandais@fr]
+    french:
+      label: [French@en, Französisch@de, Français@fr]
+      definition: [French@en, Französisch@de, Français@fr]
+    scottish:
+      label: [Scottish@en, Schottisch@de, Scots@fr]
+      definition: [Scottish@en, Schottisch@de, Scots@fr]
+    german:
+      label: [German@en, Deutsch@de, Allemand@fr]
+      definition: [German@en, Deutsch@de, Allemand@fr]
+    swiss:
+      label: [Swiss@en, Schweizer@de, Suisse@fr]
+      definition: [Swiss@en, Schweizer@de, Suisse@fr]
+    english:
+      label: [English@en, Englisch@de, Anglais@fr]
+      definition: [English@en, Englisch@de, Anglais@fr]
