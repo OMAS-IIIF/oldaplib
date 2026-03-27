@@ -1603,21 +1603,25 @@ class ResourceInstance:
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += textwrap.dedent(f"""
-        SELECT DISTINCT ?subject ?graph ?path ?prop ?val ?permval
+        SELECT DISTINCT ?subject ?graph ?path ?prop ?val ?maxPerm
         WHERE {{
             VALUES ?inputImageId {{ {mediaObjectId.toRdf} }}
+
             {{
                 SELECT ?subject ?graph (MAX(xsd:integer(?pv)) AS ?maxPerm)
                 WHERE {{
                     ?subject rdf:type shared:MediaObject .
+
                     GRAPH oldap:admin {{
                         {con.userIri.toRdf} oldap:hasRole ?role .
                     }}
+
                     GRAPH ?graph {{
                         ?subject oldap:attachedToRole ?role .
-                        <<?subject oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
+                        << ?subject oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
                         ?subject shared:assetId ?inputImageId .
                     }}
+
                     GRAPH oldap:admin {{
                         ?dataperm oldap:permissionValue ?pv .
                     }}
@@ -1625,19 +1629,11 @@ class ResourceInstance:
                 GROUP BY ?subject ?graph
             }}
 
-            ?subject rdf:type shared:MediaObject .
-            GRAPH oldap:admin {{
-                {con.userIri.toRdf} oldap:hasRole ?role .
-                ?dataperm oldap:permissionValue ?permval .
-            }}
             GRAPH ?graph {{
-                ?subject oldap:attachedToRole ?role .
-                <<?subject oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
                 ?subject shared:assetId ?inputImageId .
                 OPTIONAL {{ ?subject shared:path ?path . }}
                 ?subject ?prop ?val .
             }}
-            FILTER(xsd:integer(?permval) = ?maxPerm)
         }}
         """)
         try:
@@ -1666,7 +1662,7 @@ class ResourceInstance:
         result: dict[str, Xsd] = {
             'iri': res[0].get('subject'),
             'graph': res[0].get('graph'),
-            'permval': res[0].get('permval')
+            'permval': res[0].get('maxPerm'),
         }
         for r in res:
             if str(r['prop']) == 'rdf:type':
@@ -1709,22 +1705,25 @@ class ResourceInstance:
         context = Context(name=con.context_name)
         sparql = context.sparql_context
         sparql += textwrap.dedent(f"""
-        SELECT ?graph ?prop ?val ?permval
+        SELECT ?graph ?prop ?val ?maxPerm
         WHERE {{
             BIND({mediaObjectIri.toRdf} AS ?obj)
             BIND({con.userIri.toRdf} AS ?user)
-            # max permval per graph (remove ?graph/GROUP BY if you want global max)
+
             {{
                 SELECT ?graph (MAX(xsd:integer(?pv)) AS ?maxPerm)
                 WHERE {{
                     ?obj rdf:type shared:MediaObject .
+
                     GRAPH oldap:admin {{
                         ?user oldap:hasRole ?role .
                     }}
+
                     GRAPH ?graph {{
                         ?obj oldap:attachedToRole ?role .
                         <<?obj oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
                     }}
+
                     GRAPH oldap:admin {{
                         ?dataperm oldap:permissionValue ?pv .
                     }}
@@ -1732,18 +1731,9 @@ class ResourceInstance:
                 GROUP BY ?graph
             }}
 
-            ?obj rdf:type shared:MediaObject .
-            GRAPH oldap:admin {{
-                ?user oldap:hasRole ?role .
-                ?dataperm oldap:permissionValue ?permval .
-            }}
             GRAPH ?graph {{
-                ?obj oldap:attachedToRole ?role .
-                <<?obj oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
                 ?obj ?prop ?val .
             }}
-
-            FILTER(xsd:integer(?permval) = ?maxPerm)
         }}
         """)
         try:
@@ -1772,7 +1762,7 @@ class ResourceInstance:
         result: dict[str, Xsd] = {
             'iri': mediaObjectIri,
             'graph': res[0].get('graph'),
-            'permval': res[0].get('permval')
+            'permval': res[0].get('maxPerm')
         }
         for r in res:
             if str(r['prop']) == 'rdf:type':
