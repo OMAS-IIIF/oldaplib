@@ -71,6 +71,9 @@ class Xsd_boolean(Xsd):
             other = Xsd_boolean(other)
         return self.__value == other.__value
 
+    def __hash__(self) -> int:
+        return hash(self.__value)
+
     @property
     def toRdf(self) -> str:
         """
