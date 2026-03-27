@@ -284,7 +284,7 @@ class HasProperty(Model, Notify):
             # TODO: BIG ERROR!!!!!!!!!!!!!!!!!!!!!!! if is not correct!!!!!!
             #
             if isinstance(self._prop, Xsd_QName) or self._prop.internal is None:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:node {propclass_iri}Shape.\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:node {propclass_iri} .\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {propclass_iri} .\n'
             if change.action != Action.CREATE:

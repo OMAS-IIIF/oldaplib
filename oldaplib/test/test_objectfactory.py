@@ -300,7 +300,7 @@ class TestObjectFactory(unittest.TestCase):
                       attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
         self.assertEqual(at.stringProp, {Xsd_string("A String Prop")})
         self.assertEqual(at.langStringProp, LangString("A LangString@en", "Ein Sprachtext@de"))
-        self.assertEqual(at.booleanProp, Xsd_boolean(1))
+        self.assertEqual(at.booleanProp, {Xsd_boolean(1)})
         self.assertEqual(at.decimalProp, {Xsd_decimal(1.5)})
         self.assertEqual(at.floatProp, {Xsd_float(1.5)})
         self.assertEqual(at.doubleProp, {Xsd_double(1.5)})

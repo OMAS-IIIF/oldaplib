@@ -963,6 +963,54 @@ class TestDataModel(unittest.TestCase):
         dm.update()
         self.assertIsNone(dm.get(Xsd_QName(f'{dm_name}:genericCommentY')))
 
+    def test_update_mincount(self):
+        dm_name = self._dmproject.projectShortName
+        generic_commentZ = PropertyClass(con=self._connection,
+                                         project=self._dmproject,
+                                         property_class_iri=Xsd_QName(f'{dm_name}:genericCommentZ'),
+                                         datatype=XsdDatatypes.string,
+                                         name=LangString(["Generic commentZ@en", "Allgemeiner KommentarZ@de"]))
+        generic_commentZ.force_external()
+
+        titleZ = PropertyClass(con=self._connection,
+                               project=self._dmproject,
+                               property_class_iri=Xsd_QName(f'{dm_name}:titleZ'),
+                               datatype=XsdDatatypes.langString,
+                               name=LangString(["TitleZ@en", "TitelZ@de"]),
+                               description=LangString(["TitleZ of book@en", "TitelZ des Buches@de"]),
+                               uniqueLang=Xsd_boolean(True),
+                               languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+
+        authorsZ = PropertyClass(con=self._connection,
+                                 project=self._dmproject,
+                                 property_class_iri=Xsd_QName(f'{dm_name}:authorsZ'),
+                                 toClass=Iri('oldap:Person'),
+                                 name=LangString(["Author(s)Z@en", "Autor(en)Z@de"]),
+                                 description=LangString(["Writers of the BookZ@en", "Schreiber*innen des BuchsZ@de"]))
+
+        bookZ = ResourceClass(con=self._connection,
+                              project=self._dmproject,
+                              owlclass_iri=Xsd_QName(f'{dm_name}:BookZ'),
+                              label=LangString(["BookZ@en", "BuchZ@de"]),
+                              comment=LangString("Ein Buch mit SeitenZ@en"),
+                              closed=Xsd_boolean(True),
+                              hasproperties=[
+                                  HasProperty(con=self._connection, project=self._project, prop=titleZ, minCount=Xsd_integer(1), order=1),
+                                  HasProperty(con=self._connection, project=self._project, prop=authorsZ, minCount=Xsd_integer(1), order=2),
+                                  HasProperty(con=self._connection, project=self._project, prop=generic_commentZ, order=3)])
+
+        dm = DataModel(con=self._connection,
+                       project=self._dmproject,
+                       propclasses=[generic_commentZ],
+                       resclasses=[bookZ])
+        dm.create()
+
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        dm[Xsd_QName(f'{dm_name}:BookZ')][Xsd_QName(f'{dm_name}:authorsZ')].minCount = None
+        dm.update()
+        dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
+        self.assertIsNone(dm[Xsd_QName(f'{dm_name}:BookZ')][Xsd_QName(f'{dm_name}:authorsZ')].minCount)
+
 
     def test_update2(self):
         proj = Project.read(self._connection, "hyha")
