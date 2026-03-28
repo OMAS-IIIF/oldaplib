@@ -1515,13 +1515,14 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'  # TODO: REMOVE WHEN ONTO FIXED!
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .'
         if includeProperties:
             for index, prop in enumerate(includeProperties):
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?s {prop} ?o{index} . }}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}?s rdf:type {resClass} .'
+        #sparql += f'\n{blank:{(indent + 1) * indent_inc}}?s rdf:type {resClass} .'
         sparql += f'\n{blank:{indent * indent_inc}}}}'
 
         if not countOnly and sortBy:

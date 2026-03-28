@@ -53,3 +53,15 @@ class TestDataModel(unittest.TestCase):
                          context_name="DEFAULT")
         mo = ResourceInstance.get_media_object_by_id(con, "Io0W1LabrnUk")
         print(mo)
+
+    def test_all_newsitems(self):
+        con = Connection(userId="rosenth",
+                         credentials="RioGrande",
+                         context_name="DEFAULT"
+        )
+        res = ResourceInstance.all_resources(con=con,
+                                             projectShortName="fasnacht",
+                                             resClass="fasnacht:NewsItem",
+                                             sortBy=[SortBy('fasnacht:newsItemStartDate', SortDir.desc)]
+                                             )
+        pprint(res)
