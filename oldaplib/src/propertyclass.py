@@ -89,21 +89,20 @@ class HasPropertyData:
         return sparql
 
     def create_owl(self, indent: int = 0, indent_inc: int = 4):
-        def create_owl(self, indent: int = 0, indent_inc: int = 4):
-            blank = ''
-            sparql = ''
+        blank = ''
+        sparql = ''
 
-            if self.minCount and self.maxCount and self.minCount == self.maxCount:
-                tmp = Xsd_nonNegativeInteger(self.minCount)  # Convert to nonNegativeInteger
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {tmp.toRdf}'
-            else:
-                if self.minCount:
-                    tmp = Xsd_nonNegativeInteger(self.minCount)
-                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {tmp.toRdf}'
-                if self.maxCount:
-                    tmp = Xsd_nonNegativeInteger(self.maxCount)
-                    sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {tmp.toRdf}'
-            return sparql
+        if self.minCount and self.maxCount and self.minCount == self.maxCount:
+            tmp = Xsd_nonNegativeInteger(self.minCount)  # Convert to nonNegativeInteger
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:qualifiedCardinality {tmp.toRdf}'
+        else:
+            if self.minCount:
+                tmp = Xsd_nonNegativeInteger(self.minCount)
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:minQualifiedCardinality {tmp.toRdf}'
+            if self.maxCount:
+                tmp = Xsd_nonNegativeInteger(self.maxCount)
+                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:maxQualifiedCardinality {tmp.toRdf}'
+        return sparql
 
 #@strict
 @serializer
