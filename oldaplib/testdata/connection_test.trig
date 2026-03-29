@@ -358,155 +358,38 @@ oldap:admin {
         # owl:imports oldap:ontology .
 
 
-    :comment rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range rdf:langString .
+    :comment rdf:type owl:DatatypeProperty .
 
-    :test rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string .
+    :test rdf:type owl:DatatypeProperty .
 
-    :enum rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string .
+    :enum rdf:type owl:DatatypeProperty .
 
-    :hasText rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range rdf:langString ;
-        rdfs:domain :testMyRes .
+    :hasText rdf:type owl:DatatypeProperty .
 
-    :hasEnum rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string ;
-        rdfs:domain :testMyRes .
+    :hasEnum rdf:type owl:DatatypeProperty .
 
-    :hasMinimal a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string ;
-        rdfs:domain :testMyResMinimal .
+    :hasMinimal a owl:DatatypeProperty .
 
-    :hasMinimalA a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string ;
-        rdfs:domain :testMyResMinimalA .
+    :hasMinimalA a owl:DatatypeProperty .
 
-    :hasMinimalB a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string ;
-        rdfs:domain :testMyResMinimalB .
+    :hasMinimalB a owl:DatatypeProperty .
 
-    :hasMinimalC a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string ;
-        rdfs:domain :testMyResMinimalC .
+    :hasMinimalC a owl:DatatypeProperty .
 
-    :hasMore a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range xsd:string ;
-        rdfs:domain :testMyResInherit .
+    :hasMore a owl:DatatypeProperty .
 
 
-    :testMyRes a owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :test ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :hasText ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ] .
+    :testMyRes a owl:Class .
 
-    :testMyResMinimal a owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :hasMinimal ;
-            ] .
+    :testMyResMinimal a owl:Class .
 
-    :testMyResMinimalA a owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :hasMinimalA ;
-            ] .
+    :testMyResMinimalA a owl:Class .
 
-    :testMyResMinimalB a owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :hasMinimalB ;
-            ] .
+    :testMyResMinimalB a owl:Class .
 
-    :testMyResMinimalC a owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :hasMinimalC ;
-            ] .
+    :testMyResMinimalC a owl:Class .
 
-    :testMyResInherit a owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:subClassOf :testMyResMinimal,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :hasMore ;
-            ] .
+    :testMyResInherit a owl:Class .
 
 }
 

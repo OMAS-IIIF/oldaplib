@@ -61,9 +61,9 @@ class TestPropertyClass(unittest.TestCase):
                                      credentials="RioGrande",
                                      context_name="DEFAULT")
 
-        cls._unpriv = Connection(userId="fornaro",
-                                 credentials="RioGrande",
-                                 context_name="DEFAULT")
+        # cls._unpriv = Connection(userId="fornaro",
+        #                          credentials="RioGrande",
+        #                          context_name="DEFAULT")
 
 
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
@@ -145,7 +145,6 @@ class TestPropertyClass(unittest.TestCase):
                           inSet=XsdSet(Xsd_string("AAA"), Xsd_string("BBB"), Xsd_string("CCC")),
                           name=LangString(["Deepcopy@en", "Tiefekopie@de"]),
                           description=LangString("A test for deepcopy...@"))
-        p.force_external()
         jsonstr = json.dumps(p, default=serializer.encoder_default, indent=3)
         p2 = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(self._connection))
         self.assertEqual(p2, p)
@@ -159,7 +158,6 @@ class TestPropertyClass(unittest.TestCase):
                           inSet=XsdSet(Xsd_string("AAA"), Xsd_string("BBB"), Xsd_string("CCC")),
                           name=LangString(["Deepcopy@en", "Tiefekopie@de"]),
                           description=LangString("A test for deepcopy...@"))
-        p.force_external()
         p2 = deepcopy(p)
         p2.set_notifier(lambda x: x, Iri('test:gaga'))
         self.assertEqual(p._projectIri, p2._projectIri)
@@ -172,7 +170,6 @@ class TestPropertyClass(unittest.TestCase):
         self.assertFalse(p._property_class_iri is p2._property_class_iri)
         self.assertEqual(p._internal, p2._internal)
         self.assertIsNone(p2._internal)
-        self.assertEqual(p._force_external, p2._force_external)
         self.assertIsNone(p2.notify(), Iri('test:gaga'))
         self.assertEqual(p.datatype, p2.datatype)
         self.assertEqual(p.name, p2.name)
@@ -233,6 +230,17 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p4a.property_class_iri, Xsd_QName('test:testprop4a'))
         self.assertEqual(p4a.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.FR))
         self.assertEqual(p4a.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
+
+    def test_propertyclass_create_AA(self):
+        p1 = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Xsd_QName('test:testWrite'),
+            datatype=XsdDatatypes.string,
+            name=LangString("Annotations@en"),
+            description=LangString("An annotation@en"),
+        )
+        p1.create()
 
     def test_propertyclass_owltype_constructor(self):
         p4 = PropertyClass(con=self._connection,
