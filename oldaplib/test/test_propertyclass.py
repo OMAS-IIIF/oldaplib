@@ -2,10 +2,6 @@ import json
 import unittest
 from copy import deepcopy
 from pathlib import Path
-from pprint import pprint
-from time import sleep
-
-from rdflib.plugins.sparql import sparql
 
 from oldaplib.src.connection import Connection
 from oldaplib.src.dtypes.languagein import LanguageIn
@@ -18,7 +14,6 @@ from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString, LangStringChange
-from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, \
     OldapErrorInconsistency
 from oldaplib.src.helpers.query_processor import QueryProcessor
@@ -29,7 +24,6 @@ from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
-from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -70,7 +64,7 @@ class TestPropertyClass(unittest.TestCase):
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
         file = project_root / 'oldaplib' / 'testdata' / 'connection_test.trig'
-        cls._connection.upload_turtle(file)
+        cls._connection.upload_turtle(str(file))
         cls._project = Project.read(cls._connection, "test")
         cls._sysproject = Project.read(cls._connection, "oldap")
 
