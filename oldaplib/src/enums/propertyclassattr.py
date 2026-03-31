@@ -4,6 +4,7 @@ from typing import Self
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.xsdset import XsdSet
 from oldaplib.src.enums.attributeclass import AttributeClass, Target
+from oldaplib.src.enums.editor import Editor
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.numeric import Numeric
@@ -11,6 +12,7 @@ from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
@@ -58,6 +60,12 @@ class PropClassAttr(AttributeClass):
     LESS_THAN_OR_EQUALS = ('sh:lessThanOrEquals', False, False, Iri, Target.SHACL)
     INVERSE_OF = ('owl:inverseOf', False, False, Xsd_QName, Target.OWL)
     EQUIVALENT_PROPERTY = ('owl:equivalentProperty', False, False, Xsd_QName, Target.OWL)
+    MIN_COUNT = ('sh:minCount', False, False, Xsd_integer, Target.SHACL)
+    MAX_COUNT = ('sh:maxCount', False, False, Xsd_integer, Target.SHACL)
+    ORDER = ('sh:order', False, False, Xsd_decimal, Target.SHACL)
+    GROUP = ('sh:group', False, False, Xsd_QName, Target.SHACL)
+    EDITOR = ('dash:editor', False, False, Editor, Target.SHACL)
+
 
 
     @classmethod

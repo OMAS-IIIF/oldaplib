@@ -96,9 +96,8 @@ class PropertyClass(Model, Notify):
     _projectShortName: Xsd_NCName
     _projectIri: Iri
     _property_class_iri: Xsd_QName | None
-    __statementProperty: Xsd_boolean
+    _statementProperty: Xsd_boolean
     _internal: Xsd_QName | None
-    #_attributes: PropClassAttrContainer
     _test_in_use: bool
     _notifier: Callable[[type], None] | None
 
@@ -106,13 +105,12 @@ class PropertyClass(Model, Notify):
     # The following attributes of this class cannot be set explicitely by the used
     # They are automatically managed by the OMAS system
     #
-    __version: SemanticVersion
     __from_triplestore: bool
 
     __slots__ = ('subPropertyOf', 'type', 'toClass', 'datatype', 'name', 'description', 'languageIn', 'uniqueLang',
                  'inSet', 'minCount', 'maxCount', 'pattern',
                  'minExclusive', 'maxExclusive', 'minInclusive', 'maxInclusive', 'minLength', 'maxLength',
-                 'lessThan', 'lessThanOrEqual', 'inverseOf', 'equivalentProperty')
+                 'lessThan', 'lessThanOrEquals', 'inverseOf', 'equivalentProperty')
 
 
     def __init__(self, *,
@@ -123,6 +121,7 @@ class PropertyClass(Model, Notify):
                  modified: Xsd_dateTime | datetime | str | None = None,
                  project: Project | Iri | Xsd_NCName | str,
                  property_class_iri: Xsd_QName | str | None = None,
+                 statement_property: Xsd_boolean | bool = False,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
                  _internal: Xsd_QName | None = None,  # DO NOT USE!! Only for serialization!
@@ -179,11 +178,10 @@ class PropertyClass(Model, Notify):
         Notify.__init__(self, notifier, notify_data)
 
         if not isinstance(project, Project):
-            if not isinstance(project, (Iri, Xsd_NCName)):
-                project = IriOrNCName(project, validate=validate)
-            project = Project.read(self._con, project)
+            project = Project.read(self._con, IriOrNCName(project, validate=validate))
         self._projectShortName = project.projectShortName
         self._projectIri = project.projectIri
+        self._statementProperty = Xsd_boolean(statement_property)
         context = Context(name=self._con.context_name)
         context[self._projectShortName] = project.namespaceIri
         context.use(self._projectShortName)
@@ -226,23 +224,13 @@ class PropertyClass(Model, Notify):
         # Consistency checks
         #
         if self._attributes.get(PropClassAttr.LANGUAGE_IN) is not None:
-            if self._attributes.get(PropClassAttr.DATATYPE) is None:
-                self._attributes[PropClassAttr.DATATYPE] = XsdDatatypes.langString
-            elif self._attributes[PropClassAttr.DATATYPE] != XsdDatatypes.langString:
+            if self._attributes[PropClassAttr.DATATYPE] not in {XsdDatatypes.langString, XsdDatatypes.string}:
                 raise OldapErrorValue(f'Using restriction LANGUAGE_IN requires DATATYPE "rdf:langString", not "{self._attributes[PropClassAttr.DATATYPE].value}"')
         if self._attributes.get(PropClassAttr.DATATYPE) is not None and self._attributes.get(PropClassAttr.CLASS) is not None:
             raise OldapErrorInconsistency(f'It\'s not possible to use both DATATYPE="{self._attributes[PropClassAttr.DATATYPE]}" and CLASS={self._attributes[PropClassAttr.CLASS]} restrictions.')
 
         if not self._attributes.get(PropClassAttr.TYPE):
             self._attributes[PropClassAttr.TYPE] = ObservableSet(notifier=self.notifier, notify_data=PropClassAttr.TYPE)
-
-        #
-        # process the statement property stuff
-        #
-        if OwlPropertyType.StatementProperty in self._attributes[PropClassAttr.TYPE]:
-            self.__statementProperty = Xsd_boolean(True)
-        else:
-            self.__statementProperty = Xsd_boolean(False)
 
         #
         # setting property type for OWL which distinguished between Data- and Object-properties
@@ -275,7 +263,6 @@ class PropertyClass(Model, Notify):
         self.update_notifier()
         self._test_in_use = False
         self._internal = _internal
-        self.__version = SemanticVersion()
         self.__from_triplestore = _from_triplestore
         self.clear_changeset()
 
@@ -296,7 +283,7 @@ class PropertyClass(Model, Notify):
             'project': self._projectShortName,
             'property_class_iri': self.property_class_iri,
             **({'_internal': self._internal} if self._internal else {}),
-            #**({'__statementProperty': self.__statementProperty} if self.__statementProperty else {}),
+            **({'statement_property': self._statementProperty} if self._statementProperty else {}),
             '_from_triplestore': self.__from_triplestore,
         }
 
@@ -460,7 +447,7 @@ class PropertyClass(Model, Notify):
                         notifier=self._notifier,
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
-        instance.__statementProperty = deepcopy(self.__statementProperty, memo)
+        instance._statementProperty = deepcopy(self._statementProperty, memo)
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
         # Copy remaining PropertyClass attributes
@@ -471,7 +458,6 @@ class PropertyClass(Model, Notify):
         instance._internal = deepcopy(self._internal, memo)
         instance._test_in_use = self._test_in_use
         instance.__from_triplestore = self.__from_triplestore
-        instance.__version = deepcopy(self.__version)
         return instance
 
     def __len__(self) -> int:
@@ -502,15 +488,6 @@ class PropertyClass(Model, Notify):
         return self._property_class_iri
 
     @property
-    def version(self) -> SemanticVersion:
-        """
-        Return the version
-        :return: Version
-        :rtype: SemanticVersion
-        """
-        return self.__version
-
-    @property
     def internal(self) -> Xsd_QName | None:
         """
         Return the Iri of the ResourceClass, if the property is internal to a ResourceClass.
@@ -520,14 +497,14 @@ class PropertyClass(Model, Notify):
         """
         return self._internal
 
-    # @property
-    # def statementProperty(self) -> Xsd_boolean:
-    #     """
-    #     Return the statementProperty
-    #     :return: statementProperty
-    #     :rtype: bool
-    #     """
-    #     return self.__statementProperty
+    @property
+    def statementProperty(self) -> Xsd_boolean:
+        """
+        Return the statementProperty
+        :return: statementProperty
+        :rtype: bool
+        """
+        return self._statementProperty
 
     @property
     def from_triplestore(self) -> bool:
@@ -707,11 +684,6 @@ class PropertyClass(Model, Notify):
                     self._property_class_iri = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}" (type={type(val).__name__}).')
-            elif key == 'schema:version':
-                if isinstance(val, Xsd_string):
-                    self.__version = SemanticVersion.fromString(str(val))
-                else:
-                    raise OldapError(f'Inconsistency in SHACL "schema:version (type={type(val)})"')
             elif key == 'dcterms:creator':
                 if isinstance(val, Iri):
                     self._creator = val
@@ -734,7 +706,7 @@ class PropertyClass(Model, Notify):
                     raise OldapError(f'Inconsistency in SHACL "dcterms:modified (type={type(val)})"')
             elif key == 'oldap:statementProperty':
                 if isinstance(val, Xsd_boolean):
-                    self.__statementProperty = val
+                    self._statementProperty = val
                 else:
                     raise OldapError(f'Inconsistency in SHACL "oldap:statementProperty (type={type(val)})"')
             elif key == 'sh:node':
@@ -820,15 +792,6 @@ class PropertyClass(Model, Notify):
                         pcattr = PropClassAttr.from_value(attr)
                         if pcattr.in_owl:
                             self._attributes[pcattr] = pcattr.datatype(obj)
-        #
-        # Consistency checks
-        #
-        if self.__statementProperty:
-            if OwlPropertyType.StatementProperty not in self._attributes.get(PropClassAttr.TYPE):
-                raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" has SHACL oldap:statementProperty, but missing rdf:type rdf:Property.')
-        else:
-            if OwlPropertyType.StatementProperty in self._attributes.get(PropClassAttr.TYPE):
-                raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" has no SHACL oldap:statementProperty, but a rdf:type rdf:Property.')
 
     @classmethod
     def read(cls, con: IConnection,
@@ -917,7 +880,7 @@ class PropertyClass(Model, Notify):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty {self.__statementProperty.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty {self._statementProperty.toRdf}'
         for prop, value in self._attributes.items():
             if not prop.in_shacl:
                 continue
@@ -996,7 +959,7 @@ class PropertyClass(Model, Notify):
         :raises OldapErrorAlreadyExists: The PropertyClass is already existing.
         """
 
-        if not self.__statementProperty:
+        if not self._statementProperty:
             raise OldapErrorInconsistency(f'Standalone property "{self._property_class_iri}" has no SHACL oldap:statementProperty')
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
@@ -1159,7 +1122,7 @@ class PropertyClass(Model, Notify):
                 else:
                     raise OldapError(f'An unexpected Action occured: {change.action} for {prop.value}.')
                 ele = RdfModifyItem(prop.value, old_value, new_value)
-                if isinstance(prop.datatype, (XsdSet, LanguageIn)):
+                if prop.datatype == XsdSet or prop.datatype == LanguageIn:
                     sparql += RdfModifyProp.replace_rdfset(action=change.action,
                                                            graph=self._graph,
                                                            owlclass_iri=owlclass_iri,
@@ -1306,8 +1269,8 @@ class PropertyClass(Model, Notify):
                     self.maxInclusive = None
                 if self.lessThan is not None:
                     self.lessThan = None
-                if self.lessThanOrEqual is not None:
-                    self.lessThanOrEqual = None
+                if self.lessThanOrEquals is not None:
+                    self.lessThanOrEquals = None
         if PropClassAttr.DATATYPE in self.changeset and self.changeset[PropClassAttr.DATATYPE].action == Action.REPLACE:
             if self.datatype in {XsdDatatypes.int, XsdDatatypes.float, XsdDatatypes.double, XsdDatatypes.decimal,
                                  XsdDatatypes.long, XsdDatatypes.integer, XsdDatatypes.short, XsdDatatypes.byte,
@@ -1337,8 +1300,8 @@ class PropertyClass(Model, Notify):
                     self.maxExclusive = None
                 if self.lessThan is not None:
                     self.lessThan = None
-                if self.lessThanOrEqual is not None:
-                    self.lessThanOrEqual = None
+                if self.lessThanOrEquals is not None:
+                    self.lessThanOrEquals = None
 
         blank = ''
         context = Context(name=self._con.context_name)
@@ -1468,8 +1431,6 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{indent * indent_inc}}BIND({self._property_class_iri} as ?propnode)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 

@@ -13,12 +13,12 @@ class OwlPropertyType(Enum):
     OwlDataProperty = 'owl:DatatypeProperty'
     OwlObjectProperty = 'owl:ObjectProperty'
     StatementProperty = 'rdf:Property'
-    TransitiveProperty = 'owl:TransitiveProperty'
-    SymmetricProperty = 'owl:SymmetricProperty'
-    ReflexiveProperty = 'owl:ReflexiveProperty'
-    IrreflexiveProperty = 'owl:IrreflexiveProperty'
-    FunctionalProperty = 'owl:FunctionalProperty'
-    InverseFunctionalProperty = 'owl:InverseFunctionalProperty'
+    TransitiveProperty = 'owl:TransitiveProperty'  # Safe inference ✅ no warning
+    SymmetricProperty = 'owl:SymmetricProperty'  # Safe inference ✅ no warning
+    ReflexiveProperty = 'owl:ReflexiveProperty'  # Complex inference ⚠ warning
+    IrreflexiveProperty = 'owl:IrreflexiveProperty'  # Complex inference ⚠ warning
+    FunctionalProperty = 'owl:FunctionalProperty'  # Identity-changing 🔥strong warning or even disabled by default
+    InverseFunctionalProperty = 'owl:InverseFunctionalProperty'  # Identity-changing 🔥strong warning or even disabled by default
 
     @property
     def toRdf(self):

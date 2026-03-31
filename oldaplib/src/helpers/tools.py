@@ -68,7 +68,7 @@ class RdfModifyRes:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} {ele.old_value.toRdf} .\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?resource {ele.property} ?value .\n'
-        if ele.property != 'dcterms:modified':
+        if graph.fragment == 'shacl' and ele.property != 'dcterms:modified':
             sparql += f'{blank:{(indent + 1) * indent_inc}}?resource dcterms:modified ?modified .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {last_modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
@@ -140,9 +140,6 @@ class RdfModifyProp:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({pclass_iri} as ?prop)\n'
         if action != Action.CREATE:
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {ele.property} {ele.old_value} .\n'
-        if ele.property != 'dcterms:modified':
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {last_modified.toRdf})\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 

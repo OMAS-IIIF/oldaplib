@@ -37,19 +37,6 @@
         sh:minCount 0 ;
         sh:maxCount 1 .
 
-    #
-    # This property will be reused wherever we need a namespace IRI
-    #
-    :namespaceIriShape a sh:PropertyShape ;
-        sh:path :namespaceIri ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:name "Namespace IRI"@en ;
-        sh:description "Describes a namespace"@en ;
-        sh:nodeKind sh:IRI .
-
 
     ###########################################################################
     # Node shapes for the OLDAP system
@@ -103,9 +90,15 @@
             sh:maxCount 1 ;
             sh:minCount 1 ;
         ] ;
-        sh:property :namespaceIriShape ;
         sh:property [
             sh:path :namespaceIri ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:name "Namespace IRI"@en ;
+            sh:description "Describes a namespace"@en ;
+            sh:nodeKind sh:IRI ;
             sh:maxCount 1 ;
             sh:minCount 1 ;
         ] .
@@ -374,9 +367,15 @@
         sh:property [
             sh:path :externalOntology
         ] ;
-        sh:property :namespaceIriShape ;
         sh:property [
             sh:path :namespaceIri ;
+            dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+            dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+            sh:name "Namespace IRI"@en ;
+            sh:description "Describes a namespace"@en ;
+            sh:nodeKind sh:IRI ;
             sh:minCount 1 ;
             sh:maxCount 1 ;
             sh:order "2"^^xsd:decimal ;
@@ -825,186 +824,68 @@
     ###############################################################################
     # Standard Properties that are used everywhere
     ###############################################################################
-#    :hasAdminPermission a owl:ObjectProperty ;
-#        rdfs:range :AdminPermission .
-#
-#    :hasDefaultDataPermission a owl:Objectproperty ;
-#        rdfs:range :DataPermission .
 
-    :namespaceIri a owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:domain :ExternalOntology ;
-        rdfs:range owl:Thing .
+    :namespaceIri a owl:ObjectProperty .
 
     ###############################################################################
     # Properties used for extrernal ontologies
     ###############################################################################
-    :prefix a owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:domain :ExternalOntology ;
-        rdfs:range xsd:NCName .
+    :prefix a owl:DatatypeProperty .
 
     ###############################################################################
     # Properties that are used by the :DataPermission class
     ###############################################################################
 
-    :permissionValue rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :DataPermission ;
-        rdfs:range xsd:integer .
+    :permissionValue rdf:type owl:DatatypeProperty .
 
 
     ###############################################################################
     # Properties that are used by the :Thing class
     ###############################################################################
 
-    :createdBy rdf:type owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapThing ;
-        rdfs:range :User .
+    :createdBy rdf:type owl:ObjectProperty .
 
-    :lastModifiedBy rdf:type owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapThing ;
-        rdfs:range :User .
+    :lastModifiedBy rdf:type owl:ObjectProperty .
 
-    :creationDate rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :Thing ;
-        rdfs:range xsd:dateTimeStamp .
+    :creationDate rdf:type owl:DatatypeProperty .
 
-    :lastModificationDate rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :Thing ;
-        rdfs:range xsd:dateTimeStamp .
+    :lastModificationDate rdf:type owl:DatatypeProperty .
 
-    :attachedToRole rdf:type owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :Thing ;
-        rdfs:range :Role .
+    :attachedToRole rdf:type owl:ObjectProperty .
 
-    :definedByProject rdf:type owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :Role ;
-        rdfs:range :Project .
+    :definedByProject rdf:type owl:ObjectProperty .
 
 
     ###############################################################################
     # Properties used for :User
     ###############################################################################
 
-    :userId rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :User ;
-        rdfs:range xsd:NCName .
+    :userId rdf:type owl:DatatypeProperty .
 
-    :credentials rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :User ;
-        rdfs:range xsd:string .
+    :credentials rdf:type owl:DatatypeProperty .
 
-    :inProject rdf:type owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :User ;
-        rdfs:range oldap:Project .
+    :inProject rdf:type owl:ObjectProperty .
 
-    :isActive rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :User ;
-        rdfs:range xsd:boolean .
+    :isActive rdf:type owl:DatatypeProperty .
 
-    :hasRole rdf:type owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :User ;
-        rdfs:range :Role .
+    :hasRole rdf:type owl:ObjectProperty .
 
     #
     # RDF*Star property to assign an admin permission to a user/project combination
     #
-    :hasAdminPermission a rdf:Property, owl:ObjectProperty ;  # TODO: May be owl:ObjectProperty interferes and have to be delete
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range :AdminPermission .
+    :hasAdminPermission a owl:ObjectProperty .
 
-    :hasDefaultDataPermission a rdf:Property, owl:ObjectProperty ;  # TODO: May be owl:ObjectProperty interferes and have to be delete
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range :DataPermission .
+    :hasDefaultDataPermission a rdf:Property, owl:ObjectProperty .
 
     ###############################################################################
     # Properties used for :Project
     ###############################################################################
 
-    :projectShortName rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain oldap:Project ;
-        rdfs:range xsd:NCName .
+    :projectShortName rdf:type owl:DatatypeProperty .
 
-    :projectStart rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subPropertyOf owl:topDataProperty ;
-        rdfs:domain oldap:Project ;
-        rdfs:range xsd:date .
+    :projectStart rdf:type owl:DatatypeProperty .
 
-    :projectEnd rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain oldap:Project ;
-        rdfs:range xsd:date .
+    :projectEnd rdf:type owl:DatatypeProperty .
 
 
     ###############################################################################
@@ -1012,22 +893,10 @@
     ###############################################################################
 
     ###  oldap:ontology#leftIndex
-    :leftIndex rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapListNode ;
-        rdfs:range xsd:positiveInteger .
+    :leftIndex rdf:type owl:DatatypeProperty .
 
     ###  oldap:ontology#rightIndex
-    :rightIndex rdf:type owl:DatatypeProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:domain :OldapListNode ;
-        rdfs:range xsd:positiveInteger .
+    :rightIndex rdf:type owl:DatatypeProperty .
 
     ###############################################################################
     # Properties used for assigning data permission to an instance (RDF*star)
@@ -1036,12 +905,7 @@
     #
     # Example: <<:MyInstance :attachedToRole>> :hasDataPermission :DATA_RESTRICTED .
     #
-    :hasDataPermission rdf:type rdf:Property, owl:ObjectProperty ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        rdfs:range :DataPermission .
+    :hasDataPermission rdf:type rdf:Property, owl:ObjectProperty .
 
 
     #################################################################
@@ -1052,462 +916,48 @@
     # AdminPermission class (template for administrative permissions)
     #################################################################
 
-    :ExternalOntology rdf:type owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf [
-            rdf:type owl:Restriction ;
-            owl:onProperty dcterms:creator ;
-            owl:onClass :User ;
-            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-        ] , [
-            rdf:type owl:Restriction ;
-            owl:onProperty dcterms:created ;
-            owl:onDataRange xsd:dateTime ;
-            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-        ] , [
-            rdf:type owl:Restriction ;
-            owl:onProperty dcterms:contributor ;
-            owl:onClass :User ;
-            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-        ] , [
-            rdf:type owl:Restriction ;
-            owl:onProperty dcterms:modified ;
-            owl:onDataRange xsd:dateTime ;
-            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-        ] , [
-            rdf:type owl:Restriction ;
-            owl:onProperty :prefix ;
-            owl:onDataRange xsd:NCname ;
-            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-        ] ,
-        [
-            rdf:type owl:Restriction ;
-            owl:onProperty :namespaceIri ;
-            owl:onClass owl:Thing ;
-            owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-        ] .
+    :ExternalOntology rdf:type owl:Class .
 
-
-    oldap:AdminPermission rdf:type owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty rdfs:label ;
-                owl:onDataRange rdf:langString ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger
-            ] ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty rdfs:comment ;
-                owl:onDataRange rdf:langString ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger
-            ] .
+    oldap:AdminPermission rdf:type owl:Class .
 
 
     #################################################################
     # DataPermission class (template for administrative permissions)
     #################################################################
 
-    oldap:DataPermission rdf:type owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty rdfs:label ;
-                owl:onDataRange rdf:langString ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger
-            ] ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty rdfs:comment ;
-                owl:onDataRange rdf:langString ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger
-            ] ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty oldap:permissionValue ;
-                owl:onDataRange xsd:integer ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger
-            ] .
-
+    oldap:DataPermission rdf:type owl:Class .
 
     #################################################################
     # Role class (Holding class of resource permissions)
     #################################################################
 
-    :Role a owl:class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:creator ;
-                owl:onClass :User ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:created ;
-                owl:onDataRange xsd:dateTime ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-                            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:contributor ;
-                owl:onClass :User ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:modified ;
-                owl:onDataRange xsd:dateTime ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :definedByProject ;
-                owl:onClass :DataPermission ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty rdfs:label ;
-                owl:onDataRange rdf:langString ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty rdfs:comment ;
-                owl:onDataRange rdf:langString ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ] .
+    :Role a owl:class .
 
 
     #################################################################
     # Project class defining a project in OLDAP...
     #################################################################
-    :Project rdf:type owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:creator ;
-                owl:onClass :User ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:created ;
-                owl:onDataRange xsd:dateTime ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:contributor ;
-                owl:onClass :User ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:modified ;
-                owl:onDataRange xsd:dateTime ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty rdfs:label ;
-                owl:onDataRange rdf:langString ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty rdfs:comment ;
-                owl:onDataRange rdf:langString ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :projectShortName ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:NCName
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :namespaceIri ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:anyURI ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :projectStart ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:date
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :projectEnd ;
-                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:date
-            ] .
+    :Project rdf:type owl:Class .
 
     #################################################################
     # User class defining a the template of a OLDAP user
     #################################################################
-    :User rdf:type owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:creator ;
-                owl:onClass :User ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:created ;
-                owl:onDataRange xsd:dateTime ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:contributor ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onClass :User ;
-           ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:modified ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:dateTime ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :userId ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:NCName
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :credentials ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:string
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty schema:familyName ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:string
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty schema:givenName ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:string
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty schema:email ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:string
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :inProject ;
-                owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
-                owl:onClass oldap:Project
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :isActive ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:boolean
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :hasRole ;
-                owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
-                owl:onClass :Role
-            ] .
+    :User rdf:type owl:Class .
 
 
     #################################################################
     # List class defining a (possibly hierarchical) list
     #################################################################
-    :OldapList rdf:type owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf
-            skos:ConceptScheme,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:creator ;
-                owl:onClass :User ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:created ;
-                owl:onDataRange xsd:dateTime ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-                            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:contributor ;
-                owl:onClass :User ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:modified ;
-                owl:onDataRange xsd:dateTime ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty skos:prefLabel ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:string
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty skos:definition ;
-                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:string
-            ] .
+    :OldapList rdf:type owl:Class .
 
 
     #################################################################
     # List class defining a list node
     #################################################################
-    :OldapListNode rdf:type owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf
-            skos:Concept,
-             [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:creator ;
-                owl:onClass :User ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:created ;
-                owl:onDataRange xsd:dateTime ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-                            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:contributor ;
-                owl:onClass :User ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty dcterms:modified ;
-                owl:onDataRange xsd:dateTime ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty skos:inScheme ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onClass :OldapList
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty skos:broader ;
-                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onClass :OldapListNode
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty skos:prefLabel ;
-                owl:minQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:string
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :leftIndex ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:positiveInteger
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :rightIndex ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:positiveInteger
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty skos:definition ;
-                owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:string
-            ] .
+    :OldapListNode rdf:type owl:Class .
 
     ###  oldap:ontology#OldapThing
-    :Thing rdf:type owl:Class ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00Z"^^xsd:dateTime ;
-        rdfs:subClassOf
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :createdBy ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onClass :User
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :lastModifiedBy ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onClass :User
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :creationDate ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:dateTimeStamp
-            ],
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :lastModificationDate ;
-                owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                owl:onDataRange xsd:dateTimeStamp
-            ] ,
-            [
-                rdf:type owl:Restriction ;
-                owl:onProperty :attachedToRole ;
-                owl:minQualifiedCardinality "0"^^xsd:nonNegativeInteger ;
-                owl:onClass :Rolse
-            ] ;
-        rdfs:comment "General super class of all things (resources) in tghe OMAS universe"@en .
+    :Thing rdf:type owl:Class .
 
 }
 
