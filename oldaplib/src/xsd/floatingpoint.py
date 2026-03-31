@@ -90,6 +90,14 @@ class FloatingPoint(Xsd):
             valstr = str(self._value)
         return f'{type(self).__name__}({valstr})'
 
+    def __hash__(self) -> int:
+        """
+        Returns the hash value of the floating point number
+        :return: Hash value
+        :rtype: int
+        """
+        return hash(self._value)
+
     def __eq__(self, other: Self | float | int | str | None) -> bool:
         """
         Test for equality

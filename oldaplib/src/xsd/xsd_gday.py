@@ -70,6 +70,14 @@ class Xsd_gDay(Xsd):
         """
         return f'Xsd_gDay("{str(self)}")'
 
+    def __hash__(self) -> int:
+        """
+        Returns the hash value of the Xsd_gDay instance.
+        :return: Hash value
+        :rtype: int
+        """
+        return hash(str(self))
+
     def __eq__(self, other: Self | str | None) -> bool:
         """
         Equality check for Xsd_gDay object

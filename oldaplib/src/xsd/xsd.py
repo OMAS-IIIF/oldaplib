@@ -31,6 +31,15 @@ class Xsd(ABC):
         """
         pass
 
+    @abstractmethod
+    def __hash__(self) -> int:
+        """
+        Returns the hash value of the XSD instance.
+        :return: Hash value
+        :rtype: int
+        """
+        pass
+
     @classmethod
     def fromRdf(cls, value: str) -> Self:
         """

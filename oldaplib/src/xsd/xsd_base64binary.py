@@ -58,6 +58,9 @@ class Xsd_base64Binary(Xsd):
         """
         return f'Xsd_base64Binary(b"{self.__value.decode('utf-8')}")'
 
+    def __hash__(self):
+        return hash(self.__value)
+
     def __eq__(self, other: Self | None) -> bool:
         """
         Compare for equality

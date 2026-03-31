@@ -1220,7 +1220,7 @@ class ResourceClass(Model, Notify):
                 sparql += hp.create_owl(4)
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}]'
             else:
-                sparql += hp.prop.create_owl_part2(haspropdata=hp, indent=(indent + 4))
+                sparql += hp.prop.create_owl_part2(haspropdata=hp, indent=(indent + 4)) ## TODO: remove!!!
             i += 1
         sparql += ' .\n'
         return sparql

@@ -97,6 +97,14 @@ class Xsd_anyURI(Xsd):
         """
         return f'{self._value}'
 
+    def __hash__(self) -> int:
+        """
+        Returns the hash value of the AnyIRI
+        :return: Hash value
+        :rtype: int
+        """
+        return hash(self._value)
+
     def __eq__(self, other: Any | None) -> bool:
         """
         Test for equality of two AnyIRIs

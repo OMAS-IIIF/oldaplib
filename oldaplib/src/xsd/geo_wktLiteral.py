@@ -27,11 +27,14 @@ class Geo_wktLiteral(Xsd):
             if not geom.is_valid:
                 raise OldapErrorValue(f'WKT "{self.__value}" is not a valid geometry.')
 
-    def __str__(self) -> str:
+    def __str__(self) -> str | None:
         return self.__value
 
     def __repr__(self) -> str:
         return f'Geo_wktLiteral("{self.__value}")'
+
+    def __hash__(self) -> int:
+        return hash(self.__value)
 
     def __eq__(self, other: Self | str | None) -> bool:
         if isinstance(other, Geo_wktLiteral):

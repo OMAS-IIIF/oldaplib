@@ -30,6 +30,7 @@ class Xsd_QName(Xsd):
 
     """
     _value: str
+    __match_args__ = ("value",)
 
     def __init__(self, value: Self | str | Xsd_NCName, fragment: str | Xsd_NCName | None = None, validate: bool = False) -> None:
         """

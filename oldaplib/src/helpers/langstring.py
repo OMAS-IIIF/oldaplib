@@ -7,7 +7,7 @@ the Language class provides all necessary enumerations.
 from dataclasses import dataclass
 from datetime import datetime
 from pprint import pprint
-from typing import Dict, List, Optional, Callable, Self, Iterator
+from typing import Dict, List, Optional, Callable, Self, Iterator, Any
 
 from pystrict import strict
 
@@ -258,6 +258,21 @@ class LangString(Notify):
     def __next__(self):
         lang = self._iteration.__next__()
         return Xsd_string(self._langstring[lang], lang)
+
+    def __hash__(self) -> int:
+        """
+        Returns the hash value of the LangString instance.
+        :return: Hash value
+        :rtype: int
+        """
+        return hash(tuple(self._langstring.items()))
+
+    def __eq__(self, other: Any | None):
+        if other is None:
+            return False
+        if not isinstance(other, LangString):
+            return False
+        return self._langstring == other._langstring
 
     @property
     def toRdf(self) -> str:

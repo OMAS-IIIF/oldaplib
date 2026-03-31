@@ -126,6 +126,14 @@ class Iri(Xsd):
         """
         return f'Iri("{self.__value}")'
 
+    def __hash__(self) -> int:
+        """
+        Returns the hash value of the IRI
+        :return: Hash value
+        :rtype: int
+        """
+        return hash(self.__value)
+
     def __eq__(self, other: Self | Xsd_QName | Xsd_anyURI | str) -> bool:
         """
         Compare for equality

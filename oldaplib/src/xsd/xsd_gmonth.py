@@ -70,6 +70,14 @@ class Xsd_gMonth(Xsd):
         """
         return f'Xsd_gMonth("{str(self)}")'
 
+    def __hash__(self) -> int:
+        """
+        Returns the hash value of the Xsd_gMonth instance.
+        :return: Hash value
+        :rtype: int
+        """
+        return hash((self.__month, self.__tz))
+
     def __eq__(self, other: Self | str | None) -> bool:
         """
         Equality check for Xsd_gMonth instance
@@ -87,13 +95,6 @@ class Xsd_gMonth(Xsd):
         if self.__tz != other.__tz:
             return False
         return True
-
-    def __hash__(self) -> int:
-        """
-        Hashing function for Xsd_gMonth instance
-        :return: Hash value
-        """
-        return hash(str(self))
 
     def _as_dict(self) -> dict[str, str]:
         """

@@ -50,6 +50,14 @@ class Xsd_duration(Xsd):
         """
         return f'"{isodate.duration_isoformat(self.__value)}"^^xsd:duration'
 
+    def __hash__(self) -> int:
+        """
+        Returns the hash value of the Xsd_duration instance.
+        :return: Hash value
+        :rtype: int
+        """
+        return hash(self.__value)
+
     def __eq__(self, other: Self | timedelta | str | None) -> bool:
         """
         Compares two Xsd_duration instances for equality.

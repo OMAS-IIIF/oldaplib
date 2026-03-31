@@ -92,63 +92,6 @@ class HasPropertyData:
 #@strict
 @serializer
 class PropertyClass(Model, Notify):
-    """
-    This class represents a property as utilized within the context of OMASlib. Properties in this
-    framework are categorized into two main types:
-
-    - **External properties**: These are properties defined outside a specific resource class and
-      are designed to be reusable across multiple resources. In SHACL, they correspond to instances
-      of "sh:PropertyShape".
-    - **Internal or exclusive properties**: These are properties defined as blank nodes within
-      the resource class definition. A "sh:property" predicate refers to the blank node that specifies
-      the property. Internal properties are resource-specific and cannot be reused across different
-      resources.
-
-    **Note**: External properties must be defined and instantiated before being referenced as
-    properties within a resource definition. When referencing external properties, their QName
-    should be used.
-
-    :ivar subPropertyOf: Specifies the super-property of the property represented by this instance.
-    :type subPropertyOf: Any
-    :ivar type: The type of the property (e.g., data or object property).
-    :type type: Any
-    :ivar toClass: Points to the associated resource class (for object property definitions).
-    :type toClass: Any
-    :ivar datatype: Defines the datatype of the property for data properties.
-    :type datatype: Any
-    :ivar name: The name of the property.
-    :type name: Any
-    :ivar description: A textual description of the property.
-    :type description: Any
-    :ivar languageIn: Restrictions on languages if the datatype is language-sensitive.
-    :type languageIn: Any
-    :ivar uniqueLang: Indicates whether only unique languages are allowed for the property.
-    :type uniqueLang: Any
-    :ivar inSet: Provides a set of restricted allowed values for the property.
-    :type inSet: Any
-    :ivar minCount: Specifies the minimum number of occurrences allowed for the property.
-    :type minCount: Any
-    :ivar maxCount: Specifies the maximum number of occurrences allowed for the property.
-    :type maxCount: Any
-    :ivar pattern: A regular expression pattern the property value must conform to.
-    :type pattern: Any
-    :ivar minExclusive: Restricts the property value to be strictly greater than this value.
-    :type minExclusive: Any
-    :ivar maxExclusive: Restricts the property value to be strictly less than this value.
-    :type maxExclusive: Any
-    :ivar minInclusive: Restricts the property value to be greater than or equal to this value.
-    :type minInclusive: Any
-    :ivar maxInclusive: Restricts the property value to be less than or equal to this value.
-    :type maxInclusive: Any
-    :ivar minLength: Specifies the minimal length for the property value (for strings, etc.).
-    :type minLength: Any
-    :ivar maxLength: Specifies the maximum length for the property value (for strings, etc.).
-    :type maxLength: Any
-    :ivar lessThan: Indicates the property must have smaller values compared to another property.
-    :type lessThan: Any
-    :ivar lessThanOrEqual: Indicates the property must have values less than or equal to another property.
-    :type lessThanOrEqual: Any
-    """
     _graph: Xsd_NCName
     _projectShortName: Xsd_NCName
     _projectIri: Iri
@@ -247,7 +190,7 @@ class PropertyClass(Model, Notify):
         self._graph = self._projectShortName
 
         self._property_class_iri = Xsd_QName(property_class_iri, validate=validate) if property_class_iri else None
-        datatype = kwargs.get('datatype', None)
+        datatype: XsdDatatypes | None = kwargs.get('datatype', None)
         if datatype and kwargs.get('inSet'):
             if datatype == XsdDatatypes.langString:
                 kwargs['inSet'] = {convert2datatype(x, XsdDatatypes.string) for x in kwargs['inSet']}
@@ -861,8 +804,6 @@ class PropertyClass(Model, Notify):
         """
         jsonobj = self._con.query(query1)
         res = QueryProcessor(context=context, query_result=jsonobj)
-        datatype = None
-        to_node_iri = None
         for r in res:
             attr = r['p']
             obj = r['o']
@@ -874,22 +815,6 @@ class PropertyClass(Model, Notify):
                     except ValueError as e:
                         raise OldapErrorNotFound(f'{self._property_class_iri}: Unknown owl:Property type "{obj}"') from e
                     self._attributes[PropClassAttr.TYPE].add(prop_type)
-                case 'owl:subPropertyOf':
-                    self._attributes[PropClassAttr.SUBPROPERTY_OF] = obj
-                case 'dcterms:creator':
-                    if self._creator != obj:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: creator "{self._creator}" vs "{obj}" for property "{self._property_class_iri}".')
-                case 'dcterms:created':
-                    dt = obj
-                    if self._created != dt:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self._created}" vs "{dt}" for property "{self._property_class_iri}".')
-                case 'dcterms:contributor':
-                    if self._creator != obj:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: contributor "{self._contributor}" vs "{obj}" for property "{self._property_class_iri}".')
-                case 'dcterms:modified':
-                    dt = obj
-                    if self._modified != dt:
-                        raise OldapError(f'Inconsistency between SHACL and OWL: created "{self._modified}" vs "{dt}" for property "{self._property_class_iri}".')
                 case _:
                     if attr in propkeys:
                         pcattr = PropClassAttr.from_value(attr)
@@ -904,18 +829,6 @@ class PropertyClass(Model, Notify):
         else:
             if OwlPropertyType.StatementProperty in self._attributes.get(PropClassAttr.TYPE):
                 raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" has no SHACL oldap:statementProperty, but a rdf:type rdf:Property.')
-        if OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
-            if not datatype:
-                raise OldapError(f'OwlDataProperty "{self._property_class_iri}" has no rdfs:range datatype defined!')
-            if datatype != self._attributes.get(PropClassAttr.DATATYPE).value:
-                raise OldapError(
-                    f'Property "{self._property_class_iri}" has inconsistent datatype definitions: OWL: "{datatype}" vs. SHACL: "{self._attributes[PropClassAttr.DATATYPE].value}"')
-        if OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
-            if not to_node_iri:
-                raise OldapError(f'OwlObjectProperty "{self._property_class_iri}" has no rdfs:range resource class defined!')
-            if to_node_iri != self._attributes.get(PropClassAttr.CLASS):
-                raise OldapError(
-                    f'Property "{self._property_class_iri}" has inconsistent object type definition: OWL: "{to_node_iri}" vs. SHACL: "{self._attributes.get(PropClassAttr.CLASS)}".')
 
     @classmethod
     def read(cls, con: IConnection,
@@ -988,26 +901,6 @@ class PropertyClass(Model, Notify):
             return None
         return res[0].get('modified')
 
-    def read_modified_owl(self, *,
-                          context: Context,
-                          graph: Xsd_NCName,
-                          indent: int = 0, indent_inc: int = 4) -> Xsd_dateTime | None:
-        blank = ''
-        sparql = context.sparql_context
-        owlclass_iri = self._internal
-        sparql += f"{blank:{indent * indent_inc}}SELECT ?modified\n"
-        sparql += f"{blank:{indent * indent_inc}}FROM {graph}:onto\n"
-        sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
-        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f"{blank:{indent * indent_inc}}}}"
-        jsonobj = self._con.transaction_query(sparql)
-        res = QueryProcessor(context, jsonobj)
-        if len(res) != 1:
-            return None
-        return res[0].get('modified')
-
-
     def property_node_shacl(self, *,
                             timestamp: Xsd_dateTime,
                             bnode: Xsd_QName | None = None,
@@ -1020,7 +913,6 @@ class PropertyClass(Model, Notify):
         else:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri.toRdf}'
         if len(self._attributes) > 0:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}schema:version {self.__version.toRdf}'
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
@@ -1030,7 +922,6 @@ class PropertyClass(Model, Notify):
             if not prop.in_shacl:
                 continue
             if not value and not isinstance(value, bool):
-            #if value is None:
                 continue
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.toRdf}'
         if haspropdata:
@@ -1061,79 +952,14 @@ class PropertyClass(Model, Notify):
     def create_owl_part1(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} {PropClassAttr.TYPE.toRdf} {self._attributes[PropClassAttr.TYPE].toRdf}'
-        if self._internal:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal.toRdf}'
-        if self._attributes.get(PropClassAttr.TYPE) and  OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.DATATYPE].value}'
-        elif self._attributes.get(PropClassAttr.TYPE) and OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.CLASS].toRdf}'
         for attr, val in self._attributes.items():
-            #attr = PropClassAttr.from_value(key)
             if not attr.in_owl or attr == PropClassAttr.TYPE or val is None:
                 continue
-            if attr == PropClassAttr.NAME:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:label {val.toRdf}'
-            elif attr == PropClassAttr.DESCRIPTION:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:comment {val.toRdf}'
-            else:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{attr.toRdf} {val.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{attr.toRdf} {val.toRdf}'
         sparql += ' .\n'
 
-        # sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} rdf:type {self._attributes[PropClassAttr.TYPE].toRdf}'
-        # if self._attributes.get(PropClassAttr.SUBPROPERTY_OF):
-        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:subPropertyOf {self._attributes[PropClassAttr.SUBPROPERTY_OF].toRdf}'
-        # if self._internal:
-        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:domain {self._internal.toRdf}'
-        # if self._attributes.get(PropClassAttr.TYPE) and  OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
-        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.DATATYPE].value}'
-        # elif self._attributes.get(PropClassAttr.TYPE) and OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
-        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:range {self._attributes[PropClassAttr.CLASS].toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-        # sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        # if self.name:
-        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:label {self.name.toRdf}'
-        # if self.description:
-        #     sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}rdfs:comment {self.description.toRdf}'
-        # sparql += ' .\n'
         return sparql
 
-    def create_owl_part2(self, *,
-                         haspropdata: HasPropertyData | None = None,
-                         indent: int = 0, indent_inc: int = 4) -> str:
-        if not (haspropdata.minCount or haspropdata.maxCount or self._attributes.get(PropClassAttr.DATATYPE) or self._attributes.get(PropClassAttr.CLASS)):
-            return ''  # no OWL to be added!
-        blank = ''
-        sparql = f'{blank:{indent * indent_inc}}[\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}rdf:type owl:Restriction ;\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}owl:onProperty {self._property_class_iri.toRdf}'
-
-        if haspropdata.minCount and haspropdata.maxCount  and haspropdata.minCount == haspropdata.maxCount:
-            tmp = Xsd_nonNegativeInteger(haspropdata.minCount)
-            sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:qualifiedCardinality {tmp.toRdf}'
-        else:
-            if haspropdata.minCount:
-                tmp = Xsd_nonNegativeInteger(haspropdata.minCount)
-                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:minQualifiedCardinality {tmp.toRdf}'
-            if haspropdata.maxCount:
-                tmp = Xsd_nonNegativeInteger(haspropdata.maxCount)
-                sparql += f' ;\n{blank:{(indent + 1)*indent_inc}}owl:maxQualifiedCardinality {tmp.toRdf}'
-        #
-        # (NOTE: owl:onClass and owl:onDataRange can be used only in a restriction and are "local" to the use
-        # of the property within the given resource. However, rdfs:range is "global" for all use of this property!
-        #
-        if self._attributes.get(PropClassAttr.DATATYPE) or self._attributes.get(PropClassAttr.CLASS):
-            if OwlPropertyType.OwlDataProperty in self._attributes[PropClassAttr.TYPE]:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onDataRange {self._attributes[PropClassAttr.DATATYPE].value}'
-            elif OwlPropertyType.OwlObjectProperty in self._attributes[PropClassAttr.TYPE]:
-                sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}owl:onClass {self._attributes[PropClassAttr.CLASS]}'
-        sparql += f' ;\n{blank:{indent * indent_inc}}]'
-        return sparql
 
     def set_creation_metadata(self, timestamp: Xsd_dateTime):
         self._created = timestamp
@@ -1169,6 +995,9 @@ class PropertyClass(Model, Notify):
         :raises OldapErrorInconsistency: Inconsistency between SHACL and OWL.
         :raises OldapErrorAlreadyExists: The PropertyClass is already existing.
         """
+
+        if not self.__statementProperty:
+            raise OldapErrorInconsistency(f'Standalone property "{self._property_class_iri}" has no SHACL oldap:statementProperty')
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -1199,7 +1028,6 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
         sparql += self.create_owl_part1(timestamp=timestamp, indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
-
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         try:
@@ -1218,16 +1046,14 @@ class PropertyClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError as err:
-            print(sparql)
             self._con.transaction_abort()
             raise
         try:
             modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
-            modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
         except OldapError as err:
             self._con.transaction_abort()
             raise
-        if modtime_shacl == timestamp and modtime_owl == timestamp:
+        if modtime_shacl == timestamp:
             self._con.transaction_commit()
         else:
             self._con.transaction_abort()
@@ -1333,7 +1159,7 @@ class PropertyClass(Model, Notify):
                 else:
                     raise OldapError(f'An unexpected Action occured: {change.action} for {prop.value}.')
                 ele = RdfModifyItem(prop.value, old_value, new_value)
-                if prop.datatype in {XsdSet, LanguageIn}:
+                if isinstance(prop.datatype, (XsdSet, LanguageIn)):
                     sparql += RdfModifyProp.replace_rdfset(action=change.action,
                                                            graph=self._graph,
                                                            owlclass_iri=owlclass_iri,
@@ -1377,14 +1203,8 @@ class PropertyClass(Model, Notify):
                    owlclass_iri: Xsd_QName | None = None,
                    timestamp: Xsd_dateTime,
                    indent: int = 0, indent_inc: int = 4) -> str:
-        tmp = {x for x in PropClassAttr if x.in_owl and x != PropClassAttr.TYPE}
-        owl_propclass_attributes = {PropClassAttr.SUBPROPERTY_OF,  # should be in OWL ontology
-                                    PropClassAttr.DATATYPE,  # used for rdfs:range in OWL ontology
-                                    PropClassAttr.CLASS} | tmp # used for rdfs:range in OWL ontology
-        tmp = {x: x.value.toRdf for x in PropClassAttr if x.in_owl and x != PropClassAttr.TYPE}
-        owl_prop = {PropClassAttr.SUBPROPERTY_OF: PropClassAttr.SUBPROPERTY_OF.value,
-                    PropClassAttr.DATATYPE: "rdfs:range",
-                    PropClassAttr.CLASS: "rdfs:range"} | tmp
+        owl_propclass_attributes = {x for x in PropClassAttr if x.in_owl and x != PropClassAttr.TYPE}
+        owl_prop = {x: x.value.toRdf for x in PropClassAttr if x.in_owl and x != PropClassAttr.TYPE}
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
@@ -1418,87 +1238,12 @@ class PropertyClass(Model, Notify):
                                              indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
             if prop == PropClassAttr.TYPE:
-
                 sparql = self._attributes[prop].update_sparql(graph=Xsd_QName(str(self._graph), 'onto'),
                                                               subject=self._property_class_iri,
                                                               ignoreitems={OwlPropertyType.OwlDataProperty,OwlPropertyType.OwlObjectProperty},
                                                               field=prop)
                 sparql_list.extend(sparql)
-            if prop == PropClassAttr.NAME:
-                if change.action == Action.CREATE:
-                    sparql = self.name.create(graph=Xsd_QName(self._graph, 'onto'),
-                                              subject=self._property_class_iri,
-                                              field=Xsd_QName('rdfs:label'),
-                                              indent=indent, indent_inc=indent_inc)
-                    sparql_list.append(sparql)
-                if change.action == Action.MODIFY:
-                    sparqls = self.name.update(graph=Xsd_QName(self._graph, 'onto'),
-                                               subject=self._property_class_iri,
-                                               field=Xsd_QName('rdfs:label'),
-                                               indent=indent, indent_inc=indent_inc)
-                    for sparql in sparqls:
-                        sparql_list.append(sparql)
-                if change.action == Action.DELETE:
-                    sparql = change.old_value.delete(graph=Xsd_QName(self._graph, 'onto'),
-                                               subject=self._property_class_iri,
-                                               field=Xsd_QName('rdfs:label'),
-                                               indent=indent, indent_inc=indent_inc)
-                    sparql_list.append(sparql)
 
-            if prop == PropClassAttr.DESCRIPTION:
-                if change.action == Action.CREATE:
-                    sparql = self.description.create(graph=Xsd_QName(self._graph, 'onto'),
-                                                     subject=self._property_class_iri,
-                                                     field=Xsd_QName('rdfs:comment'),
-                                                     indent=indent, indent_inc=indent_inc)
-                    sparql_list.append(sparql)
-                if change.action == Action.MODIFY:
-                    sparqls = self.description.update(graph=Xsd_QName(self._graph, 'onto'),
-                                                      subject=self._property_class_iri,
-                                                      field=Xsd_QName('rdfs:comment'),
-                                                      indent=indent, indent_inc=indent_inc)
-                    for sparql in sparqls:
-                        sparql_list.append(sparql)
-                if change.action == Action.DELETE:
-                    sparql = change.old_value.delete(graph=Xsd_QName(self._graph, 'onto'),
-                                                     subject=self._property_class_iri,
-                                                     field=Xsd_QName('rdfs:comment'),
-                                                     indent=indent, indent_inc=indent_inc)
-                    sparql_list.append(sparql)
-
-
-        #
-        # Updating the timestamp and contributor ID
-        #
-        sparql = f'#\n# Update/add dcterms:contributor {self._graph}:onto\n#\n'
-        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
-        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self._contributor.toRdf}\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:contributor {self._con.userIri.toRdf}\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-        sparql_list.append(sparql)
-
-        sparql = f'#\n# Update/add dcterms:modified in {self._graph}:onto\n#\n'
-        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:onto\n'
-        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified {timestamp.toRdf}\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri} AS ?prop)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-        sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
         return sparql
@@ -1561,8 +1306,8 @@ class PropertyClass(Model, Notify):
                     self.maxInclusive = None
                 if self.lessThan is not None:
                     self.lessThan = None
-                if self.lessThanOrEquals is not None:
-                    self.lessThanOrEquals = None
+                if self.lessThanOrEqual is not None:
+                    self.lessThanOrEqual = None
         if PropClassAttr.DATATYPE in self.changeset and self.changeset[PropClassAttr.DATATYPE].action == Action.REPLACE:
             if self.datatype in {XsdDatatypes.int, XsdDatatypes.float, XsdDatatypes.double, XsdDatatypes.decimal,
                                  XsdDatatypes.long, XsdDatatypes.integer, XsdDatatypes.short, XsdDatatypes.byte,
@@ -1616,12 +1361,11 @@ class PropertyClass(Model, Notify):
 
         try:
             modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
-            modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
         except OldapError as e:
             self._con.transaction_abort()
             raise
 
-        if modtime_shacl == timestamp and modtime_owl == timestamp:
+        if modtime_shacl == timestamp:
             self._con.transaction_commit()
         else:
             self._con.transaction_abort()
@@ -1768,11 +1512,10 @@ class PropertyClass(Model, Notify):
         self._con.transaction_update(sparql)
         try:
             modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
-            modtime_owl = self.read_modified_owl(context=context, graph=self._graph)
         except OldapError as e:
             self._con.transaction_abort()
             raise
-        if modtime_shacl is not None or modtime_owl is not None:
+        if modtime_shacl:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed("Deleting Property failed")
         else:

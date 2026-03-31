@@ -5,6 +5,8 @@ from pathlib import Path
 from pprint import pprint
 from time import sleep
 
+from rdflib.plugins.sparql import sparql
+
 from oldaplib.src.connection import Connection
 from oldaplib.src.dtypes.languagein import LanguageIn
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -135,6 +137,7 @@ class TestPropertyClass(unittest.TestCase):
                           inSet={"AAA", "BBB", "CCC"},
                           name=LangString(["Deepcopy@en", "Tiefekopie@de"]),
                           description=LangString("A test for deepcopy...@"))
+        self.assertEqual(p.get(PropClassAttr.IN), {"AAA", "BBB", "CCC"})
 
     def test_propertyclass_jsonify(self):
         p = PropertyClass(con=self._connection,
@@ -231,16 +234,79 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p4a.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.FR))
         self.assertEqual(p4a.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
 
-    def test_propertyclass_create_AA(self):
+    def test_propertyclass_create_statement_property(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
+            type={OwlPropertyType.StatementProperty},
             property_class_iri=Xsd_QName('test:testWrite'),
             datatype=XsdDatatypes.string,
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
         )
         p1.create()
+        sparql = self._context.sparql_context
+        sparql += f"""
+        SELECT ?p ?o
+        WHERE {{
+            GRAPH {self._project.projectShortName}:shacl {{
+                {p1.property_class_iri.toRdf}Shape ?p ?o .
+            }}
+        }}
+        """
+        jsonres = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonres)
+        for row in res:
+            match row.get('p'):
+                case Xsd_QName("rdf:type"):
+                    self.assertEqual(row.get('o'), Xsd_QName("sh:PropertyShape"))
+                case Xsd_QName("oldap:statementProperty"):
+                    self.assertTrue(row.get('o'))
+                case Xsd_QName("sh:path"):
+                    self.assertEqual(row.get('o'), Xsd_QName("test:testWrite"))
+                case Xsd_QName("sh:datatype"):
+                    self.assertEqual(row.get('o'), Xsd_QName("xsd:string"))
+                case Xsd_QName("dcterms:creator"):
+                    self.assertEqual(row.get('o'), Iri("https://orcid.org/0000-0003-1681-4036"))
+                case Xsd_QName("dcterms:created"):
+                    self.assertEqual(row.get('o'), p1.created)
+                case Xsd_QName("dcterms:contributor"):
+                    self.assertEqual(row.get('o'), Iri("https://orcid.org/0000-0003-1681-4036"))
+                case Xsd_QName("dcterms:modified"):
+                    self.assertEqual(row.get('o'), p1.modified)
+                case Xsd_QName("sh:name"):
+                    self.assertEqual(row.get('o'), Xsd_string("Annotations", "en"))
+                case Xsd_QName("sh:description"):
+                    self.assertEqual(row.get('o'), Xsd_string("An annotation", "en"))
+                case _:
+                    raise Exception(f"Unexpected property {row.get('p')} => {row.get('o')}")
+        sparql = self._context.sparql_context
+        sparql += f"""
+        SELECT ?p ?o
+        WHERE {{
+            GRAPH {self._project.projectShortName}:onto {{
+                {p1.property_class_iri.toRdf} ?p ?o .
+            }}
+        }}
+        """
+        jsonres = self._connection.query(sparql)
+        res = QueryProcessor(self._context, jsonres)
+        for row in res:
+            print(row)
+
+
+
+    def test_propertyclass_create_standalone_property(self):
+        p1 = PropertyClass(
+            con=self._connection,
+            project=self._project,
+            property_class_iri=Xsd_QName('test:testWrite2'),
+            datatype=XsdDatatypes.string,
+            name=LangString("Annotations2@en"),
+            description=LangString("An annotation2@en"),
+        )
+        with self.assertRaises(OldapErrorInconsistency):
+            p1.create()
 
     def test_propertyclass_owltype_constructor(self):
         p4 = PropertyClass(con=self._connection,
