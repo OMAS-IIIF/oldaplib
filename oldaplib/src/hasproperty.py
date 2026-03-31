@@ -201,14 +201,6 @@ class HasProperty(Model, Notify):
     def prop(self, prop: PropertyClass | Xsd_QName) -> None:
         self._prop = prop
 
-    @property
-    def haspropdata(self) -> HasPropertyData:
-        return HasPropertyData(minCount=self._attributes.get(HasPropertyAttr.MIN_COUNT, None),
-                               maxCount=self._attributes.get(HasPropertyAttr.MAX_COUNT, None),
-                               order=self._attributes.get(HasPropertyAttr.ORDER, None),
-                               group=self._attributes.get(HasPropertyAttr.GROUP, None),
-                               editor=self._attributes.get(HasPropertyAttr.EDITOR, None))
-
     def clear_changeset(self) -> None:
         if hasattr(self._prop, 'clear_changeset'):
             self._prop.clear_changeset()

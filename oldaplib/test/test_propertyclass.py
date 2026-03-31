@@ -16,7 +16,6 @@ from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.language import Language
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
-from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString, LangStringChange
 from oldaplib.src.helpers.observable_set import ObservableSet
@@ -326,6 +325,10 @@ class TestPropertyClass(unittest.TestCase):
         """
         jsonres = self._connection.query(sparql)
         res = QueryProcessor(self._context, jsonres)
+        has_maxCount = False
+        has_minCount = False
+        has_order = False
+        #has_group = False
         for row in res:
             match row.get('p'):
                 case Xsd_QName("rdf:type"):
@@ -349,13 +352,19 @@ class TestPropertyClass(unittest.TestCase):
                 case Xsd_QName("sh:description"):
                     self.assertEqual(row.get('o'), Xsd_string("An annotation", "en"))
                 case Xsd_QName("sh:minCount"):
+                    has_minCount = True
                     self.assertEqual(row.get('o'), Xsd_integer(1))
                 case Xsd_QName("sh:maxCount"):
+                    has_maxCount = True
                     self.assertEqual(row.get('o'), Xsd_integer(1))
                 case Xsd_QName("sh:order"):
+                    has_order = True
                     self.assertEqual(row.get('o'), Xsd_decimal(0.5))
                 case _:
                     raise Exception(f"Unexpected property {row.get('p')} => {row.get('o')}")
+        self.assertTrue(has_maxCount)
+        self.assertTrue(has_minCount)
+        self.assertTrue(has_order)
         sparql = self._context.sparql_context
         sparql += f"""
         SELECT ?p ?o

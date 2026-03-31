@@ -934,7 +934,7 @@ class ResourceClass(Model, Notify):
                                             editor=attributes.get(Xsd_QName('dash:editor'))))
             else:
                 prop = PropertyClass(con=con, project=project)
-                haspropdata = prop.parse_shacl(attributes=attributes)
+                haspropdata = prop.parse_shacl(attributes=attributes) # TODO: has been removed from PropertyClass !!
                 if prop.property_class_iri.as_qname.prefix in [project.projectShortName, 'oldap', 'shared']:
                     #
                     # Case B, internal property
