@@ -180,7 +180,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["Test resource@en", "Resource de test@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         self.assertEqual(r1[ResClassAttribute.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
         self.assertEqual(r1.label, LangString(["Test resource@en", "Resource de test@fr"]))
         self.assertEqual(r1[ResClassAttribute.COMMENT], LangString("For testing purposes@en"))
@@ -250,7 +250,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["Test gaga@en", "Resource de gaga@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         p2 = r1[Xsd_QName('schema:description')]
         #r1.write_as_trig("0000000.trig")
         r1.create()
@@ -320,7 +320,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["Test resource@en", "Resource de test@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
 
         r1 = ResourceClass.read(con=self._connection,
@@ -395,7 +395,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["Test resource@en", "Resource de test@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         self.assertEqual(r1[ResClassAttribute.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
         self.assertEqual(r1.label, LangString(["Test resource@en", "Resource de test@fr"]))
         self.assertEqual(r1[ResClassAttribute.COMMENT], LangString("For testing purposes@en"))
@@ -412,7 +412,7 @@ class TestResourceClass(unittest.TestCase):
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
                            owlclass_iri=Xsd_QName("test:TestResourceDeepcopyA"),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         jsonstr = json.dumps(r1, default=serializer.encoder_default)
         r2 = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(connection=self._connection))
@@ -455,7 +455,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["Test resource@en", "Resource de test@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         #
         # in order to process standalone properties correctly for deserializing, the resourceclass
         # has to be written
@@ -807,7 +807,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         r2 = ResourceClass.read(con=self._connection,
                                 project=self._project,
@@ -912,7 +912,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
 
         with self.assertRaises(OldapErrorNoPermission):
             r1.create()
@@ -934,7 +934,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         r2 = ResourceClass.read(con=self._connection,
                                 project=self._project,
@@ -974,13 +974,13 @@ class TestResourceClass(unittest.TestCase):
             HasProperty(con=self._connection, project=self._project, prop=p1, order=1)
         ]
         r = ResourceClass(con=self._connection,
-                           project=self._project,
-                           owlclass_iri=Xsd_QName("test:ResWithSuperThingAdd"),
-                           superclass={'crm:E22_Man-Made_Object', "test:Superclass1"},
-                           label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
-                           comment=LangString("For testing purposes@en"),
-                           closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                          project=self._project,
+                          owlclass_iri=Xsd_QName("test:ResWithSuperThingAdd"),
+                          superclass={'crm:E22_Man-Made_Object', "test:Superclass1"},
+                          label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
+                          comment=LangString("For testing purposes@en"),
+                          closed=Xsd_boolean(True),
+                          properties=hasproperties)
         r.create()
         r = ResourceClass.read(con=self._connection,
                                 project=self._project,
@@ -1025,17 +1025,17 @@ class TestResourceClass(unittest.TestCase):
             HasProperty(con=self._connection, project=self._project, prop=p1, order=1)
         ]
         r = ResourceClass(con=self._connection,
-                           project=self._project,
-                           owlclass_iri=Xsd_QName("test:ResWithManySuper2"),
-                           superclass={
+                          project=self._project,
+                          owlclass_iri=Xsd_QName("test:ResWithManySuper2"),
+                          superclass={
                                'crm:E22_Man-Made_Object',
                                "test:SuperclassDel1",
                                "test:SuperclassDel2",
                                "test:SuperclassDel3"},
-                           label=LangString(["CreateResTestDelSup@en", "CréationResTesteDelSup@fr"]),
-                           comment=LangString("For testing purposes@en"),
-                           closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                          label=LangString(["CreateResTestDelSup@en", "CréationResTesteDelSup@fr"]),
+                          comment=LangString("For testing purposes@en"),
+                          closed=Xsd_boolean(True),
+                          properties=hasproperties)
         r.create()
         r = ResourceClass.read(con=self._connection,
                                 project=self._project,
@@ -1065,7 +1065,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         r2 = ResourceClass.read(con=self._connection,
                                 project=self._project,
@@ -1085,7 +1085,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
 
         with self.assertRaises(OldapErrorAlreadyExists) as ex:
             r1.create()
@@ -1355,7 +1355,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         del r1
         r1 = ResourceClass.read(con=self._connection,
@@ -1386,7 +1386,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         del r1
         r1 = ResourceClass.read(con=self._connection,
@@ -1418,7 +1418,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         del r1
         r1 = ResourceClass.read(con=self._connection,
@@ -1452,7 +1452,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
 
         del r1[ResClassAttribute.LABEL]
@@ -1479,7 +1479,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
 
         delattr(r1, 'label')
@@ -1561,7 +1561,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
 
         r1.create()
 
@@ -1625,7 +1625,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["DeleteResTest@en", "EffaçerResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         del r1
 
@@ -1660,7 +1660,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["CreateResTest@en", "CréationResTeste@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         r1 = ResourceClass.read(con=self._connection,
                                 project=self._project,
@@ -1729,7 +1729,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["Project@en", "Projekt@de"]),
                            comment=LangString(["Definiton of a project@en", "Definition eines Projektes@de"]),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
         r1.label.add("projet@fr")
         r1.update()

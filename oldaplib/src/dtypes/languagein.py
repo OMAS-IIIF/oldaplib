@@ -85,10 +85,10 @@ class LanguageIn(RdfSet[Language], Notify):
                 nargs = args
             if isinstance(args[0], (set, list, tuple)):
                 for v in args[0]:
-                    if not isinstance(v, (Language, str)):
+                    if not isinstance(v, (Language, Xsd_string, str)):
                         raise OldapErrorType(f'Iterable contains element that is not an instance of "Xsd", but "{type(v).__name__}".')
                     try:
-                        nargs = tuple([x if isinstance(x, Language) else Language[x.upper()] for x in args[0]])
+                        nargs = tuple([x if isinstance(x, Language) else Language[str(x).upper()] for x in args[0]])
                     except KeyError as err:
                         raise OldapErrorKey(str(err))
             else:

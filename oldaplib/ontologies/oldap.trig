@@ -16,28 +16,6 @@
 
     :shapes schema:version "0.1.0"^^xsd:string .
 
-    #
-    # Here we add some SHACL definition in order to indicate that a property is a "statement property"
-    # for RDF*star statements about statements.
-    #
-    :statementProperty a sh:Property ;
-        sh:annotationProperty :statementProperty .
-
-    ###########################################################################
-    # Some properties to be reused
-    ###########################################################################
-
-    #
-    # is used to indicate the the property is a RDF*Star property for statements about statements
-    #
-    :statementPropertyShape
-        a sh:PropertyShape ;
-        sh:path :statementProperty ;
-        sh:datatype xsd:boolean ;
-        sh:minCount 0 ;
-        sh:maxCount 1 .
-
-
     ###########################################################################
     # Node shapes for the OLDAP system
     ###########################################################################
@@ -142,26 +120,49 @@
         ] .
 
     #
-    # Property to assign a admin permission
+    # Property to assign a admin permission to a << <user> :inProject <project> >> :hasAdminPermission <admin-permission> .
     # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_PROJECT .
     #
-    :hasAdminPermissionShape a sh:PropertyShape ;
-        sh:path :hasAdminPermission ;
-        :statementProperty true ;
+    :hasAdminPermissionShape a sh:NodeShape ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:class :AdminPermission .
+        :appliesToProperty :inProject ;
+        sh:property [
+            sh:path :hasAdminPermission ;
+            sh:class :AdminPermission ;
+        ] .
 
-    :hasDefaultDataPermissionShape a sh:PropertyShape ;
-        sh:path :hasDefaultDataPermission ;
-        :statementProperty true ;
+    #
+    # Property to assign a default data permission to a << <user> :inProject <project> >> hasDefaultDataPermissio <data-permission> .
+    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_PROJECT .
+    #
+    :hasDefaultDataPermissionShape a sh:NodeShape ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:class :DataPermission .
+        :appliesToProperty :hasRole ;
+        sh:property [
+            sh:path :hasDefaultDataPermission ;
+            sh:class :DataPermission ;
+        ] .
+
+    #
+    # Property to assign a data permission to a << <instance> :attachedToRole <role> >> hasDataPermissio <data-permission> .
+    # E.g. <<<urn:...> :attachedToRole shared:UnknownUser>> :hasDataPermission :DATA_VIEW .
+    #
+    :hasDataPermissionShape a sh:NodeShape ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        :appliesToProperty :hasRole ;
+        sh:property [
+            sh:path :hasDataPermission ;
+            sh:class :DataPermission ;
+        ] .
 
     #
     # Data permission shape
@@ -720,16 +721,16 @@
     ###########################################################################
     # Statment property (RDF#star) for assigning a data permission to a :Thing
     ###########################################################################
-    :hasDataPermissionShape a sh:PropertyShape ;
-        :statementProperty true ;
-        sh:targetClass :hasDataPermission ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:name "has data permission"@en ;
-        sh:description "Assigns a data permission"@en ;
-        sh:class :DataPermission .
+#    :hasDataPermissionShape a sh:PropertyShape ;
+#        :annotatableWith true ;
+#        sh:targetClass :hasDataPermission ;
+#        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+#        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+#        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+#        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+#        sh:name "has data permission"@en ;
+#        sh:description "Assigns a data permission"@en ;
+#        sh:class :DataPermission .
 
 
     ###########################################################################
@@ -815,7 +816,7 @@
         rdfs:domain sh:PropertyShape ;
         rdfs:range  sh:NodeShape .
 
-    :statementProperty a owl:DatatypeProperty ;
+    :annotatableWith a owl:DatatypeProperty ;
         rdfs:domain sh:PropertyShape ;
         rdfs:range xsd:boolean ;
         rdfs:label "Statement property flag"@en ;

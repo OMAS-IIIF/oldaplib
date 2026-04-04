@@ -61,32 +61,13 @@ class ResourceClassPropertyChange(AttributeChange):
 #@strict
 @serializer
 class ResourceClass(Model, Notify):
-    """
-    Represents a resource class in a semantic model, enabling operations such as
-    assignment, addition, and deletion of superclasses, as well as handling
-    associated properties and attributes.
-
-    This class provides mechanisms for defining, managing, and customizing superclasses
-    and related properties within a resource hierarchy. It integrates with a
-    connection object and supports handling validation and notifications for changes.
-
-    :ivar superclass: The list of assigned superclasses for this resource class.
-    :type superclass: dict
-    :ivar label: Optional label providing a human-readable identifier for the resource.
-    :type label: str
-    :ivar comment: Optional comment describing the resource class in detail.
-    :type comment: str
-    :ivar closed: Indicates whether the resource class is closed, i.e., no further
-        subclasses or properties can be added.
-    :type closed: bool
-    """
     _graph: Xsd_NCName
     _project: Project
     _sysproject: Project = None
     _sharedproject: Project = None
     _owlclass_iri: Xsd_QName | None
     _attributes: ResourceClassAttributesContainer
-    _properties: dict[Xsd_QName, HasProperty]
+    _properties: dict[Xsd_QName, PropertyClass]
     __version: SemanticVersion
     __from_triplestore: bool
     _test_in_use: bool
@@ -224,7 +205,7 @@ class ResourceClass(Model, Notify):
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str,
                  owlclass_iri: Xsd_QName | str | None = None,
-                 hasproperties: List[HasProperty] | None = None,
+                 properties: List[PropertyClass] | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
                  creator: Iri | None = None,  # DO NO USE! Only for jsonify!!
@@ -233,40 +214,6 @@ class ResourceClass(Model, Notify):
                  modified: Xsd_dateTime | None = None,  # DO NO USE! Only for jsonify!!
                  validate: bool = False,
                  **kwargs):
-        """
-        Initializes a new instance of the class with mandatory and optional parameters.
-
-        This constructor creates and configures the required context, graph, and necessary
-        properties. It sets up the project, defines the owl class IRI, adds the mandatory
-        superclass “oldap:Thing” if required, and assigns attributes based on the provided
-        parameters. Additional functionality includes handling of external/internal property
-        definitions and configuring notifier settings.
-
-        :param con: The connection object to interact with the required system.
-        :type con: IConnection
-        :param project: The project identifier or object which can be a Project instance, IRI,
-            XSD NCName, or string.
-        :type project: Project | Iri | Xsd_NCName | str
-        :param owlclass_iri: The IRI to define the owl class. It can be IRI type, string,
-            or None by default.
-        :type owlclass_iri: Iri | str | None
-        :param hasproperties: A list of HasProperty objects specifying the properties associated
-            with the resource class.
-        :type hasproperties: List[HasProperty] | None
-        :param notifier: A callable function used for notification purposes. Notifier operates
-            on PropClassAttr type objects.
-        :type notifier: Callable[[PropClassAttr], None] | None
-        :param notify_data: Notification data to be passed with the notifier.
-        :type notify_data: PropClassAttr | None
-        :param validate: Boolean flag used to enable or disable validation.
-        :type validate: bool
-        :param kwargs: Arbitrary additional keyword arguments to pass. This can include
-            attributes like superclasses or other configurations.
-        :type kwargs: Any
-
-        :raises OldapErrorNotFound: If the project is not found.
-        :raises OldapErrorValue: If the owlclass_iri is not a valid Iri.
-        """
         Model.__init__(self,
                        connection=con,
                        creator=con.userIri,
@@ -318,25 +265,16 @@ class ResourceClass(Model, Notify):
                         new_kwargs[ResClassAttribute.SUPERCLASS.value.fragment][thing_iri] = thing
         self.set_attributes(new_kwargs, ResClassAttribute)
 
+        #
+        # Check and assign properties
+        #
         self._properties = {}
-        if hasproperties is not None:
-            for hasprop in hasproperties:
-                if isinstance(hasprop.prop, Xsd_QName):  # Reference to an external, standalone property definition
-                    fixed_prop = Xsd_QName(str(hasprop.prop).removesuffix("Shape"), validate=validate)
-                    try:
-                        hasprop.prop = PropertyClass.read(self._con, self._project, fixed_prop)
-                    except OldapErrorNotFound as err:
-                        prop = PropertyClass(con=self._con,
-                                             project=self._project,
-                                             property_class_iri=fixed_prop)
-                        hasprop.prop = prop
-                elif isinstance(hasprop.prop, PropertyClass):  # an internal, private property definition
-                    if hasprop.type == PropType.INTERNAL:
-                        hasprop.prop._internal = owlclass_iri
-                else:
-                    raise OldapErrorValue(f'Unexpected property type: {type(hasprop.prop).__name__}')
-                iri = hasprop.prop.property_class_iri if isinstance(hasprop.prop, PropertyClass) else hasprop.prop
-                self._properties[iri] = hasprop
+        if properties is not None:
+            for prop in properties:
+                if not isinstance(prop, PropertyClass):
+                   raise TypeError('Property must be of type PropertyClass')
+                prop.inResourceClass = owlclass_iri
+                self._properties[prop.property_class_iri] = prop
 
         for attr in ResClassAttribute:
             setattr(ResourceClass, attr.value.fragment, property(
@@ -391,7 +329,7 @@ class ResourceClass(Model, Notify):
         return attributes | super()._as_dict() | {
             'project': self._project.projectShortName,
             'owlclass_iri': self._owlclass_iri,
-            'hasproperties': [x for x in self._properties.values()],
+            'properties': [x for x in self._properties.values()],
         }
 
     def __eq__(self, other: Self):
@@ -469,7 +407,7 @@ class ResourceClass(Model, Notify):
                         self._properties[key] = value
                 else:
                     if value.type == PropType.INTERNAL:
-                        value.prop._internal = self._owlclass_iri  # we need to access the private variable here
+                        value.prop._inResourceClass = self._owlclass_iri  # we need to access the private variable here
                         value.prop._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
             else:  # REPLACE action
@@ -485,7 +423,7 @@ class ResourceClass(Model, Notify):
                     except OldapErrorNotFound as err:
                         self._properties[key] = value
                 else:
-                    value.prop._internal = self._owlclass_iri  # we need to access the private variable here
+                    value.prop._inResourceClass = self._owlclass_iri  # we need to access the private variable here
                     value._property_class_iri = key  # we need to access the private variable here
                     self._properties[key] = value
                 self._test_in_use = True  # change a property only when not in use!
@@ -939,7 +877,7 @@ class ResourceClass(Model, Notify):
                     #
                     # Case B, internal property
                     #
-                    prop._internal = owlclass_iri
+                    prop._inResourceClass = owlclass_iri
                     proplist.append(HasProperty(con=con,
                                                 project=project,
                                                 prop=prop,
@@ -1084,7 +1022,7 @@ class ResourceClass(Model, Notify):
                                                                                       project=project,
                                                                                       owlclass_iri=owl_class_iri,
                                                                                       sa_props=sa_props)
-        resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, hasproperties=hasproperties)
+        resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, properties=hasproperties)
         resclass.update_notifier()
         attributes = ResourceClass.__query_shacl(con, project=project, owl_class_iri=owl_class_iri)
         resclass._parse_shacl(attributes=attributes)
@@ -1173,8 +1111,7 @@ class ResourceClass(Model, Notify):
                     sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property {iri}Shape'
             else:
                 sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}sh:property ['
-                sparql += hp.prop.property_node_shacl(timestamp=timestamp,
-                                                      haspropdata=hp.haspropdata,
+                sparql += hp.prop.property_node_shacl(haspropdata=hp.haspropdata,
                                                       indent=3)
                 sparql += f' ;\n{blank:{(indent + 2) * indent_inc}}]'
         sparql += ' .\n'

@@ -15,6 +15,7 @@ classes is being deleted from the triple store, the class instance will also be 
 cache is implemented using a metaclass based singleton and uses locking to be compatible in a threaded environment.
 """
 import logging
+import textwrap
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -22,6 +23,10 @@ from functools import partial
 from pprint import pprint
 from typing import Callable, Self, Any
 
+from rdflib.extras import shacl
+
+from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
+from oldaplib.src.helpers.construct_processor import ConstructProcessor, ConstructResultDict
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.serializer import serializer
@@ -69,9 +74,9 @@ class PropertyClass(Model, Notify):
     _graph: Xsd_NCName
     _projectShortName: Xsd_NCName
     _projectIri: Iri
-    _property_class_iri: Xsd_QName | None
-    _statementProperty: Xsd_boolean
-    _internal: Xsd_QName | None
+    _property_class_iri: Xsd_QName
+    _appliesToProperty: Xsd_QName | None
+    _inResourceClass: Xsd_QName | None
     _test_in_use: bool
     _notifier: Callable[[type], None] | None
 
@@ -82,7 +87,7 @@ class PropertyClass(Model, Notify):
     __from_triplestore: bool
 
     __slots__ = ('subPropertyOf', 'type', 'toClass', 'datatype', 'name', 'description', 'languageIn', 'uniqueLang',
-                 'inSet', 'minCount', 'maxCount', 'pattern',
+                 'inSet', 'minCount', 'maxCount', 'order', 'pattern',
                  'minExclusive', 'maxExclusive', 'minInclusive', 'maxInclusive', 'minLength', 'maxLength',
                  'lessThan', 'lessThanOrEquals', 'inverseOf', 'equivalentProperty')
 
@@ -94,54 +99,14 @@ class PropertyClass(Model, Notify):
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
                  project: Project | Iri | Xsd_NCName | str,
-                 property_class_iri: Xsd_QName | str | None = None,
-                 statement_property: Xsd_boolean | bool = False,
+                 property_class_iri: Xsd_QName | str,
+                 appliesToProperty: Xsd_QName | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
-                 _internal: Xsd_QName | None = None,  # DO NOT USE!! Only for serialization!
+                 _inResourceClass: Xsd_QName | None = None,  # DO NOT USE!! Only for serialization!
                  _from_triplestore: bool = False,  # DO NOT USE!! Only for serialization!
                  validate: bool = False,
                  **kwargs):
-        """
-        Defines the constructor for the PropertyClass. This class is used to define
-        properties in a given project context. Properties can point to resources,
-        supporting restrictions such as "inSet" for valid resource IRIs. Furthermore,
-        this class ensures consistency in validation, datatype restrictions, and
-        relationships with other project attributes.
-
-        :param con: Connection instance to a database or triplestore
-        :type con: IConnection
-        :param creator: Creator's IRI or string, defaults to None. [internal use only].
-        :type creator: Iri | str | None
-        :param created: Date and time of creation, defaults to None. [internal use only].
-        :type created: Xsd_dateTime | datetime | str | None
-        :param contributor: IRI of the last contributor, defaults to None. [internal use only].
-        :type contributor: Iri | None
-        :param modified: Date and time of the last modification, defaults to None. [internal use only].
-        :type modified: Xsd_dateTime | datetime | str | None
-        :param project: Project to which the property belongs; can be a Project object,
-            IRI, QName, or string representation.
-        :type project: Project | Iri | Xsd_NCName | str
-        :param property_class_iri: IRI of the property class; can be a full IRI or a QName,
-            optional.
-        :type property_class_iri: Iri | str | None
-        :param notifier: Function or method used internally as callback for notifications, optional.
-        :type notifier: Callable[[PropClassAttr], None] | None
-        :param notify_data: Data or attribute passed to the notifier function, optional.
-        :type notify_data: PropClassAttr | None
-        :param _statementProperty: Boolean indicating if the property is a statement-property
-            (used for RDF*star statements).
-        :type _statementProperty: bool
-        :param validate: Boolean that determines whether validation is active.
-        :type validate: bool
-        :param kwargs: Arbitrary additional named arguments that might be used
-            for attribute settings.
-
-        :raises OldapErrorInconsistency: If a link property is created with invalid or
-            unsupported restrictions.
-        :raises OldapErrorValue: If certain invalid combinations of restrictions, datatypes,
-            or prefixes are found during property creation.
-        """
         Model.__init__(self,
                        connection=con,
                        creator=creator,
@@ -155,7 +120,8 @@ class PropertyClass(Model, Notify):
             project = Project.read(self._con, IriOrNCName(project, validate=validate))
         self._projectShortName = project.projectShortName
         self._projectIri = project.projectIri
-        self._statementProperty = Xsd_boolean(statement_property)
+        self._appliesToProperty = Xsd_QName(appliesToProperty, validate=validate) if appliesToProperty else None
+        self._inResourceClass = Xsd_QName(_inResourceClass, validate=validate) if _inResourceClass else None
         context = Context(name=self._con.context_name)
         context[self._projectShortName] = project.namespaceIri
         context.use(self._projectShortName)
@@ -236,7 +202,7 @@ class PropertyClass(Model, Notify):
 
         self.update_notifier()
         self._test_in_use = False
-        self._internal = _internal
+        self._inResourceClass = _inResourceClass
         self.__from_triplestore = _from_triplestore
         self.clear_changeset()
 
@@ -256,8 +222,8 @@ class PropertyClass(Model, Notify):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
             'project': self._projectShortName,
             'property_class_iri': self.property_class_iri,
-            **({'_internal': self._internal} if self._internal else {}),
-            **({'statement_property': self._statementProperty} if self._statementProperty else {}),
+            **({'_inResourceClass': self._inResourceClass} if self._inResourceClass else {}),
+            **({'appliesToProperty': self._appliesToProperty} if self._appliesToProperty else {}),
             '_from_triplestore': self.__from_triplestore,
         }
 
@@ -421,7 +387,7 @@ class PropertyClass(Model, Notify):
                         notifier=self._notifier,
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
-        instance._statementProperty = deepcopy(self._statementProperty, memo)
+        instance._appliesToProperty = deepcopy(self._appliesToProperty, memo)
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
         # Copy remaining PropertyClass attributes
@@ -429,7 +395,7 @@ class PropertyClass(Model, Notify):
         instance._projectShortName = deepcopy(self._projectShortName, memo)
         instance._projectIri = deepcopy(self._projectIri, memo)
         instance._property_class_iri = deepcopy(self._property_class_iri, memo)
-        instance._internal = deepcopy(self._internal, memo)
+        instance._inResourceClass = deepcopy(self._inResourceClass, memo)
         instance._test_in_use = self._test_in_use
         instance.__from_triplestore = self.__from_triplestore
         return instance
@@ -441,7 +407,7 @@ class PropertyClass(Model, Notify):
         propstr = f'Property: {str(self._property_class_iri)};'
         for attr, value in self._attributes.items():
             propstr += f' {attr.value}: {value};'
-        propstr += f' internal: {self._internal};'
+        propstr += f' internal: {self._inResourceClass};'
         return propstr
 
     @property
@@ -454,57 +420,25 @@ class PropertyClass(Model, Notify):
 
     @property
     def property_class_iri(self) -> Xsd_QName:
-        """
-        Return the Iri identifying the property
-        :return: Iri identifying the property
-        :rtype: Iri
-        """
         return self._property_class_iri
 
     @property
-    def internal(self) -> Xsd_QName | None:
-        """
-        Return the Iri of the ResourceClass, if the property is internal to a ResourceClass.
-        If it is a standalone property, return None
-        :return: Iri of associated ResourceClass or None
-        :rtype: Iri | None
-        """
-        return self._internal
+    def inResourceClass(self) -> Xsd_QName | None:
+        return self._inResourceClass
+
+    @inResourceClass.setter
+    def inResourceClass(self, inResourceClass: Xsd_QName):
+        self._inResourceClass = inResourceClass
 
     @property
-    def statementProperty(self) -> Xsd_boolean:
-        """
-        Return the statementProperty
-        :return: statementProperty
-        :rtype: bool
-        """
-        return self._statementProperty
+    def appliesToProperty(self) -> Xsd_QName | None:
+        return self._appliesToProperty
 
     @property
     def from_triplestore(self) -> bool:
-        """
-        Indicates if the `PropertyClass` instance was instantiated via the `read()`-classmethod.
-
-        This property identifies whether the object was created by reading from a triple store or
-        through the standard Python constructor.
-
-        :return: True if the object was created using the `read()` method; False otherwise.
-        :rtype: bool
-        """
-        """
-        Returns True if the PropertyClass instance was created by the `read()`-classmethod. If the property
-        has been created using the Python constructor.
-        :return: True if read from triple store, otherwise False
-        :rtype: bool
-        """
         return self.__from_triplestore
 
     def undo(self, attr: PropClassAttr | None = None) -> None:
-        """
-        Undo's all changes to the property
-        :param attr: The attribute
-        :return: None
-        """
         if attr is None:
             for p, change in self._changeset.items():
                 if change.action == Action.MODIFY:
@@ -531,11 +465,6 @@ class PropertyClass(Model, Notify):
 
 
     def notifier(self, attr: PropClassAttr) -> None:
-        """
-        INTERNAL USE ONLY! Overrides the method _notifier from the Model class.
-        :param attr: The attribute
-        :return: None
-        """
         if attr.datatype in [XsdSet, LanguageIn]:
             # we can *not* modify sets, we have to replace them if an item is added or discarded
             if self._changeset.get(attr) is None:
@@ -547,16 +476,6 @@ class PropertyClass(Model, Notify):
 
     @property
     def in_use(self) -> bool:
-        """
-        Checks if the property is already in use. This is determined by querying
-        the associated context to check if there are existing instances using
-        this property. If the property is in use, modifications to its
-        attributes may lead to unintended behaviors or errors.
-
-        :return: True if the property is currently in use, otherwise False
-        :rtype: bool
-        :raises OldapError: Internal error
-        """
         context = Context(name=self._con.context_name)
         query = context.sparql_context
         query += f"""
@@ -571,139 +490,146 @@ class PropertyClass(Model, Notify):
         except (KeyError, TypeError) as err:
             raise OldapError('Internal Error in "propertyClass.in_use"') from err
 
-    @staticmethod
-    def process_triple(r: RowType, attributes: Attributes, propiri: Xsd_QName | None = None) -> None:
-        """
-        INTERNAL USE ONLY! Used for processing triple while rreading a property.
-        :param r:
-        :param attributes:
-        :param propiri:
-        :return: None
-        """
-        attriri = r['attriri']
-        if r['attriri'].fragment == 'languageIn':
-            if attributes.get(attriri) is None:
-                attributes[attriri] = LanguageIn()
-            attributes[attriri].add(r['oo'])
-        elif r['attriri'].fragment == 'in':
-            if attributes.get(attriri) is None:
-                attributes[attriri] = XsdSet()
-            attributes[attriri].add(r['oo'])
-        elif r['attriri'].fragment == 'or':
-            return  # TODO: ignore sh:or for the moment... It's in SHACL, but we do not yet support it
-        else:
-            if isinstance(r['value'], Xsd_string) and r['value'].lang is not None:
-                if attributes.get(attriri) is None:
-                    attributes[attriri] = LangString()
-                try:
-                    attributes[attriri].add(r['value'])
-                except AttributeError as err:
-                    raise OldapError(f'Invalid value for attribute {attriri}: {err}.')
-            else:
-                if attributes.get(attriri) is not None:
-                    raise OldapError(f'Property ({propiri}) attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
-                attributes[attriri] = r['value']
+    # @staticmethod
+    # def process_triple(r: RowType, attributes: Attributes, propiri: Xsd_QName | None = None) -> None:
+    #     attriri = r['attriri']
+    #     if r['attriri'].fragment == 'languageIn':
+    #         if attributes.get(attriri) is None:
+    #             attributes[attriri] = LanguageIn()
+    #         attributes[attriri].add(r['oo'])
+    #     elif r['attriri'].fragment == 'in':
+    #         if attributes.get(attriri) is None:
+    #             attributes[attriri] = XsdSet()
+    #         attributes[attriri].add(r['oo'])
+    #     elif r['attriri'].fragment == 'or':
+    #         return  # TODO: ignore sh:or for the moment... It's in SHACL, but we do not yet support it
+    #     else:
+    #         if isinstance(r['value'], Xsd_string) and r['value'].lang is not None:
+    #             if attributes.get(attriri) is None:
+    #                 attributes[attriri] = LangString()
+    #             try:
+    #                 attributes[attriri].add(r['value'])
+    #             except AttributeError as err:
+    #                 raise OldapError(f'Invalid value for attribute {attriri}: {err}.')
+    #         else:
+    #             if attributes.get(attriri) is not None:
+    #                 raise OldapError(f'Property ({propiri}) attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
+    #             attributes[attriri] = r['value']
+
+
+    # def parse_shacl(self, attributes: Attributes) -> None:
+    #     """
+    #     Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
+    #     :return:
+    #     """
+    #     #
+    #     # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
+    #     #
+    #     nodeKind: Xsd_QName | None = None
+    #     propkeys = {Xsd_QName(x.value) for x in PropClassAttr}
+    #     for key, val in attributes.items():
+    #         if key == 'rdf:type':
+    #             if val != 'sh:PropertyShape':
+    #                 raise OldapError(f'Inconsistency, expected "sh:PropertyType", got "{val}".')
+    #             continue
+    #         elif key == 'sh:nodeKind':
+    #             nodeKind = val
+    #             continue
+    #         elif key == 'sh:path':
+    #             if isinstance(val, Xsd_QName):
+    #                 self._property_class_iri = val
+    #             else:
+    #                 raise OldapError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}" (type={type(val).__name__}).')
+    #         elif key == 'dcterms:creator':
+    #             if isinstance(val, Iri):
+    #                 self._creator = val
+    #             else:
+    #                 raise OldapError(f'Inconsistency in SHACL "dcterms:creator (type={type(val)})"')
+    #         elif key == 'dcterms:created':
+    #             if isinstance(val, Xsd_dateTime):
+    #                 self._created = val
+    #             else:
+    #                 raise OldapError(f'Inconsistency in SHACL "dcterms:created (type={type(val)})"')
+    #         elif key == 'dcterms:contributor':
+    #             if isinstance(val, Iri):
+    #                 self._contributor = val
+    #             else:
+    #                 raise OldapError(f'Inconsistency in SHACL "dcterms:contributor (type={type(val)})"')
+    #         elif key == 'dcterms:modified':
+    #             if isinstance(val, Xsd_dateTime):
+    #                 self._modified = val
+    #             else:
+    #                 raise OldapError(f'Inconsistency in SHACL "dcterms:modified (type={type(val)})"')
+    #         elif key == 'oldap:appliesToProperty':
+    #             if isinstance(val, Xsd_boolean):
+    #                 self._appliesToProperty = val
+    #             else:
+    #                 raise OldapError(f'Inconsistency in SHACL "oldap:statementProperty (type={type(val)})"')
+    #         elif key in propkeys:
+    #             attr = PropClassAttr.from_value(key)
+    #             if not attr.in_shacl:
+    #                 continue
+    #             if attr.datatype == Numeric:
+    #                 if not isinstance(val, (Xsd_integer, Xsd_float)):
+    #                     raise OldapErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
+    #                 self._attributes[attr] = val
+    #             else:
+    #                 self._attributes[attr] = attr.datatype(val)
+    #
+    #     if self._attributes.get(PropClassAttr.CLASS) is not None:
+    #         self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
+    #         dt = self._attributes.get(PropClassAttr.DATATYPE)
+    #         if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
+    #             raise OldapError(f'Datatype "{dt}" not valid for OwlObjectProperty')
+    #     else:
+    #         if nodeKind in {Xsd_QName('sh:IRI'), Xsd_QName('sh:BlankNode'), Xsd_QName('sh:BlankNodeOrIRI')}:
+    #             self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
+    #         else:
+    #             self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlDataProperty)
+    #     #
+    #     # update all notifiers of properties
+    #     #
+    #     self.update_notifier()
+    #
+    #     self.__from_triplestore = True
 
     @staticmethod
-    def __query_shacl(con: IConnection, graph: Xsd_NCName, property_class_iri: Xsd_QName) -> Attributes:
+    def read_shacl(con: IConnection, project: Project, property_class_iri: Xsd_QName) -> ConstructResultDict:
         context = Context(name=con.context_name)
-        query = context.sparql_context
-        query += f"""
-        SELECT ?attriri ?value ?oo
-        FROM {graph}:shacl
-        FROM shared:shacl
+        sparql = context.sparql_context
+        sparql += textwrap.dedent(f"""
+        CONSTRUCT {{
+            ?shape ?p ?o .
+            ?prop ?pp ?oo .
+            ?listnode rdf:first ?item .
+            ?listnode rdf:rest ?rest .
+        }}
         WHERE {{
-            BIND({property_class_iri}Shape AS ?shape)
-            ?shape ?attriri ?value .
-            OPTIONAL {{
-                ?value rdf:rest*/rdf:first ?oo
+            GRAPH {project.projectShortName}:shacl {{
+                BIND({property_class_iri}Shape AS ?shape)
+
+                ?shape ?p ?o .
+
+                OPTIONAL {{
+                    ?shape sh:property ?prop .
+                    ?prop ?pp ?oo .
+                    OPTIONAL {{
+                        ?prop ?pp ?list .
+                        ?list rdf:rest* ?listnode .
+                        ?listnode rdf:first ?item ;
+                        rdf:rest ?rest .
+                    }}
+                }}
             }}
         }}
-        """
-        jsonobj = con.query(query)
-        res = QueryProcessor(context, jsonobj)
-        if len(res) == 0:
-            raise OldapErrorNotFound(f'Property "{property_class_iri}" not found.')
-        attributes: Attributes = {}
-        for r in res:
-            PropertyClass.process_triple(r, attributes, property_class_iri)
-        return attributes
+        """)
+        graph = con.query(sparql, format=SparqlResultFormat.JSONLD)
+        obj = ConstructProcessor.process(context, graph, [Xsd_QName("sh:name"), "sh:description"])
+        if obj.get(property_class_iri + 'Shape') is None:
+            raise OldapErrorNotFound(f'Property {property_class_iri} not found in SHACL of {project.projectShortName}')
 
-    def parse_shacl(self, attributes: Attributes) -> None:
-        """
-        Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
-        :return:
-        """
-        #
-        # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
-        #
-        nodeKind: Xsd_QName | None = None
-        propkeys = {Xsd_QName(x.value) for x in PropClassAttr}
-        for key, val in attributes.items():
-            if key == 'rdf:type':
-                if val != 'sh:PropertyShape':
-                    raise OldapError(f'Inconsistency, expected "sh:PropertyType", got "{val}".')
-                continue
-            elif key == 'sh:nodeKind':
-                nodeKind = val
-                continue
-            elif key == 'sh:path':
-                if isinstance(val, Xsd_QName):
-                    self._property_class_iri = val
-                else:
-                    raise OldapError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}" (type={type(val).__name__}).')
-            elif key == 'dcterms:creator':
-                if isinstance(val, Iri):
-                    self._creator = val
-                else:
-                    raise OldapError(f'Inconsistency in SHACL "dcterms:creator (type={type(val)})"')
-            elif key == 'dcterms:created':
-                if isinstance(val, Xsd_dateTime):
-                    self._created = val
-                else:
-                    raise OldapError(f'Inconsistency in SHACL "dcterms:created (type={type(val)})"')
-            elif key == 'dcterms:contributor':
-                if isinstance(val, Iri):
-                    self._contributor = val
-                else:
-                    raise OldapError(f'Inconsistency in SHACL "dcterms:contributor (type={type(val)})"')
-            elif key == 'dcterms:modified':
-                if isinstance(val, Xsd_dateTime):
-                    self._modified = val
-                else:
-                    raise OldapError(f'Inconsistency in SHACL "dcterms:modified (type={type(val)})"')
-            elif key == 'oldap:statementProperty':
-                if isinstance(val, Xsd_boolean):
-                    self._statementProperty = val
-                else:
-                    raise OldapError(f'Inconsistency in SHACL "oldap:statementProperty (type={type(val)})"')
-            elif key in propkeys:
-                attr = PropClassAttr.from_value(key)
-                if not attr.in_shacl:
-                    continue
-                if attr.datatype == Numeric:
-                    if not isinstance(val, (Xsd_integer, Xsd_float)):
-                        raise OldapErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
-                    self._attributes[attr] = val
-                else:
-                    self._attributes[attr] = attr.datatype(val)
+        return obj[property_class_iri + 'Shape']
 
-        if self._attributes.get(PropClassAttr.CLASS) is not None:
-            self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
-            dt = self._attributes.get(PropClassAttr.DATATYPE)
-            if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
-                raise OldapError(f'Datatype "{dt}" not valid for OwlObjectProperty')
-        else:
-            if nodeKind in {Xsd_QName('sh:IRI'), Xsd_QName('sh:BlankNode'), Xsd_QName('sh:BlankNodeOrIRI')}:
-                self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
-            else:
-                self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlDataProperty)
-        #
-        # update all notifiers of properties
-        #
-        self.update_notifier()
-
-        self.__from_triplestore = True
 
     def read_owl(self) -> None:
         propkeys = {Xsd_QName(x.value) for x in PropClassAttr}
@@ -742,41 +668,40 @@ class PropertyClass(Model, Notify):
              project: Project | Iri | Xsd_NCName | str,
              property_class_iri: Xsd_QName | str,
              ignore_cache: bool = False) -> Self:
-        """
-        Reads a property from the triple store.
-
-        This method initializes or retrieves an instance of a property class
-        from the triple store. It utilizes caching mechanisms if applicable and may
-        bypass the cache based on the input parameters.
-
-        :param con: Instance of a valid connection to the triple store.
-        :type con: IConnection
-        :param project: Project instance, project IRI, project shortname, or equivalent identifier.
-        :type project: Project | Iri | Xsd_NCName | str
-        :param property_class_iri: The IRI identifying the property class.
-        :type property_class_iri: Iri | str
-        :param ignore_cache: Determines if the cached data is ignored
-                             and the property is read directly from the triple store.
-        :type ignore_cache: bool
-        :return: Instance of the appropriate property class.
-        :rtype: Self
-        :raises OldapError: Generic error indicating an issue when reading from the triple store.
-        :raises OldapErrorInconsistency: Inconsistency between SHACL and OWL.
-        """
         logger = logging.getLogger(__name__)
 
         if not isinstance(property_class_iri, Xsd_QName):
-            property_class_iri = Xsd_QName(property_class_iri)
+            prop_iri: Xsd_QName = Xsd_QName(property_class_iri)
+        else:
+            prop_iri: Xsd_QName = property_class_iri
         cache = CacheSingletonRedis()
         if not ignore_cache:
-            tmp = cache.get(property_class_iri, connection=con)
+            tmp = cache.get(prop_iri, connection=con)
             if tmp is not None:
                 tmp.update_notifier()
-                #logger.info(f'Property class "{property_class_iri}" already cached in triple store!')
                 return tmp
-        property = cls(con=con, project=project, property_class_iri=property_class_iri)
-        attributes = PropertyClass.__query_shacl(con, property._graph, property_class_iri)
-        property.parse_shacl(attributes=attributes)
+        if not isinstance(project, Project):
+            proj: Project = Project.read(con, project)
+        else:
+            proj: Project = project
+
+        obj = PropertyClass.read_shacl(con, proj, prop_iri)
+
+        attributes = {attr.fragment: value for attr, value in obj[Xsd_QName("sh:property")].items()}
+        if attributes.get("path") is not None:
+            del attributes["path"]
+
+        property = cls(con=con,
+                       project=project,
+                       property_class_iri=property_class_iri,
+                       creator=obj[Xsd_QName("dcterms:creator")],
+                       created=obj[Xsd_QName("dcterms:created")],
+                       modified=obj[Xsd_QName("dcterms:modified")],
+                       contributor=obj[Xsd_QName("dcterms:contributor")],
+                       appliesToProperty=obj[Xsd_QName("oldap:appliesToProperty")],
+                       validate=False,
+                       **attributes)
+
         property.read_owl()
         property.clear_changeset()
 
@@ -791,17 +716,18 @@ class PropertyClass(Model, Notify):
                             indent: int = 0, indent_inc: int = 4) -> Xsd_dateTime | None:
         blank = ''
         sparql = context.sparql_context
-        owlclass_iri = self._internal
+        owlclass_iri = self._inResourceClass
         sparql += f"{blank:{indent * indent_inc}}SELECT ?modified\n"
         sparql += f"{blank:{indent * indent_inc}}FROM {graph}:shacl\n"
         sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
-        if owlclass_iri:
+        if owlclass_iri: # TODO: check if "if" is necessary....
             sparql += f"{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n"
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {self._property_class_iri} .\n'
         else:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
         sparql += f"{blank:{indent * indent_inc}}}}"
+        print(sparql)
         jsonobj = self._con.transaction_query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
@@ -809,27 +735,20 @@ class PropertyClass(Model, Notify):
         return res[0].get('modified')
 
     def property_node_shacl(self, *,
-                            timestamp: Xsd_dateTime,
                             bnode: Xsd_QName | None = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'{blank:{(indent + 1) * indent_inc}}# >>PropertyClass.property_node_shacl()'
+        sparql = ''
         if bnode:
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}} {bnode} sh:path {self._property_class_iri.toRdf}'
+            sparql += f'\n{blank:{indent * indent_inc}} {bnode} sh:path {self._property_class_iri.toRdf}'
         else:
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}}sh:path {self._property_class_iri.toRdf}'
-        if len(self._attributes) > 0:
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
-        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:statementProperty {self._statementProperty.toRdf}'
+            sparql += f'\n{blank:{indent * indent_inc}}sh:path {self._property_class_iri.toRdf}'
         for prop, value in self._attributes.items():
             if not prop.in_shacl:
                 continue
             if not value and not isinstance(value, bool):
                 continue
-            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{prop.value} {value.toRdf}'
+            sparql += f' ;\n{blank:{indent * indent_inc}}{prop.value} {value.toRdf}'
         return sparql
 
     def create_shacl(self, *,
@@ -837,16 +756,24 @@ class PropertyClass(Model, Notify):
                      owlclass_iri: Xsd_QName | None = None,
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
-        sparql = f'\n{blank:{indent * indent_inc}}# PropertyClass.create_shacl()'
-        if owlclass_iri is None:  # standalone property! Therefor no minCount, maxCount!
-            sparql += f'\n{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:PropertyShape ;\n'
-            sparql += self.property_node_shacl(timestamp=timestamp,
-                                               indent=indent, indent_inc=indent_inc)
-        else:
+        sparql = ''
+        if self._appliesToProperty:
+            sparql += f'\n{blank:{indent * indent_inc}}{self._property_class_iri}Shape a sh:NodeShape'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {self._con.userIri.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {timestamp.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {self._con.userIri.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:modified {timestamp.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:appliesToProperty {self._appliesToProperty.toRdf}'
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:property ['
+            sparql += self.property_node_shacl(indent=indent + 2, indent_inc=indent_inc)
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}]'
+
+        elif owlclass_iri:
             bnode = Xsd_QName('_:propnode')
-            sparql += f'\n{blank:{indent * indent_inc}}{owlclass_iri}Shape sh:property {bnode} .\n'
-            sparql += self.property_node_shacl(timestamp=timestamp, bnode=bnode,
+            sparql += self.property_node_shacl(bnode=bnode,
                                                indent=indent, indent_inc=indent_inc)
+            sparql += ' .\n'
+            sparql += f'\n{blank:{indent * indent_inc}}{owlclass_iri}Shape sh:property {bnode}'
         sparql += ' .\n'
         return sparql
 
@@ -873,8 +800,8 @@ class PropertyClass(Model, Notify):
     def create(self, *,
                indent: int = 0, indent_inc: int = 4) -> None:
 
-        if not self._statementProperty:
-            raise OldapErrorInconsistency(f'Standalone property "{self._property_class_iri}" has no SHACL oldap:statementProperty')
+        if not self._appliesToProperty:
+            raise OldapErrorInconsistency(f'Property "{self._property_class_iri}" is not an annotation property: missing the "appliesToProperty" parameter')
         #
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
@@ -892,9 +819,10 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:shacl {{\n'
-        if self._internal is not None:  # internal property, add minCount, maxCount if defined
+        # TODO: Check the following lines, if the "if" is necessary
+        if self._inResourceClass is not None:  # internal property, add minCount, maxCount if defined
             sparql += self.create_shacl(timestamp=timestamp,
-                                        owlclass_iri=self._internal,
+                                        owlclass_iri=self._inResourceClass,
                                         indent=2)
         else:  # standalone (reusable) property -> no minCount, maxCount
             sparql += self.create_shacl(timestamp=timestamp,
@@ -965,14 +893,14 @@ class PropertyClass(Model, Notify):
             f.write(context.turtle_context)
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:shacl {{\n')
-            if self._internal is not None:
-                f.write(self.create_shacl(timestamp=timestamp, owlclass_iri=self._internal, indent=2))
+            if self._inResourceClass is not None:
+                f.write(self.create_shacl(timestamp=timestamp, owlclass_iri=self._inResourceClass, indent=1))
             else:
-                f.write(self.create_shacl(timestamp=timestamp, indent=2))
+                f.write(self.create_shacl(timestamp=timestamp, indent=1))
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
-            f.write(self.create_owl_part1(timestamp=timestamp, indent=2))
+            f.write(self.create_owl_part1(timestamp=timestamp, indent=1))
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
     def update_shacl(self, *,
@@ -982,7 +910,7 @@ class PropertyClass(Model, Notify):
         blank = ''
         sparql_list = []
         for prop, change in self._changeset.items():
-            sparql = f'#\n# SHACL\n# PrpoertyClass(1): Process "{prop.value}" with Action "{change.action.value}"\n#\n'
+            sparql = ''
             if change.action == Action.MODIFY:
                 if prop.datatype == LangString:
                     sparql += self._attributes[prop].update_shacl(graph=self._graph,
@@ -997,34 +925,16 @@ class PropertyClass(Model, Notify):
                             added = set(self._attributes[PropClassAttr.TYPE]) - set(self._attributes[prop].old_value)
                         else:
                             added = set(self._attributes[PropClassAttr.TYPE])
-                        if OwlPropertyType.StatementProperty in added:
-                            self.__statementProperty = Xsd_boolean(True)
-                            ele = RdfModifyItem(Xsd_QName('oldap:statementProperty'), Xsd_boolean(False), Xsd_boolean(True))
-                            sparql += RdfModifyProp.shacl(action=change.action,
-                                                          graph=self._graph,
-                                                          owlclass_iri=owlclass_iri,
-                                                          pclass_iri=self._property_class_iri,
-                                                          ele=ele,
-                                                          last_modified=self._modified)
                         if self._attributes[prop].old_value:
                             removed = set(self._attributes[prop].old_value) - set(self._attributes[PropClassAttr.TYPE])
                         else:
                             removed = set()
-                        if OwlPropertyType.StatementProperty in removed:
-                            self.__statementProperty = Xsd_boolean(False)
-                            ele = RdfModifyItem(Xsd_QName('oldap:statementProperty'), Xsd_boolean(True), Xsd_boolean(False))
-                            sparql += RdfModifyProp.shacl(action=change.action,
-                                                          graph=self._graph,
-                                                          owlclass_iri=owlclass_iri,
-                                                          pclass_iri=self._property_class_iri,
-                                                          ele=ele,
-                                                          last_modified=self._modified)
                 else:
                     raise OldapError(f'SHACL property {prop.value} should not have update action "MODIFY" ({prop.datatype}).')
                 sparql_list.append(sparql)
             else:
                 if change.action == Action.DELETE:
-                    old_value = '?val'
+                    old_value = change.old_value.toRdf
                     new_value = None
                 elif change.action == Action.CREATE:
                     old_value = None
@@ -1047,29 +957,30 @@ class PropertyClass(Model, Notify):
                                                   graph=self._graph,
                                                   owlclass_iri=owlclass_iri,
                                                   pclass_iri=self._property_class_iri,
-                                                  ele=ele,
-                                                  last_modified=self._modified)
+                                                  ele=ele)
                 sparql_list.append(sparql)
 
         #
         # Updating the timestamp and contributor ID
         #
-        sparql = f'#\n# Update/add dcterms:contributor in {self._graph}:shacl\n#\n'
-        sparql += RdfModifyProp.shacl(action=Action.REPLACE if self._contributor else Action.CREATE,
-                                      graph=self._graph,
-                                      owlclass_iri=owlclass_iri,
-                                      pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:contributor', f'{self._contributor.toRdf}', f'{self._con.userIri.toRdf}'),
-                                      last_modified=self._modified)
-        sparql_list.append(sparql)
-
-        sparql = f'#\n# Update/add dcterms:modified in {self._graph}:shacl\n#\n'
-        sparql += RdfModifyProp.shacl(action=Action.REPLACE if self._modified else Action.CREATE,
-                                      graph=self._graph,
-                                      owlclass_iri=owlclass_iri,
-                                      pclass_iri=self._property_class_iri,
-                                      ele=RdfModifyItem('dcterms:modified', f'{self._modified.toRdf}', f'{timestamp.toRdf}'),
-                                      last_modified=self._modified)
+        sparql = RdfModifyProp.update_timestamp_contributors(contributor=self._con.userIri,
+                                                             timestamp=timestamp,
+                                                             iri=owlclass_iri if owlclass_iri else self._property_class_iri,
+                                                             graph=Xsd_QName(f'{self._graph}:shacl'))
+        # sparql = f'#\n# Update/add dcterms:contributor in {self._graph}:shacl\n#\n'
+        # sparql += RdfModifyProp.shacl(action=Action.REPLACE if self._contributor else Action.CREATE,
+        #                               graph=self._graph,
+        #                               owlclass_iri=owlclass_iri,
+        #                               pclass_iri=self._property_class_iri,
+        #                               ele=RdfModifyItem('dcterms:contributor', f'{self._contributor.toRdf}', f'{self._con.userIri.toRdf}'))
+        # sparql_list.append(sparql)
+        #
+        # sparql = f'#\n# Update/add dcterms:modified in {self._graph}:shacl\n#\n'
+        # sparql += RdfModifyProp.shacl(action=Action.REPLACE if self._modified else Action.CREATE,
+        #                               graph=self._graph,
+        #                               owlclass_iri=owlclass_iri,
+        #                               pclass_iri=self._property_class_iri,
+        #                               ele=RdfModifyItem('dcterms:modified', f'{self._modified.toRdf}', f'{timestamp.toRdf}'))
         sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
@@ -1077,12 +988,12 @@ class PropertyClass(Model, Notify):
 
     def update_owl(self, *,
                    owlclass_iri: Xsd_QName | None = None,
-                   timestamp: Xsd_dateTime,
                    indent: int = 0, indent_inc: int = 4) -> str:
         owl_propclass_attributes = {x for x in PropClassAttr if x.in_owl and x != PropClassAttr.TYPE}
         owl_prop = {x: x.value.toRdf for x in PropClassAttr if x.in_owl and x != PropClassAttr.TYPE}
         blank = ''
         sparql_list = []
+        datatype_class_change = False
         for prop, change in self._changeset.items():
             if prop in owl_propclass_attributes:
                 sparql = f'#\n# OWL:\n# PropertyClass(2): Process "{owl_prop[prop]}" with Action "{change.action.value}"\n#\n'
@@ -1094,24 +1005,36 @@ class PropertyClass(Model, Notify):
                                              owlclass_iri=owlclass_iri,
                                              pclass_iri=self._property_class_iri,
                                              ele=ele,
-                                             last_modified=self._modified,
                                              indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
 
             if prop == PropClassAttr.DATATYPE or prop == PropClassAttr.CLASS:
-                ele: RdfModifyItem
-                if self._attributes.get(PropClassAttr.CLASS):
-                    ele = RdfModifyItem('rdf:type', 'owl:DatatypeProperty', 'owl:ObjectProperty')
-                else:
-                    ele = RdfModifyItem('rdf:type', 'owl:ObjectProperty', 'owl:DatatypeProperty')
-                sparql = f'#\n# OWL:\n# Correct OWL property type with Action "{change.action.value}\n#\n'
-                sparql += RdfModifyProp.onto(action=Action.REPLACE,
-                                             graph=self._graph,
-                                             owlclass_iri=owlclass_iri,
-                                             pclass_iri=self._property_class_iri,
-                                             ele=ele,
-                                             last_modified=self._modified,
-                                             indent=indent, indent_inc=indent_inc)
+                if not datatype_class_change:
+                    if self._attributes.get(PropClassAttr.CLASS):
+                        fromType = 'owl:DatatypeProperty'
+                        toType = 'owl:ObjectProperty'
+                    else:
+                        fromType = 'owl:ObjectProperty'
+                        toType = 'owl:DatatypeProperty'
+                    sparql = textwrap.dedent(f'''
+                    WITH {self._graph}:onto
+                        DELETE {{{self._property_class_iri} rdf:type {fromType} }}
+                        INSERT {{ {self._property_class_iri} rdf:type {toType} . }}
+                        WHERE {{ {self._property_class_iri} rdf:type {fromType} . }}
+                    ''')
+                    datatype_class_change = True
+                # ele: RdfModifyItem
+                # if self._attributes.get(PropClassAttr.CLASS):
+                #     ele = RdfModifyItem('rdf:type', 'owl:DatatypeProperty', 'owl:ObjectProperty')
+                # else:
+                #     ele = RdfModifyItem('rdf:type', 'owl:ObjectProperty', 'owl:DatatypeProperty')
+                # sparql = f'#\n# OWL:\n# Correct OWL property type with Action "{change.action.value}\n#\n'
+                # sparql += RdfModifyProp.onto(action=Action.REPLACE,
+                #                              graph=self._graph,
+                #                              owlclass_iri=owlclass_iri,
+                #                              pclass_iri=self._property_class_iri,
+                #                              ele=ele,
+                #                              indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
             if prop == PropClassAttr.TYPE:
                 sparql = self._attributes[prop].update_sparql(graph=Xsd_QName(str(self._graph), 'onto'),
@@ -1222,16 +1145,14 @@ class PropertyClass(Model, Notify):
 
         self._con.transaction_start()
 
-        sparql += self.update_shacl(owlclass_iri=self._internal,
+        sparql += self.update_shacl(owlclass_iri=self._inResourceClass,
                                     timestamp=timestamp)
 
         sparql += " ;\n"
-        sparql += self.update_owl(owlclass_iri=self._internal,
-                                  timestamp=timestamp)
+        sparql += self.update_owl(owlclass_iri=self._inResourceClass)
         try:
             self._con.transaction_update(sparql)
         except OldapError as e:
-            print(sparql)
             self._con.transaction_abort()
             raise
 
@@ -1245,7 +1166,7 @@ class PropertyClass(Model, Notify):
             self._con.transaction_commit()
         else:
             self._con.transaction_abort()
-            raise OldapErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} owl={modtime_owl} timestamp={timestamp}')
+            raise OldapErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} timestamp={timestamp}')
 
         self._modified = timestamp
         self._contributor = self._con.userIri
@@ -1261,54 +1182,127 @@ class PropertyClass(Model, Notify):
         #
         # TODO: Test here if property is in use
         #
-        owlclass_iri = self._internal
-        blank = ''
+
         sparql_list = []
-        sparql = f'#\n# Delete {self._property_class_iri} from shacl\n#\n'
-        #
-        # First we delete all list (sh:languageIn/sh:in restrictions) if existing
-        #
-        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
-        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
-        sparql += f'{blank:{indent * indent_inc}}}}'
-        sparql += f'{blank:{indent * indent_inc}}WHERE{{\n'
-        if owlclass_iri is not None:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self._property_class_iri} .\n'
+        if self.inResourceClass:
+            shacl_node = self.inResourceClass
         else:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
-        #sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:languageIn ?list .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?listprop ?list .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?list rdf:rest* ?z .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
-        sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
-        sparql += f'{blank:{indent * indent_inc}}}}'
+            shacl_node = self._property_class_iri
+        sparql = textwrap.dedent(f"""
+        WITH {self._graph}:shacl
+        DELETE {{
+            ?z rdf:first ?head ;
+               rdf:rest ?tail .
+        }}
+        WHERE {{
+            {shacl_node}Shape sh:property ?prop .
+            ?prop sh:path {self._property_class_iri} .
+            ?prop ?listprop ?list .
+            ?list rdf:rest* ?z .
+            ?z rdf:first ?head ;
+               rdf:rest ?tail .
+            {shacl_node}Shape dcterms:modified ?modified .
+            FILTER(?modified = {self._modified.toRdf})
+        }}
+        """)
         sparql_list.append(sparql)
 
-        sparql = ''
+        sparql = textwrap.dedent(f"""
+        DELETE {{
+            ?prop ?listprop ?list .
+            ?z rdf:first ?head ;
+            rdf:rest ?tail .
+        }}
+        WHERE {{
+            {shacl_node}Shape sh:property ?prop .
+            ?prop sh:path {self._property_class_iri} .
+            ?prop ?listprop ?list .
+            ?list rdf:rest* ?z .
+            ?z rdf:first ?head ;
+               rdf:rest ?tail .
+            {shacl_node}Shape dcterms:modified ?modified .
+            FILTER(?modified = {self._modified.toRdf})
+        }}
+        """)
+        sparql_list.append(sparql)
+        # blank = ''
+        # sparql = f'#\n# Delete {self._property_class_iri} from shacl\n#\n'
+        # #
+        # # First we delete all list (sh:languageIn/sh:in restrictions) if existing
+        # #
+        # sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
+        # sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
+        # sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
+        # sparql += f'{blank:{indent * indent_inc}}}}'
+        # sparql += f'{blank:{indent * indent_inc}}WHERE{{\n'
+        # if owlclass_iri is not None:
+        #     sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
+        #     sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self._property_class_iri} .\n'
+        # else:
+        #     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
+        # #sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:languageIn ?list .\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?listprop ?list .\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}?list rdf:rest* ?z .\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}?z rdf:first ?head ;\n'
+        # sparql += f'{blank:{(indent + 2) * indent_inc}}rdf:rest ?tail .\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
+        # sparql += f'{blank:{indent * indent_inc}}}}'
+
+        # sparql = ''
         #
         # Now we delete the remaining triples
         #
-        sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
-        sparql += f'{blank:{indent * indent_inc}}DELETE{{\n'
-        if owlclass_iri is not None:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v\n'
-        sparql += f'{blank:{indent * indent_inc}}}}\n'
-        sparql += f'{blank:{indent * indent_inc}}WHERE{{\n'
-        if owlclass_iri is not None:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self._property_class_iri} .\n'
-        else:
-            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
-        sparql += f'{blank:{indent * indent_inc}}}}'
+        if self.inResourceClass:  # it's a property in a resource definition...
+            sparql = textwrap.dedent(f"""
+            WITH {self._graph}:shacl
+            DELETE {{
+                {self.inResourceClass}Shape sh:property ?prop .
+                ?prop ?p ?o .
+            }}
+            WHERE {{
+                {self.inResourceClass}Shape sh:property ?prop .
+                ?prop sh:path {self.inResourceClass} .
+                ?prop ?p ?o .
+            }}
+            """)
+        else:  # it's an annotation resource
+            sparql = textwrap.dedent(f"""
+            WITH {self._graph}:shacl
+            DELETE {{
+                {self._property_class_iri}Shape ?p ?o .
+                ?prop ?prop_p ?prop_o
+            }}
+            WHERE {{
+                OPTIONAL {{
+                    {self._property_class_iri}Shape ?p ?o .
+                    {self._property_class_iri}Shape dcterms:modified ?modified .
+                    FILTER(?modified = {self._modified.toRdf})
+                }}
+                OPTIONAL {{
+                    {self._property_class_iri}Shape sh:property ?prop .
+                    ?prop ?prop_p ?prop_o .
+                }}
+                {self._property_class_iri}Shape dcterms:modified ?modified .
+            }}
+            """)
+        # sparql += f'{blank:{indent * indent_inc}}WITH {self._graph}:shacl\n'
+        # sparql += f'{blank:{indent * indent_inc}}DELETE{{\n'
+        # if owlclass_iri is not None:
+        #     sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v\n'
+        # sparql += f'{blank:{indent * indent_inc}}}}\n'
+        # sparql += f'{blank:{indent * indent_inc}}WHERE{{\n'
+        # if owlclass_iri is not None:
+        #     sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?propnode .\n'
+        #     sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode sh:path {self._property_class_iri} .\n'
+        # else:
+        #     sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?propnode)\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode dcterms:modified ?modified .\n'
+        # sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
+        # sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
@@ -1333,7 +1327,25 @@ class PropertyClass(Model, Notify):
 
     def delete_owl(self, *,
                    indent: int = 0, indent_inc: int = 4) -> str:
-        owlclass_iri = self._internal
+
+        sparql = textwrap.dedent(f"""
+        WITH {self._graph}:shacl
+        DELETE {{
+            {self._property_class_iri} ?pp ?oo .
+            ?s ?p {self._property_class_iri} .
+        }}
+        WHERE {{
+            {{
+                {self._property_class_iri} ?pp ?oo .
+            }}
+            UNION
+            {{
+                ?s ?p {self._property_class_iri} .
+            }}
+        }}
+        """)
+
+        owlclass_iri = self._inResourceClass
         blank = ''
         sparql_list = []
         sparql = f'#\n# Delete {self._property_class_iri} from onto\n#\n'
@@ -1347,9 +1359,9 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
-        if owlclass_iri is not None:
-            sparql = self.delete_owl_subclass_str(owlclass_iri=owlclass_iri)
-            sparql_list.append(sparql)
+        # if owlclass_iri is not None:
+        #     sparql = self.delete_owl_subclass_str(owlclass_iri=owlclass_iri)
+        #     sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
         return sparql
@@ -1375,21 +1387,49 @@ class PropertyClass(Model, Notify):
             raise OldapErrorNoPermission(message)
 
         context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
 
-        sparql += self.delete_shacl()
-        sparql += ' ;\n'
-        sparql += self.delete_owl()
+
+        sparql_shacl = context.sparql_context
+        sparql_shacl += self.delete_shacl()
+
+        query = context.sparql_context
+        query += textwrap.dedent(f"""
+        ASK {{
+            GRAPH test:shacl {{
+                ?shape sh:property ?prop .
+                ?prop sh:path {self._property_class_iri} .
+            }}
+        }}
+        """)
+
+        sparql_onto = context.sparql_context
+        sparql_onto += self.delete_owl()
 
         self.__from_triplestore = False
         self._con.transaction_start()
-        self._con.transaction_update(sparql)
+
         try:
             modtime_shacl = self.read_modified_shacl(context=context, graph=self._graph)
         except OldapError as e:
             self._con.transaction_abort()
             raise
-        if modtime_shacl:
+
+        #
+        # delete SHACL data of property
+        #
+        self.safe_update(sparql_shacl)
+
+        #
+        # test if property is used in another shape. If so don't delete the OWL in onto! Otherwise delete
+        # the onto data
+        #
+        result = self.safe_query(query)
+        if not bool(result['boolean']):
+            self._con.transaction_update(sparql_onto)  # not used, delete onto
+
+        if modtime_shacl != self.modified:
+            print(modtime_shacl)
+            print(self.modified)
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed("Deleting Property failed")
         else:

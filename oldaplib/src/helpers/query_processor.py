@@ -54,7 +54,7 @@ RowElementType = Xsd | BNode
 RowType = Dict[str, RowElementType]
 
 
-@dataclass
+#@dataclass
 #@strict
 class QueryProcessor:
     __names: List[str]

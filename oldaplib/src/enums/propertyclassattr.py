@@ -39,7 +39,7 @@ class PropClassAttr(AttributeClass):
       have attached a language id.
     """
     # order: (QName, mandatory, immutable, datatype, target)
-    SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri)
+    SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri, Target.OWL)
     TYPE = ('rdf:type', False, False, ObservableSet, Target.OWL)
     CLASS = ('sh:class', False, False, Iri, Target.SHACL)
     NODEKIND = ('sh:nodeKind', False, False, Iri, Target.SHACL)

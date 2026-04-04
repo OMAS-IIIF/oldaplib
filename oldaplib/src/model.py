@@ -9,6 +9,7 @@ from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.language import Language
+from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.numeric import Numeric
@@ -174,7 +175,10 @@ class Model:
                 continue
             attr = Attributes.from_name(name)
             try:
-                self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value, validate=self._validate)
+                if attr.datatype == XsdDatatypes:
+                    self._attributes[attr] = XsdDatatypes(value)
+                else:
+                    self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value, validate=self._validate)
             except ValueError as err:
                 raise OldapErrorValue(err)
             if hasattr(self._attributes[attr], 'set_notifier'):

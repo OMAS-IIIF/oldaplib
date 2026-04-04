@@ -4,8 +4,10 @@ a string to identify which language is used. In turtle/trig notation it has the 
 eg "this is a string in english"@en. In order to handle such strings easily in OMAS,
 the Language class provides all necessary enumerations.
 """
+import textwrap
 from dataclasses import dataclass
 from datetime import datetime
+from gettext import textdomain
 from pprint import pprint
 from typing import Dict, List, Optional, Callable, Self, Iterator, Any
 
@@ -545,25 +547,6 @@ class LangString(Notify):
                      attr: AttributeClass,
                      modified: Xsd_dateTime,
                      indent: int = 0, indent_inc: int = 4) -> str:
-        """
-        Return the SPARQL code piece that updates a Language string SHACL part of the triple store.
-        :param graph: SPARQL graph as described in the introduction to OMASLIB
-        :type graph: Xsd_NCName
-        :param owlclass_iri: The OWL class IRI of the associated ResourceClass. May be omitted for standalone properties
-        :type owlclass_iri: Xsd_QName | None
-        :param prop_iri: The property IRI of the associated PropertyClass
-        :type prop_iri: Xsd_QName
-        :param attr: The QName of the associated attribute
-        :type attr: Xsd_QName
-        :param modified: timestamp that should be applied
-        :type modified: datetime
-        :param indent: The indent for the generated SPARQL code
-        :type indent: int
-        :param indent_inc: The indent increment for the generated SPARQL code
-        :type indent_inc: int
-        :return: SPARQL code piece
-        :rtype: str
-        """
 
         blank = ''
         sparql_list = []
@@ -572,32 +555,32 @@ class LangString(Notify):
             sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                tmpstr = f'"""{change.old_value}"""'
-                tmpstr += "@" + lang.name.lower()
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?property sh:property ?prop .\n'
+                tmpstr = f'"""{change.old_value}@{lang.name.lower()}"""'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             if change.action != Action.DELETE:
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?property sh:property ?prop .\n'
                 try:
-                    langstr = f'"""{self._langstring[lang]}"""'
+                    langstr = f'"""{self._langstring[lang]}@{lang.name.lower()}"""'
                 except KeyError:
                     raise OldapErrorKey(f'No language string of language: "{lang}"!')
-                langstr += "@" + lang.name.lower()
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {langstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
             if owlclass_iri:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?property sh:property ?prop .\n'
             else:
-                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?property) .\n'
             if change.action != Action.CREATE:
-                tmpstr = f'"""{change.old_value}"""'
-                tmpstr += "@" + lang.name.lower()
+                tmpstr = f'"""{change.old_value}@{lang.name.lower()}"""'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?property dcterms:modified ?modified .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)

@@ -1563,7 +1563,7 @@ class TestOldapListNode(unittest.TestCase):
                                project=self._dmproject,
                                owlclass_iri=Xsd_QName(f'{dm_name}:Resobj'),
                                label=LangString(["Resobj@en", "Resobj@de"]),
-                               hasproperties=[
+                               properties=[
                                    HasProperty(con=self._connection, project=self._dmproject, prop=selection, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
         dm[Xsd_QName(f'{dm_name}:resobj')] = resobj
@@ -1676,7 +1676,7 @@ class TestOldapListNode(unittest.TestCase):
                                project=self._project,
                                owlclass_iri=Xsd_QName(f'{dm_name}:Resobj2'),
                                label=LangString(["Resobj2@en", "Resobj2@de"]),
-                               hasproperties=[
+                               properties=[
                                    HasProperty(con=self._connection, project=self._project, prop=selection, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
         dm[Xsd_QName(f'{dm_name}:Resobj2')] = resobj
@@ -3015,7 +3015,7 @@ class TestOldapListNode(unittest.TestCase):
                                      label=LangString(["CategoryItem@en", "CategoryItem@de"]),
                                      comment=LangString("Something with categories@en"),
                                      closed=Xsd_boolean(True),
-                                     hasproperties=[
+                                     properties=[
                                          HasProperty(con=self._connection, project=project, prop=title, minCount=Xsd_integer(1),
                                                      order=1),
                                          HasProperty(con=self._connection, project=project, prop=category, minCount=Xsd_integer(1),

@@ -418,7 +418,7 @@ class TestPermissionSet(unittest.TestCase):
                                project=self._project,
                                owlclass_iri=Xsd_QName(f'{dm_name}:DummyClass'),
                                label=LangString(["Dummy@en", "Dummy@de"]),
-                               hasproperties=[
+                               properties=[
                                    HasProperty(con=self._connection, project=self._project, prop=irgendwas, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
         dm[Xsd_QName(f'{dm_name}:resobj')] = resobj

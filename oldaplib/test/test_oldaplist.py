@@ -359,7 +359,7 @@ class TestOldapList(unittest.TestCase):
                                project=self._project,
                                owlclass_iri=Xsd_QName(f'{dm_name}:Resobj'),
                                label=LangString(["Resobj@en", "Resobj@de"]),
-                               hasproperties=[
+                               properties=[
                                    HasProperty(con=self._connection, project=self._project, prop=selection, maxCount=Xsd_integer(1),
                                                minCount=Xsd_integer(1), order=1)])
         dm[Xsd_QName(f'{dm_name}:resobj')] = resobj

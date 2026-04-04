@@ -162,7 +162,7 @@ class TestDataModel(unittest.TestCase):
                              label=LangString(["Book@en", "Buch@de"]),
                              comment=LangString("Ein Buch mit Seiten@en"),
                              closed=Xsd_boolean(True),
-                             hasproperties=[
+                             properties=[
                                  HasProperty(con=self._connection, project=self._project, prop=title, minCount=Xsd_integer(1), order=1),
                                  HasProperty(con=self._connection, project=self._project, prop=authors, minCount=Xsd_integer(1), order=2),
                                  HasProperty(con=self._connection, project=self._project, prop=comment, order=3)])
@@ -185,7 +185,7 @@ class TestDataModel(unittest.TestCase):
                              label=LangString(["Page@en", "Seite@de"]),
                              comment=LangString("Page of a book@en"),
                              closed=Xsd_boolean(True),
-                             hasproperties=[
+                             properties=[
                                  HasProperty(con=self._connection, project=self._project, prop=pagenum, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=1),
                                  HasProperty(con=self._connection, project=self._project, prop=inbook, maxCount=Xsd_integer(1), minCount=Xsd_integer(1), order=2),
                                  HasProperty(con=self._connection, project=self._project, prop=comment, order=3)])
@@ -705,7 +705,7 @@ class TestDataModel(unittest.TestCase):
                               label=LangString(["BookX@en", "BuchX@de"]),
                               comment=LangString("Ein Buch mit SeitenX@en"),
                               closed=Xsd_boolean(True),
-                              hasproperties=[
+                              properties=[
                                   HasProperty(con=self._connection, project=self._project, prop=titleX, minCount=Xsd_integer(1), order=1),
                                   HasProperty(con=self._connection, project=self._project, prop=authorsX, minCount=Xsd_integer(1), order=2),
                                   HasProperty(con=self._connection, project=self._project, prop=Xsd_QName(f'{dm_name}:genericComment'), order=3)])
@@ -866,7 +866,7 @@ class TestDataModel(unittest.TestCase):
                               label=LangString(["BookY@en", "BuchY@de"]),
                               comment=LangString("Ein Buch mit SeitenY@en"),
                               closed=Xsd_boolean(True),
-                              hasproperties=[
+                              properties=[
                                   HasProperty(con=self._connection, project=self._project, prop=titleY, minCount=Xsd_integer(1), order=1),
                                   HasProperty(con=self._connection, project=self._project, prop=authorsY, minCount=Xsd_integer(1), order=2),
                                   HasProperty(con=self._connection, project=self._project, prop=generic_commentY, order=3)])
@@ -994,7 +994,7 @@ class TestDataModel(unittest.TestCase):
                               label=LangString(["BookZ@en", "BuchZ@de"]),
                               comment=LangString("Ein Buch mit SeitenZ@en"),
                               closed=Xsd_boolean(True),
-                              hasproperties=[
+                              properties=[
                                   HasProperty(con=self._connection, project=self._project, prop=titleZ, minCount=Xsd_integer(1), order=1),
                                   HasProperty(con=self._connection, project=self._project, prop=authorsZ, minCount=Xsd_integer(1), order=2),
                                   HasProperty(con=self._connection, project=self._project, prop=generic_commentZ, order=3)])
@@ -1040,7 +1040,7 @@ class TestDataModel(unittest.TestCase):
                               label=["Eine Buchseite@de", "A page of a book@en"],
                               comment=["Eine Buchseite@de","A page of a book@en"],
                               closed=Xsd_boolean(True),
-                              hasproperties=[
+                              properties=[
                                   HasProperty(con=self._connection, project=self._project, prop=testProp2, minCount=Xsd_integer(1), maxCount=3, order=1)])
         dm = DataModel(con=self._connection,
                        project=proj,
@@ -1107,7 +1107,7 @@ class TestDataModel(unittest.TestCase):
                              label=LangString(["Project@en", "Projekt@de"]),
                              comment=LangString(["A page of a book@en", "Seite eines Buches@de"]),
                              closed=Xsd_boolean(True),
-                             hasproperties=[
+                             properties=[
                                  HasProperty(con=self._connection, project=self._project, prop=pagename, minCount=Xsd_integer(1), order=1)])
         dm = DataModel(con=self._connection,
                        project=self._dmprojectF,
@@ -1153,7 +1153,7 @@ class TestDataModel(unittest.TestCase):
                              label=LangString(["Project@en", "Projekt@de"]),
                              comment=LangString(["A page of a book@en", "Seite eines Buches@de"]),
                              closed=Xsd_boolean(True),
-                             hasproperties=[
+                             properties=[
                                  HasProperty(con=self._connection, project=self._project, prop=pagename, minCount=Xsd_integer(1), order=1),
                                  HasProperty(con=self._connection, project=self._project, prop=pagenum, minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=2),
                                  HasProperty(con=self._connection, project=self._project, prop=pagedescription, order=3),
@@ -1178,7 +1178,7 @@ class TestDataModel(unittest.TestCase):
                              #superclass=Iri('oldap:Thing'),
                              label=LangString(["Book@en", "Buch@de"]),
                              closed=Xsd_boolean(True),
-                             hasproperties=[
+                             properties=[
                                  HasProperty(con=self._connection, project=self._project, prop=title, order=1),
                                  HasProperty(con=self._connection, project=self._project, prop=author, order=2),
                                  HasProperty(con=self._connection, project=self._project, prop=pubDate, order=3)])
@@ -1188,7 +1188,7 @@ class TestDataModel(unittest.TestCase):
                                owlclass_iri=Xsd_QName('test:Person'),
                                #superclass=Iri('oldap:Thing'),  # no longer necessary TODO: Test it!!!!
                                label=LangString(["Person@en", "Person@de"]),
-                               hasproperties=[
+                               properties=[
                                    HasProperty(con=self._connection, project=self._project, prop=Xsd_QName('schema:familyName'), minCount=Xsd_integer(1), maxCount=Xsd_integer(1), order=1),
                                    HasProperty(con=self._connection, project=self._project, prop=Xsd_QName('schema:givenName'), minCount=Xsd_integer(1), order=2)])
 

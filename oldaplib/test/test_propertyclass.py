@@ -2,6 +2,10 @@ import json
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from pprint import pprint
+
+from rdflib import Graph, URIRef, BNode, Literal, XSD
+from rdflib.plugins.parsers.ntriples import validate
 
 from oldaplib.src.connection import Connection
 from oldaplib.src.dtypes.languagein import LanguageIn
@@ -11,7 +15,10 @@ from oldaplib.src.dtypes.xsdset import XsdSet
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.language import Language
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
+from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
+from oldaplib.src.helpers import context
+from oldaplib.src.helpers.construct_processor import ConstructProcessor
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString, LangStringChange
 from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, \
@@ -23,11 +30,25 @@ from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
-from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
-from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_byte import Xsd_byte
+from oldaplib.src.xsd.xsd_date import Xsd_date
+from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
+from oldaplib.src.xsd.xsd_decimal import Xsd_decimal
+from oldaplib.src.xsd.xsd_double import Xsd_double
+from oldaplib.src.xsd.xsd_duration import Xsd_duration
+from oldaplib.src.xsd.xsd_float import Xsd_float
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.xsd_long import Xsd_long
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_short import Xsd_short
 from oldaplib.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.xsd.xsd_time import Xsd_time
+from oldaplib.src.xsd.xsd_token import Xsd_token
 
 
 def find_project_root(current_path):
@@ -89,21 +110,41 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
         self.assertEqual(p.get(PropClassAttr.TYPE), {OwlPropertyType.OwlDataProperty})
+        with self.assertRaises(OldapErrorInconsistency):
+            p.create()
 
-    def test_star_propertyclass_constructor(self):
+    def test_star_propclass_constructor_dataprop(self):
         p = PropertyClass(con=self._connection,
                           project=self._project,
-                          property_class_iri=Xsd_QName('test:testpropstar'),
-                          statement_property=True,
+                          property_class_iri=Xsd_QName('test:testpropstarA'),
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           datatype=XsdDatatypes.string,
                           name=LangString(["Test property@en", "Testprädikat@de"]),
                           description={"A property for testing...@en", "Property für Tests@de"})
-        self.assertEqual(p.property_class_iri, Xsd_QName('test:testpropstar'))
-        self.assertTrue(p.statementProperty)
+        self.assertEqual(p.property_class_iri, Xsd_QName('test:testpropstarA'))
+        self.assertEqual(p.appliesToProperty, Xsd_QName('test:GAGA'))
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
         self.assertEqual(p[PropClassAttr.TYPE], {OwlPropertyType.OwlDataProperty})
+        p.create()
+
+    def test_star_propclass_constructor_objprop(self):
+        p = PropertyClass(con=self._connection,
+                          project=self._project,
+                          property_class_iri=Xsd_QName('test:testpropstarB'),
+                          appliesToProperty=Xsd_QName('test:GAGA'),
+                          toClass=Xsd_QName('test:testpropstarB'),
+                          name=LangString(["Test property@en", "Testprädikat@de"]),
+                          description={"A property for testing...@en", "Property für Tests@de"})
+        self.assertEqual(p.property_class_iri, Xsd_QName('test:testpropstarB'))
+        self.assertEqual(p.appliesToProperty, Xsd_QName('test:GAGA'))
+        self.assertEqual(p.get(PropClassAttr.CLASS), Xsd_QName('test:testpropstarB'))
+        self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
+        self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
+        self.assertEqual(p[PropClassAttr.TYPE], {OwlPropertyType.OwlObjectProperty})
+        p.create()
+
 
     def test_propertyclass_constructor_owlprop(self):
         p = PropertyClass(con=self._connection,
@@ -164,8 +205,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertFalse(p._graph is p2._graph)
         self.assertEqual(p._property_class_iri, p2._property_class_iri)
         self.assertFalse(p._property_class_iri is p2._property_class_iri)
-        self.assertEqual(p._internal, p2._internal)
-        self.assertIsNone(p2._internal)
+        self.assertEqual(p._inResourceClass, p2._inResourceClass)
+        self.assertIsNone(p2._inResourceClass)
         self.assertIsNone(p2.notify(), Iri('test:gaga'))
         self.assertEqual(p.datatype, p2.datatype)
         self.assertEqual(p.name, p2.name)
@@ -174,7 +215,7 @@ class TestPropertyClass(unittest.TestCase):
         self.assertFalse(p.description is p2.description)
         self.assertEqual(p.inSet, p2.inSet)
         self.assertFalse(p.inSet is p2.inSet)
-        self.assertFalse(p.statementProperty is p2.statementProperty)
+        self.assertEqual(p.appliesToProperty, p2.appliesToProperty)
 
     def test_propertyclass_toclass_constructor(self):
         p2 = PropertyClass(con=self._connection,
@@ -211,23 +252,22 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p3.get(PropClassAttr.IN), {Xsd_string('yes'), Xsd_string('may be'), Xsd_string('no')})
         self.assertEqual(p3.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
 
-    def test_propertyclass_languagein_constructor(self):
+    def test_propertyclass_languagein_constructorA(self):
         p4 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Xsd_QName('test:testprop4'),
-                           statement_property=True,
                            datatype=XsdDatatypes.langString,
                            languageIn=LanguageIn(Language.EN, Language.DE, Language.FR))
         self.assertEqual(p4.property_class_iri, Xsd_QName('test:testprop4'))
         self.assertEqual(p4.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.DE, Language.FR))
         self.assertEqual(p4.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
 
+    def test_propertyclass_languagein_constructorB(self):
         p4a = PropertyClass(con=self._connection,
-                            project=self._project,
-                            property_class_iri=Xsd_QName('test:testprop4a'),
-                            statement_property=True,
-                            datatype=XsdDatatypes.langString,
-                            languageIn={'en', 'fr'})
+                        project=self._project,
+                        property_class_iri=Xsd_QName('test:testprop4a'),
+                        datatype=XsdDatatypes.langString,
+                        languageIn={'en', 'fr'})
         self.assertEqual(p4a.property_class_iri, Xsd_QName('test:testprop4a'))
         self.assertEqual(p4a.get(PropClassAttr.LANGUAGE_IN), LanguageIn(Language.EN, Language.FR))
         self.assertEqual(p4a.get(PropClassAttr.DATATYPE), XsdDatatypes.langString)
@@ -236,163 +276,68 @@ class TestPropertyClass(unittest.TestCase):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             property_class_iri=Xsd_QName('test:testWriteUVW'),
             datatype=XsdDatatypes.string,
-            name=LangString("Annotations@en"),
-            description=LangString("An annotation@en"),
-        )
-        p1.create()
-        sparql = self._context.sparql_context
-        sparql += f"""
-        SELECT ?p ?o
-        WHERE {{
-            GRAPH {self._project.projectShortName}:shacl {{
-                {p1.property_class_iri.toRdf}Shape ?p ?o .
-            }}
-        }}
-        """
-        jsonres = self._connection.query(sparql)
-        res = QueryProcessor(self._context, jsonres)
-        for row in res:
-            match row.get('p'):
-                case Xsd_QName("rdf:type"):
-                    self.assertEqual(row.get('o'), Xsd_QName("sh:PropertyShape"))
-                case Xsd_QName("oldap:statementProperty"):
-                    self.assertTrue(row.get('o'))
-                case Xsd_QName("sh:path"):
-                    self.assertEqual(row.get('o'), Xsd_QName("test:testWriteUVW"))
-                case Xsd_QName("sh:datatype"):
-                    self.assertEqual(row.get('o'), Xsd_QName("xsd:string"))
-                case Xsd_QName("dcterms:creator"):
-                    self.assertEqual(row.get('o'), Iri("https://orcid.org/0000-0003-1681-4036"))
-                case Xsd_QName("dcterms:created"):
-                    self.assertEqual(row.get('o'), p1.created)
-                case Xsd_QName("dcterms:contributor"):
-                    self.assertEqual(row.get('o'), Iri("https://orcid.org/0000-0003-1681-4036"))
-                case Xsd_QName("dcterms:modified"):
-                    self.assertEqual(row.get('o'), p1.modified)
-                case Xsd_QName("sh:name"):
-                    self.assertEqual(row.get('o'), Xsd_string("Annotations", "en"))
-                case Xsd_QName("sh:description"):
-                    self.assertEqual(row.get('o'), Xsd_string("An annotation", "en"))
-                case _:
-                    raise Exception(f"Unexpected property {row.get('p')} => {row.get('o')}")
-        sparql = self._context.sparql_context
-        sparql += f"""
-        SELECT ?p ?o
-        WHERE {{
-            GRAPH {self._project.projectShortName}:onto {{
-                {p1.property_class_iri.toRdf} ?p ?o .
-            }}
-        }}
-        """
-        jsonres = self._connection.query(sparql)
-        res = QueryProcessor(self._context, jsonres)
-        for row in res:
-            match row.get('p'):
-                case Xsd_QName("rdf:type"):
-                    self.assertEqual(row.get('o'), Xsd_QName("owl:DatatypeProperty"))
-
-    def test_propertyclass_create_statement_property(self):
-        p1 = PropertyClass(
-            con=self._connection,
-            project=self._project,
-            statement_property=True,
-            property_class_iri=Xsd_QName('test:testWriteXY'),
-            toClass=Xsd_QName('test:Gaga'),
-            name=LangString("Annotations@en"),
-            description=LangString("An annotation@en"),
-            minCount=1,
+            name=LangString("Annotations@en", "Annotations@de"),
+            description=LangString("An annotation@en", "Eine Annotation@de"),
+            inSet={'AA', 'BB', 'CC'},
             maxCount=1,
-            order=0.5
+            order=42
         )
+        p1.write_as_trig('testWriteUVW.trig')
         p1.create()
-        sparql = self._context.sparql_context
-        sparql += f"""
-        SELECT ?p ?o
-        WHERE {{
-            GRAPH {self._project.projectShortName}:shacl {{
-                {p1.property_class_iri.toRdf}Shape ?p ?o .
-            }}
-        }}
-        """
-        jsonres = self._connection.query(sparql)
-        res = QueryProcessor(self._context, jsonres)
-        has_maxCount = False
-        has_minCount = False
-        has_order = False
-        #has_group = False
-        for row in res:
-            match row.get('p'):
-                case Xsd_QName("rdf:type"):
-                    self.assertEqual(row.get('o'), Xsd_QName("sh:PropertyShape"))
-                case Xsd_QName("oldap:statementProperty"):
-                    self.assertTrue(row.get('o'))
-                case Xsd_QName("sh:path"):
-                    self.assertEqual(row.get('o'), Xsd_QName("test:testWriteXY"))
-                case Xsd_QName("sh:class"):
-                    self.assertEqual(row.get('o'), Xsd_QName("test:Gaga"))
-                case Xsd_QName("dcterms:creator"):
-                    self.assertEqual(row.get('o'), Iri("https://orcid.org/0000-0003-1681-4036"))
-                case Xsd_QName("dcterms:created"):
-                    self.assertEqual(row.get('o'), p1.created)
-                case Xsd_QName("dcterms:contributor"):
-                    self.assertEqual(row.get('o'), Iri("https://orcid.org/0000-0003-1681-4036"))
-                case Xsd_QName("dcterms:modified"):
-                    self.assertEqual(row.get('o'), p1.modified)
-                case Xsd_QName("sh:name"):
-                    self.assertEqual(row.get('o'), Xsd_string("Annotations", "en"))
-                case Xsd_QName("sh:description"):
-                    self.assertEqual(row.get('o'), Xsd_string("An annotation", "en"))
-                case Xsd_QName("sh:minCount"):
-                    has_minCount = True
-                    self.assertEqual(row.get('o'), Xsd_integer(1))
-                case Xsd_QName("sh:maxCount"):
-                    has_maxCount = True
-                    self.assertEqual(row.get('o'), Xsd_integer(1))
-                case Xsd_QName("sh:order"):
-                    has_order = True
-                    self.assertEqual(row.get('o'), Xsd_decimal(0.5))
-                case _:
-                    raise Exception(f"Unexpected property {row.get('p')} => {row.get('o')}")
-        self.assertTrue(has_maxCount)
-        self.assertTrue(has_minCount)
-        self.assertTrue(has_order)
-        sparql = self._context.sparql_context
-        sparql += f"""
-        SELECT ?p ?o
-        WHERE {{
-            GRAPH {self._project.projectShortName}:onto {{
-                {p1.property_class_iri.toRdf} ?p ?o .
-            }}
-        }}
-        """
-        jsonres = self._connection.query(sparql)
-        res = QueryProcessor(self._context, jsonres)
-        for row in res:
-            match row.get('p'):
-                case Xsd_QName("rdf:type"):
-                    self.assertEqual(row.get('o'), Xsd_QName("owl:ObjectProperty"))
 
+        p2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testWriteUVW'),
+                                ignore_cache=True)
 
-    def test_propertyclass_create_standalone_property(self):
+        self.assertEqual(p1.property_class_iri, p2.property_class_iri)
+        self.assertEqual(p1.appliesToProperty, p2.appliesToProperty)
+        self.assertEqual(p1.datatype, p2.datatype)
+        self.assertEqual(p1.inSet, p2.inSet)
+        self.assertEqual(p1.name, p2.name)
+        self.assertEqual(p1.description, p2.description)
+        self.assertEqual(p1.maxCount, p2.maxCount)
+        self.assertEqual(p1.order, p2.order)
+
+    def test_propertyclass_create_statement_property_toclass(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
-            property_class_iri=Xsd_QName('test:testWrite2'),
-            datatype=XsdDatatypes.string,
-            name=LangString("Annotations2@en"),
-            description=LangString("An annotation2@en"),
+            appliesToProperty=Xsd_QName('test:GAGA'),
+            property_class_iri=Xsd_QName('test:testWriteXYZ'),
+            toClass=Xsd_QName('test:GUGUS'),
+            type={OwlPropertyType.SymmetricProperty},
+            name=LangString("Annotations@en", "Annotations@de"),
+            description=LangString("An annotation@en", "Eine Annotation@de"),
+            maxCount=1,
+            order=42
         )
-        with self.assertRaises(OldapErrorInconsistency):
-            p1.create()
+        self.assertEqual(p1.type, {OwlPropertyType.OwlObjectProperty, OwlPropertyType.SymmetricProperty})
+        p1.write_as_trig('testWriteXYZ.trig')
+        p1.create()
+
+        p2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testWriteXYZ'),
+                                ignore_cache=True)
+        self.assertEqual(p1.property_class_iri, p2.property_class_iri)
+        self.assertEqual(p1.appliesToProperty, p2.appliesToProperty)
+        self.assertEqual(p1.toClass, p2.toClass)
+        self.assertEqual(p1.type, p2.type)
+        self.assertEqual(p1.name, p2.name)
+        self.assertEqual(p1.description, p2.description)
+        self.assertEqual(p1.maxCount, p2.maxCount)
+        self.assertEqual(p1.order, p2.order)
+
 
     def test_propertyclass_owltype_constructor(self):
         p4 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Xsd_QName('test:testprop4c'),
-                           statement_property=True,
+                           appliesToProperty=Xsd_QName('test:GAGA'),
                            type={OwlPropertyType.SymmetricProperty},
                            datatype=XsdDatatypes.string)
         p4.create()
@@ -403,9 +348,24 @@ class TestPropertyClass(unittest.TestCase):
                                 ignore_cache=True)
         self.assertEqual(p4.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty})
 
+    def test_propertyclass_mod_A(self):
+        p4 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           property_class_iri=Xsd_QName('test:testprop4d'),
+                           appliesToProperty=Xsd_QName('test:GAGA'),
+                           type={OwlPropertyType.SymmetricProperty},
+                           datatype=XsdDatatypes.string)
+        p4.create()
+
         p4.type.add(OwlPropertyType.TransitiveProperty)
         p4.minCount = None
         p4.update()
+
+        p4 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testprop4d'),
+                                ignore_cache=True)
+
         self.assertEqual(p4.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.TransitiveProperty, OwlPropertyType.OwlDataProperty})
         self.assertIsNone(p4.get(PropClassAttr.ORDER))
 
@@ -414,6 +374,7 @@ class TestPropertyClass(unittest.TestCase):
             p5 = PropertyClass(con=self._connection,
                                project=self._project,
                                property_class_iri=Xsd_QName('test:testprop5a'),
+                               appliesToProperty=Xsd_QName('test:GAGA'),
                                datatype=XsdDatatypes.float,
                                languageIn=LanguageIn(Language.EN, Language.DE, Language.FR))
 
@@ -423,6 +384,7 @@ class TestPropertyClass(unittest.TestCase):
                                project=self._project,
                                type={OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlObjectProperty},
                                property_class_iri=Xsd_QName('test:testprop5b'),
+                               appliesToProperty=Xsd_QName('test:GAGA'),
                                datatype=XsdDatatypes.string)
 
     def test_propertyclass_inconsistent_constructor_C(self):
@@ -431,6 +393,7 @@ class TestPropertyClass(unittest.TestCase):
                                project=self._project,
                                type={OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty},
                                property_class_iri=Xsd_QName('test:testprop5c'),
+                               appliesToProperty=Xsd_QName('test:GAGA'),
                                toClass=Xsd_QName('test:comment'))
 
     def test_propertyclass_invalid_constructor_A(self):
@@ -438,6 +401,7 @@ class TestPropertyClass(unittest.TestCase):
             px = PropertyClass(con=self._connection,
                                project=self._project,
                                property_class_iri=Xsd_QName('test:testpropX'),
+                               appliesToProperty=Xsd_QName('test:GAGA'),
                                toClass=Xsd_QName('test:comment'),
                                minLength=42)
 
@@ -445,6 +409,7 @@ class TestPropertyClass(unittest.TestCase):
         p6 = PropertyClass(con=self._connection,
                            project="test",
                            property_class_iri=Xsd_QName('test:testprop6'),
+                           appliesToProperty=Xsd_QName('test:GAGA'),
                            datatype=XsdDatatypes.langString,
                            languageIn=LanguageIn(Language.EN, Language.DE, Language.FR))
         self.assertEqual(p6.property_class_iri, Xsd_QName('test:testprop6'))
@@ -458,7 +423,7 @@ class TestPropertyClass(unittest.TestCase):
                                property_class_iri=Xsd_QName('oldap:hasAdminPermission'),
                                ignore_cache=True)
         self.assertEqual(p.property_class_iri, Xsd_QName('oldap:hasAdminPermission'))
-        self.assertTrue(p.statementProperty)
+        self.assertEqual(p.appliesToProperty, Xsd_QName('oldap:inProject'))
         self.assertEqual(p.toClass, Xsd_QName('oldap:AdminPermission'))
 
 
@@ -469,7 +434,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testWrite'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             toClass=Xsd_QName('test:comment'),
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
@@ -481,7 +446,7 @@ class TestPropertyClass(unittest.TestCase):
                                 property_class_iri=Xsd_QName('test:testWrite'),
                                 ignore_cache=True)
         self.assertEqual(p1.property_class_iri, Xsd_QName('test:testWrite'))
-        self.assertTrue(p1.statementProperty)
+        self.assertEqual(p1.appliesToProperty, Xsd_QName('test:GAGA'))
         self.assertEqual(p1[PropClassAttr.CLASS], Xsd_QName('test:comment'))
         self.assertEqual(p1[PropClassAttr.NAME], LangString("Annotations@en"))
         self.assertEqual(p1[PropClassAttr.DESCRIPTION], LangString("An annotation@en"))
@@ -493,7 +458,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testWrite2'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             datatype=XsdDatatypes.langString,
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
@@ -506,7 +471,7 @@ class TestPropertyClass(unittest.TestCase):
                                 property_class_iri=Xsd_QName('test:testWrite2'),
                                 ignore_cache=True)
         self.assertEqual(p2.property_class_iri, Xsd_QName('test:testWrite2'))
-        self.assertTrue(p2.statementProperty)
+        self.assertEqual(p2.appliesToProperty, Xsd_QName('test:GAGA'))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.langString)
         self.assertEqual(p2[PropClassAttr.NAME], LangString("Annotations@en"))
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("An annotation@en"))
@@ -518,7 +483,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testWrite3'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             datatype=XsdDatatypes.string,
             pattern=r"^[\w\.-]+@[a-zA-Z\d-]+(\.[a-zA-Z\d-]+)*\.[a-zA-Z]{2,}$"
         )
@@ -534,7 +499,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testWriteABC'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             datatype=XsdDatatypes.int
         )
         pX.create()
@@ -542,7 +507,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testWriteABC'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             datatype=XsdDatatypes.int
         )
         with self.assertRaises(OldapErrorAlreadyExists) as ex:
@@ -554,7 +519,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testWriteStar'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             type={OwlPropertyType.StatementProperty},
             datatype=XsdDatatypes.string,
         )
@@ -570,7 +535,7 @@ class TestPropertyClass(unittest.TestCase):
         p4 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Xsd_QName('test:testpropF'),
-                           statement_property=True,
+                           appliesToProperty=Xsd_QName('test:GAGA'),
                            type={OwlPropertyType.SymmetricProperty},
                            datatype=XsdDatatypes.string)
         p4.create()
@@ -584,7 +549,7 @@ class TestPropertyClass(unittest.TestCase):
         p = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isParentG'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           toClass=Iri('test:Human'),
                           name=LangString(["Parent"]),
                           description={"Parent of the human"})
@@ -592,7 +557,7 @@ class TestPropertyClass(unittest.TestCase):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChildG'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           toClass=Iri('test:Human'),
                           inverseOf=Xsd_QName('test:isParentG'),
                           name=LangString(["Child"]),
@@ -611,7 +576,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._unpriv,
             project=self._project,
             property_class_iri=Xsd_QName('test:testCreateNoPerm'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             toClass=Xsd_QName('test:comment'),
             name=LangString("NoPerm@en"),
             description=LangString("NoPerm@en")
@@ -625,7 +590,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testCache'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             toClass=Xsd_QName('test:comment'),
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
@@ -637,7 +602,7 @@ class TestPropertyClass(unittest.TestCase):
                                 property_class_iri=Xsd_QName('test:testCache'))
         self.assertFalse(p1 is p2)
         self.assertEqual(p1.property_class_iri, p2.property_class_iri)
-        self.assertEqual(p1.statementProperty, p2.statementProperty)
+        self.assertEqual(p1.appliesToProperty, p2.appliesToProperty)
         self.assertEqual(p1.toClass, p2.toClass)
         self.assertEqual(p1.toClass, p2.toClass)
         self.assertEqual(p1.name, p2.name)
@@ -654,7 +619,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testUndo'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             datatype=XsdDatatypes.langString,
             name=LangString(["Annotations@en", "Annotationen@de"]),
             languageIn=LanguageIn(Language.EN, Language.DE),
@@ -765,24 +730,28 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testUpdate'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             subPropertyOf=Xsd_QName('test:masterProp'),
             datatype=XsdDatatypes.langString,
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
-            languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
+            languageIn=LanguageIn(Language.EN, Language.DE, Language.FR),
             uniqueLang=Xsd_boolean(True)
         )
+        p1.write_as_trig('test:testUpdate')
         p1.create()
 
-        p1[PropClassAttr.SUBPROPERTY_OF] = Xsd_QName('test:masterProp2')
-        p1[PropClassAttr.NAME][Language.DE] = 'Annotationen'
-        p1[PropClassAttr.UNIQUE_LANG] = Xsd_boolean(False)
-        p1[PropClassAttr.IN] = RdfSet(Xsd_string("gaga"), Xsd_string("is was"))
+        p1[PropClassAttr.SUBPROPERTY_OF] = Xsd_QName('test:masterProp2')  # ✅
+        p1[PropClassAttr.NAME][Language.DE] = 'Annotationen'  # ✅
+        p1[PropClassAttr.UNIQUE_LANG] = Xsd_boolean(False)  # ✅
+        p1[PropClassAttr.IN] = RdfSet(Xsd_string("gaga"), Xsd_string("is was"))  # ✅
+        p1.languageIn.add(Language.IT)
         self.maxDiff = None
+        print(p1.changeset)
         self.assertEqual(p1.changeset, {
+            PropClassAttr.SUBPROPERTY_OF: AttributeChange(Iri("test:masterProp"), Action.REPLACE),
             PropClassAttr.NAME: AttributeChange(None, Action.MODIFY),
-            # PropClassAttr.LANGUAGE_IN: PropClassAttrChange(LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT), Action.REPLACE, True),
+            PropClassAttr.LANGUAGE_IN: AttributeChange(LanguageIn(Language.EN, Language.DE, Language.FR), Action.REPLACE),
             PropClassAttr.SUBPROPERTY_OF: AttributeChange(Xsd_QName('test:masterProp'), Action.REPLACE),
             PropClassAttr.UNIQUE_LANG: AttributeChange(Xsd_boolean(True), Action.REPLACE),
             PropClassAttr.IN: AttributeChange(None, Action.CREATE),
@@ -794,15 +763,16 @@ class TestPropertyClass(unittest.TestCase):
                                 project=self._project,
                                 property_class_iri=Xsd_QName('test:testUpdate'),
                                 ignore_cache=True)
+        p2.write_as_trig('test:testUpdate')
         self.assertEqual(p2.property_class_iri, Xsd_QName('test:testUpdate'))
         self.assertEqual(p2.subPropertyOf, Xsd_QName('test:masterProp2'))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.langString)
         self.assertIsNone(p2.get(PropClassAttr.CLASS))
-        self.assertEqual(p2[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))
+        self.assertEqual(p2[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))  # ✅
         self.assertEqual(p2[PropClassAttr.DESCRIPTION], LangString("An annotation@en"))
         self.assertEqual(p2[PropClassAttr.LANGUAGE_IN], LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
-        self.assertEqual(p2[PropClassAttr.IN], RdfSet(Xsd_string("gaga"), Xsd_string("is was")))
-        self.assertFalse(p2[PropClassAttr.UNIQUE_LANG])
+        self.assertEqual(p2[PropClassAttr.IN], RdfSet(Xsd_string("gaga"), Xsd_string("is was")))  # ✅
+        self.assertFalse(p2[PropClassAttr.UNIQUE_LANG])  # ✅
 
     # @unittest.skip('Work in progress')
     def test_propertyclass_update_02(self):
@@ -810,7 +780,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testUpdate2'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
             datatype=XsdDatatypes.langString,
@@ -852,7 +822,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testUpdate3'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
             datatype=XsdDatatypes.langString,
@@ -876,9 +846,11 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p1.toClass)
         self.assertEqual(p1.name, LangString(["Annotations@en"]))
         self.assertEqual(p1.description, LangString("An annotation@en"))
+        p1.write_as_trig('test:testUpdate3')
 
         p1.toClass = Iri('test:masterProp3')
         p1.update()
+        p1.write_as_trig('test:testUpdate3')
         self.assertEqual(p1.changeset, {})
 
         p2 = PropertyClass.read(con=self._connection,
@@ -890,6 +862,8 @@ class TestPropertyClass(unittest.TestCase):
         self.assertEqual(p2.toClass, Xsd_QName('test:masterProp3'))
         self.assertEqual(p2.name, LangString(["Annotations@en"]))
         self.assertEqual(p2.description, LangString("An annotation@en"))
+        self.assertIsNone(p2.minLength)
+        self.assertIsNone(p2.maxLength)
         self.assertIsNone(p2.languageIn)
         self.assertIsNone(p2.uniqueLang)
 
@@ -898,7 +872,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testUpdate4'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             name=LangString("Annotations@en"),
             description=LangString("An annotation@en"),
             toClass=Xsd_QName('test:masterProp4')
@@ -932,7 +906,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testUpdate5'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             datatype=XsdDatatypes.string,
             name=LangString(["name english@en", "nom français@fr"]),
             description=LangString("description english@en", "description français@fr"),
@@ -947,27 +921,20 @@ class TestPropertyClass(unittest.TestCase):
         p1.description[Language.DE] = "description deutsch"
         p1.update()
 
-        sparql = self._context.sparql_context
-        sparql += """
-        SELECT ?label
-        FROM test:onto
-        WHERE {{
-            test:testUpdate5 rdfs:label ?label .
-        }}
-        """
-        jsonres = self._connection.query(sparql)
-        res = QueryProcessor(self._context, jsonres)
-        for r in res:
-            self.assertIn(r['label'], [Xsd_string("name english@en"),
-                                       Xsd_string("nom français@fr"),
-                                       Xsd_string("name deutsch@de")])
+        p2 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testUpdate5'),
+                                ignore_cache=True)
+        print(p2.name)
+        print(p2.description)
+
 
     def test_propertyclass_update_06(self):
         p1 = PropertyClass(
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testUpdate6'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             datatype=XsdDatatypes.string,
             name=LangString(["name english@en", "nom français@fr"]),
         )
@@ -1015,7 +982,7 @@ class TestPropertyClass(unittest.TestCase):
         p7 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Xsd_QName('test:testprop7'),
-                           statement_property=True,
+                           appliesToProperty=Xsd_QName('test:GAGA'),
                            type={OwlPropertyType.SymmetricProperty},
                            datatype=XsdDatatypes.string)
         p7.create()
@@ -1035,7 +1002,7 @@ class TestPropertyClass(unittest.TestCase):
         p8 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Xsd_QName('test:testprop8'),
-                           statement_property=True,
+                           appliesToProperty=Xsd_QName('test:GAGA'),
                            type={OwlPropertyType.SymmetricProperty, OwlPropertyType.TransitiveProperty},
                            datatype=XsdDatatypes.string)
         p8.create()
@@ -1055,7 +1022,7 @@ class TestPropertyClass(unittest.TestCase):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChild9'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           toClass=Iri('test:Human'),
                           inverseOf=Xsd_QName('test:isParent9'),
                           name=LangString(["Child"]),
@@ -1074,7 +1041,7 @@ class TestPropertyClass(unittest.TestCase):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChild10'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           toClass=Iri('test:Human'),
                           inverseOf=Xsd_QName('test:isParent10'),
                           name=LangString(["Child"]),
@@ -1092,7 +1059,7 @@ class TestPropertyClass(unittest.TestCase):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChild11'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           type={OwlPropertyType.FunctionalProperty, OwlPropertyType.StatementProperty, OwlPropertyType.TransitiveProperty},
                           toClass=Iri('test:Human'),
                           name=LangString(["Child"]),
@@ -1111,7 +1078,7 @@ class TestPropertyClass(unittest.TestCase):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChild12'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           type={OwlPropertyType.FunctionalProperty, OwlPropertyType.TransitiveProperty},
                           toClass=Iri('test:Human'),
                           name=LangString(["Child"]),
@@ -1129,7 +1096,7 @@ class TestPropertyClass(unittest.TestCase):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChild13'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           type={OwlPropertyType.StatementProperty},
                           toClass=Iri('test:Human'),
                           name=LangString(["Child"]),
@@ -1147,7 +1114,7 @@ class TestPropertyClass(unittest.TestCase):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChild14'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           type={OwlPropertyType.StatementProperty},
                           toClass=Iri('test:Human'),
                           name=LangString(["Child"]),
@@ -1165,7 +1132,7 @@ class TestPropertyClass(unittest.TestCase):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChild15'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           type={OwlPropertyType.StatementProperty},
                           toClass=Iri('test:Human'),
                           name=LangString(["Child"]),
@@ -1185,7 +1152,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testDelete'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             datatype=XsdDatatypes.langString,
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
@@ -1229,7 +1196,7 @@ class TestPropertyClass(unittest.TestCase):
         i = PropertyClass(con=self._connection,
                           project=self._project,
                           property_class_iri=Xsd_QName('test:isChildDel'),
-                          statement_property=True,
+                          appliesToProperty=Xsd_QName('test:GAGA'),
                           toClass=Iri('test:Human'),
                           inverseOf=Xsd_QName('test:isParentDel'),
                           name=LangString(["Child"]),
@@ -1249,7 +1216,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testDeleteIt'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             datatype=XsdDatatypes.langString,
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
@@ -1289,7 +1256,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testDeleteIt2'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             toClass=Iri('test:comment'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),
@@ -1327,7 +1294,7 @@ class TestPropertyClass(unittest.TestCase):
             con=self._connection,
             project=self._project,
             property_class_iri=Xsd_QName('test:testWriteIt'),
-            statement_property=True,
+            appliesToProperty=Xsd_QName('test:GAGA'),
             toClass=Iri('test:comment'),
             name=LangString(["Annotations@en", "Annotationen@de"]),
             description=LangString("An annotation@en"),

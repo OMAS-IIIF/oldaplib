@@ -10,9 +10,12 @@ import logging
 from jwt import InvalidTokenError
 from typing import Dict, Optional, Any
 from datetime import datetime, timedelta
+
+from rdflib import Graph
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
+from requests import Response
 from requests.auth import HTTPBasicAuth
 
 from oldaplib.src.version import __version__
@@ -48,6 +51,10 @@ jwt_format = {
 }
 token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIkMmIkMTIkaldDSloucWRYRTlNU0NQZFVjMHk0Ljlzd1dZSmNnTFpuMGVQdFJUdS83VThxSC9PWFhrQjIiLCJleHAiOiIyMDI0LTExLTA0VDEyOjAwOjAwKzAwOjAwIiwiaWF0IjoiMjAyNC0wMS0xOVQyMzo0MTozMS45NTI5MTkiLCJpc3MiOiJodHRwOi8vb2xkYXAub3JnIn0.Vsc2qamfyeTW6Xz5l2Wca-mFnA5PcLuOoWPVEo__4Z4"
 
+def process_jsonld(res: Response) -> Graph:
+    g = Graph()
+    g.parse(data=res.text, format="json-ld")
+    return g
 
 class Connection(IConnection):
     """
@@ -103,10 +110,10 @@ class Connection(IConnection):
         SparqlResultFormat.TURTLE: lambda a: a.text,
         SparqlResultFormat.N3: lambda a: a.text,
         SparqlResultFormat.NQUADS: lambda a: a.text,
-        SparqlResultFormat.JSONLD: lambda a: a.json(),
+        SparqlResultFormat.JSONLD: process_jsonld,
         SparqlResultFormat.TRIX: lambda a: a.text,
         SparqlResultFormat.TRIG: lambda a: a.text,
-        SparqlResultFormat.TEXT: lambda a: a.text
+        SparqlResultFormat.TEXT: lambda a: a.text,
     }
 
     def __init__(self, *,

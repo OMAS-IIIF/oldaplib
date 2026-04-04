@@ -59,7 +59,7 @@ if __name__ == '__main__':
                                  ["MediaObject@en", "Medienobjekt@de", "MediaObject@fr", "MediaObject@it"]),
                              comment=LangString("Page of a book@en", "Seite eines Buches@de"),
                              closed=Xsd_boolean(True),
-                             hasproperties=[
+                             properties=[
                                  HasProperty(con=con, project=project, prop=origname, maxCount=Xsd_integer(1),
                                              minCount=Xsd_integer(1), order=1),
                                  HasProperty(con=con, project=project, prop=mimetype, maxCount=Xsd_integer(1),
