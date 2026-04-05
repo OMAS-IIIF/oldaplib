@@ -220,6 +220,7 @@ class TestPropertyClass(unittest.TestCase):
     def test_propertyclass_toclass_constructor(self):
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
+                           property_class_iri=Xsd_QName('test:toClassConstructor'),
                            toClass=Xsd_QName('test:Person'))
         self.assertEqual(p2.get(PropClassAttr.CLASS), Xsd_QName('test:Person'))
         self.assertEqual(p2.get(PropClassAttr.TYPE), {OwlPropertyType.OwlObjectProperty})
@@ -228,17 +229,20 @@ class TestPropertyClass(unittest.TestCase):
         with self.assertRaises(OldapErrorValue):
             p2 = PropertyClass(con=self._connection,
                                project=self._project,
+                               property_class_iri=Xsd_QName('test:toClassConstructor2'),
                                toClass=Xsd_QName('rdf:Person'))
 
         with self.assertRaises(OldapErrorValue):
             p2 = PropertyClass(con=self._connection,
                                project=self._project,
+                               property_class_iri=Xsd_QName('test:toClassConstructor3'),
                                toClass=Xsd_QName('xml:Person'))
 
     def test_propertyclass_toclass_constructor_invalid_B(self):
         with self.assertRaises(OldapErrorValue):
             p2 = PropertyClass(con=self._connection,
                                project=self._project,
+                               property_class_iri=Xsd_QName('test:toClassConstructor4'),
                                toClass=Xsd_QName('gaga:Person'))
 
 
@@ -285,7 +289,6 @@ class TestPropertyClass(unittest.TestCase):
             maxCount=1,
             order=42
         )
-        p1.write_as_trig('testWriteUVW.trig')
         p1.create()
 
         p2 = PropertyClass.read(con=self._connection,
@@ -316,7 +319,6 @@ class TestPropertyClass(unittest.TestCase):
             order=42
         )
         self.assertEqual(p1.type, {OwlPropertyType.OwlObjectProperty, OwlPropertyType.SymmetricProperty})
-        p1.write_as_trig('testWriteXYZ.trig')
         p1.create()
 
         p2 = PropertyClass.read(con=self._connection,
@@ -738,7 +740,6 @@ class TestPropertyClass(unittest.TestCase):
             languageIn=LanguageIn(Language.EN, Language.DE, Language.FR),
             uniqueLang=Xsd_boolean(True)
         )
-        p1.write_as_trig('test:testUpdate')
         p1.create()
 
         p1[PropClassAttr.SUBPROPERTY_OF] = Xsd_QName('test:masterProp2')  # ✅
@@ -763,7 +764,6 @@ class TestPropertyClass(unittest.TestCase):
                                 project=self._project,
                                 property_class_iri=Xsd_QName('test:testUpdate'),
                                 ignore_cache=True)
-        p2.write_as_trig('test:testUpdate')
         self.assertEqual(p2.property_class_iri, Xsd_QName('test:testUpdate'))
         self.assertEqual(p2.subPropertyOf, Xsd_QName('test:masterProp2'))
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.langString)
@@ -846,11 +846,9 @@ class TestPropertyClass(unittest.TestCase):
         self.assertIsNone(p1.toClass)
         self.assertEqual(p1.name, LangString(["Annotations@en"]))
         self.assertEqual(p1.description, LangString("An annotation@en"))
-        p1.write_as_trig('test:testUpdate3')
 
         p1.toClass = Iri('test:masterProp3')
         p1.update()
-        p1.write_as_trig('test:testUpdate3')
         self.assertEqual(p1.changeset, {})
 
         p2 = PropertyClass.read(con=self._connection,
@@ -1300,6 +1298,7 @@ class TestPropertyClass(unittest.TestCase):
             description=LangString("An annotation@en"),
         )
         p1.write_as_trig('propclass_test.trig')
+        Path('propclass_test.trig').unlink(missing_ok=True)
 
 
 if __name__ == '__main__':

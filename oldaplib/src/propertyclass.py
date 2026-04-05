@@ -727,7 +727,6 @@ class PropertyClass(Model, Notify):
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
         sparql += f"{blank:{indent * indent_inc}}}}"
-        print(sparql)
         jsonobj = self._con.transaction_query(sparql)
         res = QueryProcessor(context, jsonobj)
         if len(res) != 1:
@@ -1428,8 +1427,6 @@ class PropertyClass(Model, Notify):
             self._con.transaction_update(sparql_onto)  # not used, delete onto
 
         if modtime_shacl != self.modified:
-            print(modtime_shacl)
-            print(self.modified)
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed("Deleting Property failed")
         else:
