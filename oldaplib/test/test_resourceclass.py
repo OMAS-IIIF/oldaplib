@@ -158,21 +158,19 @@ class TestResourceClass(unittest.TestCase):
                            name=LangString(["Test property@en", "Testprädikat@de"]),
                            description=LangString("A property for testing...@en"),
                            uniqueLang=Xsd_boolean(True),
-                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+                           languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
+                           maxCount=1,
+                           order=3)
 
         p2 = PropertyClass(con=self._connection,
                            project=self._project,
                            property_class_iri=Xsd_QName('test:enumprop'),
                            datatype=XsdDatatypes.string,
                            name=LangString(["Test enum@en", "Enumerationen@de"]),
-                           inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
-
-        hasproperties: list[HasProperty] = [
-            HasProperty(con=self._connection, project=self._project, prop=Xsd_QName("test:comment"), maxCount=1, order=1),
-            HasProperty(con=self._connection, project=self._project, prop=Xsd_QName("test:test"), minCount=1, order=2),
-            HasProperty(con=self._connection, project=self._project, prop=p1, maxCount=1, order=3),
-            HasProperty(con=self._connection, project=self._project, prop=p2, minCount=1, maxCount=1, order=4)
-        ]
+                           inSet=RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")),
+                           minCount=1,
+                           maxCount=1,
+                           order=4)
 
         r1 = ResourceClass(con=self._connection,
                            project=self._project,
@@ -180,7 +178,7 @@ class TestResourceClass(unittest.TestCase):
                            label=LangString(["Test resource@en", "Resource de test@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           properties=hasproperties)
+                           properties=[p1, p2])
         self.assertEqual(r1[ResClassAttribute.LABEL], LangString(["Test resource@en", "Resource de test@fr"]))
         self.assertEqual(r1.label, LangString(["Test resource@en", "Resource de test@fr"]))
         self.assertEqual(r1[ResClassAttribute.COMMENT], LangString("For testing purposes@en"))
@@ -188,42 +186,23 @@ class TestResourceClass(unittest.TestCase):
         self.assertTrue(r1[ResClassAttribute.CLOSED])
         self.assertTrue(r1.closed)
 
-        prop1 = r1[Xsd_QName("test:comment")].prop
-        self.assertEqual(r1[Xsd_QName("test:comment")].maxCount, Xsd_integer(1))
-        self.assertEqual(r1[Xsd_QName("test:comment")].order, Xsd_decimal(1))
-        self.assertIsNotNone(prop1)
-        self.assertIsNone(prop1.internal)
-        self.assertEqual(prop1.property_class_iri, Xsd_QName("test:comment"))
-        self.assertEqual(prop1.datatype, XsdDatatypes.langString)
-        self.assertEqual(prop1.name, LangString(["comment@en", "Kommentar@de"]))
-        self.assertEqual(prop1.description, LangString("This is a test property@de"))
-        self.assertEqual(prop1.uniqueLang, Xsd_boolean(True))
-
-        prop2 = r1[Xsd_QName("test:test")].prop
-        self.assertEqual(r1[Xsd_QName("test:test")].minCount, Xsd_integer(1))
-        self.assertEqual(r1[Xsd_QName("test:test")].order, Xsd_decimal(2))
-        self.assertIsNone(prop2.internal)
-        self.assertEqual(prop2.property_class_iri, Xsd_QName("test:test"))
-        self.assertEqual(prop2.datatype, XsdDatatypes.string)
-        self.assertEqual(prop2.description, LangString("Property shape for testing purposes"))
-
-        prop3 = r1[Xsd_QName("test:testprop")].prop
+        prop1 = r1[Xsd_QName("test:testprop")]
         self.assertEqual(r1[Xsd_QName("test:testprop")].maxCount, Xsd_integer(1))
         self.assertEqual(r1[Xsd_QName("test:testprop")].order, Xsd_decimal(3))
-        self.assertEqual(prop3.internal, Xsd_QName('test:TestResource'))
-        self.assertEqual(prop3.property_class_iri, Xsd_QName("test:testprop"))
-        self.assertEqual(prop3.type, {OwlPropertyType.OwlDataProperty})
-        self.assertEqual(prop3.datatype, XsdDatatypes.langString)
-        self.assertEqual(prop3.name, LangString(["Test property@en", "Testprädikat@de"]))
-        self.assertEqual(prop3.subPropertyOf, Xsd_QName("test:comment"))
-        self.assertEqual(prop3.uniqueLang,  Xsd_boolean(True))
-        self.assertEqual(prop3.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+        self.assertEqual(prop1.internal, Xsd_QName('test:TestResource'))
+        self.assertEqual(prop1.property_class_iri, Xsd_QName("test:testprop"))
+        self.assertEqual(prop1.type, {OwlPropertyType.OwlDataProperty})
+        self.assertEqual(prop1.datatype, XsdDatatypes.langString)
+        self.assertEqual(prop1.name, LangString(["Test property@en", "Testprädikat@de"]))
+        self.assertEqual(prop1.subPropertyOf, Xsd_QName("test:comment"))
+        self.assertEqual(prop1.uniqueLang,  Xsd_boolean(True))
+        self.assertEqual(prop1.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
-        prop4 = r1[Xsd_QName("test:enumprop")].prop
+        prop2 = r1[Xsd_QName("test:enumprop")]
         self.assertEqual(r1[Xsd_QName("test:enumprop")].maxCount, Xsd_integer(1))
         self.assertEqual(r1[Xsd_QName("test:enumprop")].minCount, Xsd_integer(1))
         self.assertEqual(r1[Xsd_QName("test:enumprop")].order, Xsd_decimal(4))
-        self.assertEqual(prop4[PropClassAttr.IN],
+        self.assertEqual(prop2[PropClassAttr.IN],
                          RdfSet(Xsd_string("yes"), Xsd_string("maybe"), Xsd_string("no")))
 
     @unittest.skip('Used only for development of currect SHACL/OWL....')

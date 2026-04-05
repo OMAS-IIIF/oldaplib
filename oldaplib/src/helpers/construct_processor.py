@@ -49,12 +49,12 @@ type ConstructResultDict = dict[Xsd_QName, ConstructResultDict | Xsd | LangStrin
 class ConstructProcessor:
 
     @staticmethod
-    def process(con: Context, g: Graph, as_langstrings: list[Xsd_QName | str] = []) -> ConstructResultDict:
+    def process(con: Context, g: Graph) -> ConstructResultDict:
         #print(g.serialize(format="turtle"))
 
         def process_rdfsets(nodes: dict):
             for key, val in nodes.items():
-                 if isinstance(val, dict):
+                if isinstance(val, dict):
                     if not Xsd_QName('rdf:first') in val:
                         process_rdfsets(val)
                     else:
@@ -64,10 +64,12 @@ class ConstructProcessor:
                             rdfset.add(tmpval[Xsd_QName('rdf:first')])
                             tmpval = tmpval[Xsd_QName('rdf:rest')]
                         nodes[key] = rdfset
+                elif isinstance(val, list) and all(isinstance(x, dict) for x in val):
+                    for v in val:
+                        process_rdfsets(v)
 
         topnodes: dict = {}
         bnodes: dict = {}
-        to_ls = [x if isinstance(x, Xsd_QName) else Xsd_QName(x) for x in as_langstrings if x is not None]
         for s, p, o in g.triples((None, None, None)):
             if isinstance(p, URIRef):
                 tmp = con.iri2qname(p)
@@ -183,11 +185,15 @@ class ConstructProcessor:
         #
         for s in topnodes.keys():
             for p in topnodes[s].keys():
-                if p in to_ls:
+                if (isinstance(topnodes[s][p], Xsd_short) and topnodes[s][p].language) or (
+                        isinstance(topnodes[s][p], list) and all(
+                        isinstance(x, Xsd_string) and getattr(x, "language", None) is not None for x in topnodes[s][p])):
                     topnodes[s][p] = LangString(topnodes[s][p])
         for s in bnodes.keys():
             for p in bnodes[s].keys():
-                if p in to_ls:
+                if (isinstance(bnodes[s][p], Xsd_short) and bnodes[s][p].language) or (
+                        isinstance(bnodes[s][p], list) and all(
+                        isinstance(x, Xsd_string) and getattr(x, "language", None) is not None for x in bnodes[s][p])):
                     bnodes[s][p] = LangString(bnodes[s][p])
 
         #
@@ -200,6 +206,13 @@ class ConstructProcessor:
 
         for s in topnodes.keys():
             for p in topnodes[s].keys():
+                if isinstance(topnodes[s][p], list):
+                    consistent = True
+                    for ele in topnodes[s][p]:
+                        if not isinstance(ele, BNode):
+                            consistent = False
+                    if consistent:
+                        topnodes[s][p] = [bnodes[x] for x in topnodes[s][p]]
                 if isinstance(topnodes[s][p], BNode):
                     topnodes[s][p] = bnodes[topnodes[s][p]]
 
@@ -207,5 +220,6 @@ class ConstructProcessor:
         # collapes rdfsets
         #
         process_rdfsets(topnodes)
+        #process_rdfsets(bnodes)
 
         return topnodes

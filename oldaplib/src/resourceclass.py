@@ -1,4 +1,5 @@
 import logging
+import textwrap
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -10,9 +11,11 @@ from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
+from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.globalconfig import GlobalConfig
-from oldaplib.src.hasproperty import HasProperty, PropType
+#from oldaplib.src.hasproperty import HasProperty, PropType  # TODO: DELETE
 from oldaplib.src.helpers.Notify import Notify
+from oldaplib.src.helpers.construct_processor import ConstructResultDict, ConstructProcessor
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, OldapErrorAlreadyExists, \
@@ -38,7 +41,7 @@ from oldaplib.src.helpers.context import Context
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
-from oldaplib.src.propertyclass import PropertyClass, Attributes, HasPropertyData, PropTypes
+from oldaplib.src.propertyclass import PropertyClass, Attributes, PropTypes
 from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
@@ -68,7 +71,6 @@ class ResourceClass(Model, Notify):
     _owlclass_iri: Xsd_QName | None
     _attributes: ResourceClassAttributesContainer
     _properties: dict[Xsd_QName, PropertyClass]
-    __version: SemanticVersion
     __from_triplestore: bool
     _test_in_use: bool
 
@@ -625,6 +627,7 @@ class ResourceClass(Model, Notify):
         """
         return query
 
+
     @staticmethod
     def __query_shacl(con: IConnection,
                       project: Project,
@@ -902,6 +905,41 @@ class ResourceClass(Model, Notify):
                                                 editor=haspropdata.editor))
         return proplist
 
+    @staticmethod
+    def XX__read_shacl(con: IConnection,
+                       project: Project,
+                       owl_class_iri: Xsd_QName) -> ConstructResultDict:
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        sparql += textwrap.dedent(f"""
+        CONSTRUCT {{
+            ?shape ?p ?o .
+            ?prop ?pp ?oo .
+            ?listnode rdf:first ?item .
+            ?listnode rdf:rest ?rest .
+        }}
+        WHERE {{
+            GRAPH {project.projectShortName}:shacl {{
+                BIND({owl_class_iri}Shape AS ?shape)
+                                ?shape ?p ?o .
+                OPTIONAL {{
+                    ?shape sh:property ?prop .
+                    ?prop ?pp ?oo .
+                    OPTIONAL {{
+                        ?prop ?pp ?list .
+                        ?list rdf:rest* ?listnode .
+                        ?listnode rdf:first ?item ;
+                        rdf:rest ?rest .
+                    }}
+                }}
+
+            }}
+        }}
+        """)
+        graph = con.query(sparql, format=SparqlResultFormat.JSONLD)
+        obj = ConstructProcessor.process(context, graph)
+        return obj
+
     def __read_owl(self) -> None:
         context = Context(name=self._con.context_name)
         query1 = context.sparql_context
@@ -973,37 +1011,7 @@ class ResourceClass(Model, Notify):
              owl_class_iri: Xsd_QName | str,
              sa_props: dict[Xsd_QName, PropertyClass] | None = None,
              ignore_cache: bool = False) -> Self:
-        """
-        Reads and retrieves a class instance from the data source based on the provided
-        connection, project, and class IRI. This method ensures that the class instance
-        is created with relevant properties and attributes queried from the data source.
-        Additionally, caching mechanisms are used to optimize performance.
 
-        :param con: Connection to the data source.
-        :type con: IConnection
-        :param project: The project associated with the class. This can be provided as
-            a `Project`, `Iri`, `Xsd_NCName`, or `str`. If not already a `Project` instance,
-            it will be converted accordingly.
-        :type project: Project | Iri | Xsd_NCName | str
-        :param owl_class_iri: The IRI of the OWL class to retrieve. It can be provided as
-            an `Iri` or `str`. If not already an `Iri`, it will be wrapped accordingly
-            with validation.
-        :type owl_class_iri: Iri | str
-        :param sa_props: Optional dictionary that maps IRI to `PropertyClass` instances.
-            These properties enhance the definition of the retrieved class. If not provided,
-            no additional properties are used.
-        :type sa_props: dict[Iri, PropertyClass] | None
-        :param ignore_cache: Determines whether to ignore cached values. If `True`, the
-            cache is bypassed, and the instance is freshly retrieved. If `False`, cached
-            values are used if available.
-        :type ignore_cache: bool
-        :return: The retrieved and prepared class instance.
-        :rtype: Self
-
-        :raises OldapErrorNotFound: If the class IRI is not found in the data source.
-        :raises OldapError: If an error occurs during retrieval.
-        :raises OldapErrorInconsistency: If the retrieved class IRI is not consistent with the provided IRI.
-        """
         if not isinstance(project, Project):
             if not isinstance(project, (Iri, Xsd_NCName)):
                 project = IriOrNCName(project, validate=True)
@@ -1017,6 +1025,8 @@ class ResourceClass(Model, Notify):
             if tmp is not None:
                 tmp.update_notifier()
                 return tmp
+
+
 
         hasproperties: list[HasProperty | Xsd_QName] = ResourceClass.__query_resource_props(con=con,
                                                                                       project=project,

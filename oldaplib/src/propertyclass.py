@@ -607,9 +607,7 @@ class PropertyClass(Model, Notify):
         WHERE {{
             GRAPH {project.projectShortName}:shacl {{
                 BIND({property_class_iri}Shape AS ?shape)
-
                 ?shape ?p ?o .
-
                 OPTIONAL {{
                     ?shape sh:property ?prop .
                     ?prop ?pp ?oo .
@@ -624,7 +622,7 @@ class PropertyClass(Model, Notify):
         }}
         """)
         graph = con.query(sparql, format=SparqlResultFormat.JSONLD)
-        obj = ConstructProcessor.process(context, graph, [Xsd_QName("sh:name"), "sh:description"])
+        obj = ConstructProcessor.process(context, graph)
         if obj.get(property_class_iri + 'Shape') is None:
             raise OldapErrorNotFound(f'Property {property_class_iri} not found in SHACL of {project.projectShortName}')
 

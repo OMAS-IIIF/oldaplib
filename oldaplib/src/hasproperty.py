@@ -15,7 +15,7 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.project import Project
-from oldaplib.src.propertyclass import PropertyClass, HasPropertyData
+from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
