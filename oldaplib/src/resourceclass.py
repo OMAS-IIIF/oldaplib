@@ -546,7 +546,7 @@ class ResourceClass(Model, Notify):
         return self.__version
 
     @property
-    def properties(self) -> dict[Xsd_QName, HasProperty]:
+    def properties(self) -> dict[Xsd_QName, PropertyClass]:
         return self._properties
 
     @property
@@ -566,8 +566,8 @@ class ResourceClass(Model, Notify):
         s += super().__str__()
         s += f'{blank:{indent*1}}Properties:\n'
         sorted_properties = sorted(self._properties.items(), key=lambda prop: prop[1].order if prop[1].order is not None else 9999)
-        for qname, hasprop in sorted_properties:
-            s += f'{blank:{indent*2}}{qname} = {hasprop.prop} (minCount={hasprop.minCount}, maxCount={hasprop.maxCount}\n'
+        for qname, prop in sorted_properties:
+            s += f'{blank:{indent*2}}{qname} = {prop} (minCount={prop.minCount}, maxCount={prop.maxCount}\n'
         return s
 
     def clear_changeset(self) -> None:
@@ -921,7 +921,7 @@ class ResourceClass(Model, Notify):
         WHERE {{
             GRAPH {project.projectShortName}:shacl {{
                 BIND({owl_class_iri}Shape AS ?shape)
-                                ?shape ?p ?o .
+                ?shape ?p ?o .
                 OPTIONAL {{
                     ?shape sh:property ?prop .
                     ?prop ?pp ?oo .
@@ -1007,44 +1007,139 @@ class ResourceClass(Model, Notify):
     @classmethod
     def read(cls,
              con: IConnection,
-             project: Project | Iri | Xsd_NCName | str,
-             owl_class_iri: Xsd_QName | str,
-             sa_props: dict[Xsd_QName, PropertyClass] | None = None,
-             ignore_cache: bool = False) -> Self:
+             project: Project,
+             class_iri: Xsd_QName | str):  # no Shape-ending!
+        if not isinstance(class_iri, Xsd_QName):
+            resclass_iri = Xsd_QName(class_iri, validate=True)
+        else:
+            resclass_iri = class_iri
+        shape = Xsd_QName(resclass_iri) + 'Shape'
+        obj = ConstructProcessor.query_shacl(con=con,
+                                             project=project,
+                                             shape_iri=shape)
+        shacl_resobj = obj.get(shape, None)
+        if shacl_resobj is None:
+            raise OldapErrorNotFound(f'Resource shape "{resclass_iri}" not found in "{project.projectShortName}:shacl"!')
 
-        if not isinstance(project, Project):
-            if not isinstance(project, (Iri, Xsd_NCName)):
-                project = IriOrNCName(project, validate=True)
-            project = Project.read(con, project)
-        if not isinstance(owl_class_iri, Xsd_QName):
-            owl_class_iri = Xsd_QName(owl_class_iri, validate=True)
+        obj = ConstructProcessor.query_onto(con=con,
+                                            project=project,
+                                            class_iri=resclass_iri)
+        onto_resobj = obj.get(resclass_iri, None)
+        if onto_resobj is None:
+            raise OldapErrorInconsistency(f'Resource "{resclass_iri}" not found in "{project.projectShortName}:onto"!')
 
+        # TODO: !!! How to deal with subClassOf of external, foreign ontologies?
+        # TODO !!! This has to be resolved somehow... Especially when creating a resource!
+        # TODO !!! For now we assume that in SHACL an "empty" shape with no restrictions is being declared...
+        superclass = None
+        if shacl_resobj.get(Xsd_QName('sh:node'), None) is not None and \
+            onto_resobj.get(Xsd_QName('rdfs:subClassOf'), None) is not None:
+            tmp1 = set(shacl_resobj[Xsd_QName('sh:node')])
+            tmp2 = set(onto_resobj[Xsd_QName('rdfs:subClassOf')])
+            tmp2 = {Xsd_QName(x.prefix, str(x.fragment).removesuffix('Shape')) for x in tmp2}
+            if tmp1 != tmp2:
+                raise OldapErrorInconsistency(f'Subclassing is inconsistent between SHACL and OWL')
+            superclass = [x for x in tmp2]
+
+        creator = shacl_resobj.get('dcterms:creator')
+        created = shacl_resobj.get('dcterms:created')
+        modified = shacl_resobj.get('dcterms:modified')
+        contributor = shacl_resobj.get('dcterms:contributor')
+
+        properties: list[PropertyClass] = []
+        for propobj in shacl_resobj.get(Xsd_QName("sh:property"), []):
+            if propobj.get(Xsd_QName("sh:path"), None) is None:
+                raise OldapErrorInconsistency(f'Resource shape "{shape}" has invalid property without "sh:path"!')
+            prop_iri = Xsd_QName(propobj[Xsd_QName("sh:path")])
+            kwargs = {k: v for k, v in propobj.items() if k not in {Xsd_QName("sh:path"),
+                                                                  Xsd_QName("rdf:type"),
+                                                                  Xsd_QName("sh:targetClass")}}
+            tmp = {}
+            for k, v in kwargs.items():
+                if k == Xsd_QName("sh:class"):
+                    tmp['toClass'] = v
+                elif k == Xsd_QName("sh:in"):
+                    tmp['inSet'] = v
+                else:
+                    tmp[k.fragment] = v
+            kwargs = tmp
+            properties.append(PropertyClass(con=con,
+                                            project=project,
+                                            property_class_iri=prop_iri,
+                                            creator=creator,
+                                            created=created,
+                                            modified=modified,
+                                            contributor=contributor,
+                                            _inResourceClass=resclass_iri,
+                                            **kwargs))
+
+        kwargs = {k.fragment: v for k, v in shacl_resobj.items() if k not in {Xsd_QName("sh:property"),
+                                                                              Xsd_QName("sh:path"),
+                                                                              Xsd_QName("rdf:type"),
+                                                                              Xsd_QName("sh:targetClass"),
+                                                                              Xsd_QName("dcterms:creator"),
+                                                                              Xsd_QName("dcterms:created"),
+                                                                              Xsd_QName("dcterms:modified"),
+                                                                              Xsd_QName("dcterms:contributor")}}
+        if superclass:
+            kwargs['superclass'] = superclass
+        resclass = cls(con=con,
+                       project=project,
+                       owlclass_iri=resclass_iri,
+                       properties=properties,
+                       creator=creator,
+                       created=created,
+                       modified=modified,
+                       contributor=contributor,
+                       **kwargs)
         cache = CacheSingletonRedis()
-        if not ignore_cache:
-            tmp = cache.get(owl_class_iri, connection=con)
-            if tmp is not None:
-                tmp.update_notifier()
-                return tmp
+        cache.set(resclass_iri, resclass)
 
-
-
-        hasproperties: list[HasProperty | Xsd_QName] = ResourceClass.__query_resource_props(con=con,
-                                                                                      project=project,
-                                                                                      owlclass_iri=owl_class_iri,
-                                                                                      sa_props=sa_props)
-        resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, properties=hasproperties)
-        resclass.update_notifier()
-        attributes = ResourceClass.__query_shacl(con, project=project, owl_class_iri=owl_class_iri)
-        resclass._parse_shacl(attributes=attributes)
-        resclass.__read_owl()
-
-        resclass.clear_changeset()
-
-        resclass.update_notifier()
-
-        cache = CacheSingletonRedis()
-        cache.set(resclass._owlclass_iri, resclass)
         return resclass
+
+
+
+    # @classmethod
+    # def read(cls,
+    #          con: IConnection,
+    #          project: Project | Iri | Xsd_NCName | str,
+    #          owl_class_iri: Xsd_QName | str,
+    #          sa_props: dict[Xsd_QName, PropertyClass] | None = None,
+    #          ignore_cache: bool = False) -> Self:
+    #
+    #     if not isinstance(project, Project):
+    #         if not isinstance(project, (Iri, Xsd_NCName)):
+    #             project = IriOrNCName(project, validate=True)
+    #         project = Project.read(con, project)
+    #     if not isinstance(owl_class_iri, Xsd_QName):
+    #         owl_class_iri = Xsd_QName(owl_class_iri, validate=True)
+    #
+    #     cache = CacheSingletonRedis()
+    #     if not ignore_cache:
+    #         tmp = cache.get(owl_class_iri, connection=con)
+    #         if tmp is not None:
+    #             tmp.update_notifier()
+    #             return tmp
+    #
+    #
+    #
+    #     hasproperties: list[HasProperty | Xsd_QName] = ResourceClass.__query_resource_props(con=con,
+    #                                                                                   project=project,
+    #                                                                                   owlclass_iri=owl_class_iri,
+    #                                                                                   sa_props=sa_props)
+    #     resclass = cls(con=con, project=project, owlclass_iri=owl_class_iri, properties=hasproperties)
+    #     resclass.update_notifier()
+    #     attributes = ResourceClass.__query_shacl(con, project=project, owl_class_iri=owl_class_iri)
+    #     resclass._parse_shacl(attributes=attributes)
+    #     resclass.__read_owl()
+    #
+    #     resclass.clear_changeset()
+    #
+    #     resclass.update_notifier()
+    #
+    #     cache = CacheSingletonRedis()
+    #     cache.set(resclass._owlclass_iri, resclass)
+    #     return resclass
 
     def read_modtime_shacl(self, *,
                            context: Context,

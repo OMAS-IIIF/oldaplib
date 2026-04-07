@@ -1,10 +1,14 @@
+import textwrap
 from pprint import pprint
 from typing import Set, List
 
 from rdflib import Graph, URIRef, Literal, XSD, BNode
 
+from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.iconnection import IConnection
+from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -223,3 +227,74 @@ class ConstructProcessor:
         #process_rdfsets(bnodes)
 
         return topnodes
+
+    @staticmethod
+    def query_shacl(con: IConnection,
+                    project: Project,
+                    shape_iri: Xsd_QName | None = None) -> ConstructResultDict:
+        bind = ''
+        if shape_iri:
+            bind = f'BIND({shape_iri} AS ?shape)'
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        sparql += textwrap.dedent(f"""
+        CONSTRUCT {{
+            ?shape ?p ?o .
+            ?prop ?pp ?oo .
+            ?listnode rdf:first ?item .
+            ?listnode rdf:rest ?rest .
+        }}
+        WHERE {{
+            GRAPH {project.projectShortName}:shacl {{
+                {bind}
+                ?shape ?p ?o .
+                OPTIONAL {{
+                    ?shape sh:property ?prop .
+                    ?prop ?pp ?oo .
+                    OPTIONAL {{
+                        ?prop ?pp ?list .
+                        ?list rdf:rest* ?listnode .
+                        ?listnode rdf:first ?item ;
+                        rdf:rest ?rest .
+                    }}
+                }}
+
+            }}
+        }}
+        """)
+        graph = con.query(sparql, format=SparqlResultFormat.JSONLD)
+        obj = ConstructProcessor.process(context, graph)
+        return obj
+
+    @staticmethod
+    def query_onto(con: IConnection,
+                   project: Project,
+                   class_iri: Xsd_QName | None = None) -> ConstructResultDict:
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+        bind = ''
+        if class_iri:
+            bind = f'BIND({class_iri} AS ?ele)'
+        sparql += textwrap.dedent(f"""
+        CONSTRUCT {{
+            ?ele ?p ?o .
+            ?listnode rdf:first ?item .
+            ?listnode rdf:rest ?rest .
+        }}
+        WHERE {{
+            GRAPH {project.projectShortName}:onto {{
+                {bind}
+                ?ele ?p ?o .
+                OPTIONAL {{
+                    ?ele ?p ?list .
+                    ?list rdf:rest* ?listnode .
+                    ?listnode rdf:first ?item ;
+                    rdf:rest ?rest .
+                }}
+            }}
+        }}
+        """)
+        graph = con.query(sparql, format=SparqlResultFormat.JSONLD)
+        obj = ConstructProcessor.process(context, graph)
+        return obj
+

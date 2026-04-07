@@ -148,6 +148,13 @@ class TestResourceClass(unittest.TestCase):
         #cls._connection.clear_graph(QName('test:onto'))
         pass
 
+
+    def test_read_oldap_Thing(self):
+        rc = ResourceClass.read(con=self._connection,
+                                project=self._sysproject,
+                                class_iri=Xsd_QName('oldap:Thing'))
+        print(rc)
+
     # @unittest.skip('Work in progress')
     def test_constructor(self):
         p1 = PropertyClass(con=self._connection,
