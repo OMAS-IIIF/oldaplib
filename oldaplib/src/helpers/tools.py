@@ -35,8 +35,8 @@ class RdfModifyItem:
 
 class RdfModifyRes:
 
-    @classmethod
-    def __rdf_modify_property(cls, *,
+    @staticmethod
+    def __rdf_modify_property(*,
                               shacl: bool,
                               action: Action,
                               owlclass_iri: Xsd_QName,
@@ -75,8 +75,8 @@ class RdfModifyRes:
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 
-    @classmethod
-    def shacl(cls, *,
+    @staticmethod
+    def shacl(*,
               action: Action,
               graph: Xsd_NCName,
               owlclass_iri: Xsd_QName,
@@ -84,12 +84,12 @@ class RdfModifyRes:
               last_modified: Xsd_dateTime,
               indent: int = 0, indent_inc: int = 4):
         graph = Xsd_QName(str(graph) + ':shacl')
-        return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
+        return RdfModifyRes.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
                                          graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
 
-    @classmethod
-    def onto(cls, *,
+    @staticmethod
+    def onto(*,
              action: Action,
              graph: Xsd_NCName,
              owlclass_iri: Xsd_QName,
@@ -97,15 +97,48 @@ class RdfModifyRes:
              last_modified: Xsd_dateTime,
              indent: int = 0, indent_inc: int = 4):
         graph = Xsd_QName(str(graph) + ':onto')
-        return cls.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
+        return RdfModifyRes.__rdf_modify_property(shacl=False, action=action, owlclass_iri=owlclass_iri,
                                          graph=graph, ele=ele, last_modified=last_modified,
                                          indent=indent, indent_inc=indent_inc)
 
+    @staticmethod
+    def update_timestamp_contributors(*,
+                                      contributor: Iri,
+                                      timestamp: Xsd_dateTime,
+                                      iri: Xsd_QName,
+                                      graph: Xsd_QName,
+                                      old_timestamp: Xsd_dateTime | None = None) -> str:
+        #
+        # The modified/contributor is on the level of the Shape only, the property itself does not carry
+        # modified/contributor attributes
+        #
+        filter_part = (
+            f'    FILTER(?m = {old_timestamp.toRdf})\n'
+            if old_timestamp is not None else ''
+        )
+
+        sparql = textwrap.dedent(f"""\
+        WITH {graph}
+        DELETE {{
+            {iri.toRdf}Shape dcterms:modified ?m .
+            {iri.toRdf}Shape dcterms:contributor ?c .
+        }}
+        INSERT {{
+            {iri.toRdf}Shape dcterms:modified {timestamp.toRdf} .
+            {iri.toRdf}Shape dcterms:contributor {contributor.toRdf} .
+        }}
+        WHERE {{
+            {iri.toRdf}Shape dcterms:modified ?m .
+            {iri.toRdf}Shape dcterms:contributor ?c .
+    {filter_part}\
+        }}
+        """)
+        return sparql
 
 class RdfModifyProp:
 
-    @classmethod
-    def __rdf_modify_property(cls, *,
+    @staticmethod
+    def __rdf_modify_property(*,
                               shacl: bool,
                               action: Action,
                               owlclass_iri: Xsd_QName | None = None,
@@ -143,8 +176,8 @@ class RdfModifyProp:
         sparql += f'{blank:{indent * indent_inc}}}}'
         return sparql
 
-    @classmethod
-    def shacl(cls, *,
+    @staticmethod
+    def shacl(*,
               action: Action,
               graph: Xsd_NCName,
               owlclass_iri: Xsd_QName | None = None,
@@ -152,12 +185,12 @@ class RdfModifyProp:
               ele: RdfModifyItem,
               indent: int = 0, indent_inc: int = 4) -> str:
         graph = Xsd_QName(str(graph) + ':shacl')
-        return cls.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
+        return RdfModifyProp.__rdf_modify_property(shacl=True, action=action, owlclass_iri=owlclass_iri,
                                          pclass_iri=pclass_iri, graph=graph, ele=ele,
                                          indent=indent, indent_inc=indent_inc)
 
-    @classmethod
-    def onto(cls, *,
+    @staticmethod
+    def onto(*,
              action: Action,
              graph: Xsd_NCName,
              owlclass_iri: Xsd_QName | None = None,
@@ -186,8 +219,8 @@ class RdfModifyProp:
         return sparql
 
 
-    @classmethod
-    def update_timestamp_contributors(cls, *,
+    @staticmethod
+    def update_timestamp_contributors(*,
                                       contributor: Iri,
                                       timestamp: Xsd_dateTime,
                                       iri: Xsd_QName,
@@ -200,7 +233,7 @@ class RdfModifyProp:
         WITH {graph}
         DELETE {{
             {iri.toRdf}Shape dcterms:modified ?m .
-            {iri.toRdf}Shape dcterms:contrinutor ?c .
+            {iri.toRdf}Shape dcterms:contributor ?c .
         }}
         INSERT {{
             {iri.toRdf}Shape dcterms:modified {timestamp.toRdf} .

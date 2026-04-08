@@ -385,9 +385,6 @@
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:property [
-            sh:path rdf:type ;
-        ] ;
-        sh:property [
             sh:path dcterms:creator ;
             sh:class :User ;
             sh:maxCount 1 ;
@@ -421,7 +418,7 @@
         ] ;
         sh:property [
             sh:path schema:familyName ;
-           sh:datatype xsd:string ;
+            sh:datatype xsd:string ;
             sh:name "Family name"@en, "Familiennamen"@de, "Nom de famillie"@fr, "Nome della famiglia"@it ;
             sh:description "The family name of some person."@en ;
             sh:minCount 1 ;
@@ -439,7 +436,7 @@
             sh:path schema:email ;
             sh:datatype xsd:string ;
             sh:pattern "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$" ;
-            sh:message "Email address must be a valid format (user@example.org)." ;
+            #sh:message "Email address must be a valid format (user@example.org)." ;
             sh:name "Email"@en, "Email"@de, "Courriel"@fr, "E-mail"@it ;
             sh:description "Email address."@en ;
             sh:minCount 1 ;
@@ -450,10 +447,10 @@
             sh:minCount 1 ;
             sh:maxCount 1 ;
             sh:datatype xsd:string ;
-            sh:or (
-                [ sh:pattern "^\\$2[aby]\\$\\d{2}\\$[A-Za-z0-9./]{53}$" ]                # bcrypt
-                [ sh:pattern "^\\$argon2(id|i|d)\\$v=\\d+\\$m=\\d+,t=\\d+,p=\\d+\\$[A-Za-z0-9+/=]+\\$[A-Za-z0-9+/=]+$" ]  # Argon2
-            ) ;
+            #sh:or (
+            #    [ sh:pattern "^\\$2[aby]\\$\\d{2}\\$[A-Za-z0-9./]{53}$" ]                # bcrypt
+            #    [ sh:pattern "^\\$argon2(id|i|d)\\$v=\\d+\\$m=\\d+,t=\\d+,p=\\d+\\$[A-Za-z0-9+/=]+\\$[A-Za-z0-9+/=]+$" ]  # Argon2
+            #) ;
             sh:name "Password"@en, "Passwort"@de, "Mot de passe"@fr, "Password"@it ;
             sh:description "Password for user."@en ;
         ] ;
@@ -596,9 +593,9 @@
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:property [
-            sh:path rdf:type ;
-        ] ;
+        #sh:property [
+        #    sh:path rdf:type ;
+        #] ;
         sh:property [
             sh:path :createdBy ;
             sh:maxCount 1 ;

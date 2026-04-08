@@ -350,6 +350,22 @@ class TestPropertyClass(unittest.TestCase):
                                 ignore_cache=True)
         self.assertEqual(p4.get(PropClassAttr.TYPE), {OwlPropertyType.SymmetricProperty, OwlPropertyType.OwlDataProperty})
 
+    def test_propertyclass_subproperty(self):
+        p5 = PropertyClass(con=self._connection,
+                           project=self._project,
+                           subPropertyOf=Xsd_QName('schema:comment'),
+                           property_class_iri=Xsd_QName('test:testprop5c'),
+                           appliesToProperty=Xsd_QName('test:GAGA'),
+                           type={OwlPropertyType.SymmetricProperty},
+                           datatype=XsdDatatypes.string)
+        p5.create()
+        p5 = PropertyClass.read(con=self._connection,
+                                project=self._project,
+                                property_class_iri=Xsd_QName('test:testprop5c'),
+                                ignore_cache=True)
+        self.assertEqual(p5.subPropertyOf, Xsd_QName('schema:comment'))
+
+
     def test_propertyclass_mod_A(self):
         p4 = PropertyClass(con=self._connection,
                            project=self._project,

@@ -90,7 +90,7 @@ class TestKappa(unittest.TestCase):
                                              project=shared)
         pprint(obj)
 
-    def test_read_shacl_onto(self):
+    def test_read_shacl_resclass(self):
         connection = Connection(userId="rosenth",
                                 credentials="RioGrande",
                                 context_name="DEFAULT")
@@ -108,7 +108,7 @@ class TestKappa(unittest.TestCase):
         print(shaclobj.get(Xsd_QName('sh:node')))
         print(ontoobj.get(Xsd_QName('rdfs:subClassOf')))
 
-    def test_read_shacl_onto2(self):
+    def test_read_shacl_resclass2(self):
         connection = Connection(userId="rosenth",
                                 credentials="RioGrande",
                                 context_name="DEFAULT")

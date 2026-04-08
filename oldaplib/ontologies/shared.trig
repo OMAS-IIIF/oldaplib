@@ -70,9 +70,6 @@ shared:shacl {
         sh:closed "true"^^xsd:boolean ;
         sh:node oldap:ThingShape ;
         sh:property [
-            sh:path rdf:type ;
-        ] ;
-        sh:property [
             sh:path dcterms:type ;
             sh:nodeKind sh:IRI ;
             sh:in (
@@ -86,7 +83,7 @@ shared:shacl {
             ) ;
             sh:minCount 1 ;
             sh:maxCount 1 ;
-            sh:order "0.5"^^xsd:decimal ;
+            sh:order "1.0"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:originalName ;
@@ -94,7 +91,7 @@ shared:shacl {
                 sh:name "Original Filename"@en, "Originaler Dateiname"@de, "Nom orignal du fichier"@fr, "Nome documento originale"@it ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "1.0"^^xsd:decimal ;
+                sh:order "2.0"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:originalMimeType ;
@@ -102,7 +99,7 @@ shared:shacl {
                 sh:name "Original mimetype"@en, "Originaler Mimetype"@de, "Mimetype original"@fr, "Mimetype originale"@it ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "2.0"^^xsd:decimal ;
+                sh:order "3.0"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:serverUrl ;
@@ -110,7 +107,7 @@ shared:shacl {
                 sh:name "Server URL"@en, "URL des servers"@de, "Server URL"@fr, "Server URL"@it ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "3.0"^^xsd:decimal ;
+                sh:order "4.0"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:assetId ;
@@ -118,7 +115,7 @@ shared:shacl {
                 sh:name "Image ID"@en, "ID des Bilder"@de, "ID de l\'image"@fr, "ID de l\'immagine"@it ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "3.0"^^xsd:decimal ;
+                sh:order "5.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:protocol ;
@@ -126,21 +123,21 @@ shared:shacl {
             sh:in ( 'iiif' 'http' 'custom') ;
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "4.0"^^xsd:decimal ;
+            sh:order "6.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:derivativeName ;
             sh:datatype xsd:string ;
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "5.0"^^xsd:decimal ;
+            sh:order "7.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:path ;
             sh:datatype xsd:string ;
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "6.0"^^xsd:decimal ;
+            sh:order "8.0"^^xsd:decimal ;
        ] .
 }
 

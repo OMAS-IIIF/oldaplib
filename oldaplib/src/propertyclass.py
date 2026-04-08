@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
 from pprint import pprint
+from secrets import token_urlsafe
 from typing import Callable, Self, Any
 
 from rdflib.extras import shacl
@@ -57,7 +58,7 @@ from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNotFound, Olda
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.helpers.query_processor import RowType, QueryProcessor
 from oldaplib.src.helpers.semantic_version import SemanticVersion
-from oldaplib.src.helpers.tools import RdfModifyItem, RdfModifyProp
+from oldaplib.src.helpers.tools import RdfModifyItem, RdfModifyProp, RdfModifyRes
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
@@ -74,7 +75,7 @@ class PropertyClass(Model, Notify):
     _graph: Xsd_NCName
     _projectShortName: Xsd_NCName
     _projectIri: Iri
-    _property_class_iri: Xsd_QName
+    _property_class_iri: Xsd_QName | None
     _appliesToProperty: Xsd_QName | None
     _inResourceClass: Xsd_QName | None
     _test_in_use: bool
@@ -99,7 +100,7 @@ class PropertyClass(Model, Notify):
                  contributor: Iri | None = None,
                  modified: Xsd_dateTime | datetime | str | None = None,
                  project: Project | Iri | Xsd_NCName | str,
-                 property_class_iri: Xsd_QName | str,
+                 property_class_iri: Xsd_QName | str | None = None,
                  appliesToProperty: Xsd_QName | str | None = None,
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
@@ -422,6 +423,10 @@ class PropertyClass(Model, Notify):
     def property_class_iri(self) -> Xsd_QName:
         return self._property_class_iri
 
+    @property_class_iri.setter
+    def property_class_iri(self, property_class_iri: Xsd_QName):
+        self._property_class_iri = property_class_iri
+
     @property
     def inResourceClass(self) -> Xsd_QName | None:
         return self._inResourceClass
@@ -490,108 +495,6 @@ class PropertyClass(Model, Notify):
         except (KeyError, TypeError) as err:
             raise OldapError('Internal Error in "propertyClass.in_use"') from err
 
-    # @staticmethod
-    # def process_triple(r: RowType, attributes: Attributes, propiri: Xsd_QName | None = None) -> None:
-    #     attriri = r['attriri']
-    #     if r['attriri'].fragment == 'languageIn':
-    #         if attributes.get(attriri) is None:
-    #             attributes[attriri] = LanguageIn()
-    #         attributes[attriri].add(r['oo'])
-    #     elif r['attriri'].fragment == 'in':
-    #         if attributes.get(attriri) is None:
-    #             attributes[attriri] = XsdSet()
-    #         attributes[attriri].add(r['oo'])
-    #     elif r['attriri'].fragment == 'or':
-    #         return  # TODO: ignore sh:or for the moment... It's in SHACL, but we do not yet support it
-    #     else:
-    #         if isinstance(r['value'], Xsd_string) and r['value'].lang is not None:
-    #             if attributes.get(attriri) is None:
-    #                 attributes[attriri] = LangString()
-    #             try:
-    #                 attributes[attriri].add(r['value'])
-    #             except AttributeError as err:
-    #                 raise OldapError(f'Invalid value for attribute {attriri}: {err}.')
-    #         else:
-    #             if attributes.get(attriri) is not None:
-    #                 raise OldapError(f'Property ({propiri}) attribute "{attriri}" already defined (value="{r['value']}", type="{type(r['value']).__name__}").')
-    #             attributes[attriri] = r['value']
-
-
-    # def parse_shacl(self, attributes: Attributes) -> None:
-    #     """
-    #     Read the SHACL of a non-exclusive (shared) property (that is a sh:PropertyNode definition)
-    #     :return:
-    #     """
-    #     #
-    #     # Create a set of all PropertyClassProp-strings, e.g. {"sh:path", "sh:datatype" etc.}
-    #     #
-    #     nodeKind: Xsd_QName | None = None
-    #     propkeys = {Xsd_QName(x.value) for x in PropClassAttr}
-    #     for key, val in attributes.items():
-    #         if key == 'rdf:type':
-    #             if val != 'sh:PropertyShape':
-    #                 raise OldapError(f'Inconsistency, expected "sh:PropertyType", got "{val}".')
-    #             continue
-    #         elif key == 'sh:nodeKind':
-    #             nodeKind = val
-    #             continue
-    #         elif key == 'sh:path':
-    #             if isinstance(val, Xsd_QName):
-    #                 self._property_class_iri = val
-    #             else:
-    #                 raise OldapError(f'Inconsistency in SHACL "sh:path" of "{self._property_class_iri}" ->"{val}" (type={type(val).__name__}).')
-    #         elif key == 'dcterms:creator':
-    #             if isinstance(val, Iri):
-    #                 self._creator = val
-    #             else:
-    #                 raise OldapError(f'Inconsistency in SHACL "dcterms:creator (type={type(val)})"')
-    #         elif key == 'dcterms:created':
-    #             if isinstance(val, Xsd_dateTime):
-    #                 self._created = val
-    #             else:
-    #                 raise OldapError(f'Inconsistency in SHACL "dcterms:created (type={type(val)})"')
-    #         elif key == 'dcterms:contributor':
-    #             if isinstance(val, Iri):
-    #                 self._contributor = val
-    #             else:
-    #                 raise OldapError(f'Inconsistency in SHACL "dcterms:contributor (type={type(val)})"')
-    #         elif key == 'dcterms:modified':
-    #             if isinstance(val, Xsd_dateTime):
-    #                 self._modified = val
-    #             else:
-    #                 raise OldapError(f'Inconsistency in SHACL "dcterms:modified (type={type(val)})"')
-    #         elif key == 'oldap:appliesToProperty':
-    #             if isinstance(val, Xsd_boolean):
-    #                 self._appliesToProperty = val
-    #             else:
-    #                 raise OldapError(f'Inconsistency in SHACL "oldap:statementProperty (type={type(val)})"')
-    #         elif key in propkeys:
-    #             attr = PropClassAttr.from_value(key)
-    #             if not attr.in_shacl:
-    #                 continue
-    #             if attr.datatype == Numeric:
-    #                 if not isinstance(val, (Xsd_integer, Xsd_float)):
-    #                     raise OldapErrorInconsistency(f'SHACL inconsistency: "{attr.value}" expects a "Xsd:integer" or "Xsd:float", but got "{type(val).__name__}".')
-    #                 self._attributes[attr] = val
-    #             else:
-    #                 self._attributes[attr] = attr.datatype(val)
-    #
-    #     if self._attributes.get(PropClassAttr.CLASS) is not None:
-    #         self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
-    #         dt = self._attributes.get(PropClassAttr.DATATYPE)
-    #         if dt and (dt != XsdDatatypes.anyURI and dt != XsdDatatypes.QName):
-    #             raise OldapError(f'Datatype "{dt}" not valid for OwlObjectProperty')
-    #     else:
-    #         if nodeKind in {Xsd_QName('sh:IRI'), Xsd_QName('sh:BlankNode'), Xsd_QName('sh:BlankNodeOrIRI')}:
-    #             self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlObjectProperty)
-    #         else:
-    #             self._attributes[PropClassAttr.TYPE].add(OwlPropertyType.OwlDataProperty)
-    #     #
-    #     # update all notifiers of properties
-    #     #
-    #     self.update_notifier()
-    #
-    #     self.__from_triplestore = True
 
     @staticmethod
     def read_shacl(con: IConnection, project: Project, property_class_iri: Xsd_QName) -> ConstructResultDict:
@@ -764,9 +667,8 @@ class PropertyClass(Model, Notify):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}sh:property ['
             sparql += self.property_node_shacl(indent=indent + 2, indent_inc=indent_inc)
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}]'
-
         elif owlclass_iri:
-            bnode = Xsd_QName('_:propnode')
+            bnode = Xsd_QName(f'_:node{token_urlsafe(5)}')
             sparql += self.property_node_shacl(bnode=bnode,
                                                indent=indent, indent_inc=indent_inc)
             sparql += ' .\n'
@@ -774,17 +676,17 @@ class PropertyClass(Model, Notify):
         sparql += ' .\n'
         return sparql
 
-    def create_owl_part1(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
+    def create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} {PropClassAttr.TYPE.toRdf} {self._attributes[PropClassAttr.TYPE].toRdf}'
         for attr, val in self._attributes.items():
+            attr: PropClassAttr
             if not attr.in_owl or attr == PropClassAttr.TYPE or val is None:
                 continue
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{attr.toRdf} {val.toRdf}'
         sparql += ' .\n'
 
         return sparql
-
 
     def set_creation_metadata(self, timestamp: Xsd_dateTime):
         self._created = timestamp
@@ -827,7 +729,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
 
         sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:onto {{\n'
-        sparql += self.create_owl_part1(timestamp=timestamp, indent=2)
+        sparql += self.create_owl(indent=2)
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -897,7 +799,7 @@ class PropertyClass(Model, Notify):
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
             f.write(f'{blank:{indent * indent_inc}}{self._graph}:onto {{\n')
-            f.write(self.create_owl_part1(timestamp=timestamp, indent=1))
+            f.write(self.create_owl(indent=1))
             f.write(f'{blank:{indent * indent_inc}}}}\n')
 
     def update_shacl(self, *,
@@ -960,25 +862,16 @@ class PropertyClass(Model, Notify):
         #
         # Updating the timestamp and contributor ID
         #
-        sparql = RdfModifyProp.update_timestamp_contributors(contributor=self._con.userIri,
-                                                             timestamp=timestamp,
-                                                             iri=owlclass_iri if owlclass_iri else self._property_class_iri,
-                                                             graph=Xsd_QName(f'{self._graph}:shacl'))
-        # sparql = f'#\n# Update/add dcterms:contributor in {self._graph}:shacl\n#\n'
-        # sparql += RdfModifyProp.shacl(action=Action.REPLACE if self._contributor else Action.CREATE,
-        #                               graph=self._graph,
-        #                               owlclass_iri=owlclass_iri,
-        #                               pclass_iri=self._property_class_iri,
-        #                               ele=RdfModifyItem('dcterms:contributor', f'{self._contributor.toRdf}', f'{self._con.userIri.toRdf}'))
-        # sparql_list.append(sparql)
-        #
-        # sparql = f'#\n# Update/add dcterms:modified in {self._graph}:shacl\n#\n'
-        # sparql += RdfModifyProp.shacl(action=Action.REPLACE if self._modified else Action.CREATE,
-        #                               graph=self._graph,
-        #                               owlclass_iri=owlclass_iri,
-        #                               pclass_iri=self._property_class_iri,
-        #                               ele=RdfModifyItem('dcterms:modified', f'{self._modified.toRdf}', f'{timestamp.toRdf}'))
-        sparql_list.append(sparql)
+        if not owlclass_iri:
+            #
+            # do update modified/contributor only if it's a assertion property (RDF*star)
+            #
+            sparql = RdfModifyRes.update_timestamp_contributors(contributor=self._con.userIri,
+                                                                timestamp=timestamp,
+                                                                old_timestamp=self._modified,
+                                                                iri=self._property_class_iri,
+                                                                graph=Xsd_QName(f'{self._graph}:shacl'))
+            sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
         return sparql
@@ -1020,18 +913,6 @@ class PropertyClass(Model, Notify):
                         WHERE {{ {self._property_class_iri} rdf:type {fromType} . }}
                     ''')
                     datatype_class_change = True
-                # ele: RdfModifyItem
-                # if self._attributes.get(PropClassAttr.CLASS):
-                #     ele = RdfModifyItem('rdf:type', 'owl:DatatypeProperty', 'owl:ObjectProperty')
-                # else:
-                #     ele = RdfModifyItem('rdf:type', 'owl:ObjectProperty', 'owl:DatatypeProperty')
-                # sparql = f'#\n# OWL:\n# Correct OWL property type with Action "{change.action.value}\n#\n'
-                # sparql += RdfModifyProp.onto(action=Action.REPLACE,
-                #                              graph=self._graph,
-                #                              owlclass_iri=owlclass_iri,
-                #                              pclass_iri=self._property_class_iri,
-                #                              ele=ele,
-                #                              indent=indent, indent_inc=indent_inc)
                 sparql_list.append(sparql)
             if prop == PropClassAttr.TYPE:
                 sparql = self._attributes[prop].update_sparql(graph=Xsd_QName(str(self._graph), 'onto'),
@@ -1260,7 +1141,7 @@ class PropertyClass(Model, Notify):
             }}
             WHERE {{
                 {self.inResourceClass}Shape sh:property ?prop .
-                ?prop sh:path {self.inResourceClass} .
+                ?prop sh:path {self._property_class_iri} .
                 ?prop ?p ?o .
             }}
             """)

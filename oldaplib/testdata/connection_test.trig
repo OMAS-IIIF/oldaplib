@@ -157,43 +157,7 @@ oldap:admin {
         oldap:namespaceIri <http://www.europeana.eu/schemas/edm/> ;
         rdfs:label "Europeana Ontology"@en, "Europeana Ontologie"@de, "Ontologie d l'Europeana"@fr .
 
-    :commentShape a sh:PropertyShape ;
-        sh:path :comment ;
-        sh:name "comment"@en, "Kommentar"@de ;
-        sh:description "This is a test property"@de ;
-        sh:datatype rdf:langString ;
-        sh:uniqueLang true ;
-        sh:languageIn ("de"^^xsd:string "fr"^^xsd:string "en"^^xsd:string) ;
-        sh:order "2"^^xsd:decimal ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime .
 
-    :testShape a sh:PropertyShape ;
-        sh:path :test ;
-        sh:name "Test" ;
-        sh:description "Property shape for testing purposes";
-        sh:datatype xsd:string ;
-        sh:order "3"^^xsd:decimal ;
-        schema:version "1.0.0" ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime .
-
-    :enumShape a sh:PropertyShape ;
-        sh:path :enum ;
-        sh:name "Enum" ;
-        sh:datatype xsd:string ;
-        sh:in ( "very good"^^xsd:string "good"^^xsd:string "fair"^^xsd:string "insufficient"^^xsd:string ) ;
-        sh:order "4"^^xsd:decimal ;
-        schema:version "1.0.0"^^xsd:string ;
-        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime .
 
     :testMyResShape a sh:NodeShape ;
         sh:targetClass :testMyRes ;
@@ -205,23 +169,7 @@ oldap:admin {
         rdfs:comment "Resource for testing..."^^xsd:string ;
         sh:property
             [
-                sh:path rdf:type ;
-            ] ;
-        sh:property :testShape ;
-        sh:property
-            [
-                sh:path :test ;
-                sh:minCount "1"^^xsd:integer ;
-                sh:maxCount "1"^^xsd:integer ;
-                sh:order "3"^^xsd:decimal ;
-            ] ;
-        sh:property
-            [
                 sh:path :hasText ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype rdf:langString ;
                 sh:languageIn ("de"^^xsd:string "en"^^xsd:string) ;
                 sh:maxCount "1"^^xsd:integer ;
@@ -233,10 +181,6 @@ oldap:admin {
         sh:property
             [
                 sh:path :hasEnum ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
                 sh:in ('red'^^xsd:string 'green'^^xsd:string 'blue'^^xsd:string 'yellow'^^xsd:string)
             ] ;
@@ -250,15 +194,7 @@ oldap:admin {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:property
             [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
                 sh:path :hasMinimal ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
             ] ;
         sh:closed "true"^^xsd:boolean .
@@ -271,16 +207,7 @@ oldap:admin {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:property
             [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
                 sh:path :hasMinimalA ;
-                schema:version "1.0.0"^^xsd:string ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
             ] ;
         sh:closed "true"^^xsd:boolean .
@@ -293,15 +220,7 @@ oldap:admin {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:property
             [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
                 sh:path :hasMinimalB ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
             ] ;
         sh:closed "true"^^xsd:boolean .
@@ -314,15 +233,7 @@ oldap:admin {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         sh:property
             [
-                sh:path rdf:type ;
-            ] ;
-        sh:property
-            [
                 sh:path :hasMinimalC ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
             ] ;
         sh:closed "true"^^xsd:boolean .
@@ -333,18 +244,10 @@ oldap:admin {
         dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:node :testMyResMinimalShape ;
-        sh:property
-            [
-                sh:path rdf:type ;
-            ] ;
+        sh:node :testMyResMinimalShape, oldap:ThingShape ;
         sh:property
             [
                 sh:path :hasMore ;
-                dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-                dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-                dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
                 sh:datatype xsd:string ;
             ] ;
         sh:closed "true"^^xsd:boolean .
@@ -354,8 +257,6 @@ oldap:admin {
 
     :ontology rdf:type owl:Ontology ;
         owl:versionInfo "0.1.0"^^xsd:string .
-        # owl:imports <http://www.w3.org/2004/02/skos/core> ;
-        # owl:imports oldap:ontology .
 
 
     :comment rdf:type owl:DatatypeProperty .
@@ -379,7 +280,8 @@ oldap:admin {
     :hasMore a owl:DatatypeProperty .
 
 
-    :testMyRes a owl:Class .
+    :testMyRes a owl:Class ;
+        rdfs:subClassOf oldap:Thing .
 
     :testMyResMinimal a owl:Class .
 
@@ -389,7 +291,8 @@ oldap:admin {
 
     :testMyResMinimalC a owl:Class .
 
-    :testMyResInherit a owl:Class .
+    :testMyResInherit a owl:Class ;
+        rdfs:subClassOf :testMyResMinimal, oldap:Thing .
 
 }
 

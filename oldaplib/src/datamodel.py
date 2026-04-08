@@ -625,7 +625,7 @@ class DataModel(Model):
         # no OWL for ExternalOntologies
 
         for propiri, propclass in self.__propclasses.items():
-            sparql += propclass.create_owl_part1(timestamp=timestamp, indent=2)
+            sparql += propclass.create_owl(timestamp=timestamp, indent=2)
 
         for resiri, resclass in self.__resclasses.items():
             sparql += resclass.create_owl(timestamp=timestamp, indent=2)
@@ -783,7 +783,7 @@ class DataModel(Model):
         f.write(f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n')
         f.write('\n')
         for iri, prop in self.__propclasses.items():
-            f.write(prop.create_owl_part1(timestamp=timestamp, indent=2))
+            f.write(prop.create_owl(timestamp=timestamp, indent=2))
         for iri, resclass in self.__resclasses.items():
             f.write(resclass.create_owl(timestamp=timestamp))
         f.write(f'{blank:{indent * indent_inc}}}}\n')

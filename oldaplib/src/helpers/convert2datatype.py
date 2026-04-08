@@ -133,4 +133,5 @@ def convert2datatype(value: Any, datatype: XsdDatatypes, validate: bool = False)
         case None:
             return Iri(value, validate=validate)
         case _:
-            raise OldapErrorValue(f'Invalid datatype "{datatype}" for value "{value}"')
+            return Xsd_string(value, validate=validate)
+            # raise OldapErrorValue(f'Invalid datatype "{datatype}" for value "{value}" (type "{value}")')
