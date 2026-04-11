@@ -1098,7 +1098,7 @@ class TestObjectFactory(unittest.TestCase):
         loc.create()
         iri = loc.iri
         loc2 = Location.read(con=self._connection, iri=iri)
-        self.assertEqual(loc2.loc, Geo_wktLiteral("POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555, 7.540 47.545))"))
+        self.assertEqual(loc2.loc, {Geo_wktLiteral("POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555, 7.540 47.545))")})
         loc.delete()
 
 if __name__ == '__main__':

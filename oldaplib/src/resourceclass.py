@@ -90,15 +90,15 @@ class ResourceClass(Model, Notify):
             match scval.prefix:
                 case self._project.projectShortName:
                     try:
-                        sucla = ResourceClass.read(self._con, self._project, scval)
+                        sucla = ResourceClass.read(self._con, self._project, scval.removesuffix('Shape'))
                     except OldapErrorNotFound as e:
                         sucla = None
                     except:
                         raise
                 case 'oldap':
-                    sucla = ResourceClass.read(self._con, self._sysproject, scval)
+                    sucla = ResourceClass.read(self._con, self._sysproject, scval.removesuffix('Shape'))
                 case 'shared':
-                    sucla = ResourceClass.read(self._con, self._sharedproject, scval)
+                    sucla = ResourceClass.read(self._con, self._sharedproject, scval.removesuffix('Shape'))
                 case _:
                     # external resource not defined in Oldap
                     # -> we can not read it -> we pass None -> no "sh:node" in SHACL!
@@ -126,7 +126,7 @@ class ResourceClass(Model, Notify):
                     continue
                 iri, sucla = self.__check(sc, validate=validate)
                 self._attributes[ResClassAttribute.SUPERCLASS][iri] = sucla
-                self.notify()
+            self.notify()
         else:
             if superclass in self._attributes[ResClassAttribute.SUPERCLASS]:
                 raise OldapErrorAlreadyExists(f'Superclass "{superclass}" already exists in superclass list of {self._owlclass_iri}.')
@@ -758,7 +758,6 @@ class ResourceClass(Model, Notify):
         try:
             self._con.transaction_update(sparql)
         except OldapError:
-            print(sparql)
             self._con.transaction_abort()
             raise
 
@@ -1012,8 +1011,6 @@ class ResourceClass(Model, Notify):
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                 sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.owl_class_iri.toRdf} as ?res)\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?res dcterms:modified ?modified .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {self._modified.toRdf})\n'
                 sparql += f'{blank:{indent * indent_inc}}}}'
                 sparql_list.append(sparql)
 
@@ -1067,12 +1064,12 @@ class ResourceClass(Model, Notify):
         #
         # Updating the timestamp and contributor ID
         #
-        sparql = RdfModifyRes.update_timestamp_contributors(contributor=self._con.userIri,
-                                                            timestamp=timestamp,
-                                                            old_timestamp=self._modified,
-                                                            iri=self._owlclass_iri,
-                                                            graph=Xsd_QName(f'{self._graph}:onto'))
-        sparql_list.append(sparql)
+        # sparql = RdfModifyRes.update_timestamp_contributors(contributor=self._con.userIri,
+        #                                                     timestamp=timestamp,
+        #                                                     old_timestamp=self._modified,
+        #                                                     iri=self._owlclass_iri,
+        #                                                     graph=Xsd_QName(f'{self._graph}:onto'))
+        # sparql_list.append(sparql)
 
         #
         # now remove empty sparql statements (coming from changes that only affect SHACL but not OWL)!

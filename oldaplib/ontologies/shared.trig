@@ -24,36 +24,49 @@ shared:shacl {
     oldap:DatingShape a sh:NodeShape ;
         sh:targetClass oldap:Dating ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        sh:property [
-            sh:path rdf:type ;
-        ] ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        rdfs:label "Dating object"@en, "Datumsobjekt"@de, "Objet de date"@fr, "Oggetto data"@it ;
+        sh:closed "true"^^xsd:boolean ;
+        sh:node oldap:ThingShape ;
         sh:property [
             sh:path oldap:verbatimDate ;
+            sh:name "Verbatim date"@en, "Wörtliche Zeitangabe"@de, "Citation littérale"@fr, "Tempo letterale"@it ;
             sh:maxCount "1"^^xsd:integer ;
             sh:datatype xsd:string ;
+            sh:order 1.0 ;
         ] ;
         sh:property [
             sh:path oldap:normalizedBegin ;
+            sh:name "Normalized begin (ISO Gregorian)"@en,
+                        "Normierter Beginn (ISO-Gregorian)"@de,
+                        "Début normalisé (calendrier grégorien ISO)"@fr,
+                        "Inizio normalizzato (calendario gregoriano ISO)"@it ;
             sh:maxCount "1"^^xsd:integer ;
             sh:datatype xsd:date ;
+            sh:order 2.0 ;
         ] ;
         sh:property [
             sh:path oldap:normalizedEnd ;
+            sh:name "Normalized end (ISO Gregorian)"@en, "Normalisiertes Ende (ISO-Gregorian)"@de, "Fin normalisée (calendrier grégorien ISO)"@fr, "Fine normalizzata (calendario gregoriano ISO)"@it ;
             sh:maxCount "1"^^xsd:nonNegativeInteger ;
             sh:datatype xsd:date ;
+            sh:order 3.0 ;
         ] ;
         sh:property [
             sh:path oldap:inCalendar ;
+            sh:name "Calendar of the original date"@en, "Kalender des ursprünglichen Datums"@de, "Calendrier de la date d'origine"@fr, "Calendario della data originale"@it ;
             sh:maxCount "1"^^xsd:nonNegativeInteger ;
             sh:class oldap:Calendar ;
             sh:in (oldap:GregorianCalendar oldap:JulianCalendar oldap:HebrewCalendar oldap:IslamicCalendar oldap:PersianCalendar) ;
+            sh:order 4.0 ;
        ] ;
         sh:property [
             sh:path oldap:before ;
             sh:class oldap:Dating ;
+            sh:name "before other event"@en, "vor einem anderen Ereignis"@de, "avant un autre événement"@fr, "prima di un altro evento"@it ;
+            sh:order 5.0 ;
         ] .
 
     ###############################################################################
@@ -62,9 +75,9 @@ shared:shacl {
 
     shared:MediaObjectShape a sh:NodeShape ;
         sh:targetClass shared:MediaObject ;
-        dcterms:created "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2025-11-21T00:15:09.037880+01:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         rdfs:label "MediaObject"@en, "Medienobjekt"@de, "MediaObject"@fr, "MediaObject"@it ;
         sh:closed "true"^^xsd:boolean ;
@@ -217,7 +230,8 @@ shared:onto {
     # Chronology Date Resource
     ###########################################################################
 
-    oldap:Dating rdf:type owl:Class .
+    oldap:Dating rdf:type owl:Class ;
+        rdfs:subClassOf oldap:Thing .
 
     ###########################################################################
     # Media object

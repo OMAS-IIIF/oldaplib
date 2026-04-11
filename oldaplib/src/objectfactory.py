@@ -193,8 +193,8 @@ class ResourceInstance:
         self._changeset: dict[Xsd_QName, AttributeChange] = {}
         self._attached_roles = ObservableDict(on_change=self.__attachedToRole_cb)
 
-        def set_values(propclass: dict[Xsd_QName, HasProperty]):
-            for prop_iri, hasprop in propclass.items():
+        def set_values(propclass: dict[Xsd_QName, PropertyClass]):
+            for prop_iri, prop in propclass.items():
                 if str(prop_iri) == 'oldap:attachedToRole':
                     if kwargs.get(str(prop_iri)) or kwargs.get(prop_iri.fragment):
                         #
@@ -219,39 +219,39 @@ class ResourceInstance:
                 if kwargs.get(str(prop_iri)) or kwargs.get(prop_iri.fragment):
                     value = kwargs[str(prop_iri)] if kwargs.get(str(prop_iri)) else kwargs[prop_iri.fragment]
                     if isinstance(value, (list, tuple, set, LangString)):  # we may have multiple values...
-                        if hasprop.prop.datatype == XsdDatatypes.langString:
+                        if prop.datatype == XsdDatatypes.langString:
                             self._values[prop_iri] = LangString(value,
                                                                 notifier=self.notifier, notify_data=prop_iri)
                         else:
-                            self._values[prop_iri] = ObservableSet({convert2datatype(x, hasprop.prop.datatype) for x in value},
+                            self._values[prop_iri] = ObservableSet({convert2datatype(x, prop.datatype) for x in value},
                                                                    notifier=self.notifier, notify_data=prop_iri)
                     else:
                         try:
-                            self._values[prop_iri] = ObservableSet({convert2datatype(value, hasprop.prop.datatype)})
+                            self._values[prop_iri] = ObservableSet({convert2datatype(value, prop.datatype)})
                         except TypeError as err:
-                            self._values[prop_iri] = convert2datatype(value, hasprop.prop.datatype)
+                            self._values[prop_iri] = convert2datatype(value, prop.datatype)
 
-            for prop_iri, hasprop in propclass.items():
+            for prop_iri, prop in propclass.items():
                 #
                 # Validate cardinalities
                 #
-                if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
-                    if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not self._values.get(prop_iri):
-                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
+                if prop.minCount:  # testing for MIN_COUNT conformance
+                    if prop.minCount > 0 and not self._values.get(prop_iri):
+                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={prop.minCount} is missing')
                     elif isinstance(self._values[prop_iri], ObservableSet) and len(self._values[prop_iri]) < 1:
-                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
-                if hasprop.get(HasPropertyAttr.MAX_COUNT) and hasprop[HasPropertyAttr.MAX_COUNT] > 0:  # testing for MAX_COUNT conformance
-                    if isinstance(self._values.get(prop_iri), ObservableSet) and len(self._values[prop_iri]) > hasprop[HasPropertyAttr.MAX_COUNT]:
-                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(self._values[prop_iri])})')
+                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MIN_COUNT={prop.minCount} is missing')
+                if prop.maxCount and prop.maxCount > 0:  # testing for MAX_COUNT conformance
+                    if isinstance(self._values.get(prop_iri), ObservableSet) and len(self._values[prop_iri]) > prop.maxCount:
+                        raise OldapErrorValue(f'{self.name}: Property {prop_iri} with MAX_COUNT={prop.maxCount} has to many values (n={len(self._values[prop_iri])})')
                 if self._values.get(prop_iri):
                     if isinstance(self._values[prop_iri], LangString):
-                        self.validate_value(self._values[prop_iri], hasprop.prop)
+                        self.validate_value(self._values[prop_iri], prop)
                     else:
                         if isinstance(self._values[prop_iri], ObservableSet):
                             for val in self._values[prop_iri]:
-                                self.validate_value(val, hasprop.prop)
+                                self.validate_value(val, prop)
                         else:
-                            self.validate_value(self._values[prop_iri], hasprop.prop)
+                            self.validate_value(self._values[prop_iri], prop)
 
         def process_superclasses(superclass: dict[Xsd_QName, ResourceClass]):
             for sc_iri, sc in superclass.items():
@@ -519,22 +519,22 @@ class ResourceInstance:
                         f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
 
     def notifier(self, prop_iri: Xsd_QName):
-        hasprop = self.properties[prop_iri]
-        self.validate_value(self._values[prop_iri], hasprop)
+        prop = self.properties[prop_iri]
+        self.validate_value(self._values[prop_iri], prop)
 
-        if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
+        if prop.minCount:  # testing for MIN_COUNT conformance
             n = len(self._values[prop_iri])
-            if n < hasprop[HasPropertyAttr.MIN_COUNT]:
+            if n < prop.minCount:
                 self._values[prop_iri].undo()
                 raise OldapErrorValue(
-                    f'{self.name}: Property {prop_iri} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has not enough values (n={n}).')
+                    f'{self.name}: Property {prop_iri} with MIN_COUNT={prop.minCount} has not enough values (n={n}).')
 
-        if hasprop.get(HasPropertyAttr.MAX_COUNT) and hasprop[HasPropertyAttr.MAX_COUNT] > 0:  # testing for MAX_COUNT conformance
+        if prop.maxCount and prop.maxCount > 0:  # testing for MAX_COUNT conformance
             n = len(self._values[prop_iri])
-            if n > hasprop[HasPropertyAttr.MAX_COUNT]:
+            if n > prop.maxCount:
                 self._values[prop_iri].undo()
                 raise OldapErrorValue(
-                    f'{self.name}: Property {prop_iri} with MAX_COUNT={hasprop[HasPropertyAttr.MAX_COUNT]} has to many values (n={n}).')
+                    f'{self.name}: Property {prop_iri} with MAX_COUNT={prop.maxCount} has to many values (n={n}).')
 
         self._changeset[prop_iri] = AttributeChange(None, Action.MODIFY)
 
@@ -593,34 +593,35 @@ class ResourceInstance:
                 if not isinstance(value[role_qname], DataPermission):
                     raise OldapErrorValue(f'{self.name}: Property {attr} requires values to be DataPermission, got {type(value[role_qname]).__name__}.')
             self._changeset[attr] = AttributeChange(self._values.get(attr), Action.REPLACE)
-            self._values[attr] = ObservableSet({value.keys()}, notifier=self.notifier, notify_data=attr)
+            self._values[attr] = ObservableSet(set(value.keys()), notifier=self.notifier, notify_data=attr)
             self._attached_roles = ObservableDict(value, notifier=self.__attachedToRole_cb)
             return
-        hasprop = self.properties.get(attr)
+        prop = self.properties.get(attr)
 
         #
         # Validate
         #
-        if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
-            if hasprop[HasPropertyAttr.MIN_COUNT] > 0 and not value:
+        #if prop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
+        if prop.minCount:
+            if prop.minCount > 0 and not value:
                 raise OldapErrorValue(
-                    f'{self.name}: Property {attr} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} is missing')
-            elif isinstance(value, (list, tuple, set, ObservableSet)) and len(value) < hasprop[HasPropertyAttr.MIN_COUNT]:
+                    f'{self.name}: Property {attr} with MIN_COUNT={prop.minCount} is missing')
+            elif isinstance(value, (list, tuple, set, ObservableSet)) and len(value) < prop.minCount:
                 raise OldapErrorValue(
-                    f'{self.name}: Property {attr} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has not enough values')
-        if hasprop.get(HasPropertyAttr.MAX_COUNT) and hasprop[HasPropertyAttr.MAX_COUNT] > 0:  # testing for MAX_COUNT conformance
-            if isinstance(value, (list, tuple, set, ObservableSet)) and len(value) > hasprop[HasPropertyAttr.MAX_COUNT]:
+                    f'{self.name}: Property {attr} with MIN_COUNT={prop.minCount} has not enough values')
+        if prop.maxCount and prop.maxCount > 0:  # testing for MAX_COUNT conformance
+            if isinstance(value, (list, tuple, set, ObservableSet)) and len(value) > prop.maxCount:
                 raise OldapErrorValue(
-                    f'{self.name}: Property {attr} with MAX_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} has to many values (n={len(value)})')
+                    f'{self.name}: Property {attr} with MAX_COUNT={prop.maxCount} has to many values (n={len(value)})')
         if value:
             if isinstance(value, LangString):
-                self.validate_value(value, hasprop.prop)
+                self.validate_value(value, prop)
             else:
                 if isinstance(value, (list, tuple, set, ObservableSet)):
                     for val in value:
-                        self.validate_value(val, hasprop.prop)
+                        self.validate_value(val, prop)
                 else:
-                    self.validate_value(value, hasprop.prop)
+                    self.validate_value(value, prop)
 
         if not value:
             self._changeset[attr] = AttributeChange(self._values.get(attr), Action.DELETE)
@@ -630,11 +631,11 @@ class ResourceInstance:
                 self._changeset[attr] = AttributeChange(self._values.get(attr), Action.REPLACE)
             else:
                 self._changeset[attr] = AttributeChange(None, Action.CREATE)
-            if hasprop.prop.datatype == XsdDatatypes.langString:
+            if prop.datatype == XsdDatatypes.langString:
                 self._values[attr] = LangString(value, notifier=self.notifier, notify_data=attr)
             else:
                 self._values[attr] = ObservableSet({
-                    convert2datatype(x, hasprop.prop.datatype) for x in value
+                    convert2datatype(x, prop.datatype) for x in value
                 }, notifier=self.notifier, notify_data=attr)
         else:
             if self._values.get(attr):
@@ -642,9 +643,9 @@ class ResourceInstance:
             else:
                 self._changeset[attr] = AttributeChange(None, Action.CREATE)
             try:
-                self._values[attr] = ObservableSet({convert2datatype(value, hasprop.prop.datatype)})
+                self._values[attr] = ObservableSet({convert2datatype(value, prop.datatype)})
             except TypeError:
-                self._values[attr] = convert2datatype(value, hasprop.prop.datatype)
+                self._values[attr] = convert2datatype(value, prop.datatype)
 
     def __del_value(self: Self, attr: Xsd_QName | str) -> None:
         if not isinstance(attr, Xsd_QName):
@@ -655,11 +656,11 @@ class ResourceInstance:
             del self._values[attr]
             self._attached_roles = ObservableDict(notifier=self.__attachedToRole_cb)
             return
-        hasprop = self.properties.get(attr)
+        prop = self.properties.get(attr)
 
-        if hasprop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
-            if hasprop[HasPropertyAttr.MIN_COUNT] > 0:
-                raise OldapErrorValue(f'{self.name}: Property {attr} with MIN_COUNT={hasprop[HasPropertyAttr.MIN_COUNT]} cannot be deleted.')
+        if prop.minCount:  # testing for MIN_COUNT conformance
+            if prop.minCount > 0:
+                raise OldapErrorValue(f'{self.name}: Property {attr} with MIN_COUNT={prop.minCount} cannot be deleted.')
 
         self._changeset[attr] = AttributeChange(self._values.get(attr), Action.DELETE)
         del self._values[attr]
@@ -763,7 +764,7 @@ class ResourceInstance:
 
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} a {self.name}'
         for prop_iri, values in self._values.items():
-            if self.properties.get(prop_iri) and self.properties[prop_iri].prop.datatype == XsdDatatypes.QName:
+            if self.properties.get(prop_iri) and self.properties[prop_iri].datatype == XsdDatatypes.QName:
                 qnames = {f'"{x}"^^xsd:QName' for x in values}
                 qnames_rdf = ', '.join(qnames)
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {qnames_rdf}'
@@ -1021,7 +1022,7 @@ class ResourceInstance:
 
             if change.action != Action.MODIFY:
                 continue  # has been processed above
-            if self.properties[field].prop.datatype == XsdDatatypes.langString:
+            if self.properties[field].datatype == XsdDatatypes.langString:
                 sparqls = self._values[field].update(graph=Xsd_QName(self._graph, 'data'),
                                                      subject=self._iri,
                                                      field=field.as_qname)
@@ -1034,7 +1035,7 @@ class ResourceInstance:
                 #
                 # first we rectify the datatype of all "new" values added to the set
                 #
-                newset = {convert2datatype(x, self.properties[field].prop.datatype) for x in self._values[field]}
+                newset = {convert2datatype(x, self.properties[field].datatype) for x in self._values[field]}
                 self._values[field] = ObservableSet(newset, old_value=self._values[field].old_value, notifier=self.notifier, notify_data=field)
                 sparqls = self._values[field].update_sparql(graph=Iri(f'{self._graph}:data'),
                                                             subject=self._iri,

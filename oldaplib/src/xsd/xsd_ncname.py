@@ -1,3 +1,4 @@
+import doctest
 import re
 import sys
 import traceback
@@ -48,7 +49,7 @@ class Xsd_NCName(Xsd):
             if validate:
                 if not XsdValidator.validate(XsdDatatypes.NCName, value):
                     raise OldapErrorValue(f'Invalid string "{value}" for NCName')
-            self.__value = value
+            self.__value = str(value)
 
     def __bool__(self):
         return bool(self.__value)

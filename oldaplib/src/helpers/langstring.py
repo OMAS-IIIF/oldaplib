@@ -545,7 +545,7 @@ class LangString(Notify):
                      owlclass_iri: Iri | None = None,
                      prop_iri: Iri,
                      attr: AttributeClass,
-                     modified: Xsd_dateTime,
+                     modified: Xsd_dateTime | None = None,
                      indent: int = 0, indent_inc: int = 4) -> str:
 
         blank = ''
@@ -556,7 +556,7 @@ class LangString(Notify):
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?property sh:property ?prop .\n'
-                tmpstr = f'"""{change.old_value}@{lang.name.lower()}"""'
+                tmpstr = f'"""{change.old_value}"""@{lang.name.lower()}'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
@@ -564,7 +564,7 @@ class LangString(Notify):
                 sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?property sh:property ?prop .\n'
                 try:
-                    langstr = f'"""{self._langstring[lang]}@{lang.name.lower()}"""'
+                    langstr = f'"""{self._langstring[lang]}"""@{lang.name.lower()}'
                 except KeyError:
                     raise OldapErrorKey(f'No language string of language: "{lang}"!')
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {langstr} .\n'
@@ -578,10 +578,11 @@ class LangString(Notify):
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?property) .\n'
             if change.action != Action.CREATE:
-                tmpstr = f'"""{change.old_value}@{lang.name.lower()}"""'
+                tmpstr = f'"""{change.old_value}"""@{lang.name.lower()}'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?property dcterms:modified ?modified .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'
+            if modified:
+                sparql += f'{blank:{(indent + 1) * indent_inc}}FILTER(?modified = {modified.toRdf})\n'
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         sparql = ";\n".join(sparql_list)

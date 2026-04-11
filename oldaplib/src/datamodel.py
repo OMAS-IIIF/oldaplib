@@ -3,12 +3,14 @@ import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
+from pprint import pprint
 from typing import Dict, List, Optional, Union, Any, Self, TextIO
 
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.externalontology import ExternalOntology
+from oldaplib.src.helpers.construct_processor import ConstructProcessor
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
 from oldaplib.src.helpers.irincname import IriOrNCName
@@ -45,37 +47,6 @@ class PropertyClassChange:
 
 @serializer
 class DataModel(Model):
-    """
-    Representation of an OLDAP datamodel.
-
-    This class provides a comprehensive implementation of an OLDAP datamodel, including standalone properties and
-    resources associated with property definitions. The datamodel is bound to a single project, utilizing the project's
-    namespace and shortname for defining named graphs. It can be instantiated completely or incrementally updated by
-    adding properties and resource definitions later.
-
-    - _projectshortname:shacl_ contains the SHACL triples
-    - _projectshortname:onto_ contains the OWL triples
-    - _projectshortname:data_ contains the data
-
-    :ivar con: Connection to the triple store.
-    :type con: IConnection
-    :ivar creator: Creator of the datamodel. If not provided, defaults to the user associated with the connection.
-    :type creator: Iri | str | None
-    :ivar created: Creation timestamp for the datamodel. Defaults to the current timestamp if not provided.
-    :type created: Xsd_dateTime | datetime | str | None
-    :ivar contributor: Contributor information. Defaults to the user associated with the connection if not specified.
-    :type contributor: Iri | None
-    :ivar modified: Modification timestamp for the datamodel. Defaults to the current timestamp if not provided.
-    :type modified: Xsd_dateTime | datetime | str | None
-    :ivar project: Associated project. Accepts a Project instance, IRI, shortname, or name string.
-    :type project: Project | Iri | Xsd_NCName | str
-    :ivar propclasses: List of standalone properties for the datamodel.
-    :type propclasses: list[PropertyClass] | None
-    :ivar resclasses: List of resource classes for the datamodel.
-    :type resclasses: list[ResourceClass] | None
-    :ivar validate: Determines whether input validation is enabled during initialization.
-    :type validate: bool
-    """
     __graph: Xsd_NCName
     _project: Project
     __context: Context
@@ -98,44 +69,6 @@ class DataModel(Model):
                  propclasses: list[PropertyClass] | None = None,
                  resclasses: list[ResourceClass] | None = None,
                  validate: bool = False) -> None:
-        """
-        Create a datamodel instance for managing and interacting with a triple store.
-
-        This class initializes various attributes necessary for handling semantic data,
-        including establishing connections, setting up project contexts, and managing
-        property and resource classes. It ensures the proper creation and population of
-        component elements for the datamodel.
-
-        :param con: Valid connection to the triple store.
-        :type con: IConnection
-        :param creator: IRI of the data's creator or string representation
-            [OPTIONAL].
-        :type creator: Iri | str | None
-        :param created: Datetime or string representation of the creation date
-            [OPTIONAL].
-        :type created: Xsd_dateTime | datetime | str | None
-        :param contributor: IRI of data's contributor or None if not provided
-            [OPTIONAL].
-        :type contributor: Iri | None
-        :param modified: Datetime or string representation of the last modification
-            [OPTIONAL].
-        :type modified: Xsd_dateTime | datetime | str | None
-        :param project: Project instance, project IRI, or project short name.
-        :type project: Project | Iri | Xsd_NCName | str
-        :param propclasses: List of `PropertyClass` instances for standalone
-            properties. This parameter is optional.
-        :type propclasses: list[PropertyClass] | None
-        :param resclasses: List of `ResourceClass` instances for describing defined
-            resources. This parameter is optional.
-        :type resclasses: list[ResourceClass] | None
-        :param validate: Boolean flag indicating whether validation of inputs is
-            enforced.
-        :type validate: bool
-
-        :raises OldapErrorNotFound: If the project is not found in the triple store.
-        :raises OldapErrorInconsistency: If the project's SHACL and OWL ontology
-            versions do not match.
-        """
         timestamp = Xsd_dateTime()
         if creator is None:
             creator = con.userIri
@@ -396,152 +329,194 @@ class DataModel(Model):
              con: IConnection,
              project: Project | Xsd_QName | Xsd_NCName | str,
              ignore_cache: bool = False):
-        """
-        Reads the data model from the given project by querying the triple store.
-        This method retrieves and verifies metadata related to SHACL and OWL ontology,
-        processes standalone properties, and collects resources defined in the data model.
-        Optionally, it bypasses caching by directly querying the triple store.
-
-        :param con: Connection object to the triple store
-        :type con: IConnection
-        :param project: Project identifier which could be an instance of the Project class,
-            a project IRI, a project shortname, or an Xsd_NCName
-        :type project: Project | Iri | Xsd_NCName | str
-        :param ignore_cache: Indicates whether the method should bypass the cache and
-            read directly from the triple store. Defaults to False.
-        :type ignore_cache: bool
-        :return: An instance of the DataModel which encapsulates the project data.
-        :rtype: DataModel
-
-        :raises OldapErrorNotFound: If the data model is not found in the triple store.
-        :raises OldapErrorInconsistency: If the SHACL and OWL ontology versions do not match.
-        """
         logger = logging.getLogger(__name__)
 
         logger.debug(f'Reading datamodel for project {project}')
 
         if isinstance(project, Project):
-            project = project
+            proj = project
         else:
-            project = Project.read(con, project)
+            proj = Project.read(con, project)
         cache = CacheSingletonRedis()
         if not ignore_cache:
-            tmp = cache.get(Xsd_QName(project.projectShortName, 'shacl'), connection=con)
+            tmp = cache.get(Xsd_QName(proj.projectShortName, 'shacl'), connection=con)
             if tmp is not None:
                 return tmp
+
         context = Context(name=con.context_name)
-        context[project.projectShortName] = project.namespaceIri
-        context.use(project.projectShortName)
-        graph = project.projectShortName
+        context[proj.projectShortName] = proj.namespaceIri
+        context.use(proj.projectShortName)
+        graph = proj.projectShortName
         #
-        # first we read the shapes metadata
+        # first we read all the SHACL
         #
-        query = context.sparql_context
-        query += f"""
-        SELECT ?version
-        WHERE {{
-            GRAPH {graph}:shacl {{
-                {graph}:shapes schema:version ?version .
-            }}
-        }}
-        """
-        jsonobj = con.query(query)
-        res = QueryProcessor(context=context, query_result=jsonobj)
-        if len(res) == 0:
-            raise OldapErrorNotFound(f'Datamodel "{graph}:shacl" not found')
-        version = SemanticVersion.fromString(res[0]['version'])
+        shacl_obj = ConstructProcessor.query_shacl(con=con, project=proj)
+        onto_obj = ConstructProcessor.query_onto(con=con, project=proj)
+
+        if not shacl_obj:
+            raise OldapErrorNotFound(f'Datamodel for project {project} not existing!')
 
         #
-        # now we read the OWL ontology metadata
+        # find all assertion properties and collect in list
         #
-        query = context.sparql_context
-        query += f"""
-        SELECT ?version
-        FROM {graph}:onto
-        WHERE {{
-            {graph}:ontology owl:versionInfo ?version .
-        }}
-        """
-        jsonobj = con.query(query)
-        res = QueryProcessor(context=context, query_result=jsonobj)
-        if len(res) == 0:
-            raise OldapErrorNotFound(f'Datamodel "{graph}:onto" not found')
-        owlversion = SemanticVersion.fromString(res[0]['version'])
-        if owlversion != version:
-            raise OldapErrorInconsistency(f'Versionnumber of SHACL ({version}) and OWL ({owlversion}) do not match')
+        assertion_propclasses: list[PropertyClass] = []
+        props = {iri: shape for iri, shape in shacl_obj.items() if shape.get(Xsd_QName("oldap:appliesToProperty"), None)}
+        for iri, propshape in props.items():
+            attributes = {attr.fragment: value for attr, value in propshape[Xsd_QName("sh:property")].items()}
+            property_class_iri = None
+            if attributes.get("path") is not None:
+                property_class_iri = attributes["path"]
+                del attributes["path"]
+            if not property_class_iri:
+                property_class_iri = Xsd_QName(propshape.prefix, propshape.fragment.removesuffix('Shape'))
+            if onto_obj.get(property_class_iri) is not None:
+                # some consistency checks between SHACL and OWL
+                if onto_obj[property_class_iri][Xsd_QName("rdf:type")] == Xsd_QName("owl:DatatypeProperty") and attributes.get('datatype') is None:
+                    raise OldapErrorInconsistency(f'Property with "owl:DatatypeProperty" must have "sh:datetype" defined! ({property_class_iri})')
+                if onto_obj[property_class_iri][Xsd_QName("rdf:type")] == Xsd_QName("owl:ObjectProperty") and attributes.get('class') is None:
+                    raise OldapErrorInconsistency(f'Property with "owl:ObjectProperty" must have "sh:class" defined! ({property_class_iri})')
+                if onto_obj[property_class_iri].get('rdfs:subPropertyOf'):
+                    attributes['subPropertyOf'] = onto_obj[property_class_iri]['rdfs:subPropertyOf']
+
+            propclass = PropertyClass(con=con,
+                                     project=proj,
+                                     property_class_iri=property_class_iri,
+                                     creator=propshape[Xsd_QName("dcterms:creator")],
+                                     created=propshape[Xsd_QName("dcterms:created")],
+                                     modified=propshape[Xsd_QName("dcterms:modified")],
+                                     contributor=propshape[Xsd_QName("dcterms:contributor")],
+                                     appliesToProperty=propshape[Xsd_QName("oldap:appliesToProperty")],
+                                     validate=False,
+                                     **attributes)
+            assertion_propclasses.append(propclass)
+
+        #
+        # we select all "sh:NodeShape", but we exclude assertion properties (which are sh:NodeShapes but must have
+        # an "oldap:appliesToProperty" attribute!
+        #
+        resclasses: list[ResourceClass] = []
+        rescs = {iri: shape for iri, shape in shacl_obj.items() if shape.get(Xsd_QName("rdf:type")) == Xsd_QName("sh:NodeShape") and not shape.get(Xsd_QName("oldap:appliesToProperty"))}
+        #sorted_d = {iri: rescs[iri] for iri in sorted(rescs)}  # TODO: only for debugging....
+        #rescs = sorted_d
+
+        for resclass_shapeiri, resshape in rescs.items():
+            propclasses = resshape.get(Xsd_QName("sh:property"))
+            properties: list[PropertyClass] = []
+            if propclasses:
+                if not isinstance(propclasses, list):
+                    propclasses = [propclasses]
+                for propshape in propclasses:
+                    property_class_iri = propshape[Xsd_QName("sh:path")]
+                    del propshape[Xsd_QName("sh:path")]
+                    attributes = {attr.fragment: value for attr, value in propshape.items()}
+                    # TODO: insert here consistency checks...
+                    # TODO: Add data from :onto graph
+                    property = PropertyClass(con=con,
+                                              project=proj,
+                                              property_class_iri=property_class_iri,
+                                              validate=False,
+                                              **attributes)
+                    properties.append(property)
+
+            tmp_resclass_iri = resshape[Xsd_QName("sh:targetClass")]
+            del resshape[Xsd_QName("sh:targetClass")]
+
+            #
+            # now let's extract the superclasses (which are given by the property "sh:node")
+            #
+            superclass = None
+            if resshape.get(Xsd_QName("sh:node")):
+                superclass = resshape[Xsd_QName("sh:node")]
+                del resshape[Xsd_QName("sh:node")]
+                if not isinstance(superclass, list):
+                    superclass = [superclass]
+            #
+            # remove the suffix "Shape": This from SHACL, therefore we have the <superclass>Shape name
+            #
+            if superclass:
+                superclass = [x.removesuffix('Shape') for x in superclass if x is not None]
+            if tmp_resclass_iri.fragment != resclass_shapeiri.fragment.removesuffix('Shape'):
+                raise OldapErrorInconsistency(f'Inconsistency in data model!! "{tmp_resclass_iri}" "{resclass_shapeiri}"')  # TODO: Better error message
+
+            #
+            # Superclasses from external ontologies OLDAP does not know about (e.g. for mapping to ontologies of other
+            # frameworks are only defined in OWL and must be added here
+            #
+            if isinstance(onto_obj[tmp_resclass_iri], dict):
+                tmp = onto_obj[tmp_resclass_iri].get(Xsd_QName("rdfs:subClassOf"), [])
+                if tmp:
+                    if not isinstance(tmp, list):
+                        tmp = [tmp]
+                    tmp_list = []
+                    for sc in tmp:
+                        if not superclass or sc in superclass:
+                            continue
+                        tmp_list.append(sc)
+
+                    if tmp_list:
+                        superclass.extend(tmp_list)
+
+            #
+            # prepare the attributes
+            #
+            attributes = {attr.fragment: value for attr, value in resshape.items() if
+                          attr.fragment != 'property' and \
+                          attr.fragment != 'type'}
+
+            # TODO: add data from :onto graph
+            resclass = ResourceClass(con=con,
+                                     project=proj,
+                                     owlclass_iri=tmp_resclass_iri,
+                                     properties=properties,
+                                     superclass=superclass,
+                                     **attributes)
+            resclasses.append(resclass)
+
+        if shacl_obj.get(Xsd_QName(graph, 'shapes')):
+            tmp_version = shacl_obj[Xsd_QName(graph, 'shapes')].get(Xsd_QName("schema:version"))
+            shacl_version = SemanticVersion.fromString(tmp_version)
+        else:
+            shacl_version = SemanticVersion.fromString('0.0.1')
+
+        if onto_obj.get(Xsd_QName(graph, 'ontology')):
+            tmp_version = onto_obj[Xsd_QName(graph, 'ontology')].get(Xsd_QName('owl:versionInfo'))
+            owl_version = SemanticVersion.fromString(tmp_version)
+        else:
+            owl_version = SemanticVersion.fromString('0.0.1')
+        if shacl_version != owl_version:
+            raise OldapErrorInconsistency(f'Versionnumber of SHACL ({shacl_version}) and OWL ({owl_version}) do not match')
         #
         # now read the external ontologies that are used in this datamodel
         #
-        extontos = ExternalOntology.search(con=con, projectShortName=project.projectShortName)
-        for onto in extontos:
-            context[onto.prefix] = NamespaceIRI(str(onto.namespaceIri))
+        extontos: list[ExternalOntology] = []
+        tmp_extontos = {iri: data for iri, data in shacl_obj.items() if data.get(Xsd_QName("rdf:type")) == Xsd_QName("oldap:ExternalOntology")}
+        for iri, eoshape in tmp_extontos.items():
+            attributes = {attr.fragment: value for attr, value in eoshape.items() if attr != (Xsd_QName("rdf:type"))}
+
+            #
+            # after the first read, all subsequent reads have the namespae already in the context and it will be a
+            # Xsd_QName. Therefore, we have to convert the Xsd_QName to an Iri...
+            #
+            if attributes.get('namespaceIri'):
+                if isinstance(attributes['namespaceIri'], Xsd_QName):
+                    attributes['namespaceIri'] = context.qname2iri(attributes['namespaceIri'])
+
+            extonto = ExternalOntology(con=con,
+                                       projectShortName=proj.projectShortName,
+                                       validate=False,
+                                       **attributes)
+            extontos.append(extonto)
+            context[extonto.prefix] = extonto.namespaceIri
 
         #
         # now let's find all the OldapLists in order to set up the Context also for the OldapLists
         #
-        ols = OldapList.search(con=con, project=project)
+        ols = OldapList.search(con=con, project=proj)
         for ol in ols:
-            oldaplist = OldapList.read(con=con, project=project.projectShortName, oldapListId=ol.fragment)
+            oldaplist = OldapList.read(con=con, project=proj.projectShortName, oldapListId=ol.fragment)
 
-        #
-        # now get the QNames of all standalone properties within the data model
-        #
-        query = context.sparql_context
-        query += f"""
-        SELECT ?prop
-        WHERE {{
-            GRAPH {graph}:shacl {{
-                ?prop a sh:PropertyShape
-            }}
-        }}
-        """
 
-        jsonobj = con.query(query)
-        res = QueryProcessor(context=context, query_result=jsonobj)
-        #
-        # now read all standalone properties
-        #
-        propclasses: list[PropertyClass] = []
-        for r in res:
-            projectid = graph
-            propnameshacl = str(r['prop'])
-            propclassiri = propnameshacl.removesuffix("Shape")
-            propclass = PropertyClass.read(con, projectid, Xsd_QName(propclassiri, validate=False), ignore_cache=ignore_cache)
-            propclass.force_external()
-            propclasses.append(propclass)
-        sa_props = {x.property_class_iri: x for x in propclasses}
-
-        #
-        # now get all resources defined in the data model
-        #
-        query = context.sparql_context
-        query += f"""
-        SELECT ?shape
-        FROM {graph}:shacl
-        WHERE {{
-            ?shape a sh:NodeShape
-        }}
-        """
-        jsonobj = con.query(query)
-
-        res = QueryProcessor(context=context, query_result=jsonobj)
-        #
-        # now read all resource classes
-        #
-        resclasses = []
-        for r in res:
-            resnameshacl = str(r['shape'])
-            resclassiri = resnameshacl.removesuffix("Shape")
-            # TODO: If ignore cache is not True, _prop_changeset of resourceclass is not empty!
-            # create empty data model -> update -> add resource without property -> add property -> update
-            # _prop_changeset is not empoty after update... ERROR!!!!!!!!!!!!!!!!!!!!!
-            try:
-                resclass = ResourceClass.read(con=con, project=project, owl_class_iri=Xsd_QName(resclassiri, validate=False), sa_props=sa_props, ignore_cache=ignore_cache)
-                resclass.clear_changeset()
-                resclasses.append(resclass)
-            except OldapError as er:
-                print(f'Error reading resource class "{resclassiri}" of project "{graph}": {er}')
-        instance = cls(project=project, con=con, propclasses=propclasses, resclasses=resclasses, extontos=extontos)
+        instance = cls(project=proj, con=con, propclasses=assertion_propclasses, resclasses=resclasses, extontos=extontos)
         for qname in instance.get_extontos():
             instance[qname].set_notifier(instance.notifier, qname)
         for qname in instance.get_propclasses():
@@ -549,7 +524,7 @@ class DataModel(Model):
         for qname in instance.get_resclasses():
             instance[qname].set_notifier(instance.notifier, qname)
 
-        cache.set(Xsd_QName(project.projectShortName, 'shacl'), instance)
+        cache.set(Xsd_QName(proj.projectShortName, 'shacl'), instance)
 
         instance.clear_changeset()
         return instance
@@ -603,8 +578,6 @@ class DataModel(Model):
             sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
-            if propclass.internal:
-                raise OldapErrorInconsistency(f"Property class {propclass.property_class_iri} is internal and cannot be used here.")
             sparql += propclass.create_shacl(timestamp=timestamp, indent=2)
             sparql += '\n'
 
@@ -625,7 +598,7 @@ class DataModel(Model):
         # no OWL for ExternalOntologies
 
         for propiri, propclass in self.__propclasses.items():
-            sparql += propclass.create_owl(timestamp=timestamp, indent=2)
+            sparql += propclass.create_owl(indent=2)
 
         for resiri, resclass in self.__resclasses.items():
             sparql += resclass.create_owl(timestamp=timestamp, indent=2)

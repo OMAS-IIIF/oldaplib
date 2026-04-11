@@ -816,7 +816,7 @@ class PropertyClass(Model, Notify):
                                                                   owlclass_iri=owlclass_iri,
                                                                   prop_iri=self._property_class_iri,
                                                                   attr=prop,
-                                                                  modified=self._modified,
+                                                                  modified=self._modified if self.appliesToProperty else None,
                                                                   indent=indent, indent_inc=indent_inc)
                 elif prop.datatype == ObservableSet:
                     if prop == PropClassAttr.TYPE:

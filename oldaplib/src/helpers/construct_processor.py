@@ -189,13 +189,13 @@ class ConstructProcessor:
         #
         for s in topnodes.keys():
             for p in topnodes[s].keys():
-                if (isinstance(topnodes[s][p], Xsd_short) and topnodes[s][p].language) or (
+                if (isinstance(topnodes[s][p], Xsd_string) and topnodes[s][p].lang) or (
                         isinstance(topnodes[s][p], list) and all(
                         isinstance(x, Xsd_string) and getattr(x, "language", None) is not None for x in topnodes[s][p])):
                     topnodes[s][p] = LangString(topnodes[s][p])
         for s in bnodes.keys():
             for p in bnodes[s].keys():
-                if (isinstance(bnodes[s][p], Xsd_short) and bnodes[s][p].language) or (
+                if (isinstance(bnodes[s][p], Xsd_string) and bnodes[s][p].lang) or (
                         isinstance(bnodes[s][p], list) and all(
                         isinstance(x, Xsd_string) and getattr(x, "language", None) is not None for x in bnodes[s][p])):
                     bnodes[s][p] = LangString(bnodes[s][p])

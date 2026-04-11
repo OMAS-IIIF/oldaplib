@@ -342,32 +342,38 @@ DELETE DATA {
         expected = '''# LangString: Process "FR" with Action "create"
 WITH test:shacl
 INSERT {
+    ?property sh:property ?prop .
     ?prop sh:name """français"""@fr .
 }
 WHERE {
-    BIND(oldaplib:propShape as ?prop) .
-    ?prop dcterms:modified ?modified .
+    ?prop sh:path oldaplib:prop .
+    BIND(oldaplib:propShape as ?property) .
+    ?property dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
 };
 # LangString: Process "ZU" with Action "create"
 WITH test:shacl
 INSERT {
+    ?property sh:property ?prop .
     ?prop sh:name """undefined"""@zu .
 }
 WHERE {
-    BIND(oldaplib:propShape as ?prop) .
-    ?prop dcterms:modified ?modified .
+    ?prop sh:path oldaplib:prop .
+    BIND(oldaplib:propShape as ?property) .
+    ?property dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
 };
 # LangString: Process "EN" with Action "delete"
 WITH test:shacl
 DELETE {
+    ?property sh:property ?prop .
     ?prop sh:name """english"""@en .
 }
 WHERE {
-    BIND(oldaplib:propShape as ?prop) .
+    ?prop sh:path oldaplib:prop .
+    BIND(oldaplib:propShape as ?property) .
     ?prop sh:name """english"""@en .
-    ?prop dcterms:modified ?modified .
+    ?property dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
 }'''
         self.assertEqual(sstr, expected)

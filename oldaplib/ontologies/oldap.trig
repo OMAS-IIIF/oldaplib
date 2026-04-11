@@ -26,14 +26,11 @@
     :ExternalOntologyShape a sh:NodeShape ;
         sh:targetClass :ExternalOntology ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         rdfs:label "External Ontology"@en, "Externe Ontology"@de, "Ontologie externe"@fr, "External Ontology"@it ;
         rdfs:comment "Reference to an external ontology that is being used. Includes prefix and namespace IRI."@en ;
-        sh:property [
-            sh:path rdf:type ;
-        ] ;
         sh:property [
             sh:path dcterms:creator ;
             sh:class :User ;
@@ -90,14 +87,11 @@
     :AdminPermissionShape a sh:NodeShape ;
         sh:targetClass :AdminPermission ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         rdfs:label "AdminPermission"@en, "AdminPermission"@de, "AdminPermission"@fr, "AdminPermission"@it ;
         rdfs:comment "Defines administrator permissions."@en ;
-        sh:property [
-            sh:path rdf:type ;
-        ] ;
         sh:property [
             sh:path rdfs:label ;
             sh:datatype rdf:langString ;
@@ -117,9 +111,9 @@
     #
     :hasAdminPermissionShape a sh:NodeShape ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         :appliesToProperty :inProject ;
         sh:property [
             sh:path :hasAdminPermission ;
@@ -132,9 +126,9 @@
     #
     :hasDefaultDataPermissionShape a sh:NodeShape ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         :appliesToProperty :hasRole ;
         sh:property [
             sh:path :hasDefaultDataPermission ;
@@ -147,10 +141,10 @@
     #
     :hasDataPermissionShape a sh:NodeShape ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
-        :appliesToProperty :hasRole ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        :appliesToProperty :attachedToRole ;
         sh:property [
             sh:path :hasDataPermission ;
             sh:class :DataPermission ;
@@ -162,14 +156,11 @@
     :DataPermissionShape a sh:NodeShape ;
         sh:targetClass :DataPermission ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         rdfs:label "DataPermission"@en, "DataPermission"@de, "DataPermission"@fr, "DataPermission"@it ;
         rdfs:comment "Defines data permissions."@en ;
-        sh:property [
-            sh:path rdf:type ;
-        ] ;
         sh:property [
             sh:path :permissionValue ;
             sh:datatype xsd:integer ;
@@ -227,14 +218,11 @@
     :RoleShape a sh:NodeShape ;
         sh:targetClass :Role ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         rdfs:label "Permission role"@en, "Berechtigungsrolle"@de, "Rôle d'autorisation"@fr, "Ruolo di autorizzazione"@it ;
         rdfs:comment "Defines a role regarding data permissions, e.g. Editor, Unknown, Contributor etc."@en ;
-        sh:property [
-            sh:path rdf:type ;
-        ] ;
         sh:property [
             sh:path dcterms:creator ;
             sh:class :User ;
@@ -291,15 +279,11 @@
     :ProjectShape a sh:NodeShape ;
         sh:targetClass :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         rdfs:label "Project"@en, "Projekt"@de, "Projet"@fr, "Progetto"@it ;
         rdfs:comment "Metadata about a project"@en ;
-
-        sh:property [
-            sh:path rdf:type ;
-        ] ;
         sh:property [
             sh:path dcterms:creator ;
             sh:class :User ;
@@ -381,9 +365,9 @@
     :UserShape a sh:NodeShape ;
         sh:targetClass :User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         sh:property [
             sh:path dcterms:creator ;
             sh:class :User ;
@@ -475,9 +459,10 @@
     #
     :OldapListShape a sh:NodeShape ;
         sh:targetClass :OldapList ;
-        sh:property [
-            sh:path rdf:type ;
-        ] ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         sh:property [
             sh:path dcterms:creator ;
             sh:class :User ;
@@ -519,9 +504,10 @@
 
     :OldapListNodeShape a sh:NodeShape ;
         sh:targetClass :OldapListNode ;
-        sh:property [
-            sh:path rdf:type ;
-        ] ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         sh:property [
             sh:path dcterms:creator ;
             sh:class :User ;
@@ -590,9 +576,9 @@
     :ThingShape a sh:NodeShape ;
         sh:targetClass :Thing ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:created "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         #sh:property [
         #    sh:path rdf:type ;
         #] ;

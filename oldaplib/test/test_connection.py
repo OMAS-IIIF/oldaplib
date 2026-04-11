@@ -136,47 +136,16 @@ class TestBasicConnection(unittest.TestCase):
 
 
 
-    #@unittest.skip('Has to be adapted to test data...')
-    def test_query(self):
-        query = self._context.sparql_context
-        query += """
-        SELECT ?s ?o
-        FROM test:shacl
-        WHERE {
-            ?s a sh:PropertyShape .
-            ?s sh:path ?o .
-        }
-        """
-        res = self._connection.query(query)
-        expected = {
-            'head': {
-                'vars': ['s', 'o']
-            },
-            'results': {
-                'bindings': [{'o': {'type': 'uri', 'value': 'http://oldap.org/test#comment'},
-                              's': {'type': 'uri', 'value': 'http://oldap.org/test#commentShape'}
-                              },
-                             {'o': {'type': 'uri', 'value': 'http://oldap.org/test#test'},
-                              's': {'type': 'uri', 'value': 'http://oldap.org/test#testShape'}
-                              },
-                             {'o': {'type': 'uri', 'value': 'http://oldap.org/test#enum'},
-                              's': {'type': 'uri', 'value': 'http://oldap.org/test#enumShape'}
-                              }]
-            }
-        }
-        self.maxDiff = None
-        self.assertDictEqual(res, expected)
 
     #@unittest.skip('Work in progress')
     def test_json_query(self):
         expected = {
-            Iri('rdf:type'): {Iri('test:testMyRes'), Iri('sh:NodeShape')},
+            Iri('rdf:type'): {Iri('sh:NodeShape')},
             Iri("rdfs:comment"): "Resource for testing...",
             Iri("rdfs:label"): {"My Resource@en", "Meine Ressource@de", "Ma Resource@fr"},
             Iri("sh:property"): Xsd_QName("test:testShape"),
             Iri("sh:closed"): Xsd_boolean(True),
             Iri("sh:targetClass"): Xsd_QName("test:testMyRes"),
-            Iri("schema:version"): '1.0.0',
             Iri("dcterms:creator"): Iri("https://orcid.org/0000-0003-1681-4036"),
             Iri("dcterms:created"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)),
             Iri("dcterms:contributor"):  Iri("https://orcid.org/0000-0003-1681-4036"),

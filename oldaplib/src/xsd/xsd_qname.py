@@ -149,6 +149,18 @@ class Xsd_QName(Xsd):
             return False
         return self._value != other._value
 
+    def __gt__(self, other: Xsd_QName | str) -> bool:
+        return self._value > str(other)
+
+    def __ge__(self, other: Xsd_QName | str) -> bool:
+        return self._value >= str(other)
+
+    def __lt__(self, other: Xsd_QName | str) -> bool:
+        return self._value < str(other)
+
+    def __le__(self, other: Xsd_QName | str) -> bool:
+        return self._value <= str(other)
+
     def __hash__(self) -> int:
         """
         Return the hash of the QName
@@ -219,6 +231,13 @@ class Xsd_QName(Xsd):
         :rtype: Xsd_QName | None
         """
         return self
+
+    def startswith(self, val: str):
+        return self._value.startswith(val)
+
+
+    def removesuffix(self, suffix: str) -> 'Xsd_QName':
+        return Xsd_QName(self._value.removesuffix(suffix))
 
 if __name__ == "__main__":
     q = Xsd_QName({})

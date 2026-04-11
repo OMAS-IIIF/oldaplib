@@ -1554,7 +1554,10 @@ class TestOldapListNode(unittest.TestCase):
                                   project=self._dmproject,
                                   property_class_iri=Xsd_QName(f'{dm_name}:selection'),
                                   toClass=node_classIri,
-                                  name=LangString(["Selection@en", "Selektion@de"]))
+                                  name=LangString(["Selection@en", "Selektion@de"]),
+                                  maxCount=Xsd_integer(1),
+                                  minCount=Xsd_integer(1),
+                                  order=1)
 
         #
         # Now we create a simple data model
@@ -1563,9 +1566,7 @@ class TestOldapListNode(unittest.TestCase):
                                project=self._dmproject,
                                owlclass_iri=Xsd_QName(f'{dm_name}:Resobj'),
                                label=LangString(["Resobj@en", "Resobj@de"]),
-                               properties=[
-                                   HasProperty(con=self._connection, project=self._dmproject, prop=selection, maxCount=Xsd_integer(1),
-                                               minCount=Xsd_integer(1), order=1)])
+                               properties=[selection])
         dm[Xsd_QName(f'{dm_name}:resobj')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._dmproject, ignore_cache=True)
@@ -1670,15 +1671,16 @@ class TestOldapListNode(unittest.TestCase):
                                   project=self._project,
                                   property_class_iri=Xsd_QName(f'{dm_name}:selection2'),
                                   toClass=node_classIri,
-                                  name=LangString(["Selection2@en", "Selektion2@de"]))
+                                  name=LangString(["Selection2@en", "Selektion2@de"]),
+                                  maxCount=Xsd_integer(1),
+                                  minCount=Xsd_integer(1),
+                                  order=1)
 
         resobj = ResourceClass(con=self._connection,
                                project=self._project,
                                owlclass_iri=Xsd_QName(f'{dm_name}:Resobj2'),
                                label=LangString(["Resobj2@en", "Resobj2@de"]),
-                               properties=[
-                                   HasProperty(con=self._connection, project=self._project, prop=selection, maxCount=Xsd_integer(1),
-                                               minCount=Xsd_integer(1), order=1)])
+                               properties=[selection])
         dm[Xsd_QName(f'{dm_name}:Resobj2')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
@@ -3000,14 +3002,18 @@ class TestOldapListNode(unittest.TestCase):
                               name=LangString(["Title@en", "Titel@de"]),
                               description=LangString(["Title of book@en", "Titel des Buches@de"]),
                               uniqueLang=Xsd_boolean(True),
-                              languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
+                              languageIn=LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT),
+                              minCount=Xsd_integer(1),
+                              order=1)
 
         category = PropertyClass(con=self._connection,
                                  project=project,
                                  property_class_iri=Xsd_QName(f'{dm_name}:category'),
                                  toClass=oldaplist.node_classIri,
                                  name=LangString(["Category@en", "Kategorie@de"]),
-                                 description=LangString(["Category@en", "Kategorie@de"]))
+                                 description=LangString(["Category@en", "Kategorie@de"]),
+                                 minCount=Xsd_integer(1),
+                                 order=2)
 
         categoryitem = ResourceClass(con=self._connection,
                                      project=project,
@@ -3015,11 +3021,7 @@ class TestOldapListNode(unittest.TestCase):
                                      label=LangString(["CategoryItem@en", "CategoryItem@de"]),
                                      comment=LangString("Something with categories@en"),
                                      closed=Xsd_boolean(True),
-                                     properties=[
-                                         HasProperty(con=self._connection, project=project, prop=title, minCount=Xsd_integer(1),
-                                                     order=1),
-                                         HasProperty(con=self._connection, project=project, prop=category, minCount=Xsd_integer(1),
-                                                     order=2)])
+                                     properties=[title, category])
         #dm = DataModel(con=self._connection, project=project, resclasses=[categoryitem])
         #dm.create()
 
