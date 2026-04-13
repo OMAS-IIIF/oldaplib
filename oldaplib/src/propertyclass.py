@@ -846,7 +846,7 @@ class PropertyClass(Model, Notify):
                 ele = RdfModifyItem(prop.value, old_value, new_value)
                 if prop.datatype == XsdSet or prop.datatype == LanguageIn:
                     sparql += RdfModifyProp.replace_rdfset(action=change.action,
-                                                           graph=self._graph,
+                                                           graph=Xsd_QName(self._graph, 'shacl'),
                                                            owlclass_iri=owlclass_iri,
                                                            pclass_iri=self._property_class_iri,
                                                            ele=ele,

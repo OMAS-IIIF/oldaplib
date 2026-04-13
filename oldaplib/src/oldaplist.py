@@ -831,13 +831,23 @@ class OldapList(Model):
         #
         context = Context(name=self._con.context_name)
         query2 = context.sparql_context
+        # query2 += f'''
+        # ASK {{
+        #     GRAPH {self.__graph}:shacl {{
+        #         ?propobj sh:class {self.__node_class_iri.toRdf} .
+        #     }}
+        # }}
+        # '''
         query2 += f'''
         ASK {{
             GRAPH {self.__graph}:shacl {{
-                ?propobj sh:class {self.__node_class_iri.toRdf} .
+                ?node a sh:NodeShape .
+                ?node sh:property ?propnode .
+                ?propnode sh:class {self.__node_class_iri.toRdf} .
             }}
         }}
         '''
+
         return query1, query2
 
     def in_use(self) -> bool:
