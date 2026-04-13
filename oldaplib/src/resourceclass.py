@@ -10,7 +10,6 @@ from typing import Union, List, Dict, Callable, Self, Any, TypeVar
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.attributeclass import AttributeClass
-from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.construct_processor import ConstructResultDict, ConstructProcessor
 from oldaplib.src.helpers.irincname import IriOrNCName
@@ -265,8 +264,8 @@ class ResourceClass(Model, Notify):
             if getattr(value, 'set_notifier', None) is not None:
                 value.set_notifier(self.notifier, attr)
         if  self._properties:
-            for iri, hasprop in self._properties.items():
-                hasprop.update_notifier(self.notifier, iri)
+            for iri, prop in self._properties.items():
+                prop.update_notifier(self.notifier, iri)
 
 
     def _as_dict(self):
@@ -400,8 +399,8 @@ class ResourceClass(Model, Notify):
         # we have to set the callback for the associated props to the method in the new instance
         #
         instance.update_notifier()
-        # for iri, hasprop in instance._properties.items():
-        #     hasprop.set_notifier(instance.hp_notifier, hasprop.prop.property_class_iri)
+        # for iri, prop in instance._properties.items():
+        #     prop.set_notifier(instance.hp_notifier, prop.prop.property_class_iri)
         return instance
 
 
@@ -891,7 +890,7 @@ class ResourceClass(Model, Notify):
                 match(change.action):
                     case Action.CREATE:
                         #
-                        # We add a new HasPropertyClass instance with attached PropertyClass or reference
+                        # We add a new PropertyClass instance with attached PropertyClass or reference
                         #
                         sparql: str | None = None
                         if isinstance(self._properties[propiri], PropertyClass):
@@ -906,7 +905,7 @@ class ResourceClass(Model, Notify):
                             sparql_list.append(sparql)
                     case Action.DELETE:
                         #
-                        # We delete a HasPropertyClass. If the property is internal, we delete it
+                        # We delete a PropertyClass. If the property is internal, we delete it
                         # TODO: check if th PropertyClass is used ba a some data
                         #
                         sparql = change.old_value.delete_shacl()
@@ -919,7 +918,7 @@ class ResourceClass(Model, Notify):
                         raise OldapErrorAlreadyExists(f'Property can not be replaced!')
                     case Action.MODIFY:
                         #
-                        # Something happend within an existing HasPropertyClass instance
+                        # Something happend within an existing PropertyClass instance
                         #
                         # the following method only updates attributes that have changed
                         sparql = self._properties[propiri].update_shacl(owlclass_iri=self._owlclass_iri,
@@ -1038,7 +1037,7 @@ class ResourceClass(Model, Notify):
                         raise OldapErrorInconsistency(f'Property can not be replaced!')
                     case Action.DELETE:
                         #
-                        # We delete a HasPropertyClass. If the property is internal, we delete it
+                        # We delete a PropertyClass. If the property is internal, we delete it
                         # TODO: check if th PropertyClass is used ba a some data
                         #
                         sparql = change.old_value.delete_owl()
@@ -1048,28 +1047,12 @@ class ResourceClass(Model, Notify):
 
                     case Action.MODIFY:
                         #
-                        # Something happend within an existing HasPropertyClass instance
+                        # Something happend within an existing PropertyClass instance
                         #
                         for key, value in self._properties[item].changeset.items():
-                            if isinstance(key, HasPropertyAttr):
-                                #
-                                # an attribute was added, deleted or has changed
-                                #
+                            if isinstance(key, (Xsd_QName, PropClassAttr)):
                                 sparql = self._properties[propiri].update_owl(owlclass_iri=self._owlclass_iri)
                                 sparql_list.append(sparql)
-                            elif isinstance(key, Xsd_QName):
-                                sparql = self._properties[propiri].update_owl(owlclass_iri=self._owlclass_iri)
-                                sparql_list.append(sparql)
-
-        #
-        # Updating the timestamp and contributor ID
-        #
-        # sparql = RdfModifyRes.update_timestamp_contributors(contributor=self._con.userIri,
-        #                                                     timestamp=timestamp,
-        #                                                     old_timestamp=self._modified,
-        #                                                     iri=self._owlclass_iri,
-        #                                                     graph=Xsd_QName(f'{self._graph}:onto'))
-        # sparql_list.append(sparql)
 
         #
         # now remove empty sparql statements (coming from changes that only affect SHACL but not OWL)!
@@ -1120,21 +1103,21 @@ class ResourceClass(Model, Notify):
                 if change.action != Action.CREATE and self._properties.get(item) is not None:
                     for i, c in self._properties[item].changeset.items():
                         match(i):
-                            case HasPropertyAttr.MIN_COUNT:
-                                if self._properties[item][HasPropertyAttr.MIN_COUNT] is None:
+                            case PropClassAttr.MIN_COUNT:
+                                if self._properties[item][PropClassAttr.MIN_COUNT] is None:
                                     continue
-                                if self._properties[item].changeset[HasPropertyAttr.MIN_COUNT].old_value is None:
+                                if self._properties[item].changeset[PropClassAttr.MIN_COUNT].old_value is None:
                                     self._test_in_use = True
                                     continue
-                                if self._properties[item][HasPropertyAttr.MIN_COUNT] > self._properties[item].changeset[HasPropertyAttr.MIN_COUNT].old_value:
+                                if self._properties[item][PropClassAttr.MIN_COUNT] > self._properties[item].changeset[PropClassAttr.MIN_COUNT].old_value:
                                     self._test_in_use = True
-                            case HasPropertyAttr.MAX_COUNT:
-                                if self._properties[item][HasPropertyAttr.MAX_COUNT] is None:
+                            case PropClassAttr.MAX_COUNT:
+                                if self._properties[item][PropClassAttr.MAX_COUNT] is None:
                                     continue
-                                if self._properties[item].changeset[HasPropertyAttr.MAX_COUNT].old_value is None:
+                                if self._properties[item].changeset[PropClassAttr.MAX_COUNT].old_value is None:
                                     self._test_in_use = True
                                     continue
-                                if self._properties[item][HasPropertyAttr.MAX_COUNT] < self._properties[item].changeset[HasPropertyAttr.MAX_COUNT].old_value:
+                                if self._properties[item][PropClassAttr.MAX_COUNT] < self._properties[item].changeset[PropClassAttr.MAX_COUNT].old_value:
                                     self._test_in_use = True
 
 

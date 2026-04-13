@@ -29,6 +29,7 @@ from oldaplib.src.model import Model
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 
 @dataclass
 class ExternalOntologyChange:
@@ -371,12 +372,21 @@ class DataModel(Model):
                 property_class_iri = Xsd_QName(propshape.prefix, propshape.fragment.removesuffix('Shape'))
             if onto_obj.get(property_class_iri) is not None:
                 # some consistency checks between SHACL and OWL
-                if onto_obj[property_class_iri][Xsd_QName("rdf:type")] == Xsd_QName("owl:DatatypeProperty") and attributes.get('datatype') is None:
+                types = onto_obj[property_class_iri][Xsd_QName("rdf:type")] if isinstance(onto_obj[property_class_iri][Xsd_QName("rdf:type")], list) else [onto_obj[property_class_iri][Xsd_QName("rdf:type")]]
+                if Xsd_QName("owl:DatatypeProperty") in types and attributes.get('datatype') is None:
                     raise OldapErrorInconsistency(f'Property with "owl:DatatypeProperty" must have "sh:datetype" defined! ({property_class_iri})')
-                if onto_obj[property_class_iri][Xsd_QName("rdf:type")] == Xsd_QName("owl:ObjectProperty") and attributes.get('class') is None:
+                if Xsd_QName("owl:ObjectProperty") in types and (attributes.get('class') is None and attributes.get('nodeKind') is None):
                     raise OldapErrorInconsistency(f'Property with "owl:ObjectProperty" must have "sh:class" defined! ({property_class_iri})')
                 if onto_obj[property_class_iri].get('rdfs:subPropertyOf'):
                     attributes['subPropertyOf'] = onto_obj[property_class_iri]['rdfs:subPropertyOf']
+                if onto_obj[property_class_iri].get('owl:inverseOf'):
+                    attributes['inverseOf'] = onto_obj[property_class_iri]['owl:inverseOf']
+                if onto_obj[property_class_iri].get('owl:equivalentProperty'):
+                    attributes['equivalentProperty'] = onto_obj[property_class_iri]['owl:equivalentProperty']
+                if onto_obj[property_class_iri].get('rdf:type'):
+                    tmp = [OwlPropertyType(t) for t in types if t not in {Xsd_QName('owl:ObjectProperty'), Xsd_QName('owl:DatatypeProperty')}]
+                    if tmp:
+                        attributes['type'] = tmp
 
             propclass = PropertyClass(con=con,
                                      project=proj,
@@ -411,11 +421,30 @@ class DataModel(Model):
                     attributes = {attr.fragment: value for attr, value in propshape.items()}
                     # TODO: insert here consistency checks...
                     # TODO: Add data from :onto graph
+
+                    if onto_obj.get(property_class_iri):
+                        types = onto_obj[property_class_iri][Xsd_QName("rdf:type")] if isinstance(onto_obj[property_class_iri][Xsd_QName("rdf:type")], list) else [onto_obj[property_class_iri][Xsd_QName("rdf:type")]]
+                        if Xsd_QName("owl:DatatypeProperty") in types and attributes.get('datatype') is None:
+                            raise OldapErrorInconsistency(f'Property with "owl:DatatypeProperty" must have "sh:datetype" defined! ({property_class_iri})')
+                        if Xsd_QName("owl:ObjectProperty") in types and (attributes.get('class') is None and attributes.get('nodeKind') is None):
+                            raise OldapErrorInconsistency(f'Property with "owl:ObjectProperty" must have "sh:class" defined! ({property_class_iri})')
+                        if onto_obj[property_class_iri].get('rdfs:subPropertyOf'):
+                            attributes['subPropertyOf'] = onto_obj[property_class_iri]['rdfs:subPropertyOf']
+                        if onto_obj[property_class_iri].get('owl:inverseOf'):
+                            attributes['inverseOf'] = onto_obj[property_class_iri]['owl:inverseOf']
+                        if onto_obj[property_class_iri].get('owl:equivalentProperty'):
+                            attributes['equivalentProperty'] = onto_obj[property_class_iri]['owl:equivalentProperty']
+                        if onto_obj[property_class_iri].get('rdf:type'):
+                            tmp = [OwlPropertyType(t) for t in types if
+                                   t not in {Xsd_QName('owl:ObjectProperty'), Xsd_QName('owl:DatatypeProperty')}]
+                            if tmp:
+                                attributes['type'] = tmp
+
                     property = PropertyClass(con=con,
-                                              project=proj,
-                                              property_class_iri=property_class_iri,
-                                              validate=False,
-                                              **attributes)
+                                             project=proj,
+                                             property_class_iri=property_class_iri,
+                                             validate=False,
+                                             **attributes)
                     properties.append(property)
 
             tmp_resclass_iri = resshape[Xsd_QName("sh:targetClass")]
@@ -477,6 +506,7 @@ class DataModel(Model):
             shacl_version = SemanticVersion.fromString(tmp_version)
         else:
             shacl_version = SemanticVersion.fromString('0.0.1')
+
 
         if onto_obj.get(Xsd_QName(graph, 'ontology')):
             tmp_version = onto_obj[Xsd_QName(graph, 'ontology')].get(Xsd_QName('owl:versionInfo'))

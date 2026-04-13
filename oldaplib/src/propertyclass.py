@@ -325,7 +325,7 @@ class PropertyClass(Model, Notify):
             to_delete = self._attributes.get(attr) - remaining
             for x in to_delete:
                 self._attributes[attr].discard(x)
-                return
+            return
         super()._del_value(attr)
 
     def _change_setter(self: Self, attr: PropClassAttr, value: PropTypes) -> None:
@@ -908,19 +908,39 @@ class PropertyClass(Model, Notify):
                         toType = 'owl:DatatypeProperty'
                     sparql = textwrap.dedent(f'''
                     WITH {self._graph}:onto
-                        DELETE {{{self._property_class_iri} rdf:type {fromType} }}
+                        DELETE {{ {self._property_class_iri} rdf:type {fromType} }}
                         INSERT {{ {self._property_class_iri} rdf:type {toType} . }}
                         WHERE {{ {self._property_class_iri} rdf:type {fromType} . }}
                     ''')
                     datatype_class_change = True
                 sparql_list.append(sparql)
             if prop == PropClassAttr.TYPE:
-                sparql = self._attributes[prop].update_sparql(graph=Xsd_QName(str(self._graph), 'onto'),
-                                                              subject=self._property_class_iri,
-                                                              ignoreitems={OwlPropertyType.OwlDataProperty,OwlPropertyType.OwlObjectProperty},
-                                                              field=prop)
-                sparql_list.extend(sparql)
-
+                actual_items = set(self._attributes[prop])
+                old_items = set(self._attributes[prop].old_value)
+                added_items = actual_items - old_items
+                removed_items = old_items - actual_items
+                if added_items:
+                    tmp = [x.toRdf for x in added_items]
+                    tmpstr = ", ".join(tmp)
+                    sparql = textwrap.dedent(f'''
+                    INSERT DATA {{
+                        GRAPH {self._graph}:onto {{
+                            {self._property_class_iri} rdf:type {tmpstr} .
+                        }}
+                    }}
+                    ''')
+                    sparql_list.append(sparql)
+                if removed_items:
+                    tmp = [x.toRdf for x in removed_items]
+                    tmpstr = ", ".join(tmp)
+                    sparql = textwrap.dedent(f'''
+                    DELETE DATA {{
+                        GRAPH {self._graph}:onto {{
+                            {self._property_class_iri} rdf:type {tmpstr} .
+                        }}
+                    }}
+                    ''')
+                    sparql_list.append(sparql)
 
         sparql = " ;\n".join(sparql_list)
         return sparql

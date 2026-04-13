@@ -9,6 +9,7 @@ from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel, PropertyClassChange, ResourceClassChange
 from oldaplib.src.dtypes.languagein import LanguageIn
+from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.externalontology import ExternalOntology
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.enums.action import Action
@@ -30,7 +31,6 @@ from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
-from oldaplib.src.hasproperty import HasProperty
 
 
 def find_project_root(current_path):
@@ -648,6 +648,74 @@ class TestDataModel(unittest.TestCase):
         model = DataModel.read(self._connection, self._sysproject, ignore_cache=False)
         end = time()
         print(f"With cache execution time: {end - start:.4f} seconds")
+
+    def test_datamode_create_and_mod_A(self):
+
+        dmname = self._dmprojectA.projectShortName
+
+        p1 = PropertyClass(con=self._connection,
+                           project=self._dmprojectA,
+                           property_class_iri=Xsd_QName(self._dmprojectA.projectShortName, 'hasGaga'),
+                           type=[OwlPropertyType.ReflexiveProperty, OwlPropertyType.TransitiveProperty],
+                           datatype=XsdDatatypes.string,
+                           minCount=1,
+                           order=1)
+        r1 = ResourceClass(con=self._connection,
+                           owlclass_iri=Xsd_QName(self._dmprojectA.projectShortName, 'GAGA'),
+                           project=self._dmprojectA,
+                           properties=[p1])
+
+        dm = DataModel(con=self._connection,
+                       project=self._dmprojectA,
+                       resclasses=[r1])
+        dm.create()
+
+        dm = DataModel.read(self._connection, self._dmprojectA, ignore_cache=True)
+        dm[Xsd_QName(dmname, 'GAGA')][Xsd_QName(dmname, 'hasGaga')].type.add(OwlPropertyType.IrreflexiveProperty)
+        dm[Xsd_QName(dmname, 'GAGA')][Xsd_QName(dmname, 'hasGaga')].type.discard(OwlPropertyType.ReflexiveProperty)
+        dm.update()
+
+        dm = DataModel.read(self._connection, self._dmprojectA, ignore_cache=True)
+
+        self.assertEqual(dm[Xsd_QName(dmname, 'GAGA')][Xsd_QName(dmname, 'hasGaga')].type,
+                         {OwlPropertyType.IrreflexiveProperty,
+                          OwlPropertyType.OwlDataProperty,
+                          OwlPropertyType.TransitiveProperty})
+
+        dm.delete()
+
+    def test_datamode_create_and_mod_B(self):
+
+        dmname = self._dmprojectA.projectShortName
+
+        p1 = PropertyClass(con=self._connection,
+                           project=self._dmprojectA,
+                           property_class_iri=Xsd_QName(self._dmprojectA.projectShortName, 'hasGaga'),
+                           appliesToProperty=Xsd_QName(dmname, 'hasStar'),
+                           type=[OwlPropertyType.ReflexiveProperty, OwlPropertyType.TransitiveProperty],
+                           datatype=XsdDatatypes.string,
+                           minCount=1,
+                           order=1)
+
+        dm = DataModel(con=self._connection,
+                       project=self._dmprojectA,
+                       propclasses=[p1])
+        dm.create()
+
+        dm = DataModel.read(self._connection, self._dmprojectA, ignore_cache=True)
+        dm[Xsd_QName(dmname, 'hasGaga')].type.add(OwlPropertyType.IrreflexiveProperty)
+        dm[Xsd_QName(dmname, 'hasGaga')].type.discard(OwlPropertyType.ReflexiveProperty)
+        dm.update()
+
+        dm = DataModel.read(self._connection, self._dmprojectA, ignore_cache=True)
+
+        self.assertEqual(dm[Xsd_QName(dmname, 'hasGaga')].type,
+                         {OwlPropertyType.IrreflexiveProperty,
+                          OwlPropertyType.OwlDataProperty,
+                          OwlPropertyType.TransitiveProperty})
+
+        dm.delete()
+
 
     # @unittest.skip('Work in progress')
     def test_datamodel_modify_A(self):

@@ -68,7 +68,20 @@
             sh:nodeKind sh:IRI ;
             sh:maxCount 1 ;
             sh:minCount 1 ;
+        ] ;
+        sh:property [
+            sh:path rdfs:label ;
+            sh:datatype rdf:langString ;
+            sh:languageIn ( "en" "de" "fr" "it" ) ;
+            sh:uniqueLang true ;
+        ] ;
+        sh:property [
+            sh:path rdfs:comment ;
+            sh:datatype rdf:langString ;
+            sh:languageIn ( "en" "de" "fr" "it" ) ;
+            sh:uniqueLang true ;
         ] .
+
 
     #
     # Define a SHACL property group for all system properties. This info can be used to hide these properties from
@@ -624,6 +637,7 @@
     #
     oldap:externalOntology a owl:AnnotationProperty .
 
+
     ###############################################################################
     # Extension (non-standard) for RDF*star
     ###############################################################################
@@ -639,6 +653,7 @@
     ###############################################################################
 
     :namespaceIri a owl:ObjectProperty .
+
 
     ###############################################################################
     # Properties used for extrernal ontologies
@@ -718,7 +733,7 @@
     #
     # Example: <<:MyInstance :attachedToRole>> :hasDataPermission :DATA_RESTRICTED .
     #
-    :hasDataPermission rdf:type rdf:Property, owl:ObjectProperty .
+    :hasDataPermission rdf:type owl:ObjectProperty .
 
 
     #################################################################

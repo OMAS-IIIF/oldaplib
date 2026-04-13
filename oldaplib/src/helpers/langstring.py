@@ -555,7 +555,6 @@ class LangString(Notify):
             sparql += f'{blank:{indent * indent_inc}}WITH {graph}:shacl\n'
             if change.action != Action.CREATE:
                 sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?property sh:property ?prop .\n'
                 tmpstr = f'"""{change.old_value}"""@{lang.name.lower()}'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} {tmpstr} .\n'
                 sparql += f'{blank:{indent * indent_inc}}}}\n'

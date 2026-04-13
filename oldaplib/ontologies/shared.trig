@@ -237,6 +237,7 @@ shared:onto {
     # Media object
     ###########################################################################
 
+    dcterms:type rdf:type owl:ObjectProperty .
 
     shared:originalName rdf:type owl:DatatypeProperty .
 

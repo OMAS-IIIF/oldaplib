@@ -29,7 +29,6 @@ from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropClassAttrContainer, PropertyClass
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 from oldaplib.src.resourceclass import ResourceClass
-from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime

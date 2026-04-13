@@ -149,16 +149,16 @@ class Xsd_QName(Xsd):
             return False
         return self._value != other._value
 
-    def __gt__(self, other: Xsd_QName | str) -> bool:
+    def __gt__(self, other: Self | str) -> bool:
         return self._value > str(other)
 
-    def __ge__(self, other: Xsd_QName | str) -> bool:
+    def __ge__(self, other: Self | str) -> bool:
         return self._value >= str(other)
 
-    def __lt__(self, other: Xsd_QName | str) -> bool:
+    def __lt__(self, other: Self | str) -> bool:
         return self._value < str(other)
 
-    def __le__(self, other: Xsd_QName | str) -> bool:
+    def __le__(self, other: Self | str) -> bool:
         return self._value <= str(other)
 
     def __hash__(self) -> int:

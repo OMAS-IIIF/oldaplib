@@ -17,11 +17,9 @@ from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
-from oldaplib.src.enums.haspropertyattr import HasPropertyAttr
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
-from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.convert2datatype import convert2datatype
@@ -601,7 +599,7 @@ class ResourceInstance:
         #
         # Validate
         #
-        #if prop.get(HasPropertyAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
+        #if prop.get(PropClassAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
         if prop.minCount:
             if prop.minCount > 0 and not value:
                 raise OldapErrorValue(

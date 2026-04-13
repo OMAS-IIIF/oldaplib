@@ -366,7 +366,6 @@ WHERE {
 # LangString: Process "EN" with Action "delete"
 WITH test:shacl
 DELETE {
-    ?property sh:property ?prop .
     ?prop sh:name """english"""@en .
 }
 WHERE {
@@ -376,6 +375,7 @@ WHERE {
     ?property dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
 }'''
+        self.maxDiff = None
         self.assertEqual(sstr, expected)
 
     def test_langstring_delete_shacl(self):

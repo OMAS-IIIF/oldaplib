@@ -10,7 +10,6 @@ from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.roleattr import RoleAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
-from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.role import Role
