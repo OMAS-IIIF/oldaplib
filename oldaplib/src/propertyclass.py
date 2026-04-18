@@ -22,7 +22,7 @@ from datetime import datetime
 from functools import partial
 from pprint import pprint
 from secrets import token_urlsafe
-from typing import Callable, Self, Any
+from typing import Callable, Self, Any, Tuple
 
 from rdflib.extras import shacl
 
@@ -818,7 +818,7 @@ class PropertyClass(Model, Notify):
                                                                   attr=prop,
                                                                   modified=self._modified if self.appliesToProperty else None,
                                                                   indent=indent, indent_inc=indent_inc)
-                elif prop.datatype == ObservableSet:
+                elif prop.datatype == (ObservableSet, OwlPropertyType):
                     if prop == PropClassAttr.TYPE:
                         if self._attributes[prop].old_value:
                             added = set(self._attributes[PropClassAttr.TYPE]) - set(self._attributes[prop].old_value)

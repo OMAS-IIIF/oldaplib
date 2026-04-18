@@ -70,6 +70,26 @@
             sh:minCount 1 ;
         ] ;
         sh:property [
+            sh:path :proposedResourceClass ;
+            sh:name "Proposed Resource class"@en,
+                        "Vorgeschlagene Ressourcenklasse"@de,
+                        "Proposition de classe de ressources"@fr,
+                        "Classe di risorse proposta"@it ;
+            sh:description "Proposed Resource class to be used as superclass"@en,
+                               "Vorgeschlagene Ressourcenklasse, die als Oberklasse verwendet werden soll"@de,
+                               "Classe « Resource » proposée pour servir de superclasse"@fr,
+                               "Classe “Resource” proposta da utilizzare come superclasse"@it ;
+            sh:datatype xsd:QName ;
+        ] ;
+        sh:property [
+            sh:path :proposedDatatypePropertyClass ;
+            sh:datatype xsd:QName ;
+        ] ;
+        sh:property [
+            sh:path :proposedObjectPropertyClass ;
+            sh:datatype xsd:QName ;
+        ] ;
+        sh:property [
             sh:path rdfs:label ;
             sh:datatype rdf:langString ;
             sh:languageIn ( "en" "de" "fr" "it" ) ;
@@ -659,6 +679,12 @@
     # Properties used for extrernal ontologies
     ###############################################################################
     :prefix a owl:DatatypeProperty .
+
+    :proposedResourceClass a owl:DatatypeProperty .
+
+    :proposedDatatypePropertyClass a owl:DatatypeProperty .
+
+    :proposedObjectPropertyClass a owl:DatatypeProperty .
 
     ###############################################################################
     # Properties that are used by the :DataPermission class

@@ -17,6 +17,7 @@ from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission, OldapErrorAlreadyExists, \
     OldapErrorNotFound, OldapErrorUpdateFailed, OldapErrorInUse
 from oldaplib.src.helpers.query_processor import QueryProcessor
@@ -71,6 +72,9 @@ class ExternalOntology(Model, Notify):
                 partial(ExternalOntology._get_value, attr=attr),
                 partial(ExternalOntology._set_value, attr=attr),
                 partial(ExternalOntology._del_value, attr=attr)))
+
+        context = Context(name=self._con.context_name)
+        context[self.prefix] = self.namespaceIri
         self.update_notifier()
         #self._changeset = {}
 
@@ -160,8 +164,9 @@ class ExternalOntology(Model, Notify):
         sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}dcterms:modified {timestamp.toRdf}'
         for attr, value in self._attributes.items():
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
+        print(sparql)
         return sparql
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -245,6 +250,9 @@ class ExternalOntology(Model, Notify):
         prefix: NCName | None = None
         label: LangString = LangString()
         comment: LangString = LangString()
+        proposedResourceClass: ObservableSet = ObservableSet(datatype=Xsd_NCName)
+        proposedDatatypePropertyClass: ObservableSet = ObservableSet(datatype=Xsd_NCName)
+        proposedObjectPropertyClass: ObservableSet = ObservableSet(datatype=Xsd_NCName)
         for r in res:
             match str(r['p']):
                 case 'dcterms:creator':
@@ -263,10 +271,23 @@ class ExternalOntology(Model, Notify):
                     label.add(r['o'])
                 case 'rdfs:comment':
                     comment.add(r['o'])
+                case 'oldap:proposedResourceClass':
+                    proposedResourceClass.add(r['o'])
+                case 'oldap:proposedDatatypePropertyClass':
+                    proposedDatatypePropertyClass.add(r['o'])
+                case 'oldap:proposedObjectPropertyClass':
+                    proposedObjectPropertyClass.add(r['o'])
         if comment:
             comment.clear_changeset()
         if label:
             label.clear_changeset()
+        if proposedResourceClass:
+            proposedResourceClass.clear_changeset()
+        if proposedDatatypePropertyClass:
+            proposedDatatypePropertyClass.clear_changeset()
+        if proposedObjectPropertyClass:
+            proposedObjectPropertyClass.clear_changeset()
+
         instance = cls(con=con,
                        projectShortName=projectShortName,
                        creator=creator,
@@ -277,6 +298,9 @@ class ExternalOntology(Model, Notify):
                        namespaceIri=namespace_iri,
                        label=label,
                        comment=comment,
+                       proposedResourceClass=proposedResourceClass,
+                       proposedDatatypePropertyClass=proposedDatatypePropertyClass,
+                       proposedObjectPropertyClass=proposedObjectPropertyClass,
                        validate=False)
         instance.update_notifier()
         cache = CacheSingletonRedis()
@@ -366,6 +390,25 @@ class ExternalOntology(Model, Notify):
                         self._attributes[attr].update(graph=Xsd_QName(self.__projectShortName, 'shacl'),
                                                       subject=self.__extonto_qname,
                                                       field=attr.value))
+                if change.action == Action.DELETE or change.action == Action.REPLACE:
+                    sparql = self._changeset[attr].old_value.delete(graph=Xsd_QName(self.__projectShortName, 'shacl'),
+                                                                    subject=self.__extonto_qname,
+                                                                    field=attr.value)
+                    sparql_list.append(sparql)
+                if change.action == Action.CREATE or change.action == Action.REPLACE:
+                    sparql = self._attributes[attr].create(graph=Xsd_QName(self.__projectShortName, 'shacl'),
+                                                           subject=self.__extonto_qname,
+                                                           field=attr.value)
+                    sparql_list.append(sparql)
+                continue
+            if attr in {ExternalOntologyAttr.PROPOSED_RESOURCE_CLASS,
+                        ExternalOntologyAttr.PROPOSED_DATATYPE_PROPERTY_CLASS,
+                        ExternalOntologyAttr.PROPOSED_OBJECT_PROPERTY_CLASS}:
+                if change.action == Action.MODIFY:
+                    sparql_list.extend(
+                        self._attributes[attr].update_sparql(graph=Xsd_QName(self.__projectShortName, 'shacl'),
+                                                             subject=self.__extonto_qname,
+                                                             field=attr.value))
                 if change.action == Action.DELETE or change.action == Action.REPLACE:
                     sparql = self._changeset[attr].old_value.delete(graph=Xsd_QName(self.__projectShortName, 'shacl'),
                                                                     subject=self.__extonto_qname,

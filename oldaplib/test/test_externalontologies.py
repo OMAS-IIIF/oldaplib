@@ -11,6 +11,7 @@ from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapError, OldapErrorImmutable
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
@@ -88,6 +89,24 @@ class TestexternalOntologies(unittest.TestCase):
         ExternalOntology.delete_all(con=self._connection, projectShortName="testext")
         pass
 
+    def test_create2(self):
+        p = Project.read(con=self._connection, projectIri_SName="testext", ignore_cache=True)
+        dm = DataModel.read(con=self._connection, project="testext", ignore_cache=True)
+
+        eo1 = ExternalOntology(con=self._connection,
+                               projectShortName="testext",
+                               prefix="gagaAA",
+                               label=LangString("GAGA AA ontology@en", "Gaga AA Ontologie@de"),
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaAA/"),
+                               proposedResourceClass=[Xsd_NCName('GAGA'), Xsd_NCName('GUGUS')],
+                               proposedDatatypePropertyClass=[Xsd_NCName('aLiteralA'), Xsd_NCName('aLiteralB')],
+                               proposedObjectPropertyClass=[Xsd_NCName('toGAGA'), Xsd_NCName('toGUGUS')])
+        eo1.create()
+        eo1 = ExternalOntology.read(con=self._connection, projectShortName="testext", prefix="gagaAA", ignore_cache=True)
+        print(eo1.proposedResourceClass)
+
+        ExternalOntology.delete_all(con=self._connection, projectShortName="testext")
+
 
     def test_update(self):
         p = Project.read(con=self._connection, projectIri_SName="testext", ignore_cache=True)
@@ -97,7 +116,11 @@ class TestexternalOntologies(unittest.TestCase):
                                projectShortName="testext",
                                prefix="gagaB",
                                label=LangString("GAGA B ontology@en", "Gaga B Ontologie@de"),
-                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaB/"))
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaB/"),
+                               proposedResourceClass=[Xsd_NCName('GAGA'), Xsd_NCName('GUGUS')],
+                               proposedDatatypePropertyClass=[Xsd_NCName('aLiteralA'), Xsd_NCName('aLiteralB')],
+                               proposedObjectPropertyClass=[Xsd_NCName('toGAGA'), Xsd_NCName('toGUGUS')])
+
         eo1.create()
 
         del eo1
@@ -107,6 +130,9 @@ class TestexternalOntologies(unittest.TestCase):
         eo1.comment = LangString("Gugus comment@en", "Gugus Kommentar@de")
         del eo1.label[Language.DE]
         eo1.label[Language.FR] = "GAGA B ontologie"
+
+        eo1.proposedResourceClass.discard('GAGA')
+        eo1.proposedResourceClass.add('WASELIWAS')
         eo1.update()
 
         del eo1

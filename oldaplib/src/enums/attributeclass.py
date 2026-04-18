@@ -1,5 +1,5 @@
 from enum import Enum, Flag, auto, unique
-from typing import Type, Self, Any
+from typing import Type, Self, Any, Tuple
 
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -21,7 +21,7 @@ class AttributeClass(Enum):
                 value: Xsd_QName | str,
                 mandatory: bool,
                 immutable: bool,
-                datatype: Type,
+                datatype: Type | Tuple[Type,Type],
                 target: Target = Target.BOTH):
         """
         :param value: The value of the attribute-enum item. Must have the form of a QName!
@@ -50,7 +50,7 @@ class AttributeClass(Enum):
         return self._name
 
     @property
-    def datatype(self) -> Type:
+    def datatype(self) -> Type | Tuple[Type,Type]:
         return self._datatype
 
     @property

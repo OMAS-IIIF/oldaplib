@@ -1,9 +1,10 @@
 import json
+from collections.abc import Iterable
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 from pprint import pprint
-from typing import Set, Dict, Any, Self
+from typing import Set, Dict, Any, Self, Tuple
 
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
@@ -13,6 +14,7 @@ from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.numeric import Numeric
+from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
@@ -178,7 +180,21 @@ class Model:
                 if attr.datatype == XsdDatatypes:
                     self._attributes[attr] = XsdDatatypes(value)
                 else:
-                    self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value, validate=self._validate)
+                    if isinstance(attr.datatype, tuple):
+                        if attr.datatype[0] == ObservableSet:
+                            if not isinstance(value, Iterable):
+                                tmp = set(value)
+                            else:
+                                tmp = value
+                            if not all(isinstance(x, attr.datatype[1]) for x in tmp):
+                                tmp = ObservableSet({attr.datatype[1](x, validate=self._validate) for x in value}, datatype=attr.datatype[1])
+                            if not isinstance(tmp, ObservableSet):
+                                tmp = ObservableSet(tmp, datatype=attr.datatype[1])
+                            self._attributes[attr] = tmp
+                        else:
+                            raise OldapErrorType(f'Unknown datatype in configuration of attribute "{attr.name}": {attr.datatype} ({value}).')
+                    else:
+                        self._attributes[attr] = value if isinstance(value, attr.datatype) else attr.datatype(value, validate=self._validate)
             except ValueError as err:
                 raise OldapErrorValue(err)
             if hasattr(self._attributes[attr], 'set_notifier'):
@@ -225,11 +241,19 @@ class Model:
             if self._attributes.get(attr) is not None:
                 del self._attributes[attr]
         else:
-            if not isinstance(value, attr.datatype):
-                try:
-                    self._attributes[attr] = attr.datatype(value, validate=True)
-                except Exception as err:
-                    raise Exception(f"Failed to set attribute '{attr}' with value '{value}': {err}")
+            if isinstance(attr.datatype, tuple):
+                if attr.datatype[0] == ObservableSet:
+                    if not all(isinstance(x, attr.datatype[1]) for x in value):
+                        tmp = ObservableSet({attr.datatype[1](x, validate=self._validate) for x in value}, datatype=attr.datatype[1])
+                    else:
+                        tmp = value
+                    if not isinstance(tmp, ObservableSet):
+                        tmp = ObservableSet(tmp, datatype=attr.datatype[1])
+                    self._attributes[attr] = tmp
+                else:
+                    self._attributes[attr] = value
+            elif not isinstance(value, attr.datatype):
+                self._attributes[attr] = attr.datatype(value, validate=self._validate)
             else:
                 self._attributes[attr] = value
             if hasattr(self._attributes[attr], 'set_notifier') and hasattr(self, 'notifier'):

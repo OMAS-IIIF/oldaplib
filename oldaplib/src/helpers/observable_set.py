@@ -7,7 +7,7 @@ be given that is called whenever the set is changed (adding/removing of items)
 import json
 from copy import deepcopy
 from enum import Enum
-from typing import List, Callable, Any, Iterable, Set, Self
+from typing import List, Callable, Any, Iterable, Set, Self, Type
 
 from pystrict import strict
 
@@ -33,11 +33,14 @@ class ObservableSet(Notify):
     """
     _setdata: Set[Any]
     _old_value: Self | None
+    _datatype: Type | None
 
     def __init__(self,
                  setitems: Self | Iterable | None = None,
+                 *,
+                 datatype: Type | None = None,
                  notifier: Callable[[Enum | Iri], None] | None = None,
-                 notify_data: Iri | None = None,
+                 notify_data: Iri | Xsd_QName |None = None,
                  old_value: Self | None = None,
                  validate: bool = False) -> None:
         """
@@ -48,11 +51,22 @@ class ObservableSet(Notify):
         :param on_change_data: data supplied to the callback function
         """
         self._old_value = old_value
+        self._datatype = datatype
         super().__init__(notifier=notifier, data=notify_data)
+        if not setitems:
+            self._setdata = set()
+            return
         if isinstance(setitems, ObservableSet):
             self._setdata = setitems._setdata
         else:
-            self._setdata = set(setitems if setitems else [])
+            if self._datatype:
+                if not all([isinstance(x, self._datatype) for x in setitems]):
+                    tmp = [self._datatype(x) for x in setitems]
+                else:
+                    tmp = setitems
+                self._setdata = set(tmp)
+            else:
+                self._setdata = set(setitems)
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         new_copy = self.__class__.__new__(self.__class__)
@@ -92,19 +106,19 @@ class ObservableSet(Notify):
 
     def __or__(self, other: Iterable[Any]) -> Self:
         if isinstance(other, ObservableSet):
-            return ObservableSet(self._setdata.__or__(other._setdata), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__or__(other._setdata), notifier=self._notifier, notify_data=self._notify_data)
         elif isinstance(other, set):
-            return ObservableSet(self._setdata.__or__(other), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__or__(other), notifier=self._notifier, notify_data=self._notify_data)
         elif isinstance(other, Iterable):
-            return ObservableSet(self._setdata.__or__(set(other)), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__or__(set(other)), notifier=self._notifier, notify_data=self._notify_data)
         else:
             raise OldapErrorNotImplemented(f'Set.__or__() not implemented for {type(other).__name__}')
 
     def __ror__(self, other: Iterable[Any]) -> Self:
-        return ObservableSet(set(other).__or__(self._setdata), self._notifier, self._notify_data)
+        return ObservableSet(set(other).__or__(self._setdata), notifier=self._notifier, notify_data=self._notify_data)
 
     def __rsub__(self, other: Iterable[Any]) -> Self:
-        return ObservableSet(set(other).__sub__(self._setdata), self._notifier, self._notify_data)
+        return ObservableSet(set(other).__sub__(self._setdata), notifier=self._notifier, notify_data=self._notify_data)
 
     def __ior__(self, other: Iterable[Any]) -> Self:
         tmp_copy = deepcopy(self)
@@ -119,11 +133,11 @@ class ObservableSet(Notify):
 
     def __and__(self, other: Iterable[Any]) -> Self:
         if isinstance(other, ObservableSet):
-            return ObservableSet(self._setdata.__and__(other._setdata), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__and__(other._setdata), notifier=self._notifier, notify_data=self._notify_data)
         elif isinstance(other, set):
-            return ObservableSet(self._setdata.__and__(other), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__and__(other), notifier=self._notifier, notify_data=self._notify_data)
         elif isinstance(other, Iterable):
-            return ObservableSet(self._setdata.__and__(set(other)), self._notifier, self._notify_data)
+            return ObservableSet(self._setdata.__and__(set(other)), notifier=self._notifier, notify_data=self._notify_data)
         else:
             raise OldapErrorNotImplemented(f'Set.__and__() not implemented for {type(other).__name__}')
 
@@ -147,11 +161,11 @@ class ObservableSet(Notify):
 
     def __sub__(self, other: Iterable[Any]) -> Self:
         if isinstance(other, ObservableSet):
-            return ObservableSet(self._setdata.__sub__(other._setdata), self.notify, self._notify_data)
+            return ObservableSet(self._setdata.__sub__(other._setdata), notifier=self.notify, notify_data=self._notify_data)
         elif isinstance(other, set):
-            return ObservableSet(self._setdata.__sub__(other), self.notify, self._notify_data)
+            return ObservableSet(self._setdata.__sub__(other), notifier=self.notify, notify_data=self._notify_data)
         elif isinstance(other, Iterable):
-            return ObservableSet(self._setdata.__sub__(set(other)), self.notify, self._notify_data)
+            return ObservableSet(self._setdata.__sub__(set(other)), notifier=self.notify, notify_data=self._notify_data)
         else:
             raise OldapErrorNotImplemented(f'Set.__sub__() not implemented for {type(other).__name__}')
 
@@ -176,6 +190,9 @@ class ObservableSet(Notify):
 
     def update(self, items: Iterable[Any]):
         tmp_copy = deepcopy(self)
+        if self._datatype:
+            if not all(isinstance(item, self._datatype) for item in items):
+                item = {self._datatype(x) for x in items}
         self._setdata.update(items)
         if not self._old_value:
             self._old_value = tmp_copy
@@ -183,6 +200,9 @@ class ObservableSet(Notify):
 
     def intersection_update(self, items: Iterable[Any]):
         tmp_copy = deepcopy(self)
+        if self._datatype:
+            if not all(isinstance(item, self._datatype) for item in items):
+                item = {self._datatype(x) for x in items}
         self._setdata.intersection_update(items)
         if not self._old_value:
             self._old_value = tmp_copy
@@ -190,6 +210,9 @@ class ObservableSet(Notify):
 
     def difference_update(self, items: Iterable[Any]):
         tmp_copy = deepcopy(self)
+        if self._datatype:
+            if not all(isinstance(item, self._datatype) for item in items):
+                item = {self._datatype(x) for x in items}
         self._setdata.difference_update(items)
         if not self._old_value:
             self._old_value = tmp_copy
@@ -197,6 +220,9 @@ class ObservableSet(Notify):
 
     def symmetric_difference_update(self, items: Iterable[Any]):
         tmp_copy = deepcopy(self)
+        if self._datatype:
+            if not all(isinstance(item, self._datatype) for item in items):
+                item = {self._datatype(x) for x in items}
         self._setdata.symmetric_difference_update(items)
         if not self._old_value:
             self._old_value = tmp_copy
@@ -204,6 +230,9 @@ class ObservableSet(Notify):
 
     def replace(self, items: Iterable[Any]) -> None:
         tmp_copy = deepcopy(self)
+        if self._datatype:
+            if not all(isinstance(item, self._datatype) for item in items):
+                item = {self._datatype(x) for x in items}
         self._setdata = set(items)
         if not self._old_value:
             self._old_value = tmp_copy
@@ -211,6 +240,9 @@ class ObservableSet(Notify):
 
     def add(self, item: Any) -> None:
         tmp_copy = deepcopy(self)
+        if self._datatype:
+            if not isinstance(item, self._datatype):
+                item = self._datatype(item)
         self._setdata.add(item)
         if not self._old_value:
             self._old_value = tmp_copy
@@ -218,6 +250,9 @@ class ObservableSet(Notify):
 
     def remove(self, item: Any) -> None:
         tmp_copy = deepcopy(self)
+        if self._datatype:
+            if not isinstance(item, self._datatype):
+                item = self._datatype(item)
         self._setdata.remove(item)
         if not self._old_value:
             self._old_value = tmp_copy
@@ -225,6 +260,9 @@ class ObservableSet(Notify):
 
     def discard(self, item: Any):
         tmp_copy = deepcopy(self)
+        if self._datatype:
+            if not isinstance(item, self._datatype):
+                item = self._datatype(item)
         self._setdata.discard(item)
         if not self._old_value:
             self._old_value = tmp_copy
@@ -287,7 +325,7 @@ class ObservableSet(Notify):
     def update_sparql(self, *,
                       graph: Iri | Xsd_QName,
                       subject: Iri,
-                      field: Iri,
+                      field: Xsd_QName,
                       ignoreitems: Set[Any] | None = None,
                       indent: int = 0, indent_inc: int = 4) -> list[str]:
         items_to_add = self._setdata - self._old_value.to_set() if self._old_value else self._setdata
@@ -362,3 +400,34 @@ class ObservableSet(Notify):
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
         return sparql
+
+    def create(self, *,
+               graph: Xsd_QName,
+               subject: Iri,
+               field: Xsd_QName,
+               indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql_list = []
+        sparql = ''
+        sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} {self.toRdf} .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        return sparql
+
+    def delete(self, *,
+               graph: Xsd_QName,
+               subject: Iri,
+               field: Xsd_QName,
+               indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql_list = []
+        sparql = ''
+        sparql += f'{blank:{indent * indent_inc}}DELETE WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {graph} {{\n'
+        sparql += f'{blank:{(indent + 2) * indent_inc}}{subject.toRdf} {field.toRdf} ?o .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        return sparql
+

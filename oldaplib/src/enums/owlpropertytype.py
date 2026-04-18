@@ -11,7 +11,7 @@ class OwlPropertyType(Enum):
     Enumeration of the two types of RDF properties that OWL distinguishes
     NOTE:
     """
-    OwlAnnotationPropert = 'owl:AnnotationProperty'  # used to declare annotation with node further semantic meaning
+    OwlAnnotationProperty = 'owl:AnnotationProperty'  # used to declare annotation with node further semantic meaning
     OwlDataProperty = 'owl:DatatypeProperty'
     OwlObjectProperty = 'owl:ObjectProperty'
     TransitiveProperty = 'owl:TransitiveProperty'  # Safe inference ✅ no warning

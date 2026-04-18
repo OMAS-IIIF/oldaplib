@@ -3,6 +3,7 @@ from enum import unique
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.attributeclass import AttributeClass
 from oldaplib.src.helpers.langstring import LangString
+from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.iri import Iri
 
@@ -19,4 +20,7 @@ class ExternalOntologyAttr(AttributeClass):
     NAMESPACE_IRI = ('oldap:namespaceIri', True, True, NamespaceIRI)
     LABEL = ('rdfs:label', False, False, LangString)
     COMMENT = ('rdfs:comment', False, False, LangString)
+    PROPOSED_RESOURCE_CLASS = ('oldap:proposedResourceClass', False, False, (ObservableSet, Xsd_NCName))
+    PROPOSED_DATATYPE_PROPERTY_CLASS = ('oldap:proposedDatatypePropertyClass', False, False, (ObservableSet, Xsd_NCName))
+    PROPOSED_OBJECT_PROPERTY_CLASS = ('oldap:proposedObjectPropertyClass', False, False, (ObservableSet, Xsd_NCName))
 

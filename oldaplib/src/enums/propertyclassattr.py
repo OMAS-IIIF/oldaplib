@@ -40,7 +40,7 @@ class PropClassAttr(AttributeClass):
     """
     # order: (QName, mandatory, immutable, datatype, target)
     SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri, Target.OWL)  # TODO: Convert to set of subPropertyOf's!!
-    TYPE = ('rdf:type', False, False, ObservableSet, Target.OWL)
+    TYPE = ('rdf:type', False, False, (ObservableSet, OwlPropertyType), Target.OWL)
     CLASS = ('sh:class', False, False, Iri, Target.SHACL)
     NODEKIND = ('sh:nodeKind', False, False, Iri, Target.SHACL)
     DATATYPE = ('sh:datatype', False, False, XsdDatatypes, Target.SHACL)

@@ -55,18 +55,29 @@ shared:shacl {
             sh:order 3.0 ;
         ] ;
         sh:property [
+            sh:path oldap:datePrecision ;
+            sh:name "Precision of normalized date"@en,
+                    "Genauigkeit des normierten Datums"@de,
+                    "Précision de la date normalisée"@fr,
+                    "Precisione della data normalizzata"@it ;
+            sh:maxCount "1"^^xsd:nonNegativeInteger ;
+            sh:class oldap:DatePrecision ;
+            sh:in (oldap:DayPrecision oldap:MonthPrecision oldap:YearPrecision oldap:DecadePrecision oldap:CenturyPrecision) ;
+            sh:order 4.0 ;
+       ] ;
+        sh:property [
             sh:path oldap:inCalendar ;
             sh:name "Calendar of the original date"@en, "Kalender des ursprünglichen Datums"@de, "Calendrier de la date d'origine"@fr, "Calendario della data originale"@it ;
             sh:maxCount "1"^^xsd:nonNegativeInteger ;
             sh:class oldap:Calendar ;
             sh:in (oldap:GregorianCalendar oldap:JulianCalendar oldap:HebrewCalendar oldap:IslamicCalendar oldap:PersianCalendar) ;
-            sh:order 4.0 ;
+            sh:order 5.0 ;
        ] ;
         sh:property [
             sh:path oldap:before ;
             sh:class oldap:Dating ;
             sh:name "before other event"@en, "vor einem anderen Ereignis"@de, "avant un autre événement"@fr, "prima di un altro evento"@it ;
-            sh:order 5.0 ;
+            sh:order 6.0 ;
         ] .
 
     ###############################################################################
@@ -169,6 +180,48 @@ shared:onto {
                      "Vocabulaire contrôlé des systèmes calendaires utilisés pour la datation historique."@fr,
                      "Vocabolario controllato dei sistemi di calendario usati per la datazione storica."@it .
 
+    oldap:DatePrecision rdf:type owl:Class ;
+        rdfs:label "Date precision"@en, "Datumsgenauigkeit"@de, "Précision de date"@fr, "Precisione della data"@it ;
+        rdfs:comment "Controlled vocabulary of precision levels used for normalized historical datings."@en,
+                     "Kontrolliertes Vokabular der Genauigkeitsstufen für normierte historische Datierungen."@de,
+                     "Vocabulaire contrôlé des niveaux de précision utilisés pour les datations historiques normalisées."@fr,
+                     "Vocabolario controllato dei livelli di precisione usati per le datazioni storiche normalizzate."@it .
+
+    oldap:DayPrecision rdf:type oldap:DatePrecision, owl:NamedIndividual ;
+        rdfs:label "day"@en, "Tag"@de, "jour"@fr, "giorno"@it ;
+        rdfs:comment "The normalized dating is precise to the day."@en,
+                     "Die normierte Datierung ist bis auf den Tag genau."@de,
+                     "La datation normalisée est précise au jour près."@fr,
+                     "La datazione normalizzata è precisa fino al giorno."@it .
+
+    oldap:MonthPrecision rdf:type oldap:DatePrecision, owl:NamedIndividual ;
+        rdfs:label "month"@en, "Monat"@de, "mois"@fr, "mese"@it ;
+        rdfs:comment "The normalized dating is precise to the month."@en,
+                     "Die normierte Datierung ist bis auf den Monat genau."@de,
+                     "La datation normalisée est précise au mois près."@fr,
+                     "La datazione normalizzata è precisa fino al mese."@it .
+
+    oldap:YearPrecision rdf:type oldap:DatePrecision, owl:NamedIndividual ;
+        rdfs:label "year"@en, "Jahr"@de, "année"@fr, "anno"@it ;
+        rdfs:comment "The normalized dating is precise to the year."@en,
+                     "Die normierte Datierung ist bis auf das Jahr genau."@de,
+                     "La datation normalisée est précise à l'année près."@fr,
+                     "La datazione normalizzata è precisa fino all'anno."@it .
+
+    oldap:DecadePrecision rdf:type oldap:DatePrecision, owl:NamedIndividual ;
+        rdfs:label "decade"@en, "Jahrzehnt"@de, "décennie"@fr, "decennio"@it ;
+        rdfs:comment "The normalized dating is precise to the decade."@en,
+                     "Die normierte Datierung ist bis auf das Jahrzehnt genau."@de,
+                     "La datation normalisée est précise à la décennie près."@fr,
+                     "La datazione normalizzata è precisa fino al decennio."@it .
+
+    oldap:CenturyPrecision rdf:type oldap:DatePrecision, owl:NamedIndividual ;
+        rdfs:label "century"@en, "Jahrhundert"@de, "siècle"@fr, "secolo"@it ;
+        rdfs:comment "The normalized dating is precise to the century."@en,
+                     "Die normierte Datierung ist bis auf das Jahrhundert genau."@de,
+                     "La datation normalisée est précise au siècle près."@fr,
+                     "La datazione normalizzata è precisa fino al secolo."@it .
+
     oldap:GregorianCalendar rdf:type oldap:Calendar, owl:NamedIndividual ;
         rdfs:label "Gregorian calendar"@en, "Gregorianischer Kalender"@de, "Calendrier grégorien"@fr, "Calendario gregoriano"@it ;
         rdfs:comment "The Gregorian calendar."@en,
@@ -213,6 +266,15 @@ shared:onto {
                      "Relie une ressource de datation au système calendaire dans lequel elle est exprimée."@fr,
                      "Collega una risorsa di datazione al sistema di calendario in cui è espressa."@it .
 
+    oldap:datePrecision rdf:type owl:ObjectProperty ;
+        rdfs:domain oldap:Dating ;
+        rdfs:range oldap:DatePrecision ;
+        rdfs:label "date precision"@en, "Datumsgenauigkeit"@de, "précision de date"@fr, "precisione della data"@it ;
+        rdfs:comment "Links a dating resource to the precision level used for its normalized begin and end dates."@en,
+                     "Verknüpft eine Datierungsressource mit der Genauigkeitsstufe, die für ihre normierten Anfangs- und Enddaten verwendet wird."@de,
+                     "Relie une ressource de datation au niveau de précision utilisé pour ses dates de début et de fin normalisées."@fr,
+                     "Collega una risorsa di datazione al livello di precisione usato per le sue date normalizzate di inizio e fine."@it .
+
 
     ###############################################################################
     # Properties used for :ChronologyObject
@@ -223,6 +285,8 @@ shared:onto {
     oldap:normalizedBegin rdf:type owl:DatatypeProperty .
 
     oldap:normalizedEnd rdf:type owl:DatatypeProperty .
+
+    oldap:datePrecision rdf:type owl:ObjectProperty .
 
     oldap:before rdf:type owl:ObjectProperty, owl:TransitiveProperty .
 
