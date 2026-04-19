@@ -348,6 +348,12 @@ class DataModel(Model):
         context[proj.projectShortName] = proj.namespaceIri
         context.use(proj.projectShortName)
         graph = proj.projectShortName
+
+        extontos: list[ExternalOntology] = []
+        ontos = ExternalOntology.search(con=con, projectShortName=proj.projectShortName)
+        for onto in ontos:
+            extontos.append(onto)
+
         #
         # first we read all the SHACL
         #
@@ -356,6 +362,31 @@ class DataModel(Model):
 
         if not shacl_obj:
             raise OldapErrorNotFound(f'Datamodel for project {project} not existing!')
+
+        # #
+        # # first read the external ontologies that are used in this datamodel
+        # #
+        # extontos: list[ExternalOntology] = []
+        # tmp_extontos = {iri: data for iri, data in shacl_obj.items() if data.get(Xsd_QName("rdf:type")) == Xsd_QName("oldap:ExternalOntology")}
+        # for iri, eoshape in tmp_extontos.items():
+        #     attributes = {attr.fragment: value for attr, value in eoshape.items() if attr != (Xsd_QName("rdf:type"))}
+        #
+        #     #
+        #     # after the first read, all subsequent reads have the namespae already in the context and it will be a
+        #     # Xsd_QName. Therefore, we have to convert the Xsd_QName to an Iri...
+        #     #
+        #     if attributes.get('namespaceIri'):
+        #         if isinstance(attributes['namespaceIri'], Xsd_QName):
+        #             attributes['namespaceIri'] = context.qname2iri(attributes['namespaceIri'])
+        #
+        #     extonto = ExternalOntology(con=con,
+        #                                projectShortName=proj.projectShortName,
+        #                                validate=False,
+        #                                **attributes)
+        #     extontos.append(extonto)
+        #     context[extonto.prefix] = extonto.namespaceIri
+        #
+
 
         #
         # find all assertion properties and collect in list
@@ -515,29 +546,6 @@ class DataModel(Model):
             owl_version = SemanticVersion.fromString('0.0.1')
         if shacl_version != owl_version:
             raise OldapErrorInconsistency(f'Versionnumber of SHACL ({shacl_version}) and OWL ({owl_version}) do not match')
-        #
-        # now read the external ontologies that are used in this datamodel
-        #
-        extontos: list[ExternalOntology] = []
-        tmp_extontos = {iri: data for iri, data in shacl_obj.items() if data.get(Xsd_QName("rdf:type")) == Xsd_QName("oldap:ExternalOntology")}
-        for iri, eoshape in tmp_extontos.items():
-            attributes = {attr.fragment: value for attr, value in eoshape.items() if attr != (Xsd_QName("rdf:type"))}
-
-            #
-            # after the first read, all subsequent reads have the namespae already in the context and it will be a
-            # Xsd_QName. Therefore, we have to convert the Xsd_QName to an Iri...
-            #
-            if attributes.get('namespaceIri'):
-                if isinstance(attributes['namespaceIri'], Xsd_QName):
-                    attributes['namespaceIri'] = context.qname2iri(attributes['namespaceIri'])
-
-            extonto = ExternalOntology(con=con,
-                                       projectShortName=proj.projectShortName,
-                                       validate=False,
-                                       **attributes)
-            extontos.append(extonto)
-            context[extonto.prefix] = extonto.namespaceIri
-
         #
         # now let's find all the OldapLists in order to set up the Context also for the OldapLists
         #

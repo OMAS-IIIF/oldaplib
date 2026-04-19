@@ -354,22 +354,39 @@ class ExternalOntology(Model, Notify):
                 data = {}
                 data['label'] = LangString()
                 data['comment'] = LangString()
+                data['proposedResourceClass'] = set()
+                data['proposedDatatypePropertyClass'] = set()
+                data['proposedObjectPropertyClass'] = set()
                 working_on = r['extonto']
-            if r['p'] == 'rdf:type':
-                continue
-            if r['p'] == 'rdfs:label':
-                data['label'].add(r['o'])
-            elif r['p'] == 'rdfs:comment':
-                data['comment'].add(r['o'])
-            elif r['p'] == 'oldap:namespaceIri':
-                data['namespaceIri'] = NamespaceIRI(r['o'])
-            else:
-                data[str(r['p'].fragment)] = r['o']
+            match str(r['p']):
+                case 'dcterms:creator':
+                    data['creator'] = r['o']
+                case 'dcterms:created':
+                    data['created'] = r['o']
+                case 'dcterms:contributor':
+                    data['contributor'] = r['o']
+                case 'dcterms:modified':
+                    data['modified'] = r['o']
+                case 'oldap:namespaceIri':
+                    data['namespaceIri'] = NamespaceIRI(r['o'])
+                case 'oldap:prefix':
+                    data['prefix'] = r['o']
+                case 'rdfs:label':
+                    data['label'].add(r['o'])
+                case 'rdfs:comment':
+                    data['comment'].add(r['o'])
+                case 'oldap:proposedResourceClass':
+                    data['proposedResourceClass'].add(r['o'])
+                case 'oldap:proposedDatatypePropertyClass':
+                    data['proposedDatatypePropertyClass'].add(r['o'])
+                case 'oldap:proposedObjectPropertyClass':
+                    data['proposedObjectPropertyClass'].add(r['o'])
         if working_on:
             tmp = ExternalOntology(con=con,
                                    projectShortName=projectShortName,
                                    **data)
             result.append(tmp)
+            context[tmp.prefix] = tmp.namespaceIri
             cache.set(tmp.__extonto_qname, tmp)
 
         return result

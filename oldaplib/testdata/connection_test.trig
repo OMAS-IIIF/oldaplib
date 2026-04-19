@@ -155,7 +155,9 @@ oldap:admin {
         dcterms:modified "2023-11-04T12:00:00+00:00"^^xsd:dateTime ;
         oldap:prefix "edm"^^xsd:NCName ;
         oldap:namespaceIri <http://www.europeana.eu/schemas/edm/> ;
-        rdfs:label "Europeana Ontology"@en, "Europeana Ontologie"@de, "Ontologie d l'Europeana"@fr .
+        rdfs:label "Europeana Ontology"@en, "Europeana Ontologie"@de, "Ontologie d l'Europeana"@fr ;
+        oldap:proposedObjectPropertyClass "hasMet"^^xsd:NCName, "occuredAt"^^xsd:NCName, "wasPresetAt"^^xsd:NCName ;
+        oldap:proposedDatatypePropertyClass "hasType"^^xsd:NCName, "dataProvide"^^xsd:NCName .
 
 
 
