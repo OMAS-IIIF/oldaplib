@@ -166,7 +166,6 @@ class ExternalOntology(Model, Notify):
             sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{attr.value.toRdf} {value.toRdf}'
         sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        print(sparql)
         return sparql
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
