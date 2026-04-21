@@ -80,7 +80,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX xml: <http://www.w3.org/XML/1998/namespace#>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX schema: <http://schema.org/>
+PREFIX schema: <https://schema.org/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX dcmitype: <http://purl.org/dc/dcmitype/>
 PREFIX dash: <http://datashapes.org/dash#>
@@ -103,7 +103,7 @@ PREFIX test: <http://www.test.org/gaga#>
 @prefix xml: <http://www.w3.org/XML/1998/namespace#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
-@prefix schema: <http://schema.org/> .
+@prefix schema: <https://schema.org/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dcmitype: <http://purl.org/dc/dcmitype/> .
 @prefix dash: <http://datashapes.org/dash#> .
