@@ -5,7 +5,7 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dcmitype: <http://purl.org/dc/dcmitype/> .
-@prefix schema: <http://schema.org/> .
+@prefix schema: <https://schema.org/> .
 @prefix geo: <http://www.opengis.net/ont/geosparql#> .
 @prefix sf:     <http://www.opengis.net/ont/sf#> .
 @prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
@@ -17,6 +17,113 @@
 shared:shacl {
     shared:shapes schema:version "0.1.0"^^xsd:string .
 
+    ###########################################################################
+    # External standard onologies used
+    ###########################################################################
+
+    :dcterms a :ExternalOntology ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        :prefix "dcterms"^^xsd:NCName ;
+        :namespaceIri <http://purl.org/dc/terms/> ;
+        rdfs:label "Dublin Core"@en ;
+        rdfs:comment "Canonical dublin core vocabulary used by OLDAP."@en ;
+        :proposedResourceClass "AgentClass"^^xsd:NCName ;
+        :proposedResourceClass "Agent"^^xsd:NCName ;
+        :proposedResourceClass "BibliographicResource"^^xsd:NCName ;
+        :proposedResourceClass "Frequency"^^xsd:NCName ;
+        :proposedResourceClass "Jurisdiction"^^xsd:NCName ;
+        :proposedResourceClass "LicenseDocument"^^xsd:NCName ;
+        :proposedResourceClass "Location"^^xsd:NCName ;
+        :proposedResourceClass "MediaType"^^xsd:NCName ;
+        :proposedResourceClass "MethodOfAccrual"^^xsd:NCName ;
+        :proposedResourceClass "PeriodOfTime"^^xsd:NCName ;
+        :proposedResourceClass "PhysicalMedium"^^xsd:NCName ;
+        :proposedResourceClass "PhysicalResource"^^xsd:NCName ;
+        :proposedResourceClass "ProvenanceStatement"^^xsd:NCName ;
+        :proposedResourceClass "RightsStatement"^^xsd:NCName ;
+        :proposedResourceClass "SizeOrDuration"^^xsd:NCName .
+
+
+    :schema a :ExternalOntology ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        :prefix "schema"^^xsd:NCName ;
+        :namespaceIri <https://schema.org/> ;
+        rdfs:label "schema.org"@en ;
+        rdfs:comment "Canonical schema.org vocabulary used by OLDAP."@en ;
+        :proposedResourceClass "Thing"^^xsd:NCName ;
+        :proposedResourceClass "Person"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "name"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "givenName"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "familyName"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "email"^^xsd:NCName ;
+        :proposedObjectPropertyClass "about"^^xsd:NCName ;
+        :proposedObjectPropertyClass "creator"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "description"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "alternative"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "available"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "bibliographicCitation"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "created"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "date"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "dateAccepted"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "dateCopyrighted"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "dateSubmitted"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "identifier"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "issued"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "modified"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "title"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "valid"^^xsd:NCName ;
+        :proposedObjectPropertyClass "audience"^^xsd:NCName ;
+        :proposedObjectPropertyClass "contributor"^^xsd:NCName ;
+        :proposedObjectPropertyClass "coverage"^^xsd:NCName ;
+        :proposedObjectPropertyClass "creator"^^xsd:NCName ;
+        :proposedObjectPropertyClass "extent"^^xsd:NCName ;
+        :proposedObjectPropertyClass "format"^^xsd:NCName ;
+        :proposedObjectPropertyClass "isPartOf"^^xsd:NCName ;
+        :proposedObjectPropertyClass "isReferencedBy"^^xsd:NCName ;
+        :proposedObjectPropertyClass "isReplacedBy"^^xsd:NCName ;
+        :proposedObjectPropertyClass "isRequiredBy"^^xsd:NCName ;
+        :proposedObjectPropertyClass "isVersionOf"^^xsd:NCName ;
+        :proposedObjectPropertyClass "medium"^^xsd:NCName ;
+        :proposedObjectPropertyClass "references"^^xsd:NCName ;
+        :proposedObjectPropertyClass "replaces"^^xsd:NCName ;
+        :proposedObjectPropertyClass "rightsHolder"^^xsd:NCName ;
+        :proposedObjectPropertyClass "spatial"^^xsd:NCName ;
+        :proposedObjectPropertyClass "requires"^^xsd:NCName ;
+        :proposedObjectPropertyClass "title"^^xsd:NCName ;
+        :proposedObjectPropertyClass "type"^^xsd:NCName .
+
+    :skos a :ExternalOntology ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        :prefix "skos"^^xsd:NCName ;
+        :namespaceIri <http://www.w3.org/2004/02/skos/core#> ;
+        rdfs:label "SKOS"@en ;
+        rdfs:comment "SKOS Simple Knowledge Organization System, used by oldap."@en ;
+        :proposedResourceClass "Collection"^^xsd:NCName ;
+        :proposedResourceClass "Concept"^^xsd:NCName ;
+        :proposedResourceClass "ConceptScheme"^^xsd:NCName ;
+        :proposedResourceClass "OrderedCollection"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "altLabel"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "definition"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "notation"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "editorialNote"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "hiddenLabel"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "historyNote"^^xsd:NCName ;
+        :proposedDatatypePropertyClass "changeNote"^^xsd:NCName ;
+        :proposedObjectPropertyClass "semanticRelation"^^xsd:NCName ;
+        :proposedObjectPropertyClass "broader"^^xsd:NCName ;
+        :proposedObjectPropertyClass "narrower"^^xsd:NCName ;
+        :proposedObjectPropertyClass "broaderTransitive"^^xsd:NCName ;
+        :proposedObjectPropertyClass "narrowerTransitive"^^xsd:NCName ;
+        :proposedObjectPropertyClass "related"^^xsd:NCName .
 
     ###########################################################################
     # Chronology Date definitions
@@ -295,7 +402,7 @@ shared:onto {
     ###########################################################################
 
     oldap:Dating rdf:type owl:Class ;
-        rdfs:subClassOf oldap:Thing .
+        rdfs:subClassOf oldap:Thing, dcterms:PeriodOfTime .
 
     ###########################################################################
     # Media object

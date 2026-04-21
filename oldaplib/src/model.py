@@ -221,7 +221,7 @@ class Model:
 
     def _change_setter(self, attr: AttributeClass, value: Any) -> None:
         if value is not None:
-            if self._attributes.get(attr) == value:
+            if self._attributes.get(attr) is not None and self._attributes.get(attr) == value:
                 return
             if attr.immutable:
                 raise OldapErrorImmutable(f'Attribute {attr.value} is immutable.')

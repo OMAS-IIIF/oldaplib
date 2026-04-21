@@ -77,7 +77,8 @@ class TestexternalOntologies(unittest.TestCase):
                                projectShortName="testext",
                                prefix="gagaA",
                                label=LangString("GAGA A ontology@en", "Gaga A Ontologie@de"),
-                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaA/"))
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaA/"),
+                               proposedResourceClass=[Xsd_NCName('GAGA'), Xsd_NCName('GUGUS')],)
         eo1.create()
         del eo1
 
@@ -155,14 +156,16 @@ class TestexternalOntologies(unittest.TestCase):
                                projectShortName="testext",
                                prefix="gagaC",
                                label=LangString("GAGA C ontology@en", "Gaga C Ontologie@de"),
-                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaC/"))
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaC/"),
+                               proposedResourceClass=[Xsd_NCName('GAGA'), Xsd_NCName('GUGUS')])
         eo1.create()
 
         eo2 = ExternalOntology(con=self._connection,
                                projectShortName="testext",
                                prefix="gagaD",
                                label=LangString("GAGA D ontology@en", "Gaga D Ontologie@de"),
-                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaD/"))
+                               namespaceIri=NamespaceIRI("http://gaga.org/ns/gagaD/"),
+                               proposedResourceClass=[Xsd_NCName('HAHAHAHA'), Xsd_NCName('HIHIHIHI')])
         eo2.create()
 
         res = ExternalOntology.search(con=self._connection, projectShortName="testext")
