@@ -4,12 +4,18 @@ from pprint import pprint
 from oldaplib.src.connection import Connection
 import unittest
 
+from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.helpers.construct_processor import ConstructProcessor
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.objectfactory import ResourceInstanceFactory, CompOp, LogicOp
 from oldaplib.src.project import Project
 from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.xsd.listnode import HListNode
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_string import Xsd_string
+
 
 def find_project_root(current_path):
     # Climb up the directory hierarchy and check for a marker file
@@ -77,7 +83,9 @@ class TestKappa(unittest.TestCase):
         obj = ConstructProcessor.query_onto(con=connection,
                                              project=shared,
                                              class_iri=Xsd_QName('shared:MediaObject', validate=True))
-        pprint(obj)
+        dm = DataModel.read(connection, "shared", ignore_cache=True)
+
+        pprint(dm)
 
     def test_read_datamode_onto(self):
         connection = Connection(userId="rosenth",
@@ -125,3 +133,27 @@ class TestKappa(unittest.TestCase):
         print(shaclobj.get(Xsd_QName('sh:node')))
         print(ontoobj.get(Xsd_QName('rdfs:subClassOf')))
 
+    def test_fulltext_search(self):
+        connection = Connection(userId="rosenth",
+                                credentials="RioGrande",
+                                context_name="DEFAULT")
+        fasnacht = Project.read(connection, "fasnacht")
+
+        dm = DataModel.read(connection, fasnacht, ignore_cache=True)
+        factory = ResourceInstanceFactory(con=self._connection, project=fasnacht)
+        Story = factory.createObjectInstance('Story')
+        # res = Story.search_fulltext(con=connection,
+        #                             project=fasnacht,
+        #                             resClass=Xsd_QName('fasnacht:Story'),
+        #                             ftfilter=[(Xsd_QName('fasnacht:storyContent'), "fasnacht")],
+        #                             includeProperties={Xsd_QName('schema:abstract'), Xsd_QName('fasnacht:storyTitle')},
+        #                             filter=[(Xsd_QName('fasnacht:storyTitle'), CompOp.CONTAINS, Xsd_string("Geschichte")),
+        #                                     LogicOp.OR,
+        #                                     (Xsd_QName('fasnacht:storyTitle'), CompOp.CONTAINS, Xsd_string("Gugge"))])
+        res = Story.search_fulltext(con=connection,
+                                    project=fasnacht,
+                                    resClass=Xsd_QName('fasnacht:Story'),
+                                    #ftfilter=[(Xsd_QName('fasnacht:storyContent'), "fasnacht")],
+                                    includeProperties={Xsd_QName('schema:abstract'), Xsd_QName('fasnacht:storyTitle')},
+                                    hlfilter=[(Xsd_QName('fasnacht:storyKeywords'), HListNode('StoryKeywords:Miscellanious'))])
+        pprint(res)

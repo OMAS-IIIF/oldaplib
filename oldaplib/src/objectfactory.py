@@ -11,7 +11,7 @@ import jwt
 from datetime import datetime, timedelta
 from enum import Flag, auto, Enum
 from functools import partial
-from typing import Type, Any, Self, cast, Dict
+from typing import Type, Any, Self, cast, Dict, Literal
 
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -31,10 +31,12 @@ from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue,
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.oldaplist import OldapList
+from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.listnode import HListNode
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
@@ -54,6 +56,36 @@ class SortDir(str, Enum):
 class SortBy:
     property: Xsd_QName
     dir: SortDir = SortDir.asc
+
+class CompOp(Enum):
+    EQ = "=="
+    NE = "!="
+    LT = "<"
+    LE = "<="
+    GT = ">"
+    GE = ">="
+    CONTAINS = "contains"
+    STRSTARTS = "strstarts"
+    STRENDS = "strends"
+    REGEXP = "regexp"
+    FULLTEXT = "fulltext"
+
+class LogicOp(Enum):
+    AND = "&&"
+    OR = "||"
+    LEFT_ = "("
+    _RIGHT = ")"
+
+
+"""
+tuple 1 element:
+- full qualified name of the field, or connector:field in case of fulltext
+- Comparison operator
+- Value as Xsd subclass
+"""
+SearchFilter = tuple[Xsd_QName, CompOp, Xsd]
+FTSearchFilter = tuple[Xsd_QName, str]
+HLSearchFilter = tuple[Xsd_QName, HListNode]
 
 
 def creator_or_max_perm_block(
@@ -1270,97 +1302,128 @@ class ResourceInstance:
         #data[Xsd_QName('virtual:resourceIri')] = iri
         return data
 
+    """
+    PREFIX luc: <http://www.ontotext.com/connectors/lucene#>
+    SELECT DISTINCT ?res ?o ?score
+    WHERE {
+        GRAPH oldap:admin {
+            <https://orcid.org/0000-0003-1681-4036> oldap:hasRole ?role .
+            ?DataPermission oldap:permissionValue ?permval .
+            FILTER(?permval >= "2"^^xsd:integer)
+        }
+        GRAPH fasnacht:data {
+            ?res fasnacht:storyContent ?o .
+            ?res rdf:type fasnacht:Story .
+            ?res oldap:attachedToRole ?role .
+            << ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .
+        }
+        ?search a inst:fasnacht ;
+            luc:query "content:fasnacht AND gugge" ;
+            luc:entities ?res .
+        ?res luc:score ?score .
+    }
+    ORDER BY DESC(?score)
+    LIMIT 100 OFFSET 0
+    
+    """
+
+    """
+    PREFIX :<http://www.ontotext.com/connectors/lucene#>
+    PREFIX inst:<http://www.ontotext.com/connectors/lucene/instance#>
+    INSERT DATA {
+        inst:fasnacht :createConnector '''
+    {
+      "fields": [
+        {
+          "fieldName": "storyContent",
+          "propertyChain": [
+            "http://fasnacht.digital/ns/storyContent"
+          ],
+          "indexed": true,
+          "stored": false,
+          "analyzed": true,
+          "multivalued": true,
+          "ignoreInvalidValues": false,
+          "facet": false
+        }
+      ],
+      "languages": [],
+      "types": [
+        "http://fasnacht.digital/ns/Story"
+      ],
+      "readonly": false,
+      "detectFields": false,
+      "importGraph": false,
+      "skipInitialIndexing": false,
+      "boostProperties": [],
+      "stripMarkup": false
+    }
+    ''' .
+    }
+    """
+
+    """
+    FULLTEXT query:
+    
+    1) the connector must have the name of project
+    2) 
+    """
     @staticmethod
     def search_fulltext(con: IConnection,
-                        projectShortName: Xsd_NCName | str,
-                        searchstr: str,
-                        resClass: Xsd_QName | str | None = None,
+                        project: Project | Xsd_NCName | Iri| str,
+                        resClass: Xsd_QName,
+                        includeProperties: set[Xsd_QName] | None = None,
+                        filter: set[SearchFilter | LogicOp] | None = None,
+                        ftfilter: list[FTSearchFilter | Literal['AND', 'OR']] | None = None,
+                        hlfilter: set[HLSearchFilter | LogicOp] | None = None,
                         countOnly: bool = False,
-                        sortBy: list[SortBy] = [],
                         limit: int = 100,
                         offset: int = 0,
                         indent: int = 0, indent_inc: int = 4) -> int | dict[Iri, dict[str, Xsd]]:
-        """
-            Searches and retrieves data from the database using a full-text search query. This method allows
-            users to optionally filter and sort the results based on specific criteria. It supports returning
-            either the count of matching results or the results themselves in a structured format.
-
-            :param con: The connection object used to interact with the database.
-                This must implement the IConnection interface.
-            :type con: IConnection
-
-            :param projectShortName: The short name of the project for which the data
-                needs to be queried.
-            :type projectShortName: Xsd_NCName | str
-
-            :param searchstr: The search string used for full-text search, with case-insensitive
-                substring matching.
-            :type searchstr: str
-
-            :param resClass: An optional parameter specifying the resource class of the
-                objects to be retrieved. If provided, the query will filter results for the
-                specified class.
-            :type resClass: Xsd_QName | str | None
-
-            :param countOnly: A boolean flag to indicate whether to return only the count
-                of matching results. If set to True, only the count is returned;
-                otherwise, matching records are retrieved.
-            :type countOnly: bool
-
-            :param sortBy: A list of sorting criteria. Each criterion specifies the property
-                and direction (ascending or descending) to sort the results. If not provided,
-                no sorting is applied. SortBy has the following attributes:
-                - property (Xsd_QName): The property to sort by. The property must be one of
-                  Xsd_QName('oldap:creationDate'), Xsd_QName('oldap:lastModificationDate') or
-                  Xsd_QName('oldap:propval') to sort according the property where the match has been found..
-                - direction (str): The sorting direction, either 'asc' for ascending or 'desc' for descending.
-            :type sortBy: list[SortBy]
-
-            :param limit: The maximum number of results to retrieve. Defaults to 100 if not specified.
-            :type limit: int
-
-            :param offset: The number of records to skip before starting to retrieve results.
-                This is useful for paginated responses.
-            :type offset: int
-
-            :param indent: The base indentation level used for formatting the generated SPARQL
-                query string.
-            :type indent: int
-
-            :param indent_inc: The incremental value to add to the base indent for nested query
-                components.
-            :type indent_inc: int
-
-            :return: If `countOnly` is True, an integer representing the count of matching results
-                is returned. Otherwise, a dictionary is returned where the keys are IRIs of the
-                matching resources, and the values are dictionaries containing their respective
-                properties and values.
-            :rtype: int | dict[Iri, dict[str, Xsd]]
-        """
-        if not isinstance(projectShortName, Xsd_NCName):
-            graph = Xsd_NCName(projectShortName, validate=True)
+        if not isinstance(project, Project):
+            project_obj = Project.read(con=con,
+                                       projectIri_SName=project)
         else:
-            graph = projectShortName
+            project_obj = project
+
+        graph = project_obj.projectShortName
         if resClass and not isinstance(resClass, Xsd_QName):
             resClass = Xsd_QName(resClass, validate=True)
 
+        #
+        # first we check if we are searching for a hlist node
+        #
+        nodes: dict[HListNode, OldapListNode] = {}
+        if hlfilter:
+            hlists: dict[str, OldapList] = {}
+            for hlf in hlfilter:
+                if isinstance(hlf, LogicOp):
+                    continue
+                if not hlists.get(hlf[1].listId):
+                    hlists[hlf[1].listId] = OldapList.read(con=con, project=project_obj, oldapListId=hlf[1].listId)
+                if nodes.get(hlf[1]) is None:
+                    nodes[hlf[1]] = OldapListNode.read(con=con, **hlists[hlf[1].listId].info, oldapListNodeId=hlf[1].nodeId)
+
         blank = ''
         context = Context(name=con.context_name)
+        if ftfilter:
+            context['luc'] = NamespaceIRI('http://www.ontotext.com/connectors/lucene#')
+            context['inst'] = NamespaceIRI('http://www.ontotext.com/connectors/lucene/instance#')
         sparql = context.sparql_context
+        sparql_vars = {'res'}
 
-
-        select_count = 'SELECT (COUNT(DISTINCT ?s) as ?numResult)'
-        select = 'SELECT DISTINCT ?s ?p ?o'
         if (countOnly):
-            sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
+            sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?res) as ?numResult)'
         else:
-            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s ?t ?p ?o'
-            if sortBy:
-                for sortby in sortBy:
-                    if sortby.property == Xsd_QName('oldap:creationDate'):
-                        sparql += ' ?creationDate'
-                    elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
-                        sparql += '?lastModificationDate'
+            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?res'
+            if ftfilter:
+                sparql += ' ?score'
+                sparql_vars.add('score')
+
+        if includeProperties:
+            for p in includeProperties:
+                sparql += f' ?{p.fragment}'
+                sparql_vars.add(f'{p.fragment}')
 
         sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
@@ -1369,49 +1432,112 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
-        if not countOnly and sortBy:
-            for sortby in sortBy:
-                if sortby.property == Xsd_QName('oldap:creationDate'):
-                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:creationDate ?creationDate .'
-                elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
-                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:lastModificationDate ?lastModificationDate .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s ?p ?o .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type ?t .'
-        if resClass:
-            sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(isLiteral(?o) && (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(CONTAINS(LCASE(STR(?o)), "{searchstr}"))  # case-insensitive substring match'
+        #sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {} {resClass} .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res rdf:type {resClass} .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res oldap:attachedToRole ?role .'
+
+        for p in includeProperties:
+            if filter and any({f[0] == p for f in filter if not isinstance(f, LogicOp)}):
+                continue
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {p.toRdf} ?{p.fragment} }} .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
+
+        if filter:
+            for f in filter:
+                if isinstance(f, LogicOp):
+                    continue
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {f[0].toRdf} ?{f[0].fragment} .'
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER('
+            langfilters: list[str] = []
+            for f in filter:
+                if isinstance(f, LogicOp):
+                    sparql+= f' {f.value} '
+                else:
+                    if f[1] in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
+                        if isinstance(f[2], Xsd_string) and f[2].lang:
+                            sparql += f'?{f[0].fragment} {f[1].value} "{f[2].value}"'
+                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
+                        else:
+                            sparql += f'?{f[0].fragment} {f[1].value} {f[2].toRdf}'
+                    elif f[1] == CompOp.CONTAINS:  # TODO: DEAL WITH LANGUAGES!!
+                        if isinstance(f[2], Xsd_string) and f[2].lang is None:
+                            sparql += f'CONTAINS(LCASE(STR(?{f[0].fragment})), LCASE(STR("{f[2].value}")))'
+                        else:
+                            sparql += f'CONTAINS(LCASE(STR(?{f[0].fragment})), LCASE(STR("{f[2].value}")))'
+                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
+                    elif f[1] == CompOp.REGEXP:
+                        if isinstance(f[2], Xsd_string) and f[2].lang:
+                            sparql += f'REGEX(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
+                        else:
+                            sparql += f'REGEX(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
+                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
+                    elif f[1] == CompOp.STRSTARTS:
+                        if isinstance(f[2], Xsd_string) and f[2].lang:
+                            sparql += f'STRSTARTS(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
+                        else:
+                            sparql += f'STRSTARTS(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
+                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
+                    elif f[1] == CompOp.STRENDS:
+                        if isinstance(f[2], Xsd_string) and f[2].lang:
+                            sparql += f'STRENDS(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
+                        else:
+                            sparql += f'STRENDS(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
+                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
+            sparql += f')'
+            for lf in langfilters:
+                f'\n{blank:{(indent + 2) * indent_inc}}{lf}'
+
+        if hlfilter:
+            for hlf in hlfilter:
+                if isinstance(hlf, LogicOp):
+                    continue
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {hlf[0].toRdf} ?{hlf[0].fragment} .'
+
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+
+
+        if hlfilter:
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:lists {{'
+            for hlf in hlfilter:
+                if isinstance(hlf, LogicOp):
+                    continue
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf[0].fragment} oldap:leftIndex ?{hlf[0].fragment}_lindex .'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf[0].fragment} oldap:rightIndex ?{hlf[0].fragment}_rindex .'
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER('
+            for hlf in hlfilter:
+                if isinstance(hlf, LogicOp):
+                    sparql+= f' {hlf.value} '
+                else:
+                    node_lindex = nodes[hlf[1]].leftIndex
+                    node_rindex = nodes[hlf[1]].rightIndex
+                    sparql += f'({node_lindex} >= ?{hlf[0].fragment}_lindex && {node_rindex} <= ?{hlf[0].fragment}_rindex)'
+            sparql += ')'
+
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+
+        if ftfilter:
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}?search a inst:{str(project_obj.projectShortName)} ;'
+            tmp = [f'{str(x[0].fragment)}:{str(x[1])}' if isinstance(x, tuple) else str(x) for x in ftfilter]
+            fields = ' '.join(tmp)
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}luc:query "{fields}" ;'
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}luc:entities ?res .'
+            # sparql += f'\n{blank:{(indent + 3) * indent_inc}}luc:property fasnacht:storyContent ;'  # if we only want a specific property!
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}?res luc:score ?score .'
+
         sparql += f'\n{blank:{indent * indent_inc}}}}'
 
-        if not countOnly and sortBy:
-            for sortby in sortBy:
-                if sortby.property == Xsd_QName('oldap:creationDate'):
-                    if sortby.dir == SortDir.asc:
-                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?creationDate)'
-                    else:
-                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?creationDate)'
-                elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
-                    if sortby.dir == SortDir.asc:
-                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?lastModificationDate)'
-                    else:
-                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?lastModificationDate)'
-                elif sortby.property == Xsd_QName('oldap:propval'):
-                    if sortby.dir == SortDir.asc:
-                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?o)'
-                    else:
-                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?o)'
+        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?score)'
 
         if not countOnly:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
         sparql += '\n'
 
+        print(sparql)
+
         try:
             jsonres = con.query(sparql)
         except OldapError:
-            logger.error(f'SPARQL: Failed to search for resources in project "{projectShortName}"', exc_info=True)
+            logger.error(f'SPARQL: Failed to search for resources in project "{project_obj.projectShortName}"', exc_info=True)
             raise
         res = QueryProcessor(context, jsonres)
         if countOnly:
@@ -1419,17 +1545,10 @@ class ResourceInstance:
         else:
             result = {}
             for r in res:
-                tmp = {
-                    r['p']: r['o'],
-                    Xsd_QName('owl:Class'): r['t']
-                }
-                if sortBy:
-                    for sortby in sortBy:
-                        if sortby.property == Xsd_QName('oldap:creationDate'):
-                            tmp['oldap:creationDate'] = r['creationDate'],
-                        elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
-                            tmp['oldap:lastModificationDate'] = r['lastModificationDate']
-                result[r['s']] = tmp
+                if result.get('res') is None:
+                    result[r['res']] = {}
+                for p in sparql_vars:
+                    result[r['res']][p] = r[p] if r.get(p) else None
             return result
 
     @staticmethod
@@ -1579,6 +1698,127 @@ class ResourceInstance:
                         if is_langstring:
                             resource[property] = LangString(resource[property])
         return result
+
+
+    """
+    PREFIX :<http://www.ontotext.com/connectors/lucene#>
+PREFIX inst:<http://www.ontotext.com/connectors/lucene/instance#>
+INSERT DATA {
+	inst:fasnacht :createConnector '''
+{
+  "fields": [
+    {
+      "fieldName": "content",
+      "propertyChain": [
+        "http://fasnacht.digital/ns/storyContent"
+      ],
+      "indexed": true,
+      "stored": false,
+      "analyzed": true,
+      "multivalued": true,
+      "ignoreInvalidValues": false,
+      "facet": false
+    }
+  ],
+  "languages": [],
+  "types": [
+    "http://fasnacht.digital/ns/Story"
+  ],
+  "readonly": false,
+  "detectFields": false,
+  "importGraph": false,
+  "skipInitialIndexing": false,
+  "boostProperties": [],
+  "stripMarkup": false
+}
+''' .
+}
+    """
+
+    def search_by_prop(self,
+                       con: IConnection,
+                       projectShortName: Xsd_NCName | str,
+                       resClass: Xsd_QName | str,
+                       filter: list[tuple[Xsd_QName, CompOp, Xsd] | LogicOp],
+                       includeProperties: set[Xsd_QName],
+                       countOnly: bool = False,
+                       sortBy: list[SortBy] = [],
+                       limit: int = 100,
+                       offset: int = 0,
+                       indent: int = 0, indent_inc: int = 4):
+
+        if not isinstance(projectShortName, Xsd_NCName):
+            graph = Xsd_NCName(projectShortName, validate=True)
+        else:
+            graph = projectShortName
+        if not isinstance(resClass, Xsd_QName):
+            resClass = Xsd_QName(resClass, validate=True)
+
+        if sortBy:
+            for s in sortBy:
+                if not isinstance(s, SortBy):
+                    raise OldapErrorType(f'Expected SortBy, got {type(s)}')
+                if not includeProperties:
+                    includeProperties = set()
+                if s.property not in includeProperties:
+                    includeProperties.add(s.property)
+        filterdict: dict[Xsd_QName, tuple[CompOp, Xsd]] = {}
+        use_fulltext = False
+        if filter:
+            for f in filter:
+                if f[1] == CompOp.FULLTEXT:
+                    use_fulltext = True
+                if not isinstance(f[0], Xsd_QName):
+                    raise OldapErrorType(f'Expected Xsd_QName, got {type(f)}')
+                if not includeProperties:
+                    includeProperties = set()
+                if f[0] not in includeProperties:
+                    includeProperties.add(f[0])
+                filterdict[f[0]] = (f[1], f[2])
+
+        blank = ''
+        context = Context(name=con.context_name)
+        if (use_fulltext):
+            context['luc'] = NamespaceIRI('http://www.ontotext.com/connectors/lucene#')
+
+        sparql = context.sparql_context
+        if (countOnly):
+            sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
+        else:
+            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s'
+            if includeProperties:
+                for index, item in enumerate(includeProperties):
+                    sparql += f' ?o{index}'
+        sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?dataperm oldap:permissionValue ?permval .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'  # TODO: REMOVE WHEN ONTO FIXED!
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .'
+        for index, p in enumerate(includeProperties):
+            if p in filterdict:
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s {p.toRdf} ?o{index} .'
+                # TODO: CHECK DATATYPE AND MODIFY/REJECT COMPARISON OPERATOR IF NOT APPLICABLE
+                # TODO: HLISTS and DATING OBJECTS NEED SPECIAL TREATMENT !!!
+                if filterdict[p][0] in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?o{index} {filterdict[p][0].value} {filterdict[p][1].toRdf} .'
+                elif filterdict[p][0] == CompOp.CONTAINS:
+                    if not isinstance(filterdict[p][1], Xsd_string):
+                        raise OldapErrorType(f'Expected Xsd_string, got {type(filterdict[p][1]).__name__}')
+                    if filterdict[p][1].lang:
+                        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(LANG(?o{index}) = {filterdict[p][1].lang.shortlang})'
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(CONTAINS(LCASE(STR(?o{index})), LCASE(STR({filterdict[p][1].value})))'
+                elif filterdict[p][0] == CompOp.REGEXP:
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(REGEX(STR(?o{index}), STR({filterdict[p][1]}), "i")'
+
+            if self.properties[p].minCount > 0:
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s {p.toRdf} ?o{index} .'
+
+
 
     @staticmethod
     def get_media_object_by_id(con: IConnection, mediaObjectId: Xsd_string | str) -> dict[str, Xsd]:
