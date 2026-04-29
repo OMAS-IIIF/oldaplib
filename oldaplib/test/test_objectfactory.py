@@ -500,6 +500,11 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(codex.writtenAt._datePrecision, DatePrecision.CENTURY)
         self.assertEqual(str(codex.writtenAt), "1200-01-01 - 1299-12-31 (GREGORIAN, CENTURY)")
 
+        data = ResourceInstance.read_data(con=self._connection, iri=codex.iri, projectShortName='test')
+        self.assertIsInstance(data['test:writtenAt'][0], Dating)
+        self.assertEqual(data['test:writtenAt'][0]._datePrecision, DatePrecision.CENTURY)
+        self.assertEqual(str(data['test:writtenAt'][0]), "1200-01-01 - 1299-12-31 (GREGORIAN, CENTURY)")
+
     def test_create_read_dating_from_object(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         Codex = factory.createObjectInstance('Codex')
@@ -536,6 +541,15 @@ class TestObjectFactory(unittest.TestCase):
         self.assertIsInstance(codex2.writtenAt, Dating)
         self.assertEqual(codex2.writtenAt._datePrecision, DatePrecision.YEAR)
         self.assertEqual(str(codex2.writtenAt), "1510-01-01 - 1510-12-31 (GREGORIAN, YEAR)")
+
+    def test_create_read_dating_from_tuple2(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Sinaiticus",
+                      writtenAt=Dating((400,), (499,), verbatimDate="fourth century", datePrecision=DatePrecision.CENTURY))
+        codex.create()
+        data = ResourceInstance.read_data(con=self._connection, iri=codex.iri, projectShortName='test')
+        pprint(data)
 
     def test_read_D(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')

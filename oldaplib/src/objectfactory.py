@@ -1567,64 +1567,31 @@ class ResourceInstance:
             oldaplist = OldapList.read(con=con, project=projectShortName, oldapListId=ol.fragment)
             (oldaplist)
 
-        access_block = creator_or_max_perm_block(
-            graph_data=f"{graph}:data",
-            resource_iri=iri.toRdf,
-            user_iri=con.userIri.toRdf,
-            min_perm=DataPermission.DATA_VIEW.numeric.toRdf,
-            alias="read1",
-            include_creator=True
-        )
-        sparql = context.sparql_context
-        sparql += textwrap.dedent(f'''
-        SELECT DISTINCT ?predicate ?value
-        WHERE {{
-            {access_block}
-            GRAPH {graph}:data {{
-                {iri.toRdf} ?predicate ?value .
-            }}
-        }}
-        ''')
-
         try:
-            jsonres = con.query(sparql)
+            construct_data = _read_resource_construct(con, graph, iri, con.userIri, include_creator=True)
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve data for resource "{iri}"', exc_info=True)
             raise
-        jsonres = con.query(sparql)
-        res = QueryProcessor(context, jsonres)
-        data = {}
-        for r in res:
-            if r['predicate'].is_qname:
-                if r['predicate'].as_qname == Xsd_QName('oldap:attachedToRole'):
-                    continue
-                if not data.get(r['predicate'].as_qname):
-                    data[r['predicate'].as_qname] = []
-                data[str(r['predicate'].as_qname)].append(r['value'])
-            else:
-                raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
+        resource_data = construct_data.get(_construct_subject_key(iri))
+        if resource_data is None:
+            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+
+        data: dict[Xsd_QName | str, Any] = {}
+        dating_cache: dict[Iri | Xsd_QName, Any] = {}
+        for predicate, value in resource_data.items():
+            if predicate == READ_PERM_BINDING_PRED or predicate == Xsd_QName('oldap:attachedToRole'):
+                continue
+            if not isinstance(predicate, Xsd_QName):
+                raise OldapErrorInconsistency(f"Expected QName as predicate, got {predicate}")
+            values = [
+                _convert_construct_value(item, None, construct_data, dating_cache)
+                for item in _construct_values(resource_data, predicate)
+            ]
+            data[str(predicate)] = values
         if not data.get('rdf:type'):
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
 
-        sparql = context.sparql_context
-        sparql += textwrap.dedent(f'''
-        SELECT DISTINCT ?role ?dataperm
-        WHERE {{
-            GRAPH {graph}:data {{
-                << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
-            }}
-        }}
-        ''')
-        try:
-            jsonres = con.query(sparql)
-        except Exception as e:
-            logger.error(f'SPARQL: Failed to retrieve data permissions for resource "{iri}"', exc_info=True)
-            raise
-        res = QueryProcessor(context, jsonres)
-        roles = {}
-        for r in res:
-            roles[r['role']] = DataPermission.from_qname(r['dataperm'])
-        data[Xsd_QName('oldap:attachedToRole')] = roles
+        data[Xsd_QName('oldap:attachedToRole')] = _read_attached_roles(con, graph, iri)
         #data[Xsd_QName('virtual:resourceIri')] = iri
         return data
 
