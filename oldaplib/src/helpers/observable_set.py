@@ -34,6 +34,7 @@ class ObservableSet(Notify):
     _setdata: Set[Any]
     _old_value: Self | None
     _datatype: Type | None
+    _validator: Callable[[set[Any]], None] | None
 
     def __init__(self,
                  setitems: Self | Iterable | None = None,
@@ -42,6 +43,7 @@ class ObservableSet(Notify):
                  notifier: Callable[[Enum | Iri], None] | None = None,
                  notify_data: Iri | Xsd_QName |None = None,
                  old_value: Self | None = None,
+                 validator: Callable[[set[Any]], None] | None = None,
                  validate: bool = False) -> None:
         """
         Constructor of the ObservableSet class
@@ -52,9 +54,11 @@ class ObservableSet(Notify):
         """
         self._old_value = old_value
         self._datatype = datatype
+        self._validator = validator
         super().__init__(notifier=notifier, data=notify_data)
         if not setitems:
             self._setdata = set()
+            self.__validate(self._setdata)
             return
         if isinstance(setitems, ObservableSet):
             self._setdata = setitems._setdata
@@ -67,12 +71,20 @@ class ObservableSet(Notify):
                 self._setdata = set(tmp)
             else:
                 self._setdata = set(setitems)
+        self.__validate(self._setdata)
+
+    def __validate(self, setdata: set[Any]) -> None:
+        if self._validator:
+            self._validator(setdata)
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         new_copy = self.__class__.__new__(self.__class__)
         memo[id(self)] = new_copy
         #new_copy.__data = deepcopy(self.__data, memo)
         new_copy._setdata = set(self._setdata)
+        new_copy._old_value = deepcopy(self._old_value, memo)
+        new_copy._datatype = self._datatype
+        new_copy._validator = self._validator
         #new_copy._notifier = deepcopy(self._notifier, memo)
         new_copy._notifier = self._notifier
         new_copy._notify_data = deepcopy(self._notify_data, memo)
@@ -122,10 +134,13 @@ class ObservableSet(Notify):
 
     def __ior__(self, other: Iterable[Any]) -> Self:
         tmp_copy = deepcopy(self)
+        setdata = self._setdata.copy()
         if isinstance(other, ObservableSet):
-            self._setdata.__ior__(other._setdata)
+            setdata.__ior__(other._setdata)
         else:
-            self._setdata.__ior__(set(other))
+            setdata.__ior__(set(other))
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -143,14 +158,17 @@ class ObservableSet(Notify):
 
     def __iand__(self, other: Iterable[Any]) -> Self:
         tmp_copy = deepcopy(self)
+        setdata = self._setdata.copy()
         if isinstance(other, ObservableSet):
-            self._setdata.__iand__(other._setdata)
+            setdata.__iand__(other._setdata)
         elif isinstance(other, set):
-            self._setdata.__iand__(other)
+            setdata.__iand__(other)
         elif isinstance(other, Iterable):
-            self._setdata.__iand__(set(other))
+            setdata.__iand__(set(other))
         else:
             raise OldapErrorNotImplemented(f'Set.__iand__() not implemented for {type(other).__name__}')
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -171,14 +189,17 @@ class ObservableSet(Notify):
 
     def __isub__(self, other: Iterable[Any]) -> Self:
         tmp_copy = deepcopy(self)
+        setdata = self._setdata.copy()
         if isinstance(other, ObservableSet):
-            self._setdata.__isub__(other._setdata)
+            setdata.__isub__(other._setdata)
         elif isinstance(other, set):
-            self._setdata.__isub__(other)
+            setdata.__isub__(other)
         elif isinstance(other, Iterable):
-            self._setdata.__isub__(set(other))
+            setdata.__isub__(set(other))
         else:
             raise OldapErrorNotImplemented(f'Set.__isub__() not implemented for {type(other).__name__}')
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -192,8 +213,11 @@ class ObservableSet(Notify):
         tmp_copy = deepcopy(self)
         if self._datatype:
             if not all(isinstance(item, self._datatype) for item in items):
-                item = {self._datatype(x) for x in items}
-        self._setdata.update(items)
+                items = {self._datatype(x) for x in items}
+        setdata = self._setdata.copy()
+        setdata.update(items)
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -202,8 +226,11 @@ class ObservableSet(Notify):
         tmp_copy = deepcopy(self)
         if self._datatype:
             if not all(isinstance(item, self._datatype) for item in items):
-                item = {self._datatype(x) for x in items}
-        self._setdata.intersection_update(items)
+                items = {self._datatype(x) for x in items}
+        setdata = self._setdata.copy()
+        setdata.intersection_update(items)
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -212,8 +239,11 @@ class ObservableSet(Notify):
         tmp_copy = deepcopy(self)
         if self._datatype:
             if not all(isinstance(item, self._datatype) for item in items):
-                item = {self._datatype(x) for x in items}
-        self._setdata.difference_update(items)
+                items = {self._datatype(x) for x in items}
+        setdata = self._setdata.copy()
+        setdata.difference_update(items)
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -222,8 +252,11 @@ class ObservableSet(Notify):
         tmp_copy = deepcopy(self)
         if self._datatype:
             if not all(isinstance(item, self._datatype) for item in items):
-                item = {self._datatype(x) for x in items}
-        self._setdata.symmetric_difference_update(items)
+                items = {self._datatype(x) for x in items}
+        setdata = self._setdata.copy()
+        setdata.symmetric_difference_update(items)
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -232,8 +265,10 @@ class ObservableSet(Notify):
         tmp_copy = deepcopy(self)
         if self._datatype:
             if not all(isinstance(item, self._datatype) for item in items):
-                item = {self._datatype(x) for x in items}
-        self._setdata = set(items)
+                items = {self._datatype(x) for x in items}
+        setdata = set(items)
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -243,7 +278,10 @@ class ObservableSet(Notify):
         if self._datatype:
             if not isinstance(item, self._datatype):
                 item = self._datatype(item)
-        self._setdata.add(item)
+        setdata = self._setdata.copy()
+        setdata.add(item)
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -253,7 +291,10 @@ class ObservableSet(Notify):
         if self._datatype:
             if not isinstance(item, self._datatype):
                 item = self._datatype(item)
-        self._setdata.remove(item)
+        setdata = self._setdata.copy()
+        setdata.remove(item)
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -263,14 +304,20 @@ class ObservableSet(Notify):
         if self._datatype:
             if not isinstance(item, self._datatype):
                 item = self._datatype(item)
-        self._setdata.discard(item)
+        setdata = self._setdata.copy()
+        setdata.discard(item)
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
 
     def pop(self):
         tmp_copy = deepcopy(self)
-        item = self._setdata.pop()
+        setdata = self._setdata.copy()
+        item = setdata.pop()
+        self.__validate(setdata)
+        self._setdata = setdata
         if not self._old_value:
             self._old_value = tmp_copy
         self.notify()
@@ -278,6 +325,7 @@ class ObservableSet(Notify):
 
     def clear(self) -> None:
         tmp_copy = deepcopy(self)
+        self.__validate(set())
         self._setdata.clear()
         if not self._old_value:
             self._old_value = tmp_copy
@@ -295,7 +343,7 @@ class ObservableSet(Notify):
         self._old_value = None
 
     def copy(self) -> Self:
-        return ObservableSet(self._setdata.copy(), notifier=self._notifier, notify_data=self._notify_data)
+        return ObservableSet(self._setdata.copy(), notifier=self._notifier, notify_data=self._notify_data, validator=self._validator)
 
     @property
     def toRdf(self) -> str:
@@ -430,4 +478,3 @@ class ObservableSet(Notify):
         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         return sparql
-

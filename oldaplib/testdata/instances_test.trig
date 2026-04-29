@@ -6,6 +6,7 @@
 @prefix schema: <https://schema.org/> .
 @prefix http: <http://www.w3.org/2011/http#> .
 @prefix : <http://oldap.org/base#> .
+@prefix oldap: <http://oldap.org/base#> .
 @prefix test: <http://oldap.org/test#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix shared: <http://oldap.org/shared#> .
@@ -78,6 +79,24 @@ test:data {
     test:pubDate "2026-01-01"^^xsd:date .
 
   << <urn:uuid:7a1de6d7-de75-4875-ab24-74819057703f> :attachedToRole :Unknown>> :hasDataPermission :DATA_VIEW .
+
+  <urn:uuid:2f9c2b91-fb2b-4d75-9fd1-3f7dd7d10101> a oldap:Dating ;
+    oldap:normalizedStart "1200-01-01"^^xsd:date ;
+    oldap:normalizedEnd "1299-12-31"^^xsd:date ;
+    oldap:datePrecision oldap:CenturyPrecision ;
+    oldap:inCalendar oldap:GregorianCalendar ;
+    oldap:verbatimDate "thirteenth century" .
+
+  <urn:uuid:8dd6b1aa-3f40-4c0c-908d-c8e5da114201> a test:Codex ;
+    :createdBy <https://orcid.org/0000-0003-1681-4036> ;
+    :creationDate "2025-11-13T16:43:21.284536+01:00"^^xsd:dateTimeStamp;
+    :lastModifiedBy <https://orcid.org/0000-0003-1681-4036> ;
+    :lastModificationDate "2025-11-13T16:43:21.284536+01:00"^^xsd:dateTimeStamp ;
+    :attachedToRole :Unknown ;
+    test:title "Codex Aureus" ;
+    test:writtenAt <urn:uuid:2f9c2b91-fb2b-4d75-9fd1-3f7dd7d10101> .
+
+  << <urn:uuid:8dd6b1aa-3f40-4c0c-908d-c8e5da114201> :attachedToRole :Unknown>> :hasDataPermission :DATA_VIEW .
   
   <urn:uuid:57141a6b-46b5-4c82-a74c-d48a15437c4f> a test:Page;
     :createdBy <https://orcid.org/0000-0003-1681-4036>;

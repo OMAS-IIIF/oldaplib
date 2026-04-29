@@ -61,7 +61,6 @@ shared:shacl {
         oldap:proposedDatatypePropertyClass "subject"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "tableOfContents"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "title"^^xsd:NCName ;
-        oldap:proposedObjectPropertyClass ""^^xsd:NCName ;
         oldap:proposedObjectPropertyClass "audience"^^xsd:NCName ;
         oldap:proposedObjectPropertyClass "contributor"^^xsd:NCName ;
         oldap:proposedObjectPropertyClass "coverage"^^xsd:NCName ;
@@ -174,7 +173,7 @@ shared:shacl {
         dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         rdfs:label "Dating object"@en, "Datumsobjekt"@de, "Objet de date"@fr, "Oggetto data"@it ;
         sh:closed "true"^^xsd:boolean ;
-        sh:node oldap:ThingShape ;
+        #sh:node oldap:ThingShape ;
         sh:property [
             sh:path oldap:verbatimDate ;
             sh:name "Verbatim date"@en, "Wörtliche Zeitangabe"@de, "Citation littérale"@fr, "Tempo letterale"@it ;
@@ -183,11 +182,12 @@ shared:shacl {
             sh:order 1.0 ;
         ] ;
         sh:property [
-            sh:path oldap:normalizedBegin ;
-            sh:name "Normalized begin (ISO Gregorian)"@en,
-                        "Normierter Beginn (ISO-Gregorian)"@de,
+            sh:path oldap:normalizedStart ;
+            sh:name "Normalized Start (ISO Gregorian)"@en,
+                        "Normierter Startn (ISO-Gregorian)"@de,
                         "Début normalisé (calendrier grégorien ISO)"@fr,
                         "Inizio normalizzato (calendario gregoriano ISO)"@it ;
+            sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
             sh:datatype xsd:date ;
             sh:order 2.0 ;
@@ -195,6 +195,7 @@ shared:shacl {
         sh:property [
             sh:path oldap:normalizedEnd ;
             sh:name "Normalized end (ISO Gregorian)"@en, "Normalisiertes Ende (ISO-Gregorian)"@de, "Fin normalisée (calendrier grégorien ISO)"@fr, "Fine normalizzata (calendario gregoriano ISO)"@it ;
+            sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:nonNegativeInteger ;
             sh:datatype xsd:date ;
             sh:order 3.0 ;
@@ -213,13 +214,14 @@ shared:shacl {
         sh:property [
             sh:path oldap:inCalendar ;
             sh:name "Calendar of the original date"@en, "Kalender des ursprünglichen Datums"@de, "Calendrier de la date d'origine"@fr, "Calendario della data originale"@it ;
+            sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:nonNegativeInteger ;
             sh:class oldap:Calendar ;
             sh:in (oldap:GregorianCalendar oldap:JulianCalendar oldap:HebrewCalendar oldap:IslamicCalendar oldap:PersianCalendar) ;
             sh:order 5.0 ;
        ] ;
         sh:property [
-            sh:path oldap:before ;
+            sh:path oldap:beforeDating ;
             sh:class oldap:Dating ;
             sh:name "before other event"@en, "vor einem anderen Ereignis"@de, "avant un autre événement"@fr, "prima di un altro evento"@it ;
             sh:order 6.0 ;
@@ -415,7 +417,7 @@ shared:onto {
         rdfs:domain oldap:Dating ;
         rdfs:range oldap:DatePrecision ;
         rdfs:label "date precision"@en, "Datumsgenauigkeit"@de, "précision de date"@fr, "precisione della data"@it ;
-        rdfs:comment "Links a dating resource to the precision level used for its normalized begin and end dates."@en,
+        rdfs:comment "Links a dating resource to the precision level used for its normalized Start and end dates."@en,
                      "Verknüpft eine Datierungsressource mit der Genauigkeitsstufe, die für ihre normierten Anfangs- und Enddaten verwendet wird."@de,
                      "Relie une ressource de datation au niveau de précision utilisé pour ses dates de début et de fin normalisées."@fr,
                      "Collega una risorsa di datazione al livello di precisione usato per le sue date normalizzate di inizio e fine."@it .
@@ -427,7 +429,7 @@ shared:onto {
 
     oldap:verbatimDate rdf:type owl:DatatypeProperty .
 
-    oldap:normalizedBegin rdf:type owl:DatatypeProperty .
+    oldap:normalizedStart rdf:type owl:DatatypeProperty .
 
     oldap:normalizedEnd rdf:type owl:DatatypeProperty .
 

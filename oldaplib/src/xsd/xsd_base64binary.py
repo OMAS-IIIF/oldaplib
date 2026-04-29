@@ -18,18 +18,27 @@ class Xsd_base64Binary(Xsd):
 
     __value: bytes
 
-    def __init__(self, value: Self | bytes, validate: bool = False):
+    def __init__(self, value: Self | bytes | str, validate: bool = False):
         """
         Constructor that encodes and decodes binary data using the XML Scheme xsd:base64Binary datatype.
         Validation uses regexp patterns and the XsdValidator library.
-        :param value: Either another instance of Xsd_base64Binary or a bytes object
-        :type value: Xsd_base64Binary | bytes
+        :param value: Either another instance of Xsd_base64Binary, a bytes object, or a base64 string
+        :type value: Xsd_base64Binary | bytes | str
         :param validate: Whether to validate the binary data
         :type validate: bool
         :raises OldapErrorValue: If the value is not an instance of Xsd_base64Binary or a valid bytes object
         """
         if isinstance(value, Xsd_base64Binary):
-            self.__value = value.__value
+            self.__value = value.value
+        elif isinstance(value, str):
+            self.__value = value.encode('utf-8')
+            if validate:
+                if len(value) % 4 != 0:
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
+                if not bool(re.match(r'^[A-Za-z0-9+/]+={0,2}$', value)):
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
+                if not XsdValidator.validate(XsdDatatypes.base64Binary, value):
+                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
         elif isinstance(value, bytes):
             self.__value = value
             if validate:
@@ -40,7 +49,7 @@ class Xsd_base64Binary(Xsd):
                 if not XsdValidator.validate(XsdDatatypes.base64Binary, value.decode('utf-8')):
                     raise OldapErrorValue(f'Invalid string "{value}" for xsd:base64Binary.')
         else:
-            OldapErrorValue("Xsd_base64Binary requires bytes parameter")
+            raise OldapErrorValue("Xsd_base64Binary requires bytes parameter")
 
     def __str__(self):
         """
@@ -115,4 +124,3 @@ class Xsd_base64Binary(Xsd):
         :rtype: bytes
         """
         return self.__value
-

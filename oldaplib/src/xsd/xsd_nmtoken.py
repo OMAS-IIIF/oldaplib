@@ -27,12 +27,13 @@ class Xsd_NMTOKEN(Xsd):
         if isinstance(value, Xsd_NMTOKEN):
             self.__value = value.__value
         else:
+            sval = str(value)
             if validate:
-                if not XsdValidator.validate(XsdDatatypes.NMTOKEN, value):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
-                if not re.match("^[a-zA-Z_:.][a-zA-Z0-9_.:-]*$", value):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:NMTOKEN.')
-            self.__value = value
+                if not XsdValidator.validate(XsdDatatypes.NMTOKEN, sval):
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:NMTOKEN.')
+                if not re.match("^[a-zA-Z_:.][a-zA-Z0-9_.:-]*$", sval):
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:NMTOKEN.')
+            self.__value = sval
 
     def __str__(self):
         """

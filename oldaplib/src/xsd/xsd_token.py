@@ -28,14 +28,15 @@ class Xsd_token(Xsd):
         if isinstance(value, Xsd_token):
             self.__value = value.__value
         else:
+            sval = str(value)
             if validate:
-                if not XsdValidator.validate(XsdDatatypes.token, value):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:token.')
-                if not re.match("^[^\\s]+(\\s[^\\s]+)*$", value):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:token.')
-                if re.match(".*[\n\r\t].*", value) is not None:
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:token.')
-            self.__value = value
+                if not XsdValidator.validate(XsdDatatypes.token, sval):
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:token.')
+                if not re.match("^[^\\s]+(\\s[^\\s]+)*$", sval):
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:token.')
+                if re.match(".*[\n\r\t].*", sval) is not None:
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:token.')
+            self.__value = sval
 
     def __str__(self):
         """

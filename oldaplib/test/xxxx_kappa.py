@@ -8,7 +8,7 @@ from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.helpers.construct_processor import ConstructProcessor
 from oldaplib.src.helpers.context import Context
-from oldaplib.src.objectfactory import ResourceInstanceFactory, CompOp, LogicOp
+from oldaplib.src.objectfactory import ResourceInstanceFactory, CompOp, LogicOp, FTSearchFilter, HLSearchFilter, SearchFilter
 from oldaplib.src.project import Project
 from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.xsd.listnode import HListNode
@@ -145,15 +145,15 @@ class TestKappa(unittest.TestCase):
         # res = Story.search_fulltext(con=connection,
         #                             project=fasnacht,
         #                             resClass=Xsd_QName('fasnacht:Story'),
-        #                             ftfilter=[(Xsd_QName('fasnacht:storyContent'), "fasnacht")],
+        #                             ftfilter=[FTSearchFilter('fasnacht:storyContent', "fasnacht")],
         #                             includeProperties={Xsd_QName('schema:abstract'), Xsd_QName('fasnacht:storyTitle')},
-        #                             filter=[(Xsd_QName('fasnacht:storyTitle'), CompOp.CONTAINS, Xsd_string("Geschichte")),
+        #                             filter=[SearchFilter('fasnacht:storyTitle', CompOp.CONTAINS, Xsd_string("Geschichte")),
         #                                     LogicOp.OR,
-        #                                     (Xsd_QName('fasnacht:storyTitle'), CompOp.CONTAINS, Xsd_string("Gugge"))])
+        #                                     SearchFilter('fasnacht:storyTitle', CompOp.CONTAINS, Xsd_string("Gugge"))])
         res = Story.search_fulltext(con=connection,
                                     project=fasnacht,
                                     resClass=Xsd_QName('fasnacht:Story'),
-                                    #ftfilter=[(Xsd_QName('fasnacht:storyContent'), "fasnacht")],
+                                    #ftfilter=[FTSearchFilter('fasnacht:storyContent', "fasnacht")],
                                     includeProperties={Xsd_QName('schema:abstract'), Xsd_QName('fasnacht:storyTitle')},
-                                    hlfilter=[(Xsd_QName('fasnacht:storyKeywords'), HListNode('StoryKeywords:Miscellanious'))])
+                                    hlfilter=[HLSearchFilter('fasnacht:storyKeywords', HListNode('StoryKeywords:Miscellanious'))])
         pprint(res)

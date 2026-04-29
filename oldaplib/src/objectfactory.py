@@ -11,7 +11,7 @@ import jwt
 from datetime import datetime, timedelta
 from enum import Flag, auto, Enum
 from functools import partial
-from typing import Type, Any, Self, cast, Dict, Literal
+from typing import Type, Any, Self, cast, Dict, Literal, Iterable
 
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -22,6 +22,7 @@ from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.construct_processor import ConstructProcessor, ConstructResultDict
 from oldaplib.src.helpers.convert2datatype import convert2datatype
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.observable_dict import ObservableDict
@@ -35,6 +36,7 @@ from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.listnode import HListNode
 from oldaplib.src.xsd.xsd import Xsd
@@ -57,6 +59,11 @@ class SortBy:
     property: Xsd_QName
     dir: SortDir = SortDir.asc
 
+    def __post_init__(self):
+        # Convert property if needed
+        if not isinstance(self.property, Xsd_QName):
+            object.__setattr__(self, 'property', Xsd_QName(self.property))
+
 class CompOp(Enum):
     EQ = "=="
     NE = "!="
@@ -77,15 +84,47 @@ class LogicOp(Enum):
     _RIGHT = ")"
 
 
-"""
-tuple 1 element:
-- full qualified name of the field, or connector:field in case of fulltext
-- Comparison operator
-- Value as Xsd subclass
-"""
-SearchFilter = tuple[Xsd_QName, CompOp, Xsd]
-FTSearchFilter = tuple[Xsd_QName, str]
-HLSearchFilter = tuple[Xsd_QName, HListNode]
+@dataclass(frozen=True)
+class SearchFilter:
+    prop: Xsd_QName
+    op: CompOp
+    value: Xsd
+
+    def __post_init__(self):
+        if not isinstance(self.prop, Xsd_QName):
+            object.__setattr__(self, 'prop', Xsd_QName(self.prop))
+
+
+@dataclass(frozen=True)
+class FTSearchFilter:
+    prop: Xsd_QName
+    query: str
+
+    def __post_init__(self):
+        if not isinstance(self.prop, Xsd_QName):
+            object.__setattr__(self, 'prop', Xsd_QName(self.prop))
+
+
+@dataclass(frozen=True)
+class HLSearchFilter:
+    prop: Xsd_QName
+    node: HListNode
+
+    def __post_init__(self):
+        if not isinstance(self.prop, Xsd_QName):
+            object.__setattr__(self, 'prop', Xsd_QName(self.prop))
+
+READ_PERM_BINDING_PRED = Xsd_QName('oldap:_readPermBinding', validate=False)
+READ_PERM_ROLE_PRED = Xsd_QName('oldap:_readRole', validate=False)
+READ_PERM_VALUE_PRED = Xsd_QName('oldap:_readDataPermission', validate=False)
+RDF_TYPE_PRED = Xsd_QName('rdf:type', validate=False)
+DATING_CLASS = Xsd_QName('oldap:Dating', validate=False)
+DATING_VERBATIM_PRED = Xsd_QName('oldap:verbatimDate', validate=False)
+DATING_START_PRED = Xsd_QName('oldap:normalizedStart', validate=False)
+DATING_END_PRED = Xsd_QName('oldap:normalizedEnd', validate=False)
+DATING_PRECISION_PRED = Xsd_QName('oldap:datePrecision', validate=False)
+DATING_CALENDAR_PRED = Xsd_QName('oldap:inCalendar', validate=False)
+DATING_BEFORE_PRED = Xsd_QName('oldap:before', validate=False)
 
 
 def creator_or_max_perm_block(
@@ -147,6 +186,301 @@ def creator_or_max_perm_block(
     if include_creator:
         return f"{{\n{creator_branch}\n}}\nUNION\n{{\n{perm_branch}\n}}"
     return perm_branch
+
+
+def _construct_subject_key(subject: Iri | Xsd_QName) -> Iri | Xsd_QName:
+    if isinstance(subject, Iri) and subject.is_qname:
+        return subject.as_qname
+    return subject
+
+
+def _construct_values(node: dict[Xsd_QName, Any], predicate: Xsd_QName) -> list[Any]:
+    value = node.get(predicate)
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def _value_as_qname(value: Any) -> Xsd_QName | None:
+    if isinstance(value, Xsd_QName):
+        return value
+    if isinstance(value, Iri) and value.is_qname:
+        return value.as_qname
+    return None
+
+
+def _is_dating_shorthand(value: Any) -> bool:
+    from oldaplib.src.xsd.dating import OldapCalendar
+
+    if isinstance(value, str):
+        return True
+    if isinstance(value, tuple):
+        if len(value) == 2 and all(isinstance(x, (tuple, list, str)) for x in value):
+            return True
+        return all(isinstance(x, int) for x in value) or (
+            len(value) > 0 and all(isinstance(x, int) for x in value[:-1]) and isinstance(value[-1], OldapCalendar)
+        )
+    if isinstance(value, list):
+        if len(value) == 2 and all(isinstance(x, (tuple, list, str)) for x in value):
+            return True
+        return all(isinstance(x, int) for x in value) or (
+            len(value) > 0 and all(isinstance(x, int) for x in value[:-1]) and isinstance(value[-1], OldapCalendar)
+        )
+    return False
+
+
+def _coerce_dating_value(value: Any) -> Any:
+    from oldaplib.src.xsd.dating import Dating
+
+    if isinstance(value, Dating):
+        return value
+    if isinstance(value, str):
+        return Dating(value)
+    if isinstance(value, tuple):
+        if len(value) == 2 and all(isinstance(x, (tuple, list, str)) for x in value):
+            return Dating(value[0], value[1])
+        return Dating(value)
+    if isinstance(value, list):
+        if len(value) == 2 and all(isinstance(x, (tuple, list, str)) for x in value):
+            return Dating(value[0], value[1])
+        return Dating(tuple(value))
+    return value
+
+
+def _is_dating_property(prop: PropertyClass | None) -> bool:
+    if prop is None:
+        return False
+    if getattr(prop, 'datatype', None) is not None:
+        return False
+    to_class = getattr(prop, 'toClass', None)
+    return to_class is not None and str(to_class) == str(DATING_CLASS)
+
+
+def _coerce_property_value(prop: PropertyClass, value: Any) -> Any:
+    if not _is_dating_property(prop):
+        return value
+    if isinstance(value, set):
+        return {_coerce_dating_value(x) for x in value}
+    if _is_dating_shorthand(value):
+        return _coerce_dating_value(value)
+    if isinstance(value, (list, tuple)):
+        return {_coerce_dating_value(x) for x in value}
+    return _coerce_dating_value(value)
+
+
+def _dating_insert_triples(values: dict[Xsd_QName, Any]) -> list[str]:
+    triples: list[str] = []
+    seen: set[Iri | Xsd_QName] = set()
+    for prop_values in values.values():
+        if not isinstance(prop_values, ObservableSet):
+            continue
+        for item in prop_values:
+            if item.__class__.__name__ != 'Dating':
+                continue
+            if item.iri is None:
+                item._Dating__iri = Iri()
+            if item.iri in seen:
+                continue
+            seen.add(item.iri)
+            triples.append(f'{item.iri.toRdf} a oldap:Dating ;\n{item.toRdf} .')
+    return triples
+
+
+def _is_dating_ref(value: Any, construct_data: ConstructResultDict) -> bool:
+    if not isinstance(value, (Iri, Xsd_QName)):
+        return False
+    key = _construct_subject_key(value)
+    node = construct_data.get(key)
+    if node is None:
+        return False
+    return any(_value_as_qname(node_type) == DATING_CLASS for node_type in _construct_values(node, RDF_TYPE_PRED))
+
+
+def _dating_from_construct(value: Any,
+                           construct_data: ConstructResultDict,
+                           cache: dict[Iri | Xsd_QName, Any]) -> Any:
+    if not isinstance(value, (Iri, Xsd_QName)):
+        return value
+    key = _construct_subject_key(value)
+    if key in cache:
+        return cache[key]
+    node = construct_data.get(key)
+    if node is None or not _is_dating_ref(value, construct_data):
+        return value
+
+    start = node.get(DATING_START_PRED)
+    end = node.get(DATING_END_PRED)
+    if start is None or end is None:
+        return value
+
+    verbatim = node.get(DATING_VERBATIM_PRED)
+    precision_value = node.get(DATING_PRECISION_PRED)
+    calendar_value = node.get(DATING_CALENDAR_PRED)
+
+    from oldaplib.src.xsd.dating import Dating, DatePrecision, OldapCalendar
+
+    precision = DatePrecision(str(precision_value)) if precision_value is not None else None
+    calendar = OldapCalendar(str(calendar_value)) if calendar_value is not None else OldapCalendar.GREGORIAN
+
+    before_values = {
+        _dating_from_construct(before_value, construct_data, cache)
+        for before_value in _construct_values(node, DATING_BEFORE_PRED)
+    }
+    before_values = {x for x in before_values if isinstance(x, Dating)}
+
+    dating_iri = key if isinstance(key, (Iri, Xsd_QName)) else None
+    dating = Dating(str(start),
+                    str(end),
+                    None if verbatim is None else str(verbatim),
+                    datePrecision=precision,
+                    inCalendar=calendar,
+                    before=before_values or None,
+                    **({'iri': dating_iri} if dating_iri is not None else {}))
+    cache[key] = dating
+    return dating
+
+
+def _convert_construct_value(value: Any,
+                             prop: PropertyClass | None,
+                             construct_data: ConstructResultDict,
+                             cache: dict[Iri | Xsd_QName, Any]) -> Any:
+    if (_is_dating_property(prop) or _is_dating_ref(value, construct_data)):
+        return _dating_from_construct(value, construct_data, cache)
+    return value
+
+
+def _normalize_construct_property(value: Any,
+                                  prop: PropertyClass | None,
+                                  construct_data: ConstructResultDict,
+                                  cache: dict[Iri | Xsd_QName, Any]) -> Any:
+    if isinstance(value, LangString):
+        return value
+
+    values = value if isinstance(value, list) else [value]
+    converted = [_convert_construct_value(item, prop, construct_data, cache) for item in values]
+    if len(converted) == 1:
+        return converted[0]
+    try:
+        return set(converted)
+    except Exception:
+        return converted
+
+
+def _resource_from_construct(subject: Iri,
+                             construct_data: ConstructResultDict,
+                             properties: dict[Xsd_QName, PropertyClass] | None = None) -> tuple[Xsd_QName | None, dict[str, Any]]:
+    subject_key = _construct_subject_key(subject)
+    resource_data = construct_data.get(subject_key)
+    if resource_data is None:
+        return None, {}
+
+    dating_cache: dict[Iri | Xsd_QName, Any] = {}
+    objtype: Xsd_QName | None = None
+    kwargs: dict[str, Any] = {}
+    roles: dict[Xsd_QName, DataPermission] = {}
+
+    for predicate, value in resource_data.items():
+        if predicate == RDF_TYPE_PRED:
+            for node_type in _construct_values(resource_data, RDF_TYPE_PRED):
+                node_type_qname = _value_as_qname(node_type)
+                if node_type_qname is not None:
+                    objtype = node_type_qname
+                    break
+            continue
+        if predicate == READ_PERM_BINDING_PRED:
+            for binding in _construct_values(resource_data, READ_PERM_BINDING_PRED):
+                if not isinstance(binding, dict):
+                    continue
+                role = binding.get(READ_PERM_ROLE_PRED)
+                dataperm = binding.get(READ_PERM_VALUE_PRED)
+                role_qname = _value_as_qname(role)
+                dataperm_qname = _value_as_qname(dataperm)
+                if role_qname is not None and dataperm_qname is not None:
+                    roles[role_qname] = DataPermission.from_qname(dataperm_qname)
+            continue
+        prop = properties.get(predicate) if properties else None
+        kwargs[predicate.fragment] = _normalize_construct_property(value, prop, construct_data, dating_cache)
+
+    kwargs['attachedToRole'] = roles
+    return objtype, kwargs
+
+
+def _read_attached_roles(con: IConnection,
+                         graph: Xsd_NCName,
+                         iri: Iri) -> dict[Xsd_QName, DataPermission]:
+    context = Context(name=con.context_name)
+    sparql = context.sparql_context
+    sparql += textwrap.dedent(f'''
+    SELECT DISTINCT ?role ?dataperm
+    WHERE {{
+        GRAPH {graph}:data {{
+            << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+        }}
+    }}
+    ''')
+    jsonres = con.query(sparql)
+    res = QueryProcessor(context, jsonres)
+    roles: dict[Xsd_QName, DataPermission] = {}
+    for row in res:
+        role = row.get('role')
+        dataperm = row.get('dataperm')
+        role_qname = _value_as_qname(role)
+        dataperm_qname = _value_as_qname(dataperm)
+        if role_qname is not None and dataperm_qname is not None:
+            roles[role_qname] = DataPermission.from_qname(dataperm_qname)
+    return roles
+
+
+def _read_resource_construct(con: IConnection,
+                             graph: Xsd_NCName,
+                             iri: Iri,
+                             user_iri: Iri,
+                             *,
+                             include_creator: bool) -> ConstructResultDict:
+    context = Context(name=con.context_name)
+    access_block = creator_or_max_perm_block(
+        graph_data=f"{graph}:data",
+        resource_iri=iri.toRdf,
+        user_iri=user_iri.toRdf,
+        min_perm=DataPermission.DATA_VIEW.numeric.toRdf,
+        alias="readc",
+        include_creator=include_creator
+    )
+    sparql = context.sparql_context
+    sparql += textwrap.dedent(f'''
+    CONSTRUCT {{
+        {iri.toRdf} ?predicate ?value .
+        {iri.toRdf} {READ_PERM_BINDING_PRED.toRdf} ?permBinding .
+        ?permBinding {READ_PERM_ROLE_PRED.toRdf} ?role .
+        ?permBinding {READ_PERM_VALUE_PRED.toRdf} ?dataperm .
+        ?datingNode ?datingPredicate ?datingValue .
+    }}
+    WHERE {{
+        {access_block}
+        GRAPH {graph}:data {{
+            {iri.toRdf} ?predicate ?value .
+        }}
+        OPTIONAL {{
+            GRAPH {graph}:data {{
+                {iri.toRdf} oldap:attachedToRole ?role .
+                << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+            }}
+            BIND(BNODE() AS ?permBinding)
+        }}
+        OPTIONAL {{
+            GRAPH {graph}:data {{
+                {iri.toRdf} ?predicate ?value .
+                ?value a oldap:Dating .
+                ?value oldap:before* ?datingNode .
+                ?datingNode ?datingPredicate ?datingValue .
+            }}
+        }}
+    }}
+    ''')
+    graph_res = con.query(sparql, format=SparqlResultFormat.JSONLD)
+    return ConstructProcessor.process(context, graph_res)
 
 
 #@strict
@@ -226,11 +560,11 @@ class ResourceInstance:
         def set_values(propclass: dict[Xsd_QName, PropertyClass]):
             for prop_iri, prop in propclass.items():
                 if str(prop_iri) == 'oldap:attachedToRole':
-                    if kwargs.get(str(prop_iri)) or kwargs.get(prop_iri.fragment):
+                    if str(prop_iri) in kwargs or prop_iri.fragment in kwargs:
                         #
                         # we have an attachedToRole property given in the constructor...
                         #
-                        value = kwargs[str(prop_iri)] if kwargs.get(str(prop_iri)) else kwargs[prop_iri.fragment]
+                        value = kwargs[str(prop_iri)] if str(prop_iri) in kwargs else kwargs[prop_iri.fragment]
                         value = {Xsd_QName(role): dperm if isinstance(dperm, DataPermission) else DataPermission.from_string(dperm) for role, dperm in value.items()}
                         if not isinstance(value, dict):
                             raise OldapErrorValue(f'{self.name}: Property {prop_iri} with attachedToRole must be a dict')
@@ -248,16 +582,27 @@ class ResourceInstance:
                     continue
                 if kwargs.get(str(prop_iri)) or kwargs.get(prop_iri.fragment):
                     value = kwargs[str(prop_iri)] if kwargs.get(str(prop_iri)) else kwargs[prop_iri.fragment]
+                    value = _coerce_property_value(prop, value)
                     if isinstance(value, (list, tuple, set, LangString)):  # we may have multiple values...
                         if prop.datatype == XsdDatatypes.langString:
                             self._values[prop_iri] = LangString(value,
                                                                 notifier=self.notifier, notify_data=prop_iri)
+                        elif _is_dating_property(prop):
+                            self._values[prop_iri] = self.__observable_set(set(value), prop_iri, prop)
                         else:
-                            self._values[prop_iri] = ObservableSet({convert2datatype(x, prop.datatype) for x in value},
-                                                                   notifier=self.notifier, notify_data=prop_iri)
+                            self._values[prop_iri] = self.__observable_set(
+                                {convert2datatype(x, prop.datatype) for x in value},
+                                prop_iri,
+                                prop)
                     else:
+                        if _is_dating_property(prop):
+                            self._values[prop_iri] = self.__observable_set({value}, prop_iri, prop)
+                            continue
                         try:
-                            self._values[prop_iri] = ObservableSet({convert2datatype(value, prop.datatype)})
+                            self._values[prop_iri] = self.__observable_set(
+                                {convert2datatype(value, prop.datatype)},
+                                prop_iri,
+                                prop)
                         except TypeError as err:
                             self._values[prop_iri] = convert2datatype(value, prop.datatype)
 
@@ -465,8 +810,6 @@ class ResourceInstance:
                     raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{values}".')
 
         if property.get(PropClassAttr.MAX_EXCLUSIVE):
-            print(values, ":", type(values))
-            print(property)
             if isinstance(values, (list, tuple, set, ObservableSet)):
                 for val in values:
                     v: bool | None = None
@@ -548,6 +891,29 @@ class ResourceInstance:
                     raise OldapErrorInconsistency(
                         f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
 
+    def __validate_property_set(self, values: set[Any], prop_iri: Xsd_QName, prop: PropertyClass) -> None:
+        n = len(values)
+        if prop.minCount and n < prop.minCount:
+            raise OldapErrorValue(
+                f'{self.name}: Property {prop_iri} with MIN_COUNT={prop.minCount} has not enough values (n={n}).')
+        if prop.maxCount and prop.maxCount > 0 and n > prop.maxCount:
+            raise OldapErrorValue(
+                f'{self.name}: Property {prop_iri} with MAX_COUNT={prop.maxCount} has to many values (n={n}).')
+        for value in values:
+            self.validate_value(value, prop)
+
+    def __observable_set(self,
+                         values: Iterable[Any],
+                         prop_iri: Xsd_QName,
+                         prop: PropertyClass,
+                         *,
+                         old_value: ObservableSet | None = None) -> ObservableSet:
+        return ObservableSet(values,
+                             old_value=old_value,
+                             notifier=self.notifier,
+                             notify_data=prop_iri,
+                             validator=lambda new_values: self.__validate_property_set(new_values, prop_iri, prop))
+
     def notifier(self, prop_iri: Xsd_QName):
         prop = self.properties[prop_iri]
         self.validate_value(self._values[prop_iri], prop)
@@ -599,6 +965,11 @@ class ResourceInstance:
         if attr == Xsd_QName('oldap:attachedToRole'):
             return self._attached_roles
         tmp = self._values.get(attr, None)
+        prop = self.properties.get(attr)
+        if tmp is not None and _is_dating_property(prop):
+            if len(tmp) != 1:
+                raise OldapErrorValue(f'{self.name}: Property {attr} should have exactly one Dating value, got {len(tmp)} values.')
+            return next(iter(tmp))
         if tmp is not None and str(attr) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate'}:
             if len(tmp) != 1:
                 raise OldapErrorValue(f'{self.name}: Property {attr} should have exactly one value, got {len(tmp)} values.')
@@ -627,6 +998,7 @@ class ResourceInstance:
             self._attached_roles = ObservableDict(value, notifier=self.__attachedToRole_cb)
             return
         prop = self.properties.get(attr)
+        value = _coerce_property_value(prop, value)
 
         #
         # Validate
@@ -663,17 +1035,22 @@ class ResourceInstance:
                 self._changeset[attr] = AttributeChange(None, Action.CREATE)
             if prop.datatype == XsdDatatypes.langString:
                 self._values[attr] = LangString(value, notifier=self.notifier, notify_data=attr)
+            elif _is_dating_property(prop):
+                self._values[attr] = self.__observable_set(set(value), attr, prop)
             else:
-                self._values[attr] = ObservableSet({
+                self._values[attr] = self.__observable_set({
                     convert2datatype(x, prop.datatype) for x in value
-                }, notifier=self.notifier, notify_data=attr)
+                }, attr, prop)
         else:
             if self._values.get(attr):
                 self._changeset[attr] = AttributeChange(self._values.get(attr), Action.REPLACE)
             else:
                 self._changeset[attr] = AttributeChange(None, Action.CREATE)
+            if _is_dating_property(prop):
+                self._values[attr] = self.__observable_set({value}, attr, prop)
+                return
             try:
-                self._values[attr] = ObservableSet({convert2datatype(value, prop.datatype)})
+                self._values[attr] = self.__observable_set({convert2datatype(value, prop.datatype)}, attr, prop)
             except TypeError:
                 self._values[attr] = convert2datatype(value, prop.datatype)
 
@@ -792,12 +1169,18 @@ class ResourceInstance:
         sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{'
 
+        dating_triples = _dating_insert_triples(self._values)
+        for dating_triple in dating_triples:
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}{dating_triple}'
+
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} a {self.name}'
         for prop_iri, values in self._values.items():
             if self.properties.get(prop_iri) and self.properties[prop_iri].datatype == XsdDatatypes.QName:
                 qnames = {f'"{x}"^^xsd:QName' for x in values}
                 qnames_rdf = ', '.join(qnames)
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {qnames_rdf}'
+            elif _is_dating_property(self.properties.get(prop_iri)):
+                sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {", ".join(x.iri.toRdf for x in values)}'
             else:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {values.toRdf}'
         for role, dperm in self._attached_roles.items():
@@ -837,75 +1220,15 @@ class ResourceInstance:
         :raises OldapErrorNotFound: If the resource associated with the provided IRI is not found.
         """
         graph = cls.project.projectShortName
-        context = Context(name=con.context_name)
-        access_block = creator_or_max_perm_block(
-            graph_data=f"{graph}:data",
-            resource_iri=iri.toRdf,
-            user_iri=con.userIri.toRdf,
-            min_perm=DataPermission.DATA_VIEW.numeric.toRdf,
-            alias="read1",
-            include_creator=True
-        )
-        sparql = context.sparql_context
-        sparql += textwrap.dedent(f'''
-        SELECT DISTINCT ?predicate ?value
-        WHERE {{
-            {access_block}
-            GRAPH {graph}:data {{
-                {iri.toRdf} ?predicate ?value .
-            }}
-        }}
-        ''')
-
-        jsonres = con.query(sparql)
-        res = QueryProcessor(context, jsonres)
-        objtype = None
-        kwargs: dict[str, Any] = {}
-        for r in res:
-            if r['predicate'] == 'rdf:type':
-                if r['value'].is_qname:
-                    #objtype = r['value'].as_qname.fragment
-                    objtype = r['value'].as_qname
-                else:
-                    logger.error(f"Expected QName as value, got {r['value']}")
-                    raise OldapErrorInconsistency(f"Expected QName as value, got {r['value']}")
-            else:
-                if r['predicate'].is_qname:
-                    if kwargs.get(r['predicate'].as_qname.fragment):
-                        if isinstance(kwargs[r['predicate'].as_qname.fragment], set):
-                            kwargs[r['predicate'].as_qname.fragment].add(r['value'])
-                        else:
-                            kwargs[r['predicate'].as_qname.fragment] = r['value']
-                    else:
-                        try:
-                            kwargs[r['predicate'].as_qname.fragment] = {r['value']}
-                        except TypeError:
-                            kwargs[r['predicate'].as_qname.fragment] = r['value']
-                else:
-                    logger.error(f"Expected QName as predicate, got {r['predicate']}")
-                    raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
-
+        try:
+            construct_data = _read_resource_construct(con, graph, iri, con.userIri, include_creator=True)
+        except OldapError:
+            logger.error(f'SPARQL: Failed to retrieve resource "{iri}"', exc_info=True)
+            raise
+        objtype, kwargs = _resource_from_construct(iri, construct_data, cls.properties)
         if objtype is None:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
-        sparql = context.sparql_context
-        sparql += textwrap.dedent(f'''
-        SELECT DISTINCT ?role ?dataperm
-        WHERE {{
-            GRAPH {graph}:data {{
-                << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
-            }}
-        }}
-        ''')
-        try:
-            jsonres = con.query(sparql)
-        except Exception as e:
-            logger.error(f'Failed to query data permissions for resource {iri}: {e}')
-            raise
-        res = QueryProcessor(context, jsonres)
-        roles = {}
-        for r in res:
-            roles[r['role']] = DataPermission.from_qname(r['dataperm'])
-        kwargs['attachedToRole'] = roles
+        kwargs['attachedToRole'] = _read_attached_roles(con, graph, iri)
 
         if cls.__name__ != objtype:
             raise OldapErrorInconsistency(f'Expected class {cls.__name__}, got {objtype} instead.')
@@ -1042,7 +1365,7 @@ class ResourceInstance:
                             sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} {field.toRdf} {role.toRdf}>> oldap:hasDataPermission  {dperm.toRdf} .\n'
                         for role, data in changed.items():
                             sparql += f'{blank:{(indent + 2) * indent_inc}}{self._iri.toRdf} {field.toRdf} {role.toRdf} .\n'
-                            sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} {field.toRdf} {role.toRdf}>> oldap:hasDataPermission  {data['old'].toRdf} .\n'
+                            sparql += f'{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} {field.toRdf} {role.toRdf}>> oldap:hasDataPermission  {data['new'].toRdf} .\n'
                         sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                         sparql += f'{blank:{indent * indent_inc}}}}\n'
                         add_sparql = True
@@ -1066,7 +1389,10 @@ class ResourceInstance:
                 # first we rectify the datatype of all "new" values added to the set
                 #
                 newset = {convert2datatype(x, self.properties[field].datatype) for x in self._values[field]}
-                self._values[field] = ObservableSet(newset, old_value=self._values[field].old_value, notifier=self.notifier, notify_data=field)
+                self._values[field] = self.__observable_set(newset,
+                                                            field,
+                                                            self.properties[field],
+                                                            old_value=self._values[field].old_value)
                 sparqls = self._values[field].update_sparql(graph=Iri(f'{self._graph}:data'),
                                                             subject=self._iri,
                                                             field=field)
@@ -1371,11 +1697,12 @@ class ResourceInstance:
     @staticmethod
     def search_fulltext(con: IConnection,
                         project: Project | Xsd_NCName | Iri| str,
-                        resClass: Xsd_QName,
+                        resClass: Xsd_QName | str | None = None,
                         includeProperties: set[Xsd_QName] | None = None,
-                        filter: set[SearchFilter | LogicOp] | None = None,
-                        ftfilter: list[FTSearchFilter | Literal['AND', 'OR']] | None = None,
-                        hlfilter: set[HLSearchFilter | LogicOp] | None = None,
+                        filter: list[SearchFilter | LogicOp] | None = None,  # "normal" filter operations
+                        ftfilter: list[FTSearchFilter | Literal['AND', 'OR']] | None = None,  # fulltext filter operations
+                        hlfilter: list[HLSearchFilter | LogicOp] | None = None,  # hierarchical list filter operations
+                        sortBy: list[SortBy] | None = None,
                         countOnly: bool = False,
                         limit: int = 100,
                         offset: int = 0,
@@ -1387,8 +1714,13 @@ class ResourceInstance:
             project_obj = project
 
         graph = project_obj.projectShortName
-        if resClass and not isinstance(resClass, Xsd_QName):
-            resClass = Xsd_QName(resClass, validate=True)
+        if resClass:
+            if not isinstance(resClass, Xsd_QName):
+                _resClass = Xsd_QName(resClass, validate=True)
+            else:
+                _resClass = resClass
+        else:
+            _resClass = None
 
         #
         # first we check if we are searching for a hlist node
@@ -1399,10 +1731,10 @@ class ResourceInstance:
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     continue
-                if not hlists.get(hlf[1].listId):
-                    hlists[hlf[1].listId] = OldapList.read(con=con, project=project_obj, oldapListId=hlf[1].listId)
-                if nodes.get(hlf[1]) is None:
-                    nodes[hlf[1]] = OldapListNode.read(con=con, **hlists[hlf[1].listId].info, oldapListNodeId=hlf[1].nodeId)
+                if not hlists.get(hlf.node.listId):
+                    hlists[hlf.node.listId] = OldapList.read(con=con, project=project_obj, oldapListId=hlf.node.listId)
+                if nodes.get(hlf.node) is None:
+                    nodes[hlf.node] = OldapListNode.read(con=con, **hlists[hlf.node.listId].info, oldapListNodeId=hlf.node.nodeId)
 
         blank = ''
         context = Context(name=con.context_name)
@@ -1410,12 +1742,12 @@ class ResourceInstance:
             context['luc'] = NamespaceIRI('http://www.ontotext.com/connectors/lucene#')
             context['inst'] = NamespaceIRI('http://www.ontotext.com/connectors/lucene/instance#')
         sparql = context.sparql_context
-        sparql_vars = {'res'}
+        sparql_vars = {'res', 'resclass'}
 
         if (countOnly):
             sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?res) as ?numResult)'
         else:
-            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?res'
+            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?res ?resclass'
             if ftfilter:
                 sparql += ' ?score'
                 sparql_vars.add('score')
@@ -1424,6 +1756,12 @@ class ResourceInstance:
             for p in includeProperties:
                 sparql += f' ?{p.fragment}'
                 sparql_vars.add(f'{p.fragment}')
+        if sortBy:
+            for s in sortBy:
+                tmp = includeProperties if includeProperties else set()
+                if s.property not in tmp:
+                    sparql += f' ?{s.property.fragment}'
+                    sparql_vars.add(f'{s.property.fragment}')
 
         sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
@@ -1432,12 +1770,14 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
-        #sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {} {resClass} .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res rdf:type {resClass} .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res rdf:type ?resclass .'
+        if _resClass:
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res rdf:type {_resClass.toRdf} .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res oldap:attachedToRole ?role .'
 
-        for p in includeProperties:
-            if filter and any({f[0] == p for f in filter if not isinstance(f, LogicOp)}):
+        tmp = includeProperties if includeProperties else set()
+        for p in tmp:
+            if filter and any({f.prop == p for f in filter if not isinstance(f, LogicOp)}):
                 continue
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {p.toRdf} ?{p.fragment} }} .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
@@ -1446,43 +1786,43 @@ class ResourceInstance:
             for f in filter:
                 if isinstance(f, LogicOp):
                     continue
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {f[0].toRdf} ?{f[0].fragment} .'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {f.prop.toRdf} ?{f.prop.fragment} }}.'
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER('
             langfilters: list[str] = []
             for f in filter:
                 if isinstance(f, LogicOp):
                     sparql+= f' {f.value} '
                 else:
-                    if f[1] in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
-                        if isinstance(f[2], Xsd_string) and f[2].lang:
-                            sparql += f'?{f[0].fragment} {f[1].value} "{f[2].value}"'
-                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
+                    if f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
+                        if isinstance(f.value, Xsd_string) and f.value.lang:
+                            sparql += f'?{f.prop.fragment} {f.op.value} "{f.value.value}"'
+                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
                         else:
-                            sparql += f'?{f[0].fragment} {f[1].value} {f[2].toRdf}'
-                    elif f[1] == CompOp.CONTAINS:  # TODO: DEAL WITH LANGUAGES!!
-                        if isinstance(f[2], Xsd_string) and f[2].lang is None:
-                            sparql += f'CONTAINS(LCASE(STR(?{f[0].fragment})), LCASE(STR("{f[2].value}")))'
+                            sparql += f'?{f.prop.fragment} {f.op.value} {f.value.toRdf}'
+                    elif f.op == CompOp.CONTAINS:  # TODO: DEAL WITH LANGUAGES!!
+                        if isinstance(f.value, Xsd_string) and f.value.lang is None:
+                            sparql += f'CONTAINS(LCASE(STR(?{f.prop.fragment})), LCASE(STR("{f.value.value}")))'
                         else:
-                            sparql += f'CONTAINS(LCASE(STR(?{f[0].fragment})), LCASE(STR("{f[2].value}")))'
-                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
-                    elif f[1] == CompOp.REGEXP:
-                        if isinstance(f[2], Xsd_string) and f[2].lang:
-                            sparql += f'REGEX(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
+                            sparql += f'CONTAINS(LCASE(STR(?{f.prop.fragment})), LCASE(STR("{f.value.value}")))'
+                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
+                    elif f.op == CompOp.REGEXP:
+                        if isinstance(f.value, Xsd_string) and f.value.lang:
+                            sparql += f'REGEX(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
                         else:
-                            sparql += f'REGEX(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
-                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
-                    elif f[1] == CompOp.STRSTARTS:
-                        if isinstance(f[2], Xsd_string) and f[2].lang:
-                            sparql += f'STRSTARTS(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
+                            sparql += f'REGEX(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
+                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
+                    elif f.op == CompOp.STRSTARTS:
+                        if isinstance(f.value, Xsd_string) and f.value.lang:
+                            sparql += f'STRSTARTS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
                         else:
-                            sparql += f'STRSTARTS(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
-                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
-                    elif f[1] == CompOp.STRENDS:
-                        if isinstance(f[2], Xsd_string) and f[2].lang:
-                            sparql += f'STRENDS(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
+                            sparql += f'STRSTARTS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
+                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
+                    elif f.op == CompOp.STRENDS:
+                        if isinstance(f.value, Xsd_string) and f.value.lang:
+                            sparql += f'STRENDS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
                         else:
-                            sparql += f'STRENDS(STR(?{f[0].fragment}), STR("{f[2].value}"), "i"'
-                            langfilters.append(f'FILTER(LANG(?{f[0].fragment}) = "{f[2].lang.shortlang}")')
+                            sparql += f'STRENDS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
+                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
             sparql += f')'
             for lf in langfilters:
                 f'\n{blank:{(indent + 2) * indent_inc}}{lf}'
@@ -1491,7 +1831,7 @@ class ResourceInstance:
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     continue
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {hlf[0].toRdf} ?{hlf[0].fragment} .'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {hlf.prop.toRdf} ?{hlf.prop.fragment} .'
 
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
 
@@ -1501,23 +1841,23 @@ class ResourceInstance:
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     continue
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf[0].fragment} oldap:leftIndex ?{hlf[0].fragment}_lindex .'
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf[0].fragment} oldap:rightIndex ?{hlf[0].fragment}_rindex .'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf.prop.fragment} oldap:leftIndex ?{hlf.prop.fragment}_lindex .'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf.prop.fragment} oldap:rightIndex ?{hlf.prop.fragment}_rindex .'
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER('
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     sparql+= f' {hlf.value} '
                 else:
-                    node_lindex = nodes[hlf[1]].leftIndex
-                    node_rindex = nodes[hlf[1]].rightIndex
-                    sparql += f'({node_lindex} >= ?{hlf[0].fragment}_lindex && {node_rindex} <= ?{hlf[0].fragment}_rindex)'
+                    node_lindex = nodes[hlf.node].leftIndex
+                    node_rindex = nodes[hlf.node].rightIndex
+                    sparql += f'({node_lindex} >= ?{hlf.prop.fragment}_lindex && {node_rindex} <= ?{hlf.prop.fragment}_rindex)'
             sparql += ')'
 
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
 
         if ftfilter:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}?search a inst:{str(project_obj.projectShortName)} ;'
-            tmp = [f'{str(x[0].fragment)}:{str(x[1])}' if isinstance(x, tuple) else str(x) for x in ftfilter]
+            tmp = [f'{str(x.prop.fragment)}:{str(x.query)}' if isinstance(x, FTSearchFilter) else str(x) for x in ftfilter]
             fields = ' '.join(tmp)
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}luc:query "{fields}" ;'
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}luc:entities ?res .'
@@ -1526,13 +1866,20 @@ class ResourceInstance:
 
         sparql += f'\n{blank:{indent * indent_inc}}}}'
 
-        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?score)'
+        if ftfilter or sortBy:
+            sparql += f'\n{blank:{indent * indent_inc}}ORDER BY'
+        if ftfilter:
+            sparql += ' DESC(?score)'
+        if sortBy:
+            for s in sortBy:
+                if s.dir == SortDir.asc:
+                    sparql += f' ASC(?{s.property.fragment})'
+                else:
+                    sparql += f' DESC(?{s.property.fragment})'
 
         if not countOnly:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
         sparql += '\n'
-
-        print(sparql)
 
         try:
             jsonres = con.query(sparql)
@@ -1553,7 +1900,7 @@ class ResourceInstance:
 
     @staticmethod
     def all_resources(con: IConnection,
-                      projectShortName: Xsd_NCName | str,
+                      project: Project | Xsd_NCName | str,
                       resClass: Xsd_QName | str,
                       includeProperties: list[Xsd_QName] | None = None,
                       countOnly: bool = False,
@@ -1561,48 +1908,12 @@ class ResourceInstance:
                       limit: int = 100,
                       offset: int = 0,
                       indent: int = 0, indent_inc: int = 4) -> list[dict[str | Xsd_QName, list[Xsd] | LangString]] | int:
-        """
-        Retrieves all resources associated with a specified project and resource class, with options to include
-        particular properties, count only the number of resources, and apply sorting, pagination, and indentation
-        for query formatting.
 
-        :param con: Connection object used for interfacing with the data store.
-        :type con: IConnection
-        :param projectShortName: Short name of the project under which resources are being queried. Can be a valid
-            `Xsd_NCName` instance or a string fitting the `Xsd_NCName` criteria.
-        :type projectShortName: Xsd_NCName | str
-        :param resClass: The fully-qualified class name of the resource. This can either be an `Xsd_QName` object or
-            a string fitting the `Xsd_QName` criteria.
-        :type resClass: Xsd_QName | str
-        :param includeProperties: List of properties to include in the results. These properties must follow the
-            `Xsd_QName` format. If None, no specific properties are included by default.
-        :type includeProperties: list[Xsd_QName] | None
-        :param countOnly: When set to True, only the count of unique resources is returned. Defaults to False,
-            returning the full resource set.
-        :type countOnly: bool
-        :param sortBy: A list of sort specifications, where each item is an instance of the `SortBy` class
-            specifying property and direction for sorting. Sorting only occurs if `sortBy` is not empty.
-        :type sortBy: list[SortBy]
-        :param limit: The maximum number of resources to retrieve. Defaults to 100. Ignored when `countOnly`
-            is True.
-        :type limit: int
-        :param offset: The index of the first result to retrieve, useful for pagination. Defaults to 0.
-        :type offset: int
-        :param indent: The initial indentation level of the SPARQL query string.
-        :type indent: int
-        :param indent_inc: The number of spaces to increment per indentation level for the SPARQL query formatting.
-        :type indent_inc: int
-        :return: Depending on the `countOnly` flag:
-            - If `countOnly` is True, returns the count of unique resources as an integer.
-            - If `countOnly` is False, returns a list of dictionaries representing the resources and their
-              properties. Each dictionary contains the resource IRI and requested properties, with language
-              strings consolidated under `LangString` if applicable.
-        :rtype: list[dict[str, list[Xsd] | LangString]] | int
-        """
-        if not isinstance(projectShortName, Xsd_NCName):
-            graph = Xsd_NCName(projectShortName, validate=True)
-        else:
-            graph = projectShortName
+        if isinstance(project, str):
+            project = Xsd_NCName(project, validate=True)
+        if not isinstance(project, Project):
+            project = Project.read(con=con, projectIri_SName=project)
+        graph = Xsd_QName(project.projectShortName, 'data')
         if not isinstance(resClass, Xsd_QName):
             resClass = Xsd_QName(resClass, validate=True)
 
@@ -1632,7 +1943,7 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?dataperm oldap:permissionValue ?permval .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph.toRdf} {{'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'  # TODO: REMOVE WHEN ONTO FIXED!
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .'
@@ -1739,7 +2050,7 @@ INSERT DATA {
                        con: IConnection,
                        projectShortName: Xsd_NCName | str,
                        resClass: Xsd_QName | str,
-                       filter: list[tuple[Xsd_QName, CompOp, Xsd] | LogicOp],
+                       filter: list[SearchFilter | LogicOp],
                        includeProperties: set[Xsd_QName],
                        countOnly: bool = False,
                        sortBy: list[SortBy] = [],
@@ -1766,15 +2077,15 @@ INSERT DATA {
         use_fulltext = False
         if filter:
             for f in filter:
-                if f[1] == CompOp.FULLTEXT:
+                if isinstance(f, LogicOp):
+                    continue
+                if f.op == CompOp.FULLTEXT:
                     use_fulltext = True
-                if not isinstance(f[0], Xsd_QName):
-                    raise OldapErrorType(f'Expected Xsd_QName, got {type(f)}')
                 if not includeProperties:
                     includeProperties = set()
-                if f[0] not in includeProperties:
-                    includeProperties.add(f[0])
-                filterdict[f[0]] = (f[1], f[2])
+                if f.prop not in includeProperties:
+                    includeProperties.add(f.prop)
+                filterdict[f.prop] = (f.op, f.value)
 
         blank = ''
         context = Context(name=con.context_name)
@@ -2119,94 +2430,15 @@ class ResourceInstanceFactory:
         if not isinstance(iri, Iri):
             iri = Iri(iri, validate=True)
         graph = self._project.projectShortName
-        context = Context(name=self._con.context_name)
-        sparql = context.sparql_context
-        sparql += textwrap.dedent(f'''
-        SELECT DISTINCT ?predicate ?value
-        WHERE {{
-            # 1) compute the max permval for this user + this resource
-            {{
-                SELECT (MAX(?pv) AS ?permval)
-                WHERE {{
-                    GRAPH oldap:admin {{
-                        {self._con.userIri.toRdf} oldap:hasRole ?role .
-                    }}
-                    GRAPH {graph}:data {{
-                        {iri.toRdf} oldap:attachedToRole ?role .
-                        << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
-                    }}
-                    GRAPH oldap:admin {{
-                        ?dataperm oldap:permissionValue ?pv .
-                    }}
-                }}
-            }}
-
-            # 2) return the resource triples, but only if there exists a role with that max permval
-            GRAPH {graph}:data {{
-                {iri.toRdf} ?predicate ?value .
-            }}
-            FILTER EXISTS {{
-                GRAPH oldap:admin {{
-                    {self._con.userIri.toRdf} oldap:hasRole ?role .
-                    ?dataperm oldap:permissionValue ?permval .
-                }}
-                GRAPH {graph}:data {{
-                    {iri.toRdf} oldap:attachedToRole ?role .
-                    << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
-                }}
-            }}
-        }}''')
-        jsonres = self._con.query(sparql)
         try:
-            res = QueryProcessor(context, jsonres)
+            construct_data = _read_resource_construct(self._con, graph, iri, self._con.userIri, include_creator=False)
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve resource "{iri}"', exc_info=True)
             raise
-        res = QueryProcessor(context, jsonres)
-        objtype = None
-        kwargs: dict[str, Any] = {}
-        for r in res:
-            if r['predicate'] == 'rdf:type':
-                if r['value'].is_qname:
-                    objtype = r['value'].as_qname
-                else:
-                    raise OldapErrorInconsistency(f"Expected QName as value, got {r['value']}")
-            else:
-                if r['predicate'].is_qname:
-                    if kwargs.get(r['predicate'].as_qname.fragment):
-                        if isinstance(kwargs[r['predicate'].as_qname.fragment], set):
-                            kwargs[r['predicate'].as_qname.fragment].add(r['value'])
-                        else:
-                            kwargs[r['predicate'].as_qname.fragment] = r['value']
-                    else:
-                        try:
-                            kwargs[r['predicate'].as_qname.fragment] = {r['value']}
-                        except TypeError:
-                            kwargs[r['predicate'].as_qname.fragment] = r['value']
-                else:
-                    raise OldapErrorInconsistency(f"Expected QName as predicate, got {r['predicate']}")
+        objtype, kwargs = _resource_from_construct(iri, construct_data)
         if objtype is None:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
-        sparql = context.sparql_context
-        sparql += textwrap.dedent(f'''
-        SELECT DISTINCT ?role ?dataperm
-        WHERE {{
-            GRAPH {graph}:data {{
-                << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
-            }}
-        }}
-        ''')
-        try:
-            jsonres = self._con.query(sparql)
-        except Exception as e:
-            logger.error(f'SPARQL: Failed to retrieve data permissions for resource "{iri}"', exc_info=True)
-            raise
-        res = QueryProcessor(context, jsonres)
-        roles = {}
-        for r in res:
-            roles[r['role']] = DataPermission.from_qname(r['dataperm'])
-        kwargs['attachedToRole'] = roles
         Instance = self.createObjectInstance(objtype)
+        _, kwargs = _resource_from_construct(iri, construct_data, Instance.properties)
+        kwargs['attachedToRole'] = _read_attached_roles(self._con, graph, iri)
         return Instance(iri=iri, **kwargs)
-
-

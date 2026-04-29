@@ -26,10 +26,11 @@ class Xsd_Name(Xsd):
         if isinstance(value, Xsd_Name):
             self.__value = value.__value
         else:
+            sval = str(value)
             if validate:
-                if not re.match("^[a-zA-Z_][\\w.\\-:_]*$", value):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:Name.')
-            self.__value = value
+                if not re.match("^[a-zA-Z_][\\w.\\-:_]*$", sval):
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:Name.')
+            self.__value = sval
 
     @classmethod
     def fromRdf(cls, value: str) -> Self:

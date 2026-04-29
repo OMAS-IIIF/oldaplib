@@ -10,7 +10,8 @@ import jwt
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.adminpermissions import AdminPermission
-from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir
+from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SearchFilter, CompOp, \
+    LogicOp
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -64,6 +65,7 @@ from oldaplib.src.xsd.xsd_unsignedbyte import Xsd_unsignedByte
 from oldaplib.src.xsd.xsd_unsignedint import Xsd_unsignedInt
 from oldaplib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
 from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
+from oldaplib.src.xsd.dating import Dating, DatePrecision
 from redis.commands.search.aggregation import SortDirection
 
 from oldaplib.src.helpers.query_processor import QueryProcessor
@@ -486,6 +488,54 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(jsonobj['test:title'], ['The Life and Times of Scrooge'])
 
         bb.delete()
+
+    def test_read_dating_fixture(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex.read(con=self._connection, iri=Iri("urn:uuid:8dd6b1aa-3f40-4c0c-908d-c8e5da114201", validate=False))
+
+        self.assertEqual(codex.name, "test:Codex")
+        self.assertEqual(codex.title, {Xsd_string("Codex Aureus")})
+        self.assertIsInstance(codex.writtenAt, Dating)
+        self.assertEqual(codex.writtenAt._datePrecision, DatePrecision.CENTURY)
+        self.assertEqual(str(codex.writtenAt), "1200-01-01 - 1299-12-31 (GREGORIAN, CENTURY)")
+
+    def test_create_read_dating_from_object(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        written_at = Dating((1200,), (1299,), verbatimDate="thirteenth century", datePrecision=DatePrecision.CENTURY)
+        codex = Codex(title="Codex Manesse", writtenAt=written_at)
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        self.assertEqual(codex2.title, {Xsd_string("Codex Manesse")})
+        self.assertIsInstance(codex2.writtenAt, Dating)
+        self.assertEqual(codex2.writtenAt._datePrecision, DatePrecision.CENTURY)
+        self.assertEqual(str(codex2.writtenAt), "1200-01-01 - 1299-12-31 (GREGORIAN, CENTURY)")
+
+    def test_create_read_dating_from_string(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Calixtinus", writtenAt="1140")
+        codex.create()
+
+        codex2 = factory.read(iri=codex.iri)
+        self.assertEqual(codex2.title, {Xsd_string("Codex Calixtinus")})
+        self.assertIsInstance(codex2.writtenAt, Dating)
+        self.assertEqual(codex2.writtenAt._datePrecision, DatePrecision.YEAR)
+        self.assertEqual(str(codex2.writtenAt), "1140-01-01 - 1140-12-31 (GREGORIAN, YEAR)")
+
+    def test_create_read_dating_from_tuple(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Leicester", writtenAt=(1510,))
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        self.assertEqual(codex2.title, {Xsd_string("Codex Leicester")})
+        self.assertIsInstance(codex2.writtenAt, Dating)
+        self.assertEqual(codex2.writtenAt._datePrecision, DatePrecision.YEAR)
+        self.assertEqual(str(codex2.writtenAt), "1510-01-01 - 1510-12-31 (GREGORIAN, YEAR)")
 
     def test_read_D(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -911,27 +961,32 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_search_resource_A(self):
         res = ResourceInstance.search_fulltext(con=self._connection,
-                                               projectShortName='test',
+                                               project='test',
                                                resClass='test:Book',
-                                               searchstr='geschichte',
-                                               sortBy=[SortBy('oldap:creationDate', SortDir.desc)])
+                                               includeProperties={Xsd_QName('test:title'), Xsd_QName('oldap:creationDate')},
+                                               filter={SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('geschichte'))},
+                                               sortBy=[SortBy(Xsd_QName('oldap:creationDate'), SortDir.desc)])
 
         self.assertEqual(len(res), 2)
         for x, y in res.items():
-            self.assertEqual(y[Xsd_QName("owl:Class")], Xsd_QName('test:Book'))
+            print(x, y)
+            self.assertEqual(y['resclass'], Xsd_QName('test:Book'))
 
         res = ResourceInstance.search_fulltext(con=self._connection,
-                                               projectShortName='test',
-                                               searchstr='spez',
-                                               sortBy=[SortBy('oldap:creationDate', SortDir.desc)])
+                                               project='test',
+                                               filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('spez')),
+                                                       LogicOp.OR,
+                                                       SearchFilter('test:pageContent', CompOp.CONTAINS, Xsd_string('spez'))],
+                                               sortBy=[SortBy(Xsd_QName('oldap:creationDate'), SortDir.desc)])
 
         self.assertEqual(len(res), 5)
         for x, y in res.items():
-            self.assertTrue(y[Xsd_QName("owl:Class")] in {Xsd_QName('test:Book'), Xsd_QName('test:Page')})
+            print(x, y)
+            self.assertTrue(y['resclass'] in {Xsd_QName('test:Book'), Xsd_QName('test:Page')})
 
     def test_search_resource_B(self):
         res = ResourceInstance.all_resources(con=self._connection,
-                                             projectShortName='test',
+                                             project='test',
                                              resClass='test:Sort',
                                              includeProperties=[Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')],
                                              sortBy = [SortBy(Xsd_QName('oldap:creationDate'), SortDir.asc)])
@@ -947,7 +1002,7 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_search_resource_C(self):
         res = ResourceInstance.all_resources(con=self._connection,
-                                             projectShortName='test',
+                                             project='test',
                                              resClass='test:Sort',
                                              includeProperties=[Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')],
                                              sortBy = [SortBy(Xsd_QName('test:aString'), SortDir.asc)])
@@ -958,7 +1013,7 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_search_resource_D(self):
         res = ResourceInstance.all_resources(con=self._connection,
-                                             projectShortName='test',
+                                             project='test',
                                              resClass='test:Sort',
                                              includeProperties=[Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')],
                                              sortBy = [SortBy(Xsd_QName('test:aLangstring'), SortDir.asc)])
@@ -969,7 +1024,7 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_search_resource_E(self):
         res = ResourceInstance.all_resources(con=self._connection,
-                                             projectShortName='test',
+                                             project='test',
                                              resClass='test:Sort',
                                              sortBy = [SortBy(Xsd_QName('test:anInteger'), SortDir.desc)])
         self.assertEqual(len(res), 3)

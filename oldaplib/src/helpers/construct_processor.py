@@ -24,6 +24,7 @@ from oldaplib.src.xsd.xsd_duration import Xsd_duration
 from oldaplib.src.xsd.xsd_float import Xsd_float
 from oldaplib.src.xsd.xsd_gday import Xsd_gDay
 from oldaplib.src.xsd.xsd_gmonth import Xsd_gMonth
+from oldaplib.src.xsd.xsd_gmonthday import Xsd_gMonthDay
 from oldaplib.src.xsd.xsd_gyear import Xsd_gYear
 from oldaplib.src.xsd.xsd_gyearmonth import Xsd_gYearMonth
 from oldaplib.src.xsd.xsd_hexbinary import Xsd_hexBinary
@@ -132,6 +133,8 @@ class ConstructProcessor:
                         o = Xsd_gYear(o)
                     case XSD.gYearMonth:
                         o = Xsd_gYearMonth(o)
+                    case XSD.gMonthDay:
+                        o = Xsd_gMonthDay(o)
                     case XSD.hexBinary:
                         o = Xsd_hexBinary(o)
                     case XSD.ID:
@@ -173,7 +176,8 @@ class ConstructProcessor:
                     else:
                         bnodes[s][p] = [bnodes[s][p], o]
             elif isinstance(s, URIRef):
-                s = con.iri2qname(s)
+                tmp = con.iri2qname(s)
+                s = tmp if tmp is not None else Iri(s)
                 if topnodes.get(s) is None:
                     topnodes[s] = {}
                 if topnodes[s].get(p) is None:
@@ -297,4 +301,3 @@ class ConstructProcessor:
         graph = con.query(sparql, format=SparqlResultFormat.JSONLD)
         obj = ConstructProcessor.process(context, graph)
         return obj
-
