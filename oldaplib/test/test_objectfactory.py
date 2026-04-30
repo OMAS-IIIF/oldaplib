@@ -10,8 +10,8 @@ import jwt
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.adminpermissions import AdminPermission
-from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SearchFilter, CompOp, \
-    LogicOp
+from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
+    CompOp, LogicOp
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -650,6 +650,47 @@ class TestObjectFactory(unittest.TestCase):
                                               LogicOp.AND,
                                               SearchFilter('test:writtenAt', CompOp.AFTER, Dating("1300"))])
         self.assertEqual({str(x['title']) for x in res.values()}, {'Search Dating After'})
+
+    def test_search_sort_by_dating_explicit_kind(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        Codex(title="Sort Dating A", writtenAt="1300").create()
+        Codex(title="Sort Dating B", writtenAt="1100").create()
+        Codex(title="Sort Dating C", writtenAt="1200").create()
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Dating'))],
+                                      sortBy=[SortBy('test:writtenAt', SortDir.asc, SortKind.DATING)])
+        self.assertEqual([str(x['title']) for x in res.values()], ['Sort Dating B', 'Sort Dating C', 'Sort Dating A'])
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Dating'))],
+                                      sortBy=[SortBy('test:writtenAt', SortDir.desc, SortKind.DATING)])
+        self.assertEqual([str(x['title']) for x in res.values()], ['Sort Dating A', 'Sort Dating C', 'Sort Dating B'])
+
+    def test_search_sort_by_dating_auto_from_filter(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        Codex(title="Auto Dating A", writtenAt="1300").create()
+        Codex(title="Auto Dating B", writtenAt="1100").create()
+        Codex(title="Auto Dating C", writtenAt="1200").create()
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Auto Dating')),
+                                              LogicOp.AND,
+                                              SearchFilter('test:writtenAt', CompOp.OVERLAPS,
+                                                           Dating("1000-01-01", "1400-12-31"))],
+                                      sortBy=[SortBy('test:writtenAt')])
+        self.assertEqual([str(x['title']) for x in res.values()], ['Auto Dating B', 'Auto Dating C', 'Auto Dating A'])
 
     def test_read_D(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')

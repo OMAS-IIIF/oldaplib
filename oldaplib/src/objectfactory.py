@@ -55,15 +55,25 @@ class SortDir(str, Enum):
     asc = "asc"
     desc = "desc"
 
+class SortKind(str, Enum):
+    AUTO = "auto"
+    VALUE = "value"
+    DATING = "dating"
+
 @dataclass(frozen=True)
 class SortBy:
     property: Xsd_QName
     dir: SortDir = SortDir.asc
+    kind: SortKind = SortKind.AUTO
 
     def __post_init__(self):
         # Convert property if needed
         if not isinstance(self.property, Xsd_QName):
             object.__setattr__(self, 'property', Xsd_QName(self.property))
+        if not isinstance(self.dir, SortDir):
+            object.__setattr__(self, 'dir', SortDir(self.dir))
+        if not isinstance(self.kind, SortKind):
+            object.__setattr__(self, 'kind', SortKind(self.kind))
 
 class CompOp(Enum):
     EQ = "=="
@@ -1853,6 +1863,14 @@ class ResourceInstance:
             context['inst'] = NamespaceIRI('http://www.ontotext.com/connectors/lucene/instance#')
         sparql = context.sparql_context
         sparql_vars = {'res', 'resclass'}
+        dating_filter_props = {f.prop for f in filter or [] if isinstance(f, SearchFilter) and isinstance(f.value, Dating)}
+
+        def is_dating_sort(sort: SortBy) -> bool:
+            if sort.kind == SortKind.DATING:
+                return True
+            if sort.kind == SortKind.VALUE:
+                return False
+            return sort.property in dating_filter_props
 
         if (countOnly):
             sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?res) as ?numResult)'
@@ -1868,6 +1886,8 @@ class ResourceInstance:
                 sparql_vars.add(f'{p.fragment}')
         if sortBy:
             for s in sortBy:
+                if is_dating_sort(s):
+                    continue
                 tmp = includeProperties if includeProperties else set()
                 if s.property not in tmp:
                     sparql += f' ?{s.property.fragment}'
@@ -1887,10 +1907,23 @@ class ResourceInstance:
 
         tmp = includeProperties if includeProperties else set()
         for p in tmp:
-            if filter and any({f.prop == p for f in filter if not isinstance(f, LogicOp)}):
+            if filter and any({f.prop == p for f in filter if not isinstance(f, LogicOp)}) and not (
+                sortBy and any(s.property == p and is_dating_sort(s) for s in sortBy)
+            ):
                 continue
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {p.toRdf} ?{p.fragment} }} .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
+
+        if sortBy:
+            for sort_index, s in enumerate(sortBy):
+                if not is_dating_sort(s):
+                    continue
+                dating_sort_var = f'{s.property.fragment}_sort_{sort_index}'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
+                sparql += f'\n{blank:{(indent + 3) * indent_inc}}?res {s.property.toRdf} ?{dating_sort_var} .'
+                sparql += f'\n{blank:{(indent + 3) * indent_inc}}?{dating_sort_var} oldap:normalizedStart ?{dating_sort_var}_start .'
+                sparql += f'\n{blank:{(indent + 3) * indent_inc}}?{dating_sort_var} oldap:normalizedEnd ?{dating_sort_var}_end .'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}}}'
 
         if filter:
             for filter_index, f in enumerate(filter):
@@ -2003,8 +2036,14 @@ class ResourceInstance:
         if ftfilter:
             sparql += ' DESC(?score)'
         if sortBy:
-            for s in sortBy:
-                if s.dir == SortDir.asc:
+            for sort_index, s in enumerate(sortBy):
+                if is_dating_sort(s):
+                    dating_sort_var = f'{s.property.fragment}_sort_{sort_index}'
+                    if s.dir == SortDir.asc:
+                        sparql += f' ASC(?{dating_sort_var}_start) ASC(?{dating_sort_var}_end)'
+                    else:
+                        sparql += f' DESC(?{dating_sort_var}_start) DESC(?{dating_sort_var}_end)'
+                elif s.dir == SortDir.asc:
                     sparql += f' ASC(?{s.property.fragment})'
                 else:
                     sparql += f' DESC(?{s.property.fragment})'
@@ -2181,89 +2220,6 @@ INSERT DATA {
 ''' .
 }
     """
-
-    def search_by_prop(self,
-                       con: IConnection,
-                       projectShortName: Xsd_NCName | str,
-                       resClass: Xsd_QName | str,
-                       filter: list[SearchFilter | LogicOp],
-                       includeProperties: set[Xsd_QName],
-                       countOnly: bool = False,
-                       sortBy: list[SortBy] = [],
-                       limit: int = 100,
-                       offset: int = 0,
-                       indent: int = 0, indent_inc: int = 4):
-
-        if not isinstance(projectShortName, Xsd_NCName):
-            graph = Xsd_NCName(projectShortName, validate=True)
-        else:
-            graph = projectShortName
-        if not isinstance(resClass, Xsd_QName):
-            resClass = Xsd_QName(resClass, validate=True)
-
-        if sortBy:
-            for s in sortBy:
-                if not isinstance(s, SortBy):
-                    raise OldapErrorType(f'Expected SortBy, got {type(s)}')
-                if not includeProperties:
-                    includeProperties = set()
-                if s.property not in includeProperties:
-                    includeProperties.add(s.property)
-        filterdict: dict[Xsd_QName, tuple[CompOp, Xsd]] = {}
-        use_fulltext = False
-        if filter:
-            for f in filter:
-                if isinstance(f, LogicOp):
-                    continue
-                if f.op == CompOp.FULLTEXT:
-                    use_fulltext = True
-                if not includeProperties:
-                    includeProperties = set()
-                if f.prop not in includeProperties:
-                    includeProperties.add(f.prop)
-                filterdict[f.prop] = (f.op, f.value)
-
-        blank = ''
-        context = Context(name=con.context_name)
-        if (use_fulltext):
-            context['luc'] = NamespaceIRI('http://www.ontotext.com/connectors/lucene#')
-
-        sparql = context.sparql_context
-        if (countOnly):
-            sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
-        else:
-            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s'
-            if includeProperties:
-                for index, item in enumerate(includeProperties):
-                    sparql += f' ?o{index}'
-        sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?dataperm oldap:permissionValue ?permval .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'  # TODO: REMOVE WHEN ONTO FIXED!
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .'
-        for index, p in enumerate(includeProperties):
-            if p in filterdict:
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s {p.toRdf} ?o{index} .'
-                # TODO: CHECK DATATYPE AND MODIFY/REJECT COMPARISON OPERATOR IF NOT APPLICABLE
-                # TODO: HLISTS and DATING OBJECTS NEED SPECIAL TREATMENT !!!
-                if filterdict[p][0] in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
-                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?o{index} {filterdict[p][0].value} {filterdict[p][1].toRdf} .'
-                elif filterdict[p][0] == CompOp.CONTAINS:
-                    if not isinstance(filterdict[p][1], Xsd_string):
-                        raise OldapErrorType(f'Expected Xsd_string, got {type(filterdict[p][1]).__name__}')
-                    if filterdict[p][1].lang:
-                        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(LANG(?o{index}) = {filterdict[p][1].lang.shortlang})'
-                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(CONTAINS(LCASE(STR(?o{index})), LCASE(STR({filterdict[p][1].value})))'
-                elif filterdict[p][0] == CompOp.REGEXP:
-                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(REGEX(STR(?o{index}), STR({filterdict[p][1]}), "i")'
-
-            if self.properties[p].minCount > 0:
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s {p.toRdf} ?o{index} .'
 
 
 
