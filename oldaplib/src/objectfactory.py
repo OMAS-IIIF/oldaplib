@@ -1826,7 +1826,10 @@ class ResourceInstance:
                countOnly: bool = False,
                limit: int = 100,
                offset: int = 0,
-               indent: int = 0, indent_inc: int = 4) -> int | dict[Iri, dict[str, Xsd]]:
+               indent: int = 0, indent_inc: int = 4) -> int | list[dict[str, Any]]:
+        if not resClass and not filter and not ftfilter and not hlfilter:
+            raise OldapErrorValue('Search without filters requires resClass.')
+
         if not isinstance(project, Project):
             project_obj = Project.read(con=con,
                                        projectIri_SName=project)
@@ -2061,16 +2064,28 @@ class ResourceInstance:
         if countOnly:
             return res[0]['numResult']
         else:
-            result = {}
+            result: list[dict[str, Any]] = []
+            by_iri: dict[Iri, dict[str, Any]] = {}
             for r in res:
-                if result.get('res') is None:
-                    result[r['res']] = {}
+                iri = r['res']
+                if iri not in by_iri:
+                    by_iri[iri] = {'iri': iri}
+                    result.append(by_iri[iri])
+                item = by_iri[iri]
                 for p in sparql_vars:
-                    result[r['res']][p] = r[p] if r.get(p) else None
+                    if p == 'res':
+                        continue
+                    value = r[p] if r.get(p) else None
+                    if p == 'resclass' or p == 'score':
+                        item[p] = value
+                    elif value is not None:
+                        item.setdefault(p, [])
+                        if value not in item[p]:
+                            item[p].append(value)
             return result
 
     @staticmethod
-    def search_fulltext(*args, **kwargs) -> int | dict[Iri, dict[str, Xsd]]:
+    def search_fulltext(*args, **kwargs) -> int | list[dict[str, Any]]:
         return ResourceInstance.search(*args, **kwargs)
 
     @staticmethod

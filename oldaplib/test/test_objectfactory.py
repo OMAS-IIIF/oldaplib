@@ -631,7 +631,7 @@ class TestObjectFactory(unittest.TestCase):
                                               LogicOp.AND,
                                               SearchFilter('test:writtenAt', CompOp.OVERLAPS,
                                                            Dating((1200,), (1299,), datePrecision=DatePrecision.CENTURY))])
-        self.assertEqual({str(x['title']) for x in res.values()}, {'Search Dating Overlap'})
+        self.assertEqual({str(x['title'][0]) for x in res}, {'Search Dating Overlap'})
 
         res = ResourceInstance.search(con=self._connection,
                                       project='test',
@@ -640,7 +640,7 @@ class TestObjectFactory(unittest.TestCase):
                                       filter=[title_filter,
                                               LogicOp.AND,
                                               SearchFilter('test:writtenAt', CompOp.BEFORE, Dating("1200"))])
-        self.assertEqual({str(x['title']) for x in res.values()}, {'Search Dating Before'})
+        self.assertEqual({str(x['title'][0]) for x in res}, {'Search Dating Before'})
 
         res = ResourceInstance.search(con=self._connection,
                                       project='test',
@@ -649,7 +649,7 @@ class TestObjectFactory(unittest.TestCase):
                                       filter=[title_filter,
                                               LogicOp.AND,
                                               SearchFilter('test:writtenAt', CompOp.AFTER, Dating("1300"))])
-        self.assertEqual({str(x['title']) for x in res.values()}, {'Search Dating After'})
+        self.assertEqual({str(x['title'][0]) for x in res}, {'Search Dating After'})
 
     def test_search_sort_by_dating_explicit_kind(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -664,7 +664,7 @@ class TestObjectFactory(unittest.TestCase):
                                       includeProperties={Xsd_QName('test:title')},
                                       filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Dating'))],
                                       sortBy=[SortBy('test:writtenAt', SortDir.asc, SortKind.DATING)])
-        self.assertEqual([str(x['title']) for x in res.values()], ['Sort Dating B', 'Sort Dating C', 'Sort Dating A'])
+        self.assertEqual([str(x['title'][0]) for x in res], ['Sort Dating B', 'Sort Dating C', 'Sort Dating A'])
 
         res = ResourceInstance.search(con=self._connection,
                                       project='test',
@@ -672,7 +672,7 @@ class TestObjectFactory(unittest.TestCase):
                                       includeProperties={Xsd_QName('test:title')},
                                       filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Dating'))],
                                       sortBy=[SortBy('test:writtenAt', SortDir.desc, SortKind.DATING)])
-        self.assertEqual([str(x['title']) for x in res.values()], ['Sort Dating A', 'Sort Dating C', 'Sort Dating B'])
+        self.assertEqual([str(x['title'][0]) for x in res], ['Sort Dating A', 'Sort Dating C', 'Sort Dating B'])
 
     def test_search_sort_by_dating_auto_from_filter(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -690,7 +690,25 @@ class TestObjectFactory(unittest.TestCase):
                                               SearchFilter('test:writtenAt', CompOp.OVERLAPS,
                                                            Dating("1000-01-01", "1400-12-31"))],
                                       sortBy=[SortBy('test:writtenAt')])
-        self.assertEqual([str(x['title']) for x in res.values()], ['Auto Dating B', 'Auto Dating C', 'Auto Dating A'])
+        self.assertEqual([str(x['title'][0]) for x in res], ['Auto Dating B', 'Auto Dating C', 'Auto Dating A'])
+
+    def test_search_without_filter_requires_resclass(self):
+        with self.assertRaises(OldapErrorValue):
+            ResourceInstance.search(con=self._connection, project='test')
+
+    def test_search_without_filter_lists_resclass_resources(self):
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Sort',
+                                      includeProperties={Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')},
+                                      sortBy=[SortBy(Xsd_QName('oldap:creationDate'), SortDir.asc)])
+        self.assertEqual(len(res), 3)
+        self.assertEqual(res[0]['iri'], Xsd_QName('test:Item1'))
+        self.assertEqual(res[1]['iri'], Xsd_QName('test:Item2'))
+        self.assertEqual(res[2]['iri'], Xsd_QName('test:Item3'))
+        for row in res:
+            self.assertIsNotNone(row['aString'])
+            self.assertIsNotNone(row['aLangstring'])
 
     def test_read_D(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -1123,9 +1141,9 @@ class TestObjectFactory(unittest.TestCase):
                                                sortBy=[SortBy(Xsd_QName('oldap:creationDate'), SortDir.desc)])
 
         self.assertEqual(len(res), 2)
-        for x, y in res.items():
-            print(x, y)
-            self.assertEqual(y['resclass'], Xsd_QName('test:Book'))
+        for x in res:
+            print(x)
+            self.assertEqual(x['resclass'], Xsd_QName('test:Book'))
 
         res = ResourceInstance.search_fulltext(con=self._connection,
                                                project='test',
@@ -1135,9 +1153,9 @@ class TestObjectFactory(unittest.TestCase):
                                                sortBy=[SortBy(Xsd_QName('oldap:creationDate'), SortDir.desc)])
 
         self.assertEqual(len(res), 5)
-        for x, y in res.items():
-            print(x, y)
-            self.assertTrue(y['resclass'] in {Xsd_QName('test:Book'), Xsd_QName('test:Page')})
+        for x in res:
+            print(x)
+            self.assertTrue(x['resclass'] in {Xsd_QName('test:Book'), Xsd_QName('test:Page')})
 
     def test_search_resource_B(self):
         res = ResourceInstance.all_resources(con=self._connection,
