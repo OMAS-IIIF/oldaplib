@@ -503,14 +503,17 @@ class DataModel(Model):
             # frameworks are only defined in OWL and must be added here
             #
             if isinstance(onto_obj[tmp_resclass_iri], dict):
+                gaga = onto_obj[tmp_resclass_iri]
                 tmp = onto_obj[tmp_resclass_iri].get(Xsd_QName("rdfs:subClassOf"), [])
                 if tmp:
                     if not isinstance(tmp, list):
                         tmp = [tmp]
                     tmp_list = []
                     for sc in tmp:
-                        if not superclass or sc in superclass:
+                        if superclass and sc in superclass:
                             continue
+                        if not superclass:
+                            superclass = []
                         tmp_list.append(sc)
 
                     if tmp_list:

@@ -499,7 +499,7 @@ class TestDataModel(unittest.TestCase):
         })
 
         sc = set(model[Xsd_QName("oldap:Dating")].superclass.keys())
-        self.assertEqual(sc, {Xsd_QName("oldap:Thing")})
+        self.assertEqual(sc, {Xsd_QName("dcterms:PeriodOfTime")})
         self.assertEqual(model[Xsd_QName("oldap:Dating")].creator, Iri("https://orcid.org/0000-0003-1681-4036"))
         self.assertEqual(model[Xsd_QName("oldap:Dating")].created, Xsd_dateTime("2025-01-01T00:00:00+02:00"))
         self.assertEqual(model[Xsd_QName("oldap:Dating")].contributor, Iri("https://orcid.org/0000-0003-1681-4036"))
@@ -508,12 +508,12 @@ class TestDataModel(unittest.TestCase):
         self.assertTrue(model[Xsd_QName("oldap:Dating")].closed)
 
         props = model[Xsd_QName("oldap:Dating")].properties.keys()
-        self.assertEqual(set(props), {Xsd_QName("oldap:normalizedBegin"),
-                                      Xsd_QName("oldap:inCalendar"),
-                                      Xsd_QName("oldap:before"),
-                                      Xsd_QName("oldap:verbatimDate"),
+        self.assertEqual(set(props), {Xsd_QName("oldap:inCalendar"),
                                       Xsd_QName("oldap:normalizedEnd"),
-                                      Xsd_QName("oldap:datePrecision")})
+                                      Xsd_QName("oldap:normalizedStart"),
+                                      Xsd_QName("oldap:verbatimDate"),
+                                      Xsd_QName("oldap:datePrecision"),
+                                      Xsd_QName("oldap:beforeDating")})
 
         self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:verbatimDate")].datatype, XsdDatatypes.string)
         self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:verbatimDate")].name, LangString(
@@ -524,14 +524,14 @@ class TestDataModel(unittest.TestCase):
         self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:verbatimDate")].maxCount, 1)
         self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:verbatimDate")].order, 1.0)
 
-        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedBegin")].datatype, XsdDatatypes.date)
-        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedBegin")].name, LangString(
-            "Normalized begin (ISO Gregorian)@en",
-            "Normierter Beginn (ISO-Gregorian)@de",
+        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedStart")].datatype, XsdDatatypes.date)
+        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedStart")].name, LangString(
+            "Normalized Start (ISO Gregorian)@en",
+            "Normierter Startn (ISO-Gregorian)@de",
             "Début normalisé (calendrier grégorien ISO)@fr",
             "Inizio normalizzato (calendario gregoriano ISO)@it"))
-        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedBegin")].maxCount, 1)
-        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedBegin")].order, 2.0)
+        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedStart")].maxCount, 1)
+        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedStart")].order, 2.0)
 
         self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedEnd")].datatype, XsdDatatypes.date)
         self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:normalizedEnd")].name, LangString(
@@ -553,13 +553,14 @@ class TestDataModel(unittest.TestCase):
         self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:inCalendar")].maxCount, 1)
         self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:inCalendar")].order, 5.0)
 
-        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:before")].toClass, Xsd_QName("oldap:Dating"))
-        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:before")].name, LangString(
+        pprint(model[Xsd_QName("oldap:Dating")].properties)
+        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:beforeDating")].toClass, Xsd_QName("oldap:Dating"))
+        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:beforeDating")].name, LangString(
             "before other event@en",
             "vor einem anderen Ereignis@de",
             "avant un autre événement@fr",
             "prima di un altro evento@it"))
-        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:before")].order, 6.0)
+        self.assertEqual(model[Xsd_QName("oldap:Dating")].properties[Xsd_QName("oldap:beforeDating")].order, 6.0)
 
 
         sc = set(model[Xsd_QName("shared:MediaObject")].superclass.keys())

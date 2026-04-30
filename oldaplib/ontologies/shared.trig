@@ -435,14 +435,14 @@ shared:onto {
 
     oldap:datePrecision rdf:type owl:ObjectProperty .
 
-    oldap:before rdf:type owl:ObjectProperty, owl:TransitiveProperty .
+    oldap:beforeDating rdf:type owl:ObjectProperty, owl:TransitiveProperty .
 
     ###########################################################################
     # Chronology Date Resource
     ###########################################################################
 
     oldap:Dating rdf:type owl:Class ;
-        rdfs:subClassOf oldap:Thing, dcterms:PeriodOfTime .
+        rdfs:subClassOf dcterms:PeriodOfTime .
 
     ###########################################################################
     # Media object
