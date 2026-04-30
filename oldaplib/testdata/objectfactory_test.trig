@@ -218,6 +218,13 @@ test:shacl {
                     sh:order "2.0"^^xsd:decimal ;
                     sh:minCount "1"^^xsd:integer ;
                     sh:maxCount "1"^^xsd:integer ;
+                ] ;
+            sh:property
+                [
+                    sh:path test:optionalDating ;
+                    sh:class oldap:Dating ;
+                    sh:order "3.0"^^xsd:decimal ;
+                    sh:maxCount "1"^^xsd:integer ;
                 ] .
 
         test:SortShape a sh:NodeShape ;
@@ -692,6 +699,8 @@ test:onto {
         rdfs:subClassOf oldap:Thing .
 
     test:writtenAt rdf:type owl:ObjectProperty .
+
+    test:optionalDating rdf:type owl:ObjectProperty .
 
     test:Codex rdf:type owl:Class ;
         rdfs:subClassOf oldap:Thing .

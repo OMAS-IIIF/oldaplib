@@ -551,6 +551,106 @@ class TestObjectFactory(unittest.TestCase):
         data = ResourceInstance.read_data(con=self._connection, iri=codex.iri, projectShortName='test')
         pprint(data)
 
+    def test_replace_dating_value_keeps_iri(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Mutabilis", writtenAt="1140")
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        old_dating_iri = codex2.writtenAt.iri
+        codex2.writtenAt = Dating("1150")
+        codex2.update()
+
+        codex3 = Codex.read(con=self._connection, iri=codex.iri)
+        self.assertEqual(codex3.writtenAt.iri, old_dating_iri)
+        self.assertEqual(codex3.writtenAt._datePrecision, DatePrecision.YEAR)
+        self.assertEqual(str(codex3.writtenAt), "1150-01-01 - 1150-12-31 (GREGORIAN, YEAR)")
+
+    def test_delete_optional_dating_with_none(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Deletabilis", writtenAt="1140", optionalDating="1200")
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        optional_iri = codex2.optionalDating.iri
+        codex2.optionalDating = None
+        codex2.update()
+
+        data = ResourceInstance.read_data(con=self._connection, iri=codex.iri, projectShortName='test')
+        self.assertNotIn('test:optionalDating', data)
+
+        context = Context(name=self._connection.context_name)
+        sparql = context.sparql_context
+        sparql += f'ASK {{ GRAPH test:data {{ {optional_iri.toRdf} ?p ?o . }} }}'
+        self.assertFalse(self._connection.query(sparql)['boolean'])
+
+    def test_delete_optional_dating_with_del(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Delendus", writtenAt="1140", optionalDating="1200")
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        del codex2.optionalDating
+        codex2.update()
+
+        data = ResourceInstance.read_data(con=self._connection, iri=codex.iri, projectShortName='test')
+        self.assertNotIn('test:optionalDating', data)
+
+    def test_delete_dating_referenced_by_external_before_fails(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        target = Codex(title="Codex Target", writtenAt="1140", optionalDating="1200")
+        target.create()
+
+        target2 = Codex.read(con=self._connection, iri=target.iri)
+        referring = Codex(title="Codex Referring",
+                          writtenAt=Dating("1300", before={Dating("1250", before={target2.optionalDating})}))
+        referring.create()
+
+        target3 = Codex.read(con=self._connection, iri=target.iri)
+        target3.optionalDating = None
+        with self.assertRaises(OldapErrorInUse):
+            target3.update()
+
+    def test_search_dating_filters(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        Codex(title="Search Dating Before", writtenAt="1100").create()
+        Codex(title="Search Dating Overlap", writtenAt="1250").create()
+        Codex(title="Search Dating After", writtenAt="1400").create()
+
+        title_filter = SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Search Dating'))
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[title_filter,
+                                              LogicOp.AND,
+                                              SearchFilter('test:writtenAt', CompOp.OVERLAPS,
+                                                           Dating((1200,), (1299,), datePrecision=DatePrecision.CENTURY))])
+        self.assertEqual({str(x['title']) for x in res.values()}, {'Search Dating Overlap'})
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[title_filter,
+                                              LogicOp.AND,
+                                              SearchFilter('test:writtenAt', CompOp.BEFORE, Dating("1200"))])
+        self.assertEqual({str(x['title']) for x in res.values()}, {'Search Dating Before'})
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[title_filter,
+                                              LogicOp.AND,
+                                              SearchFilter('test:writtenAt', CompOp.AFTER, Dating("1300"))])
+        self.assertEqual({str(x['title']) for x in res.values()}, {'Search Dating After'})
+
     def test_read_D(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         SetterTester = factory.createObjectInstance('SetterTester')

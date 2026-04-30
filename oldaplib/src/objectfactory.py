@@ -38,6 +38,7 @@ from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.dating import Dating
 from oldaplib.src.xsd.listnode import HListNode
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
@@ -76,6 +77,9 @@ class CompOp(Enum):
     STRENDS = "strends"
     REGEXP = "regexp"
     FULLTEXT = "fulltext"
+    OVERLAPS = "overlaps"
+    BEFORE = "before"
+    AFTER = "after"
 
 class LogicOp(Enum):
     AND = "&&"
@@ -88,7 +92,7 @@ class LogicOp(Enum):
 class SearchFilter:
     prop: Xsd_QName
     op: CompOp
-    value: Xsd
+    value: Xsd | Dating
 
     def __post_init__(self):
         if not isinstance(self.prop, Xsd_QName):
@@ -279,12 +283,37 @@ def _dating_insert_triples(values: dict[Xsd_QName, Any]) -> list[str]:
         for item in prop_values:
             if item.__class__.__name__ != 'Dating':
                 continue
-            if item.iri is None:
-                item._Dating__iri = Iri()
-            if item.iri in seen:
-                continue
-            seen.add(item.iri)
-            triples.append(f'{item.iri.toRdf} a oldap:Dating ;\n{item.toRdf} .')
+            triples.extend(_dating_insert_triples_for_item(item, seen))
+    return triples
+
+
+def _dating_insert_triples_for_item(item: Any, seen: set[Iri | Xsd_QName]) -> list[str]:
+    if item.__class__.__name__ != 'Dating':
+        return []
+    if item.iri is None:
+        item._Dating__iri = Iri()
+    if item.iri in seen:
+        return []
+    seen.add(item.iri)
+
+    triples: list[str] = []
+    before_values = getattr(item, '_beforeDating', set())
+    for before in before_values:
+        triples.extend(_dating_insert_triples_for_item(before, seen))
+
+    parts = []
+    verbatim = getattr(item, '_verbatimDate', None)
+    if verbatim:
+        parts.append(f'oldap:verbatimDate """{verbatim}"""')
+    parts.append(f'oldap:normalizedStart "{item._normalizedStart.isoformat()}"^^xsd:date')
+    parts.append(f'oldap:normalizedEnd "{item._normalizedEnd.isoformat()}"^^xsd:date')
+    parts.append(f'oldap:datePrecision {item._datePrecision.value}')
+    parts.append(f'oldap:inCalendar {item._inCalendar.value}')
+    for before in before_values:
+        if before.iri is None:
+            before._Dating__iri = Iri()
+        parts.append(f'oldap:before {before.iri.toRdf}')
+    triples.append(f'{item.iri.toRdf} a oldap:Dating ;\n' + ' ;\n'.join(parts) + ' .')
     return triples
 
 
@@ -914,6 +943,108 @@ class ResourceInstance:
                              notify_data=prop_iri,
                              validator=lambda new_values: self.__validate_property_set(new_values, prop_iri, prop))
 
+    def __dating_update_sparql(self,
+                               field: Xsd_QName,
+                               change: AttributeChange,
+                               indent: int,
+                               indent_inc: int) -> str:
+        blank = ''
+        if change.action == Action.DELETE:
+            old_values = list(change.old_value) if isinstance(change.old_value, ObservableSet) else [change.old_value]
+            if not old_values:
+                raise OldapErrorValue(f'{self.name}: Dating property {field} has no value to delete.')
+            old_roots = ', '.join(x.iri.toRdf for x in old_values)
+            return (
+                f'# Processing Dating field "{field}"\n'
+                f'{blank:{indent * indent_inc}}WITH {self._graph}:data\n'
+                f'{blank:{indent * indent_inc}}DELETE {{\n'
+                f'{blank:{(indent + 1) * indent_inc}}?res_iri {field.toRdf} ?datingRoot .\n'
+                f'{blank:{(indent + 1) * indent_inc}}?datingNode ?datingPred ?datingValue .\n'
+                f'{blank:{indent * indent_inc}}}}\n'
+                f'{blank:{indent * indent_inc}}WHERE {{\n'
+                f'{blank:{(indent + 1) * indent_inc}}BIND({self._iri.toRdf} AS ?res_iri)\n'
+                f'{blank:{(indent + 1) * indent_inc}}VALUES ?datingRoot {{ {old_roots} }}\n'
+                f'{blank:{(indent + 1) * indent_inc}}?res_iri {field.toRdf} ?datingRoot .\n'
+                f'{blank:{(indent + 1) * indent_inc}}?datingRoot oldap:before* ?datingNode .\n'
+                f'{blank:{(indent + 1) * indent_inc}}?datingNode ?datingPred ?datingValue .\n'
+                f'{blank:{indent * indent_inc}}}}'
+            )
+
+        new_values = list(self._values[field]) if isinstance(self._values[field], ObservableSet) else [self._values[field]]
+        if not new_values:
+            raise OldapErrorValue(f'{self.name}: Dating property {field} has no value.')
+
+        if change.action == Action.CREATE:
+            seen: set[Iri | Xsd_QName] = set()
+            triples = []
+            for item in new_values:
+                triples.extend(_dating_insert_triples_for_item(item, seen))
+            links = [f'{self._iri.toRdf} {field.toRdf} {item.iri.toRdf} .' for item in new_values]
+            return (
+                f'# Processing Dating field "{field}"\n'
+                f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
+                f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{\n'
+                f'{blank:{(indent + 2) * indent_inc}}'
+                + f'\n{blank:{(indent + 2) * indent_inc}}'.join(triples + links)
+                + f'\n{blank:{(indent + 1) * indent_inc}}}}\n'
+                f'{blank:{indent * indent_inc}}}}'
+            )
+
+        old_values = list(change.old_value) if isinstance(change.old_value, ObservableSet) else [change.old_value]
+        if len(old_values) != 1 or len(new_values) != 1:
+            raise OldapErrorValue(f'{self.name}: Replacing multiple Dating values for {field} is not implemented yet.')
+        old_dating = old_values[0]
+        new_dating = new_values[0]
+        if old_dating.iri is None:
+            raise OldapErrorValue(f'{self.name}: Existing Dating value for {field} has no IRI.')
+        if new_dating.iri is None:
+            new_dating._Dating__iri = old_dating.iri
+        elif new_dating.iri != old_dating.iri:
+            raise OldapErrorValue(f'{self.name}: Replacing the Dating root IRI for {field} is not implemented yet.')
+
+        seen: set[Iri | Xsd_QName] = set()
+        triples = _dating_insert_triples_for_item(new_dating, seen)
+        return (
+            f'# Processing Dating field "{field}"\n'
+            f'{blank:{indent * indent_inc}}WITH {self._graph}:data\n'
+            f'{blank:{indent * indent_inc}}DELETE {{\n'
+            f'{blank:{(indent + 1) * indent_inc}}?datingNode ?datingPred ?datingValue .\n'
+            f'{blank:{indent * indent_inc}}}}\n'
+            f'{blank:{indent * indent_inc}}INSERT {{\n'
+            f'{blank:{(indent + 1) * indent_inc}}'
+            + f'\n{blank:{(indent + 1) * indent_inc}}'.join(triples)
+            + f'\n{blank:{indent * indent_inc}}}}\n'
+            f'{blank:{indent * indent_inc}}WHERE {{\n'
+            f'{blank:{(indent + 1) * indent_inc}}BIND({old_dating.iri.toRdf} AS ?datingRoot)\n'
+            f'{blank:{(indent + 1) * indent_inc}}?datingRoot oldap:before* ?datingNode .\n'
+            f'{blank:{(indent + 1) * indent_inc}}?datingNode ?datingPred ?datingValue .\n'
+            f'{blank:{indent * indent_inc}}}}'
+        )
+
+    def __dating_delete_is_referenced_sparql(self, field: Xsd_QName, change: AttributeChange) -> str | None:
+        if change.action != Action.DELETE:
+            return None
+        old_values = list(change.old_value) if isinstance(change.old_value, ObservableSet) else [change.old_value]
+        old_roots = ', '.join(x.iri.toRdf for x in old_values if x.iri is not None)
+        if not old_roots:
+            return None
+
+        context = Context(name=self._con.context_name)
+        sparql = context.sparql_context
+        sparql += textwrap.dedent(f'''
+        ASK {{
+            GRAPH {self._graph}:data {{
+                VALUES ?datingRoot {{ {old_roots} }}
+                ?datingRoot oldap:before* ?datingNode .
+                ?externalDating oldap:before ?datingNode .
+                FILTER NOT EXISTS {{
+                    ?datingRoot oldap:before* ?externalDating .
+                }}
+            }}
+        }}
+        ''')
+        return sparql
+
     def notifier(self, prop_iri: Xsd_QName):
         prop = self.properties[prop_iri]
         self.validate_value(self._values[prop_iri], prop)
@@ -1267,6 +1398,12 @@ class ResourceInstance:
             if field == 'oldap:attachedToRole':
                 required_permission = DataPermission.DATA_PERMISSIONS
                 continue
+            if _is_dating_property(self.properties.get(field)):
+                if change.action != Action.CREATE:
+                    if required_permission < DataPermission.DATA_UPDATE:
+                        required_permission = DataPermission.DATA_UPDATE
+                sparql_list.append(self.__dating_update_sparql(field, change, indent, indent_inc))
+                continue
             if change.action == Action.MODIFY:
                 continue  # will be processed below!
             if change.action != Action.CREATE:
@@ -1439,6 +1576,12 @@ class ResourceInstance:
                 self._con.transaction_abort()
                 raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
         try:
+            for field, change in self._changeset.items():
+                if _is_dating_property(self.properties.get(field)):
+                    inuse = self.__dating_delete_is_referenced_sparql(field, change)
+                    if inuse and self._con.transaction_query(inuse)['boolean']:
+                        raise OldapErrorInUse(
+                            f'Dating value of property "{field}" cannot be deleted because another Dating value refers to it with oldap:before.')
             self._con.transaction_update(sparql)
             self._con.transaction_update(modtime_update)
             jsonobj = self._con.transaction_query(modtime_get)
@@ -1662,18 +1805,18 @@ class ResourceInstance:
     2) 
     """
     @staticmethod
-    def search_fulltext(con: IConnection,
-                        project: Project | Xsd_NCName | Iri| str,
-                        resClass: Xsd_QName | str | None = None,
-                        includeProperties: set[Xsd_QName] | None = None,
-                        filter: list[SearchFilter | LogicOp] | None = None,  # "normal" filter operations
-                        ftfilter: list[FTSearchFilter | Literal['AND', 'OR']] | None = None,  # fulltext filter operations
-                        hlfilter: list[HLSearchFilter | LogicOp] | None = None,  # hierarchical list filter operations
-                        sortBy: list[SortBy] | None = None,
-                        countOnly: bool = False,
-                        limit: int = 100,
-                        offset: int = 0,
-                        indent: int = 0, indent_inc: int = 4) -> int | dict[Iri, dict[str, Xsd]]:
+    def search(con: IConnection,
+               project: Project | Xsd_NCName | Iri| str,
+               resClass: Xsd_QName | str | None = None,
+               includeProperties: set[Xsd_QName] | None = None,
+               filter: list[SearchFilter | LogicOp] | None = None,  # "normal" filter operations
+               ftfilter: list[FTSearchFilter | Literal['AND', 'OR']] | None = None,  # fulltext filter operations
+               hlfilter: list[HLSearchFilter | LogicOp] | None = None,  # hierarchical list filter operations
+               sortBy: list[SortBy] | None = None,
+               countOnly: bool = False,
+               limit: int = 100,
+               offset: int = 0,
+               indent: int = 0, indent_inc: int = 4) -> int | dict[Iri, dict[str, Xsd]]:
         if not isinstance(project, Project):
             project_obj = Project.read(con=con,
                                        projectIri_SName=project)
@@ -1750,17 +1893,39 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
 
         if filter:
-            for f in filter:
+            for filter_index, f in enumerate(filter):
                 if isinstance(f, LogicOp):
                     continue
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {f.prop.toRdf} ?{f.prop.fragment} }}.'
+                if isinstance(f.value, Dating):
+                    dating_var = f'{f.prop.fragment}_dating_{filter_index}'
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {f.prop.toRdf} ?{dating_var} .'
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{dating_var} oldap:normalizedStart ?{dating_var}_start .'
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{dating_var} oldap:normalizedEnd ?{dating_var}_end .'
+                else:
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {f.prop.toRdf} ?{f.prop.fragment} }}.'
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER('
             langfilters: list[str] = []
-            for f in filter:
+            for filter_index, f in enumerate(filter):
                 if isinstance(f, LogicOp):
                     sparql+= f' {f.value} '
                 else:
-                    if f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
+                    if isinstance(f.value, Dating):
+                        dating_var = f'{f.prop.fragment}_dating_{filter_index}'
+                        target_start = f'"{f.value._normalizedStart.isoformat()}"^^xsd:date'
+                        target_end = f'"{f.value._normalizedEnd.isoformat()}"^^xsd:date'
+                        if f.op == CompOp.EQ:
+                            sparql += f'(?{dating_var}_start = {target_start} && ?{dating_var}_end = {target_end})'
+                        elif f.op == CompOp.NE:
+                            sparql += f'(?{dating_var}_start != {target_start} || ?{dating_var}_end != {target_end})'
+                        elif f.op == CompOp.OVERLAPS:
+                            sparql += f'(?{dating_var}_end >= {target_start} && ?{dating_var}_start <= {target_end})'
+                        elif f.op == CompOp.BEFORE:
+                            sparql += f'(?{dating_var}_end < {target_start})'
+                        elif f.op == CompOp.AFTER:
+                            sparql += f'(?{dating_var}_start > {target_end})'
+                        else:
+                            raise OldapErrorValue(f'Unsupported Dating search operator {f.op} for property {f.prop}.')
+                    elif f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
                         if isinstance(f.value, Xsd_string) and f.value.lang:
                             sparql += f'?{f.prop.fragment} {f.op.value} "{f.value.value}"'
                             langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
@@ -1864,6 +2029,10 @@ class ResourceInstance:
                 for p in sparql_vars:
                     result[r['res']][p] = r[p] if r.get(p) else None
             return result
+
+    @staticmethod
+    def search_fulltext(*args, **kwargs) -> int | dict[Iri, dict[str, Xsd]]:
+        return ResourceInstance.search(*args, **kwargs)
 
     @staticmethod
     def all_resources(con: IConnection,
