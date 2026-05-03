@@ -1865,7 +1865,7 @@ class ResourceInstance:
             context['luc'] = NamespaceIRI('http://www.ontotext.com/connectors/lucene#')
             context['inst'] = NamespaceIRI('http://www.ontotext.com/connectors/lucene/instance#')
         sparql = context.sparql_context
-        sparql_vars = {'res', 'resclass'}
+        sparql_vars: set[tuple[str,str]] = {('res', 'res'), ('resclass', 'resclass')}
         dating_filter_props = {f.prop for f in filter or [] if isinstance(f, SearchFilter) and isinstance(f.value, Dating)}
 
         def is_dating_sort(sort: SortBy) -> bool:
@@ -1881,12 +1881,12 @@ class ResourceInstance:
             sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?res ?resclass'
             if ftfilter:
                 sparql += ' ?score'
-                sparql_vars.add('score')
+                sparql_vars.add(('score', 'score'))
 
         if includeProperties:
             for p in includeProperties:
                 sparql += f' ?{p.fragment}'
-                sparql_vars.add(f'{p.fragment}')
+                sparql_vars.add((f'{p.fragment}', str(p)))
         if sortBy:
             for s in sortBy:
                 if is_dating_sort(s):
@@ -1894,7 +1894,7 @@ class ResourceInstance:
                 tmp = includeProperties if includeProperties else set()
                 if s.property not in tmp:
                     sparql += f' ?{s.property.fragment}'
-                    sparql_vars.add(f'{s.property.fragment}')
+                    sparql_vars.add((f'{s.property.fragment}', str(s.property)))
 
         sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
@@ -2073,20 +2073,130 @@ class ResourceInstance:
                     result.append(by_iri[iri])
                 item = by_iri[iri]
                 for p in sparql_vars:
-                    if p == 'res':
+                    if p[0] == 'res':
                         continue
-                    value = r[p] if r.get(p) else None
-                    if p == 'resclass' or p == 'score':
-                        item[p] = value
+                    value = r[p[0]] if r.get(p[0]) else None
+                    if p[0] == 'resclass' or p[0] == 'score':
+                        item[p[1]] = value
                     elif value is not None:
-                        item.setdefault(p, [])
-                        if value not in item[p]:
-                            item[p].append(value)
+                        item.setdefault(p[1], [])
+                        if value not in item[p[1]]:
+                            item[p[1]].append(value)
             return result
 
+    # @staticmethod
+    # def search_fulltext(*args, **kwargs) -> int | list[dict[str, Any]]:
+    #     return ResourceInstance.search(*args, **kwargs)
+
+
     @staticmethod
-    def search_fulltext(*args, **kwargs) -> int | list[dict[str, Any]]:
-        return ResourceInstance.search(*args, **kwargs)
+    def search_fulltext(con: IConnection,
+                        project: Project | Xsd_NCName | str,
+                        searchstr: str,
+                        resClass: Xsd_QName | str | None = None,
+                        countOnly: bool = False,
+                        sortBy: list[SortBy] = [],
+                        limit: int = 100,
+                        offset: int = 0,
+                        indent: int = 0, indent_inc: int = 4) -> int | list[dict[str, Xsd]]:
+        if isinstance(project, Project):
+            graph = Xsd_QName(project.projectShortName, 'data')
+        elif isinstance(project, Xsd_NCName):
+            graph = Xsd_QName(project, 'data')
+        else:
+            graph = Xsd_QName(project, 'data', validate=True)
+        if resClass and not isinstance(resClass, Xsd_QName):
+            resClass = Xsd_QName(resClass, validate=True)
+
+        blank = ''
+        context = Context(name=con.context_name)
+        sparql = context.sparql_context
+
+        select_count = 'SELECT (COUNT(DISTINCT ?s) as ?numResult)'
+        select = 'SELECT DISTINCT ?s ?p ?o'
+        if (countOnly):
+            sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?s) as ?numResult)'
+        else:
+            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?s ?t ?p ?o'
+            if sortBy:
+                for sortby in sortBy:
+                    if sortby.property == Xsd_QName('oldap:creationDate'):
+                        sparql += ' ?creationDate'
+                    elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
+                        sparql += '?lastModificationDate'
+
+        sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?DataPermission oldap:permissionValue ?permval .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph.toRdf} {{'
+        if not countOnly and sortBy:
+            for sortby in sortBy:
+                if sortby.property == Xsd_QName('oldap:creationDate'):
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:creationDate ?creationDate .'
+                elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
+                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:lastModificationDate ?lastModificationDate .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s ?p ?o .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type ?t .'
+        if resClass:
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(isLiteral(?o) && (datatype(?o) = xsd:string || datatype(?o) = rdf:langString || lang(?o) != ""))'
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(CONTAINS(LCASE(STR(?o)), "{searchstr}"))  # case-insensitive substring match'
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        sparql += f'\n{blank:{indent * indent_inc}}}}'
+
+        if not countOnly and sortBy:
+            for sortby in sortBy:
+                if sortby.property == Xsd_QName('oldap:creationDate'):
+                    if sortby.dir == SortDir.asc:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?creationDate)'
+                    else:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?creationDate)'
+                elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
+                    if sortby.dir == SortDir.asc:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?lastModificationDate)'
+                    else:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?lastModificationDate)'
+                elif sortby.property == Xsd_QName('oldap:propval'):
+                    if sortby.dir == SortDir.asc:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY ASC(?o)'
+                    else:
+                        sparql += f'\n{blank:{indent * indent_inc}}ORDER BY DESC(?o)'
+
+        if not countOnly:
+            sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
+        sparql += '\n'
+
+        try:
+            jsonres = con.query(sparql)
+        except OldapError:
+            logger.error(f'SPARQL: Failed to search for resources in graph "{graph}"', exc_info=True)
+            raise
+        res = QueryProcessor(context, jsonres)
+        if countOnly:
+            return res[0]['numResult']
+        else:
+            result = []
+            for r in res:
+                tmp = {
+                    'iri': r['s'],
+                    str(r['p']): r['o'],
+                    'resclass': r['t']
+                }
+                if sortBy:
+                    for sortby in sortBy:
+                        if sortby.property == Xsd_QName('oldap:creationDate'):
+                            tmp['oldap:creationDate'] = r['creationDate'],
+                        elif sortby.property == Xsd_QName('oldap:lastModificationDate'):
+                            tmp['oldap:lastModificationDate'] = r['lastModificationDate']
+                result.append(tmp)
+            return result
+
+
 
     @staticmethod
     def all_resources(con: IConnection,
