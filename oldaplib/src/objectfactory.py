@@ -39,7 +39,7 @@ from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.dating import Dating
-from oldaplib.src.xsd.listnode import HListNode
+from oldaplib.src.xsd.listnode import HListNode, HListNodeRef
 from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
@@ -122,11 +122,13 @@ class FTSearchFilter:
 @dataclass(frozen=True)
 class HLSearchFilter:
     prop: Xsd_QName
-    node: HListNode
+    node: HListNode | HListNodeRef
 
     def __post_init__(self):
         if not isinstance(self.prop, Xsd_QName):
             object.__setattr__(self, 'prop', Xsd_QName(self.prop))
+        if isinstance(self.node, str):
+            object.__setattr__(self, 'node', HListNodeRef.from_value(self.node))
 
 READ_PERM_BINDING_PRED = Xsd_QName('oldap:_readPermBinding', validate=False)
 READ_PERM_ROLE_PRED = Xsd_QName('oldap:_readRole', validate=False)
@@ -619,8 +621,8 @@ class ResourceInstance:
                         self._attached_roles = ObservableDict(self.user_default_roles, on_change=self.__attachedToRole_cb)
 
                     continue
-                if kwargs.get(str(prop_iri)) or kwargs.get(prop_iri.fragment):
-                    value = kwargs[str(prop_iri)] if kwargs.get(str(prop_iri)) else kwargs[prop_iri.fragment]
+                if str(prop_iri) in kwargs or prop_iri.fragment in kwargs:
+                    value = kwargs[str(prop_iri)] if str(prop_iri) in kwargs else kwargs[prop_iri.fragment]
                     value = _coerce_property_value(prop, value)
                     if isinstance(value, (list, tuple, set, LangString)):  # we may have multiple values...
                         if prop.datatype == XsdDatatypes.langString:
@@ -1868,6 +1870,23 @@ class ResourceInstance:
         sparql_vars: set[tuple[str,str]] = {('res', 'res'), ('resclass', 'resclass')}
         dating_filter_props = {f.prop for f in filter or [] if isinstance(f, SearchFilter) and isinstance(f.value, Dating)}
 
+        def sparql_comp_op(op: CompOp) -> str:
+            match op:
+                case CompOp.EQ:
+                    return '='
+                case CompOp.NE:
+                    return '!='
+                case CompOp.LT:
+                    return '<'
+                case CompOp.LE:
+                    return '<='
+                case CompOp.GT:
+                    return '>'
+                case CompOp.GE:
+                    return '>='
+                case _:
+                    raise OldapErrorValue(f'Unsupported comparison operator {op}.')
+
         def is_dating_sort(sort: SortBy) -> bool:
             if sort.kind == SortKind.DATING:
                 return True
@@ -1962,11 +1981,12 @@ class ResourceInstance:
                         else:
                             raise OldapErrorValue(f'Unsupported Dating search operator {f.op} for property {f.prop}.')
                     elif f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
+                        op = sparql_comp_op(f.op)
                         if isinstance(f.value, Xsd_string) and f.value.lang:
-                            sparql += f'?{f.prop.fragment} {f.op.value} "{f.value.value}"'
+                            sparql += f'?{f.prop.fragment} {op} "{f.value.value}"'
                             langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
                         else:
-                            sparql += f'?{f.prop.fragment} {f.op.value} {f.value.toRdf}'
+                            sparql += f'?{f.prop.fragment} {op} {f.value.toRdf}'
                     elif f.op == CompOp.CONTAINS:  # TODO: DEAL WITH LANGUAGES!!
                         if isinstance(f.value, Xsd_string) and f.value.lang is None:
                             sparql += f'CONTAINS(LCASE(STR(?{f.prop.fragment})), LCASE(STR("{f.value.value}")))'
@@ -2075,7 +2095,7 @@ class ResourceInstance:
                 for p in sparql_vars:
                     if p[0] == 'res':
                         continue
-                    value = r[p[0]] if r.get(p[0]) else None
+                    value = r[p[0]] if r.get(p[0]) is not None else None
                     if p[0] == 'resclass' or p[0] == 'score':
                         item[p[1]] = value
                     elif value is not None:

@@ -11,7 +11,7 @@ from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
-    CompOp, LogicOp
+    CompOp, LogicOp, HLSearchFilter
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -66,6 +66,7 @@ from oldaplib.src.xsd.xsd_unsignedint import Xsd_unsignedInt
 from oldaplib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
 from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 from oldaplib.src.xsd.dating import Dating, DatePrecision
+from oldaplib.src.xsd.listnode import HListNode, HListNodeRef
 from redis.commands.search.aggregation import SortDirection
 
 from oldaplib.src.helpers.query_processor import QueryProcessor
@@ -651,6 +652,48 @@ class TestObjectFactory(unittest.TestCase):
                                               SearchFilter('test:writtenAt', CompOp.AFTER, Dating("1300"))])
         self.assertEqual({str(x['test:title'][0]) for x in res}, {'Search Dating After'})
 
+    def test_search_boolean_filters(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+
+        SetterTester(stringSetter="Search Boolean True",
+                     langStringSetter=["Search Boolean Lang@de"],
+                     langStringSetter2=["Search Boolean Lang 2@de"],
+                     booleanSetter=True,
+                     decimalSetter=Xsd_decimal("1.11"),
+                     attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW}).create()
+
+        SetterTester(stringSetter="Search Boolean False",
+                     langStringSetter=["Search Boolean Lang@de"],
+                     langStringSetter2=["Search Boolean Lang 2@de"],
+                     booleanSetter=False,
+                     decimalSetter=Xsd_decimal("2.22"),
+                     attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW}).create()
+
+        title_filter = SearchFilter('test:stringSetter', CompOp.CONTAINS, Xsd_string('Search Boolean'))
+
+        res_true = ResourceInstance.search(con=self._connection,
+                                           project='test',
+                                           resClass='test:SetterTester',
+                                           includeProperties={Xsd_QName('test:stringSetter'),
+                                                              Xsd_QName('test:booleanSetter')},
+                                           filter=[title_filter,
+                                                   LogicOp.AND,
+                                                   SearchFilter('test:booleanSetter', CompOp.EQ, Xsd_boolean(True))])
+        self.assertEqual({str(x['test:stringSetter'][0]) for x in res_true}, {'Search Boolean True'})
+        self.assertEqual(res_true[0]['test:booleanSetter'][0], Xsd_boolean(True))
+
+        res_false = ResourceInstance.search(con=self._connection,
+                                            project='test',
+                                            resClass='test:SetterTester',
+                                            includeProperties={Xsd_QName('test:stringSetter'),
+                                                               Xsd_QName('test:booleanSetter')},
+                                            filter=[title_filter,
+                                                    LogicOp.AND,
+                                                    SearchFilter('test:booleanSetter', CompOp.EQ, Xsd_boolean(False))])
+        self.assertEqual({str(x['test:stringSetter'][0]) for x in res_false}, {'Search Boolean False'})
+        self.assertEqual(res_false[0]['test:booleanSetter'][0], Xsd_boolean(False))
+
     def test_search_sort_by_dating_explicit_kind(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         Codex = factory.createObjectInstance('Codex')
@@ -709,6 +752,19 @@ class TestObjectFactory(unittest.TestCase):
         for row in res:
             self.assertIsNotNone(row['test:aString'])
             self.assertIsNotNone(row['test:aLangstring'])
+
+    def test_hlist_node_ref_structured(self):
+        node = HListNodeRef('StoryKeywords', 'ObjekteUndSammlungen', validate=True)
+        self.assertEqual(str(node), 'StoryKeywords:ObjekteUndSammlungen')
+        self.assertEqual(str(node.as_qname), 'L-StoryKeywords:ObjekteUndSammlungen')
+
+        legacy_internal = HListNode('L-StoryKeywords:ObjekteUndSammlungen', validate=True)
+        self.assertEqual(legacy_internal.listId, 'StoryKeywords')
+        self.assertEqual(legacy_internal.nodeId, 'ObjekteUndSammlungen')
+
+        hlf = HLSearchFilter('fasnacht:storyKeywords', node)
+        self.assertEqual(str(hlf.node.listId), 'StoryKeywords')
+        self.assertEqual(str(hlf.node.nodeId), 'ObjekteUndSammlungen')
 
     def test_read_D(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
