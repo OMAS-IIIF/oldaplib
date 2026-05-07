@@ -111,12 +111,16 @@ class SearchFilter:
 
 @dataclass(frozen=True)
 class FTSearchFilter:
-    prop: Xsd_QName
+    field: Xsd_NCName | str
     query: str
 
     def __post_init__(self):
-        if not isinstance(self.prop, Xsd_QName):
-            object.__setattr__(self, 'prop', Xsd_QName(self.prop))
+        if not isinstance(self.field, Xsd_NCName):
+            object.__setattr__(self, 'field', Xsd_NCName(str(self.field)))
+
+    @property
+    def field_name(self) -> Xsd_NCName:
+        return cast(Xsd_NCName, self.field)
 
 
 @dataclass(frozen=True)
@@ -141,6 +145,17 @@ DATING_END_PRED = Xsd_QName('oldap:normalizedEnd', validate=False)
 DATING_PRECISION_PRED = Xsd_QName('oldap:datePrecision', validate=False)
 DATING_CALENDAR_PRED = Xsd_QName('oldap:inCalendar', validate=False)
 DATING_BEFORE_PRED = Xsd_QName('oldap:before', validate=False)
+
+
+def _lucene_query_fields(ftfilter: Iterable[FTSearchFilter | Literal['AND', 'OR']]) -> str:
+    parts: list[str] = []
+    for item in ftfilter:
+        if isinstance(item, FTSearchFilter):
+            query = Xsd_string.escaping(str(item.query))
+            parts.append(f'{item.field_name}:{query}')
+        else:
+            parts.append(str(item))
+    return ' '.join(parts)
 
 
 def creator_or_max_perm_block(
@@ -2045,8 +2060,7 @@ class ResourceInstance:
 
         if ftfilter:
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}?search a inst:{str(project_obj.projectShortName)} ;'
-            tmp = [f'{str(x.prop.fragment)}:{str(x.query)}' if isinstance(x, FTSearchFilter) else str(x) for x in ftfilter]
-            fields = ' '.join(tmp)
+            fields = _lucene_query_fields(ftfilter)
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}luc:query "{fields}" ;'
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}luc:entities ?res .'
             # sparql += f'\n{blank:{(indent + 3) * indent_inc}}luc:property fasnacht:storyContent ;'  # if we only want a specific property!

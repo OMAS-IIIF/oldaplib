@@ -11,7 +11,7 @@ from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
-    CompOp, LogicOp, HLSearchFilter
+    CompOp, LogicOp, FTSearchFilter, HLSearchFilter, _lucene_query_fields
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -81,6 +81,30 @@ def find_project_root(current_path):
             raise RuntimeError('Project root not found')
         path = path.parent
     return path
+
+
+class TestLuceneFulltextFilter(unittest.TestCase):
+
+    def test_ftfilter_uses_ncname_field_name(self):
+        ftfilter = FTSearchFilter('storyContent', 'geschichte')
+
+        self.assertEqual(str(ftfilter.field_name), 'storyContent')
+        self.assertEqual(_lucene_query_fields([ftfilter]), 'storyContent:geschichte')
+        self.assertNotIn('fasnacht:storyContent', _lucene_query_fields([ftfilter]))
+
+    def test_ftfilter_rejects_qname_field_name(self):
+        with self.assertRaises(OldapErrorValue):
+            FTSearchFilter('fasnacht:storyContent', 'geschichte')
+
+    def test_ftfilter_keeps_lucene_logic_and_escapes_sparql_string_literal(self):
+        fields = _lucene_query_fields([
+            FTSearchFilter('storyContent', 'Basel "Morgestraich"'),
+            'AND',
+            FTSearchFilter('abstract', 'Larve'),
+        ])
+
+        self.assertEqual(fields, 'storyContent:Basel \\"Morgestraich\\" AND abstract:Larve')
+
 
 class TestObjectFactory(unittest.TestCase):
 

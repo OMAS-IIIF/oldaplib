@@ -145,7 +145,7 @@ class TestKappa(unittest.TestCase):
         # res = Story.search_fulltext(con=connection,
         #                             project=fasnacht,
         #                             resClass=Xsd_QName('fasnacht:Story'),
-        #                             ftfilter=[FTSearchFilter('fasnacht:storyContent', "fasnacht")],
+        #                             ftfilter=[FTSearchFilter('storyContent', "fasnacht")],
         #                             includeProperties={Xsd_QName('schema:abstract'), Xsd_QName('fasnacht:storyTitle')},
         #                             filter=[SearchFilter('fasnacht:storyTitle', CompOp.CONTAINS, Xsd_string("Geschichte")),
         #                                     LogicOp.OR,
@@ -153,7 +153,7 @@ class TestKappa(unittest.TestCase):
         res = Story.search_fulltext(con=connection,
                                     project=fasnacht,
                                     resClass=Xsd_QName('fasnacht:Story'),
-                                    #ftfilter=[FTSearchFilter('fasnacht:storyContent', "fasnacht")],
+                                    #ftfilter=[FTSearchFilter('storyContent', "fasnacht")],
                                     includeProperties={Xsd_QName('schema:abstract'), Xsd_QName('fasnacht:storyTitle')},
                                     hlfilter=[HLSearchFilter('fasnacht:storyKeywords', HListNode('StoryKeywords:Miscellanious'))])
         pprint(res)
