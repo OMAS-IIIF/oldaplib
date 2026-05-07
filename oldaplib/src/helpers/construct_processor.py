@@ -77,11 +77,11 @@ class ConstructProcessor:
         bnodes: dict = {}
         for s, p, o in g.triples((None, None, None)):
             if isinstance(p, URIRef):
-                tmp = con.iri2qname(p)
+                tmp = con.iri2qname(p, validate=False)
                 if tmp is not None:
                     p = tmp
             if isinstance(o, URIRef):
-                tmp = con.iri2qname(o)
+                tmp = con.iri2qname(o, validate=False)
                 o = tmp if tmp is not None else Iri(o)
             elif isinstance(o, Literal):
                 match o.datatype:
@@ -176,7 +176,7 @@ class ConstructProcessor:
                     else:
                         bnodes[s][p] = [bnodes[s][p], o]
             elif isinstance(s, URIRef):
-                tmp = con.iri2qname(s)
+                tmp = con.iri2qname(s, validate=False)
                 s = tmp if tmp is not None else Iri(s)
                 if topnodes.get(s) is None:
                     topnodes[s] = {}

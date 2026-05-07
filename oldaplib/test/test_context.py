@@ -1,7 +1,11 @@
 import unittest
 
+from rdflib import Graph, URIRef
+
+from oldaplib.src.helpers.construct_processor import ConstructProcessor
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.helpers.oldaperror import OldapError
@@ -56,6 +60,24 @@ class TestContext(unittest.TestCase):
         with self.assertRaises(OldapError) as ex:
             qn = context.iri2qname('waseliwas/soll')
         self.assertEqual(str(ex.exception), 'Invalid string "waseliwas/soll" for anyURI (no urn:/http:)')
+
+    def test_construct_processor_external_uri_ref(self):
+        context = Context(name="construct_external_uri")
+        context['test'] = "http://oldap.org/test#"
+        iiif_url = "http://localhost:8088/iiif/3/yAlunuap_TKi/full/max/0/default.jpg"
+        graph = Graph()
+        graph.add((
+            URIRef("http://oldap.org/test#resource"),
+            URIRef("http://oldap.org/test#leadImage"),
+            URIRef(iiif_url)
+        ))
+
+        res = ConstructProcessor.process(context, graph)
+
+        self.assertEqual(
+            res[Xsd_QName("test:resource")][Xsd_QName("test:leadImage")],
+            Iri(iiif_url)
+        )
 
     def test_context_qname2iri(self):
         context = Context(name='qname2iri')
@@ -113,5 +135,4 @@ PREFIX test: <http://www.test.org/gaga#>
 """
         self.maxDiff = None
         self.assertEqual(context.turtle_context, expected)
-
 
