@@ -894,7 +894,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj1.stringSetter, {"This is a test string"})
         self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
         self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
-        self.assertFalse(obj1.booleanSetter)
+        self.assertEqual(obj1.booleanSetter, Xsd_boolean(False))
 
         obj1.delete()
 
@@ -923,7 +923,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj1.stringSetter, {"This is a test string"})
         self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
         self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
-        self.assertFalse(obj1.booleanSetter)
+        self.assertEqual(obj1.booleanSetter, Xsd_boolean(False))
 
         obj1.delete()
 

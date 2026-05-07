@@ -301,6 +301,14 @@ def _coerce_property_value(prop: PropertyClass, value: Any) -> Any:
     return _coerce_dating_value(value)
 
 
+def _is_empty_property_value(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, (list, tuple, set, ObservableSet, LangString)):
+        return len(value) == 0
+    return False
+
+
 def _dating_insert_triples(values: dict[Xsd_QName, Any]) -> list[str]:
     triples: list[str] = []
     seen: set[Iri | Xsd_QName] = set()
@@ -1128,6 +1136,10 @@ class ResourceInstance:
             if len(tmp) != 1:
                 raise OldapErrorValue(f'{self.name}: Property {attr} should have exactly one Dating value, got {len(tmp)} values.')
             return next(iter(tmp))
+        if tmp is not None and prop is not None and prop.datatype == XsdDatatypes.boolean and prop.maxCount == 1:
+            if len(tmp) != 1:
+                raise OldapErrorValue(f'{self.name}: Property {attr} should have exactly one boolean value, got {len(tmp)} values.')
+            return next(iter(tmp))
         if tmp is not None and str(attr) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate'}:
             if len(tmp) != 1:
                 raise OldapErrorValue(f'{self.name}: Property {attr} should have exactly one value, got {len(tmp)} values.')
@@ -1163,7 +1175,7 @@ class ResourceInstance:
         #
         #if prop.get(PropClassAttr.MIN_COUNT):  # testing for MIN_COUNT conformance
         if prop.minCount:
-            if prop.minCount > 0 and not value:
+            if prop.minCount > 0 and _is_empty_property_value(value):
                 raise OldapErrorValue(
                     f'{self.name}: Property {attr} with MIN_COUNT={prop.minCount} is missing')
             elif isinstance(value, (list, tuple, set, ObservableSet)) and len(value) < prop.minCount:
@@ -1173,7 +1185,7 @@ class ResourceInstance:
             if isinstance(value, (list, tuple, set, ObservableSet)) and len(value) > prop.maxCount:
                 raise OldapErrorValue(
                     f'{self.name}: Property {attr} with MAX_COUNT={prop.maxCount} has to many values (n={len(value)})')
-        if value:
+        if not _is_empty_property_value(value):
             if isinstance(value, LangString):
                 self.validate_value(value, prop)
             else:
@@ -1183,7 +1195,7 @@ class ResourceInstance:
                 else:
                     self.validate_value(value, prop)
 
-        if not value:
+        if _is_empty_property_value(value):
             self._changeset[attr] = AttributeChange(self._values.get(attr), Action.DELETE)
             del self._values[attr]
         elif isinstance(value, (list, tuple, set, LangString)):  # we may have multiple values...
