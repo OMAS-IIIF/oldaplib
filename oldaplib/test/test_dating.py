@@ -13,18 +13,45 @@ class TestDating(unittest.TestCase):
         day = Dating("2001-05-17")
         self.assertEqual(str(day), "2001-05-17 - 2001-05-17 (GREGORIAN, DAY)")
 
+        day_range = Dating("2001-05-17", "2001-05-19")
+        self.assertEqual(str(day_range), "2001-05-17 - 2001-05-19 (GREGORIAN, DAY)")
+
         month = Dating((2001, 5))
         self.assertEqual(str(month), "2001-05-01 - 2001-05-31 (GREGORIAN, MONTH)")
 
+        month_range = Dating((1733, 9), (1734, 2))
+        self.assertEqual(str(month_range), "1733-09-01 - 1734-02-28 (GREGORIAN, MONTH)")
+
         year = Dating((2001,))
         self.assertEqual(str(year), "2001-01-01 - 2001-12-31 (GREGORIAN, YEAR)")
+
+        year_range = Dating((1922,), (1925,))
+        self.assertEqual(str(year_range), "1922-01-01 - 1925-12-31 (GREGORIAN, YEAR)")
 
     def test_constructor_decade_century(self):
         decade = Dating((1660,), (1669,), datePrecision=DatePrecision.DECADE)
         self.assertEqual(str(decade), "1660-01-01 - 1669-12-31 (GREGORIAN, DECADE)")
 
+        decade_single = Dating((1733,), datePrecision=DatePrecision.DECADE)
+        self.assertEqual(str(decade_single), "1730-01-01 - 1739-12-31 (GREGORIAN, DECADE)")
+
+        decade_marker_range = Dating((1720,), (1740,), datePrecision=DatePrecision.DECADE)
+        self.assertEqual(str(decade_marker_range), "1720-01-01 - 1739-12-31 (GREGORIAN, DECADE)")
+
+        decade_unaligned_marker_range = Dating((1723,), (1747,), datePrecision=DatePrecision.DECADE)
+        self.assertEqual(str(decade_unaligned_marker_range), "1720-01-01 - 1739-12-31 (GREGORIAN, DECADE)")
+
         century = Dating((1900,), (1999,), datePrecision=DatePrecision.CENTURY)
         self.assertEqual(str(century), "1900-01-01 - 1999-12-31 (GREGORIAN, CENTURY)")
+
+        century_single = Dating((1733,), datePrecision=DatePrecision.CENTURY)
+        self.assertEqual(str(century_single), "1700-01-01 - 1799-12-31 (GREGORIAN, CENTURY)")
+
+        century_marker_range = Dating((1700,), (1900,), datePrecision=DatePrecision.CENTURY)
+        self.assertEqual(str(century_marker_range), "1700-01-01 - 1899-12-31 (GREGORIAN, CENTURY)")
+
+        century_unaligned_marker_range = Dating((1654,), (1812,), datePrecision=DatePrecision.CENTURY)
+        self.assertEqual(str(century_unaligned_marker_range), "1600-01-01 - 1799-12-31 (GREGORIAN, CENTURY)")
 
     def test_calendar_parsing(self):
         julian = Dating("1666-10-11:JULIAN")
@@ -36,10 +63,10 @@ class TestDating(unittest.TestCase):
 
     def test_invalid_precision(self):
         with self.assertRaises(OldapErrorValue):
-            Dating((1661,), (1669,), datePrecision=DatePrecision.DECADE)
+            Dating((1660,), (1650,), datePrecision=DatePrecision.DECADE)
 
         with self.assertRaises(OldapErrorValue):
-            Dating((1901,), (1999,), datePrecision=DatePrecision.CENTURY)
+            Dating((1900,), (1800,), datePrecision=DatePrecision.CENTURY)
 
         with self.assertRaises(OldapErrorValue):
             Dating((2001, 5), datePrecision=DatePrecision.DAY)
@@ -86,6 +113,15 @@ class TestDating(unittest.TestCase):
     def test_normalized_input_rebuild(self):
         dating = Dating("2001-01-01", "2001-12-31", datePrecision=DatePrecision.YEAR)
         self.assertEqual(str(dating), "2001-01-01 - 2001-12-31 (GREGORIAN, YEAR)")
+
+        year_range = Dating("1922-01-01", "1925-12-31", datePrecision=DatePrecision.YEAR)
+        self.assertEqual(str(year_range), "1922-01-01 - 1925-12-31 (GREGORIAN, YEAR)")
+
+        decade_range = Dating("1720-01-01", "1739-12-31", datePrecision=DatePrecision.DECADE)
+        self.assertEqual(str(decade_range), "1720-01-01 - 1739-12-31 (GREGORIAN, DECADE)")
+
+        century_range = Dating("1700-01-01", "1899-12-31", datePrecision=DatePrecision.CENTURY)
+        self.assertEqual(str(century_range), "1700-01-01 - 1899-12-31 (GREGORIAN, CENTURY)")
 
 
 if __name__ == '__main__':

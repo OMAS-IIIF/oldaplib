@@ -16,14 +16,19 @@ principles:
 - The accuracy of a chronology statements is limited to *days*. It does not allow to record hours, minutes etc.
 - The time specifications are linked to calendar specifications. The Gregorian, Julian, Jewish and Islamic calendars
   are supported.
-- The data is stored internally in a calendar-agnostic and commensurable way, namely as a Julian Day Count (JDC).
+- The data is stored internally in a normalized form based on the Gregorian calendar.
 - All time specifications are provided with an accuracy, i.e. they are stored as a time span. If the time specification
   is available exactly, the start and end of the time span will be equal.
 - An accuracy can be specified for both the start and the end of the time period. The accuracy can be specified as
-  YEAR, MONTH or DAY. If the precision is YEAR, January 1 is taken as the start of the time span and December 31 as the
-  end (or the corresponding This makes it possible, for example, to specify a period, e.g. for the time of the
-  composition of a work, “1820 - 3 March 1822”, which means that the composition was written between 1 January 1820 and
-  3 March 1822 – the first performance was on 3 March, so the composition must have been finished by then at the latest.
+  CENTURY, DECADE, YEAR, MONTH or DAY. Single date values are expanded to the containing precision span. For example,
+  YEAR precision expands `1820` to `1820-01-01` through `1820-12-31`, DECADE precision expands `1733` to
+  `1730-01-01` through `1739-12-31`, and CENTURY precision expands `1733` to `1700-01-01` through `1799-12-31`.
+  Date ranges with DAY, MONTH or YEAR precision use inclusive endpoint expansion. For example, `1733-09` through
+  `1734-02` means `1733-09-01` through `1734-02-28`, and `1922` through `1925` means `1922-01-01` through
+  `1925-12-31`. Date ranges with DECADE or CENTURY precision use boundary-marker semantics: the end value marks the
+  first excluded bucket unless both endpoints fall in the same bucket. Thus `1720` through `1740` with DECADE
+  precision means `1720-01-01` through `1739-12-31`, while `1733` through `1733` means the single decade
+  `1730-01-01` through `1739-12-31`.
 - If the timing of events is not known or only vaguely known, but the sequence is clear, then an (imprecise) time span
   can also be defined relative to another point in time. With “before” and “after” the sequential order can be defined.
   Optionally, a delta can also be specified, which is stored in the form of days. For example, I can define that event
@@ -213,5 +218,4 @@ _:chronologyStatement
 # Use the intermediate triple in RDF* for the comment
 << ex:Sculpture12 ex:creationDetails _:chronologyStatement >> rdfs:comment "According Sculpture Catalogue"^^xsd:string .
 ```
-
 

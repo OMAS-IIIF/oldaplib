@@ -121,18 +121,56 @@ class Dating(Xsd):
             case DatePrecision.DAY:
                 if len(date_start) != 3:
                     raise OldapErrorValue('Invalid date format: Date precision does not correspond to DAY.')
+                if date_end < date_start:
+                    raise OldapErrorValue('Invalid date format: End date precedes start date.')
             case DatePrecision.MONTH:
                 if len(date_start) != 2:
                     raise OldapErrorValue('Invalid date format: Date precision does not correspond to MONTH.')
+                if date_end < date_start:
+                    raise OldapErrorValue('Invalid date format: End date precedes start date.')
             case DatePrecision.YEAR:
-                if len(date_start) != 1 or date_end[0] != date_start[0]:
+                if len(date_start) != 1:
                     raise OldapErrorValue('Invalid date format: Date precision does not correspond to YEAR.')
+                if date_end[0] < date_start[0]:
+                    raise OldapErrorValue('Invalid date format: End date precedes start date.')
             case DatePrecision.DECADE:
-                if len(date_start) != 1 or date_start[0] % 10 != 0 or date_end[0] != date_start[0] + 9:
+                if len(date_start) != 1 or date_start[0] % 10 != 0 or date_end[0] < date_start[0]:
                     raise OldapErrorValue('Invalid date format: Date precision does not correspond to DECADE.')
             case DatePrecision.CENTURY:
-                if len(date_start) != 1 or date_start[0] % 100 != 0 or date_end[0] != date_start[0] + 99:
+                if len(date_start) != 1 or date_start[0] % 100 != 0 or date_end[0] < date_start[0]:
                     raise OldapErrorValue('Invalid date format: Date precision does not correspond to CENTURY.')
+
+    @staticmethod
+    def __normalize_precision_range(date_start: tuple[int, ...],
+                                    date_end: tuple[int, ...],
+                                    precision: DatePrecision) -> tuple[tuple[int, ...], tuple[int, ...]]:
+        if len(date_start) != 1 or len(date_end) != 1:
+            return date_start, date_end
+        start_y = date_start[0]
+        end_y = date_end[0]
+        match precision:
+            case DatePrecision.DECADE:
+                start_bucket = (start_y // 10) * 10
+                end_bucket = (end_y // 10) * 10
+                if end_bucket < start_bucket:
+                    return (start_bucket,), (end_bucket,)
+                if end_y % 10 == 9:
+                    return (start_bucket,), (end_y,)
+                if end_bucket == start_bucket:
+                    return (start_bucket,), (start_bucket + 9,)
+                return (start_bucket,), (end_bucket - 1,)
+            case DatePrecision.CENTURY:
+                start_bucket = (start_y // 100) * 100
+                end_bucket = (end_y // 100) * 100
+                if end_bucket < start_bucket:
+                    return (start_bucket,), (end_bucket,)
+                if end_y % 100 == 99:
+                    return (start_bucket,), (end_y,)
+                if end_bucket == start_bucket:
+                    return (start_bucket,), (start_bucket + 99,)
+                return (start_bucket,), (end_bucket - 1,)
+            case _:
+                return date_start, date_end
 
     @staticmethod
     def __collapse_normalized_input(date_start: tuple[int, ...],
@@ -147,13 +185,19 @@ class Dating(Xsd):
                 if date_start[0:2] == date_end[0:2] and date_start[2] == 1 and date_end[2] == gregorian.month_length(date_end[0], date_end[1]):
                     return date_start[:2], date_end[:2]
             case DatePrecision.YEAR:
-                if date_start == (date_start[0], 1, 1) and date_end == (date_start[0], 12, gregorian.month_length(date_start[0], 12)):
-                    return (date_start[0],), (date_start[0],)
+                if date_start[1:] == (1, 1) and date_end[1:] == (12, gregorian.month_length(date_end[0], 12)):
+                    return (date_start[0],), (date_end[0],)
             case DatePrecision.DECADE:
-                if date_start[1:] == (1, 1) and date_end[1:] == (12, gregorian.month_length(date_end[0], 12)) and date_end[0] == date_start[0] + 9:
+                if (date_start[1:] == (1, 1)
+                        and date_end[1:] == (12, gregorian.month_length(date_end[0], 12))
+                        and date_start[0] % 10 == 0
+                        and date_end[0] % 10 == 9):
                     return (date_start[0],), (date_end[0],)
             case DatePrecision.CENTURY:
-                if date_start[1:] == (1, 1) and date_end[1:] == (12, gregorian.month_length(date_end[0], 12)) and date_end[0] == date_start[0] + 99:
+                if (date_start[1:] == (1, 1)
+                        and date_end[1:] == (12, gregorian.month_length(date_end[0], 12))
+                        and date_start[0] % 100 == 0
+                        and date_end[0] % 100 == 99):
                     return (date_start[0],), (date_end[0],)
         return date_start, date_end
 
@@ -206,6 +250,7 @@ class Dating(Xsd):
 
         if datePrecision is not None:
             date_start_tuple, date_end_tuple = self.__collapse_normalized_input(date_start_tuple, date_end_tuple, datePrecision)
+            date_start_tuple, date_end_tuple = self.__normalize_precision_range(date_start_tuple, date_end_tuple, datePrecision)
 
         if len(date_start_tuple) != len(date_end_tuple):
             raise OldapErrorValue(f'Invalid date format: {date_start_tuple} / {date_end_tuple}: inconsistent precision!')
@@ -216,7 +261,11 @@ class Dating(Xsd):
         self._dateEndTuple = date_end_tuple
 
         start_y, start_m, start_d, end_y, end_m, end_d = self.__normalized_range(date_start_tuple, self._datePrecision)
-        if len(date_end_tuple) > 1:
+        if len(date_end_tuple) == 1:
+            end_y = date_end_tuple[0]
+            end_m = 12
+            end_d = gregorian.month_length(end_y, end_m)
+        elif len(date_end_tuple) > 1:
             if len(date_end_tuple) == 2:
                 end_y, end_m = date_end_tuple
                 end_d = gregorian.month_length(end_y, end_m)
