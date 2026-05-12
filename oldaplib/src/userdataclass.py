@@ -1,6 +1,6 @@
 import textwrap
 from datetime import datetime
-from typing import Self, Dict
+from typing import Self, Dict, Any
 
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
@@ -68,6 +68,8 @@ class UserData:
     _isActive: Xsd_boolean
     _inProject: InProjectClass | None
     _hasRole: ObservableDict | None
+    _userclass: Xsd_QName
+    _additionalProperties: dict[Xsd_QName, Any]
 
     def __init__(self, *,
                  creator: Iri | None = None,
@@ -83,6 +85,8 @@ class UserData:
                  isActive: Xsd_boolean,
                  inProject: InProjectClass | None = None,
                  hasRole: ObservableDict | Dict[Xsd_QName, Xsd_QName | None] | Dict[str, str] | None = None,
+                 userclass: Xsd_QName | str = Xsd_QName('oldap:User'),
+                 additionalProperties: dict[Xsd_QName, Any] | None = None,
                  validate: bool = False):
         self._creator = creator
         self._created = created
@@ -95,6 +99,8 @@ class UserData:
         self._email = email
         self._credentials = credentials
         self._isActive = isActive
+        self._userclass = userclass if isinstance(userclass, Xsd_QName) else Xsd_QName(userclass, validate=validate)
+        self._additionalProperties = additionalProperties or {}
         self._inProject = inProject or InProjectClass()
         if isinstance(hasRole, ObservableDict):
             self._hasRole = hasRole
@@ -167,6 +173,14 @@ class UserData:
     @property
     def hasRole(self) -> Dict[Xsd_QName, Xsd_QName | None] | None:
         return self._hasRole
+
+    @property
+    def userclass(self) -> Xsd_QName:
+        return self._userclass
+
+    @property
+    def additionalProperties(self) -> dict[Xsd_QName, Any]:
+        return self._additionalProperties
 
     @staticmethod
     def sparql_query(context: Context, userId: IriOrNCName, validate: bool = False) -> str:
@@ -268,8 +282,13 @@ class UserData:
         isActive: Xsd_boolean | None = None
         inProjectDict: dict[Iri | str, set[AdminPermission]] | None = None
         hasRoleDict: ObservableDict | None = None
+        userclass = Xsd_QName('oldap:User')
+        additionalProperties: dict[Xsd_QName, Any] = {}
         for r in queryresult:
             match str(r.get('prop')):
+                case 'rdf:type':
+                    if r['val'] != Xsd_QName('oldap:User'):
+                        userclass = r['val']
                 case 'dcterms:creator':
                     userIri = r['user']
                     creator = r['val']
@@ -314,6 +333,14 @@ class UserData:
                         if hasRoleDict.get(r['role']) is None:
                             hasRoleDict[r['role']] = None
                         hasRoleDict[r['role']] = r['defdp']
+                    elif r.get('prop') is not None and r.get('val') is not None:
+                        prop = r['prop']
+                        if additionalProperties.get(prop) is None:
+                            additionalProperties[prop] = r['val']
+                        else:
+                            if not isinstance(additionalProperties[prop], list):
+                                additionalProperties[prop] = [additionalProperties[prop]]
+                            additionalProperties[prop].append(r['val'])
         inProject = InProjectClass(inProjectDict) if inProjectDict else InProjectClass()
         return cls(created=created,
                    creator=creator,
@@ -328,6 +355,8 @@ class UserData:
                    isActive=isActive,
                    inProject=inProject,
                    hasRole=hasRoleDict,
+                   userclass=userclass,
+                   additionalProperties=additionalProperties,
                    validate=False)
 
     def _as_dict(self) -> dict:
@@ -339,6 +368,7 @@ class UserData:
                 'email': self._email,
                 'isActive': self._isActive,
                 'hasRole': self._hasRole,
-                'inProject': self._inProject
+                'inProject': self._inProject,
+                'userclass': self._userclass,
+                'additionalProperties': self._additionalProperties
         }
-

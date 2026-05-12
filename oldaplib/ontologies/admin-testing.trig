@@ -1,3 +1,4 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -150,12 +151,34 @@
 }
 
 hyha:shacl {
-   hyha:shapes schema:version "0.1.0"^^xsd:string .
+    hyha:shapes schema:version "0.1.0"^^xsd:string .
+
+    hyha:HyhaUserShape
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2026-05-12T22:56:28.864641+02:00"^^xsd:dateTime ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2026-05-12T22:56:28.864641+02:00"^^xsd:dateTime ;
+        rdf:type sh:NodeShape ;
+        sh:node oldap:UserShape ;
+        sh:property [
+            sh:path hyha:userExtension ;
+            sh:datatype xsd:string ;
+            sh:maxCount "1"^^xsd:integer
+        ] ;
+        sh:targetClass hyha:HyhaUser .
+
 }
 
 hyha:onto {
-        hyha:ontology rdf:type owl:Ontology ;
-            owl:versionInfo "0.1.0"^^xsd:string .
+    hyha:ontology
+        rdf:type owl:Ontology ;
+        owl:versionInfo "0.1.0"^^xsd:string .
+
+    hyha:HyhaUser
+        rdf:type owl:Class ;
+        rdfs:subClassOf oldap:User .
+
+    hyha:userExtension rdf:type owl:DatatypeProperty .
 }
 
 britnet:shacl {

@@ -374,6 +374,74 @@ class TestUser(unittest.TestCase):
         self.assertEqual(user2.hasRole, user.hasRole)
         self.assertTrue(user2.isActive)
 
+    def test_create_update_delete_extended_user(self):
+        """Test CRUD operations for a subclass of oldap:User with an additional property."""
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0003-3478-9315"),
+                    userId=Xsd_NCName("marvin"),
+                    familyName="Android",
+                    givenName="Marvin",
+                    email="marvin.android@sirius-cybernetics.example",
+                    credentials="LifeTheUniverseAndEverything",
+                    userclass=Xsd_QName("hyha:HyhaUser"),
+                    additionalProperties={
+                        Xsd_QName("hyha:userExtension"): "prototype extension"
+                    },
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS}},
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW},
+                    isActive=True)
+        user.create()
+
+        user2 = User.read(con=self._connection, userId="marvin", ignore_cache=True)
+        self.assertEqual(user2.userclass, Xsd_QName("hyha:HyhaUser"))
+        self.assertEqual(user2.get_additional_property("hyha:userExtension"), Xsd_string("prototype extension"))
+
+        user2.set_additional_property("hyha:userExtension", "updated extension")
+        user2.update()
+        user3 = User.read(con=self._connection, userId="marvin", ignore_cache=True)
+        self.assertEqual(user3.get_additional_property("hyha:userExtension"), Xsd_string("updated extension"))
+
+        user3.del_additional_property("hyha:userExtension")
+        user3.update()
+        user4 = User.read(con=self._connection, userId="marvin", ignore_cache=True)
+        self.assertIsNone(user4.get_additional_property("hyha:userExtension"))
+
+        user4.delete()
+        with self.assertRaises(OldapErrorNotFound):
+            User.read(con=self._connection, userId="marvin", ignore_cache=True)
+
+    def test_create_extended_user_invalid_property(self):
+        """Test that additionalProperties are checked against the subclass shape."""
+        user = User(con=self._connection,
+                    userId=Xsd_NCName("arthur"),
+                    familyName="Dent",
+                    givenName="Arthur",
+                    email="arthur.dent@earth.example",
+                    credentials="DontPanic",
+                    userclass=Xsd_QName("hyha:HyhaUser"),
+                    additionalProperties={
+                        Xsd_QName("hyha:notDefinedForUser"): "mostly harmless"
+                    },
+                    isActive=True)
+        with self.assertRaises(OldapErrorValue):
+            user.create()
+
+    def test_create_extended_user_maxcount(self):
+        """Test that maxCount restrictions are enforced for additionalProperties."""
+        user = User(con=self._connection,
+                    userId=Xsd_NCName("trillian"),
+                    familyName="Astra",
+                    givenName="Tricia",
+                    email="tricia.astra@earth.example",
+                    credentials="HeartOfGold",
+                    userclass=Xsd_QName("hyha:HyhaUser"),
+                    additionalProperties={
+                        Xsd_QName("hyha:userExtension"): ["first", "second"]
+                    },
+                    isActive=True)
+        with self.assertRaises(OldapErrorValue):
+            user.create()
+
     #  #unittest.skip('Work in progress')
     def test_create_user_no_admin_perms(self):
         """Create a user which belongs to oldap:HyperHamlet without admin permissions"""

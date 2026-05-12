@@ -145,6 +145,7 @@ from copy import deepcopy
 from enum import Enum
 from functools import partial
 from pprint import pprint
+from collections.abc import Iterable, Mapping
 from typing import List, Self, Optional, Any, Tuple
 
 import bcrypt
@@ -154,12 +155,17 @@ from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.convert2datatype import convert2datatype
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.in_project import InProjectClass
 from oldaplib.src.userdataclass import UserData
+from oldaplib.src.datamodel import DataModel
+from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -237,6 +243,15 @@ class User(Model):
                          contributor=contributor,
                          validate=validate)
 
+        userclass = kwargs.pop('userclass', Xsd_QName('oldap:User'))
+        additional_properties = kwargs.pop('additionalProperties', None)
+        if additional_properties is None:
+            additional_properties = kwargs.pop('additional_properties', None)
+        self._userclass = userclass if isinstance(userclass, Xsd_QName) else Xsd_QName(userclass, validate=validate)
+        self._additional_properties = ObservableDict(on_change=self.__additional_properties_cb)
+        if additional_properties:
+            self.additionalProperties = additional_properties
+
         self.set_attributes(kwargs, UserAttr)
 
         #
@@ -278,9 +293,13 @@ class User(Model):
                 partial(User._set_value, attr=attr),
                 partial(User._del_value, attr=attr)))
         self.clear_changeset()
+        self._additional_properties.clear_changeset()
 
     def _as_dict(self):
-        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict()
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
+            'userclass': self._userclass,
+            **({'additionalProperties': self._additional_properties} if self._additional_properties else {})
+        }
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         if id(self) in memo:
@@ -297,7 +316,51 @@ class User(Model):
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
+        instance._userclass = deepcopy(self._userclass, memo)
+        instance._additional_properties = deepcopy(self._additional_properties, memo)
         return instance
+
+    @property
+    def userclass(self) -> Xsd_QName:
+        return self._userclass
+
+    @property
+    def additionalProperties(self) -> ObservableDict:
+        return self._additional_properties
+
+    @additionalProperties.setter
+    def additionalProperties(self, value: Mapping[Xsd_QName | str, Any] | None) -> None:
+        old_value = deepcopy(self._additional_properties) if self._additional_properties else ObservableDict()
+        new_value = {}
+        if value:
+            for prop, val in value.items():
+                prop_iri = prop if isinstance(prop, Xsd_QName) else Xsd_QName(prop, validate=self._validate)
+                new_value[prop_iri] = val
+        self._additional_properties = ObservableDict(new_value, on_change=self.__additional_properties_cb)
+        for prop_iri in old_value.keys() | self._additional_properties.keys():
+            if prop_iri not in old_value:
+                self._additional_properties._changeset[prop_iri] = AttributeChange(None, Action.CREATE)
+            elif prop_iri not in self._additional_properties:
+                self._additional_properties._changeset[prop_iri] = AttributeChange(old_value[prop_iri], Action.DELETE)
+            elif old_value[prop_iri] != self._additional_properties[prop_iri]:
+                self._additional_properties._changeset[prop_iri] = AttributeChange(old_value[prop_iri], Action.MODIFY)
+
+    def get_additional_property(self, prop: Xsd_QName | str) -> Any | None:
+        prop = prop if isinstance(prop, Xsd_QName) else Xsd_QName(prop, validate=self._validate)
+        return self._additional_properties.get(prop)
+
+    def set_additional_property(self, prop: Xsd_QName | str, value: Any) -> None:
+        prop = prop if isinstance(prop, Xsd_QName) else Xsd_QName(prop, validate=self._validate)
+        self._additional_properties[prop] = value
+
+    def del_additional_property(self, prop: Xsd_QName | str) -> None:
+        prop = prop if isinstance(prop, Xsd_QName) else Xsd_QName(prop, validate=self._validate)
+        del self._additional_properties[prop]
+
+    def clear_changeset(self) -> None:
+        super().clear_changeset()
+        if hasattr(self, '_additional_properties'):
+            self._additional_properties.clear_changeset()
 
     def cleanup_setter(self, attr: UserAttr, value: Any):
         if attr == UserAttr.CREDENTIALS:
@@ -360,6 +423,142 @@ class User(Model):
         if self._changeset.get(UserAttr.IN_PROJECT) is None:
             self._changeset[UserAttr.IN_PROJECT] = AttributeChange(None, Action.MODIFY)
 
+    def __additional_properties_cb(self, old_value: ObservableDict) -> None:
+        pass
+
+    @staticmethod
+    def __is_multi_value(value: Any) -> bool:
+        return isinstance(value, Iterable) and not isinstance(value, (str, Xsd, Iri, Xsd_QName))
+
+    @classmethod
+    def __as_value_list(cls, value: Any) -> list[Any]:
+        if value is None:
+            return []
+        return list(value) if cls.__is_multi_value(value) else [value]
+
+    @staticmethod
+    def __project_from_qname(qname: Xsd_QName) -> str:
+        return str(qname.prefix)
+
+    def __read_datamodel_for(self, qname: Xsd_QName) -> DataModel:
+        return DataModel.read(self._con, self.__project_from_qname(qname), ignore_cache=False)
+
+    def __collect_userclass_properties(self, userclass: Xsd_QName | None = None) -> tuple[dict[Xsd_QName, PropertyClass], set[Xsd_QName]]:
+        userclass = userclass or self._userclass
+        seen: set[Xsd_QName] = set()
+        classes: set[Xsd_QName] = set()
+        properties: dict[Xsd_QName, PropertyClass] = {}
+
+        def collect(class_iri: Xsd_QName) -> None:
+            if class_iri in seen:
+                return
+            seen.add(class_iri)
+            classes.add(class_iri)
+            if class_iri == Xsd_QName('oldap:Thing'):
+                return
+            dm = self.__read_datamodel_for(class_iri)
+            resclass = dm.get(class_iri)
+            if not isinstance(resclass, ResourceClass):
+                raise OldapErrorValue(f'User class "{class_iri}" is not defined as a ResourceClass.')
+            properties.update(resclass.properties)
+            superclass = resclass.superclass
+            if superclass:
+                for superclass_iri in superclass.keys():
+                    collect(Xsd_QName(superclass_iri, validate=False))
+
+        collect(userclass)
+        if Xsd_QName('oldap:User') not in classes:
+            raise OldapErrorValue(f'User class "{userclass}" is not a subclass of oldap:User.')
+        return properties, classes
+
+    def __validate_and_prepare_additional_properties(self, preserve_changes: bool = False) -> None:
+        if not self._additional_properties and self._userclass == Xsd_QName('oldap:User'):
+            return
+        allowed_properties, _ = self.__collect_userclass_properties()
+        standard_properties = {
+            Xsd_QName('rdf:type'),
+            Xsd_QName('dcterms:creator'),
+            Xsd_QName('dcterms:created'),
+            Xsd_QName('dcterms:contributor'),
+            Xsd_QName('dcterms:modified'),
+        } | {attr.value for attr in UserAttr}
+        old_changeset = dict(self._additional_properties._changeset)
+        normalized = ObservableDict(on_change=self.__additional_properties_cb)
+        for prop_iri, raw_value in self._additional_properties.items():
+            if prop_iri in standard_properties:
+                raise OldapErrorValue(f'Property "{prop_iri}" is a built-in User property and cannot be used in additionalProperties.')
+            propclass = allowed_properties.get(prop_iri)
+            if propclass is None:
+                raise OldapErrorValue(f'Property "{prop_iri}" is not allowed for user class "{self._userclass}".')
+            values = self.__as_value_list(raw_value)
+            min_count = int(propclass.minCount) if propclass.minCount is not None else 0
+            max_count = int(propclass.maxCount) if propclass.maxCount is not None else None
+            if len(values) < min_count:
+                raise OldapErrorValue(f'Property "{prop_iri}" requires at least {min_count} value(s).')
+            if max_count is not None and len(values) > max_count:
+                raise OldapErrorValue(f'Property "{prop_iri}" allows at most {max_count} value(s).')
+            converted = [self.__convert_additional_value(propclass, value) for value in values]
+            normalized[prop_iri] = converted if self.__is_multi_value(raw_value) else (converted[0] if converted else None)
+        for prop_iri, propclass in allowed_properties.items():
+            if prop_iri in standard_properties:
+                continue
+            min_count = int(propclass.minCount) if propclass.minCount is not None else 0
+            if min_count > 0 and prop_iri not in normalized:
+                raise OldapErrorValue(f'Mandatory property "{prop_iri}" is missing for user class "{self._userclass}".')
+        normalized.clear_changeset()
+        if preserve_changes:
+            for prop_iri, change in old_changeset.items():
+                propclass = allowed_properties.get(prop_iri)
+                if propclass is None:
+                    raise OldapErrorValue(f'Property "{prop_iri}" is not allowed for user class "{self._userclass}".')
+                old_values = [self.__convert_additional_value(propclass, value) for value in self.__as_value_list(change.old_value)]
+                old_value = old_values if self.__is_multi_value(change.old_value) else (old_values[0] if old_values else None)
+                normalized._changeset[prop_iri] = AttributeChange(old_value, change.action)
+        self._additional_properties = normalized
+
+    def __convert_additional_value(self, propclass: PropertyClass, value: Any) -> Xsd | Iri:
+        if propclass.datatype is not None:
+            if isinstance(value, Xsd):
+                return value
+            return convert2datatype(value, propclass.datatype, validate=self._validate)
+        return value if isinstance(value, Iri) else Iri(value, validate=self._validate)
+
+    def __additional_properties_to_trig(self, indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql = ''
+        for prop_iri, value in self._additional_properties.items():
+            for item in self.__as_value_list(value):
+                sparql += f' ;\n{blank:{indent * indent_inc}}{prop_iri.toRdf} {item.toRdf}'
+        return sparql
+
+    def __additional_properties_update_sparql(self, indent: int = 0, indent_inc: int = 4) -> list[str]:
+        blank = ''
+        sparql_list = []
+        for prop_iri, change in self._additional_properties._changeset.items():
+            old_values = self.__as_value_list(change.old_value)
+            new_values = self.__as_value_list(self._additional_properties.get(prop_iri))
+            sparql = f'{blank:{indent * indent_inc}}# Additional User property "{prop_iri}" with action "{change.action.value}"\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
+            if change.action != Action.CREATE and old_values:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                for old_value in old_values:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user {prop_iri.toRdf} {old_value.toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if change.action != Action.DELETE and new_values:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                for new_value in new_values:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user {prop_iri.toRdf} {new_value.toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user a oldap:User .\n'
+            if change.action != Action.CREATE and old_values:
+                for old_value in old_values:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user {prop_iri.toRdf} {old_value.toRdf} .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+        return sparql_list
+
     def add_project_permission(self, project: Iri | str, permission: AdminPermission | None) -> None:
         if self._attributes[UserAttr.IN_PROJECT].get(project) is None:
             if self._changeset.get(UserAttr.IN_PROJECT) is None:
@@ -387,7 +586,10 @@ class User(Model):
                     indent: int = 0, indent_inc: int = 4):
         blank = ''
         sparql = ''
-        sparql += f'{blank:{indent * indent_inc}}{self.userIri.toRdf} a oldap:User'
+        usertypes = ['oldap:User']
+        if self._userclass != Xsd_QName('oldap:User'):
+            usertypes.append(self._userclass.toRdf)
+        sparql += f'{blank:{indent * indent_inc}}{self.userIri.toRdf} a {", ".join(usertypes)}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {creator.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {created.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {contributor.toRdf}'
@@ -413,6 +615,8 @@ class User(Model):
             for r, p in self.hasRole.items():
                 if p:
                     star += f'{blank:{(indent + 1) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {r.toRdf}>> oldap:hasDefaultDataPermission {p.value} .\n'
+        if self._additional_properties:
+            sparql += self.__additional_properties_to_trig(indent=indent + 1, indent_inc=indent_inc)
         sparql += " .\n\n"
         sparql += star
         return sparql
@@ -444,6 +648,7 @@ class User(Model):
 
         if self.userIri is None:
             self.userIri = Iri()
+        self.__validate_and_prepare_additional_properties()
         context = Context(name=self._con.context_name)
         sparql1 = context.sparql_context
         #
@@ -646,10 +851,13 @@ class User(Model):
                        credentials=userdata.credentials,
                        isActive=userdata.isActive,
                        inProject=userdata.inProject,
-                       hasRole=userdata.hasRole)
+                       hasRole=userdata.hasRole,
+                       userclass=userdata.userclass,
+                       additionalProperties=userdata.additionalProperties)
         cache = CacheSingletonRedis()
         cache.set(instance.userIri, instance)
         instance.clear_changeset()
+        instance._additional_properties.clear_changeset()
         return instance
 
     @staticmethod
@@ -809,6 +1017,7 @@ class User(Model):
 
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
+        self.__validate_and_prepare_additional_properties(preserve_changes=True)
 
         ptest = None
         ptest_len = 0
@@ -1086,6 +1295,8 @@ class User(Model):
                         sparql += f'{blank:{indent * indent_inc}}}}\n'
                         sparql_list.append(sparql)
 
+        sparql_list.extend(self.__additional_properties_update_sparql(indent=indent, indent_inc=indent_inc))
+
         sparql = context.sparql_context
         sparql += " ;\n".join(sparql_list)
         self._con.transaction_start()
@@ -1133,6 +1344,6 @@ class User(Model):
             raise
         self._modified = timestamp
         self._contributor = self._con.userIri
+        self._additional_properties.clear_changeset()
         cache = CacheSingletonRedis()
         cache.set(self.userIri, self)
-
