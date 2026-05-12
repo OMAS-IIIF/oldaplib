@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oldaplib"
-version = "0.6.4"
+version = "0.6.5"
 description = "Open Media Access Server Library (Linked Open Data middleware/RESTApi)"
 authors = ["Lukas Rosenthaler <lukas.rosenthaler@unibas.ch>"]
 license = "GNU Affero General Public License version 3"
@@ -53,7 +53,7 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.bumpversion]
-current_version = "0.6.4"
+current_version = "0.6.5"
 commit = true
 tag = true
 tag_name = "v{new_version}"
