@@ -177,6 +177,17 @@ class TestResourceClass(unittest.TestCase):
         p5 = rc.properties[Xsd_QName('oldap:attachedToRole')]
         self.assertEqual(p5.toClass, Xsd_QName('oldap:Role'))
 
+    def test_user_extension_has_no_implicit_thing_superclass(self):
+        rc = ResourceClass(con=self._connection,
+                           project=self._project,
+                           owlclass_iri=Xsd_QName('test:ExtendedUser'),
+                           superclass='oldap:User')
+        self.assertEqual({Xsd_QName('oldap:User')}, set(rc.superclass.keys()))
+
+        owl = rc.create_owl(timestamp=Xsd_dateTime.now())
+        self.assertIn('rdfs:subClassOf oldap:User', owl)
+        self.assertNotIn('oldap:Thing', owl)
+
     def test_read_oldap_media_objects(self):
         rc = ResourceClass.read(con=self._connection,
                                 project=self._shared,

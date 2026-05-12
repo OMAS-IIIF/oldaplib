@@ -72,6 +72,22 @@ class ResourceClass(Model, Notify):
 
     __slots__ = ['superclass', 'label', 'comment', 'closed']
 
+    @staticmethod
+    def __is_user_extension(superclass: ObservableDict | None, seen: set[Xsd_QName] | None = None) -> bool:
+        if not superclass:
+            return False
+        seen = seen or set()
+        user_iri = Xsd_QName('oldap:User', validate=False)
+        for superclass_iri, resclass in superclass.items():
+            if superclass_iri == user_iri:
+                return True
+            if superclass_iri in seen:
+                continue
+            seen.add(superclass_iri)
+            if isinstance(resclass, ResourceClass) and ResourceClass.__is_user_extension(resclass.superclass, seen):
+                return True
+        return False
+
     def __check(self, sc: Any, validate: bool = False):
         """
         Check if the given superclass is valid and return its IRI and ResourceClass instance. If the namespace
@@ -202,7 +218,7 @@ class ResourceClass(Model, Notify):
         # now we add, if necessary, the mandatory superclass "oldap:Thing". Every ResourceClass in OLDAP must be
         # a subclass of "oldap:Thing"! We don't do it for system things with a prefix of "oldap".
         #
-        if self._owlclass_iri.prefix != "oldap":
+        if self._owlclass_iri.prefix != "oldap" and not self.__is_user_extension(new_kwargs.get(ResClassAttribute.SUPERCLASS.value.fragment)):
             thing_iri = Xsd_QName('oldap:Thing', validate=False)
             if self._owlclass_iri != thing_iri:
                 if not new_kwargs.get(ResClassAttribute.SUPERCLASS.value.fragment):  # no superclass defined
@@ -702,7 +718,7 @@ class ResourceClass(Model, Notify):
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owlclass_iri} rdf:type owl:Class'
         if self._attributes.get(ResClassAttribute.SUPERCLASS) is not None:
             sc = {x.toRdf for x in self._attributes[ResClassAttribute.SUPERCLASS].keys()}
-            if Xsd_QName('oldap:Thing', validate=False).toRdf not in sc:
+            if not self.__is_user_extension(self._attributes[ResClassAttribute.SUPERCLASS]) and Xsd_QName('oldap:Thing', validate=False).toRdf not in sc:
                 sc.add(Xsd_QName('oldap:Thing', validate=False).toRdf)
         else:
             sc = {Xsd_QName('oldap:Thing', validate=False).toRdf}
@@ -1265,6 +1281,5 @@ class ResourceClass(Model, Notify):
             self._con.transaction_commit()
         cache = CacheSingletonRedis()
         cache.delete(self._owlclass_iri)
-
 
 
