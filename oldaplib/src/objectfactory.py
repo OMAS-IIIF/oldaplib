@@ -1950,8 +1950,6 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res rdf:type ?resclass .'
-        if _resClass:
-            sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res rdf:type {_resClass.toRdf} .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res oldap:attachedToRole ?role .'
 
         tmp = includeProperties if includeProperties else set()
@@ -1963,16 +1961,20 @@ class ResourceInstance:
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {p.toRdf} ?{p.fragment} }} .'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
 
+        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        if _resClass:
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}?res rdf:type {_resClass.toRdf} .'
+
         if sortBy:
             for sort_index, s in enumerate(sortBy):
                 if not is_dating_sort(s):
                     continue
                 dating_sort_var = f'{s.property.fragment}_sort_{sort_index}'
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{'
-                sparql += f'\n{blank:{(indent + 3) * indent_inc}}?res {s.property.toRdf} ?{dating_sort_var} .'
-                sparql += f'\n{blank:{(indent + 3) * indent_inc}}?{dating_sort_var} oldap:normalizedStart ?{dating_sort_var}_start .'
-                sparql += f'\n{blank:{(indent + 3) * indent_inc}}?{dating_sort_var} oldap:normalizedEnd ?{dating_sort_var}_end .'
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}}}'
+                sparql += f'\n{blank:{(indent + 1) * indent_inc}}OPTIONAL {{'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {s.property.toRdf} ?{dating_sort_var} .'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{dating_sort_var} oldap:normalizedStart ?{dating_sort_var}_start .'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{dating_sort_var} oldap:normalizedEnd ?{dating_sort_var}_end .'
+                sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
 
         if filter:
             for filter_index, f in enumerate(filter):
@@ -1980,12 +1982,12 @@ class ResourceInstance:
                     continue
                 if isinstance(f.value, Dating):
                     dating_var = f'{f.prop.fragment}_dating_{filter_index}'
-                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {f.prop.toRdf} ?{dating_var} .'
-                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{dating_var} oldap:normalizedStart ?{dating_var}_start .'
-                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{dating_var} oldap:normalizedEnd ?{dating_var}_end .'
+                    sparql += f'\n{blank:{(indent + 1) * indent_inc}}?res {f.prop.toRdf} ?{dating_var} .'
+                    sparql += f'\n{blank:{(indent + 1) * indent_inc}}?{dating_var} oldap:normalizedStart ?{dating_var}_start .'
+                    sparql += f'\n{blank:{(indent + 1) * indent_inc}}?{dating_var} oldap:normalizedEnd ?{dating_var}_end .'
                 else:
-                    sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {f.prop.toRdf} ?{f.prop.fragment} }}.'
-            sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER('
+                    sparql += f'\n{blank:{(indent + 1) * indent_inc}}OPTIONAL {{ ?res {f.prop.toRdf} ?{f.prop.fragment} }}.'
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER('
             langfilters: list[str] = []
             for filter_index, f in enumerate(filter):
                 if isinstance(f, LogicOp):
@@ -2040,15 +2042,15 @@ class ResourceInstance:
                             langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
             sparql += f')'
             for lf in langfilters:
-                f'\n{blank:{(indent + 2) * indent_inc}}{lf}'
+                f'\n{blank:{(indent + 1) * indent_inc}}{lf}'
 
         if hlfilter:
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     continue
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {hlf.prop.toRdf} ?{hlf.prop.fragment} .'
+                sparql += f'\n{blank:{(indent + 1) * indent_inc}}?res {hlf.prop.toRdf} ?{hlf.prop.fragment} .'
 
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+        #sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
 
 
         if hlfilter:
@@ -2100,7 +2102,7 @@ class ResourceInstance:
         if not countOnly:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
         sparql += '\n'
-
+        print(sparql)
         try:
             jsonres = con.query(sparql)
         except OldapError:
