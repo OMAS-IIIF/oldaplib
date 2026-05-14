@@ -33,7 +33,8 @@ packages = [
 
 exclude = [
     "oldaplib/test",
-    "oldaplib/testdata"
+    "oldaplib/testdata",
+    "oldaplib/ontologies/standard"
 ]
 
 [tool.poetry.group.docs]
