@@ -157,6 +157,7 @@ class Connection(IConnection):
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
 
         logger = logging.getLogger(__name__)
+        logger.info(f'OLDAPLIB v{__version__}: Connecting to triplestore at {self._server} with repo {self._repo}')
 
         context = Context(name=context_name)
         if token is not None:

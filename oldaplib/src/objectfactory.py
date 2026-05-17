@@ -2102,7 +2102,6 @@ class ResourceInstance:
         if not countOnly:
             sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
         sparql += '\n'
-        print(sparql)
         try:
             jsonres = con.query(sparql)
         except OldapError:

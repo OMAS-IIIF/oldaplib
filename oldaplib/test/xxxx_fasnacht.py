@@ -5,7 +5,8 @@ import unittest
 
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.project import Project
-from oldaplib.src.objectfactory import ResourceInstanceFactory, ResourceInstance, SortBy, SortDir
+from oldaplib.src.objectfactory import ResourceInstanceFactory, ResourceInstance, SortBy, SortDir, FTSearchFilter, \
+    LogicOp
 
 
 class TestDataModel(unittest.TestCase):
@@ -64,4 +65,16 @@ class TestDataModel(unittest.TestCase):
                                              resClass="fasnacht:NewsItem",
                                              sortBy=[SortBy('fasnacht:newsItemStartDate', SortDir.desc)]
                                              )
+        pprint(res)
+
+    def test_combined_search(self):
+        con = Connection(userId="rosenth",
+                         credentials="RioGrande",
+                         context_name="DEFAULT")
+        searchstr = 'Gluggsi'
+        res = ResourceInstance.search(con=con,
+                                      project='fasnacht',
+                                      ftfilter=[FTSearchFilter(field='archiveObjectDescription', query=searchstr),
+                                                'OR',
+                                                FTSearchFilter(field='representedArchiveObjectDescription', query=searchstr)])
         pprint(res)
