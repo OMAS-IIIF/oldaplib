@@ -523,9 +523,7 @@ def _read_resource_construct(con: IConnection,
     }}
     WHERE {{
         {access_block}
-        GRAPH {graph}:data {{
-            {iri.toRdf} ?predicate ?value .
-        }}
+        {iri.toRdf} ?predicate ?value .
         OPTIONAL {{
             GRAPH {graph}:data {{
                 {iri.toRdf} oldap:attachedToRole ?role .
