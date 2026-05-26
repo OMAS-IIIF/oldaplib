@@ -103,6 +103,7 @@ PREFIX xml: <http://www.w3.org/XML/1998/namespace#>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <https://schema.org/>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX dcmitype: <http://purl.org/dc/dcmitype/>
 PREFIX dash: <http://datashapes.org/dash#>
@@ -110,6 +111,7 @@ PREFIX oldap: <http://oldap.org/base#>
 PREFIX shared: <http://oldap.org/shared#>
 PREFIX test: <http://www.test.org/gaga#>
 """
+        self.maxDiff = None
         self.assertEqual(context.sparql_context, expected)
 
     def test_context_turtle(self):
@@ -126,6 +128,7 @@ PREFIX test: <http://www.test.org/gaga#>
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix schema: <https://schema.org/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dcmitype: <http://purl.org/dc/dcmitype/> .
 @prefix dash: <http://datashapes.org/dash#> .

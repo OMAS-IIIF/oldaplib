@@ -338,6 +338,8 @@ class DataModel(Model):
             proj = project
         else:
             proj = Project.read(con, project)
+
+        OldapList.ensure_list_node_context(con, proj.projectShortName)
         cache = CacheSingletonRedis()
         if not ignore_cache:
             tmp = cache.get(Xsd_QName(proj.projectShortName, 'shacl'), connection=con)
@@ -552,9 +554,9 @@ class DataModel(Model):
         #
         # now let's find all the OldapLists in order to set up the Context also for the OldapLists
         #
-        ols = OldapList.search(con=con, project=proj)
-        for ol in ols:
-            oldaplist = OldapList.read(con=con, project=proj.projectShortName, oldapListId=ol.fragment)
+        #ols = OldapList.search(con=con, project=proj)
+        #for ol in ols:
+        #    oldaplist = OldapList.read(con=con, project=proj.projectShortName, oldapListId=ol.fragment)
 
 
         instance = cls(project=proj, con=con, propclasses=assertion_propclasses, resclasses=resclasses, extontos=extontos)

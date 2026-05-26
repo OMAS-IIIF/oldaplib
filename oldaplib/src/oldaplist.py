@@ -318,6 +318,50 @@ class OldapList(Model):
     def node_prefix(self) -> Xsd_NCName:
         return self.__node_prefix
 
+    @staticmethod
+    def ensure_list_node_context(con: IConnection, project: Project | Iri | Xsd_NCName | str) -> None:
+        """
+        Register the list-node prefixes for all hierarchical lists of a project.
+
+        List nodes use the special QName prefix ``L-<list_id>`` instead of the project
+        prefix. This method prepares the shared connection context for reading data
+        that may contain concrete list-node IRIs, without loading the list nodes
+        themselves.
+
+        :param con: Active connection to the OLDAP server.
+        :type con: IConnection
+        :param project: Project object, project short name, or project IRI.
+        :type project: Project | Iri | Xsd_NCName | str
+        :return: None
+        """
+        if not isinstance(con, IConnection):
+            raise TypeError("con must be an IConnection object")
+        if not isinstance(project, Project):
+            if not isinstance(project, (Iri, Xsd_NCName)):
+                project = IriOrNCName(project, validate=True)
+            project = Project.read(con, project)
+
+        context = Context(name=con.context_name)
+        context[project.projectShortName] = project.namespaceIri
+
+        sparql = context.sparql_context
+        sparql += f"""
+        SELECT DISTINCT ?list
+        FROM {project.projectShortName}:lists
+        WHERE {{
+            ?list a oldap:OldapList .
+        }}
+        ORDER BY ?list
+        """
+
+        # We only need the list IDs to register the deterministic L-<list_id>
+        # namespaces used by OldapListNode; loading all nodes would be unnecessary.
+        for row in QueryProcessor(context, con.query(sparql)):
+            list_id = row['list'].fragment
+            node_prefix = Xsd_NCName("L-") + list_id
+            context[node_prefix] = project.namespaceIri.expand(list_id)
+            context.use(node_prefix)
+
     @property
     def iri(self) -> Iri:
         return self.__iri
@@ -966,4 +1010,3 @@ class OldapList(Model):
         self.safe_commit()
         cache = CacheSingletonRedis()
         cache.delete(self.__iri)
-

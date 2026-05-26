@@ -473,7 +473,7 @@ class TestObjectFactory(unittest.TestCase):
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
         data = ResourceInstance.read_data(con=self._connection, iri=b.iri, projectShortName='test')
-        self.assertEqual(data['rdf:type'], ['test:Book'])
+        self.assertEqual(set(data['rdf:type']), {Xsd_QName("test:Book"), Xsd_QName("oldap:Thing")})
         self.assertEqual(data['test:title'], ['The Life and Times of Scrooge'])
         self.assertEqual(data['test:author'], ['test:TuomasHolopainen'])
 

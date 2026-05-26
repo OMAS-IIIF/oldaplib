@@ -432,6 +432,37 @@ def _normalize_construct_property(value: Any,
         return converted
 
 
+def _resource_type_qnames(subject: Iri,
+                          construct_data: ConstructResultDict) -> list[Xsd_QName]:
+    """
+    Return all QName resource types from a CONSTRUCT result for the given subject.
+
+    Reasoning can expose both the asserted class and inferred superclasses through
+    `rdf:type`. RDF values are unordered, so callers must not rely on this list
+    to identify the concrete resource class.
+
+    Args:
+        subject: Resource subject whose types should be read.
+        construct_data: Processed CONSTRUCT result keyed by subject.
+
+    Returns:
+        Distinct QName resource types in the order provided by the processed graph.
+    """
+    subject_key = _construct_subject_key(subject)
+    resource_data = construct_data.get(subject_key)
+    if resource_data is None:
+        return []
+
+    type_qnames: list[Xsd_QName] = []
+    seen: set[Xsd_QName] = set()
+    for node_type in _construct_values(resource_data, RDF_TYPE_PRED):
+        node_type_qname = _value_as_qname(node_type)
+        if node_type_qname is not None and node_type_qname not in seen:
+            type_qnames.append(node_type_qname)
+            seen.add(node_type_qname)
+    return type_qnames
+
+
 def _resource_from_construct(subject: Iri,
                              construct_data: ConstructResultDict,
                              properties: dict[Xsd_QName, PropertyClass] | None = None) -> tuple[Xsd_QName | None, dict[str, Any]]:
@@ -441,17 +472,13 @@ def _resource_from_construct(subject: Iri,
         return None, {}
 
     dating_cache: dict[Iri | Xsd_QName, Any] = {}
-    objtype: Xsd_QName | None = None
+    resource_types = _resource_type_qnames(subject, construct_data)
+    objtype: Xsd_QName | None = resource_types[0] if len(resource_types) == 1 else None
     kwargs: dict[str, Any] = {}
     roles: dict[Xsd_QName, DataPermission] = {}
 
     for predicate, value in resource_data.items():
         if predicate == RDF_TYPE_PRED:
-            for node_type in _construct_values(resource_data, RDF_TYPE_PRED):
-                node_type_qname = _value_as_qname(node_type)
-                if node_type_qname is not None:
-                    objtype = node_type_qname
-                    break
             continue
         if predicate == READ_PERM_BINDING_PRED:
             for binding in _construct_values(resource_data, READ_PERM_BINDING_PRED):
@@ -1393,13 +1420,16 @@ class ResourceInstance:
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve resource "{iri}"', exc_info=True)
             raise
-        objtype, kwargs = _resource_from_construct(iri, construct_data, cls.properties)
-        if objtype is None:
+        resource_types = _resource_type_qnames(iri, construct_data)
+        if not resource_types:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+        _, kwargs = _resource_from_construct(iri, construct_data, cls.properties)
         kwargs['attachedToRole'] = _read_attached_roles(con, graph, iri)
 
-        if cls.__name__ != objtype:
-            raise OldapErrorInconsistency(f'Expected class {cls.__name__}, got {objtype} instead.')
+        expected_type = cls.name if isinstance(cls.name, Xsd_QName) else Xsd_QName(cls.name, validate=False)
+        if expected_type not in resource_types:
+            type_list = ', '.join(sorted(str(resource_type) for resource_type in resource_types)) or 'no rdf:type'
+            raise OldapErrorInconsistency(f'Expected class {expected_type}, got {type_list} instead.')
         return cls(iri=iri, **kwargs)
 
     def update(self, indent: int = 0, indent_inc: int = 4) -> None:
@@ -2662,6 +2692,92 @@ class ResourceInstanceFactory:
         self._datamodel = DataModel.read(con=self._con, project=self._project)
         self._sharedModel = DataModel.read(con=self._con, project=self._sharedProject)
 
+    def __resource_class(self, classiri: Xsd_QName) -> ResourceClass | None:
+        """
+        Return a known project or shared resource class for a QName.
+
+        Args:
+            classiri: Candidate resource-class QName.
+
+        Returns:
+            The matching `ResourceClass`, or `None` when the QName is not a known
+            resource class in the factory's project or shared data model.
+        """
+        resclass = self._datamodel.get(classiri)
+        if not isinstance(resclass, ResourceClass):
+            resclass = self._sharedModel.get(classiri)
+        return resclass if isinstance(resclass, ResourceClass) else None
+
+    def __resource_class_superclasses(self,
+                                      resclass: ResourceClass,
+                                      seen: set[Xsd_QName] | None = None) -> set[Xsd_QName]:
+        """
+        Return all known superclass QNames for a resource class.
+
+        Args:
+            resclass: Resource class whose superclass hierarchy should be walked.
+            seen: Internal recursion guard for cyclic or repeated superclass data.
+
+        Returns:
+            A set of direct and transitive superclass QNames.
+        """
+        if seen is None:
+            seen = set()
+        superclass_map = getattr(resclass, 'superclass', None)
+        if not superclass_map:
+            return seen
+
+        for superclass_iri, superclass in superclass_map.items():
+            if superclass_iri in seen:
+                continue
+            seen.add(superclass_iri)
+            if isinstance(superclass, ResourceClass):
+                self.__resource_class_superclasses(superclass, seen)
+        return seen
+
+    def __select_resource_type(self, resource_types: Iterable[Xsd_QName]) -> Xsd_QName | None:
+        """
+        Select the most specific known resource class from `rdf:type` values.
+
+        Reasoning may return the asserted class plus inferred superclasses in any
+        order. This method keeps only types known to the project/shared data models
+        and chooses the candidate that is not a superclass of another candidate.
+
+        Args:
+            resource_types: QName values read from `rdf:type`.
+
+        Returns:
+            The concrete resource-class QName, or `None` when none of the provided
+            types is known to this factory.
+
+        Raises:
+            OldapErrorInconsistency: If multiple unrelated concrete resource-class
+                candidates remain after superclass filtering.
+        """
+        candidates = {
+            resource_type: resclass
+            for resource_type in resource_types
+            if (resclass := self.__resource_class(resource_type)) is not None
+        }
+        if not candidates:
+            return None
+
+        candidate_types = set(candidates)
+        superclass_types: set[Xsd_QName] = set()
+        for resclass in candidates.values():
+            superclass_types.update(self.__resource_class_superclasses(resclass) & candidate_types)
+
+        concrete_types = sorted(candidate_types - superclass_types, key=str)
+        if len(concrete_types) == 1:
+            return concrete_types[0]
+
+        candidate_list = ', '.join(str(candidate) for candidate in sorted(candidate_types, key=str))
+        concrete_list = ', '.join(str(candidate) for candidate in concrete_types) or 'none'
+        raise OldapErrorInconsistency(
+            f'Cannot determine a unique resource class from rdf:type values. '
+            f'Candidates: {candidate_list}; concrete candidates: {concrete_list}.'
+        )
+
     def createObjectInstance(self, name: Xsd_NCName | Xsd_QName | str) -> Type:  ## ToDo: Get name automatically from IRI
         if isinstance(name, Xsd_QName):
             classiri = name
@@ -2672,9 +2788,7 @@ class ResourceInstanceFactory:
                 if not isinstance(name, Xsd_NCName):
                     name = Xsd_NCName(name, validate=True)
                 classiri = Xsd_QName(self._project.projectShortName, name)
-        resclass = self._datamodel.get(classiri)
-        if not resclass:
-            resclass = self._sharedModel.get(classiri)
+        resclass = self.__resource_class(classiri)
         if resclass is None:
             raise OldapErrorNotFound(f'Given Resource Class "{classiri}" not found.')
         return type(str(name), (ResourceInstance,), {
@@ -2697,9 +2811,11 @@ class ResourceInstanceFactory:
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve resource "{iri}"', exc_info=True)
             raise
-        objtype, kwargs = _resource_from_construct(iri, construct_data)
+        resource_types = _resource_type_qnames(iri, construct_data)
+        objtype = self.__select_resource_type(resource_types)
         if objtype is None:
-            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+            type_list = ', '.join(sorted(str(resource_type) for resource_type in resource_types)) or 'no rdf:type'
+            raise OldapErrorNotFound(f'Resource with iri <{iri}> has no known resource class type ({type_list}).')
         Instance = self.createObjectInstance(objtype)
         _, kwargs = _resource_from_construct(iri, construct_data, Instance.properties)
         kwargs['attachedToRole'] = _read_attached_roles(self._con, graph, iri)
