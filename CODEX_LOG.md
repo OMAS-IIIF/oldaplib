@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-05-28 14:27
+- Decisions: Hierarchical resource search should match the selected list node itself and all descendant nodes, scoped to the selected list.
+- Implementation: Changed `ResourceInstance.search()` HList SPARQL to bind `skos:inScheme` and filter resource-node indices inside the selected node interval; added a focused query-generation regression test.
+- Open: None.
+- Risks/Assumptions: The generated query still reuses property-fragment variable names, matching the existing search builder behaviour.
+
 ### Update 2026-05-26 12:14
 - Decisions: Treat `rdf:type` from reasoned reads as an unordered set and choose the concrete resource class deterministically in `ResourceInstanceFactory`.
 - Implementation: Added QName type extraction and factory-local resource-class selection that filters known project/shared classes and removes inferred superclass candidates.

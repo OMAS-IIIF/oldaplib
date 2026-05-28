@@ -2086,6 +2086,8 @@ class ResourceInstance:
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     continue
+                list_iri = hlists[hlf.node.listId].iri
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf.prop.fragment} skos:inScheme {list_iri.toRdf} .'
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf.prop.fragment} oldap:leftIndex ?{hlf.prop.fragment}_lindex .'
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf.prop.fragment} oldap:rightIndex ?{hlf.prop.fragment}_rindex .'
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER('
@@ -2095,7 +2097,7 @@ class ResourceInstance:
                 else:
                     node_lindex = nodes[hlf.node].leftIndex
                     node_rindex = nodes[hlf.node].rightIndex
-                    sparql += f'({node_lindex} >= ?{hlf.prop.fragment}_lindex && {node_rindex} <= ?{hlf.prop.fragment}_rindex)'
+                    sparql += f'(?{hlf.prop.fragment}_lindex >= {node_lindex} && ?{hlf.prop.fragment}_rindex <= {node_rindex})'
             sparql += ')'
 
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'

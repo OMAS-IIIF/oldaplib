@@ -2,9 +2,11 @@ import base64
 import random
 import string
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 from pprint import pprint
 from time import sleep
+from unittest.mock import Mock, patch
 import jwt
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
@@ -104,6 +106,44 @@ class TestLuceneFulltextFilter(unittest.TestCase):
         ])
 
         self.assertEqual(fields, 'storyContent:Basel \\"Morgestraich\\" AND abstract:Larve')
+
+
+class TestSearchQueryGeneration(unittest.TestCase):
+
+    def test_hlfilter_matches_resources_in_selected_subtree(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('test'))
+        hlist = SimpleNamespace(
+            iri=Iri.fromPrefixFragment('test', 'Keywords', validate=False),
+            info={},
+        )
+        parent_node = SimpleNamespace(
+            leftIndex=Xsd_integer(10),
+            rightIndex=Xsd_integer(20),
+        )
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project), \
+             patch('oldaplib.src.objectfactory.OldapList.read', return_value=hlist), \
+             patch('oldaplib.src.objectfactory.OldapListNode.read', return_value=parent_node):
+            ResourceInstance.search(
+                con=con,
+                project='test',
+                resClass='test:Codex',
+                hlfilter=[HLSearchFilter('test:keyword', HListNodeRef('Keywords', 'Parent'))],
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertIn('?keyword skos:inScheme test:Keywords .', sparql)
+        self.assertIn('(?keyword_lindex >= 10 && ?keyword_rindex <= 20)', sparql)
+        self.assertNotIn('10 >= ?keyword_lindex', sparql)
 
 
 class TestObjectFactory(unittest.TestCase):
