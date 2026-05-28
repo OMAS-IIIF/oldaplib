@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-05-28 17:00
+- Decisions: Dating sort order should place resources with bound normalized Dating values before resources without such values for both ascending and descending sorts.
+- Implementation: Updated `ResourceInstance.search()` Dating `ORDER BY` generation to sort by `!BOUND(?*_start)` before normalized start/end values; added an objectfactory regression test for optional Dating values staying last in ascending and descending order.
+- Open: Fasnacht event records such as `Fasnacht 1915` currently have no `fasnacht:dating` triple, so backend sorting cannot derive their chronological position until the data is populated or migrated.
+- Risks/Assumptions: Assumes callers prefer dated records first and undated records last for explicit Dating sorts.
+
 ### Update 2026-05-28 14:27
 - Decisions: Hierarchical resource search should match the selected list node itself and all descendant nodes, scoped to the selected list.
 - Implementation: Changed `ResourceInstance.search()` HList SPARQL to bind `skos:inScheme` and filter resource-node indices inside the selected node interval; added a focused query-generation regression test.

@@ -781,6 +781,31 @@ class TestObjectFactory(unittest.TestCase):
                                       sortBy=[SortBy('test:writtenAt', SortDir.desc, SortKind.DATING)])
         self.assertEqual([str(x['test:title'][0]) for x in res], ['Sort Dating A', 'Sort Dating C', 'Sort Dating B'])
 
+    def test_search_sort_by_dating_keeps_unbound_values_last(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        Codex(title="Sort Optional Dating A", writtenAt="1300", optionalDating="1300").create()
+        Codex(title="Sort Optional Dating B", writtenAt="1100").create()
+        Codex(title="Sort Optional Dating C", writtenAt="1200", optionalDating="1200").create()
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Optional Dating'))],
+                                      sortBy=[SortBy('test:optionalDating', SortDir.asc, SortKind.DATING)])
+        self.assertEqual([str(x['test:title'][0]) for x in res],
+                         ['Sort Optional Dating C', 'Sort Optional Dating A', 'Sort Optional Dating B'])
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Optional Dating'))],
+                                      sortBy=[SortBy('test:optionalDating', SortDir.desc, SortKind.DATING)])
+        self.assertEqual([str(x['test:title'][0]) for x in res],
+                         ['Sort Optional Dating A', 'Sort Optional Dating C', 'Sort Optional Dating B'])
+
     def test_search_sort_by_dating_auto_from_filter(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         Codex = factory.createObjectInstance('Codex')

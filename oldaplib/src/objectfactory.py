@@ -2121,9 +2121,9 @@ class ResourceInstance:
                 if is_dating_sort(s):
                     dating_sort_var = f'{s.property.fragment}_sort_{sort_index}'
                     if s.dir == SortDir.asc:
-                        sparql += f' ASC(?{dating_sort_var}_start) ASC(?{dating_sort_var}_end)'
+                        sparql += f' ASC(!BOUND(?{dating_sort_var}_start)) ASC(?{dating_sort_var}_start) ASC(?{dating_sort_var}_end)'
                     else:
-                        sparql += f' DESC(?{dating_sort_var}_start) DESC(?{dating_sort_var}_end)'
+                        sparql += f' ASC(!BOUND(?{dating_sort_var}_start)) DESC(?{dating_sort_var}_start) DESC(?{dating_sort_var}_end)'
                 elif s.dir == SortDir.asc:
                     sparql += f' ASC(?{s.property.fragment})'
                 else:
