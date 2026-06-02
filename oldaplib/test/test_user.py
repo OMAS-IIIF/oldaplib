@@ -3,6 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 from pprint import pprint
 from time import sleep
+import json
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.connection import Connection
@@ -10,6 +11,7 @@ from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.enums.userattr import UserAttr
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.observable_set import ObservableSet
+from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.helpers.tools import str2qname_anyiri
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -391,6 +393,25 @@ class TestUser(unittest.TestCase):
                     hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW},
                     isActive=True)
         user.create()
+
+        #
+        # Check JSON serialization/deserialization
+        #
+        jsonstr = json.dumps(user, default=serializer.encoder_default)
+        userJ = json.loads(jsonstr, object_hook=serializer.make_decoder_hook(self._connection))
+        self.assertEqual(user.created, userJ.created)
+        self.assertEqual(user.creator, userJ.creator)
+        self.assertEqual(user.modified, userJ.modified)
+        self.assertEqual(user.contributor, userJ.contributor)
+        self.assertEqual(user.userclass, userJ.userclass)
+        self.assertEqual(user.additionalProperties, userJ.additionalProperties)
+        self.assertEqual(user.userIri, userJ.userIri)
+        self.assertEqual(user.familyName, userJ.familyName)
+        self.assertEqual(user.givenName, userJ.givenName)
+        self.assertEqual(user.email, userJ.email)
+        self.assertEqual(user.inProject, userJ.inProject)
+        self.assertEqual(user.hasRole, userJ.hasRole)
+        self.assertEqual(user.isActive, userJ.isActive)
 
         user2 = User.read(con=self._connection, userId="marvin", ignore_cache=True)
         self.assertEqual(user2.userclass, Xsd_QName("hyha:HyhaUser"))

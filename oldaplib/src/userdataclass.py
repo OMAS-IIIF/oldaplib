@@ -370,5 +370,5 @@ class UserData:
                 'hasRole': self._hasRole,
                 'inProject': self._inProject,
                 'userclass': self._userclass,
-                'additionalProperties': self._additionalProperties
+                'additionalProperties': {str(key): value for key, value in self._additionalProperties.items()}
         }
