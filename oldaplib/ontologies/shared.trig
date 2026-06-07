@@ -273,12 +273,19 @@ shared:shacl {
                 sh:order "3.0"^^xsd:decimal ;
         ] ;
         sh:property [
+                sh:path shared:checksum ;
+                sh:datatype xsd:string ;
+                sh:name "Checksum"@en, "Prüfsumme"@de, "Somme de contrôle"@fr, "soma di controllo"@it ;
+                sh:maxCount "1"^^xsd:integer ;
+                sh:order "4.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
                 sh:path shared:serverUrl ;
                 sh:datatype xsd:anyURI ;
                 sh:name "Server URL"@en, "URL des servers"@de, "Server URL"@fr, "Server URL"@it ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "4.0"^^xsd:decimal ;
+                sh:order "5.0"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:assetId ;
@@ -286,7 +293,7 @@ shared:shacl {
                 sh:name "Image ID"@en, "ID des Bilder"@de, "ID de l\'image"@fr, "ID de l\'immagine"@it ;
                 sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "5.0"^^xsd:decimal ;
+                sh:order "6.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:protocol ;
@@ -294,22 +301,125 @@ shared:shacl {
             sh:in ( 'iiif' 'http' 'custom') ;
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "6.0"^^xsd:decimal ;
+            sh:order "7.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:derivativeName ;
             sh:datatype xsd:string ;
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "7.0"^^xsd:decimal ;
+            sh:order "8.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:path ;
             sh:datatype xsd:string ;
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "8.0"^^xsd:decimal ;
+            sh:order "9.0"^^xsd:decimal ;
        ] .
+
+    shared:StagingAreaShape a sh:NodeShape ;
+        sh:targetClass shared:StagingArea ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        rdfs:label "Staging area"@en, "Vorbereitungsbereich"@de, "Zone de préparation"@fr, "Area di sosta"@it ;
+        sh:property [
+            sh:path schema:name ;
+            sh:datatype xsd:string ;
+            sh:name "Staging area name"@en, "Name des Vorbereitungsbereichs"@de, "Nom de la zone de préparation"@fr, "Nome dell'area di sosta"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "1.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:mediaPath ;
+            sh:datatype xsd:string ;
+            sh:name "Media path"@en, "Medienpfad"@de, "Chemin d'accès au média"@fr, "Percorso media"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "2.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:stagingDefaultRole ;
+            sh:class oldap:Role ;
+            sh:name "Default role"@en, "Standardrolle"@de, "Rôle par défaut"@fr, "Ruolo predefinito"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "3.0"^^xsd:decimal ;
+        ] .
+
+    shared:StagingFolderShape a sh:NodeShape ;
+        sh:targetClass shared:StagingFolder ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        rdfs:label "Staging folder"@en, "Staging Ordner"@de, "Dossier de préparation"@fr, "Cartella di staging"@it ;
+        sh:property [
+            sh:path schema:name ;
+            sh:datatype xsd:string ;
+            sh:name "Folder"@en, "Ordner"@de, "Dossier"@fr, "Cartella"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "1.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:inStagingArea ;
+            sh:class shared:StagingArea ;
+            sh:name "Staging area"@en, "Vorbereitungsbereich"@de, "Zone de préparation"@fr, "Area di sosta"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "2.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:inStagingFolder ;
+            sh:class shared:StagingFolder ;
+            sh:name "Subfolder of"@en, "Unterordner von"@de, "Sous-dossiers de"@fr, "Sottocartelle di"@it ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "3.0"^^xsd:decimal ;
+        ] .
+
+    shared:StagingMediaObjectShape a sh:NodeShape ;
+        sh:targetClass shared:StagingMediaObject ;
+        dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        rdfs:label "Staged media object"@en, "Bereitgestelltes Medienobjekt"@de, "Objet multimédia proposé"@fr, "Oggetto multimediale disponibile"@it ;
+        sh:node shared:MediaObjectShape ;
+        sh:property [
+            sh:path shared:inStagingArea ;
+            sh:class shared:StagingArea ;
+            sh:name "Staging area"@en, "Vorbereitungsbereich"@de, "Zone de préparation"@fr, "Area di sosta"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "1.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:inStagingFolder ;
+            sh:class shared:StagingFolder ;
+            sh:name "In folder"@en, "Im Ordner"@de, "Dans le Dossier"@fr, "Nella cartella"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "2.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path schema:comment ;
+            sh:datatype rdf:langString ;
+            sh:name "Comment"@en, "Kommentar"@de, "Commentaire"@fr, "Commento"@it ;
+            sh:order "3.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:stagingStatus ;
+            sh:class shared:StagingStatus ;
+            sh:name "Status"@en, "Status"@de, "Statut"@fr, "Stato"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "4.0"^^xsd:decimal ;
+        ] .
+
 }
 
 shared:onto {
@@ -424,6 +534,24 @@ shared:onto {
 
 
     ###############################################################################
+    # Staging states
+    ###############################################################################
+    shared:StagingStatus rdf:type owl:Class ;
+        rdfs:label "Staging state"@en, "Staging Status"@de, "État du staging"@fr, "Stato di allestimento"@it .
+
+    shared:StagingStatusNew rdf:type owl:NamedIndividual, shared:StagingStatus ;
+        rdfs:label "new"@en, "neu"@de, "nouveau"@fr, "nuovo"@it .
+
+    shared:StagingStatusInProgress rdf:type owl:NamedIndividual, shared:StagingStatus ;
+        rdfs:label "in progress"@en, "in Bearbeitung"@de, "en cours"@fr, "in corso"@it .
+
+    shared:StagingStatusPublishedInArchive rdf:type owl:NamedIndividual, shared:StagingStatus ;
+        rdfs:label "published in archive"@en, "im Archiv veröffentlicht"@de, "publié dans les archives"@fr, "pubblicato nell'archivio"@it .
+
+    shared:StagingStatusDeleted rdf:type owl:NamedIndividual, shared:StagingStatus ;
+        rdfs:label "deleted"@en, "gelöscht"@de, "supprimé"@fr, "cancellato"@it .
+
+    ###############################################################################
     # Properties used for :ChronologyObject
     ###############################################################################
 
@@ -454,6 +582,8 @@ shared:onto {
 
     shared:originalMimeType rdf:type owl:DatatypeProperty .
 
+    shared:checksum rdf:type owl:DatatypeProperty .
+
     shared:serverUrl rdf:type owl:DatatypeProperty .
 
     shared:assetId rdf:type owl:DatatypeProperty .
@@ -466,6 +596,41 @@ shared:onto {
 
     shared:MediaObject rdf:type owl:Class ;
         rdfs:subClassOf oldap:Thing .
+
+    ###########################################################################
+    # Staging Area
+    ###########################################################################
+
+    shared:mediaPath rdf:type owl:DatatypeProperty ;
+        rdfs:range xsd:string .
+
+    shared:stagingDefaultRole rdf:type owl:ObjectProperty ;
+        rdfs:range oldap:Role .
+
+    shared:StagingArea rdf:type owl:Class ;
+        rdfs:subClassOf oldap:Thing .
+
+    shared:inStagingArea rdf:type owl:ObjectProperty ;
+        rdfs:range shared:StagingArea .
+
+    ###########################################################################
+    # Staging folder
+    ###########################################################################
+
+    shared:inStagingFolder rdf:type owl:ObjectProperty ;
+        rdfs:range shared:StagingFolder .
+
+    shared:StagingFolder rdf:type owl:Class ;
+        rdfs:subClassOf oldap:Thing .
+
+    ###########################################################################
+    # Staging Media Object
+    ###########################################################################
+    shared:stagingStatus rdf:type owl:ObjectProperty ;
+        rdfs:range shared:StagingStatus .
+
+    shared:StagingMediaObject rdf:type owl:Class ;
+        rdfs:subClassOf shared:MediaObject .
 
 }
 

@@ -4,6 +4,7 @@ OLDAPlib is the Python library layer for OLDAP, a linked-open-data middleware an
 
 ## Repository State
 
+- `oldaplib/ontologies/shared.trig` now defines shared media staging vocabulary for generic OAIS-style ingest preparation: `shared:StagingArea`, `shared:StagingFolder`, `shared:StagingMediaObject`, `shared:StagingStatus` named individuals, and optional media `shared:checksum`.
 - Package source lives under `oldaplib/src`, with ontology fixtures in `oldaplib/ontologies`, test data in `oldaplib/testdata`, and unit/integration tests in `oldaplib/test`.
 - Documentation is built with MkDocs from `docs` and `mkdocs.yml`; API pages use mkdocstrings.
 - Poetry is the package/build manager. `pyproject.toml` carries package metadata, dependency declarations, dependency groups, build-system configuration, and bump-my-version settings.
