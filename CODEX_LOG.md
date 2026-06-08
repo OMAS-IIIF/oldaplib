@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-06-08 21:17
+- Decisions: Preserve `shared:assetId` as a one-to-one identifier for a single `shared:MediaObject` instead of supporting duplicate media-object bindings.
+- Implementation: Removed the plural asset lookup/count APIs and their focused tests; documented the unique asset-ID rule in `codex.md`.
+- Open: Enforce the uniqueness rule at the ontology/API/data-validation boundary if duplicate asset IDs can still be created or imported.
+- Risks/Assumptions: Shared physical storage should be modeled explicitly if needed.
+
 ### Update 2026-06-07 01:16
 - Decisions: Model generic shared media staging in `shared.trig` with a StagingArea boundary, folder hierarchy, media staging subclass, and named-individual workflow states instead of project-specific hierarchical lists.
 - Implementation: Corrected Staging SHACL/OWL typos in `oldaplib/ontologies/shared.trig`: fixed `shared:mediaPath`, `sh:targetClass shared:StagingMediaObject`, `sh:class shared:StagingFolder`, `sh:node shared:MediaObjectShape`, French `new` label, and added `shared:inStagingArea` links. Added `shared:checksum` to MediaObject shape/ontology as optional string metadata and removed redundant duplicate prefix declarations at the top of the TriG file.
