@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-06-09 00:09
+- Decisions: Support lifecycle transitions by atomically reclassifying a resource while keeping its IRI, instead of delete/create.
+- Implementation: Added `ResourceInstance.transform_class()` to preserve a caller-specified base class, remove source-specific properties, insert target properties, replace role attachments when supplied, update modification metadata, and commit all changes in one GraphDB transaction. Added an objectfactory regression test that transforms `shared:MediaObject` into `test:MediaLibraryEntry`.
+- Open: Wire the new library operation through API clients/frontends for Staging-to-Archive publishing.
+- Risks/Assumptions: The caller must supply a suitable `preserve_class`; payload properties targeting preserved base properties are rejected to keep technical media metadata stable.
+
 ### Update 2026-06-08 21:17
 - Decisions: Preserve `shared:assetId` as a one-to-one identifier for a single `shared:MediaObject` instead of supporting duplicate media-object bindings.
 - Implementation: Removed the plural asset lookup/count APIs and their focused tests; documented the unique asset-ID rule in `codex.md`.

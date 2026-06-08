@@ -1668,6 +1668,314 @@ class ResourceInstance:
             raise
         self.clear_changeset()
 
+    @staticmethod
+    def __constructor_value(value: Any) -> Any:
+        if isinstance(value, ObservableSet):
+            return set(value)
+        return value
+
+    @staticmethod
+    def __resource_class_properties(instance_class: Type) -> dict[Xsd_QName, PropertyClass]:
+        properties = dict(instance_class.properties)
+
+        def collect_superclass_properties(superclasses: dict[Xsd_QName, ResourceClass]) -> None:
+            for superclass in superclasses.values():
+                if superclass is None:
+                    continue
+                properties.update(superclass.properties)
+                if superclass.superclass:
+                    collect_superclass_properties(superclass.superclass)
+
+        collect_superclass_properties(instance_class.superclass)
+        return properties
+
+    @staticmethod
+    def __resource_class_property_iris(instance_class: Type) -> set[Xsd_QName]:
+        return set(ResourceInstance.__resource_class_properties(instance_class).keys())
+
+    @staticmethod
+    def __class_is_or_extends(instance_class: Type, class_iri: Xsd_QName) -> bool:
+        if instance_class.name == class_iri:
+            return True
+
+        def has_superclass(superclasses: dict[Xsd_QName, ResourceClass]) -> bool:
+            for superclass_iri, superclass in superclasses.items():
+                if superclass_iri == class_iri:
+                    return True
+                if superclass is not None and superclass.superclass and has_superclass(superclass.superclass):
+                    return True
+            return False
+
+        return has_superclass(instance_class.superclass)
+
+    @staticmethod
+    def __normalise_transform_properties(
+            properties: dict[str, Any],
+            target_properties: dict[Xsd_QName, PropertyClass]) -> tuple[dict[str, Any], set[Xsd_QName]]:
+        kwargs: dict[str, Any] = {}
+        property_iris: set[Xsd_QName] = set()
+        for key, value in properties.items():
+            if not isinstance(key, str):
+                raise OldapErrorValue(f'Transform property keys must be strings, got {type(key).__name__}.')
+            matches = [
+                prop_iri
+                for prop_iri in target_properties
+                if str(prop_iri) == key or prop_iri.fragment == key
+            ]
+            if len(matches) == 0:
+                raise OldapErrorValue(f'Transform target class does not define property "{key}".')
+            if len(matches) > 1:
+                raise OldapErrorValue(f'Transform property "{key}" is ambiguous; use a full QName.')
+            prop_iri = matches[0]
+            kwargs[str(prop_iri)] = value
+            property_iris.add(prop_iri)
+        return kwargs, property_iris
+
+    @staticmethod
+    def __normalise_attached_roles(attached_to_role: dict[str, str | DataPermission] | None) -> dict[Xsd_QName, DataPermission | None] | None:
+        if attached_to_role is None:
+            return None
+        if not isinstance(attached_to_role, dict):
+            raise OldapErrorValue("attachedToRole must be a role-to-DataPermission object.")
+        return {
+            Xsd_QName(role, validate=True): dperm if isinstance(dperm, DataPermission) else DataPermission.from_string(dperm)
+            for role, dperm in attached_to_role.items()
+        }
+
+    @staticmethod
+    def __property_insert_object(prop_iri: Xsd_QName, values: Any, prop: PropertyClass) -> str:
+        if prop.datatype == XsdDatatypes.QName:
+            value_list = values if isinstance(values, ObservableSet) else ObservableSet.coerce({values})
+            return ', '.join({f'"{value}"^^xsd:QName' for value in value_list})
+        if _is_dating_property(prop):
+            value_list = values if isinstance(values, ObservableSet) else ObservableSet.coerce({values})
+            return ', '.join(value.iri.toRdf for value in value_list)
+        return values.toRdf
+
+    def transform_class(
+            self,
+            target_class: Xsd_QName | str,
+            *,
+            preserve_class: Xsd_QName | str,
+            properties: dict[str, Any] | None = None,
+            expected_source_class: Xsd_QName | str | None = None,
+            attached_to_role: dict[str, str | DataPermission] | None = None) -> Self:
+        """
+        Atomically reclassify this resource while keeping the same IRI.
+
+        The method is intended for lifecycle transitions such as converting a
+        staged media object into a project-specific archive media object. It
+        preserves only the properties defined by a shared base class, removes
+        source-class-specific properties, inserts target-class properties from
+        the caller, updates role attachments when requested, and writes a fresh
+        modification stamp. All graph changes are executed in a single
+        transaction.
+
+        Args:
+            target_class: Resource class to assert after the transformation.
+            preserve_class: Shared base class whose properties must be retained.
+            properties: Target-class properties to insert during the transition.
+            expected_source_class: Optional guard requiring the current concrete
+                resource class to match before transforming.
+            attached_to_role: Optional replacement role-to-data-permission map.
+                When omitted, existing role attachments are preserved.
+
+        Returns:
+            A validated instance of the target resource class with the same IRI.
+
+        Raises:
+            OldapErrorValue: If classes or properties are invalid.
+            OldapErrorNoPermission: If the user cannot transform the resource.
+            OldapError: If the transaction fails.
+        """
+        properties = properties or {}
+        target_class_iri = Xsd_QName(target_class, validate=True) if not isinstance(target_class, Xsd_QName) else target_class
+        preserve_class_iri = Xsd_QName(preserve_class, validate=True) if not isinstance(preserve_class, Xsd_QName) else preserve_class
+        if expected_source_class is not None:
+            expected_source_class_iri = (
+                Xsd_QName(expected_source_class, validate=True)
+                if not isinstance(expected_source_class, Xsd_QName)
+                else expected_source_class
+            )
+            if self.name != expected_source_class_iri:
+                raise OldapErrorValue(f'Expected source class "{expected_source_class_iri}", got "{self.name}".')
+
+        TargetClass = self.factory.createObjectInstance(target_class_iri)
+        PreserveClass = self.factory.createObjectInstance(preserve_class_iri)
+        if not self.__class_is_or_extends(TargetClass, preserve_class_iri):
+            raise OldapErrorValue(f'Target class "{target_class_iri}" is not "{preserve_class_iri}" or a subclass of it.')
+
+        target_property_map = self.__resource_class_properties(TargetClass)
+        preserve_property_iris = self.__resource_class_property_iris(PreserveClass)
+        system_property_iris = {
+            Xsd_QName('oldap:createdBy', validate=False),
+            Xsd_QName('oldap:creationDate', validate=False),
+            Xsd_QName('oldap:lastModifiedBy', validate=False),
+            Xsd_QName('oldap:lastModificationDate', validate=False),
+        }
+        preserve_property_iris.update(system_property_iris)
+        payload_kwargs, payload_property_iris = self.__normalise_transform_properties(properties, target_property_map)
+        preserved_payload_properties = payload_property_iris & preserve_property_iris
+        if preserved_payload_properties:
+            props = ', '.join(sorted(str(prop) for prop in preserved_payload_properties))
+            raise OldapErrorValue(f'Transform payload must not replace preserved base properties: {props}.')
+
+        target_attached_roles = self.__normalise_attached_roles(attached_to_role)
+        if target_attached_roles is None:
+            target_attached_roles = dict(self._attached_roles)
+
+        preserved_kwargs = {
+            str(prop_iri): self.__constructor_value(value)
+            for prop_iri, value in self._values.items()
+            if prop_iri in preserve_property_iris and prop_iri != Xsd_QName('oldap:attachedToRole', validate=False)
+        }
+        target_kwargs = {
+            **preserved_kwargs,
+            **payload_kwargs,
+            'attachedToRole': {str(role): dperm for role, dperm in target_attached_roles.items()},
+        }
+        target_instance = TargetClass(iri=self._iri, **target_kwargs)
+
+        delete_property_iris = {
+            prop_iri
+            for prop_iri in self._values
+            if prop_iri not in preserve_property_iris and prop_iri != Xsd_QName('oldap:attachedToRole', validate=False)
+        }
+        context = Context(name=self._con.context_name)
+        timestamp = Xsd_dateTimeStamp()
+        sparql_updates: list[str] = []
+
+        if delete_property_iris:
+            delete_props = ' '.join(prop.toRdf for prop in sorted(delete_property_iris, key=str))
+            sparql = context.sparql_context
+            sparql += textwrap.dedent(f'''
+            WITH {self._graph}:data
+            DELETE {{
+                {self._iri.toRdf} ?prop ?val .
+            }}
+            WHERE {{
+                VALUES ?prop {{ {delete_props} }}
+                {self._iri.toRdf} ?prop ?val .
+            }}
+            ''')
+            sparql_updates.append(sparql)
+
+            dating_delete_property_iris = {
+                prop_iri
+                for prop_iri in delete_property_iris
+                if _is_dating_property(self.properties.get(prop_iri))
+            }
+            if dating_delete_property_iris:
+                dating_delete_props = ' '.join(prop.toRdf for prop in sorted(dating_delete_property_iris, key=str))
+                sparql = context.sparql_context
+                sparql += textwrap.dedent(f'''
+                WITH {self._graph}:data
+                DELETE {{
+                    ?datingNode ?datingPred ?datingValue .
+                }}
+                WHERE {{
+                    VALUES ?datingProp {{ {dating_delete_props} }}
+                    {self._iri.toRdf} ?datingProp ?datingRoot .
+                    ?datingRoot oldap:before* ?datingNode .
+                    ?datingNode ?datingPred ?datingValue .
+                }}
+                ''')
+                sparql_updates.append(sparql)
+
+        if self.name != target_class_iri:
+            sparql = context.sparql_context
+            sparql += textwrap.dedent(f'''
+            DELETE DATA {{
+                GRAPH {self._graph}:data {{
+                    {self._iri.toRdf} a {self.name.toRdf} .
+                }}
+            }}
+            ''')
+            sparql_updates.append(sparql)
+
+            sparql = context.sparql_context
+            sparql += textwrap.dedent(f'''
+            INSERT DATA {{
+                GRAPH {self._graph}:data {{
+                    {self._iri.toRdf} a {target_class_iri.toRdf} .
+                }}
+            }}
+            ''')
+            sparql_updates.append(sparql)
+
+        inserted_property_values = {
+            prop_iri: target_instance._values[prop_iri]
+            for prop_iri in payload_property_iris
+            if prop_iri in target_instance._values and not _is_empty_property_value(target_instance._values[prop_iri])
+        }
+        if inserted_property_values:
+            sparql = context.sparql_context
+            sparql += f'INSERT DATA {{\n    GRAPH {self._graph}:data {{'
+            for dating_triple in _dating_insert_triples(inserted_property_values):
+                sparql += f'\n        {dating_triple}'
+            for prop_iri, values in inserted_property_values.items():
+                prop = TargetClass.properties[prop_iri]
+                sparql += f'\n        {self._iri.toRdf} {prop_iri.toRdf} {self.__property_insert_object(prop_iri, values, prop)} .'
+            sparql += '\n    }\n}\n'
+            sparql_updates.append(sparql)
+
+        if attached_to_role is not None:
+            sparql = context.sparql_context
+            sparql += textwrap.dedent(f'''
+            DELETE WHERE {{
+                GRAPH {self._graph}:data {{
+                    {self._iri.toRdf} oldap:attachedToRole ?role .
+                    << {self._iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+                }}
+            }}
+            ''')
+            sparql_updates.append(sparql)
+            if target_attached_roles:
+                sparql = context.sparql_context
+                sparql += f'INSERT DATA {{\n    GRAPH {self._graph}:data {{'
+                for role, dperm in target_attached_roles.items():
+                    sparql += f'\n        {self._iri.toRdf} oldap:attachedToRole {role.toRdf} .'
+                    sparql += f'\n        << {self._iri.toRdf} oldap:attachedToRole {role.toRdf} >> oldap:hasDataPermission {dperm.toRdf} .'
+                sparql += '\n    }\n}\n'
+                sparql_updates.append(sparql)
+
+        sparql = context.sparql_context
+        sparql += textwrap.dedent(f'''
+        WITH {self._graph}:data
+        DELETE {{
+            {self._iri.toRdf} oldap:lastModificationDate ?oldModified .
+            {self._iri.toRdf} oldap:lastModifiedBy ?oldContributor .
+        }}
+        INSERT {{
+            {self._iri.toRdf} oldap:lastModificationDate {timestamp.toRdf} .
+            {self._iri.toRdf} oldap:lastModifiedBy {self._con.userIri.toRdf} .
+        }}
+        WHERE {{
+            OPTIONAL {{ {self._iri.toRdf} oldap:lastModificationDate ?oldModified . }}
+            OPTIONAL {{ {self._iri.toRdf} oldap:lastModifiedBy ?oldContributor . }}
+        }}
+        ''')
+        sparql_updates.append(sparql)
+
+        admin_resources, _ = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
+        self._con.transaction_start()
+        if not admin_resources and not self.get_data_permission(DataPermission.DATA_DELETE):
+            self._con.transaction_abort()
+            raise OldapErrorNoPermission(f'No permission to transform resource "{self._iri}"')
+        try:
+            for sparql_update in sparql_updates:
+                self._con.transaction_update(sparql_update)
+            self._con.transaction_commit()
+        except OldapError:
+            logger.error(f'Failed to transform resource "{self._iri}" to "{target_class_iri}"', exc_info=True)
+            self._con.transaction_abort()
+            raise
+
+        target_instance._values[Xsd_QName('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
+        target_instance._values[Xsd_QName('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
+        target_instance.clear_changeset()
+        return target_instance
+
     def delete(self) -> None:
         """
         Deletes the specified resource represented by the object's IRI from the associated graph

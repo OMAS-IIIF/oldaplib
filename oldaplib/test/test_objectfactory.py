@@ -504,6 +504,39 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(data[Xsd_QName("shared:derivativeName")], ['iiif.tif'])
         mo.delete()
 
+    def test_transform_mediaobject_keeps_iri_and_base_properties(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        MediaObject = factory.createObjectInstance('shared:MediaObject')
+        media = MediaObject(originalName='TransformCat.tif',
+                            type='dcmitype:StillImage',
+                            originalMimeType='image/tiff',
+                            serverUrl='http://iiif.oldap.org/iiif/3/',
+                            assetId='transform-cat',
+                            path='test',
+                            protocol='iiif',
+                            derivativeName='iiif.tif',
+                            attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
+        media.create()
+
+        loaded = factory.read(media.iri)
+        transformed = loaded.transform_class('test:MediaLibraryEntry',
+                                             preserve_class='shared:MediaObject',
+                                             expected_source_class='shared:MediaObject',
+                                             properties={'test:caption': 'Ready for archive'},
+                                             attached_to_role={'oldap:Unknown': 'DATA_DELETE'})
+
+        self.assertEqual(transformed.iri, media.iri)
+        data = ResourceInstance.read_data(con=self._connection, iri=media.iri, projectShortName='test')
+        self.assertEqual(set(data['rdf:type']), {Xsd_QName('oldap:Thing'),
+                                                 Xsd_QName('shared:MediaObject'),
+                                                 Xsd_QName('test:MediaLibraryEntry')})
+        self.assertEqual(data[Xsd_QName('shared:assetId')], ['transform-cat'])
+        self.assertEqual(data[Xsd_QName('shared:originalName')], ['TransformCat.tif'])
+        self.assertEqual(data[Xsd_QName('test:caption')], ['Ready for archive'])
+        self.assertEqual(data[Xsd_QName('oldap:attachedToRole')], {Xsd_QName('oldap:Unknown'): DataPermission.DATA_DELETE})
+
+        transformed.delete()
+
     def test_read_A(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         Book = factory.createObjectInstance('Book')
