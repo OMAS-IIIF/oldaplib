@@ -2521,7 +2521,7 @@ INSERT DATA {
                     result[str(r['prop'])] = []
                 result[str(r['prop'])].append(r['val'])
 
-        expiration = datetime.now().astimezone() + timedelta(minutes=2)
+        expiration = datetime.now().astimezone() + timedelta(minutes=60)
         payload = {
             'userIri': str(con.userIri),
             'userid': str(con.userid),
@@ -2529,6 +2529,7 @@ INSERT DATA {
             'path': str(result.get('shared:path')),
             'assetId': str(result.get('shared:assetId')),
             'derivativeName': str(result.get('shared:derivativeName')),
+            'originalName': str(result.get('shared:originalName')),
             'permval': int(result.get('permval')),
             "exp": expiration.timestamp(),
             "iat": int(datetime.now().astimezone().timestamp()),
@@ -2621,7 +2622,7 @@ INSERT DATA {
                     result[str(r['prop'])] = []
                 result[str(r['prop'])].append(r['val'])
 
-        expiration = datetime.now().astimezone() + timedelta(minutes=2)
+        expiration = datetime.now().astimezone() + timedelta(minutes=60)
         payload = {
             'userIri': str(con.userIri),
             'userid': str(con.userid),
@@ -2630,6 +2631,7 @@ INSERT DATA {
             'path': str(result['shared:path']),
             'assetId': str(result.get('shared:assetId')),
             'derivativeName': str(result.get('shared:derivativeName')),
+            'originalName': str(result.get('shared:originalName')),
             'permval': int(result['permval']),
             "exp": expiration.timestamp(),
             "iat": int(datetime.now().astimezone().timestamp()),
