@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-06-10 00:39
+- Decisions: Treat `shared:mediaAccessMode` as the required discriminator for local/external `shared:MediaObject` records while keeping optional external link fields scalar in media-object lookup results.
+- Implementation: Extended `ResourceInstance.get_media_object_by_id()` and `get_media_object_by_iri()` to return `shared:mediaAccessMode`, `shared:mediaUrl`, and `shared:thumbnailUrl` as scalar values; made JWT payload path handling tolerant of external media without `shared:path`; updated MediaObject fixtures and tests for the new shared ontology shape.
+- Open: Apply the corresponding `oldap-api` response/OpenAPI updates in a separate step.
+- Risks/Assumptions: Existing persisted media objects must be migrated with `shared:mediaAccessMode "local"` before the stricter shape is enforced.
+
 ### Update 2026-06-09 00:09
 - Decisions: Support lifecycle transitions by atomically reclassifying a resource while keeping its IRI, instead of delete/create.
 - Implementation: Added `ResourceInstance.transform_class()` to preserve a caller-specified base class, remove source-specific properties, insert target properties, replace role attachments when supplied, update modification metadata, and commit all changes in one GraphDB transaction. Added an objectfactory regression test that transforms `shared:MediaObject` into `test:MediaLibraryEntry`.

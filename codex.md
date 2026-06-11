@@ -5,6 +5,7 @@ OLDAPlib is the Python library layer for OLDAP, a linked-open-data middleware an
 ## Repository State
 
 - `oldaplib/ontologies/shared.trig` now defines shared media staging vocabulary for generic OAIS-style ingest preparation: `shared:StagingArea`, `shared:StagingFolder`, `shared:StagingMediaObject`, `shared:StagingStatus` named individuals, and optional media `shared:checksum`.
+- `shared:MediaObject` distinguishes locally managed and externally referenced media through required `shared:mediaAccessMode` values `local` and `external`; external links can use optional `shared:mediaUrl` and `shared:thumbnailUrl`, while IIIF references continue to use `shared:serverUrl`, `shared:assetId`, and `shared:protocol`.
 - `shared:assetId` is treated as a one-to-one identifier for a single `shared:MediaObject`; shared physical storage or reuse should be modeled explicitly instead of allowing multiple media objects with the same asset ID.
 - `ResourceInstance.transform_class()` supports atomic resource lifecycle transitions that keep the same IRI, preserve a caller-specified base class such as `shared:MediaObject`, remove source-specific properties, add target properties, optionally replace role attachments, and update modification metadata in one transaction.
 - Package source lives under `oldaplib/src`, with ontology fixtures in `oldaplib/ontologies`, test data in `oldaplib/testdata`, and unit/integration tests in `oldaplib/test`.

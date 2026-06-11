@@ -2822,7 +2822,8 @@ INSERT DATA {
                 continue
             if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
                                   'dcterms:type', 'shared:assetId', 'shared:originalName', 'shared:originalMimeType',
-                                  'shared:serverUrl', 'shared:path', 'shared:protocol', 'shared:derivativeName'}:
+                                  'shared:mediaAccessMode', 'shared:serverUrl', 'shared:path', 'shared:protocol',
+                                  'shared:derivativeName', 'shared:mediaUrl', 'shared:thumbnailUrl'}:
                 result[str(r['prop'])] = r['val']
             else:
                 if result.get(str(r['prop'])) is None:
@@ -2923,7 +2924,8 @@ INSERT DATA {
                 continue
             if str(r['prop']) in {'oldap:createdBy', 'oldap:creationDate', 'oldap:lastModifiedBy', 'oldap:lastModificationDate',
                                   'dcterms:type', 'shared:assetId', 'shared:originalName', 'shared:originalMimeType',
-                                  'shared:serverUrl', 'shared:path', 'shared:protocol', 'shared:derivativeName'}:
+                                  'shared:mediaAccessMode', 'shared:serverUrl', 'shared:path', 'shared:protocol',
+                                  'shared:derivativeName', 'shared:mediaUrl', 'shared:thumbnailUrl'}:
                 result[str(r['prop'])] = r['val']
             else:
                 if result.get(str(r['prop'])) is None:
@@ -2936,7 +2938,7 @@ INSERT DATA {
             'userid': str(con.userid),
             'projectShortName': res[0].get('graph').prefix if res[0].get('graph') else None,
             'id': str(result.get('shared:assetId')),
-            'path': str(result['shared:path']),
+            'path': str(result.get('shared:path')),
             'assetId': str(result.get('shared:assetId')),
             'derivativeName': str(result.get('shared:derivativeName')),
             'originalName': str(result.get('shared:originalName')),

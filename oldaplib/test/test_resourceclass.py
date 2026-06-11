@@ -205,6 +205,13 @@ class TestResourceClass(unittest.TestCase):
                                     'dcmitype:StillImage',
                                     'dcmitype:Text'})
 
+        p_mode = rc.properties[Xsd_QName('shared:mediaAccessMode')]
+        self.assertEqual(p_mode.datatype, XsdDatatypes.string)
+        self.assertEqual(p_mode.inSet, {'local', 'external'})
+        self.assertEqual(p_mode.maxCount, 1)
+        self.assertEqual(p_mode.minCount, 1)
+        self.assertEqual(p_mode.order, 2.0)
+
         p2 = rc.properties[Xsd_QName('shared:originalName')]
         self.assertEqual(p2.datatype, XsdDatatypes.string)
         self.assertEqual(p2.name, LangString("Nom orignal du fichier@fr",
@@ -212,8 +219,8 @@ class TestResourceClass(unittest.TestCase):
                                              "Originaler Dateiname@de",
                                              "Original Filename@en"))
         self.assertEqual(p2.maxCount, 1)
-        self.assertEqual(p2.minCount, 1)
-        self.assertEqual(p2.order, 2.0)
+        self.assertIsNone(p2.minCount)
+        self.assertEqual(p2.order, 3.0)
 
         p3 = rc.properties[Xsd_QName('shared:originalMimeType')]
         self.assertEqual(p3.datatype, XsdDatatypes.string)
@@ -222,8 +229,8 @@ class TestResourceClass(unittest.TestCase):
                                              "Mimetype original@fr",
                                              "Mimetype originale@it"))
         self.assertEqual(p3.maxCount, 1)
-        self.assertEqual(p3.minCount, 1)
-        self.assertEqual(p3.order, 3.0)
+        self.assertIsNone(p3.minCount)
+        self.assertEqual(p3.order, 4.0)
 
         p4 = rc.properties[Xsd_QName('shared:serverUrl')]
         self.assertEqual(p4.datatype, XsdDatatypes.anyURI)
@@ -232,8 +239,8 @@ class TestResourceClass(unittest.TestCase):
                                              "Server URL@fr",
                                              "Server URL@it"))
         self.assertEqual(p4.maxCount, 1)
-        self.assertEqual(p4.minCount, 1)
-        self.assertEqual(p4.order, 4.0)
+        self.assertIsNone(p4.minCount)
+        self.assertEqual(p4.order, 6.0)
 
         p5 = rc.properties[Xsd_QName('shared:assetId')]
         self.assertEqual(p5.datatype, XsdDatatypes.string)
@@ -242,27 +249,37 @@ class TestResourceClass(unittest.TestCase):
                                              "ID de l'image@fr",
                                              "ID de l'immagine@it"))
         self.assertEqual(p5.maxCount, 1)
-        self.assertEqual(p5.minCount, 1)
-        self.assertEqual(p5.order, 5.0)
+        self.assertIsNone(p5.minCount)
+        self.assertEqual(p5.order, 7.0)
 
         p6 = rc.properties[Xsd_QName('shared:protocol')]
         self.assertEqual(p6.datatype, XsdDatatypes.string)
         self.assertEqual(p6.inSet, {'iiif', 'http', 'custom'})
         self.assertEqual(p6.maxCount, 1)
         self.assertEqual(p6.minCount, 1)
-        self.assertEqual(p6.order, 6.0)
+        self.assertEqual(p6.order, 8.0)
 
         p7 = rc.properties[Xsd_QName('shared:derivativeName')]
         self.assertEqual(p7.datatype, XsdDatatypes.string)
         self.assertEqual(p7.maxCount, 1)
-        self.assertEqual(p7.minCount, 1)
-        self.assertEqual(p7.order, 7.0)
+        self.assertIsNone(p7.minCount)
+        self.assertEqual(p7.order, 9.0)
 
         p8 = rc.properties[Xsd_QName('shared:path')]
         self.assertEqual(p8.datatype, XsdDatatypes.string)
         self.assertEqual(p8.maxCount, 1)
-        self.assertEqual(p8.minCount, 1)
-        self.assertEqual(p8.order, 8.0)
+        self.assertIsNone(p8.minCount)
+        self.assertEqual(p8.order, 10.0)
+
+        p9 = rc.properties[Xsd_QName('shared:mediaUrl')]
+        self.assertEqual(p9.datatype, XsdDatatypes.anyURI)
+        self.assertEqual(p9.maxCount, 1)
+        self.assertEqual(p9.order, 11.0)
+
+        p10 = rc.properties[Xsd_QName('shared:thumbnailUrl')]
+        self.assertEqual(p10.datatype, XsdDatatypes.anyURI)
+        self.assertEqual(p10.maxCount, 1)
+        self.assertEqual(p10.order, 12.0)
 
     # @unittest.skip('Work in progress')
     def test_constructor(self):

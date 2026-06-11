@@ -585,45 +585,59 @@ class TestDataModel(unittest.TestCase):
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("dcterms:type")].maxCount, 1)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("dcterms:type")].order, 1.0)
 
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:mediaAccessMode")].datatype, XsdDatatypes.string)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:mediaAccessMode")].inSet, {'local', 'external'})
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:mediaAccessMode")].minCount, 1)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:mediaAccessMode")].maxCount, 1)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:mediaAccessMode")].order, 2.0)
+
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalName")].datatype, XsdDatatypes.string)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalName")].name, LangString("Original Filename@en", "Nom orignal du fichier@fr", "Nome documento originale@it", "Originaler Dateiname@de"))
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalName")].maxCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalName")].minCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalName")].order, 2.0)
+        self.assertIsNone(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalName")].minCount)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalName")].order, 3.0)
 
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalMimeType")].datatype, XsdDatatypes.string)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalMimeType")].name, LangString("Mimetype original@fr", "Mimetype originale@it", "Originaler Mimetype@de", "Original mimetype@en"))
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalMimeType")].maxCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalMimeType")].minCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalMimeType")].order, 3.0)
+        self.assertIsNone(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalMimeType")].minCount)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:originalMimeType")].order, 4.0)
 
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:serverUrl")].datatype, XsdDatatypes.anyURI)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:serverUrl")].maxCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:serverUrl")].minCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:serverUrl")].order, 4.0)
+        self.assertIsNone(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:serverUrl")].minCount)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:serverUrl")].order, 6.0)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:serverUrl")].name, LangString("Server URL@fr", "Server URL@en", "URL des servers@de", "Server URL@it"))
 
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:assetId")].datatype, XsdDatatypes.string)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:assetId")].name, LangString("ID de l'immagine@it", "Image ID@en", "ID de l'image@fr", "ID des Bilder@de"))
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:assetId")].minCount, 1)
+        self.assertIsNone(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:assetId")].minCount)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:assetId")].maxCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:assetId")].order, 5.0)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:assetId")].order, 7.0)
 
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:protocol")].datatype, XsdDatatypes.string)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:protocol")].inSet, {'iiif', 'custom', 'http'})
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:protocol")].minCount, 1)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:protocol")].maxCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:protocol")].order, 6.0)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:protocol")].order, 8.0)
 
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:derivativeName")].datatype, XsdDatatypes.string)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:derivativeName")].minCount, 1)
+        self.assertIsNone(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:derivativeName")].minCount)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:derivativeName")].maxCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:derivativeName")].order, 7.0)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:derivativeName")].order, 9.0)
 
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:path")].datatype, XsdDatatypes.string)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:path")].minCount, 1)
+        self.assertIsNone(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:path")].minCount)
         self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:path")].maxCount, 1)
-        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:path")].order, 8.0)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:path")].order, 10.0)
+
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:mediaUrl")].datatype, XsdDatatypes.anyURI)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:mediaUrl")].maxCount, 1)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:mediaUrl")].order, 11.0)
+
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:thumbnailUrl")].datatype, XsdDatatypes.anyURI)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:thumbnailUrl")].maxCount, 1)
+        self.assertEqual(model[Xsd_QName("shared:MediaObject")].properties[Xsd_QName("shared:thumbnailUrl")].order, 12.0)
 
 
 

@@ -257,43 +257,47 @@ shared:shacl {
             sh:order "1.0"^^xsd:decimal ;
         ] ;
         sh:property [
+            sh:path shared:mediaAccessMode ;
+            sh:datatype xsd:string ;
+            sh:in ("local" "external") ;
+            sh:minCount 1 ;
+            sh:maxCount 1 ;
+            sh:order "2.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
                 sh:path shared:originalName ;
                 sh:datatype xsd:string ;
                 sh:name "Original Filename"@en, "Originaler Dateiname"@de, "Nom orignal du fichier"@fr, "Nome documento originale"@it ;
-                sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "2.0"^^xsd:decimal ;
+                sh:order "3.0"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:originalMimeType ;
                 sh:datatype xsd:string ;
                 sh:name "Original mimetype"@en, "Originaler Mimetype"@de, "Mimetype original"@fr, "Mimetype originale"@it ;
-                sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "3.0"^^xsd:decimal ;
+                sh:order "4.0"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:checksum ;
                 sh:datatype xsd:string ;
                 sh:name "Checksum"@en, "Prüfsumme"@de, "Somme de contrôle"@fr, "soma di controllo"@it ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "4.0"^^xsd:decimal ;
+                sh:order "5.0"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:serverUrl ;
                 sh:datatype xsd:anyURI ;
                 sh:name "Server URL"@en, "URL des servers"@de, "Server URL"@fr, "Server URL"@it ;
-                sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "5.0"^^xsd:decimal ;
+                sh:order "6.0"^^xsd:decimal ;
         ] ;
         sh:property [
                 sh:path shared:assetId ;
                 sh:datatype xsd:string ;
                 sh:name "Image ID"@en, "ID des Bilder"@de, "ID de l\'image"@fr, "ID de l\'immagine"@it ;
-                sh:minCount "1"^^xsd:integer ;
                 sh:maxCount "1"^^xsd:integer ;
-                sh:order "6.0"^^xsd:decimal ;
+                sh:order "7.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:protocol ;
@@ -301,22 +305,35 @@ shared:shacl {
             sh:in ( 'iiif' 'http' 'custom') ;
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "7.0"^^xsd:decimal ;
+            sh:order "8.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:derivativeName ;
             sh:datatype xsd:string ;
-            sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "8.0"^^xsd:decimal ;
+            sh:order "9.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:path ;
             sh:datatype xsd:string ;
-            sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "9.0"^^xsd:decimal ;
-       ] .
+            sh:order "10.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            # Only if shared:mediaAccessMode "external
+            sh:path shared:mediaUrl ;
+            sh:datatype xsd:anyURI ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "11.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            # Only if shared:mediaAccessMode "external
+            sh:path shared:thumbnailUrl ;
+            sh:datatype xsd:anyURI ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "12.0"^^xsd:decimal ;
+        ]
+    .
 
     shared:StagingAreaShape a sh:NodeShape ;
         sh:targetClass shared:StagingArea ;
@@ -575,6 +592,12 @@ shared:onto {
     ###########################################################################
     # Media object
     ###########################################################################
+
+    shared:mediaAccessMode rdf:type owl:DatatypeProperty .
+
+    shared:mediaUrl rdf:type owl:DatatypeProperty .
+
+    shared:thumbnailUrl rdf:type owl:DatatypeProperty .
 
     dcterms:type rdf:type owl:ObjectProperty .
 

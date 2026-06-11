@@ -487,6 +487,7 @@ class TestObjectFactory(unittest.TestCase):
         MO = factory.createObjectInstance('shared:MediaObject')
         mo = MO(originalName='Cat.tif',
                 type='dcmitype:StillImage',
+                mediaAccessMode='local',
                 originalMimeType='image/tiff',
                 serverUrl='http://iiif.oldap.org/iiif/3/',
                 assetId='cat.tif',
@@ -497,6 +498,7 @@ class TestObjectFactory(unittest.TestCase):
         mo.create()
         data = ResourceInstance.read_data(con=self._connection, iri=mo.iri, projectShortName='test')
         self.assertEqual(data[Xsd_QName("oldap:attachedToRole")], {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
+        self.assertEqual(data[Xsd_QName("shared:mediaAccessMode")], ['local'])
         self.assertEqual(data[Xsd_QName("shared:originalName")], ['Cat.tif'])
         self.assertEqual(data[Xsd_QName("shared:originalMimeType")], ['image/tiff'])
         self.assertEqual(data[Xsd_QName("shared:serverUrl")], ['http://iiif.oldap.org/iiif/3/'])
@@ -509,6 +511,7 @@ class TestObjectFactory(unittest.TestCase):
         MediaObject = factory.createObjectInstance('shared:MediaObject')
         media = MediaObject(originalName='TransformCat.tif',
                             type='dcmitype:StillImage',
+                            mediaAccessMode='local',
                             originalMimeType='image/tiff',
                             serverUrl='http://iiif.oldap.org/iiif/3/',
                             assetId='transform-cat',
@@ -530,6 +533,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(set(data['rdf:type']), {Xsd_QName('oldap:Thing'),
                                                  Xsd_QName('shared:MediaObject'),
                                                  Xsd_QName('test:MediaLibraryEntry')})
+        self.assertEqual(data[Xsd_QName('shared:mediaAccessMode')], ['local'])
         self.assertEqual(data[Xsd_QName('shared:assetId')], ['transform-cat'])
         self.assertEqual(data[Xsd_QName('shared:originalName')], ['TransformCat.tif'])
         self.assertEqual(data[Xsd_QName('test:caption')], ['Ready for archive'])
@@ -1390,6 +1394,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
         self.assertEqual(res['permval'], Xsd_integer(2))
         self.assertEqual(res['shared:assetId'], Xsd_string('x_34db.tif'))
+        self.assertEqual(res['shared:mediaAccessMode'], Xsd_string('local'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.tif"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/tiff"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1407,6 +1412,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999"))
         self.assertEqual(res['permval'], Xsd_integer(2))
         self.assertEqual(res['shared:assetId'], Xsd_string('x_42db.jpg'))
+        self.assertEqual(res['shared:mediaAccessMode'], Xsd_string('local'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.jpg"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/jpeg"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1429,6 +1435,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
         self.assertEqual(res['permval'], Xsd_integer(2))
         self.assertEqual(res['shared:assetId'], Xsd_string('x_34db.tif'))
+        self.assertEqual(res['shared:mediaAccessMode'], Xsd_string('local'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.tif"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/tiff"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1446,6 +1453,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999"))
         self.assertEqual(res['permval'], Xsd_integer(2))
         self.assertEqual(res['shared:assetId'], Xsd_string('x_42db.jpg'))
+        self.assertEqual(res['shared:mediaAccessMode'], Xsd_string('local'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.jpg"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/jpeg"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1466,6 +1474,7 @@ class TestObjectFactory(unittest.TestCase):
         MLE = factory.createObjectInstance('test:MediaLibraryEntry')
         mle = MLE(originalName='MyCarnivalImagetif',
                   type='dcmitype:StillImage',
+                  mediaAccessMode='local',
                   originalMimeType='image/tiff',
                   assetId='x_34dbY4.tif',
                   serverUrl='http://iiif.oldap.org/iiif/3/',
@@ -1477,6 +1486,7 @@ class TestObjectFactory(unittest.TestCase):
         mle.create()
         data = ResourceInstance.read_data(con=self._connection, iri=mle.iri, projectShortName='test')
         self.assertEqual(data['shared:originalName'], ["MyCarnivalImagetif"])
+        self.assertEqual(data['shared:mediaAccessMode'], ['local'])
         self.assertEqual(data['shared:originalMimeType'], ['image/tiff'])
         self.assertEqual(data['shared:serverUrl'], ['http://iiif.oldap.org/iiif/3/'])
         self.assertEqual(data['shared:assetId'], ['x_34dbY4.tif'])
@@ -1487,12 +1497,33 @@ class TestObjectFactory(unittest.TestCase):
 
 
         data2 = ResourceInstance.get_media_object_by_id(con=self._connection, mediaObjectId='x_34dbY4.tif')
+        self.assertEqual(data2['shared:mediaAccessMode'], 'local')
         self.assertEqual(data2['shared:originalName'], "MyCarnivalImagetif")
         self.assertEqual(data2['shared:originalMimeType'], 'image/tiff')
         self.assertEqual(data2['shared:serverUrl'], 'http://iiif.oldap.org/iiif/3/')
         self.assertEqual(data2['shared:protocol'], 'iiif')
         self.assertEqual(data2['shared:path'], 'test/subtest')
         mle.delete()
+
+    def test_create_external_http_media_object(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        MediaObject = factory.createObjectInstance('shared:MediaObject')
+        media = MediaObject(type='dcmitype:StillImage',
+                            mediaAccessMode='external',
+                            protocol='http',
+                            mediaUrl='https://example.org/media/full.jpg',
+                            thumbnailUrl='https://example.org/media/thumb.jpg',
+                            attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
+        media.create()
+
+        data = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri=media.iri)
+        self.assertEqual(data['shared:mediaAccessMode'], 'external')
+        self.assertEqual(data['shared:protocol'], 'http')
+        self.assertEqual(data['shared:mediaUrl'], 'https://example.org/media/full.jpg')
+        self.assertEqual(data['shared:thumbnailUrl'], 'https://example.org/media/thumb.jpg')
+        self.assertNotIn('shared:assetId', data)
+        self.assertNotIn('shared:path', data)
+        media.delete()
 
     def test_create_location(self):
         dm = DataModel.read(con=self._connection, project='test')
