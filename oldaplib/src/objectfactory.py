@@ -90,6 +90,7 @@ class CompOp(Enum):
     OVERLAPS = "overlaps"
     BEFORE = "before"
     AFTER = "after"
+    NOT_EXISTS = "not_exists"
 
 class LogicOp(Enum):
     AND = "&&"
@@ -2345,6 +2346,8 @@ class ResourceInstance:
                             sparql += f'(?{dating_var}_start > {target_end})'
                         else:
                             raise OldapErrorValue(f'Unsupported Dating search operator {f.op} for property {f.prop}.')
+                    elif f.op == CompOp.NOT_EXISTS:
+                        sparql += f'NOT EXISTS {{ ?res {f.value.toRdf} ?{f.prop.fragment} }}'
                     elif f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
                         op = sparql_comp_op(f.op)
                         if isinstance(f.value, Xsd_string) and f.value.lang:
