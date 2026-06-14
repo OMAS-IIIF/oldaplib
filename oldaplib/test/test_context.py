@@ -57,6 +57,9 @@ class TestContext(unittest.TestCase):
         self.assertEqual(qn, 'skos:node')
         qn = context.iri2qname(Xsd_anyURI('http://www.gaga.org#label'))
         self.assertIsNone(qn)
+        context['badfrag'] = 'http://www.gaga.org/badfrag#'
+        qn = context.iri2qname('http://www.gaga.org/badfrag#CreativeCommons#CC_BY-NC-ND', validate=False)
+        self.assertIsNone(qn)
         with self.assertRaises(OldapError) as ex:
             qn = context.iri2qname('waseliwas/soll')
         self.assertEqual(str(ex.exception), 'Invalid string "waseliwas/soll" for anyURI (no urn:/http:)')
@@ -138,4 +141,3 @@ PREFIX test: <http://www.test.org/gaga#>
 """
         self.maxDiff = None
         self.assertEqual(context.turtle_context, expected)
-

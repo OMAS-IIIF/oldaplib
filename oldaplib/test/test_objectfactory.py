@@ -110,6 +110,139 @@ class TestLuceneFulltextFilter(unittest.TestCase):
 
 class TestSearchQueryGeneration(unittest.TestCase):
 
+    def test_search_archive_media_object_paging_query_uses_resource_subquery(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'assetId']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='fasnacht',
+                resClass='fasnacht:ArchiveMediaObject',
+                sortBy=[SortBy('shared:assetId', SortDir.asc)],
+                limit=32,
+                offset=0,
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertIn('SELECT DISTINCT ?res ?resclass ?assetId', sparql)
+        self.assertRegex(sparql, r'\{\s*SELECT \?res \(MIN\(\?sort_0_raw\) AS \?sort_0_key\)')
+        self.assertIn('(COUNT(?sort_0_raw) = 0 AS ?sort_0_unbound)', sparql)
+        self.assertIn('OPTIONAL { ?res shared:assetId ?sort_0_raw }', sparql)
+        self.assertIn('GROUP BY ?res', sparql)
+        self.assertIn('ORDER BY ASC(?sort_0_unbound) ASC(?sort_0_key) ASC(STR(?res))', sparql)
+        self.assertIn('LIMIT 32 OFFSET 0', sparql)
+        self.assertEqual(sparql.count('LIMIT 32 OFFSET 0'), 1)
+        self.assertIn('OPTIONAL { ?res shared:assetId ?assetId }', sparql)
+
+    def test_search_outer_property_rows_deduplicate_to_resource_page(self):
+        bindings = [
+            {
+                'res': {'type': 'uri', 'value': f'urn:uuid:archive-media-object-{index:02d}'},
+                'resclass': {'type': 'uri', 'value': 'http://fasnacht.digital/ns/ArchiveMediaObject'},
+                'assetId': {'type': 'literal', 'value': f'asset-{index:02d}'},
+                'archiveMediaObjectOf': {'type': 'uri', 'value': f'urn:uuid:archive-object-{index:02d}'},
+            }
+            for index in range(32)
+        ]
+        bindings.insert(1, {
+            'res': {'type': 'uri', 'value': 'urn:uuid:archive-media-object-00'},
+            'resclass': {'type': 'uri', 'value': 'http://fasnacht.digital/ns/ArchiveMediaObject'},
+            'assetId': {'type': 'literal', 'value': 'asset-00'},
+            'archiveMediaObjectOf': {'type': 'uri', 'value': 'urn:uuid:archive-object-extra'},
+        })
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'assetId', 'archiveMediaObjectOf']},
+            'results': {'bindings': bindings},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            result = ResourceInstance.search(
+                con=con,
+                project='fasnacht',
+                resClass='fasnacht:ArchiveMediaObject',
+                includeProperties={Xsd_QName('shared:assetId'), Xsd_QName('fasnacht:archiveMediaObjectOf')},
+                sortBy=[SortBy('shared:assetId', SortDir.asc)],
+                limit=32,
+                offset=0,
+            )
+
+        self.assertEqual(len(result), 32)
+        self.assertEqual(len(result[0]['fasnacht:archiveMediaObjectOf']), 2)
+
+    def test_search_paging_should_use_resource_level_subquery_before_property_projection(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'assetId']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='fasnacht',
+                resClass='fasnacht:ArchiveMediaObject',
+                includeProperties={Xsd_QName('shared:assetId'), Xsd_QName('schema:name')},
+                sortBy=[SortBy('shared:assetId', SortDir.asc)],
+                limit=32,
+                offset=32,
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertRegex(sparql, r'\{\s*SELECT \?res \(MIN\(\?sort_0_raw\) AS \?sort_0_key\)')
+        self.assertRegex(
+            sparql,
+            r'ORDER BY ASC\(\?sort_0_unbound\) ASC\(\?sort_0_key\) ASC\(STR\(\?res\)\)\s+LIMIT 32 OFFSET 32\s*\}',
+        )
+        self.assertLess(sparql.index('LIMIT 32 OFFSET 32'),
+                        sparql.index('OPTIONAL { ?res schema:name ?name }'))
+
+    def test_search_without_sort_still_pages_distinct_resources_before_projection(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'archiveMediaObjectOf']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='fasnacht',
+                resClass='fasnacht:ArchiveMediaObject',
+                includeProperties={Xsd_QName('fasnacht:archiveMediaObjectOf')},
+                limit=32,
+                offset=64,
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertRegex(sparql, r'\{\s*SELECT DISTINCT \?res\s+WHERE')
+        self.assertLess(sparql.index('LIMIT 32 OFFSET 64'),
+                        sparql.index('OPTIONAL { ?res fasnacht:archiveMediaObjectOf ?archiveMediaObjectOf }'))
+
     def test_hlfilter_matches_resources_in_selected_subtree(self):
         query = Mock(return_value={
             'head': {'vars': ['res', 'resclass']},

@@ -1,5 +1,17 @@
 # CODEX_LOG
 
+### Update 2026-06-14 22:33
+- Decisions: Make `ResourceInstance.search()` paginate at resource level instead of SPARQL result-row level.
+- Implementation: Refactored search query generation to use an inner resource subquery with distinct/grouped `?res`, aggregated sort/score keys, stable `ORDER BY`, and `LIMIT/OFFSET` before the outer include-property projection. Bound non-included sort properties for both sorting and result projection, kept unbound sort values last, and made `Context.iri2qname()` return `None` for known namespaces with invalid QName fragments so `QueryProcessor` keeps such values as `Iri`.
+- Open: None.
+- Risks/Assumptions: Multi-valued sort properties are ordered by `MIN` for ascending and `MAX` for descending; this gives deterministic resource-level ordering but collapses multiple sort values to one ordering key.
+
+### Update 2026-06-14 22:20
+- Decisions: Document the `ResourceInstance.search()` paging defect before changing production query generation.
+- Implementation: Added focused query-generation tests showing that non-included `sortBy` properties are projected/ordered without being bound, that result deduplication happens after SPARQL `LIMIT`, and an expected-failure test for resource-level paging via subquery.
+- Open: Superseded by the 2026-06-14 22:33 implementation entry.
+- Risks/Assumptions: Current Fasnacht data only mildly reproduces include-property row inflation, but multi-valued properties can still produce short or shifted pages.
+
 ### Update 2026-06-10 00:39
 - Decisions: Treat `shared:mediaAccessMode` as the required discriminator for local/external `shared:MediaObject` records while keeping optional external link fields scalar in media-object lookup results.
 - Implementation: Extended `ResourceInstance.get_media_object_by_id()` and `get_media_object_by_iri()` to return `shared:mediaAccessMode`, `shared:mediaUrl`, and `shared:thumbnailUrl` as scalar values; made JWT payload path handling tolerant of external media without `shared:path`; updated MediaObject fixtures and tests for the new shared ontology shape.

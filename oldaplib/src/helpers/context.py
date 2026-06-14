@@ -242,7 +242,10 @@ class Context(metaclass=ContextSingleton):
                     matchlen = len(str(t))
         if matchlen > 0:
             fragment = str(iri)[len(trunk):]
-            return Xsd_QName(prefix, fragment, validate=validate)
+            try:
+                return Xsd_QName(prefix, fragment, validate=validate)
+            except OldapErrorValue:
+                return None
         return None
 
     def qname2iri(self, qname: Xsd_QName | str, validate: bool = True) -> Xsd_anyURI:

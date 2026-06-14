@@ -2258,190 +2258,236 @@ class ResourceInstance:
                 return False
             return sort.property in dating_filter_props
 
-        if (countOnly):
-            sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?res) as ?numResult)'
-        else:
-            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?res ?resclass'
-            if ftfilter:
-                sparql += ' ?score'
-                sparql_vars.add(('score', 'score'))
-
+        projection_props: set[Xsd_QName] = set(includeProperties or set())
+        if ftfilter:
+            sparql_vars.add(('score', 'score'))
         if includeProperties:
             for p in includeProperties:
-                sparql += f' ?{p.fragment}'
                 sparql_vars.add((f'{p.fragment}', str(p)))
         if sortBy:
             for s in sortBy:
                 if is_dating_sort(s):
                     continue
-                tmp = includeProperties if includeProperties else set()
-                if s.property not in tmp:
-                    sparql += f' ?{s.property.fragment}'
+                projection_props.add(s.property)
+                if not includeProperties or s.property not in includeProperties:
                     sparql_vars.add((f'{s.property.fragment}', str(s.property)))
 
-        sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH oldap:admin {{'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?DataPermission oldap:permissionValue ?permval .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res rdf:type ?resclass .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res oldap:attachedToRole ?role .'
+        def append_access_patterns(parts: list[str], level: int, resclass_var: str) -> None:
+            parts.append(f'\n{blank:{level * indent_inc}}GRAPH oldap:admin {{')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}?DataPermission oldap:permissionValue ?permval .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})')
+            parts.append(f'\n{blank:{level * indent_inc}}}}')
+            parts.append(f'\n{blank:{level * indent_inc}}GRAPH {graph}:data {{')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}?res rdf:type {resclass_var} .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}?res oldap:attachedToRole ?role .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .')
+            parts.append(f'\n{blank:{level * indent_inc}}}}')
+            if _resClass:
+                parts.append(f'\n{blank:{level * indent_inc}}?res rdf:type {_resClass.toRdf} .')
 
-        tmp = includeProperties if includeProperties else set()
-        for p in tmp:
-            if filter and any({f.prop == p for f in filter if not isinstance(f, LogicOp)}) and not (
-                sortBy and any(s.property == p and is_dating_sort(s) for s in sortBy)
-            ):
-                continue
-            sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {p.toRdf} ?{p.fragment} }} .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .'
-
-        sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-        if _resClass:
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}}?res rdf:type {_resClass.toRdf} .'
-
-        if sortBy:
-            for sort_index, s in enumerate(sortBy):
-                if not is_dating_sort(s):
-                    continue
-                dating_sort_var = f'{s.property.fragment}_sort_{sort_index}'
-                sparql += f'\n{blank:{(indent + 1) * indent_inc}}OPTIONAL {{'
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res {s.property.toRdf} ?{dating_sort_var} .'
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{dating_sort_var} oldap:normalizedStart ?{dating_sort_var}_start .'
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{dating_sort_var} oldap:normalizedEnd ?{dating_sort_var}_end .'
-                sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-
-        if filter:
+        def append_filter_patterns(parts: list[str], level: int) -> None:
+            if not filter:
+                return
             for filter_index, f in enumerate(filter):
                 if isinstance(f, LogicOp):
                     continue
                 if isinstance(f.value, Dating):
                     dating_var = f'{f.prop.fragment}_dating_{filter_index}'
-                    sparql += f'\n{blank:{(indent + 1) * indent_inc}}?res {f.prop.toRdf} ?{dating_var} .'
-                    sparql += f'\n{blank:{(indent + 1) * indent_inc}}?{dating_var} oldap:normalizedStart ?{dating_var}_start .'
-                    sparql += f'\n{blank:{(indent + 1) * indent_inc}}?{dating_var} oldap:normalizedEnd ?{dating_var}_end .'
+                    parts.append(f'\n{blank:{level * indent_inc}}?res {f.prop.toRdf} ?{dating_var} .')
+                    parts.append(f'\n{blank:{level * indent_inc}}?{dating_var} oldap:normalizedStart ?{dating_var}_start .')
+                    parts.append(f'\n{blank:{level * indent_inc}}?{dating_var} oldap:normalizedEnd ?{dating_var}_end .')
                 else:
-                    sparql += f'\n{blank:{(indent + 1) * indent_inc}}OPTIONAL {{ ?res {f.prop.toRdf} ?{f.prop.fragment} }}.'
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}}FILTER('
+                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ ?res {f.prop.toRdf} ?{f.prop.fragment} }}.')
+            parts.append(f'\n{blank:{level * indent_inc}}FILTER(')
             langfilters: list[str] = []
             for filter_index, f in enumerate(filter):
                 if isinstance(f, LogicOp):
-                    sparql+= f' {f.value} '
+                    parts.append(f' {f.value} ')
                 else:
                     if isinstance(f.value, Dating):
                         dating_var = f'{f.prop.fragment}_dating_{filter_index}'
                         target_start = f'"{f.value._normalizedStart.isoformat()}"^^xsd:date'
                         target_end = f'"{f.value._normalizedEnd.isoformat()}"^^xsd:date'
                         if f.op == CompOp.EQ:
-                            sparql += f'(?{dating_var}_start = {target_start} && ?{dating_var}_end = {target_end})'
+                            parts.append(f'(?{dating_var}_start = {target_start} && ?{dating_var}_end = {target_end})')
                         elif f.op == CompOp.NE:
-                            sparql += f'(?{dating_var}_start != {target_start} || ?{dating_var}_end != {target_end})'
+                            parts.append(f'(?{dating_var}_start != {target_start} || ?{dating_var}_end != {target_end})')
                         elif f.op == CompOp.OVERLAPS:
-                            sparql += f'(?{dating_var}_end >= {target_start} && ?{dating_var}_start <= {target_end})'
+                            parts.append(f'(?{dating_var}_end >= {target_start} && ?{dating_var}_start <= {target_end})')
                         elif f.op == CompOp.BEFORE:
-                            sparql += f'(?{dating_var}_end < {target_start})'
+                            parts.append(f'(?{dating_var}_end < {target_start})')
                         elif f.op == CompOp.AFTER:
-                            sparql += f'(?{dating_var}_start > {target_end})'
+                            parts.append(f'(?{dating_var}_start > {target_end})')
                         else:
                             raise OldapErrorValue(f'Unsupported Dating search operator {f.op} for property {f.prop}.')
                     elif f.op == CompOp.NOT_EXISTS:
-                        sparql += f'NOT EXISTS {{ ?res {f.value.toRdf} ?{f.prop.fragment} }}'
+                        parts.append(f'NOT EXISTS {{ ?res {f.value.toRdf} ?{f.prop.fragment} }}')
                     elif f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
                         op = sparql_comp_op(f.op)
                         if isinstance(f.value, Xsd_string) and f.value.lang:
-                            sparql += f'?{f.prop.fragment} {op} "{f.value.value}"'
+                            parts.append(f'?{f.prop.fragment} {op} "{f.value.value}"')
                             langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
                         else:
-                            sparql += f'?{f.prop.fragment} {op} {f.value.toRdf}'
+                            parts.append(f'?{f.prop.fragment} {op} {f.value.toRdf}')
                     elif f.op == CompOp.CONTAINS:  # TODO: DEAL WITH LANGUAGES!!
                         if isinstance(f.value, Xsd_string) and f.value.lang is None:
-                            sparql += f'CONTAINS(LCASE(STR(?{f.prop.fragment})), LCASE(STR("{f.value.value}")))'
+                            parts.append(f'CONTAINS(LCASE(STR(?{f.prop.fragment})), LCASE(STR("{f.value.value}")))')
                         else:
-                            sparql += f'CONTAINS(LCASE(STR(?{f.prop.fragment})), LCASE(STR("{f.value.value}")))'
+                            parts.append(f'CONTAINS(LCASE(STR(?{f.prop.fragment})), LCASE(STR("{f.value.value}")))')
                             langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
                     elif f.op == CompOp.REGEXP:
                         if isinstance(f.value, Xsd_string) and f.value.lang:
-                            sparql += f'REGEX(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
+                            parts.append(f'REGEX(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
                         else:
-                            sparql += f'REGEX(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
+                            parts.append(f'REGEX(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
                             langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
                     elif f.op == CompOp.STRSTARTS:
                         if isinstance(f.value, Xsd_string) and f.value.lang:
-                            sparql += f'STRSTARTS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
+                            parts.append(f'STRSTARTS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
                         else:
-                            sparql += f'STRSTARTS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
+                            parts.append(f'STRSTARTS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
                             langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
                     elif f.op == CompOp.STRENDS:
                         if isinstance(f.value, Xsd_string) and f.value.lang:
-                            sparql += f'STRENDS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
+                            parts.append(f'STRENDS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
                         else:
-                            sparql += f'STRENDS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"'
+                            parts.append(f'STRENDS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
                             langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
-            sparql += f')'
+            parts.append(f')')
             for lf in langfilters:
-                f'\n{blank:{(indent + 1) * indent_inc}}{lf}'
+                parts.append(f'\n{blank:{level * indent_inc}}{lf}')
 
-        if hlfilter:
+        def append_hlist_patterns(parts: list[str], level: int) -> None:
+            if not hlfilter:
+                return
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     continue
-                sparql += f'\n{blank:{(indent + 1) * indent_inc}}?res {hlf.prop.toRdf} ?{hlf.prop.fragment} .'
-
-        #sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-
-
-        if hlfilter:
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:lists {{'
+                parts.append(f'\n{blank:{level * indent_inc}}?res {hlf.prop.toRdf} ?{hlf.prop.fragment} .')
+            parts.append(f'\n{blank:{level * indent_inc}}GRAPH {graph}:lists {{')
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     continue
                 list_iri = hlists[hlf.node.listId].iri
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf.prop.fragment} skos:inScheme {list_iri.toRdf} .'
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf.prop.fragment} oldap:leftIndex ?{hlf.prop.fragment}_lindex .'
-                sparql += f'\n{blank:{(indent + 2) * indent_inc}}?{hlf.prop.fragment} oldap:rightIndex ?{hlf.prop.fragment}_rindex .'
-            sparql += f'\n{blank:{(indent + 2) * indent_inc}}FILTER('
+                parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{hlf.prop.fragment} skos:inScheme {list_iri.toRdf} .')
+                parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{hlf.prop.fragment} oldap:leftIndex ?{hlf.prop.fragment}_lindex .')
+                parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{hlf.prop.fragment} oldap:rightIndex ?{hlf.prop.fragment}_rindex .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}FILTER(')
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
-                    sparql+= f' {hlf.value} '
+                    parts.append(f' {hlf.value} ')
                 else:
                     node_lindex = nodes[hlf.node].leftIndex
                     node_rindex = nodes[hlf.node].rightIndex
-                    sparql += f'(?{hlf.prop.fragment}_lindex >= {node_lindex} && ?{hlf.prop.fragment}_rindex <= {node_rindex})'
-            sparql += ')'
+                    parts.append(f'(?{hlf.prop.fragment}_lindex >= {node_lindex} && ?{hlf.prop.fragment}_rindex <= {node_rindex})')
+            parts.append(')')
+            parts.append(f'\n{blank:{level * indent_inc}}}}')
 
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
-
-        if ftfilter:
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}}?search a inst:{str(project_obj.projectShortName)} ;'
+        def append_ft_patterns(parts: list[str], level: int, score_var: str = 'score') -> None:
+            if not ftfilter:
+                return
+            parts.append(f'\n{blank:{level * indent_inc}}?search a inst:{str(project_obj.projectShortName)} ;')
             fields = _lucene_query_fields(ftfilter)
-            sparql += f'\n{blank:{(indent + 2) * indent_inc}}luc:query "{fields}" ;'
-            sparql += f'\n{blank:{(indent + 2) * indent_inc}}luc:entities ?res .'
-            # sparql += f'\n{blank:{(indent + 3) * indent_inc}}luc:property fasnacht:storyContent ;'  # if we only want a specific property!
-            sparql += f'\n{blank:{(indent + 1) * indent_inc}}?res luc:score ?score .'
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}luc:query "{fields}" ;')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}luc:entities ?res .')
+            parts.append(f'\n{blank:{level * indent_inc}}?res luc:score ?{score_var} .')
 
-        sparql += f'\n{blank:{indent * indent_inc}}}}'
-
-        if ftfilter or sortBy:
-            sparql += f'\n{blank:{indent * indent_inc}}ORDER BY'
-        if ftfilter:
-            sparql += ' DESC(?score)'
-        if sortBy:
+        def append_sort_bindings(parts: list[str], level: int) -> None:
+            if not sortBy:
+                return
             for sort_index, s in enumerate(sortBy):
                 if is_dating_sort(s):
-                    dating_sort_var = f'{s.property.fragment}_sort_{sort_index}'
-                    if s.dir == SortDir.asc:
-                        sparql += f' ASC(!BOUND(?{dating_sort_var}_start)) ASC(?{dating_sort_var}_start) ASC(?{dating_sort_var}_end)'
-                    else:
-                        sparql += f' ASC(!BOUND(?{dating_sort_var}_start)) DESC(?{dating_sort_var}_start) DESC(?{dating_sort_var}_end)'
-                elif s.dir == SortDir.asc:
-                    sparql += f' ASC(?{s.property.fragment})'
+                    dating_sort_var = f'sort_{sort_index}_dating'
+                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}?res {s.property.toRdf} ?{dating_sort_var} .')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{dating_sort_var} oldap:normalizedStart ?sort_{sort_index}_start_raw .')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{dating_sort_var} oldap:normalizedEnd ?sort_{sort_index}_end_raw .')
+                    parts.append(f'\n{blank:{level * indent_inc}}}}')
                 else:
-                    sparql += f' DESC(?{s.property.fragment})'
+                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ ?res {s.property.toRdf} ?sort_{sort_index}_raw }} .')
 
-        if not countOnly:
-            sparql += f'\n{blank:{indent * indent_inc}}LIMIT {limit} OFFSET {offset}'
+        def resource_order_by() -> str:
+            order_parts: list[str] = []
+            if ftfilter:
+                order_parts.append('DESC(?score)')
+            if sortBy:
+                for sort_index, s in enumerate(sortBy):
+                    if is_dating_sort(s):
+                        if s.dir == SortDir.asc:
+                            order_parts.append(f'ASC(?sort_{sort_index}_unbound) ASC(?sort_{sort_index}_start) ASC(?sort_{sort_index}_end)')
+                        else:
+                            order_parts.append(f'ASC(?sort_{sort_index}_unbound) DESC(?sort_{sort_index}_start) DESC(?sort_{sort_index}_end)')
+                    elif s.dir == SortDir.asc:
+                        order_parts.append(f'ASC(?sort_{sort_index}_unbound) ASC(?sort_{sort_index}_key)')
+                    else:
+                        order_parts.append(f'ASC(?sort_{sort_index}_unbound) DESC(?sort_{sort_index}_key)')
+            order_parts.append('ASC(STR(?res))')
+            return ' '.join(order_parts)
+
+        def append_resource_match(parts: list[str], level: int, resclass_var: str = '?searchResclass') -> None:
+            append_access_patterns(parts, level, resclass_var)
+            append_filter_patterns(parts, level)
+            append_hlist_patterns(parts, level)
+            append_ft_patterns(parts, level, 'score_raw')
+            append_sort_bindings(parts, level)
+
+        if countOnly:
+            sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?res) as ?numResult)'
+            sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
+            count_parts: list[str] = []
+            append_resource_match(count_parts, indent + 1)
+            sparql += ''.join(count_parts)
+            sparql += f'\n{blank:{indent * indent_inc}}}}'
+        else:
+            sparql += f'{blank:{indent * indent_inc}}SELECT DISTINCT ?res ?resclass'
+            if ftfilter:
+                sparql += ' ?score'
+            for p in projection_props:
+                sparql += f' ?{p.fragment}'
+            sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}{{'
+
+            inner_select_vars = ['?res']
+            if ftfilter:
+                inner_select_vars.append('(MAX(?score_raw) AS ?score)')
+            if sortBy:
+                for sort_index, s in enumerate(sortBy):
+                    if is_dating_sort(s):
+                        if s.dir == SortDir.asc:
+                            inner_select_vars.append(f'(MIN(?sort_{sort_index}_start_raw) AS ?sort_{sort_index}_start)')
+                            inner_select_vars.append(f'(MIN(?sort_{sort_index}_end_raw) AS ?sort_{sort_index}_end)')
+                        else:
+                            inner_select_vars.append(f'(MAX(?sort_{sort_index}_start_raw) AS ?sort_{sort_index}_start)')
+                            inner_select_vars.append(f'(MAX(?sort_{sort_index}_end_raw) AS ?sort_{sort_index}_end)')
+                        inner_select_vars.append(f'(COUNT(?sort_{sort_index}_start_raw) = 0 AS ?sort_{sort_index}_unbound)')
+                    else:
+                        aggregate = 'MIN' if s.dir == SortDir.asc else 'MAX'
+                        inner_select_vars.append(f'({aggregate}(?sort_{sort_index}_raw) AS ?sort_{sort_index}_key)')
+                        inner_select_vars.append(f'(COUNT(?sort_{sort_index}_raw) = 0 AS ?sort_{sort_index}_unbound)')
+            inner_select = 'SELECT' if ftfilter or sortBy else 'SELECT DISTINCT'
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}{inner_select} {" ".join(inner_select_vars)}'
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}WHERE {{'
+            inner_parts: list[str] = []
+            append_resource_match(inner_parts, indent + 3)
+            sparql += ''.join(inner_parts)
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}}}'
+            if ftfilter or sortBy:
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}GROUP BY ?res'
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}ORDER BY {resource_order_by()}'
+            else:
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}ORDER BY {resource_order_by()}'
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}LIMIT {limit} OFFSET {offset}'
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
+            sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res rdf:type ?resclass .'
+            for p in projection_props:
+                sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {p.toRdf} ?{p.fragment} }} .'
+            sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
+            sparql += f'\n{blank:{indent * indent_inc}}}}'
+            if ftfilter or sortBy:
+                sparql += f'\n{blank:{indent * indent_inc}}ORDER BY {resource_order_by()}'
         sparql += '\n'
         try:
             jsonres = con.query(sparql)
