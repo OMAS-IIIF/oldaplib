@@ -615,6 +615,8 @@ class User(Model):
             for r, p in self.hasRole.items():
                 if p:
                     star += f'{blank:{(indent + 1) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {r.toRdf}>> oldap:hasDefaultDataPermission {p.value} .\n'
+        if self.passwordResetRequestAt:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:passwordResetRequestAt {self.passwordResetRequestAt.toRdf}'
         if self._additional_properties:
             sparql += self.__additional_properties_to_trig(indent=indent + 1, indent_inc=indent_inc)
         sparql += " .\n\n"
@@ -852,6 +854,7 @@ class User(Model):
                        isActive=userdata.isActive,
                        inProject=userdata.inProject,
                        hasRole=userdata.hasRole,
+                       passwordResetRequestAt=userdata.passwordResetRequestAt,
                        userclass=userdata.userclass,
                        additionalProperties=userdata.additionalProperties)
         cache = CacheSingletonRedis()
@@ -863,6 +866,7 @@ class User(Model):
     @staticmethod
     def search(*, con: IConnection,
                userId: Optional[Xsd_NCName | str] = None,
+               email: Optional[str | Xsd_string] = None,
                familyName: Optional[str | Xsd_string] = None,
                givenName: Optional[str | Xsd_string] = None,
                inProject: Optional[Iri | str] = None) -> List[Xsd_anyURI]:
@@ -893,6 +897,7 @@ class User(Model):
         """
         if userId and not isinstance(userId, Xsd_NCName):
             userId = Xsd_NCName(userId, validate=True)
+        email = Xsd_string(email, validate=True) if email else None
         familyName = Xsd_string(familyName, validate=True) if familyName else None
         givenName = Xsd_string(givenName, validate=True) if givenName else None
         if not isinstance(inProject, Iri):
@@ -909,6 +914,9 @@ class User(Model):
         if userId is not None:
             sparql += '       ?user oldap:userId ?user_id .\n'
             sparql += f'       FILTER(?user_id = {userId.toRdf})\n'
+        if email is not None:
+            sparql += '       ?user schema:email ?email .\n'
+            sparql += f'       FILTER(STR(?email) = {email.toRdf})\n'
         if familyName is not None:
             sparql += '       ?user schema:familyName ?family_name .\n'
             sparql += f'       FILTER(STR(?family_name) = {familyName.toRdf})\n'

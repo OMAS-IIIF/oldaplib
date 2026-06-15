@@ -16,6 +16,7 @@ from oldaplib.src.helpers.tools import str2qname_anyiri
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, OldapError
@@ -303,6 +304,10 @@ class TestUser(unittest.TestCase):
         users = User.search(con=self._connection, userId="fornaro")
         self.assertEqual([Iri("https://orcid.org/0000-0003-1485-4923")], users)
 
+        users = User.search(con=self._connection, email="lukas.rosenthaler@unibas.ch")
+        self.assertEqual({Iri("https://orcid.org/0000-0003-1681-4036"),
+                          Iri("urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc")}, set(users))
+
         users = User.search(con=self._connection, familyName="Rosenthaler")
         self.assertEqual([Iri("https://orcid.org/0000-0003-1681-4036")], users)
 
@@ -320,6 +325,9 @@ class TestUser(unittest.TestCase):
                           Iri("https://orcid.org/0000-0002-7403-9595")}, set(users))
 
         users = User.search(con=self._connection, userId="GAGA")
+        self.assertEqual([], users)
+
+        users = User.search(con=self._connection, email="nobody@example.org")
         self.assertEqual([], users)
 
     def test_search_user_all(self):
@@ -341,10 +349,45 @@ class TestUser(unittest.TestCase):
         self.assertEqual(len(users), 0)
         users = User.search(con=self._connection, givenName="John\".}\nSELECT * WHERE{?s ?p ?s})#")
         self.assertEqual(len(users), 0)
+        users = User.search(con=self._connection, email="lukas.rosenthaler@unibas.ch\".}\nSELECT * WHERE{?s ?p ?s})#")
+        self.assertEqual(len(users), 0)
 
         with self.assertRaises(OldapErrorValue) as ex:
             users = User.search(con=self._connection, inProject="oldap:HyperHamlet\".}\nSELECT * WHERE{?s ?p ?s})#")
         self.assertEqual(str(ex.exception), 'Invalid string for IRI: "oldap:HyperHamlet".}\nSELECT * WHERE{?s ?p ?s})#"')
+
+    def test_password_reset_request_at_lifecycle(self):
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0003-3478-9316"),
+                    userId=Xsd_NCName("resetuser"),
+                    familyName="Reset",
+                    givenName="Passwort",
+                    email="reset.user@example.org",
+                    credentials="ResettablePassword",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS}},
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW},
+                    isActive=True)
+        user.create()
+
+        user = User.read(con=self._connection, userId="resetuser", ignore_cache=True)
+        self.assertIsNone(user.passwordResetRequestAt)
+
+        first_request = Xsd_dateTimeStamp("2026-06-15T09:15:00+02:00")
+        user[UserAttr.PASSWORD_RESET_REQUEST_AT] = first_request
+        user.update()
+        user = User.read(con=self._connection, userId="resetuser", ignore_cache=True)
+        self.assertEqual(user.passwordResetRequestAt, first_request)
+
+        second_request = Xsd_dateTimeStamp("2026-06-15T10:45:00+02:00")
+        user[UserAttr.PASSWORD_RESET_REQUEST_AT] = second_request
+        user.update()
+        user = User.read(con=self._connection, userId="resetuser", ignore_cache=True)
+        self.assertEqual(user.passwordResetRequestAt, second_request)
+
+        del user[UserAttr.PASSWORD_RESET_REQUEST_AT]
+        user.update()
+        user = User.read(con=self._connection, userId="resetuser", ignore_cache=True)
+        self.assertIsNone(user.passwordResetRequestAt)
 
     #  #unittest.skip('Work in progress')
     def test_create_user(self):

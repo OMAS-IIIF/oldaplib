@@ -493,9 +493,13 @@ class TestDataModel(unittest.TestCase):
 
     def test_datamodel_read_shared(self):
         model = DataModel.read(self._connection, self._sharedproject, ignore_cache=True)
+        print(set(model.get_resclasses()))
         self.assertEqual(set(model.get_resclasses()), {
             Xsd_QName("oldap:Dating"),
+            Xsd_QName("shared:StagingFolder"),
+            Xsd_QName("shared:StagingArea"),
             Xsd_QName("shared:MediaObject"),
+            Xsd_QName("shared:StagingMediaObject")
         })
 
         sc = set(model[Xsd_QName("oldap:Dating")].superclass.keys())

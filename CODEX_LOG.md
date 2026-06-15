@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-06-15 12:01
+- Decisions: Cover the new user password-reset timestamp and email-search behavior with focused user tests.
+- Implementation: Added `test_password_reset_request_at_lifecycle()` for setting, replacing, deleting, and rereading `oldap:passwordResetRequestAt`; extended user search tests with `email`, missing-email, and email injection cases.
+- Open: Re-run the focused tests once the local test GraphDB contains the expected bootstrap user `fornaro` before `TestUser.setUp()` creates its unprivileged connection.
+- Risks/Assumptions: Tests assume user email search uses the canonical stored `schema:email` property and that `passwordResetRequestAt` is a normal optional `UserAttr` value updated through the generic model changeset.
+
 ### Update 2026-06-14 22:33
 - Decisions: Make `ResourceInstance.search()` paginate at resource level instead of SPARQL result-row level.
 - Implementation: Refactored search query generation to use an inner resource subquery with distinct/grouped `?res`, aggregated sort/score keys, stable `ORDER BY`, and `LIMIT/OFFSET` before the outer include-property projection. Bound non-included sort properties for both sorting and result projection, kept unbound sort values last, and made `Context.iri2qname()` return `None` for known namespaces with invalid QName fragments so `QueryProcessor` keeps such values as `Iri`.
