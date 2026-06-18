@@ -101,6 +101,10 @@ class LogicOp(Enum):
 
 @dataclass(frozen=True)
 class SearchFilter:
+    """
+    Describes a comparison against a property on the root resource selected by
+    [ResourceInstance.search()][oldaplib.src.objectfactory.ResourceInstance.search].
+    """
     prop: Xsd_QName
     op: CompOp
     value: Xsd | Dating
@@ -108,6 +112,46 @@ class SearchFilter:
     def __post_init__(self):
         if not isinstance(self.prop, Xsd_QName):
             object.__setattr__(self, 'prop', Xsd_QName(self.prop))
+
+
+@dataclass(frozen=True)
+class LinkedResourceSearchFilter:
+    """
+    Describes a one-hop comparison against a resource linked from the root
+    search result.
+
+    `ResourceInstance.search()` still returns and pages the root resource. This
+    filter only joins one directly linked resource and compares one property on
+    that linked resource. For example, it can express:
+
+    `CarnivalThing -> associatedOrganisation -> organisationTaxonomy == Guggenmusik`
+
+    Args:
+        linkProp: Property from the root resource to the linked resource.
+        prop: Property on the linked resource to compare.
+        op: Comparison operator to apply to the linked property value.
+        value: Value to compare with. Dating values use the same normalized-date
+            comparison rules as root-resource filters.
+        linkedClass: Optional class restriction for the linked resource.
+        checkLinkedPermissions: If true, the linked resource must also grant
+            the current user `DATA_VIEW` permission.
+    """
+    linkProp: Xsd_QName
+    prop: Xsd_QName
+    op: CompOp
+    value: Xsd | Dating
+    linkedClass: Xsd_QName | None = None
+    checkLinkedPermissions: bool = False
+
+    def __post_init__(self):
+        if not isinstance(self.linkProp, Xsd_QName):
+            object.__setattr__(self, 'linkProp', Xsd_QName(self.linkProp))
+        if not isinstance(self.prop, Xsd_QName):
+            object.__setattr__(self, 'prop', Xsd_QName(self.prop))
+        if not isinstance(self.op, CompOp):
+            object.__setattr__(self, 'op', CompOp(self.op))
+        if self.linkedClass is not None and not isinstance(self.linkedClass, Xsd_QName):
+            object.__setattr__(self, 'linkedClass', Xsd_QName(self.linkedClass))
 
 
 @dataclass(frozen=True)
@@ -2185,7 +2229,7 @@ class ResourceInstance:
                project: Project | Xsd_NCName | Iri| str,
                resClass: Xsd_QName | str | None = None,
                includeProperties: set[Xsd_QName] | None = None,
-               filter: list[SearchFilter | LogicOp] | None = None,  # "normal" filter operations
+               filter: list[SearchFilter | LinkedResourceSearchFilter | LogicOp] | None = None,  # "normal" filter operations
                ftfilter: list[FTSearchFilter | Literal['AND', 'OR']] | None = None,  # fulltext filter operations
                hlfilter: list[HLSearchFilter | LogicOp] | None = None,  # hierarchical list filter operations
                sortBy: list[SortBy] | None = None,
@@ -2193,6 +2237,22 @@ class ResourceInstance:
                limit: int = 100,
                offset: int = 0,
                indent: int = 0, indent_inc: int = 4) -> int | list[dict[str, Any]]:
+        """
+        Search project resources by class, direct properties, linked-resource
+        properties, full-text filters, and hierarchical-list filters.
+
+        Normal [SearchFilter][oldaplib.src.objectfactory.SearchFilter] items
+        compare properties on the root result resource (`?res`).
+        [LinkedResourceSearchFilter][oldaplib.src.objectfactory.LinkedResourceSearchFilter]
+        items compare one property on a resource reached through one direct
+        root-resource link. Linked-resource permission checks are optional and
+        controlled per filter through `checkLinkedPermissions`.
+
+        Returns:
+            The number of distinct root resources when `countOnly` is true;
+            otherwise a list of result dictionaries for the selected root
+            resources.
+        """
         if not resClass and not filter and not ftfilter and not hlfilter:
             raise OldapErrorValue('Search without filters requires resClass.')
 
@@ -2286,13 +2346,94 @@ class ResourceInstance:
             if _resClass:
                 parts.append(f'\n{blank:{level * indent_inc}}?res rdf:type {_resClass.toRdf} .')
 
+        def append_linked_access_patterns(parts: list[str], level: int, linked_var: str, filter_index: int) -> None:
+            role_var = f'linked_{filter_index}_role'
+            data_permission_var = f'linked_{filter_index}_DataPermission'
+            permval_var = f'linked_{filter_index}_permval'
+            parts.append(f'\n{blank:{level * indent_inc}}GRAPH oldap:admin {{')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?{role_var} .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{data_permission_var} oldap:permissionValue ?{permval_var} .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}FILTER(?{permval_var} >= {DataPermission.DATA_VIEW.numeric.toRdf})')
+            parts.append(f'\n{blank:{level * indent_inc}}}}')
+            parts.append(f'\n{blank:{level * indent_inc}}GRAPH {graph}:data {{')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{linked_var} oldap:attachedToRole ?{role_var} .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}<< ?{linked_var} oldap:attachedToRole ?{role_var} >> oldap:hasDataPermission ?{data_permission_var} .')
+            parts.append(f'\n{blank:{level * indent_inc}}}}')
+
+        def append_filter_expression(
+                parts: list[str],
+                f: SearchFilter | LinkedResourceSearchFilter,
+                *,
+                subject_var: str,
+                value_var: str,
+                dating_var: str,
+                langfilters: list[str]) -> None:
+            if isinstance(f.value, Dating):
+                target_start = f'"{f.value._normalizedStart.isoformat()}"^^xsd:date'
+                target_end = f'"{f.value._normalizedEnd.isoformat()}"^^xsd:date'
+                if f.op == CompOp.EQ:
+                    parts.append(f'(?{dating_var}_start = {target_start} && ?{dating_var}_end = {target_end})')
+                elif f.op == CompOp.NE:
+                    parts.append(f'(?{dating_var}_start != {target_start} || ?{dating_var}_end != {target_end})')
+                elif f.op == CompOp.OVERLAPS:
+                    parts.append(f'(?{dating_var}_end >= {target_start} && ?{dating_var}_start <= {target_end})')
+                elif f.op == CompOp.BEFORE:
+                    parts.append(f'(?{dating_var}_end < {target_start})')
+                elif f.op == CompOp.AFTER:
+                    parts.append(f'(?{dating_var}_start > {target_end})')
+                else:
+                    raise OldapErrorValue(f'Unsupported Dating search operator {f.op} for property {f.prop}.')
+            elif f.op == CompOp.NOT_EXISTS:
+                predicate = f.value if isinstance(f, SearchFilter) and isinstance(f.value, Xsd_QName) else f.prop
+                parts.append(f'NOT EXISTS {{ ?{subject_var} {predicate.toRdf} ?{value_var} }}')
+            elif f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
+                op = sparql_comp_op(f.op)
+                if isinstance(f.value, Xsd_string) and f.value.lang:
+                    parts.append(f'?{value_var} {op} "{f.value.value}"')
+                    langfilters.append(f'FILTER(LANG(?{value_var}) = "{f.value.lang.shortlang}")')
+                else:
+                    parts.append(f'?{value_var} {op} {f.value.toRdf}')
+            elif f.op == CompOp.CONTAINS:
+                parts.append(f'CONTAINS(LCASE(STR(?{value_var})), LCASE(STR("{f.value.value}")))')
+                if isinstance(f.value, Xsd_string) and f.value.lang:
+                    langfilters.append(f'FILTER(LANG(?{value_var}) = "{f.value.lang.shortlang}")')
+            elif f.op == CompOp.REGEXP:
+                parts.append(f'REGEX(STR(?{value_var}), STR("{f.value.value}"), "i")')
+                if isinstance(f.value, Xsd_string) and f.value.lang:
+                    langfilters.append(f'FILTER(LANG(?{value_var}) = "{f.value.lang.shortlang}")')
+            elif f.op == CompOp.STRSTARTS:
+                parts.append(f'STRSTARTS(STR(?{value_var}), STR("{f.value.value}"))')
+                if isinstance(f.value, Xsd_string) and f.value.lang:
+                    langfilters.append(f'FILTER(LANG(?{value_var}) = "{f.value.lang.shortlang}")')
+            elif f.op == CompOp.STRENDS:
+                parts.append(f'STRENDS(STR(?{value_var}), STR("{f.value.value}"))')
+                if isinstance(f.value, Xsd_string) and f.value.lang:
+                    langfilters.append(f'FILTER(LANG(?{value_var}) = "{f.value.lang.shortlang}")')
+
         def append_filter_patterns(parts: list[str], level: int) -> None:
             if not filter:
                 return
             for filter_index, f in enumerate(filter):
                 if isinstance(f, LogicOp):
                     continue
-                if isinstance(f.value, Dating):
+                if isinstance(f, LinkedResourceSearchFilter):
+                    linked_var = f'linked_{filter_index}'
+                    value_var = f'linked_{filter_index}_{f.prop.fragment}'
+                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}?res {f.linkProp.toRdf} ?{linked_var} .')
+                    if f.linkedClass:
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{linked_var} rdf:type {f.linkedClass.toRdf} .')
+                    if f.checkLinkedPermissions:
+                        append_linked_access_patterns(parts, level + 1, linked_var, filter_index)
+                    if isinstance(f.value, Dating):
+                        dating_var = f'{value_var}_dating'
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{linked_var} {f.prop.toRdf} ?{dating_var} .')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{dating_var} oldap:normalizedStart ?{dating_var}_start .')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{dating_var} oldap:normalizedEnd ?{dating_var}_end .')
+                    elif f.op != CompOp.NOT_EXISTS:
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{linked_var} {f.prop.toRdf} ?{value_var} .')
+                    parts.append(f'\n{blank:{level * indent_inc}}}}')
+                elif isinstance(f.value, Dating):
                     dating_var = f'{f.prop.fragment}_dating_{filter_index}'
                     parts.append(f'\n{blank:{level * indent_inc}}?res {f.prop.toRdf} ?{dating_var} .')
                     parts.append(f'\n{blank:{level * indent_inc}}?{dating_var} oldap:normalizedStart ?{dating_var}_start .')
@@ -2305,55 +2446,22 @@ class ResourceInstance:
                 if isinstance(f, LogicOp):
                     parts.append(f' {f.value} ')
                 else:
-                    if isinstance(f.value, Dating):
+                    if isinstance(f, LinkedResourceSearchFilter):
+                        linked_var = f'linked_{filter_index}'
+                        value_var = f'linked_{filter_index}_{f.prop.fragment}'
+                        dating_var = f'{value_var}_dating'
+                        append_filter_expression(parts, f,
+                                                 subject_var=linked_var,
+                                                 value_var=value_var,
+                                                 dating_var=dating_var,
+                                                 langfilters=langfilters)
+                    else:
                         dating_var = f'{f.prop.fragment}_dating_{filter_index}'
-                        target_start = f'"{f.value._normalizedStart.isoformat()}"^^xsd:date'
-                        target_end = f'"{f.value._normalizedEnd.isoformat()}"^^xsd:date'
-                        if f.op == CompOp.EQ:
-                            parts.append(f'(?{dating_var}_start = {target_start} && ?{dating_var}_end = {target_end})')
-                        elif f.op == CompOp.NE:
-                            parts.append(f'(?{dating_var}_start != {target_start} || ?{dating_var}_end != {target_end})')
-                        elif f.op == CompOp.OVERLAPS:
-                            parts.append(f'(?{dating_var}_end >= {target_start} && ?{dating_var}_start <= {target_end})')
-                        elif f.op == CompOp.BEFORE:
-                            parts.append(f'(?{dating_var}_end < {target_start})')
-                        elif f.op == CompOp.AFTER:
-                            parts.append(f'(?{dating_var}_start > {target_end})')
-                        else:
-                            raise OldapErrorValue(f'Unsupported Dating search operator {f.op} for property {f.prop}.')
-                    elif f.op == CompOp.NOT_EXISTS:
-                        parts.append(f'NOT EXISTS {{ ?res {f.value.toRdf} ?{f.prop.fragment} }}')
-                    elif f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
-                        op = sparql_comp_op(f.op)
-                        if isinstance(f.value, Xsd_string) and f.value.lang:
-                            parts.append(f'?{f.prop.fragment} {op} "{f.value.value}"')
-                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
-                        else:
-                            parts.append(f'?{f.prop.fragment} {op} {f.value.toRdf}')
-                    elif f.op == CompOp.CONTAINS:  # TODO: DEAL WITH LANGUAGES!!
-                        if isinstance(f.value, Xsd_string) and f.value.lang is None:
-                            parts.append(f'CONTAINS(LCASE(STR(?{f.prop.fragment})), LCASE(STR("{f.value.value}")))')
-                        else:
-                            parts.append(f'CONTAINS(LCASE(STR(?{f.prop.fragment})), LCASE(STR("{f.value.value}")))')
-                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
-                    elif f.op == CompOp.REGEXP:
-                        if isinstance(f.value, Xsd_string) and f.value.lang:
-                            parts.append(f'REGEX(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
-                        else:
-                            parts.append(f'REGEX(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
-                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
-                    elif f.op == CompOp.STRSTARTS:
-                        if isinstance(f.value, Xsd_string) and f.value.lang:
-                            parts.append(f'STRSTARTS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
-                        else:
-                            parts.append(f'STRSTARTS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
-                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
-                    elif f.op == CompOp.STRENDS:
-                        if isinstance(f.value, Xsd_string) and f.value.lang:
-                            parts.append(f'STRENDS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
-                        else:
-                            parts.append(f'STRENDS(STR(?{f.prop.fragment}), STR("{f.value.value}"), "i"')
-                            langfilters.append(f'FILTER(LANG(?{f.prop.fragment}) = "{f.value.lang.shortlang}")')
+                        append_filter_expression(parts, f,
+                                                 subject_var='res',
+                                                 value_var=f.prop.fragment,
+                                                 dating_var=dating_var,
+                                                 langfilters=langfilters)
             parts.append(f')')
             for lf in langfilters:
                 parts.append(f'\n{blank:{level * indent_inc}}{lf}')

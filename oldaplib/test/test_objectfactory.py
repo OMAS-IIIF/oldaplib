@@ -13,7 +13,7 @@ from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
-    CompOp, LogicOp, FTSearchFilter, HLSearchFilter, _lucene_query_fields
+    LinkedResourceSearchFilter, CompOp, LogicOp, FTSearchFilter, HLSearchFilter, _lucene_query_fields
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -242,6 +242,81 @@ class TestSearchQueryGeneration(unittest.TestCase):
         self.assertRegex(sparql, r'\{\s*SELECT DISTINCT \?res\s+WHERE')
         self.assertLess(sparql.index('LIMIT 32 OFFSET 64'),
                         sparql.index('OPTIONAL { ?res fasnacht:archiveMediaObjectOf ?archiveMediaObjectOf }'))
+
+    def test_linked_resource_filter_searches_one_hop_property(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'pageDesignation']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('test'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='test',
+                resClass='test:Page',
+                includeProperties={Xsd_QName('test:pageDesignation')},
+                filter=[
+                    LinkedResourceSearchFilter(
+                        linkProp='test:pageInBook',
+                        linkedClass='test:Book',
+                        prop='test:title',
+                        op=CompOp.CONTAINS,
+                        value=Xsd_string('Spez'),
+                    )
+                ],
+                limit=10,
+                offset=0,
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertIn('?res test:pageInBook ?linked_0 .', sparql)
+        self.assertIn('?linked_0 rdf:type test:Book .', sparql)
+        self.assertIn('?linked_0 test:title ?linked_0_title .', sparql)
+        self.assertIn('CONTAINS(LCASE(STR(?linked_0_title)), LCASE(STR("Spez")))', sparql)
+        self.assertLess(sparql.index('?res test:pageInBook ?linked_0 .'),
+                        sparql.index('LIMIT 10 OFFSET 0'))
+        self.assertLess(sparql.index('LIMIT 10 OFFSET 0'),
+                        sparql.index('OPTIONAL { ?res test:pageDesignation ?pageDesignation }'))
+
+    def test_linked_resource_filter_can_require_linked_permissions(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('test'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='test',
+                resClass='test:Page',
+                filter=[
+                    LinkedResourceSearchFilter(
+                        linkProp='test:pageInBook',
+                        linkedClass='test:Book',
+                        prop='test:title',
+                        op=CompOp.CONTAINS,
+                        value=Xsd_string('Spez'),
+                        checkLinkedPermissions=True,
+                    )
+                ],
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertIn('?linked_0 oldap:attachedToRole ?linked_0_role .', sparql)
+        self.assertIn('<< ?linked_0 oldap:attachedToRole ?linked_0_role >> oldap:hasDataPermission ?linked_0_DataPermission .', sparql)
+        self.assertIn('FILTER(?linked_0_permval >= "2"^^xsd:integer)', sparql)
 
     def test_hlfilter_matches_resources_in_selected_subtree(self):
         query = Mock(return_value={
@@ -1011,6 +1086,68 @@ class TestObjectFactory(unittest.TestCase):
         for row in res:
             self.assertIsNotNone(row['test:aString'])
             self.assertIsNotNone(row['test:aLangstring'])
+
+    def test_search_linked_resource_filter_by_book_title(self):
+        res = ResourceInstance.search(
+            con=self._connection,
+            project='test',
+            resClass='test:Page',
+            includeProperties={Xsd_QName('test:pageDesignation'), Xsd_QName('test:pageNum')},
+            filter=[
+                LinkedResourceSearchFilter(
+                    linkProp='test:pageInBook',
+                    linkedClass='test:Book',
+                    prop='test:title',
+                    op=CompOp.CONTAINS,
+                    value=Xsd_string('tQh5OAgXOaK5'),
+                    checkLinkedPermissions=True,
+                )
+            ],
+            sortBy=[SortBy('test:pageNum')],
+        )
+
+        self.assertEqual([int(x['test:pageNum'][0]) for x in res], [1, 2, 3, 4])
+
+    def test_search_linked_resource_permission_check_filters_linked_resource(self):
+        public_linked_result = ResourceInstance.search(
+            con=self._connection,
+            project='test',
+            resClass='test:Book',
+            includeProperties={Xsd_QName('test:title')},
+            filter=[
+                SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('tQh5OAgXOaK5')),
+                LogicOp.AND,
+                LinkedResourceSearchFilter(
+                    linkProp='test:author',
+                    linkedClass='test:Person',
+                    prop='schema:familyName',
+                    op=CompOp.EQ,
+                    value=Xsd_string('Adams'),
+                    checkLinkedPermissions=False,
+                )
+            ],
+        )
+        protected_linked_result = ResourceInstance.search(
+            con=self._connection,
+            project='test',
+            resClass='test:Book',
+            includeProperties={Xsd_QName('test:title')},
+            filter=[
+                SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('tQh5OAgXOaK5')),
+                LogicOp.AND,
+                LinkedResourceSearchFilter(
+                    linkProp='test:author',
+                    linkedClass='test:Person',
+                    prop='schema:familyName',
+                    op=CompOp.EQ,
+                    value=Xsd_string('Adams'),
+                    checkLinkedPermissions=True,
+                )
+            ],
+        )
+
+        self.assertEqual(len(public_linked_result), 1)
+        self.assertEqual(protected_linked_result, [])
 
     def test_hlist_node_ref_structured(self):
         node = HListNodeRef('StoryKeywords', 'ObjekteUndSammlungen', validate=True)

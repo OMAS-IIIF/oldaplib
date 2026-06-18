@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-06-18 22:50
+- Decisions: Add linked-resource search as an explicit filter type instead of overloading property names or changing existing `SearchFilter` semantics.
+- Implementation: Added `LinkedResourceSearchFilter` with optional `linkedClass` and `checkLinkedPermissions`; extended `ResourceInstance.search()` to filter by one property on one directly linked resource inside the resource-selection subquery, with optional linked-resource `DATA_VIEW` checks. Centralized filter expression rendering and added query-generation plus GraphDB-backed tests for linked title filtering and linked permission behavior.
+- Open: Downstream APIs that serialize search filters need a matching structured request shape before clients can use this through HTTP.
+- Risks/Assumptions: Linked filters intentionally support only one hop; linked permission checks can reduce results when the linked resource lacks explicit `oldap:hasDataPermission` triples.
+
 ### Update 2026-06-15 12:01
 - Decisions: Cover the new user password-reset timestamp and email-search behavior with focused user tests.
 - Implementation: Added `test_password_reset_request_at_lifecycle()` for setting, replacing, deleting, and rereading `oldap:passwordResetRequestAt`; extended user search tests with `email`, missing-email, and email injection cases.
