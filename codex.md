@@ -4,6 +4,7 @@ OLDAPlib is the Python library layer for OLDAP, a linked-open-data middleware an
 
 ## Repository State
 
+- Authentication roadmap work packages 1–5 are complete: users support persisted `oldap:authVersion` revocation state, `authentication.py` provides strictly separated access, refresh, and media tokens, `oldap-api` implements login, refresh-cookie renewal, global logout, and centralized Bearer authentication, and `oldap-setup` supplies validated production secrets plus exact credentialed CORS/cookie configuration. Media capabilities use `typ=media`, audience `oldap-api-media`, a one-hour default lifetime, and `OLDAP_MEDIA_JWT_SECRET`; access/refresh/media keys must be distinct. The executable `connection.py` bootstrap uses an ephemeral access key when no production key is configured.
 - `oldaplib/ontologies/shared.trig` now defines shared media staging vocabulary for generic OAIS-style ingest preparation: `shared:StagingArea`, `shared:StagingFolder`, `shared:StagingMediaObject`, `shared:StagingStatus` named individuals, and optional media `shared:checksum`.
 - `shared:MediaObject` distinguishes locally managed and externally referenced media through required `shared:mediaAccessMode` values `local` and `external`; external links can use optional `shared:mediaUrl` and `shared:thumbnailUrl`, while IIIF references continue to use `shared:serverUrl`, `shared:assetId`, and `shared:protocol`.
 - `shared:assetId` is treated as a one-to-one identifier for a single `shared:MediaObject`; shared physical storage or reuse should be modeled explicitly instead of allowing multiple media objects with the same asset ID.
@@ -22,6 +23,7 @@ OLDAPlib is the Python library layer for OLDAP, a linked-open-data middleware an
 
 ## Current Roadmap / Next Steps
 
+- Continue the authentication roadmap with work package 6 (browser integration).
 - Keep packaging metadata aligned with modern Poetry/PEP 621 conventions.
 - Keep documentation and API doc generation synchronized with public API changes.
 - When changing behavior around GraphDB, Redis, ontologies, or public model classes, update tests and relevant docs together.

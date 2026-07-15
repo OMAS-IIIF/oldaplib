@@ -170,6 +170,7 @@ from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_string import Xsd_string
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorAlreadyExists, OldapErrorNotFound, OldapErrorUpdateFailed, \
@@ -200,6 +201,12 @@ class User(Model):
     :ivar credentials: The user’s hashed credentials for secure authentication.
     :type credentials: Xsd_string
     """
+
+    _AUTH_VERSION_ATTRIBUTES = {
+        UserAttr.CREDENTIALS,
+        UserAttr.HAS_ROLE,
+        UserAttr.IN_PROJECT,
+    }
 
     def __init__(self, *,
                  con: IConnection,
@@ -253,6 +260,9 @@ class User(Model):
             self.additionalProperties = additional_properties
 
         self.set_attributes(kwargs, UserAttr)
+        if UserAttr.AUTH_VERSION not in self._attributes:
+            # Missing persisted values are migration-compatible with version 0.
+            self._attributes[UserAttr.AUTH_VERSION] = Xsd_nonNegativeInteger(0)
 
         #
         # maybe we have to change the default data permissionss for the user
@@ -361,6 +371,150 @@ class User(Model):
         super().clear_changeset()
         if hasattr(self, '_additional_properties'):
             self._additional_properties.clear_changeset()
+        for attr in (UserAttr.IN_PROJECT, UserAttr.HAS_ROLE):
+            value = self._attributes.get(attr)
+            if hasattr(value, 'clear_changeset'):
+                value.clear_changeset()
+
+    def __requires_auth_version_increment(self) -> bool:
+        """Return whether pending user changes revoke existing refresh tokens."""
+        if self._AUTH_VERSION_ATTRIBUTES & self._changeset.keys():
+            return True
+        return (
+            UserAttr.ACTIVE in self._changeset
+            and not bool(self._attributes.get(UserAttr.ACTIVE))
+        )
+
+    def __prepare_auth_version_increment(self) -> tuple[Xsd_nonNegativeInteger, Xsd_nonNegativeInteger] | None:
+        """Add one internal auth-version change for a security-sensitive update."""
+        if not self.__requires_auth_version_increment():
+            return None
+        existing = self._changeset.get(UserAttr.AUTH_VERSION)
+        if existing is not None:
+            # Keep retries idempotent after validation or transaction failures.
+            return Xsd_nonNegativeInteger(existing.old_value), self._attributes[UserAttr.AUTH_VERSION]
+        current = self._attributes.get(UserAttr.AUTH_VERSION) or Xsd_nonNegativeInteger(0)
+        updated = Xsd_nonNegativeInteger(int(current) + 1)
+        self._attributes[UserAttr.AUTH_VERSION] = updated
+        self._changeset[UserAttr.AUTH_VERSION] = AttributeChange(current, Action.REPLACE)
+        return current, updated
+
+    def __auth_version_update_sparql(
+            self,
+            expected: Xsd_nonNegativeInteger,
+            updated: Xsd_nonNegativeInteger,
+            indent: int,
+            indent_inc: int) -> str:
+        """Build a migration-safe, conflict-detectable auth-version update."""
+        blank = ''
+        sparql = f'{blank:{indent * indent_inc}}# Increment global authentication version\n'
+        sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:authVersion ?storedVersion .\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:authVersion {updated.toRdf} .\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} AS ?user)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?user a oldap:User .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}OPTIONAL {{ ?user oldap:authVersion ?storedVersion . }}\n'
+        sparql += (
+            f'{blank:{(indent + 1) * indent_inc}}'
+            f'FILTER(COALESCE(?storedVersion, "0"^^xsd:nonNegativeInteger) = {expected.toRdf})\n'
+        )
+        sparql += f'{blank:{indent * indent_inc}}}}'
+        return sparql
+
+    def __read_auth_version_in_transaction(self, context: Context) -> Xsd_nonNegativeInteger:
+        """Read the persisted auth version inside the active transaction."""
+        query = context.sparql_context
+        query += f"""
+        SELECT ?authVersion
+        FROM oldap:admin
+        WHERE {{
+            {self.userIri.toRdf} oldap:authVersion ?authVersion .
+        }}
+        """
+        result = QueryProcessor(context, self._con.transaction_query(query))
+        if len(result) != 1 or result[0].get('authVersion') is None:
+            raise OldapErrorUpdateFailed(
+                f'Authentication version update for user "{self.userId}" did not persist a value.'
+            )
+        return Xsd_nonNegativeInteger(result[0]['authVersion'])
+
+    def revoke_authentication(self) -> Xsd_nonNegativeInteger:
+        """Revoke all refresh tokens by atomically incrementing ``authVersion``.
+
+        The operation is allowed for the user itself or an administrator who
+        may manage the target user. It uses both the expected authentication
+        version and the model modification timestamp as optimistic guards.
+        Concurrent revocations therefore fail explicitly instead of losing an
+        increment.
+
+        Returns:
+            The newly persisted authentication version.
+
+        Raises:
+            OldapErrorNoPermission: If the actor may not manage the user.
+            OldapErrorUpdateFailed: If the user changed concurrently.
+            OldapError: If the transaction cannot be completed.
+        """
+        if self._con is None:
+            raise OldapError("Cannot revoke authentication: no connection")
+
+        actor = self._con.userdata
+        if actor.userIri != self.userIri:
+            permitted, message = self.check_for_permissions()
+            if not permitted:
+                raise OldapErrorNoPermission(message)
+
+        context = Context(name=self._con.context_name)
+        expected = self.authVersion or Xsd_nonNegativeInteger(0)
+        updated = Xsd_nonNegativeInteger(int(expected) + 1)
+        timestamp = Xsd_dateTime.now()
+        update = context.sparql_context
+        update += f"""
+        WITH oldap:admin
+        DELETE {{
+            ?user oldap:authVersion ?storedVersion .
+            ?user dcterms:contributor ?oldContributor .
+            ?user dcterms:modified {self.modified.toRdf} .
+        }}
+        INSERT {{
+            ?user oldap:authVersion {updated.toRdf} .
+            ?user dcterms:contributor {self._con.userIri.toRdf} .
+            ?user dcterms:modified {timestamp.toRdf} .
+        }}
+        WHERE {{
+            BIND({self.userIri.toRdf} AS ?user)
+            ?user a oldap:User .
+            ?user dcterms:modified {self.modified.toRdf} .
+            OPTIONAL {{ ?user dcterms:contributor ?oldContributor . }}
+            OPTIONAL {{ ?user oldap:authVersion ?storedVersion . }}
+            FILTER(COALESCE(?storedVersion, "0"^^xsd:nonNegativeInteger) = {expected.toRdf})
+        }}
+        """
+
+        self._con.transaction_start()
+        try:
+            self._con.transaction_update(update)
+            persisted = self.__read_auth_version_in_transaction(context)
+            modified = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri)
+            if persisted != updated or modified != timestamp:
+                raise OldapErrorUpdateFailed(
+                    f'Authentication revocation for user "{self.userId}" conflicted with another update.'
+                )
+            self._con.transaction_commit()
+        except Exception:
+            self._con.transaction_abort()
+            raise
+
+        self._attributes[UserAttr.AUTH_VERSION] = updated
+        self._modified = timestamp
+        self._contributor = self._con.userIri
+        CacheSingletonRedis().delete(self.userIri)
+        return updated
 
     def cleanup_setter(self, attr: UserAttr, value: Any):
         if attr == UserAttr.CREDENTIALS:
@@ -617,6 +771,7 @@ class User(Model):
                     star += f'{blank:{(indent + 1) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {r.toRdf}>> oldap:hasDefaultDataPermission {p.value} .\n'
         if self.passwordResetRequestAt:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:passwordResetRequestAt {self.passwordResetRequestAt.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:authVersion {self.authVersion.toRdf}'
         if self._additional_properties:
             sparql += self.__additional_properties_to_trig(indent=indent + 1, indent_inc=indent_inc)
         sparql += " .\n\n"
@@ -855,6 +1010,7 @@ class User(Model):
                        inProject=userdata.inProject,
                        hasRole=userdata.hasRole,
                        passwordResetRequestAt=userdata.passwordResetRequestAt,
+                       authVersion=userdata.authVersion,
                        userclass=userdata.userclass,
                        additionalProperties=userdata.additionalProperties)
         cache = CacheSingletonRedis()
@@ -1023,6 +1179,7 @@ class User(Model):
             if not result:
                 raise OldapErrorNoPermission(message)
 
+        auth_version_change = self.__prepare_auth_version_increment()
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
         self.__validate_and_prepare_additional_properties(preserve_changes=True)
@@ -1035,7 +1192,7 @@ class User(Model):
         blank = ''
         sparql_list = []
         for field, change in self._changeset.items():
-            if field == UserAttr.HAS_ROLE or field == UserAttr.IN_PROJECT:
+            if field in (UserAttr.HAS_ROLE, UserAttr.IN_PROJECT, UserAttr.AUTH_VERSION):
                 continue
             sparql = f'{blank:{indent * indent_inc}}# User field "{field.value}" with action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
@@ -1175,6 +1332,15 @@ class User(Model):
                 }}
                 """
                 ptest_len = len(added)
+
+        if auth_version_change is not None:
+            expected_auth_version, updated_auth_version = auth_version_change
+            sparql_list.append(self.__auth_version_update_sparql(
+                expected_auth_version,
+                updated_auth_version,
+                indent,
+                indent_inc,
+            ))
 
         if UserAttr.IN_PROJECT in self._changeset:
             addedprojs = {}
@@ -1339,11 +1505,18 @@ class User(Model):
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri, self.modified, timestamp)
             modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri)
+            if auth_version_change is not None:
+                persisted_auth_version = self.__read_auth_version_in_transaction(context)
+                if persisted_auth_version != auth_version_change[1]:
+                    raise OldapErrorUpdateFailed(
+                        f'Authentication version update for user "{self.userId}" conflicted with another update.'
+                    )
         except OldapError:
             print(sparql)
             self._con.transaction_abort()
             raise
         if timestamp != modtime:
+            self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (timestamp: {timestamp}, modtime: {modtime}).")
         try:
             self._con.transaction_commit()
@@ -1352,6 +1525,6 @@ class User(Model):
             raise
         self._modified = timestamp
         self._contributor = self._con.userIri
-        self._additional_properties.clear_changeset()
+        self.clear_changeset()
         cache = CacheSingletonRedis()
         cache.set(self.userIri, self)

@@ -7,7 +7,6 @@ from pathlib import Path
 from pprint import pprint
 from time import sleep
 from unittest.mock import Mock, patch
-import jwt
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.datamodel import DataModel
@@ -1671,7 +1670,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['shared:protocol'], Xsd_string("iiif"))
         self.assertEqual(res['graph'], Xsd_QName("test:data"))
         self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
-        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        tinfo = self._connection.token_codec.decode_media_token(res['token'])
         self.assertEqual(tinfo['id'], 'x_34db.tif')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)
@@ -1690,7 +1689,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['graph'], Xsd_QName("test:data"))
         self.assertEqual(res['test:caption'], [Xsd_string("This is a non-real, non-existing image")])
         self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
-        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        tinfo = self._connection.token_codec.decode_media_token(res['token'])
         self.assertEqual(tinfo['id'], 'x_42db.jpg')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)
@@ -1712,7 +1711,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['shared:protocol'], Xsd_string("iiif"))
         self.assertEqual(res['graph'], Xsd_QName("test:data"))
         self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
-        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        tinfo = self._connection.token_codec.decode_media_token(res['token'])
         self.assertEqual(tinfo['id'], 'x_34db.tif')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)
@@ -1731,7 +1730,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['graph'], Xsd_QName("test:data"))
         self.assertEqual(res['test:caption'], [Xsd_string("This is a non-real, non-existing image")])
         self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
-        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        tinfo = self._connection.token_codec.decode_media_token(res['token'])
         self.assertEqual(tinfo['id'], 'x_42db.jpg')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)

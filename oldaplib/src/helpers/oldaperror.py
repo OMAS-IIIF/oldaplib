@@ -84,3 +84,18 @@ class OldapErrorNotImplemented(OldapError):
     pass
 
 
+class OldapErrorConfiguration(OldapError):
+    """Raised when required OLDAP runtime configuration is missing or invalid."""
+
+
+class OldapErrorToken(OldapError):
+    """Base class for purpose-specific token validation failures."""
+
+
+class OldapErrorTokenExpired(OldapErrorToken):
+    """Raised when a correctly structured token has expired."""
+
+
+class OldapErrorTokenInvalid(OldapErrorToken):
+    """Raised when a token cannot be trusted or violates its claim contract."""
+

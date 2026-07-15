@@ -1,5 +1,3 @@
-import json
-import os
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,7 +11,6 @@ from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.dtypes.bnode import BNode
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
-from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -81,8 +78,15 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(con.server, 'http://localhost:7200')
         self.assertEqual(con.repo, 'oldap')
         self.assertEqual(con.context_name, 'DEFAULT')
-        payload = jwt.decode(jwt=con.token, key=con.jwtkey, algorithms="HS256")
-        self.assertEqual(payload['iss'], 'http://oldap.org')
+        payload = jwt.decode(
+            jwt=con.token,
+            key=con.jwtkey,
+            algorithms=["HS256"],
+            issuer="https://oldap.org",
+            audience="oldap-api",
+        )
+        self.assertEqual(payload['iss'], 'https://oldap.org')
+        self.assertEqual(payload['typ'], 'access')
 
 
     def test_basic_connection_unknown_user(self):
@@ -115,14 +119,19 @@ class TestBasicConnection(unittest.TestCase):
 
     #@unittest.skip('No longer used')
     def test_token(self):
-        os.environ["OLDAP_JWT_SECRET"] = "This is a very special secret, yeah!"
         con = Connection(userId="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         token = con.token
-        tokendata = jwt.decode(jwt=token, key=con.jwtkey, algorithms="HS256")
-        userdata = json.loads(tokendata['userdata'], object_hook=serializer.decoder_hook)
-        self.assertEqual(userdata.userId, "rosenth")
+        tokendata = jwt.decode(
+            jwt=token,
+            key=con.jwtkey,
+            algorithms=["HS256"],
+            issuer="https://oldap.org",
+            audience="oldap-api",
+        )
+        self.assertEqual(tokendata['sub'], "rosenth")
+        self.assertNotIn('userdata', tokendata)
 
         con = Connection(token=token,
                          context_name="DEFAULT")

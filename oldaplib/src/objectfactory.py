@@ -6,9 +6,6 @@ import sys
 from dataclasses import dataclass
 from pprint import pprint
 
-import jwt
-
-from datetime import datetime, timedelta
 from enum import Flag, auto, Enum
 from functools import partial
 from typing import Type, Any, Self, cast, Dict, Literal, Iterable
@@ -2987,7 +2984,6 @@ INSERT DATA {
                     result[str(r['prop'])] = []
                 result[str(r['prop'])].append(r['val'])
 
-        expiration = datetime.now().astimezone() + timedelta(minutes=60)
         payload = {
             'userIri': str(con.userIri),
             'userid': str(con.userid),
@@ -2997,14 +2993,8 @@ INSERT DATA {
             'derivativeName': str(result.get('shared:derivativeName')),
             'originalName': str(result.get('shared:originalName')),
             'permval': int(result.get('permval')),
-            "exp": expiration.timestamp(),
-            "iat": int(datetime.now().astimezone().timestamp()),
-            "iss": "http://oldap.org"
         }
-        token = jwt.encode(
-            payload=payload,
-            key=con.jwtkey,
-            algorithm="HS256")
+        token = con.issue_media_token(payload)
         result['token'] = token
 
         return result
@@ -3089,7 +3079,6 @@ INSERT DATA {
                     result[str(r['prop'])] = []
                 result[str(r['prop'])].append(r['val'])
 
-        expiration = datetime.now().astimezone() + timedelta(minutes=60)
         payload = {
             'userIri': str(con.userIri),
             'userid': str(con.userid),
@@ -3100,14 +3089,8 @@ INSERT DATA {
             'derivativeName': str(result.get('shared:derivativeName')),
             'originalName': str(result.get('shared:originalName')),
             'permval': int(result['permval']),
-            "exp": expiration.timestamp(),
-            "iat": int(datetime.now().astimezone().timestamp()),
-            "iss": "http://oldap.org"
         }
-        token = jwt.encode(
-            payload=payload,
-            key=con.jwtkey,
-            algorithm="HS256")
+        token = con.issue_media_token(payload)
         result['token'] = token
 
         return result

@@ -19,11 +19,13 @@ from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
-from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorValue, OldapErrorNoPermission, OldapError
+from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorAlreadyExists, OldapErrorValue, \
+    OldapErrorNoPermission, OldapError, OldapErrorImmutable, OldapErrorUpdateFailed
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.user import User
 from oldaplib.src.in_project import InProjectClass
 from oldaplib.src.xsd.xsd_string import Xsd_string
+from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 
 def find_project_root(current_path):
     # Climb up the directory hierarchy and check for a marker file
@@ -388,6 +390,99 @@ class TestUser(unittest.TestCase):
         user.update()
         user = User.read(con=self._connection, userId="resetuser", ignore_cache=True)
         self.assertIsNone(user.passwordResetRequestAt)
+
+    def test_auth_version_default_and_persistence(self):
+        """Legacy users default to zero and newly created users persist zero."""
+        legacy_user = User.read(con=self._connection, userId="rosenth", ignore_cache=True)
+        self.assertEqual(legacy_user.authVersion, Xsd_nonNegativeInteger(0))
+
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0003-3478-9320"),
+                    userId=Xsd_NCName("authversion"),
+                    familyName="Version",
+                    givenName="Authentication",
+                    email="auth.version@example.org",
+                    credentials="InitialPassword",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS}},
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW},
+                    isActive=True)
+        self.assertEqual(user.authVersion, Xsd_nonNegativeInteger(0))
+        user.create()
+
+        persisted = User.read(con=self._connection, userId="authversion", ignore_cache=True)
+        self.assertEqual(persisted.authVersion, Xsd_nonNegativeInteger(0))
+        with self.assertRaises(OldapErrorImmutable):
+            persisted.authVersion = 7
+
+    def test_security_updates_increment_auth_version(self):
+        """Only security-relevant user updates increment the revocation version."""
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0003-3478-9321"),
+                    userId=Xsd_NCName("authupdates"),
+                    familyName="Security",
+                    givenName="Updates",
+                    email="auth.updates@example.org",
+                    credentials="InitialPassword",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS}},
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW},
+                    isActive=True)
+        user.create()
+
+        user.familyName = "Profile change"
+        user.update()
+        self.assertEqual(user.authVersion, Xsd_nonNegativeInteger(0))
+
+        user.credentials = "ChangedPassword"
+        user.update()
+        self.assertEqual(user.authVersion, Xsd_nonNegativeInteger(1))
+
+        user.hasRole[Xsd_QName('hyha:HyperHamletMember')] = DataPermission.DATA_UPDATE
+        user.update()
+        self.assertEqual(user.authVersion, Xsd_nonNegativeInteger(2))
+
+        user.inProject[Iri('oldap:HyperHamlet')].add(AdminPermission.ADMIN_RESOURCES)
+        user.update()
+        self.assertEqual(user.authVersion, Xsd_nonNegativeInteger(3))
+
+        user.isActive = False
+        user.update()
+        self.assertEqual(user.authVersion, Xsd_nonNegativeInteger(4))
+
+        persisted = User.read(con=self._connection, userId="authupdates", ignore_cache=True)
+        self.assertEqual(persisted.authVersion, Xsd_nonNegativeInteger(4))
+
+    def test_revoke_authentication_detects_stale_user(self):
+        """Concurrent revocation cannot overwrite a newer authentication version."""
+        user = User(con=self._connection,
+                    userIri=Iri("https://orcid.org/0000-0003-3478-9322"),
+                    userId=Xsd_NCName("authrevoke"),
+                    familyName="Revoke",
+                    givenName="Authentication",
+                    email="auth.revoke@example.org",
+                    credentials="InitialPassword",
+                    inProject={Iri('oldap:HyperHamlet'): {AdminPermission.ADMIN_USERS}},
+                    hasRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW},
+                    isActive=True)
+        user.create()
+
+        # Simulate a pre-authVersion user to cover the migration path used by
+        # existing production data.
+        sparql = self._context.sparql_context
+        sparql += f"""
+        WITH oldap:admin
+        DELETE {{ {user.userIri.toRdf} oldap:authVersion ?authVersion . }}
+        WHERE {{ {user.userIri.toRdf} oldap:authVersion ?authVersion . }}
+        """
+        self._connection.update_query(sparql)
+
+        current = User.read(con=self._connection, userId="authrevoke", ignore_cache=True)
+        stale = User.read(con=self._connection, userId="authrevoke", ignore_cache=True)
+        self.assertEqual(current.revoke_authentication(), Xsd_nonNegativeInteger(1))
+        with self.assertRaises(OldapErrorUpdateFailed):
+            stale.revoke_authentication()
+
+        persisted = User.read(con=self._connection, userId="authrevoke", ignore_cache=True)
+        self.assertEqual(persisted.authVersion, Xsd_nonNegativeInteger(1))
 
     #  #unittest.skip('Work in progress')
     def test_create_user(self):

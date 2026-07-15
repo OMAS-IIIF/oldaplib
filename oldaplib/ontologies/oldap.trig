@@ -640,6 +640,11 @@
             sh:path :passwordResetRequestAt ;
             sh:datatype xsd:dateTimeStamp ;
             sh:maxCount 1 ;
+        ] ;
+        sh:property [
+            sh:path :authVersion ;
+            sh:datatype xsd:nonNegativeInteger ;
+            sh:maxCount 1 ;
         ] .
 
 
@@ -880,6 +885,8 @@
 
     :hasRole rdf:type owl:ObjectProperty .
 
+    :authVersion rdf:type owl:DatatypeProperty .
+
     #
     # RDF*Star property to assign an admin permission to a user/project combination
     #
@@ -970,6 +977,5 @@
     :Thing rdf:type owl:Class .
 
 }
-
 
 

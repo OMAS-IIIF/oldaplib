@@ -8,6 +8,7 @@ nav:
     - Data Modeling: 'data_modeling.md'
     - Data Organization: 'data_organization.md'
     - Permission Concept: 'permission_concept.md'
+    - Authentication Architecture and Roadmap: 'authentication_architecture_roadmap.md'
     - PropertyClass: 'propertyclass.md'
   - Python Documentation:
     - Admin classes:

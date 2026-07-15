@@ -1,5 +1,47 @@
 # CODEX_LOG
 
+### Update 2026-07-15 17:56
+- Decisions: Separate media delivery capabilities from API authentication with a dedicated `typ=media` token, derived media audience, one-hour default lifetime, and independent signing key.
+- Implementation: Extended `TokenSettings`, `TokenCodec`, `IConnection`, and `Connection` with media-token issuance/validation; migrated MediaObject lookup token generation and tests; documented the cross-repository API/media-server trust contract and deployment key isolation.
+- Open: Deploy matching newly generated media and access keys to `oldap-api` and `oldap-mediaserver`, then continue browser integration in work package 6.
+- Risks/Assumptions: Media URLs remain bearer capabilities until expiry and should not be logged or shared; access, refresh, media, and reset secrets must remain distinct.
+
+### Update 2026-07-15 17:34
+- Decisions: Complete authentication roadmap work package 5 with separate deployment-managed token secrets, exact credentialed CORS, secure refresh-cookie defaults, and fail-fast rendered configuration validation.
+- Implementation: Coordinated OpenAPI cookie contract completion, `oldap-api` local secret cleanup, and `oldap-setup` inventory/template/Compose/Ansible wiring for all authentication variables; removed retired tracked JWT literals and marked work package 5 complete in the roadmap.
+- Open: Work package 6 must update browser clients to memory-only access tokens with coordinated refresh and one retry; deployment requires newly generated out-of-tree secrets and service credentials.
+- Risks/Assumptions: Removed legacy secrets remain recoverable from Git history and must not be reused; `SameSite=Lax` assumes authenticated clients remain on same-site OLDAP subdomains.
+
+### Update 2026-07-15 17:18
+- Decisions: Complete authentication roadmap work package 4 in `oldap-api` with a small explicit decorator and one request-scoped oldaplib `Connection`, keeping login, password-reset, status, health, and public routes outside the boundary.
+- Implementation: Coordinated the migration of every protected API blueprint to centralized access-token validation, uniform cache-safe `401` challenges, route-registry enforcement, OpenAPI documentation, and updated authorization regressions; marked work package 4 complete in the architecture roadmap.
+- Open: Continue with work package 5 deployment/operational configuration and work package 6 browser integration.
+- Risks/Assumptions: Invalid credentials now consistently return `401` instead of the legacy `403`; valid identities lacking domain permissions continue to receive `403` from existing view logic.
+
+### Update 2026-07-14 23:41
+- Decisions: Support work package 3 without adding session state; allow the API to build a minimal authorization context from either `UserData` or `User`, and keep production secret validation strict while making the standalone GraphDB bootstrap executable self-contained.
+- Implementation: Added `AuthorizationContext.from_user()` and changed the `connection.py` main utility to use the configured access secret or an ephemeral process-local bootstrap secret. Coordinated the completed login/refresh/logout API contract and marked authentication roadmap work package 3 complete.
+- Open: Work package 4 must centralize bearer parsing across protected API views; deployment must supply token secrets and authentication service credentials before rollout.
+- Risks/Assumptions: The ephemeral main-module key is intentionally limited to the interactive bootstrap process and is not a runtime fallback; production `Connection` construction still fails closed without `OLDAP_ACCESS_JWT_SECRET`.
+
+### Update 2026-07-14 23:11
+- Decisions: Complete authentication roadmap work package 2 with one focused token module; keep access requests stateless, derive a dedicated refresh audience, require separate access/refresh secrets of at least 32 bytes, and retain `Connection.jwtkey` only as a legacy media-token compatibility boundary.
+- Implementation: Added typed `AuthorizationContext`, `TokenSettings`, `TokenCodec`, refresh claim values, purpose-specific token errors, strict issuer/audience/type/signature/expiry/claim validation, and 15-minute/14-day defaults. `Connection` now issues and consumes minimal access JWTs through the codec, exposes the credential-login `auth_version` for work package 3, and preserves `Connection.token`. Added focused token tests, updated connection tests and test-only secrets, and marked work package 2 complete.
+- Open: Work package 3 must update `oldap-api` login/refresh/logout behavior and deployment must provide `OLDAP_ACCESS_JWT_SECRET` plus `OLDAP_REFRESH_JWT_SECRET`; the legacy `OLDAP_JWT_SECRET` is intentionally ignored.
+- Risks/Assumptions: Existing media JWT generation still uses the access key via `Connection.jwtkey` until that separate token purpose is migrated; existing long-lived JWTs and deployments without the new secret names are intentionally incompatible with the new decoder.
+
+### Update 2026-07-14 19:30
+- Decisions: Complete authentication roadmap work package 1 without introducing token/API behavior; use optional `oldap:authVersion` with migration default `0`, immutable public model access, transactional automatic increments, and explicit optimistic revocation.
+- Implementation: Extended the User ontology, `UserAttr`, `UserData`, and `User`; new users persist version `0`, credential/role/project/deactivation changes increment it once, `User.revoke_authentication()` detects stale concurrent state, and user changesets are fully cleared after successful updates. Added migration, increment, immutability, and conflict tests and marked roadmap work package 1 complete.
+- Open: Work package 2 must introduce the minimal authorization context and purpose-specific access/refresh token codecs; `oldap-api` and clients still use the existing 24-hour JWT behavior.
+- Risks/Assumptions: Missing production triples intentionally read as version `0`; global revocation is conflict-detectable rather than silently retrying, so callers must treat a stale-update failure as already changed state or reload before retrying.
+
+### Update 2026-07-14 19:12
+- Decisions: Record the proposed authentication redesign before implementation; use 15-minute access JWTs, 14-day refresh JWTs, and one per-user `oldap:authVersion` for global refresh revocation while keeping normal API requests stateless.
+- Implementation: Added `docs/authentication_architecture_roadmap.md` with architecture boundaries, token/API contracts, cookie and secret policy, phased work packages, verification gates, rollout order, and accepted trade-offs; linked it from MkDocs and the project roadmap.
+- Open: Confirm same-origin versus cross-origin deployment topology before choosing final cookie `SameSite` and CORS settings; no authentication code, ontology, API, deployment, or client behavior has been changed yet.
+- Risks/Assumptions: Global logout intentionally affects all devices, already-issued access tokens remain valid for at most their short lifetime, and refresh-token rotation/reuse detection remains deferred unless durable per-device sessions become a concrete requirement.
+
 ### Update 2026-06-18 22:50
 - Decisions: Add linked-resource search as an explicit filter type instead of overloading property names or changing existing `SearchFilter` semantics.
 - Implementation: Added `LinkedResourceSearchFilter` with optional `linkedClass` and `checkLinkedPermissions`; extended `ResourceInstance.search()` to filter by one property on one directly linked resource inside the resource-selection subquery, with optional linked-resource `DATA_VIEW` checks. Centralized filter expression rendering and added query-generation plus GraphDB-backed tests for linked title filtering and linked permission behavior.

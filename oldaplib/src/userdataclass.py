@@ -16,6 +16,7 @@ from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
@@ -55,6 +56,8 @@ class UserData:
     :type inProject: InProjectClass | None
     :ivar hasRole: A serializable set containing the roles or permissions assigned to the user.
     :type hasRole: SerializeableSet[Iri] | None
+    :ivar authVersion: Global version used to revoke all refresh tokens for the user.
+    :type authVersion: Xsd_nonNegativeInteger
     """
     _creator: Iri | None
     _created: Xsd_dateTime | datetime | None
@@ -70,6 +73,7 @@ class UserData:
     _inProject: InProjectClass | None
     _hasRole: ObservableDict | None
     _passwordResetRequestAt: Xsd_dateTimeStamp | None
+    _authVersion: Xsd_nonNegativeInteger
     _userclass: Xsd_QName
     _additionalProperties: dict[Xsd_QName, Any]
 
@@ -88,6 +92,7 @@ class UserData:
                  inProject: InProjectClass | None = None,
                  hasRole: ObservableDict | Dict[Xsd_QName, Xsd_QName | None] | Dict[str, str] | None = None,
                  passwordResetRequestAt: Xsd_dateTimeStamp | None = None,
+                 authVersion: Xsd_nonNegativeInteger | int = 0,
                  userclass: Xsd_QName | str = Xsd_QName('oldap:User'),
                  additionalProperties: dict[Xsd_QName, Any] | None = None,
                  validate: bool = False):
@@ -103,6 +108,11 @@ class UserData:
         self._credentials = credentials
         self._isActive = isActive
         self._passwordResetRequestAt = passwordResetRequestAt
+        self._authVersion = (
+            authVersion
+            if isinstance(authVersion, Xsd_nonNegativeInteger)
+            else Xsd_nonNegativeInteger(authVersion, validate=validate)
+        )
         self._userclass = userclass if isinstance(userclass, Xsd_QName) else Xsd_QName(userclass, validate=validate)
         self._additionalProperties = additionalProperties or {}
         self._inProject = inProject or InProjectClass()
@@ -173,6 +183,11 @@ class UserData:
     @property
     def passwordResetRequestAt(self) -> Xsd_dateTimeStamp | None:
         return self._passwordResetRequestAt
+
+    @property
+    def authVersion(self) -> Xsd_nonNegativeInteger:
+        """Return the user's global authentication revocation version."""
+        return self._authVersion
 
     @property
     def inProject(self) -> InProjectClass | None:
@@ -291,6 +306,7 @@ class UserData:
         inProjectDict: dict[Iri | str, set[AdminPermission]] | None = None
         hasRoleDict: ObservableDict | None = None
         passwordResetRequestAt: Xsd_dateTimeStamp | None = None
+        authVersion = Xsd_nonNegativeInteger(0)
         userclass = Xsd_QName('oldap:User')
         additionalProperties: dict[Xsd_QName, Any] = {}
         for r in queryresult:
@@ -321,6 +337,8 @@ class UserData:
                     isActive = r['val']
                 case 'oldap:passwordResetRequestAt':
                     passwordResetRequestAt = r['val']
+                case 'oldap:authVersion':
+                    authVersion = Xsd_nonNegativeInteger(r['val'])
                 case 'oldap:inProject':
                     if not inProjectDict:
                         inProjectDict = {r['val']: set()}
@@ -365,6 +383,7 @@ class UserData:
                    credentials=credentials,
                    isActive=isActive,
                    passwordResetRequestAt=passwordResetRequestAt,
+                   authVersion=authVersion,
                    inProject=inProject,
                    hasRole=hasRoleDict,
                    userclass=userclass,
@@ -380,6 +399,7 @@ class UserData:
                 'email': self._email,
                 'isActive': self._isActive,
                 'passwordResetRequestAt': self._passwordResetRequestAt,
+                'authVersion': self._authVersion,
                 'hasRole': self._hasRole,
                 'inProject': self._inProject,
                 'userclass': self._userclass,
