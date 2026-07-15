@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from pprint import pprint
 from time import sleep
+from unittest.mock import patch
 
 import jwt
 
@@ -64,6 +65,19 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(con.server, 'http://localhost:7200')
         self.assertEqual(con.repo, 'oldap')
         self.assertEqual(con.context_name, 'DEFAULT')
+
+    def test_direct_connection_without_access_token(self):
+        """Authenticate a trusted direct consumer without a signing secret."""
+        with patch.dict("os.environ", {"OLDAP_ACCESS_JWT_SECRET": ""}):
+            con = Connection(
+                userId="rosenth",
+                credentials="RioGrande",
+                context_name="DEFAULT",
+                issue_access_token=False,
+            )
+
+        self.assertEqual(con.userid, Xsd_NCName("rosenth"))
+        self.assertIsNone(con.token)
 
     def test_basic_connection_wrong_credentials(self):
         with self.assertRaises(OldapError) as ex:

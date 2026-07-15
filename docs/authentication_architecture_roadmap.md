@@ -457,6 +457,12 @@ secrets, audiences, and decode paths. Missing or short secrets fail closed,
 and `Connection(token=...)` now reconstructs its authorization context through
 the access-token decoder while preserving `Connection.token`.
 
+Trusted direct consumers that authenticate against GraphDB and never expose a
+bearer token may construct `Connection(issue_access_token=False)`. Credential
+validation and authorization-context construction remain unchanged, while no
+JWT is issued and `Connection.token` remains `None`. This mode must not be used
+by HTTP clients as a substitute for the API authentication boundary.
+
 ### Work package 3: authentication endpoints
 
 Status: **Completed**

@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-07-15 21:54
+- Decisions: Support trusted direct GraphDB consumers without weakening service token validation or distributing JWT signing secrets outside token-issuing services.
+- Implementation: Added `Connection(issue_access_token=False)` for credential authentication and authorization-context construction without JWT issuance, corrected the optional token interface type, added integration coverage, documented the public security boundary, and prepared version 0.7.1.
+- Open: Publish version 0.7.1 and verify downstream direct consumers during their dependency upgrades.
+- Risks/Assumptions: Tokenless connections are for trusted direct consumers only; HTTP clients must continue through the API bearer/refresh boundary.
+
 ### Update 2026-07-15 17:56
 - Decisions: Separate media delivery capabilities from API authentication with a dedicated `typ=media` token, derived media audience, one-hour default lifetime, and independent signing key.
 - Implementation: Extended `TokenSettings`, `TokenCodec`, `IConnection`, and `Connection` with media-token issuance/validation; migrated MediaObject lookup token generation and tests; documented the cross-repository API/media-server trust contract and deployment key isolation.

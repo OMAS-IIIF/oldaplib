@@ -129,7 +129,8 @@ class Connection(IConnection):
                  dbuser: Optional[str] = None,
                  dbpassword: Optional[str] = None,
                  context_name: Optional[str] = DEFAULT_CONTEXT,
-                 token_codec: TokenCodec | None = None) -> None:
+                 token_codec: TokenCodec | None = None,
+                 issue_access_token: bool = True) -> None:
         """
         Constructor that establishes the connection parameters.
 
@@ -151,6 +152,12 @@ class Connection(IConnection):
                             isolated consumers and tests. Environment-backed
                             settings are used by default.
         :type token_codec: Optional[TokenCodec]
+        :param issue_access_token: Issue an access JWT after credential
+                                   authentication. Trusted direct consumers
+                                   that never expose or reuse a bearer token may
+                                   disable issuance and avoid access to the JWT
+                                   signing secret.
+        :type issue_access_token: bool
         :raises OldapError: Raised when invalid credentials or token are provided, or if there is
                             an issue during the authentication process. Also raised on login failure
                             in specific scenarios.
@@ -256,7 +263,8 @@ class Connection(IConnection):
 
         self._auth_version = int(userdata.authVersion)
         self._userdata = AuthorizationContext.from_user_data(userdata)
-        self._token = self.__token_codec.issue_access_token(self._userdata)
+        if issue_access_token:
+            self._token = self.__token_codec.issue_access_token(self._userdata)
         logger.info(f'Connection established. User "{str(self._userdata.userId)}".')
 
     @staticmethod
