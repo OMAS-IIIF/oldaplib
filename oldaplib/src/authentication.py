@@ -97,7 +97,7 @@ class AuthorizationContext:
             for project, permissions in self.inProject.items()
         }
         roles = {
-            str(role): str(permission) if permission is not None else None
+            str(role): str(permission.value) if permission is not None else None
             for role, permission in self.hasRole.items()
         }
         return {"inProject": projects, "hasRole": roles}
