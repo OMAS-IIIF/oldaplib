@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-07-30 19:10
+- Decisions: Use `ArchivStruktur.md` as the architecture/development working document; record the generic archive unit, controlled level values, single-parent adjacency tree, and separation of archival description, staging, and digital media as proposals pending Phase 0 confirmation.
+- Implementation: Expanded the document with architecture principles, a minimal model proposal, a five-phase incremental roadmap, deliberately deferred scope, numbered open questions, decision status, and ICA references; synchronized the stable project context.
+- Open: Resolve the Phase 0 questions using a small real Fasnacht reference tree before implementing ontology or API changes.
+- Risks/Assumptions: The model and vocabulary names remain provisional; strict hierarchy profiles, permission inheritance, RiC-O mapping, and specialized services are intentionally deferred until justified by concrete use cases.
+
 ### Update 2026-07-15 21:54
 - Decisions: Support trusted direct GraphDB consumers without weakening service token validation or distributing JWT signing secrets outside token-issuing services.
 - Implementation: Added `Connection(issue_access_token=False)` for credential authentication and authorization-context construction without JWT issuance, corrected the optional token interface type, added integration coverage, documented the public security boundary, and prepared version 0.7.1.

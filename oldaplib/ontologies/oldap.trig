@@ -885,6 +885,8 @@
 
     :hasRole rdf:type owl:ObjectProperty .
 
+    :passwordResetRequestAt rdf:type owl:DatatypeProperty .
+
     :authVersion rdf:type owl:DatatypeProperty .
 
     #
