@@ -15,7 +15,7 @@
 @prefix : <http://oldap.org/shared#> .
 
 shared:shacl {
-    shared:shapes schema:version "0.1.0"^^xsd:string .
+    shared:shapes schema:version "0.4.0"^^xsd:string .
 
     ###########################################################################
     # External standard onologies used
@@ -25,7 +25,7 @@ shared:shacl {
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:modified "2026-08-02T22:45:00+02:00"^^xsd:dateTime ;
         oldap:prefix "dcterms"^^xsd:NCName ;
         oldap:namespaceIri <http://purl.org/dc/terms/> ;
         rdfs:label "Dublin Core"@en ;
@@ -58,6 +58,7 @@ shared:shacl {
         oldap:proposedDatatypePropertyClass "identifier"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "issued"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "modified"^^xsd:NCName ;
+        oldap:proposedDatatypePropertyClass "provenance"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "subject"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "tableOfContents"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "title"^^xsd:NCName ;
@@ -88,7 +89,7 @@ shared:shacl {
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
         dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:modified "2026-08-02T22:45:00+02:00"^^xsd:dateTime ;
         oldap:prefix "schema"^^xsd:NCName ;
         oldap:namespaceIri <https://schema.org/> ;
         rdfs:label "schema.org"@en ;
@@ -105,6 +106,7 @@ shared:shacl {
         oldap:proposedDatatypePropertyClass "alternative"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "available"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "bibliographicCitation"^^xsd:NCName ;
+        oldap:proposedDatatypePropertyClass "conditionsOfAccess"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "created"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "date"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "dateAccepted"^^xsd:NCName ;
@@ -112,7 +114,9 @@ shared:shacl {
         oldap:proposedDatatypePropertyClass "dateSubmitted"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "identifier"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "issued"^^xsd:NCName ;
+        oldap:proposedDatatypePropertyClass "materialExtent"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "modified"^^xsd:NCName ;
+        oldap:proposedDatatypePropertyClass "position"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "title"^^xsd:NCName ;
         oldap:proposedDatatypePropertyClass "valid"^^xsd:NCName ;
         oldap:proposedObjectPropertyClass "audience"^^xsd:NCName ;
@@ -335,6 +339,113 @@ shared:shacl {
         ]
     .
 
+    ###############################################################################
+    # Archive unit
+    ###############################################################################
+
+    shared:ArchiveUnitShape a sh:NodeShape ;
+        sh:targetClass shared:ArchiveUnit ;
+        dcterms:created "2026-07-30T23:55:00+02:00"^^xsd:dateTime ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2026-08-02T22:45:00+02:00"^^xsd:dateTime ;
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        rdfs:label "Archive unit"@en, "Archiveinheit"@de, "Unité archivistique"@fr, "Unità archivistica"@it ;
+        sh:closed "true"^^xsd:boolean ;
+        sh:node oldap:ThingShape ;
+        sh:property [
+            sh:path schema:name ;
+            sh:datatype rdf:langString ;
+            sh:name "Title"@en, "Titel"@de, "Titre"@fr, "Titolo"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:uniqueLang true ;
+            sh:order "1.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:archiveLevel ;
+            sh:class shared:ArchiveLevel ;
+            sh:in (
+                shared:ArchiveGroup
+                shared:Fonds
+                shared:Subfonds
+                shared:Series
+                shared:Subseries
+                shared:File
+                shared:Item
+            ) ;
+            sh:name "Archive level"@en, "Archivstufe"@de, "Niveau de description"@fr, "Livello archivistico"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "2.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:parentArchiveUnit ;
+            sh:class shared:ArchiveUnit ;
+            sh:name "Parent archive unit"@en, "Übergeordnete Archiveinheit"@de, "Unité archivistique parente"@fr, "Unità archivistica superiore"@it ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "3.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path schema:identifier ;
+            sh:datatype xsd:string ;
+            sh:name "Reference code"@en, "Signatur"@de, "Cote"@fr, "Segnatura"@it ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "4.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path schema:description ;
+            sh:datatype rdf:langString ;
+            sh:name "Scope and content"@en, "Inhalt und Zusammenfassung"@de, "Contenu et résumé"@fr, "Contenuto e sintesi"@it ;
+            sh:uniqueLang true ;
+            sh:order "5.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path dcterms:temporal ;
+            sh:class oldap:Dating ;
+            sh:name "Date or date range"@en, "Laufzeit"@de, "Date ou période"@fr, "Data o intervallo"@it ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "6.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path schema:materialExtent ;
+            sh:datatype rdf:langString ;
+            sh:name "Extent and medium"@en, "Umfang und Medium"@de, "Importance matérielle et support"@fr, "Consistenza e supporto"@it ;
+            sh:uniqueLang true ;
+            sh:order "7.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path dcterms:creator ;
+            sh:class dcterms:Agent ;
+            sh:name "Record creator"@en, "Bestandsbildner"@de, "Producteur d'archives"@fr, "Soggetto produttore"@it ;
+            sh:order "8.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path dcterms:provenance ;
+            sh:datatype rdf:langString ;
+            sh:name "Custodial history"@en, "Überlieferungs- und Besitzgeschichte"@de, "Historique de la conservation"@fr, "Storia archivistica e proprietà"@it ;
+            sh:uniqueLang true ;
+            sh:order "9.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path schema:conditionsOfAccess ;
+            sh:datatype rdf:langString ;
+            sh:name "Conditions of access"@en, "Zugangsbedingungen"@de, "Conditions d'accès"@fr, "Condizioni di accesso"@it ;
+            sh:uniqueLang true ;
+            sh:order "10.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path schema:position ;
+            sh:datatype xsd:integer ;
+            sh:name "Position"@en, "Position"@de, "Position"@fr, "Posizione"@it ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "11.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:hasMediaObject ;
+            sh:class shared:MediaObject ;
+            sh:name "Media object"@en, "Medienobjekt"@de, "Objet multimédia"@fr, "Oggetto multimediale"@it ;
+            sh:order "12.0"^^xsd:decimal ;
+        ] .
+
     shared:StagingAreaShape a sh:NodeShape ;
         sh:targetClass shared:StagingArea ;
         dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
@@ -441,7 +552,7 @@ shared:shacl {
 
 shared:onto {
     shared:ontology rdf:type owl:Ontology ;
-        owl:versionInfo "0.1.0"^^xsd:string .
+        owl:versionInfo "0.4.0"^^xsd:string .
 
     ###########################################################################
     # Calendar vocabulary for historical dating
@@ -621,6 +732,63 @@ shared:onto {
         rdfs:subClassOf oldap:Thing .
 
     ###########################################################################
+    # Archive unit and archive levels
+    ###########################################################################
+
+    shared:ArchiveUnit rdf:type owl:Class ;
+        rdfs:subClassOf oldap:Thing ;
+        rdfs:label "Archive unit"@en, "Archiveinheit"@de, "Unité archivistique"@fr, "Unità archivistica"@it .
+
+    shared:ArchiveLevel rdf:type owl:Class ;
+        rdfs:label "Archive level"@en, "Archivstufe"@de, "Niveau de description"@fr, "Livello archivistico"@it .
+
+    shared:ArchiveGroup rdf:type owl:NamedIndividual, shared:ArchiveLevel ;
+        rdfs:label "Archive group"@en, "Bestandsgruppe"@de, "Groupe de fonds"@fr, "Gruppo di fondi"@it .
+
+    shared:Fonds rdf:type owl:NamedIndividual, shared:ArchiveLevel ;
+        rdfs:label "Fonds"@en, "Bestand"@de, "Fonds"@fr, "Fondo"@it .
+
+    shared:Subfonds rdf:type owl:NamedIndividual, shared:ArchiveLevel ;
+        rdfs:label "Subfonds"@en, "Teilbestand"@de, "Sous-fonds"@fr, "Subfondo"@it .
+
+    shared:Series rdf:type owl:NamedIndividual, shared:ArchiveLevel ;
+        rdfs:label "Series"@en, "Serie"@de, "Série"@fr, "Serie"@it .
+
+    shared:Subseries rdf:type owl:NamedIndividual, shared:ArchiveLevel ;
+        rdfs:label "Subseries"@en, "Teilserie"@de, "Sous-série"@fr, "Sottoserie"@it .
+
+    shared:File rdf:type owl:NamedIndividual, shared:ArchiveLevel ;
+        rdfs:label "File"@en, "Dossier/Akte"@de, "Dossier"@fr, "Fascicolo"@it .
+
+    shared:Item rdf:type owl:NamedIndividual, shared:ArchiveLevel ;
+        rdfs:label "Item"@en, "Dokument/Einzelstück"@de, "Pièce"@fr, "Unità documentaria"@it .
+
+    shared:archiveLevel rdf:type owl:ObjectProperty ;
+        rdfs:domain shared:ArchiveUnit ;
+        rdfs:range shared:ArchiveLevel .
+
+    shared:parentArchiveUnit rdf:type owl:ObjectProperty ;
+        rdfs:domain shared:ArchiveUnit ;
+        rdfs:range shared:ArchiveUnit .
+
+    shared:hasMediaObject rdf:type owl:ObjectProperty ;
+        rdfs:domain shared:ArchiveUnit ;
+        rdfs:range shared:MediaObject .
+
+    # Standard properties used by ArchiveUnit. ArchiveUnit-specific
+    # cardinalities and value classes remain in SHACL so these standard
+    # properties do not receive an incorrect global OLDAP domain.
+    dcterms:temporal rdf:type owl:ObjectProperty .
+
+    dcterms:creator rdf:type owl:ObjectProperty .
+
+    dcterms:provenance rdf:type owl:DatatypeProperty .
+
+    schema:conditionsOfAccess rdf:type owl:DatatypeProperty .
+
+    schema:materialExtent rdf:type owl:DatatypeProperty .
+
+    ###########################################################################
     # Staging Area
     ###########################################################################
 
@@ -656,4 +824,3 @@ shared:onto {
         rdfs:subClassOf shared:MediaObject .
 
 }
-

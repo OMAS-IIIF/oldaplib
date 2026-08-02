@@ -60,7 +60,7 @@ OLDAP-Datenmodell.
 
 ### 1. Eine generische Archiveinheit statt vieler Unterklassen
 
-Alle Knoten der archivischen Hierarchie werden durch eine gemeinsame ResourceClass dargestellt, vorläufig
+Alle Knoten der archivischen Hierarchie werden durch eine gemeinsame ResourceClass dargestellt,
 `shared:ArchiveUnit` genannt. Ob eine Einheit eine Bestandsgruppe, ein Bestand, eine Serie oder ein Dossier ist, wird
 durch die Eigenschaft `shared:archiveLevel` ausgedrückt.
 
@@ -98,7 +98,9 @@ nicht auf frei eingegebene Zeichenketten. Als initiale Werte sind vorgesehen:
 - `shared:File`
 - `shared:Item`
 
-Die endgültigen Namen und die Frage, ob projektspezifische Erweiterungen erlaubt werden, sind noch offen.
+Diese Werte sind feste Named Individuals der Shared-Ontologie. Das SHACL-Modell begrenzt `archiveLevel` mit `sh:in`
+auf genau diese Werte. Neue Archivstufen werden deshalb nicht durch Listenadministration oder einzelne Projekte,
+sondern nur als bewusste, versionierte Erweiterung der Shared-Ontologie eingeführt.
 
 ### 4. Archivische Beschreibung und digitale Repräsentation bleiben getrennt
 
@@ -138,7 +140,7 @@ sind:
 - Eine Archiveinheit hat höchstens eine direkt übergeordnete Archiveinheit.
 - Wurzeleinheiten haben keine übergeordnete Einheit.
 - Beim Verschieben dürfen keine Zyklen entstehen.
-- Eine optionale Reihenfolge unter Geschwistern muss eindeutig interpretierbar sein.
+- Eine optionale Position bezeichnet die Reihenfolge unter direkten Geschwistern.
 
 Folgende Regeln werden vorerst bewusst **nicht** im SHACL-Grundmodell erzwungen:
 
@@ -150,74 +152,159 @@ Folgende Regeln werden vorerst bewusst **nicht** im SHACL-Grundmodell erzwungen:
 Leere Einheiten müssen während der inkrementellen Erfassung zulässig sein. Strengere fachliche Regeln können später
 als konfigurierbares Archivprofil, Anwendungsvalidierung oder Warnung in der Benutzeroberfläche ergänzt werden.
 
-## Minimaler Modellvorschlag
+## Implementiertes minimales Modell
 
-Die Namen sind vorläufig und werden vor der Ontologieimplementierung geprüft.
+Das Ontologie-MVP ist seit Version `0.2.0` direkt in `oldaplib/ontologies/shared.trig` enthalten; Phase 3A erweitert
+es in Version `0.3.0` und Phase 3B in Version `0.4.0` ausschliesslich um optionale Erschliessungsfelder. Die Datei
+bleibt die massgebliche Quelle für die Shared-Ontologie; das Projekt-YAML-Format von `oldap-tools` wird weiterhin nur
+für Projektontologien verwendet.
 
 | Element | Kardinalität im MVP | Zweck |
 |---|---:|---|
 | `shared:ArchiveUnit` | – | Gemeinsame ResourceClass aller archivischen Beschreibungseinheiten |
-| `schema:name` oder `dcterms:title` | genau 1 | Menschenlesbarer Titel; Wahl der bestehenden OLDAP-Konvention ist offen |
+| `schema:name` | 1..n Sprachwerte | Verpflichtender mehrsprachiger Titel mit höchstens einem Wert pro Sprache |
 | `shared:archiveLevel` | genau 1 | Kontrollierte Archivstufe |
 | `shared:parentArchiveUnit` | 0..1 | Direkte hierarchische Elternbeziehung |
-| `shared:referenceCode` | 0..1 | Archivsignatur oder Referenzcode |
+| `schema:identifier` | 0..1 | Optionale, zunächst manuell vergebene Archivsignatur |
+| `schema:description` | 0..n Sprachwerte | Optionaler Inhalt und Zusammenfassung, höchstens ein Wert pro Sprache |
+| `dcterms:temporal` | 0..1 | Optionale Laufzeit als bestehender `oldap:Dating`-Wert |
+| `schema:materialExtent` | 0..n Sprachwerte | Optionaler Umfang und Medium, höchstens ein Wert pro Sprache |
+| `dcterms:creator` | 0..n | Optionale Verknüpfungen zu Bestandsbildnern vom Typ `dcterms:Agent` |
+| `dcterms:provenance` | 0..n Sprachwerte | Optionale Überlieferungs- und Besitzgeschichte, höchstens ein Wert pro Sprache |
+| `schema:conditionsOfAccess` | 0..n Sprachwerte | Optionale informative Zugangsbedingungen, höchstens ein Wert pro Sprache |
+| `schema:position` | 0..1 | Optionale ganzzahlige Reihenfolge unter Geschwistern |
 | `shared:hasMediaObject` | 0..n | Verknüpfung zu digitalen Repräsentationen |
-| `shared:archiveOrder` | 0..1 | Optionale manuelle Reihenfolge unter Geschwistern |
-| `dcterms:description` oder projektspezifische Beschreibung | 0..1/mehrsprachig | Kurze Inhaltsbeschreibung |
 
-Für die erste Version werden keine spezialisierten Python-Klassen benötigt, sofern die generischen
-`ResourceInstance`-Funktionen Erstellen, Lesen, Aktualisieren, Löschen und Suchen ausreichend abdecken.
+SHACL definiert Kardinalitäten, Datentypen, Werteklassen und die erlaubten Archivstufen. OWL deklariert die Klassen,
+Named Individuals und Properties; Einschränkungen der wiederverwendeten Standard-Properties auf `ArchiveUnit` bleiben
+bewusst in SHACL, damit ihre globale Bedeutung nicht verfälscht wird. Ein fokussierter Strukturtest stellt sicher,
+dass beide Hälften synchron bleiben.
+
+In Phase 1 wurden bewusst keine spezialisierten Python-Klassen eingeführt. Die generischen
+`ResourceInstance`-Funktionen bleiben für Erstellen, Lesen, normale Metadatenänderungen, Löschen und Suchen zuständig.
+Phase 2 ergänzt nur für das Verschieben eine kleine `ArchiveTree`-Servicegrenze, weil die Zyklusprüfung nicht sicher
+der Benutzeroberfläche überlassen werden darf.
 
 ## Inkrementelle Entwicklungsstrategie
 
 Jede Phase soll einen eigenständig nutzbaren vertikalen Schnitt liefern. Der nächste Schritt beginnt erst, wenn der
 vorherige mit realistischen Daten erprobt wurde.
 
-### Phase 0: Fachliches Beispiel und Entscheidungen
+### Phase 0: Interne Modellentscheidung – abgeschlossen
 
-- Einen kleinen, realen Fasnacht-Bestand mit ungefähr 15–30 Einheiten als Referenzbaum festhalten.
-- Die Begriffe und erforderlichen Minimalfelder mit Archivfachpersonen prüfen.
-- Die offenen MVP-Fragen in diesem Dokument entscheiden.
-- Akzeptanzkriterien und erwartete Abfragen anhand des Beispielbaums formulieren.
+- Die notwendige archivfachliche Kompetenz ist im OLDAP-Team vorhanden; eine vorgängige Validierung durch das
+  Fasnachtsprojekt ist deshalb keine Voraussetzung.
+- Das generische Knotenmodell, die festen Archivstufen und die minimalen Metadaten wurden intern festgelegt.
+- Ein kleiner technischer Testbaum kann bei den CRUD- und Abfragetests entstehen, statt als separates Fachprojekt
+  vorbereitet zu werden.
 
-**Ergebnis:** Ein gemeinsames fachliches Beispiel und ein entscheidungsreifer MVP-Umfang; noch keine produktive
-Implementierung.
+**Ergebnis:** Der MVP-Umfang ist entschieden und die Ontologieimplementierung kann unmittelbar erfolgen.
 
-### Phase 1: Ontologie-MVP
+### Phase 1: Ontologie-MVP – abgeschlossen
 
-- `ArchiveUnit`, Elternbeziehung, Archivstufe und minimale Metadaten in der Shared-Ontologie definieren.
-- Kontrollierte Archivstufen als benannte RDF-Individuen anlegen.
-- Beispieldaten und Ontologie-/SHACL-Tests ergänzen.
-- Generische CRUD- und Suchoperationen mit dem Referenzbaum prüfen.
+- [x] `ArchiveUnit`, Elternbeziehung, Archivstufe und minimale Metadaten in der Shared-Ontologie definieren.
+- [x] Kontrollierte Archivstufen als benannte RDF-Individuen anlegen.
+- [x] Einen GraphDB-unabhängigen Strukturtest für SHACL und OWL ergänzen.
+- [x] Einen kleinen technischen Beispielbaum und Integrationstests ergänzen.
+- [x] Generische CRUD- und Suchoperationen mit dem Referenzbaum prüfen.
 - Noch keine besondere Archiv-API und keine konfigurierbaren Hierarchieregeln einführen.
 
-**Ergebnis:** Archivbäume können mit bestehenden OLDAP-Mitteln gespeichert und gelesen werden.
+Der Integrationstest `TestObjectFactory.test_archive_unit_reference_tree_crud_and_search` erzeugt diesen technischen
+Referenzbaum zur Laufzeit:
 
-### Phase 2: Minimale Baumoperationen
+```text
+REF                  [Fonds]
+└── REF-01           [Series]
+    └── REF-01-01    [File]
+        ├── ...-001  [Item, Position 1]
+        └── ...-002  [Item, Position 2]
+```
 
-- Direkte Kinder und den Pfad zur Wurzel laden.
-- Einen Teilbaum für Navigation und Darstellung abfragen.
-- Archiveinheiten verschieben und dabei Zyklen verhindern.
-- Falls erforderlich, Geschwister manuell sortieren.
-- Erst jetzt beurteilen, ob eine kleine Archiv-Servicegrenze in `oldaplib` oder `oldap-api` einen konkreten Nutzen hat.
+Der Test prüft das Erstellen aller Knoten, das Lesen von Wurzel und Kind, das Aktualisieren einer Beschreibung, die
+Suche nach direkten Kindern mit Filter auf Elternknoten und Archivstufe, die Sortierung nach `schema:position` sowie
+das Löschen. Der Baum wird anschliessend vollständig entfernt. Der Testaufbau lädt die aktuelle `shared.trig`
+explizit, damit nicht unbemerkt eine ältere, bereits in GraphDB vorhandene Shared-Ontologie getestet wird.
 
-**Ergebnis:** Die Struktur kann sicher und komfortabel navigiert und bearbeitet werden.
+**Ergebnis:** Archivbäume können mit bestehenden generischen OLDAP-Mitteln gespeichert, gelesen, geändert, gesucht
+und gelöscht werden. Eine besondere Archiv-API ist für diesen Grundumfang nicht erforderlich.
 
-### Phase 3: Archivische Erschliessungsmetadaten
+### Phase 2: Minimale Baumoperationen – abgeschlossen
 
-Nur nachgewiesen benötigte Felder werden ergänzt, beispielsweise:
+- [x] Direkte Kinder mit der bestehenden strukturierten OLDAP-Suche laden.
+- [x] Den Pfad zur Wurzel aus den geladenen Vorfahren darstellen.
+- [x] Teilbäume in der Oberfläche schrittweise und nur beim Aufklappen laden.
+- [x] Archiveinheiten über eine kleine Backend-Servicegrenze verschieben und Zyklen verhindern.
+- [x] Die optionale `schema:position` beim Verschieben setzen oder entfernen und Geschwister danach sortieren.
+- [x] Leere Archiveinheiten in der Oberfläche löschbar machen und nichtleere Einheiten durch Vorprüfungen sowie die
+  vorhandene generische Referenzprüfung schützen.
 
-- Laufzeit beziehungsweise Datumsbereich
-- Umfang und Medium
-- Bestandsbildner und Provenienz
-- Inhalt und innere Ordnung
-- Zugangs- und Benutzungsbedingungen
-- physischer Standort
+Die Aufgabenteilung bleibt bewusst klein:
 
-Gemeinsame Informationen sollen auf der höchsten passenden Ebene beschrieben und nicht unnötig in allen Kindern
-dupliziert werden.
+- `oldaplib/src/archive_tree.py` enthält nur `path_to_root()` und das integritätskritische `move()`.
+- `POST /data/{project}/{instiri}/archive-move` ist die HTTP-Grenze. Der normale Instanz-Update-Endpunkt lehnt
+  Änderungen an `shared:parentArchiveUnit` und `schema:position` für Archiveinheiten ab, damit die Zyklusprüfung nicht
+  umgangen werden kann.
+- `src/lib/components/admin/archive/ArchiveTree.svelte` in FasnachtsPage kapselt Darstellung, Lazy Loading,
+  Pfadanzeige und den einfachen Verschiebe-Dialog. Die vorhandene grosse Archivseite bindet diese Komponente nur ein.
+- Direkte Kinder und Wurzeln werden weiterhin über die generische Suche abgefragt; es gibt keinen eigenen Lese-Endpunkt
+  und keinen vorab geladenen Gesamtbaum.
 
-**Ergebnis:** Die Struktur unterstützt eine praktisch ausreichende archivische Erschliessung.
+Beim Verschieben werden ausschliesslich Elternreferenz und optional die Geschwisterposition geändert. Signatur,
+Berechtigungen und publizierte Links bleiben unverändert. Berechtigungen bleiben pro Archiveinheit unabhängig.
+Archiveinheiten mit Kindern können bereits heute nicht gelöscht werden, weil die generische `ResourceInstance.delete()`-
+Prüfung eingehende Referenzen erkennt. Die Oberfläche erlaubt das Löschen deshalb nur nach einer Bestätigung und prüft
+zuvor, dass die Einheit keine Kinder und keine mit `shared:hasMediaObject` verknüpften Medien besitzt. Titel,
+Archivstufe und weitere beschreibende Metadaten verhindern das Löschen eines ansonsten leeren Blatts nicht. Weitere
+eingehende Referenzen werden weiterhin vom Backend abgewiesen. Eine kaskadierende Löschung wird nicht eingeführt.
+
+**Ergebnis:** Die Struktur kann schrittweise navigiert, nach Position sortiert und über eine kleine, zyklusgeprüfte
+Servicegrenze verschoben werden, ohne ein zusätzliches Archiv-Subsystem aufzubauen.
+
+### Phase 3: Archivische Erschliessungsmetadaten – abgeschlossen
+
+#### Phase 3A: Minimaler Erschliessungssatz – abgeschlossen
+
+- [x] Die bestehende `schema:description` fachlich als **Inhalt und Zusammenfassung** bezeichnen.
+- [x] `dcterms:temporal` mit genau höchstens einem bestehenden `oldap:Dating`-Wert als **Laufzeit** ergänzen.
+- [x] `schema:materialExtent` als mehrsprachiges Feld für **Umfang und Medium** ergänzen.
+- [x] `dcterms:creator` als mehrwertige Verknüpfung zu `dcterms:Agent` für **Bestandsbildner** ergänzen.
+- [x] Alle neuen Angaben optional halten; verpflichtend bleiben nur Titel und Archivstufe.
+- [x] Erstellen und Bearbeiten in einer kleinen `ArchiveUnitEditor.svelte`-Komponente über die generische OLDAP-API
+  ermöglichen. Elternknoten und Position bleiben ausserhalb dieses Metadateneditors und benutzen weiterhin die
+  gesicherte Baumoperation aus Phase 2.
+- [x] SHACL, OWL, GraphDB-Rundlauf, Frontend-Payloads und API-Grenze testen.
+
+Die Erweiterung ist additiv und rückwärtskompatibel: Bestehende Archiveinheiten bleiben gültig, weil kein neues
+Pflichtfeld eingeführt und keine vorhandene Property entfernt oder umgedeutet wurde. Es ist deshalb weder eine
+Datenmigration noch ein Schnitt erforderlich. Bestehende Fasnachts-Archivdaten werden in dieser Phase nicht verändert.
+Sie gelten weiterhin als Testdaten und können nach Abschluss der Architekturarbeiten mit einem separat geprüften,
+eng auf Archivklassen begrenzten Bereinigungsschritt entfernt und neu erfasst werden. Geschichten und andere
+Nicht-Archivressourcen dürfen von diesem späteren Schritt ausdrücklich nicht berührt werden.
+
+**Ergebnis 3A:** Archiveinheiten können mit Titel, Stufe, Signatur, Inhalt, Laufzeit, Umfang/Medium und einem oder
+mehreren Bestandsbildnern erfasst werden. Gemeinsame Angaben können auf der höchsten passenden Einheit stehen und
+müssen nicht in Kindern dupliziert werden.
+
+#### Phase 3B: Überlieferungsgeschichte und Zugangsbedingungen – abgeschlossen
+
+- [x] `dcterms:provenance` als optionalen mehrsprachigen Text für die **Überlieferungs- und Besitzgeschichte** ergänzen.
+- [x] `schema:conditionsOfAccess` als optionalen mehrsprachigen Informationstext für **Zugangsbedingungen** ergänzen.
+- [x] Zugangsbedingungen fachlich und in der Oberfläche klar von technischen OLDAP-Rollen und Berechtigungen trennen.
+- [x] Erstellen, Lesen, Ändern und gezieltes Entfernen beider optionalen Angaben über den bestehenden
+  `ArchiveUnitEditor.svelte` ermöglichen.
+- [x] SHACL, OWL, externe Property-Registrierung und Frontend-Payloads mit fokussierten Tests abdecken.
+
+Beide Properties sind optionale `rdf:langString`-Werte mit höchstens einem Text pro Sprache. Ein eingetragener
+Zugangshinweis dokumentiert beispielsweise eine Voranmeldung oder Sperrfrist, erzwingt diese aber nicht technisch.
+Wirksame Zugriffsbeschränkungen müssen weiterhin separat über OLDAP-Rollen und DataPermissions eingerichtet werden.
+Benutzungs- und Reproduktionsbedingungen, innere Ordnung sowie physische Standorte bleiben bewusst ausserhalb dieser
+Teilphase. Konkrete Medienlizenzen verbleiben bei den Medienobjekten.
+
+Die Erweiterung ist erneut additiv und rückwärtskompatibel. Bestehende Archiveinheiten bleiben ohne die beiden neuen
+Felder gültig; eine Datenmigration ist nicht erforderlich.
+
+**Ergebnis Phase 3:** Die Struktur unterstützt nach den schrittweise bestätigten Teilphasen eine praktisch
+ausreichende archivische Erschliessung.
 
 ### Phase 4: Vermittlung und Kontextualisierung
 
@@ -254,72 +341,75 @@ ihren zusätzlichen Modell- und Implementierungsaufwand rechtfertigt.
 
 ## Offene Fragen
 
-### Für Phase 0 beziehungsweise vor dem Ontologie-MVP
+### Nach Phase 2 verbleibend
 
-1. **Bedeutung der Bestandsgruppe:** Ist sie eine vollwertige beschreibbare Archiveinheit oder nur eine
-   Navigationsüberschrift beziehungsweise Gruppierung?
-2. **Wurzelmodell:** Darf ein OLDAP-Projekt mehrere unabhängige Archivbäume besitzen? Benötigen diese eine eigene
-   Ressource wie `Archive` oder genügen mehrere `ArchiveUnit`-Wurzeln?
-3. **Archivstufen:** Reichen die initial vorgeschlagenen sieben Stufen? Werden projektspezifische Stufen bereits im MVP
-   benötigt?
-4. **Signatur:** Ist `referenceCode` für jede Archiveinheit verpflichtend? Wird die Signatur manuell eingegeben,
-   automatisch erzeugt oder teilweise aus der Hierarchie abgeleitet?
-5. **Titel:** Soll der Titel genau einsprachig oder als `LangString` mehrsprachig sein? Welche bestehende
-   Titel-Eigenschaft soll OLDAP konsequent verwenden?
-6. **Reihenfolge:** Reicht eine Sortierung nach Signatur oder Titel, oder muss eine davon unabhängige manuelle Ordnung
-   gespeichert werden?
-7. **Dokumentbegriff:** Bezeichnet `Item`/Dokument die kleinste intellektuell beschriebene Einheit, ein physisches
+1. **Dokumentbegriff:** Bezeichnet `shared:Item` die kleinste intellektuell beschriebene Einheit, ein physisches
    Objekt oder beides? Wie werden mehrteilige Dokumente abgegrenzt?
-8. **Medienbeziehung:** Kann ein Medienobjekt mehreren Archiveinheiten zugeordnet sein, oder gehört es fachlich genau
-   zu einer Einheit?
 
-### Vor Phase 2
+In Phase 2 geklärt wurden Verschieben, Löschen, Abfrageumfang und die vorläufige Berechtigungsregel: Ein Verschieben
+ändert nur Elternreferenz und optionale Position; nichtleere Einheiten werden nicht gelöscht; direkte Kinder,
+Vorfahrenpfad und ein schrittweise geladener Teilbaum genügen; Berechtigungen werden nicht vererbt.
 
-9. **Verschieben:** Welche Auswirkungen hat das Verschieben auf Signaturen, Sortierung, Berechtigungen und publizierte
-   Links?
-10. **Löschen:** Darf eine Archiveinheit mit Kindern gelöscht werden? Wahrscheinlich sollte dies verhindert oder als
-    explizite Massenoperation behandelt werden.
-11. **Abfrageumfang:** Welche Baumansichten werden wirklich benötigt: direkte Kinder, vollständiger Teilbaum,
-    Vorfahrenpfad, Geschwister oder alle davon?
-12. **Berechtigungen:** Bleiben Berechtigungen zunächst unabhängig pro Archiveinheit? Falls später Vererbung gewünscht
-    wird: Gilt sie nur als Auswertungsregel oder werden Berechtigungen auf Kinder kopiert?
+### Nach Phase 3 und später
 
-### Vor Phase 3 und später
+Die Erschliessungsangaben aus Phase 3 bleiben optional; verpflichtend sind weiterhin nur Titel und Archivstufe.
+Bestandsbildner werden als bestehende `dcterms:Agent`-Ressourcen verknüpft, und eine Einheit kann mehrere
+Bestandsbildner besitzen. Zugangsbedingungen sind reine Informationstexte und keine technischen Berechtigungen.
 
-13. **Pflichtmetadaten:** Welche ISAD(G)-Kernelemente müssen bereits beim Erfassen vorhanden sein, und welche dürfen
-    erst vor einer Publikation verlangt werden?
-14. **Provenienz:** Werden Bestandsbildner als bestehende Personen-/Organisationen-Ressourcen verknüpft, und kann eine
-    Einheit mehrere Bestandsbildner besitzen?
-15. **Physische Ordnung:** Muss die physische Lagerstruktur unabhängig von der intellektuellen Archivordnung modelliert
+8. **Physische Ordnung:** Muss die physische Lagerstruktur unabhängig von der intellektuellen Archivordnung modelliert
     werden?
-16. **Vererbung in der Anzeige:** Welche Metadaten einer übergeordneten Einheit sollen Kinder in der Oberfläche
+9. **Vererbung in der Anzeige:** Welche Metadaten einer übergeordneten Einheit sollen Kinder in der Oberfläche
     kontextuell anzeigen, ohne diese Daten zu duplizieren?
-17. **Staging-Publikation:** Erzeugt der Publikationsprozess neue Archiveinheiten, ordnet er Medien bestehenden Einheiten
+10. **Staging-Publikation:** Erzeugt der Publikationsprozess neue Archiveinheiten, ordnet er Medien bestehenden Einheiten
     zu oder muss er beide Varianten unterstützen?
-18. **Standardaustausch:** Welche konkreten Austauschformate oder Zielsysteme haben Priorität? Ohne benannten
+11. **Standardaustausch:** Welche konkreten Austauschformate oder Zielsysteme haben Priorität? Ohne benannten
     Austauschpartner soll kein komplexes Mapping implementiert werden.
 
 ## Entscheidungsstand
 
-### Vorgeschlagene Leitentscheidungen – noch zu bestätigen
+### Beschlossen
 
-- Eine generische `ArchiveUnit` bildet alle Hierarchieebenen ab.
+- Die universelle Archivdefinition liegt als Teil von `shared.trig` in der Shared-Ontologie. Es gibt keine separate
+  Archiv-TriG-Datei und kein zusätzliches Shared-YAML als zweite Quelle.
+- Eine generische `shared:ArchiveUnit` bildet alle Hierarchieebenen ab; auch eine Bestandsgruppe ist eine vollwertige
+  Archiveinheit.
 - Die Archivstufe wird als kontrollierte Eigenschaft und nicht durch Unterklassen modelliert.
-- Die Hierarchie verwendet eine einfache Elternreferenz mit höchstens einem Elternknoten.
-- Archiveinheiten und Medienobjekte sind getrennte Konzepte und werden explizit verknüpft.
+- `ArchiveLevel` ist eine OWL-Klasse mit sieben festen Named Individuals. Es ist keine veränderbare OLDAP-Taxonomie.
+- Die Hierarchie verwendet eine einfache Elternreferenz mit höchstens einem Elternknoten. Mehrere Wurzeleinheiten und
+  damit mehrere unabhängige Archivbäume pro Projekt sind im MVP erlaubt; eine zusätzliche `Archive`-Klasse gibt es nicht.
+- `schema:name` ist der verpflichtende mehrsprachige Titel. `schema:identifier`, `schema:description` und
+  `schema:position` werden als bestehende Standard-Properties wiederverwendet.
+- Phase 3A verwendet zusätzlich `dcterms:temporal` für höchstens eine `oldap:Dating`-Laufzeit,
+  `schema:materialExtent` für mehrsprachigen Umfang und Medium sowie das mehrwertige `dcterms:creator` für
+  Bestandsbildner vom Typ `dcterms:Agent`. Alle drei Angaben bleiben optional.
+- Phase 3B verwendet optionales mehrsprachiges `dcterms:provenance` für die Überlieferungs- und Besitzgeschichte sowie
+  optionales mehrsprachiges `schema:conditionsOfAccess` für informative Zugangsbedingungen. Letztere verändern oder
+  ersetzen keine technischen OLDAP-Berechtigungen.
+- Der Metadateneditor verändert weder `shared:parentArchiveUnit` noch `schema:position`; Strukturänderungen bleiben an
+  die zyklusgesicherte Baumoperation aus Phase 2 gebunden.
+- Die Phase-3A-Erweiterung ist additiv und benötigt keine Migration bestehender Daten. Eine spätere Bereinigung der als
+  Testdaten betrachteten Fasnachts-Archivressourcen muss selektiv erfolgen und Geschichten sowie andere Projektdaten
+  bewahren.
+- Die Signatur ist im MVP optional und wird nicht automatisch aus der Hierarchie erzeugt.
+- Die optionale ganzzahlige `schema:position` kann eine manuelle Geschwisterreihenfolge ausdrücken; Eindeutigkeit und
+  automatische Neunummerierung werden im Grundmodell nicht erzwungen.
+- Archiveinheiten und Medienobjekte sind getrennte Konzepte und werden mit `shared:hasMediaObject` explizit verknüpft.
+  Das Shared-Grundmodell begrenzt nicht, von wie vielen Archiveinheiten dasselbe Medienobjekt referenziert werden darf.
 - Staging und dauerhafte Archivordnung bleiben getrennte Subsysteme.
-- Das Grundmodell erzwingt keine starre Abfolge oder Mindestanzahl von Kindern.
+- Das Grundmodell erzwingt keine starre Abfolge, Mindestanzahl von Kindern oder projektspezifische Hierarchieprofile.
+- Baumansichten laden Wurzeln und direkte Kinder schrittweise über die generische Suche; ein eigener Archiv-Lese-Endpunkt
+  und das Laden des vollständigen Baums sind vorerst nicht nötig.
+- Strukturänderungen laufen über eine kleine `ArchiveTree`-Servicegrenze. Sie verhindert Selbstreferenzen und das
+  Verschieben unter einen Nachfahren; der generische HTTP-Update-Endpunkt darf diese Grenze nicht umgehen.
+- Verschieben ändert nur `shared:parentArchiveUnit` und optional `schema:position`. Signaturen, Berechtigungen und
+  publizierte Links bleiben unverändert; Berechtigungen bleiben pro Archiveinheit unabhängig.
+- Leere Archiveinheiten dürfen nach Bestätigung gelöscht werden. Kinder, verknüpfte Medien oder andere eingehende
+  Referenzen verhindern das Löschen; es gibt keine kaskadierende Löschung im MVP.
 - Erweiterte Regeln, Standards und Services werden inkrementell anhand konkreter Anwendungsfälle eingeführt.
 
 ### Noch nicht entschieden
 
-Alle nummerierten Punkte im Abschnitt [Offene Fragen](#offene-fragen), insbesondere Wurzelmodell, Signaturpflicht,
-Reihenfolge und Berechtigungsverhalten.
-
-### Beschlossen
-
-Noch keine Architekturentscheidungen. Die vorgeschlagenen Leitentscheidungen werden im Rahmen von Phase 0 einzeln
-bestätigt oder angepasst.
+Die nummerierten Punkte im Abschnitt [Offene Fragen](#offene-fragen).
 
 ## Referenzen
 

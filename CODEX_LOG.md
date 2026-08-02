@@ -1,5 +1,41 @@
 # CODEX_LOG
 
+### Update 2026-08-02 22:45
+- Decisions: Complete archive Phase 3B with only optional multilingual `dcterms:provenance` and `schema:conditionsOfAccess`; keep access-condition prose strictly informational and separate from OLDAP permissions; defer the `shared:Item` versus Fasnacht object/media boundary to a dedicated design step.
+- Implementation: Bumped `shared.trig` to 0.4.0; registered and declared both standard datatype properties in synchronized SHACL/OWL, extended structural and generic CRUD coverage, exposed both values in the FasnachtsPage archive-unit editor, and updated the architecture working document plus stable project contexts.
+- Open: Resolve the precise relationship between `shared:ArchiveUnit` at `shared:Item`, `fasnacht:ArchiveObject`, and `fasnacht:ArchiveMediaObject` before integrating existing archive-domain records into the tree.
+- Risks/Assumptions: Both fields remain optional and therefore require no migration. `schema:conditionsOfAccess` does not enforce access; any real restriction still requires explicit OLDAP role/DataPermission configuration. The five GraphDB-independent ontology structure tests pass; the live development repository was intentionally not modified or exercised.
+
+### Update 2026-08-02 00:23
+- Decisions: Permit explicit deletion of empty archive leaves while retaining the no-cascade rule; descriptive metadata does not make a leaf structurally non-empty, but children, linked media, and incoming references block deletion.
+- Implementation: Documented the FasnachtsPage delete action, its child/media prechecks, confirmation, and the existing backend reference guard in `ArchivStruktur.md`.
+- Open: None for the empty-unit delete workflow.
+- Risks/Assumptions: The media precheck is application-side; the generic backend remains authoritative for incoming references and concurrent child creation.
+
+### Update 2026-08-01 23:30
+- Decisions: Complete archive Phase 3A as an additive, backward-compatible metadata extension; keep title and archive level as the only required fields, permit multiple linked record creators, and leave later description areas to Phase 3B.
+- Implementation: Bumped `shared.trig` to 0.3.0; added synchronized SHACL/OWL declarations for one optional `oldap:Dating` lifetime, multilingual extent/medium, and multi-valued `dcterms:Agent` creators; extended structural and GraphDB CRUD coverage and updated `ArchivStruktur.md` plus project context.
+- Open: Decide Phase 3B only from concrete needs for access conditions, custody history, arrangement, or physical location; design and review the later selective cleanup of Fasnacht archive test data separately.
+- Risks/Assumptions: Existing resources remain valid because no required field or existing property contract changed. The later cleanup must target archive classes narrowly and must preserve stories and other project data.
+
+### Update 2026-08-01 00:29
+- Decisions: Close archive phase 2 with generic lazy tree reads and one small `ArchiveTree` mutation service; keep signatures, links, and per-node permissions unchanged on moves, and rely on the existing incoming-reference guard instead of adding cascade deletion.
+- Implementation: Added ancestor-path traversal, cycle-safe parent moves, and optional position updates in `oldaplib/src/archive_tree.py`; expanded the GraphDB archive test for path loading, non-empty deletion rejection, move/order persistence, root moves, and cycle rejection; documented the completed cross-repository phase in `ArchivStruktur.md` and project context.
+- Open: Phase 3 must choose the smallest concrete set of archival description metadata; concurrent cross-node moves remain an operationally unlikely case that may need stronger serialization if real multi-editor contention appears.
+- Risks/Assumptions: Normal archive hierarchy mutations must use `ArchiveTree`; trusted direct `ResourceInstance` or GraphDB writers can still bypass domain services. The KISS implementation checks the target ancestry immediately before the normal transactional resource update rather than introducing a global tree lock.
+
+### Update 2026-08-01 00:04
+- Decisions: Close archive phase 1 using the existing generic `ResourceInstance` API; do not introduce a dedicated archive service or persistent example-data fixture for the MVP.
+- Implementation: Added a GraphDB integration test that creates a Fonds/Series/File/Item reference tree and verifies generic create, read, update, filtered/sorted search, and delete behavior; made the object-factory test setup load the current `shared.trig` deterministically; marked phase 1 complete in `ArchivStruktur.md` and synchronized project context.
+- Open: Phase 2 must decide and implement the actually required tree navigation, cycle-safe move, delete, and permission behavior.
+- Risks/Assumptions: The technical reference tree is isolated test data created and removed at runtime; phase 1 intentionally does not enforce parent/child level sequences, cycle prevention, or non-empty-parent deletion rules.
+
+### Update 2026-07-30 23:55
+- Decisions: Keep the archive MVP in `shared.trig`; model archive levels as seven fixed named individuals rather than an OLDAP taxonomy; reuse `schema:name`, `schema:identifier`, `schema:description`, and `schema:position`; keep hierarchy, media links, and validation deliberately minimal.
+- Implementation: Bumped the shared ontology to 0.2.0; added matching SHACL and OWL definitions for `shared:ArchiveUnit`, `shared:ArchiveLevel`, `shared:archiveLevel`, `shared:parentArchiveUnit`, and `shared:hasMediaObject`; added a GraphDB-independent structural test; updated the architecture working document and stable project context.
+- Open: Add a small technical archive fixture and verify generic `ResourceInstance` CRUD/search; cycle-safe moves and other tree services remain phase 2 work.
+- Risks/Assumptions: Archive signatures and sibling positions are optional and not automatically generated or uniqueness-checked; the base model permits multiple roots and media reuse; specialized hierarchy profiles remain intentionally deferred.
+
 ### Update 2026-07-30 19:10
 - Decisions: Use `ArchivStruktur.md` as the architecture/development working document; record the generic archive unit, controlled level values, single-parent adjacency tree, and separation of archival description, staging, and digital media as proposals pending Phase 0 confirmation.
 - Implementation: Expanded the document with architecture principles, a minimal model proposal, a five-phase incremental roadmap, deliberately deferred scope, numbered open questions, decision status, and ICA references; synchronized the stable project context.

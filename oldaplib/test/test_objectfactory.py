@@ -9,6 +9,7 @@ from time import sleep
 from unittest.mock import Mock, patch
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
+from oldaplib.src.archive_tree import ArchiveTree
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
@@ -21,7 +22,7 @@ from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorNoPermission, \
-    OldapErrorInUse, OldapErrorKey
+    OldapErrorInUse, OldapErrorKey, OldapErrorInconsistency
 from oldaplib.src.role import Role
 from oldaplib.src.project import Project
 from oldaplib.src.user import User
@@ -370,6 +371,8 @@ class TestObjectFactory(unittest.TestCase):
         cls._context['test'] = 'http://oldap.org/test#'
         cls._context.use('test')
 
+        cls._connection.clear_graph(Xsd_QName('shared:shacl'))
+        cls._connection.clear_graph(Xsd_QName('shared:onto'))
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
         cls._connection.clear_graph(Xsd_QName('test:data'))
@@ -382,6 +385,9 @@ class TestObjectFactory(unittest.TestCase):
         file = project_root / 'oldaplib' / 'ontologies' / 'admin-testing.trig'
         cls._connection.upload_turtle(file)
         #sleep(1)  # upload may take a while...
+
+        file = project_root / 'oldaplib' / 'ontologies' / 'shared.trig'
+        cls._connection.upload_turtle(file)
 
         file = project_root / 'oldaplib' / 'testdata' / 'objectfactory_test.trig'
         cls._connection.upload_turtle(file)
@@ -712,6 +718,190 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(data[Xsd_QName("shared:assetId")], ['cat.tif'])
         self.assertEqual(data[Xsd_QName("shared:derivativeName")], ['iiif.tif'])
         mo.delete()
+
+    def test_archive_unit_reference_tree_crud_and_search(self):
+        """Exercise the archive tree and optional description metadata via generic CRUD."""
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        ArchiveUnit = factory.createObjectInstance('shared:ArchiveUnit')
+        attached_to_role = {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW}
+        created_iris = []
+
+        def create_unit(*, title, level, identifier, parent=None, position=None,
+                        temporal=None, material_extent=None, record_creators=None,
+                        provenance=None, conditions_of_access=None):
+            """Create one node of the small technical archive reference tree."""
+            values = {
+                'schema:name': LangString(f'{title}@en'),
+                'shared:archiveLevel': Iri(level),
+                'schema:identifier': identifier,
+                'attachedToRole': attached_to_role,
+            }
+            if parent is not None:
+                values['shared:parentArchiveUnit'] = parent.iri
+            if position is not None:
+                values['schema:position'] = position
+            if temporal is not None:
+                values['dcterms:temporal'] = temporal
+            if material_extent is not None:
+                values['schema:materialExtent'] = material_extent
+            if record_creators:
+                values['dcterms:creator'] = record_creators
+            if provenance is not None:
+                values['dcterms:provenance'] = provenance
+            if conditions_of_access is not None:
+                values['schema:conditionsOfAccess'] = conditions_of_access
+            unit = ArchiveUnit(**values)
+            unit.create()
+            created_iris.append(unit.iri)
+            return unit
+
+        try:
+            fonds = create_unit(title='Technical reference fonds',
+                                level='shared:Fonds',
+                                identifier='REF',
+                                temporal=Dating('1911', '2025'),
+                                material_extent=LangString('12 boxes and 1.8 linear metres@en'),
+                                record_creators={Iri('test:DouglasAdams')},
+                                provenance=LangString('Transferred by the record creator in 2024@en'),
+                                conditions_of_access=LangString('Available by appointment@en'))
+            series = create_unit(title='Minutes',
+                                 level='shared:Series',
+                                 identifier='REF-01',
+                                 parent=fonds,
+                                 position=1)
+            file = create_unit(title='Committee minutes',
+                               level='shared:File',
+                               identifier='REF-01-01',
+                               parent=series,
+                               position=1)
+            item_1970 = create_unit(title='Committee minutes 1970',
+                                    level='shared:Item',
+                                    identifier='REF-01-01-001',
+                                    parent=file,
+                                    position=1)
+            item_1971 = create_unit(title='Committee minutes 1971',
+                                    level='shared:Item',
+                                    identifier='REF-01-01-002',
+                                    parent=file,
+                                    position=2)
+
+            loaded_fonds = factory.read(fonds.iri)
+            self.assertIsNone(loaded_fonds.get(Xsd_QName('shared:parentArchiveUnit')))
+            self.assertEqual(loaded_fonds[Xsd_QName('dcterms:temporal')],
+                             Dating('1911', '2025'))
+            self.assertEqual(loaded_fonds[Xsd_QName('schema:materialExtent')],
+                             LangString('12 boxes and 1.8 linear metres@en'))
+            self.assertEqual(loaded_fonds[Xsd_QName('dcterms:creator')],
+                             {Iri('test:DouglasAdams')})
+            self.assertEqual(loaded_fonds[Xsd_QName('dcterms:provenance')],
+                             LangString('Transferred by the record creator in 2024@en'))
+            self.assertEqual(loaded_fonds[Xsd_QName('schema:conditionsOfAccess')],
+                             LangString('Available by appointment@en'))
+
+            loaded_item = factory.read(item_1970.iri)
+            self.assertEqual(loaded_item[Xsd_QName('schema:name')],
+                             LangString('Committee minutes 1970@en'))
+            self.assertEqual(loaded_item[Xsd_QName('shared:archiveLevel')],
+                             {Iri('shared:Item')})
+            self.assertEqual(loaded_item[Xsd_QName('shared:parentArchiveUnit')],
+                             {file.iri})
+
+            loaded_item.description = LangString('Digitised committee minutes@en')
+            loaded_item.update()
+            updated_item = factory.read(item_1970.iri)
+            self.assertEqual(updated_item.description,
+                             LangString('Digitised committee minutes@en'))
+
+            children = ResourceInstance.search(
+                con=self._connection,
+                project='test',
+                resClass='shared:ArchiveUnit',
+                includeProperties={
+                    Xsd_QName('schema:name'),
+                    Xsd_QName('shared:archiveLevel'),
+                    Xsd_QName('schema:position'),
+                },
+                filter=[
+                    SearchFilter('shared:parentArchiveUnit', CompOp.EQ, file.iri),
+                    LogicOp.AND,
+                    SearchFilter('shared:archiveLevel', CompOp.EQ, Iri('shared:Item')),
+                ],
+                sortBy=[SortBy('schema:position', SortDir.asc)],
+            )
+            self.assertEqual([result['iri'] for result in children],
+                             [item_1970.iri, item_1971.iri])
+            self.assertTrue(all({str(level) for level in result['shared:archiveLevel']} == {'shared:Item'}
+                                for result in children))
+
+            item_1971.delete()
+            created_iris.remove(item_1971.iri)
+            with self.assertRaises(OldapErrorNotFound):
+                factory.read(item_1971.iri)
+        finally:
+            # Remove children before parents because incoming references protect
+            # non-empty archive units from deletion.
+            for iri in reversed(created_iris):
+                try:
+                    factory.read(iri).delete()
+                except OldapErrorNotFound:
+                    pass
+
+    def test_archive_tree_path_and_cycle_safe_move(self):
+        """Load an ancestor path and move a node without permitting cycles."""
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        ArchiveUnit = factory.createObjectInstance('shared:ArchiveUnit')
+        tree = ArchiveTree(con=self._connection, project='test')
+        created_iris = []
+
+        def create_unit(title, level, parent=None, position=None):
+            values = {
+                'schema:name': LangString(f'{title}@en'),
+                'shared:archiveLevel': Iri(level),
+                'attachedToRole': {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW},
+            }
+            if parent is not None:
+                values['shared:parentArchiveUnit'] = parent.iri
+            if position is not None:
+                values['schema:position'] = position
+            unit = ArchiveUnit(**values)
+            unit.create()
+            created_iris.append(unit.iri)
+            return unit
+
+        try:
+            fonds = create_unit('Move test fonds', 'shared:Fonds')
+            series = create_unit('Move test series', 'shared:Series', fonds, 1)
+            file = create_unit('Move test file', 'shared:File', series, 1)
+
+            self.assertEqual(
+                [unit.iri for unit in tree.path_to_root(file.iri)],
+                [fonds.iri, series.iri, file.iri],
+            )
+
+            with self.assertRaises(OldapErrorInUse):
+                series.delete()
+
+            moved = tree.move(file.iri, fonds.iri, position=2)
+            self.assertEqual(moved[Xsd_QName('shared:parentArchiveUnit')], {fonds.iri})
+            self.assertEqual(moved[Xsd_QName('schema:position')], {Xsd_integer(2)})
+            self.assertEqual(
+                [unit.iri for unit in tree.path_to_root(file.iri)],
+                [fonds.iri, file.iri],
+            )
+
+            with self.assertRaises(OldapErrorInconsistency):
+                tree.move(fonds.iri, file.iri)
+
+            tree.move(file.iri, None, position=None)
+            root_file = factory.read(file.iri)
+            self.assertIsNone(root_file.get(Xsd_QName('shared:parentArchiveUnit')))
+            self.assertIsNone(root_file.get(Xsd_QName('schema:position')))
+        finally:
+            for iri in reversed(created_iris):
+                try:
+                    factory.read(iri).delete()
+                except OldapErrorNotFound:
+                    pass
 
     def test_transform_mediaobject_keeps_iri_and_base_properties(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
