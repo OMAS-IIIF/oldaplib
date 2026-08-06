@@ -53,6 +53,7 @@ class TestSharedArchiveOntology(unittest.TestCase):
             DCTERMS.creator,
             DCTERMS.provenance,
             SCHEMA.conditionsOfAccess,
+            SCHEMA.about,
             SCHEMA.position,
             SHARED.hasMediaObject,
         }
@@ -87,12 +88,17 @@ class TestSharedArchiveOntology(unittest.TestCase):
             self.assertEqual(self.shacl.value(text_shape, SH.uniqueLang), Literal(True))
             self.assertIsNone(self.shacl.value(text_shape, SH.minCount))
 
+        about_shape = self._property_shape(SCHEMA.about)
+        self.assertEqual(self.shacl.value(about_shape, SH["class"]), OLDAP.Thing)
+        self.assertIsNone(self.shacl.value(about_shape, SH.minCount))
+        self.assertIsNone(self.shacl.value(about_shape, SH.maxCount))
+
     def test_shared_graph_versions_match(self) -> None:
         """The SHACL and OWL graphs advertise the same ontology version."""
         shacl_version = self.shacl.value(SHARED.shapes, SCHEMA.version)
         ontology_version = self.onto.value(SHARED.ontology, OWL.versionInfo)
         self.assertEqual(shacl_version, ontology_version)
-        self.assertEqual(shacl_version, Literal("0.4.0", datatype=XSD.string))
+        self.assertEqual(shacl_version, Literal("0.6.0", datatype=XSD.string))
 
     def test_archive_levels_are_fixed_named_individuals(self) -> None:
         """SHACL and OWL use the same closed set of stable archive levels."""
@@ -137,10 +143,13 @@ class TestSharedArchiveOntology(unittest.TestCase):
         self.assertIn((DCTERMS.creator, RDF.type, OWL.ObjectProperty), self.onto)
         self.assertIn((DCTERMS.provenance, RDF.type, OWL.DatatypeProperty), self.onto)
         self.assertIn((SCHEMA.conditionsOfAccess, RDF.type, OWL.DatatypeProperty), self.onto)
+        self.assertIn((SCHEMA.about, RDF.type, OWL.ObjectProperty), self.onto)
+        self.assertNotIn((SCHEMA.about, RDFS.domain, SHARED.ArchiveUnit), self.onto)
+        self.assertNotIn((SCHEMA.about, RDFS.range, OLDAP.Thing), self.onto)
         self.assertIn((SCHEMA.materialExtent, RDF.type, OWL.DatatypeProperty), self.onto)
 
-    def test_reused_text_properties_are_registered_with_their_ontologies(self) -> None:
-        """Every reused datatype property is registered under its own vocabulary."""
+    def test_reused_properties_are_registered_with_their_ontologies(self) -> None:
+        """Every reused external property is registered under its own vocabulary."""
         expected_registrations = {
             SHARED.schema: {"materialExtent", "conditionsOfAccess"},
             SHARED.dcterms: {"provenance"},
@@ -152,6 +161,12 @@ class TestSharedArchiveOntology(unittest.TestCase):
                     (ontology, OLDAP.proposedDatatypePropertyClass, value),
                     self.shacl,
                 )
+
+        about = Literal("about", datatype=XSD.NCName)
+        self.assertIn(
+            (SHARED.schema, OLDAP.proposedObjectPropertyClass, about),
+            self.shacl,
+        )
 
 
 if __name__ == "__main__":

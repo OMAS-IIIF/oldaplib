@@ -117,6 +117,12 @@ ArchiveUnit "Protokoll vom 3. Mai"
 Eine Archiveinheit kann ohne Digitalisierung existieren und mehrere Medienobjekte besitzen. Umgekehrt bleiben technische
 Medienmetadaten Aufgabe von `MediaObject` und des Mediaservers.
 
+Fachliche Objekte, Ereignisse oder andere Projektdomänen-Ressourcen werden ebenfalls nicht mit der Archiveinheit
+gleichgesetzt. Eine Archiveinheit kann über das optionale, mehrwertige `schema:about` auf beliebige bestehende
+`oldap:Thing`-Ressourcen verweisen. Das Shared-Modell kennt deshalb keine projektspezifischen Zielklassen und führt
+keine zusätzliche Markerklasse wie `shared:ArchiveSubject` ein. Projektoberflächen dürfen die auswählbaren Zielklassen
+für ihren Anwendungsfall einschränken, ohne die generische Ontologie zu verengen.
+
 ### 5. Staging ist Vorbild, aber nicht Teil der Archivhierarchie
 
 Die bestehende Struktur aus `shared:StagingFolder` und `shared:inStagingFolder` zeigt, dass eine einfache
@@ -155,9 +161,9 @@ als konfigurierbares Archivprofil, Anwendungsvalidierung oder Warnung in der Ben
 ## Implementiertes minimales Modell
 
 Das Ontologie-MVP ist seit Version `0.2.0` direkt in `oldaplib/ontologies/shared.trig` enthalten; Phase 3A erweitert
-es in Version `0.3.0` und Phase 3B in Version `0.4.0` ausschliesslich um optionale Erschliessungsfelder. Die Datei
-bleibt die massgebliche Quelle für die Shared-Ontologie; das Projekt-YAML-Format von `oldap-tools` wird weiterhin nur
-für Projektontologien verwendet.
+es in Version `0.3.0` und Phase 3B in Version `0.4.0` ausschliesslich um optionale Erschliessungsfelder. Version `0.5.0`
+ergänzt den generischen inhaltlichen Bezug. Die Datei bleibt die massgebliche Quelle für die Shared-Ontologie; das
+Projekt-YAML-Format von `oldap-tools` wird weiterhin nur für Projektontologien verwendet.
 
 | Element | Kardinalität im MVP | Zweck |
 |---|---:|---|
@@ -172,6 +178,7 @@ für Projektontologien verwendet.
 | `dcterms:creator` | 0..n | Optionale Verknüpfungen zu Bestandsbildnern vom Typ `dcterms:Agent` |
 | `dcterms:provenance` | 0..n Sprachwerte | Optionale Überlieferungs- und Besitzgeschichte, höchstens ein Wert pro Sprache |
 | `schema:conditionsOfAccess` | 0..n Sprachwerte | Optionale informative Zugangsbedingungen, höchstens ein Wert pro Sprache |
+| `schema:about` | 0..n | Optionale inhaltliche Bezüge zu beliebigen `oldap:Thing`-Ressourcen |
 | `schema:position` | 0..1 | Optionale ganzzahlige Reihenfolge unter Geschwistern |
 | `shared:hasMediaObject` | 0..n | Verknüpfung zu digitalen Repräsentationen |
 
@@ -306,8 +313,47 @@ Felder gültig; eine Datenmigration ist nicht erforderlich.
 **Ergebnis Phase 3:** Die Struktur unterstützt nach den schrittweise bestätigten Teilphasen eine praktisch
 ausreichende archivische Erschliessung.
 
+### Manueller YAML-Strukturimport – abgeschlossen
+
+Der manuelle YAML-Import ist der generische Normalfall für den Aufbau grösserer Archivstrukturen. Das Format ist
+rekursiv und projektneutral. Es kennt keine Vereine oder andere Fasnachtsspezifika und erlaubt mehrere Wurzeln. So kann
+beispielsweise jeder Verein im Projekt Fasnacht einen eigenen `Fonds` erhalten, ohne das Shared-Modell oder das
+Dateiformat um einen Vereinsbegriff zu erweitern.
+
+Jede YAML-Einheit besitzt einen dokumentweit eindeutigen, NCName-kompatiblen `id`. Dieser wird deterministisch zur
+Projekt-IRI, beispielsweise `bmg` im Projekt `fasnacht` zu `fasnacht:bmg`. Verpflichtend sind ausserdem Archivstufe und
+Titel; alle bereits in `shared:ArchiveUnit` vorhandenen Erschliessungsfelder können optional mitgegeben werden. Ein
+Skalartext verwendet die Standardsprache des Dokuments, mehrsprachige Texte werden als Sprach-Mapping geschrieben.
+
+`oldap-tools` stellt dafür drei klar getrennte Schritte bereit:
+
+```text
+archive validate  →  lokale Schema- und Inhaltsprüfung
+archive load      →  OLDAP-Preflight ohne Änderungen (Standard)
+archive load --apply → ausschliesslich neue Archiveinheiten erzeugen
+```
+
+Der Import ist **create-only**. Bestehende Ziel-IRIs führen zu einem Fehler; es gibt kein Zusammenführen nach Titel oder
+Signatur und kein Aktualisieren, Verschieben oder Löschen vorhandener Einheiten. Eine neue Teilstruktur kann trotzdem
+additiv unter eine bestehende Archiveinheit gehängt werden: Nur eine oberste YAML-Einheit darf mit `parent` auf deren
+vorhandene IRI zeigen. Der Preflight prüft Zielkollisionen sowie Existenz und Klasse solcher Elternknoten. Eltern werden
+vor Kindern erzeugt; bei einem Fehler versucht das Werkzeug, alle im laufenden Import bereits erzeugten Einheiten in
+umgekehrter Reihenfolge wieder zu entfernen.
+
+Die massgeblichen Dateien liegen in `oldap-tools`:
+
+- `src/oldap_tools/schemas/archive_schema.yaml`: maschinenlesbares Yamale-Schema
+- `docs/archive-yaml.md`: vollständige Format- und Betriebsdokumentation
+- `examples/archive-structure.yaml`: kleines Beispiel mit zwei unabhängigen Beständen
+- `src/oldap_tools/archive.py`: Validierung, Preflight und create-only Import
+
+Ein späterer Generator aus der Staging-Struktur soll genau dasselbe YAML erzeugen. Damit bleiben manuelle Definition und
+automatisch vorbereiteter Entwurf zwei Eingänge in denselben validierten Importweg. Der Generator, technische
+Ordnerregeln und die Medienübernahme sind nicht Bestandteil dieses ersten Schritts.
+
 ### Phase 4: Vermittlung und Kontextualisierung
 
+- [x] Mit optionalem `schema:about` eine generische Shared-Grundlage für inhaltliche Bezüge schaffen.
 - Geschichten, Ausstellungen, Themen und Ereignisse mit Archiveinheiten verknüpfen.
 - Mehrfachverwendung derselben Archiveinheit in unterschiedlichen Kontexten erlauben.
 - Archivische Ordnung und kuratierte Navigation getrennt darstellen.
@@ -341,28 +387,22 @@ ihren zusätzlichen Modell- und Implementierungsaufwand rechtfertigt.
 
 ## Offene Fragen
 
-### Nach Phase 2 verbleibend
-
-1. **Dokumentbegriff:** Bezeichnet `shared:Item` die kleinste intellektuell beschriebene Einheit, ein physisches
-   Objekt oder beides? Wie werden mehrteilige Dokumente abgegrenzt?
-
-In Phase 2 geklärt wurden Verschieben, Löschen, Abfrageumfang und die vorläufige Berechtigungsregel: Ein Verschieben
-ändert nur Elternreferenz und optionale Position; nichtleere Einheiten werden nicht gelöscht; direkte Kinder,
-Vorfahrenpfad und ein schrittweise geladener Teilbaum genügen; Berechtigungen werden nicht vererbt.
-
 ### Nach Phase 3 und später
 
 Die Erschliessungsangaben aus Phase 3 bleiben optional; verpflichtend sind weiterhin nur Titel und Archivstufe.
 Bestandsbildner werden als bestehende `dcterms:Agent`-Ressourcen verknüpft, und eine Einheit kann mehrere
-Bestandsbildner besitzen. Zugangsbedingungen sind reine Informationstexte und keine technischen Berechtigungen.
+Bestandsbildner besitzen. Zugangsbedingungen sind reine Informationstexte und keine technischen Berechtigungen. Der
+Dokumentbegriff ist im Grundmodell geklärt: `shared:Item` bezeichnet die kleinste archivisch beschriebene Einheit und
+ersetzt keine projektspezifische Objekt- oder Ereignisressource. Die fachliche Abgrenzung mehrteiliger Unterlagen bleibt
+eine Erfassungsentscheidung und wird nicht durch eine zusätzliche Grundmodellregel erzwungen.
 
-8. **Physische Ordnung:** Muss die physische Lagerstruktur unabhängig von der intellektuellen Archivordnung modelliert
+1. **Physische Ordnung:** Muss die physische Lagerstruktur unabhängig von der intellektuellen Archivordnung modelliert
     werden?
-9. **Vererbung in der Anzeige:** Welche Metadaten einer übergeordneten Einheit sollen Kinder in der Oberfläche
+2. **Vererbung in der Anzeige:** Welche Metadaten einer übergeordneten Einheit sollen Kinder in der Oberfläche
     kontextuell anzeigen, ohne diese Daten zu duplizieren?
-10. **Staging-Publikation:** Erzeugt der Publikationsprozess neue Archiveinheiten, ordnet er Medien bestehenden Einheiten
+3. **Staging-Publikation:** Erzeugt der Publikationsprozess neue Archiveinheiten, ordnet er Medien bestehenden Einheiten
     zu oder muss er beide Varianten unterstützen?
-11. **Standardaustausch:** Welche konkreten Austauschformate oder Zielsysteme haben Priorität? Ohne benannten
+4. **Standardaustausch:** Welche konkreten Austauschformate oder Zielsysteme haben Priorität? Ohne benannten
     Austauschpartner soll kein komplexes Mapping implementiert werden.
 
 ## Entscheidungsstand
@@ -385,6 +425,11 @@ Bestandsbildner besitzen. Zugangsbedingungen sind reine Informationstexte und ke
 - Phase 3B verwendet optionales mehrsprachiges `dcterms:provenance` für die Überlieferungs- und Besitzgeschichte sowie
   optionales mehrsprachiges `schema:conditionsOfAccess` für informative Zugangsbedingungen. Letztere verändern oder
   ersetzen keine technischen OLDAP-Berechtigungen.
+- `schema:about` verknüpft eine Archiveinheit optional und mehrwertig mit inhaltlich bezogenen Ressourcen. Die lokale
+  SHACL-Zielklasse ist `oldap:Thing`; es gibt weder eine Shared-Markerklasse noch einen globalen OWL-Range für die
+  externe schema.org-Property. Projektspezifische Klassen und Auswahlregeln bleiben ausserhalb der Shared-Ontologie.
+- `shared:Item` ist die kleinste archivisch beschriebene Einheit. Fachliche Objekte oder Ereignisse bleiben davon
+  getrennte Ressourcen und können über `schema:about` verbunden werden.
 - Der Metadateneditor verändert weder `shared:parentArchiveUnit` noch `schema:position`; Strukturänderungen bleiben an
   die zyklusgesicherte Baumoperation aus Phase 2 gebunden.
 - Die Phase-3A-Erweiterung ist additiv und benötigt keine Migration bestehender Daten. Eine spätere Bereinigung der als
@@ -396,6 +441,11 @@ Bestandsbildner besitzen. Zugangsbedingungen sind reine Informationstexte und ke
 - Archiveinheiten und Medienobjekte sind getrennte Konzepte und werden mit `shared:hasMediaObject` explizit verknüpft.
   Das Shared-Grundmodell begrenzt nicht, von wie vielen Archiveinheiten dasselbe Medienobjekt referenziert werden darf.
 - Staging und dauerhafte Archivordnung bleiben getrennte Subsysteme.
+- Der manuelle Archivstrukturimport verwendet ein projektneutrales, rekursives YAML mit mehreren möglichen Wurzeln.
+  Stabile YAML-IDs werden zu Projekt-IRIs. Der erste Importmodus ist create-only, standardmässig ein Dry-run und kann
+  neue Teilbäume über eine explizite vorhandene Eltern-IRI additiv ergänzen; bestehende Ressourcen werden nie implizit
+  zusammengeführt, aktualisiert, verschoben oder gelöscht.
+- Ein späterer Staging-Baum-Generator erzeugt dasselbe Archiv-YAML und führt keinen zweiten Importpfad ein.
 - Das Grundmodell erzwingt keine starre Abfolge, Mindestanzahl von Kindern oder projektspezifische Hierarchieprofile.
 - Baumansichten laden Wurzeln und direkte Kinder schrittweise über die generische Suche; ein eigener Archiv-Lese-Endpunkt
   und das Laden des vollständigen Baums sind vorerst nicht nötig.

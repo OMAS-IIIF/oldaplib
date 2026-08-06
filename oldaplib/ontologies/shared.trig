@@ -15,7 +15,7 @@
 @prefix : <http://oldap.org/shared#> .
 
 shared:shacl {
-    shared:shapes schema:version "0.4.0"^^xsd:string .
+    shared:shapes schema:version "0.6.0"^^xsd:string .
 
     ###########################################################################
     # External standard onologies used
@@ -347,7 +347,7 @@ shared:shacl {
         sh:targetClass shared:ArchiveUnit ;
         dcterms:created "2026-07-30T23:55:00+02:00"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2026-08-02T22:45:00+02:00"^^xsd:dateTime ;
+        dcterms:modified "2026-08-03T00:32:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         rdfs:label "Archive unit"@en, "Archiveinheit"@de, "Unité archivistique"@fr, "Unità archivistica"@it ;
         sh:closed "true"^^xsd:boolean ;
@@ -433,24 +433,30 @@ shared:shacl {
             sh:order "10.0"^^xsd:decimal ;
         ] ;
         sh:property [
+            sh:path schema:about ;
+            sh:class oldap:Thing ;
+            sh:name "Subject"@en, "Inhaltlicher Bezug"@de, "Sujet"@fr, "Riferimento tematico"@it ;
+            sh:order "11.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
             sh:path schema:position ;
             sh:datatype xsd:integer ;
             sh:name "Position"@en, "Position"@de, "Position"@fr, "Posizione"@it ;
             sh:maxCount "1"^^xsd:integer ;
-            sh:order "11.0"^^xsd:decimal ;
+            sh:order "12.0"^^xsd:decimal ;
         ] ;
         sh:property [
             sh:path shared:hasMediaObject ;
             sh:class shared:MediaObject ;
             sh:name "Media object"@en, "Medienobjekt"@de, "Objet multimédia"@fr, "Oggetto multimediale"@it ;
-            sh:order "12.0"^^xsd:decimal ;
+            sh:order "13.0"^^xsd:decimal ;
         ] .
 
     shared:StagingAreaShape a sh:NodeShape ;
         sh:targetClass shared:StagingArea ;
         dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:modified "2026-08-04T23:42:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         rdfs:label "Staging area"@en, "Vorbereitungsbereich"@de, "Zone de préparation"@fr, "Area di sosta"@it ;
         sh:property [
@@ -476,6 +482,15 @@ shared:shacl {
             sh:minCount "1"^^xsd:integer ;
             sh:maxCount "1"^^xsd:integer ;
             sh:order "3.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:stagingQuotaBytes ;
+            sh:datatype xsd:integer ;
+            sh:name "Staging quota in bytes"@en, "Staging-Quote in Bytes"@de, "Quota de staging en octets"@fr, "Quota di staging in byte"@it ;
+            sh:minCount "1"^^xsd:integer ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:minInclusive "1"^^xsd:integer ;
+            sh:order "4.0"^^xsd:decimal ;
         ] .
 
     shared:StagingFolderShape a sh:NodeShape ;
@@ -552,7 +567,7 @@ shared:shacl {
 
 shared:onto {
     shared:ontology rdf:type owl:Ontology ;
-        owl:versionInfo "0.4.0"^^xsd:string .
+        owl:versionInfo "0.6.0"^^xsd:string .
 
     ###########################################################################
     # Calendar vocabulary for historical dating
@@ -786,6 +801,10 @@ shared:onto {
 
     schema:conditionsOfAccess rdf:type owl:DatatypeProperty .
 
+    # The ArchiveUnit-specific target class remains in SHACL; no global
+    # domain or range is imposed on the external schema.org property.
+    schema:about rdf:type owl:ObjectProperty .
+
     schema:materialExtent rdf:type owl:DatatypeProperty .
 
     ###########################################################################
@@ -797,6 +816,9 @@ shared:onto {
 
     shared:stagingDefaultRole rdf:type owl:ObjectProperty ;
         rdfs:range oldap:Role .
+
+    shared:stagingQuotaBytes rdf:type owl:DatatypeProperty ;
+        rdfs:range xsd:integer .
 
     shared:StagingArea rdf:type owl:Class ;
         rdfs:subClassOf oldap:Thing .

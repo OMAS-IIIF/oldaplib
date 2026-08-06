@@ -1,5 +1,29 @@
 # CODEX_LOG
 
+### Update 2026-08-07 01:13
+- Decisions: Preserve the XML Schema distinction between arbitrary-precision `xsd:integer` and signed 32-bit `xsd:int`; byte quotas and other legitimate large integers must not be narrowed during resource conversion.
+- Implementation: Corrected `convert2datatype()` to construct `Xsd_integer` for `XsdDatatypes.integer` and added a focused regression test using 10,000,000,000 while retaining the `xsd:int` range failure.
+- Open: Publish a new `oldaplib` release, update the dependency in `oldap-api`, restart the API, and retry the StagingArea permission update.
+- Risks/Assumptions: This restores XML Schema semantics and is backward-compatible for existing in-range `xsd:integer` values; callers that incorrectly depended on receiving the narrower subclass may now observe the correct concrete type. Both focused regression tests and all 44 existing XSD datatype tests pass; the corrected local library also reads the live 10,000,000,000-byte BMG StagingArea quota as `Xsd_integer`.
+
+### Update 2026-08-04 23:42
+- Decisions: Make extracted-byte quota an explicit project-neutral property of each `shared:StagingArea`; require exactly one positive integer byte value so API admission fails closed and remains configurable per staging area.
+- Implementation: Bumped the working Shared ontology to 0.6.0; added `shared:stagingQuotaBytes` to StagingArea SHACL and OWL; added GraphDB-independent structural coverage while preserving the concurrent archive/schema changes already present.
+- Open: Existing staging-area instances must receive a quota before the 0.6.0 shape is deployed; deployment ordering must update data before or atomically with strict validation.
+- Risks/Assumptions: The required property is intentionally a schema change. Values represent retained extracted original bytes, not compressed ZIP bytes or temporary derivative overhead.
+
+### Update 2026-08-03 12:07
+- Decisions: Make manually authored, project-neutral YAML the canonical bulk archive-tree input; allow multiple roots and create-only attachment below an explicit existing parent; keep Staging conversion as a later generator for the same format.
+- Implementation: Documented the recursive YAML contract, stable project-IRI mapping, dry-run/preflight safety, additive extension boundary, rollback behavior, and the new `oldap-tools archive validate/load` workflow in `ArchivStruktur.md` and project context.
+- Open: Exercise an applied import against a running development GraphDB, then design the Staging-to-YAML draft generator and its technical-folder collapse/report rules.
+- Risks/Assumptions: Existing archive units are never updated or merged; explicit permission profiles remain outside YAML version 1 and new units use the authenticated user's normal default OLDAP role assignments.
+
+### Update 2026-08-03 00:32
+- Decisions: Keep project-domain objects and events separate from `shared:ArchiveUnit`; use optional multi-valued `schema:about` with local SHACL class `oldap:Thing`; introduce no Shared marker class, no global OWL domain/range, and no Fasnacht-ontology change.
+- Implementation: Bumped `shared.trig` to 0.5.0; added `schema:about` to the ArchiveUnit SHACL shape and declared it as an OWL object property without global restrictions; extended structural and generic CRUD coverage and recorded the resolved boundary in `ArchivStruktur.md` and stable project context.
+- Open: Design project-specific selection, display, and search behavior for `schema:about` separately; the Shared ontology deliberately does not enumerate eligible project classes.
+- Risks/Assumptions: The relation is optional and additive, so existing archive units remain valid without migration. `oldap:Thing` is the universal OLDAP resource boundary; project UIs may narrow choices without changing the ontology. All five GraphDB-independent archive ontology tests pass; the live development repository was intentionally not modified.
+
 ### Update 2026-08-02 22:45
 - Decisions: Complete archive Phase 3B with only optional multilingual `dcterms:provenance` and `schema:conditionsOfAccess`; keep access-condition prose strictly informational and separate from OLDAP permissions; defer the `shared:Item` versus Fasnacht object/media boundary to a dedicated design step.
 - Implementation: Bumped `shared.trig` to 0.4.0; registered and declared both standard datatype properties in synchronized SHACL/OWL, extended structural and generic CRUD coverage, exposed both values in the FasnachtsPage archive-unit editor, and updated the architecture working document plus stable project contexts.

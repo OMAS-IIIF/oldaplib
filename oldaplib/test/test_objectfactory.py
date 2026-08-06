@@ -728,7 +728,7 @@ class TestObjectFactory(unittest.TestCase):
 
         def create_unit(*, title, level, identifier, parent=None, position=None,
                         temporal=None, material_extent=None, record_creators=None,
-                        provenance=None, conditions_of_access=None):
+                        provenance=None, conditions_of_access=None, about=None):
             """Create one node of the small technical archive reference tree."""
             values = {
                 'schema:name': LangString(f'{title}@en'),
@@ -750,6 +750,8 @@ class TestObjectFactory(unittest.TestCase):
                 values['dcterms:provenance'] = provenance
             if conditions_of_access is not None:
                 values['schema:conditionsOfAccess'] = conditions_of_access
+            if about:
+                values['schema:about'] = about
             unit = ArchiveUnit(**values)
             unit.create()
             created_iris.append(unit.iri)
@@ -763,7 +765,8 @@ class TestObjectFactory(unittest.TestCase):
                                 material_extent=LangString('12 boxes and 1.8 linear metres@en'),
                                 record_creators={Iri('test:DouglasAdams')},
                                 provenance=LangString('Transferred by the record creator in 2024@en'),
-                                conditions_of_access=LangString('Available by appointment@en'))
+                                conditions_of_access=LangString('Available by appointment@en'),
+                                about={Iri('test:DouglasAdams')})
             series = create_unit(title='Minutes',
                                  level='shared:Series',
                                  identifier='REF-01',
@@ -797,6 +800,8 @@ class TestObjectFactory(unittest.TestCase):
                              LangString('Transferred by the record creator in 2024@en'))
             self.assertEqual(loaded_fonds[Xsd_QName('schema:conditionsOfAccess')],
                              LangString('Available by appointment@en'))
+            self.assertEqual(loaded_fonds[Xsd_QName('schema:about')],
+                             {Iri('test:DouglasAdams')})
 
             loaded_item = factory.read(item_1970.iri)
             self.assertEqual(loaded_item[Xsd_QName('schema:name')],

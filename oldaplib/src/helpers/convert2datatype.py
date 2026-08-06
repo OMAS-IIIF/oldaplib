@@ -26,6 +26,7 @@ from oldaplib.src.xsd.xsd_hexbinary import Xsd_hexBinary
 from oldaplib.src.xsd.xsd_id import Xsd_ID
 from oldaplib.src.xsd.xsd_idref import Xsd_IDREF
 from oldaplib.src.xsd.xsd_int import Xsd_int
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_language import Xsd_language
 from oldaplib.src.xsd.xsd_long import Xsd_long
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
@@ -103,7 +104,7 @@ def convert2datatype(value: Any, datatype: XsdDatatypes, validate: bool = False)
         case XsdDatatypes.IDREF:
             return Xsd_IDREF(value, validate=validate)
         case XsdDatatypes.integer:
-            return Xsd_int(value, validate=validate)
+            return Xsd_integer(value, validate=validate)
         case XsdDatatypes.nonPositiveInteger:
             return Xsd_nonPositiveInteger(value, validate=validate)
         case XsdDatatypes.negativeInteger:
