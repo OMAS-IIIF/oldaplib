@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-09 00:00
+- Decisions: Keep cross-resource linkage as an optional generic extension of `ResourceInstance.transform_class()`. Validate the source shape, object-property range, and maximum cardinality before mutation, then recheck source permission inside the transaction.
+- Implementation: Added paired `link_from_iri`/`link_from_property` arguments, atomic relation insertion and source modification metadata, transaction-time `DATA_UPDATE` enforcement, and integration coverage transforming a media object into an archive unit's `shared:hasMediaObject` relation.
+- Open: Publish the prepared oldaplib 0.7.5 patch release and update the oldap-api dependency lock before deploying the frontend workflow.
+- Risks/Assumptions: Both resources are in the same project data graph. Callers that omit both link arguments retain the existing transform behavior.
+
 ### Update 2026-08-07 01:13
 - Decisions: Preserve the XML Schema distinction between arbitrary-precision `xsd:integer` and signed 32-bit `xsd:int`; byte quotas and other legitimate large integers must not be narrowed during resource conversion.
 - Implementation: Corrected `convert2datatype()` to construct `Xsd_integer` for `XsdDatatypes.integer` and added a focused regression test using 10,000,000,000 while retaining the `xsd:int` range failure.

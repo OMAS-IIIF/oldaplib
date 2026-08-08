@@ -1801,7 +1801,9 @@ class ResourceInstance:
             preserve_class: Xsd_QName | str,
             properties: dict[str, Any] | None = None,
             expected_source_class: Xsd_QName | str | None = None,
-            attached_to_role: dict[str, str | DataPermission] | None = None) -> Self:
+            attached_to_role: dict[str, str | DataPermission] | None = None,
+            link_from_iri: Iri | str | None = None,
+            link_from_property: Xsd_QName | str | None = None) -> Self:
         """
         Atomically reclassify this resource while keeping the same IRI.
 
@@ -1821,6 +1823,10 @@ class ResourceInstance:
                 resource class to match before transforming.
             attached_to_role: Optional replacement role-to-data-permission map.
                 When omitted, existing role attachments are preserved.
+            link_from_iri: Optional related resource that must link to the
+                transformed resource in the same transaction.
+            link_from_property: Object property on ``link_from_iri`` used for
+                the new link. Both link arguments must be supplied together.
 
         Returns:
             A validated instance of the target resource class with the same IRI.
@@ -1877,6 +1883,37 @@ class ResourceInstance:
             'attachedToRole': {str(role): dperm for role, dperm in target_attached_roles.items()},
         }
         target_instance = TargetClass(iri=self._iri, **target_kwargs)
+
+        if (link_from_iri is None) != (link_from_property is None):
+            raise OldapErrorValue("link_from_iri and link_from_property must be supplied together.")
+        link_source = None
+        link_property_iri = None
+        if link_from_iri is not None and link_from_property is not None:
+            link_source_iri = link_from_iri if isinstance(link_from_iri, Iri) else Iri(link_from_iri, validate=True)
+            link_property_iri = (
+                link_from_property
+                if isinstance(link_from_property, Xsd_QName)
+                else Xsd_QName(link_from_property, validate=True)
+            )
+            link_source = self.factory.read(link_source_iri)
+            link_property = link_source.properties.get(link_property_iri)
+            if link_property is None:
+                raise OldapErrorValue(
+                    f'Link source class "{link_source.name}" does not define property "{link_property_iri}".'
+                )
+            if link_property.toClass is None:
+                raise OldapErrorValue(f'Link property "{link_property_iri}" is not an object property.')
+            if not self.__class_is_or_extends(TargetClass, Xsd_QName(str(link_property.toClass), validate=True)):
+                raise OldapErrorValue(
+                    f'Link property "{link_property_iri}" does not accept target class "{target_class_iri}".'
+                )
+            existing_links = link_source._values.get(link_property_iri)
+            if (
+                link_property.maxCount is not None
+                and self._iri not in (existing_links or set())
+                and len(existing_links or set()) >= int(link_property.maxCount)
+            ):
+                raise OldapErrorValue(f'Link property "{link_property_iri}" has reached its maximum cardinality.')
 
         delete_property_iris = {
             prop_iri
@@ -1999,11 +2036,45 @@ class ResourceInstance:
         ''')
         sparql_updates.append(sparql)
 
+        if link_source is not None and link_property_iri is not None:
+            sparql = context.sparql_context
+            sparql += textwrap.dedent(f'''
+            INSERT DATA {{
+                GRAPH {self._graph}:data {{
+                    {link_source._iri.toRdf} {link_property_iri.toRdf} {self._iri.toRdf} .
+                }}
+            }}
+            ''')
+            sparql_updates.append(sparql)
+
+            sparql = context.sparql_context
+            sparql += textwrap.dedent(f'''
+            WITH {self._graph}:data
+            DELETE {{
+                {link_source._iri.toRdf} oldap:lastModificationDate ?oldModified .
+                {link_source._iri.toRdf} oldap:lastModifiedBy ?oldContributor .
+            }}
+            INSERT {{
+                {link_source._iri.toRdf} oldap:lastModificationDate {timestamp.toRdf} .
+                {link_source._iri.toRdf} oldap:lastModifiedBy {self._con.userIri.toRdf} .
+            }}
+            WHERE {{
+                OPTIONAL {{ {link_source._iri.toRdf} oldap:lastModificationDate ?oldModified . }}
+                OPTIONAL {{ {link_source._iri.toRdf} oldap:lastModifiedBy ?oldContributor . }}
+            }}
+            ''')
+            sparql_updates.append(sparql)
+
         admin_resources, _ = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
         self._con.transaction_start()
         if not admin_resources and not self.get_data_permission(DataPermission.DATA_DELETE):
             self._con.transaction_abort()
             raise OldapErrorNoPermission(f'No permission to transform resource "{self._iri}"')
+        if link_source is not None:
+            link_admin_resources, _ = link_source.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
+            if not link_admin_resources and not link_source.get_data_permission(DataPermission.DATA_UPDATE):
+                self._con.transaction_abort()
+                raise OldapErrorNoPermission(f'No permission to update linked resource "{link_source._iri}"')
         try:
             for sparql_update in sparql_updates:
                 self._con.transaction_update(sparql_update)

@@ -910,6 +910,11 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_transform_mediaobject_keeps_iri_and_base_properties(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
+        ArchiveUnit = factory.createObjectInstance('shared:ArchiveUnit')
+        archive_unit = ArchiveUnit(name=LangString("Transformation target@en"),
+                                   archiveLevel='shared:Item',
+                                   attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_UPDATE})
+        archive_unit.create()
         MediaObject = factory.createObjectInstance('shared:MediaObject')
         media = MediaObject(originalName='TransformCat.tif',
                             type='dcmitype:StillImage',
@@ -928,7 +933,9 @@ class TestObjectFactory(unittest.TestCase):
                                              preserve_class='shared:MediaObject',
                                              expected_source_class='shared:MediaObject',
                                              properties={'test:caption': 'Ready for archive'},
-                                             attached_to_role={'oldap:Unknown': 'DATA_DELETE'})
+                                             attached_to_role={'oldap:Unknown': 'DATA_DELETE'},
+                                             link_from_iri=archive_unit.iri,
+                                             link_from_property='shared:hasMediaObject')
 
         self.assertEqual(transformed.iri, media.iri)
         data = ResourceInstance.read_data(con=self._connection, iri=media.iri, projectShortName='test')
@@ -940,7 +947,10 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(data[Xsd_QName('shared:originalName')], ['TransformCat.tif'])
         self.assertEqual(data[Xsd_QName('test:caption')], ['Ready for archive'])
         self.assertEqual(data[Xsd_QName('oldap:attachedToRole')], {Xsd_QName('oldap:Unknown'): DataPermission.DATA_DELETE})
+        linked_unit = factory.read(archive_unit.iri)
+        self.assertEqual(linked_unit[Xsd_QName('shared:hasMediaObject')], {media.iri})
 
+        linked_unit.delete()
         transformed.delete()
 
     def test_read_A(self):
