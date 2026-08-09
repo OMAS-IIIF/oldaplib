@@ -617,7 +617,10 @@ class DataModel(Model):
         sparql += '\n'
 
         for qname, onto in self.__extontos.items():
-            sparql += onto.create_shacl(timestamp=timestamp, indent=2)
+            # The surrounding INSERT/GRAPH clauses belong to the datamodel.
+            # Embedding ExternalOntology.create_shacl() here would create a
+            # syntactically invalid nested INSERT DATA update.
+            sparql += onto.create_shacl_triples(timestamp=timestamp, indent=2)
             sparql += '\n'
 
         for propiri, propclass in self.__propclasses.items():
@@ -812,6 +815,5 @@ class DataModel(Model):
         f = io.StringIO()
         self.__to_trig_format(f, indent=indent, indent_inc=indent_inc)
         return f.getvalue()
-
 
 

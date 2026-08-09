@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-09 23:20
+- Decisions: Preserve the standalone `ExternalOntology.create_shacl()` contract while separating reusable SHACL triples from the surrounding SPARQL update and graph clauses.
+- Implementation: Added `create_shacl_triples()`, changed `DataModel.create()` to embed that fragment instead of a complete nested `INSERT DATA`, added a GraphDB-independent parser regression test for datamodel creation with external ontologies, and prepared patch release 0.7.6.
+- Open: Publish `oldaplib` 0.7.6, update and release `oldap-tools`, rebuild its image, and repeat the failed Fasnacht ontology replacement on `api.home.org`.
+- Risks/Assumptions: The failed `--mode replace` invocation probably left the Fasnacht SHACL/OWL model graphs empty after committing their deletion; project data and list graphs are outside the failed creation transaction.
+
 ### Update 2026-08-09 00:00
 - Decisions: Keep cross-resource linkage as an optional generic extension of `ResourceInstance.transform_class()`. Validate the source shape, object-property range, and maximum cardinality before mutation, then recheck source permission inside the transaction.
 - Implementation: Added paired `link_from_iri`/`link_from_property` arguments, atomic relation insertion and source modification metadata, transaction-time `DATA_UPDATE` enforcement, and integration coverage transforming a media object into an archive unit's `shared:hasMediaObject` relation.
