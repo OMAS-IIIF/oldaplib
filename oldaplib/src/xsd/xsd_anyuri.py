@@ -47,12 +47,13 @@ class Xsd_anyURI(Xsd):
         r'(\?[a-zA-Z0-9._~%!$&\'()*+,;=:@/?-]*)?'  # Optional query
         r'(#[-a-zA-Z0-9._~%!$&\'()*+,;=:@/?]*)?')  # Optional fragment
 
-    def __init__(self, value: Self | str, validate: bool = False):
+    def __init__(self, value: Self | str | Xsd, validate: bool = False):
         """
         Constructor for the AnyIRI class. It performs a consistency check if the given string is an IRI.
         If the validate parameter is true, the extensive XsdValidator library will be used.
-        :param value: A string or another AnyIRI instance
-        :type value: Xsd_anyURI | str
+        :param value: A string, another AnyIRI instance, or an XSD value whose
+                      lexical form contains the URI
+        :type value: Xsd_anyURI | str | Xsd
         :param validate: Whether to validate the IRI against the IRI XML schema
         :type validate: bool
         :raises OldapErrorValue: The given string is not an IRI
@@ -62,23 +63,22 @@ class Xsd_anyURI(Xsd):
             self._value = value._value
             self._append_allowed = value.append_allowed
         else:
-            if isinstance(value, str):
-                value = value.replace("<", "").replace(">", "")
-            if value.startswith("urn:"):
-                if not re.match(r'^urn:[a-z0-9][a-z0-9-]{0,31}:[^\s]+', str(value)):
-                    raise OldapErrorValue(f'Invalid URN format for "{value}".')
-            elif value.startswith("http"):
-                if not re.match(self._uri_pattern, str(value)):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI (regexp).')
+            lexical_value = str(value).replace("<", "").replace(">", "")
+            if lexical_value.startswith("urn:"):
+                if not re.match(r'^urn:[a-z0-9][a-z0-9-]{0,31}:[^\s]+', lexical_value):
+                    raise OldapErrorValue(f'Invalid URN format for "{lexical_value}".')
+            elif lexical_value.startswith("http"):
+                if not re.match(self._uri_pattern, lexical_value):
+                    raise OldapErrorValue(f'Invalid string "{lexical_value}" for xsd:anyURI (regexp).')
                 if validate:
-                    if not XsdValidator.validate(XsdDatatypes.anyURI, str(value)):
-                        raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI (validator)')
+                    if not XsdValidator.validate(XsdDatatypes.anyURI, lexical_value):
+                        raise OldapErrorValue(f'Invalid string "{lexical_value}" for xsd:anyURI (validator)')
                     else:
-                        if not url(str(value)):
-                            raise OldapErrorValue(f'Invalid string "{value}" for xsd:anyURI (url()).')
+                        if not url(lexical_value):
+                            raise OldapErrorValue(f'Invalid string "{lexical_value}" for xsd:anyURI (url()).')
             else:
-                raise OldapErrorValue(f'Invalid string "{value}" for anyURI (no urn:/http:)')
-            self._value = str(value)
+                raise OldapErrorValue(f'Invalid string "{lexical_value}" for anyURI (no urn:/http:)')
+            self._value = lexical_value
         self._append_allowed = self._value[-1] == '/' or self._value[-1] == '#'
 
     def __repr__(self) -> str:

@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-10 23:18
+- Decisions: Permit `xsd:anyURI` construction from another typed XSD value by validating its lexical string form; retain the existing URI/URN validation and do not weaken invalid-value handling.
+- Implementation: Normalized non-`Xsd_anyURI` constructor inputs before scheme checks, added regression coverage for an URI-shaped `Xsd_string`, passed the focused GraphDB-backed unittest, and installed the local checkout editably into the oldap-api Poetry environment for local verification.
+- Open: Restart the user-managed oldap-api process and retry the Staging cross-folder move. Publish a patch release before deployment so environments do not depend on a sibling editable checkout.
+- Risks/Assumptions: ZIP-imported `shared:serverUrl` values currently exist as `xsd:string` although the active shape expects `xsd:anyURI`; lexical coercion is safe for valid URI strings and still rejects non-URI values.
+
 ### Update 2026-08-10 21:57
 - Decisions: Keep Staging-to-archive generation project-neutral and advisory; omit technical folders, never create Item units from media, and bind two-step HTTP imports to the exact UTF-8 YAML hash.
 - Implementation: Added deterministic Staging proposal generation with warning taxonomy, stable collision-resistant IDs, position preservation, alias/depth protections, exact SHA-256 binding, visible reference validation, tests, and synchronized public documentation/context.
