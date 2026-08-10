@@ -1,5 +1,17 @@
 # CODEX_LOG
 
+### Update 2026-08-10 21:57
+- Decisions: Keep Staging-to-archive generation project-neutral and advisory; omit technical folders, never create Item units from media, and bind two-step HTTP imports to the exact UTF-8 YAML hash.
+- Implementation: Added deterministic Staging proposal generation with warning taxonomy, stable collision-resistant IDs, position preservation, alias/depth protections, exact SHA-256 binding, visible reference validation, tests, and synchronized public documentation/context.
+- Open: Publish a future oldaplib version before installing the API/tools changes without sibling `PYTHONPATH`; exercise authenticated GraphDB preflight/apply against a development repository.
+- Risks/Assumptions: Generator media counts reflect only caller-visible media. Create-only apply remains best-effort rollback across per-resource transactions and reports any rollback failure explicitly.
+
+### Update 2026-08-10 21:35
+- Decisions: Make oldaplib the sole authority for archive YAML version 1; separate the nested editable document from project-resolved import plans and require `ADMIN_CREATE` plus `DATA_UPDATE` on external ArchiveUnit attachment points.
+- Implementation: Added canonical bundled schema, safe string/file parser and stable serializer, project resolution, read-only create-only preflight, parent-first apply with repeated checks and structured rollback outcomes, 11 focused unit tests, and MkDocs documentation.
+- Open: Complete the oldap-tools adapter verification, then build Staging export and HTTP/UI preflight/apply workflows on the central API.
+- Risks/Assumptions: Full GraphDB integration remains pending; focused tests are GraphDB-independent and preserve concrete OLDAP permission errors.
+
 ### Update 2026-08-09 23:20
 - Decisions: Preserve the standalone `ExternalOntology.create_shacl()` contract while separating reusable SHACL triples from the surrounding SPARQL update and graph clauses.
 - Implementation: Added `create_shacl_triples()`, changed `DataModel.create()` to embed that fragment instead of a complete nested `INSERT DATA`, added a GraphDB-independent parser regression test for datamodel creation with external ontologies, and prepared patch release 0.7.6.
