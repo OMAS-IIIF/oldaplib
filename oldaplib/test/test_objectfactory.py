@@ -13,7 +13,8 @@ from oldaplib.src.archive_tree import ArchiveTree
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
-    LinkedResourceSearchFilter, CompOp, LogicOp, FTSearchFilter, HLSearchFilter, _lucene_query_fields
+    LinkedResourceSearchFilter, CompOp, LogicOp, FTSearchFilter, HLSearchFilter, _lucene_query_fields, \
+    _resource_from_construct
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -106,6 +107,57 @@ class TestLuceneFulltextFilter(unittest.TestCase):
         ])
 
         self.assertEqual(fields, 'storyContent:Basel \\"Morgestraich\\" AND abstract:Larve')
+
+
+class TestResourceConstructModelFiltering(unittest.TestCase):
+
+    @staticmethod
+    def construct_with_inferred_descriptions():
+        resource_iri = Iri('urn:uuid:86fe799c-c562-4c76-a744-5112ab94e12e', validate=False)
+        description = Xsd_string('Beschriebener Entwurf')
+        model_predicate = Xsd_QName('schema:description', validate=False)
+        return resource_iri, description, model_predicate, {
+            resource_iri: {
+                Xsd_QName('rdf:type', validate=False): Xsd_QName('fasnacht:ArchiveMediaObject', validate=False),
+                model_predicate: description,
+                Iri('http://ogp.me/ns#description', validate=False): description,
+                Xsd_QName('dcterms:description', validate=False): description,
+            },
+        }
+
+    def test_ignores_inferred_predicate_outside_resource_model(self):
+        resource_iri, description, model_predicate, construct_data = self.construct_with_inferred_descriptions()
+
+        _, kwargs = _resource_from_construct(
+            resource_iri,
+            construct_data,
+            {model_predicate: None},
+        )
+
+        self.assertEqual(kwargs['description'], description)
+        self.assertEqual(kwargs['attachedToRole'], {})
+        self.assertEqual(set(kwargs), {'description', 'attachedToRole'})
+
+    def test_read_data_ignores_inferred_predicates_outside_resource_model(self):
+        resource_iri, description, model_predicate, construct_data = self.construct_with_inferred_descriptions()
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://example.org/users/editor', validate=False),
+        )
+
+        with patch('oldaplib.src.objectfactory.OldapList.search', return_value=[]), \
+                patch('oldaplib.src.objectfactory._read_resource_construct', return_value=construct_data), \
+                patch('oldaplib.src.objectfactory._read_attached_roles', return_value={}):
+            data = ResourceInstance.read_data(
+                con=con,
+                projectShortName='fasnacht',
+                iri=resource_iri,
+                allowed_properties={model_predicate: None},
+            )
+
+        self.assertEqual(data['schema:description'], [description])
+        self.assertEqual(data['rdf:type'], [Xsd_QName('fasnacht:ArchiveMediaObject', validate=False)])
+        self.assertNotIn('dcterms:description', data)
 
 
 class TestSearchQueryGeneration(unittest.TestCase):

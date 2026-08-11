@@ -533,11 +533,51 @@ def _resource_from_construct(subject: Iri,
                 if role_qname is not None and dataperm_qname is not None:
                     roles[role_qname] = DataPermission.from_qname(dataperm_qname)
             continue
+        if not isinstance(predicate, Xsd_QName):
+            continue
+        if properties is not None and predicate not in properties:
+            continue
         prop = properties.get(predicate) if properties else None
         kwargs[predicate.fragment] = _normalize_construct_property(value, prop, construct_data, dating_cache)
 
     kwargs['attachedToRole'] = roles
     return objtype, kwargs
+
+
+def _resolved_resource_properties(
+        properties: dict[Xsd_QName, PropertyClass],
+        superclass: dict[Xsd_QName, ResourceClass] | None,
+) -> dict[Xsd_QName, PropertyClass]:
+    """Return all direct and inherited properties of a resource class.
+
+    GraphDB reasoning may add predicates that are equivalent to a modeled
+    property but belong to an external vocabulary. Resource instances must be
+    materialized exclusively from the concrete OLDAP class model, including
+    inherited properties, so those inferred triples cannot leak into instance
+    state or collide by local-name fragment.
+
+    Args:
+        properties: Properties declared directly on the concrete class.
+        superclass: Recursive superclass map of the concrete class.
+
+    Returns:
+        A new property map containing inherited properties followed by direct
+        properties, with the concrete declaration taking precedence.
+    """
+    resolved: dict[Xsd_QName, PropertyClass] = {}
+
+    def collect(classes: dict[Xsd_QName, ResourceClass] | None) -> None:
+        if not classes:
+            return
+        for resource_class in classes.values():
+            if not resource_class:
+                continue
+            collect(resource_class.superclass)
+            resolved.update(resource_class.properties)
+
+    collect(superclass)
+    resolved.update(properties)
+    return resolved
 
 
 def _read_attached_roles(con: IConnection,
@@ -658,6 +698,15 @@ class ResourceInstance:
     _graph: Xsd_NCName
     _changeset: dict[Xsd_QName, AttributeChange]
     _attached_roles: ObservableDict
+
+    @classmethod
+    def resolved_properties(cls) -> dict[Xsd_QName, PropertyClass]:
+        """Return the complete property model for this resource class.
+
+        Returns:
+            Direct and inherited OLDAP properties keyed by QName.
+        """
+        return _resolved_resource_properties(cls.properties, cls.superclass)
 
     __slots__ = ['_iri', '_values', '_graph', '_changeset', '_superclass_objs', '_con', '_attached_roles',
                  'project', 'name', 'factory', 'properties', 'superclass', 'user_default_roles']
@@ -1465,7 +1514,7 @@ class ResourceInstance:
         resource_types = _resource_type_qnames(iri, construct_data)
         if not resource_types:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
-        _, kwargs = _resource_from_construct(iri, construct_data, cls.properties)
+        _, kwargs = _resource_from_construct(iri, construct_data, cls.resolved_properties())
         kwargs['attachedToRole'] = _read_attached_roles(con, graph, iri)
 
         expected_type = cls.name if isinstance(cls.name, Xsd_QName) else Xsd_QName(cls.name, validate=False)
@@ -2156,7 +2205,12 @@ class ResourceInstance:
             raise
 
     @staticmethod
-    def read_data(con: IConnection, projectShortName: Xsd_NCName | str, iri: Iri | str) -> dict[Xsd_QName, Any]:
+    def read_data(
+            con: IConnection,
+            projectShortName: Xsd_NCName | str,
+            iri: Iri | str,
+            allowed_properties: dict[Xsd_QName, PropertyClass] | None = None,
+    ) -> dict[Xsd_QName, Any]:
         """
         Retrieves data from a resource in the specified project with permissions validation.
         NOTE: It does *NOT* return the attachedToRole data!
@@ -2174,10 +2228,12 @@ class ResourceInstance:
         :param iri: The IRI of the resource to retrieve data for. Can be an Iri instance
             or string.
         :type iri: Iri | str
+        :param allowed_properties: Optional resolved OLDAP property model. When
+            supplied, inferred predicates outside that model are ignored.
+        :type allowed_properties: dict[Xsd_QName, PropertyClass] | None
         :return: A dictionary mapping predicates (of type Xsd_QName) to their corresponding
             values.
         :rtype: dict[Xsd_QName, Any]
-        :raises OldapErrorInconsistency: If a predicate is not a valid QName.
         :raises OldapErrorNotFound: If the resource with the specified IRI cannot be found.
         """
         if not isinstance(iri, Iri):
@@ -2213,7 +2269,9 @@ class ResourceInstance:
             if predicate == READ_PERM_BINDING_PRED or predicate == Xsd_QName('oldap:attachedToRole'):
                 continue
             if not isinstance(predicate, Xsd_QName):
-                raise OldapErrorInconsistency(f"Expected QName as predicate, got {predicate}")
+                continue
+            if allowed_properties is not None and predicate != RDF_TYPE_PRED and predicate not in allowed_properties:
+                continue
             values = [
                 _convert_construct_value(item, None, construct_data, dating_cache)
                 for item in _construct_values(resource_data, predicate)
@@ -3342,6 +3400,6 @@ class ResourceInstanceFactory:
             type_list = ', '.join(sorted(str(resource_type) for resource_type in resource_types)) or 'no rdf:type'
             raise OldapErrorNotFound(f'Resource with iri <{iri}> has no known resource class type ({type_list}).')
         Instance = self.createObjectInstance(objtype)
-        _, kwargs = _resource_from_construct(iri, construct_data, Instance.properties)
+        _, kwargs = _resource_from_construct(iri, construct_data, Instance.resolved_properties())
         kwargs['attachedToRole'] = _read_attached_roles(self._con, graph, iri)
         return Instance(iri=iri, **kwargs)

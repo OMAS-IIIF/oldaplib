@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-12 00:04
+- Decisions: Materialize resources exclusively from the concrete OLDAP class model, including inherited properties; ignore GraphDB-inferred predicates outside that model rather than extending the API shape from external ontology equivalences.
+- Implementation: Added resolved direct/inherited property maps, applied model filtering to generic instance reads and factory materialization, and added regressions for both unknown-IRI `og:description` and known-QName `dcterms:description` equivalents of modeled `schema:description`.
+- Open: Publish a patch release and update/restart oldap-api before retrying the affected Fasnacht archive draft GET.
+- Risks/Assumptions: The user's independent uncommitted Schema.org refresh remains untouched. Two focused regressions and all nine GraphDB-backed oldap-api instance-read tests pass.
+
 ### Update 2026-08-10 23:18
 - Decisions: Permit `xsd:anyURI` construction from another typed XSD value by validating its lexical string form; retain the existing URI/URN validation and do not weaken invalid-value handling.
 - Implementation: Normalized non-`Xsd_anyURI` constructor inputs before scheme checks, added regression coverage for an URI-shaped `Xsd_string`, passed the focused GraphDB-backed unittest, and installed the local checkout editably into the oldap-api Poetry environment for local verification.
