@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-13 23:58
+- Decisions: Model a Staging subtree move as one parent-relation update on its root; keep descendants and physical media untouched, and enforce integrity in oldaplib rather than relying on a frontend.
+- Implementation: Added `StagingFolderTree` with class/cardinality, same-area, system-folder, cycle, and portable sibling-name checks plus four GraphDB-independent unit tests.
+- Open: Publish the next oldaplib patch release before deploying the dependent oldap-api endpoint.
+- Risks/Assumptions: Direct-child collision inspection is bounded at 10,000 visible folders, matching the existing ZIP-import inventory boundary; normal resource update permissions remain authoritative. Four focused tests and Python compilation pass.
+
 ### Update 2026-08-12 00:04
 - Decisions: Materialize resources exclusively from the concrete OLDAP class model, including inherited properties; ignore GraphDB-inferred predicates outside that model rather than extending the API shape from external ontology equivalences.
 - Implementation: Added resolved direct/inherited property maps, applied model filtering to generic instance reads and factory materialization, and added regressions for both unknown-IRI `og:description` and known-QName `dcterms:description` equivalents of modeled `schema:description`.
