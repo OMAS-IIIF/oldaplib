@@ -339,7 +339,10 @@ class DataModel(Model):
         else:
             proj = Project.read(con, project)
 
-        OldapList.ensure_list_node_context(con, proj.projectShortName)
+        # Pass the resolved project so list-prefix discovery does not have to
+        # resolve the same project again. The connection-scoped guard makes
+        # subsequent resource reads within this request a no-op.
+        OldapList.ensure_list_node_context(con, proj)
         cache = CacheSingletonRedis()
         if not ignore_cache:
             tmp = cache.get(Xsd_QName(proj.projectShortName, 'shacl'), connection=con)
@@ -815,5 +818,4 @@ class DataModel(Model):
         f = io.StringIO()
         self.__to_trig_format(f, indent=indent, indent_inc=indent_inc)
         return f.getvalue()
-
 

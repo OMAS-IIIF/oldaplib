@@ -332,14 +332,29 @@ class OldapList(Model):
         :type con: IConnection
         :param project: Project object, project short name, or project IRI.
         :type project: Project | Iri | Xsd_NCName | str
+        Repeated calls for the same connection and project do not query the
+        triplestore again. New connections always perform their own discovery,
+        which keeps the optimization bounded to one logical connection/request.
+
         :return: None
         """
         if not isinstance(con, IConnection):
             raise TypeError("con must be an IConnection object")
+
+        loaded_projects = con._list_node_context_projects
+        if isinstance(project, (Xsd_NCName, str)) and ':' not in str(project):
+            project_key = str(project)
+            if project_key in loaded_projects:
+                return
+
         if not isinstance(project, Project):
             if not isinstance(project, (Iri, Xsd_NCName)):
                 project = IriOrNCName(project, validate=True)
             project = Project.read(con, project)
+
+        project_key = str(project.projectShortName)
+        if project_key in loaded_projects:
+            return
 
         context = Context(name=con.context_name)
         context[project.projectShortName] = project.namespaceIri
@@ -360,7 +375,12 @@ class OldapList(Model):
             list_id = row['list'].fragment
             node_prefix = Xsd_NCName("L-") + list_id
             context[node_prefix] = project.namespaceIri.expand(list_id)
-            context.use(node_prefix)
+            if node_prefix not in context.graphs:
+                context.use(node_prefix)
+
+        # Mark the project only after successful query processing. A failed
+        # discovery must remain retryable on the same connection.
+        loaded_projects.add(project_key)
 
     @property
     def iri(self) -> Iri:

@@ -145,7 +145,7 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
             userIri=Iri('https://example.org/users/editor', validate=False),
         )
 
-        with patch('oldaplib.src.objectfactory.OldapList.search', return_value=[]), \
+        with patch('oldaplib.src.objectfactory.OldapList.ensure_list_node_context'), \
                 patch('oldaplib.src.objectfactory._read_resource_construct', return_value=construct_data), \
                 patch('oldaplib.src.objectfactory._read_attached_roles', return_value={}):
             data = ResourceInstance.read_data(

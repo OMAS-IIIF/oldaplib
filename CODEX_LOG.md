@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-26 00:11
+- Decisions: Optimize OLDAP from shared backend layers outward; keep list-prefix discovery connection-scoped instead of adding a stale process-global cache.
+- Implementation: Documented the incremental performance roadmap; made list-node QName discovery idempotent per connection/project; removed full-list loading from generic resource reads; reused resolved projects in `DataModel.read()`; added GraphDB-independent query-count and retry tests.
+- Open: Measure and simplify the single-resource API read path next, then add search summaries/batching before SALSAH-specific request reuse.
+- Risks/Assumptions: A new connection intentionally refreshes list IDs; direct list mutations update the shared named Context through existing list construction. Cross-process freshness remains bounded by connection lifetime.
+
 ### Update 2026-08-13 23:58
 - Decisions: Model a Staging subtree move as one parent-relation update on its root; keep descendants and physical media untouched, and enforce integrity in oldaplib rather than relying on a frontend.
 - Implementation: Added `StagingFolderTree` with class/cardinality, same-area, system-folder, cycle, and portable sibling-name checks plus four GraphDB-independent unit tests.

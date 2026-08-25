@@ -2245,14 +2245,11 @@ class ResourceInstance:
 
         context = Context(name=con.context_name)
 
-        #
-        # In order for the QueryProcessor to work, we need to add possible list references to the context.
-        # This is done by reading the OldapList (which does add the list to the context)
-        #
-        ols = OldapList.search(con=con, project=projectShortName)  # Get all the lists in the project
-        for ol in ols:
-            oldaplist = OldapList.read(con=con, project=projectShortName, oldapListId=ol.fragment)
-            (oldaplist)
+        # QueryProcessor needs the special L-<list-id> QName prefixes, but not
+        # the list metadata or nodes themselves. Discovery is connection-scoped
+        # and therefore becomes a no-op when DataModel.read() already prepared
+        # the project context earlier in the same request.
+        OldapList.ensure_list_node_context(con, projectShortName)
 
         try:
             construct_data = _read_resource_construct(con, graph, iri, con.userIri, include_creator=True)

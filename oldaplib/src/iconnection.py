@@ -35,6 +35,7 @@ class IConnection(ABC):
     _userdata: AuthorizationContext | None
     _token: str | None
     _transaction_url: Optional[str]
+    _list_node_context_projects: set[str]
 
     @abstractmethod
     def __init__(self, context_name: Optional[str] = DEFAULT_CONTEXT):
@@ -51,6 +52,10 @@ class IConnection(ABC):
         self._userdata = None
         self._token = None
         self._transaction_url = None
+        # Hierarchical-list QName prefixes are discovered lazily.  Keep the
+        # discovery state on the connection so one logical request can reuse it
+        # without introducing stale process-global cache state.
+        self._list_node_context_projects = set()
 
     @property
     def userdata(self) -> AuthorizationContext | None:
