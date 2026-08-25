@@ -17,7 +17,8 @@ from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
     LinkedResourceSearchFilter, CompOp, LogicOp, FTSearchFilter, HLSearchFilter, _lucene_query_fields, \
-    _resource_from_construct, _read_resource_construct, ASSERTED_TYPE_PRED
+    _resource_from_construct, _read_resource_construct, ASSERTED_TYPE_PRED, READ_PERM_BINDING_PRED, \
+    READ_PERM_ROLE_PRED, READ_PERM_VALUE_PRED
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -149,8 +150,7 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
         )
 
         with patch('oldaplib.src.objectfactory.OldapList.ensure_list_node_context'), \
-                patch('oldaplib.src.objectfactory._read_resource_construct', return_value=construct_data), \
-                patch('oldaplib.src.objectfactory._read_attached_roles', return_value={}):
+                patch('oldaplib.src.objectfactory._read_resource_construct', return_value=construct_data):
             data = ResourceInstance.read_data(
                 con=con,
                 projectShortName='fasnacht',
@@ -172,6 +172,16 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
             inferred_type,
         ]
         construct_data[resource_iri][ASSERTED_TYPE_PRED] = concrete_type
+        construct_data[resource_iri][READ_PERM_BINDING_PRED] = [
+            {
+                READ_PERM_ROLE_PRED: Xsd_QName('oldap:Unknown', validate=False),
+                READ_PERM_VALUE_PRED: Xsd_QName('oldap:DATA_VIEW', validate=False),
+            },
+            {
+                READ_PERM_ROLE_PRED: Xsd_QName('chama:Editors', validate=False),
+                READ_PERM_VALUE_PRED: Xsd_QName('oldap:DATA_UPDATE', validate=False),
+            },
+        ]
 
         con = SimpleNamespace(
             context_name='DEFAULT',
@@ -185,7 +195,6 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
 
         with patch('oldaplib.src.objectfactory.OldapList.ensure_list_node_context'), \
                 patch('oldaplib.src.objectfactory._read_resource_construct', return_value=construct_data) as read, \
-                patch('oldaplib.src.objectfactory._read_attached_roles', return_value={}), \
                 patch.object(
                     ResourceInstanceFactory,
                     '_ResourceInstanceFactory__select_resource_type',
@@ -199,6 +208,10 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
         self.assertEqual(result.asserted_types, (concrete_type,))
         self.assertEqual(result.data['rdf:type'], [concrete_type, inferred_type])
         self.assertEqual(result.data['schema:description'], [description])
+        self.assertEqual(result.data[Xsd_QName('oldap:attachedToRole')], {
+            Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW,
+            Xsd_QName('chama:Editors'): DataPermission.DATA_UPDATE,
+        })
         self.assertNotIn(str(ASSERTED_TYPE_PRED), result.data)
 
     def test_resource_construct_marks_explicit_project_graph_types(self):
@@ -223,6 +236,8 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
         self.assertIn('oldap:_assertedType ?assertedType', query)
         self.assertIn('GRAPH fasnacht:data', query)
         self.assertIn('fasnacht:Photo a ?assertedType', query)
+        self.assertIn('oldap:_readRole ?attachedRole', query)
+        self.assertIn('oldap:_readDataPermission ?attachedDataperm', query)
 
 
 class TestSearchQueryGeneration(unittest.TestCase):

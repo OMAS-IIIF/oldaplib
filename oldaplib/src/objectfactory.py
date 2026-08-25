@@ -559,8 +559,6 @@ def _asserted_resource_types(subject: Iri,
 
 
 def _resource_data_from_construct(
-        con: IConnection,
-        graph: Xsd_NCName,
         iri: Iri,
         construct_data: ConstructResultDict,
         allowed_properties: dict[Xsd_QName, PropertyClass] | None = None,
@@ -568,8 +566,6 @@ def _resource_data_from_construct(
     """Convert one permission-checked resource CONSTRUCT into API-style data.
 
     Args:
-        con: Connection used for the remaining attached-role lookup.
-        graph: Project graph short name.
         iri: Resource IRI.
         construct_data: Processed permission-checked CONSTRUCT result.
         allowed_properties: Optional resolved concrete resource property model.
@@ -603,8 +599,35 @@ def _resource_data_from_construct(
     if not data.get('rdf:type'):
         raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
 
-    data[Xsd_QName('oldap:attachedToRole')] = _read_attached_roles(con, graph, iri)
+    data[Xsd_QName('oldap:attachedToRole')] = _attached_roles_from_construct(resource_data)
     return data
+
+
+def _attached_roles_from_construct(
+        resource_data: dict[Xsd_QName, Any],
+) -> dict[Xsd_QName, DataPermission]:
+    """Extract the complete attached-role permission map from a CONSTRUCT node.
+
+    The access-control branch decides whether the caller may read the resource.
+    Separate role variables in the optional CONSTRUCT branch carry every role
+    annotation after access has been granted, preserving the established public
+    response while avoiding a second triplestore query.
+
+    Args:
+        resource_data: Predicate/value mapping for the resource subject.
+
+    Returns:
+        Attached role QNames mapped to their data permissions.
+    """
+    roles: dict[Xsd_QName, DataPermission] = {}
+    for binding in _construct_values(resource_data, READ_PERM_BINDING_PRED):
+        if not isinstance(binding, dict):
+            continue
+        role_qname = _value_as_qname(binding.get(READ_PERM_ROLE_PRED))
+        dataperm_qname = _value_as_qname(binding.get(READ_PERM_VALUE_PRED))
+        if role_qname is not None and dataperm_qname is not None:
+            roles[role_qname] = DataPermission.from_qname(dataperm_qname)
+    return roles
 
 
 def _resource_from_construct(subject: Iri,
@@ -619,21 +642,12 @@ def _resource_from_construct(subject: Iri,
     resource_types = _resource_type_qnames(subject, construct_data)
     objtype: Xsd_QName | None = resource_types[0] if len(resource_types) == 1 else None
     kwargs: dict[str, Any] = {}
-    roles: dict[Xsd_QName, DataPermission] = {}
+    roles = _attached_roles_from_construct(resource_data)
 
     for predicate, value in resource_data.items():
-        if predicate == RDF_TYPE_PRED:
+        if predicate in {RDF_TYPE_PRED, ASSERTED_TYPE_PRED}:
             continue
         if predicate == READ_PERM_BINDING_PRED:
-            for binding in _construct_values(resource_data, READ_PERM_BINDING_PRED):
-                if not isinstance(binding, dict):
-                    continue
-                role = binding.get(READ_PERM_ROLE_PRED)
-                dataperm = binding.get(READ_PERM_VALUE_PRED)
-                role_qname = _value_as_qname(role)
-                dataperm_qname = _value_as_qname(dataperm)
-                if role_qname is not None and dataperm_qname is not None:
-                    roles[role_qname] = DataPermission.from_qname(dataperm_qname)
             continue
         if not isinstance(predicate, Xsd_QName):
             continue
@@ -682,32 +696,6 @@ def _resolved_resource_properties(
     return resolved
 
 
-def _read_attached_roles(con: IConnection,
-                         graph: Xsd_NCName,
-                         iri: Iri) -> dict[Xsd_QName, DataPermission]:
-    context = Context(name=con.context_name)
-    sparql = context.sparql_context
-    sparql += textwrap.dedent(f'''
-    SELECT DISTINCT ?role ?dataperm
-    WHERE {{
-        GRAPH {graph}:data {{
-            << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
-        }}
-    }}
-    ''')
-    jsonres = con.query(sparql)
-    res = QueryProcessor(context, jsonres)
-    roles: dict[Xsd_QName, DataPermission] = {}
-    for row in res:
-        role = row.get('role')
-        dataperm = row.get('dataperm')
-        role_qname = _value_as_qname(role)
-        dataperm_qname = _value_as_qname(dataperm)
-        if role_qname is not None and dataperm_qname is not None:
-            roles[role_qname] = DataPermission.from_qname(dataperm_qname)
-    return roles
-
-
 def _read_resource_construct(con: IConnection,
                              graph: Xsd_NCName,
                              iri: Iri,
@@ -729,8 +717,8 @@ def _read_resource_construct(con: IConnection,
         {iri.toRdf} ?predicate ?value .
         {iri.toRdf} {ASSERTED_TYPE_PRED.toRdf} ?assertedType .
         {iri.toRdf} {READ_PERM_BINDING_PRED.toRdf} ?permBinding .
-        ?permBinding {READ_PERM_ROLE_PRED.toRdf} ?role .
-        ?permBinding {READ_PERM_VALUE_PRED.toRdf} ?dataperm .
+        ?permBinding {READ_PERM_ROLE_PRED.toRdf} ?attachedRole .
+        ?permBinding {READ_PERM_VALUE_PRED.toRdf} ?attachedDataperm .
         ?datingNode ?datingPredicate ?datingValue .
     }}
     WHERE {{
@@ -743,8 +731,8 @@ def _read_resource_construct(con: IConnection,
         }}
         OPTIONAL {{
             GRAPH {graph}:data {{
-                {iri.toRdf} oldap:attachedToRole ?role .
-                << {iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+                {iri.toRdf} oldap:attachedToRole ?attachedRole .
+                << {iri.toRdf} oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .
             }}
             BIND(BNODE() AS ?permBinding)
         }}
@@ -1623,8 +1611,6 @@ class ResourceInstance:
         if not resource_types:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
         _, kwargs = _resource_from_construct(iri, construct_data, cls.resolved_properties())
-        kwargs['attachedToRole'] = _read_attached_roles(con, graph, iri)
-
         expected_type = cls.name if isinstance(cls.name, Xsd_QName) else Xsd_QName(cls.name, validate=False)
         if expected_type not in resource_types:
             type_list = ', '.join(sorted(str(resource_type) for resource_type in resource_types)) or 'no rdf:type'
@@ -2365,8 +2351,6 @@ class ResourceInstance:
             logger.error(f'SPARQL: Failed to retrieve data for resource "{iri}"', exc_info=True)
             raise
         return _resource_data_from_construct(
-            con=con,
-            graph=graph,
             iri=iri,
             construct_data=construct_data,
             allowed_properties=allowed_properties,
@@ -3489,7 +3473,6 @@ class ResourceInstanceFactory:
             raise OldapErrorNotFound(f'Resource with iri <{iri}> has no known resource class type ({type_list}).')
         Instance = self.createObjectInstance(objtype)
         _, kwargs = _resource_from_construct(iri, construct_data, Instance.resolved_properties())
-        kwargs['attachedToRole'] = _read_attached_roles(self._con, graph, iri)
         return Instance(iri=iri, **kwargs)
 
     def read_data(self, iri: Iri | str) -> ResourceReadResult:
@@ -3547,8 +3530,6 @@ class ResourceInstanceFactory:
         instance_class = self.createObjectInstance(resource_class)
         resolved_properties = instance_class.resolved_properties()
         data = _resource_data_from_construct(
-            con=self._con,
-            graph=graph,
             iri=iri,
             construct_data=construct_data,
             allowed_properties=resolved_properties,

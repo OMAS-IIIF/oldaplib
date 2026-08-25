@@ -25,7 +25,9 @@ focused regression coverage.
    `rdf:type` lookup and avoid repeated parsing/model resolution while retaining
    the current API representation. **Completed:** one permission-checked
    CONSTRUCT now returns both reasoning-visible data and explicit project-graph
-   type assertions through a structured factory result.
+   type assertions through a structured factory result; the same CONSTRUCT
+   also carries the complete attached-role permission map, eliminating the
+   former follow-up roles query.
 3. **Search summaries and batching.** Provide a backend contract that returns
    the card metadata required by clients without one resource request per hit.
 4. **Application request reuse.** Deduplicate concurrent SALSAH requests and

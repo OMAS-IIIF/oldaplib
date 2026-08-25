@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-26 00:38
+- Decisions: Preserve the complete public `oldap:attachedToRole` map while folding its retrieval into the permission-checked resource CONSTRUCT; keep access-control variables separate from public role-map variables.
+- Implementation: Construct all attached role/permission annotations with dedicated variables, extract them through one shared helper for factory/class/raw reads, and remove the standalone roles SELECT from every generic resource read path; added two-role extraction and one-query SPARQL regressions.
+- Open: Publish the updated oldaplib release, install it in oldap-api, restart, and compare representative Chama/Fasnacht resource reads before starting search summaries.
+- Risks/Assumptions: The optional role branch executes only after read access succeeds. Separate variables are essential because the access branch intentionally binds only the caller's effective maximum permission role.
+
 ### Update 2026-08-26 00:24
 - Decisions: Preserve explicit-versus-inferred `rdf:type` semantics while removing the standalone API type query; carry explicit project-graph types as an internal marker in the permission-checked resource CONSTRUCT.
 - Implementation: Added `ResourceReadResult` and `ResourceInstanceFactory.read_data()` with concrete-class selection, resolved properties, asserted type provenance, and filtered data; factored shared CONSTRUCT conversion; excluded the internal marker from public data; added focused single-CONSTRUCT regressions.
