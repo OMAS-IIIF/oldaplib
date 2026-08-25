@@ -8,13 +8,16 @@ from pprint import pprint
 from time import sleep
 from unittest.mock import Mock, patch
 
+from rdflib import Graph
+
 from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.archive_tree import ArchiveTree
 from oldaplib.src.datamodel import DataModel
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
     LinkedResourceSearchFilter, CompOp, LogicOp, FTSearchFilter, HLSearchFilter, _lucene_query_fields, \
-    _resource_from_construct
+    _resource_from_construct, _read_resource_construct, ASSERTED_TYPE_PRED
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -158,6 +161,68 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
         self.assertEqual(data['schema:description'], [description])
         self.assertEqual(data['rdf:type'], [Xsd_QName('fasnacht:ArchiveMediaObject', validate=False)])
         self.assertNotIn('dcterms:description', data)
+
+    def test_factory_read_data_returns_asserted_types_from_same_construct(self):
+        """Factory reads must not require a preliminary type query."""
+        resource_iri, description, model_predicate, construct_data = self.construct_with_inferred_descriptions()
+        concrete_type = Xsd_QName('fasnacht:ArchiveMediaObject', validate=False)
+        inferred_type = Xsd_QName('oldap:Thing', validate=False)
+        construct_data[resource_iri][Xsd_QName('rdf:type', validate=False)] = [
+            concrete_type,
+            inferred_type,
+        ]
+        construct_data[resource_iri][ASSERTED_TYPE_PRED] = concrete_type
+
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://example.org/users/editor', validate=False),
+        )
+        factory = object.__new__(ResourceInstanceFactory)
+        factory._con = con
+        factory._project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+        instance_class = Mock()
+        instance_class.resolved_properties.return_value = {model_predicate: None}
+
+        with patch('oldaplib.src.objectfactory.OldapList.ensure_list_node_context'), \
+                patch('oldaplib.src.objectfactory._read_resource_construct', return_value=construct_data) as read, \
+                patch('oldaplib.src.objectfactory._read_attached_roles', return_value={}), \
+                patch.object(
+                    ResourceInstanceFactory,
+                    '_ResourceInstanceFactory__select_resource_type',
+                    return_value=concrete_type,
+                ), \
+                patch.object(factory, 'createObjectInstance', return_value=instance_class):
+            result = factory.read_data(resource_iri)
+
+        read.assert_called_once()
+        self.assertEqual(result.resource_class, concrete_type)
+        self.assertEqual(result.asserted_types, (concrete_type,))
+        self.assertEqual(result.data['rdf:type'], [concrete_type, inferred_type])
+        self.assertEqual(result.data['schema:description'], [description])
+        self.assertNotIn(str(ASSERTED_TYPE_PRED), result.data)
+
+    def test_resource_construct_marks_explicit_project_graph_types(self):
+        """The main CONSTRUCT must carry asserted types without another query."""
+        context_name = f'ASSERTED_TYPES_{self.id()}'
+        context = Context(name=context_name)
+        context['fasnacht'] = NamespaceIRI('http://example.org/fasnacht#')
+        con = Mock()
+        con.context_name = context_name
+        con.query.return_value = Graph()
+
+        _read_resource_construct(
+            con=con,
+            graph=Xsd_NCName('fasnacht'),
+            iri=Iri('fasnacht:Photo', validate=False),
+            user_iri=Iri('oldap:User', validate=False),
+            include_creator=True,
+        )
+
+        con.query.assert_called_once()
+        query = con.query.call_args.args[0]
+        self.assertIn('oldap:_assertedType ?assertedType', query)
+        self.assertIn('GRAPH fasnacht:data', query)
+        self.assertIn('fasnacht:Photo a ?assertedType', query)
 
 
 class TestSearchQueryGeneration(unittest.TestCase):

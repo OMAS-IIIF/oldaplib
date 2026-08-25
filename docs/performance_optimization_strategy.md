@@ -18,10 +18,14 @@ focused regression coverage.
 
 1. **Hierarchical-list context preparation.** Discover the special list-node
    QName prefixes at most once per connection and project. Resource reads must
-   not load complete lists merely to prepare `QueryProcessor`.
+   not load complete lists merely to prepare `QueryProcessor`. **Completed:**
+   list discovery is connection-scoped and full-list loading was removed from
+   the generic read path.
 2. **Single-resource API read path.** Remove the preliminary standalone
    `rdf:type` lookup and avoid repeated parsing/model resolution while retaining
-   the current API representation.
+   the current API representation. **Completed:** one permission-checked
+   CONSTRUCT now returns both reasoning-visible data and explicit project-graph
+   type assertions through a structured factory result.
 3. **Search summaries and batching.** Provide a backend contract that returns
    the card metadata required by clients without one resource request per hit.
 4. **Application request reuse.** Deduplicate concurrent SALSAH requests and

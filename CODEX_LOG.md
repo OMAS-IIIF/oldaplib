@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-26 00:24
+- Decisions: Preserve explicit-versus-inferred `rdf:type` semantics while removing the standalone API type query; carry explicit project-graph types as an internal marker in the permission-checked resource CONSTRUCT.
+- Implementation: Added `ResourceReadResult` and `ResourceInstanceFactory.read_data()` with concrete-class selection, resolved properties, asserted type provenance, and filtered data; factored shared CONSTRUCT conversion; excluded the internal marker from public data; added focused single-CONSTRUCT regressions.
+- Open: Publish the updated oldaplib release and consume it from oldap-api; then measure the live endpoint before designing search summaries/batching.
+- Risks/Assumptions: The attached-role lookup remains a separate query to preserve the existing complete permission-map response; changing that contract is outside this optimization step.
+
 ### Update 2026-08-26 00:11
 - Decisions: Optimize OLDAP from shared backend layers outward; keep list-prefix discovery connection-scoped instead of adding a stale process-global cache.
 - Implementation: Documented the incremental performance roadmap; made list-node QName discovery idempotent per connection/project; removed full-list loading from generic resource reads; reused resolved projects in `DataModel.read()`; added GraphDB-independent query-count and retry tests.

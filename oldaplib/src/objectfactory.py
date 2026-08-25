@@ -176,9 +176,31 @@ class HLSearchFilter:
         if isinstance(self.node, str):
             object.__setattr__(self, 'node', HListNodeRef.from_value(self.node))
 
+
+@dataclass(frozen=True)
+class ResourceReadResult:
+    """Structured result of one generic resource-data read.
+
+    Attributes:
+        resource_class: Most specific known OLDAP class selected from all
+            reasoning-visible resource types.
+        asserted_types: Types explicitly asserted in the project data graph.
+        properties: Resolved direct and inherited property model for the
+            selected concrete class.
+        data: Concrete-model-filtered property values in the established
+            ``ResourceInstance.read_data`` representation.
+    """
+
+    resource_class: Xsd_QName
+    asserted_types: tuple[Iri | Xsd_QName, ...]
+    properties: dict[Xsd_QName, PropertyClass]
+    data: dict[Xsd_QName | str, Any]
+
+
 READ_PERM_BINDING_PRED = Xsd_QName('oldap:_readPermBinding', validate=False)
 READ_PERM_ROLE_PRED = Xsd_QName('oldap:_readRole', validate=False)
 READ_PERM_VALUE_PRED = Xsd_QName('oldap:_readDataPermission', validate=False)
+ASSERTED_TYPE_PRED = Xsd_QName('oldap:_assertedType', validate=False)
 RDF_TYPE_PRED = Xsd_QName('rdf:type', validate=False)
 DATING_CLASS = Xsd_QName('oldap:Dating', validate=False)
 DATING_VERBATIM_PRED = Xsd_QName('oldap:verbatimDate', validate=False)
@@ -505,6 +527,86 @@ def _resource_type_qnames(subject: Iri,
     return type_qnames
 
 
+def _asserted_resource_types(subject: Iri,
+                             construct_data: ConstructResultDict) -> list[Iri | Xsd_QName]:
+    """Return resource types asserted explicitly in the project data graph.
+
+    The main resource pattern is intentionally reasoning-visible. The internal
+    ``oldap:_assertedType`` marker is constructed from an explicit named-graph
+    pattern in the same query so callers can distinguish asserted types from
+    inferred superclasses without a preliminary query.
+
+    Args:
+        subject: Resource subject whose asserted types should be read.
+        construct_data: Processed CONSTRUCT result keyed by subject.
+
+    Returns:
+        Distinct asserted resource-class QNames or absolute IRIs in graph-result
+        order.
+    """
+    subject_key = _construct_subject_key(subject)
+    resource_data = construct_data.get(subject_key)
+    if resource_data is None:
+        return []
+
+    asserted_types: list[Iri | Xsd_QName] = []
+    seen: set[Iri | Xsd_QName] = set()
+    for node_type in _construct_values(resource_data, ASSERTED_TYPE_PRED):
+        if isinstance(node_type, (Iri, Xsd_QName)) and node_type not in seen:
+            asserted_types.append(node_type)
+            seen.add(node_type)
+    return asserted_types
+
+
+def _resource_data_from_construct(
+        con: IConnection,
+        graph: Xsd_NCName,
+        iri: Iri,
+        construct_data: ConstructResultDict,
+        allowed_properties: dict[Xsd_QName, PropertyClass] | None = None,
+) -> dict[Xsd_QName | str, Any]:
+    """Convert one permission-checked resource CONSTRUCT into API-style data.
+
+    Args:
+        con: Connection used for the remaining attached-role lookup.
+        graph: Project graph short name.
+        iri: Resource IRI.
+        construct_data: Processed permission-checked CONSTRUCT result.
+        allowed_properties: Optional resolved concrete resource property model.
+
+    Returns:
+        Property values keyed by their QName strings, plus the role-permission
+        mapping under ``oldap:attachedToRole``.
+
+    Raises:
+        OldapErrorNotFound: If the result contains no readable typed resource.
+    """
+    resource_data = construct_data.get(_construct_subject_key(iri))
+    if resource_data is None:
+        raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+
+    data: dict[Xsd_QName | str, Any] = {}
+    dating_cache: dict[Iri | Xsd_QName, Any] = {}
+    internal_predicates = {READ_PERM_BINDING_PRED, ASSERTED_TYPE_PRED, Xsd_QName('oldap:attachedToRole')}
+    for predicate, value in resource_data.items():
+        if predicate in internal_predicates:
+            continue
+        if not isinstance(predicate, Xsd_QName):
+            continue
+        if allowed_properties is not None and predicate != RDF_TYPE_PRED and predicate not in allowed_properties:
+            continue
+        values = [
+            _convert_construct_value(item, None, construct_data, dating_cache)
+            for item in _construct_values(resource_data, predicate)
+        ]
+        data[str(predicate)] = values
+    if not data.get('rdf:type'):
+        raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+
+    data[Xsd_QName('oldap:attachedToRole')] = _read_attached_roles(con, graph, iri)
+    return data
+
+
 def _resource_from_construct(subject: Iri,
                              construct_data: ConstructResultDict,
                              properties: dict[Xsd_QName, PropertyClass] | None = None) -> tuple[Xsd_QName | None, dict[str, Any]]:
@@ -625,6 +727,7 @@ def _read_resource_construct(con: IConnection,
     sparql += textwrap.dedent(f'''
     CONSTRUCT {{
         {iri.toRdf} ?predicate ?value .
+        {iri.toRdf} {ASSERTED_TYPE_PRED.toRdf} ?assertedType .
         {iri.toRdf} {READ_PERM_BINDING_PRED.toRdf} ?permBinding .
         ?permBinding {READ_PERM_ROLE_PRED.toRdf} ?role .
         ?permBinding {READ_PERM_VALUE_PRED.toRdf} ?dataperm .
@@ -633,6 +736,11 @@ def _read_resource_construct(con: IConnection,
     WHERE {{
         {access_block}
         {iri.toRdf} ?predicate ?value .
+        OPTIONAL {{
+            GRAPH {graph}:data {{
+                {iri.toRdf} a ?assertedType .
+            }}
+        }}
         OPTIONAL {{
             GRAPH {graph}:data {{
                 {iri.toRdf} oldap:attachedToRole ?role .
@@ -2256,30 +2364,13 @@ class ResourceInstance:
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve data for resource "{iri}"', exc_info=True)
             raise
-        resource_data = construct_data.get(_construct_subject_key(iri))
-        if resource_data is None:
-            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
-
-        data: dict[Xsd_QName | str, Any] = {}
-        dating_cache: dict[Iri | Xsd_QName, Any] = {}
-        for predicate, value in resource_data.items():
-            if predicate == READ_PERM_BINDING_PRED or predicate == Xsd_QName('oldap:attachedToRole'):
-                continue
-            if not isinstance(predicate, Xsd_QName):
-                continue
-            if allowed_properties is not None and predicate != RDF_TYPE_PRED and predicate not in allowed_properties:
-                continue
-            values = [
-                _convert_construct_value(item, None, construct_data, dating_cache)
-                for item in _construct_values(resource_data, predicate)
-            ]
-            data[str(predicate)] = values
-        if not data.get('rdf:type'):
-            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
-
-        data[Xsd_QName('oldap:attachedToRole')] = _read_attached_roles(con, graph, iri)
-        #data[Xsd_QName('virtual:resourceIri')] = iri
-        return data
+        return _resource_data_from_construct(
+            con=con,
+            graph=graph,
+            iri=iri,
+            construct_data=construct_data,
+            allowed_properties=allowed_properties,
+        )
 
     """
     PREFIX luc: <http://www.ontotext.com/connectors/lucene#>
@@ -3400,3 +3491,71 @@ class ResourceInstanceFactory:
         _, kwargs = _resource_from_construct(iri, construct_data, Instance.resolved_properties())
         kwargs['attachedToRole'] = _read_attached_roles(self._con, graph, iri)
         return Instance(iri=iri, **kwargs)
+
+    def read_data(self, iri: Iri | str) -> ResourceReadResult:
+        """Read resource data and type provenance with one main CONSTRUCT query.
+
+        This method is intended for API consumers that need the established raw
+        property representation as well as the distinction between explicitly
+        asserted and reasoning-inferred resource types. It selects the concrete
+        OLDAP class from the factory's already loaded project/shared models and
+        filters returned predicates against that resolved class model.
+
+        Args:
+            iri: QName, absolute IRI, or validated ``Iri`` of the resource.
+
+        Returns:
+            A structured result containing the concrete class, explicit and
+            reasoning-visible types, and filtered resource data.
+
+        Raises:
+            OldapErrorNotFound: If the resource is unreadable, has no explicit
+                project-data type assertion, or has no known OLDAP class.
+            OldapErrorInconsistency: If no unique concrete class can be selected.
+        """
+        if not isinstance(iri, Iri):
+            iri = Iri(iri, validate=True)
+        graph = self._project.projectShortName
+
+        # Normally prepared by DataModel.read() during factory construction;
+        # keep the method correct when called through alternative factory setup.
+        OldapList.ensure_list_node_context(self._con, self._project)
+        try:
+            construct_data = _read_resource_construct(
+                self._con,
+                graph,
+                iri,
+                self._con.userIri,
+                include_creator=True,
+            )
+        except OldapError:
+            logger.error(f'SPARQL: Failed to retrieve data for resource "{iri}"', exc_info=True)
+            raise
+
+        asserted_types = _asserted_resource_types(iri, construct_data)
+        if not asserted_types:
+            raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
+
+        visible_types = _resource_type_qnames(iri, construct_data)
+        resource_class = self.__select_resource_type(visible_types)
+        if resource_class is None:
+            type_list = ', '.join(sorted(str(resource_type) for resource_type in visible_types)) or 'no rdf:type'
+            raise OldapErrorNotFound(
+                f'Resource with iri <{iri}> has no known resource class type ({type_list}).'
+            )
+
+        instance_class = self.createObjectInstance(resource_class)
+        resolved_properties = instance_class.resolved_properties()
+        data = _resource_data_from_construct(
+            con=self._con,
+            graph=graph,
+            iri=iri,
+            construct_data=construct_data,
+            allowed_properties=resolved_properties,
+        )
+        return ResourceReadResult(
+            resource_class=resource_class,
+            asserted_types=tuple(asserted_types),
+            properties=resolved_properties,
+            data=data,
+        )
