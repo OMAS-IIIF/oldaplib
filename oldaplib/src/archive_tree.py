@@ -9,7 +9,11 @@ from typing import Final
 
 from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapErrorValue
 from oldaplib.src.iconnection import IConnection
-from oldaplib.src.objectfactory import ResourceInstance, ResourceInstanceFactory
+from oldaplib.src.objectfactory import (
+    ResourceInstance,
+    ResourceInstanceFactory,
+    resource_class_is_or_extends,
+)
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
@@ -50,9 +54,9 @@ class ArchiveTree:
         return value if isinstance(value, Iri) else Iri(value, validate=True)
 
     def _read_archive_unit(self, iri: Iri) -> ResourceInstance:
-        """Read one resource and reject values outside the archive-unit class."""
+        """Read one ArchiveUnit, including project-defined subclasses."""
         instance = self._factory.read(iri)
-        if instance.__class__.name != self.ARCHIVE_UNIT_CLASS:
+        if not resource_class_is_or_extends(instance.__class__, self.ARCHIVE_UNIT_CLASS):
             raise OldapErrorValue(f'Resource "{iri}" is not a shared:ArchiveUnit.')
         return instance
 

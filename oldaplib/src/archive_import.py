@@ -14,7 +14,11 @@ from oldaplib.src.helpers.oldaperror import (
     OldapErrorNoPermission,
     OldapErrorNotFound,
 )
-from oldaplib.src.objectfactory import ResourceInstance, ResourceInstanceFactory
+from oldaplib.src.objectfactory import (
+    ResourceInstance,
+    ResourceInstanceFactory,
+    resource_class_is_or_extends,
+)
 from oldaplib.src.xsd.dating import Dating
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
@@ -155,20 +159,7 @@ def _read_existing(factory: ResourceInstanceFactory, iri: Iri) -> ResourceInstan
 
 def _instance_is_or_extends(instance: ResourceInstance, expected: Xsd_QName) -> bool:
     """Return whether a dynamic OLDAP instance has the expected base class."""
-
-    instance_class = instance.__class__
-    if instance_class.name == expected:
-        return True
-
-    def contains(superclasses: dict[Any, Any]) -> bool:
-        for iri, superclass in (superclasses or {}).items():
-            if iri == expected:
-                return True
-            if superclass is not None and contains(getattr(superclass, "superclass", {})):
-                return True
-        return False
-
-    return contains(getattr(instance_class, "superclass", {}))
+    return resource_class_is_or_extends(instance.__class__, expected)
 
 
 def _unit_values(unit: ArchiveUnitSpec) -> dict[str, Any]:
@@ -235,7 +226,9 @@ def prepare_archive_import(
         parent = _read_existing(factory, parent_iri)
         if parent is None:
             raise ValueError(f'External parent archive unit "{parent_iri}" does not exist.')
-        if parent.__class__.name != Xsd_QName("shared:ArchiveUnit", validate=False):
+        if not _instance_is_or_extends(
+            parent, Xsd_QName("shared:ArchiveUnit", validate=False)
+        ):
             raise ValueError(f'External parent "{parent_iri}" is not a shared:ArchiveUnit.')
         if not parent.get_data_permission(DataPermission.DATA_UPDATE):
             raise OldapErrorNoPermission(

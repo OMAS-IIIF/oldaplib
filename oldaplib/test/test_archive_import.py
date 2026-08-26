@@ -71,6 +71,15 @@ class _ExternalParent:
         return self.allowed
 
 
+class _ProjectArchiveParent(_ExternalParent):
+    """Project class that inherits the Shared ArchiveUnit behavior."""
+
+    name = Xsd_QName("chama:PhotographicWork", validate=False)
+    superclass = {
+        Xsd_QName("shared:ArchiveUnit", validate=False): _ExternalParent,
+    }
+
+
 class ArchiveImportTest(unittest.TestCase):
     """Verify deterministic resolution, preflight, apply, and rollback."""
 
@@ -142,6 +151,11 @@ class ArchiveImportTest(unittest.TestCase):
 
         allowed_parent = _ExternalParent()
         self.factory.read.side_effect = lambda iri: allowed_parent if iri == parent_iri else self._read(iri)
+        plan = prepare_archive_import(self.factory, "fasnacht", document)
+        self.assertEqual(plan.external_parent_iris, (parent_iri,))
+
+        project_parent = _ProjectArchiveParent()
+        self.factory.read.side_effect = lambda iri: project_parent if iri == parent_iri else self._read(iri)
         plan = prepare_archive_import(self.factory, "fasnacht", document)
         self.assertEqual(plan.external_parent_iris, (parent_iri,))
 

@@ -451,6 +451,8 @@ eine Erfassungsentscheidung und wird nicht durch eine zusätzliche Grundmodellre
   und das Laden des vollständigen Baums sind vorerst nicht nötig.
 - Strukturänderungen laufen über eine kleine `ArchiveTree`-Servicegrenze. Sie verhindert Selbstreferenzen und das
   Verschieben unter einen Nachfahren; der generische HTTP-Update-Endpunkt darf diese Grenze nicht umgehen.
+- Diese Integritätsoperationen gelten auch für direkte und transitive projektspezifische Unterklassen von
+  `shared:ArchiveUnit`; die konkrete Projektklasse bleibt beim Lesen und Verschieben erhalten.
 - Verschieben ändert nur `shared:parentArchiveUnit` und optional `schema:position`. Signaturen, Berechtigungen und
   publizierte Links bleiben unverändert; Berechtigungen bleiben pro Archiveinheit unabhängig.
 - Leere Archiveinheiten dürfen nach Bestätigung gelöscht werden. Kinder, verknüpfte Medien oder andere eingehende

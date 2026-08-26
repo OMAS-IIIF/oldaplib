@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-27 00:07
+- Decisions: Apply generic archive-tree behavior to direct and transitive project subclasses of `shared:ArchiveUnit`; preserve each resource's concrete project class and the existing HTTP contract.
+- Implementation: Centralized dynamic resource-class ancestry checks, reused them in class transformation, archive import external-parent validation, and cycle-safe archive moves; added GraphDB-independent direct/transitive/rejection regressions and prepared oldaplib 0.7.16.
+- Open: Publish 0.7.16, update oldap-api, restart it, and retry moving `chama:LobatoTrestlePhotograph1981` below the Ruedi Singer series.
+- Risks/Assumptions: The active Chama ontology correctly declares `chama:PhotographicWork` as a `shared:ArchiveUnit` subclass; no API payload or response shape changes.
+
 ### Update 2026-08-26 01:01
 - Decisions: Introduce a reusable bounded library batch instead of an API-owned SPARQL shortcut; preserve permission semantics and hide the distinction between absent and unreadable resources.
 - Implementation: Added `ResourceInstanceFactory.read_summaries()` for up to 100 distinct IRIs and 32 properties, selected-property/type/role/Dating construction in one GraphDB query, concrete-model filtering, ordered omission semantics, public docstrings, performance-strategy context, focused query/result/bound regressions, and prepared version 0.7.15.

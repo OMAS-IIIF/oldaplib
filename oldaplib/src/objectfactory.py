@@ -50,6 +50,44 @@ ValueType = LangString | ObservableSet | Xsd | Dict[Xsd_QName, DataPermission] |
 MAX_RESOURCE_SUMMARY_BATCH = 100
 MAX_RESOURCE_SUMMARY_PROPERTIES = 32
 
+
+def resource_class_is_or_extends(instance_class: Type, expected: Xsd_QName | str) -> bool:
+    """Return whether a dynamic resource class is or extends ``expected``.
+
+    OLDAP instances are materialized as their most specific project class. Code
+    that implements behavior for a Shared base class must therefore inspect the
+    recursive model hierarchy instead of comparing only the concrete class IRI.
+
+    Args:
+        instance_class: Dynamic ``ResourceInstance`` class created by a factory.
+        expected: Base-class QName that the dynamic class must equal or extend.
+
+    Returns:
+        ``True`` for the expected class and all direct or transitive subclasses.
+    """
+    expected_iri = (
+        expected
+        if isinstance(expected, Xsd_QName)
+        else Xsd_QName(expected, validate=True)
+    )
+    if instance_class.name == expected_iri:
+        return True
+
+    def has_superclass(superclasses: dict[Xsd_QName, ResourceClass], seen: set[Xsd_QName]) -> bool:
+        for superclass_iri, superclass in (superclasses or {}).items():
+            if superclass_iri == expected_iri:
+                return True
+            if superclass_iri in seen:
+                continue
+            seen.add(superclass_iri)
+            if superclass is not None and has_superclass(
+                getattr(superclass, 'superclass', {}), seen
+            ):
+                return True
+        return False
+
+    return has_superclass(getattr(instance_class, 'superclass', {}), set())
+
 class SortDir(str, Enum):
     asc = "asc"
     desc = "desc"
@@ -1965,18 +2003,7 @@ class ResourceInstance:
 
     @staticmethod
     def __class_is_or_extends(instance_class: Type, class_iri: Xsd_QName) -> bool:
-        if instance_class.name == class_iri:
-            return True
-
-        def has_superclass(superclasses: dict[Xsd_QName, ResourceClass]) -> bool:
-            for superclass_iri, superclass in superclasses.items():
-                if superclass_iri == class_iri:
-                    return True
-                if superclass is not None and superclass.superclass and has_superclass(superclass.superclass):
-                    return True
-            return False
-
-        return has_superclass(instance_class.superclass)
+        return resource_class_is_or_extends(instance_class, class_iri)
 
     @staticmethod
     def __normalise_transform_properties(
