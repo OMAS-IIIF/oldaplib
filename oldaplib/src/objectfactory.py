@@ -47,6 +47,8 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 logger = logging.getLogger(__name__)
 
 ValueType = LangString | ObservableSet | Xsd | Dict[Xsd_QName, DataPermission] | ObservableDict
+MAX_RESOURCE_SUMMARY_BATCH = 100
+MAX_RESOURCE_SUMMARY_PROPERTIES = 32
 
 class SortDir(str, Enum):
     asc = "asc"
@@ -739,6 +741,89 @@ def _read_resource_construct(con: IConnection,
         OPTIONAL {{
             GRAPH {graph}:data {{
                 {iri.toRdf} ?predicate ?value .
+                ?value a oldap:Dating .
+                ?value oldap:before* ?datingNode .
+                ?datingNode ?datingPredicate ?datingValue .
+            }}
+        }}
+    }}
+    ''')
+    graph_res = con.query(sparql, format=SparqlResultFormat.JSONLD)
+    return ConstructProcessor.process(context, graph_res)
+
+
+def _read_resource_summaries_construct(
+        con: IConnection,
+        graph: Xsd_NCName,
+        iris: list[Iri],
+        include_properties: set[Xsd_QName],
+) -> ConstructResultDict:
+    """Read bounded, permission-filtered resource summaries in one query.
+
+    Args:
+        con: Authenticated OLDAP connection.
+        graph: Project graph short name.
+        iris: Distinct validated resource IRIs, bounded by
+            ``MAX_RESOURCE_SUMMARY_BATCH``.
+        include_properties: Predicates to include in addition to ``rdf:type``.
+
+    Returns:
+        Processed CONSTRUCT data for every readable requested resource. Missing
+        and unreadable resources are deliberately indistinguishable and absent.
+    """
+    if not iris:
+        return {}
+
+    context = Context(name=con.context_name)
+    resource_values = ' '.join(iri.toRdf for iri in iris)
+    predicates = {RDF_TYPE_PRED, *include_properties}
+    predicate_values = ' '.join(predicate.toRdf for predicate in sorted(predicates, key=str))
+    sparql = context.sparql_context
+    sparql += textwrap.dedent(f'''
+    CONSTRUCT {{
+        ?resource ?predicate ?value .
+        ?resource {ASSERTED_TYPE_PRED.toRdf} ?assertedType .
+        ?resource {READ_PERM_BINDING_PRED.toRdf} ?permBinding .
+        ?permBinding {READ_PERM_ROLE_PRED.toRdf} ?attachedRole .
+        ?permBinding {READ_PERM_VALUE_PRED.toRdf} ?attachedDataperm .
+        ?datingNode ?datingPredicate ?datingValue .
+    }}
+    WHERE {{
+        VALUES ?resource {{ {resource_values} }}
+        {{
+            GRAPH {graph}:data {{
+                ?resource oldap:createdBy {con.userIri.toRdf} .
+            }}
+        }}
+        UNION
+        {{
+            GRAPH oldap:admin {{
+                {con.userIri.toRdf} oldap:hasRole ?accessRole .
+                ?accessDataperm oldap:permissionValue ?accessPermval .
+                FILTER(?accessPermval >= {DataPermission.DATA_VIEW.numeric.toRdf})
+            }}
+            GRAPH {graph}:data {{
+                ?resource oldap:attachedToRole ?accessRole .
+                << ?resource oldap:attachedToRole ?accessRole >> oldap:hasDataPermission ?accessDataperm .
+            }}
+        }}
+        VALUES ?predicate {{ {predicate_values} }}
+        ?resource ?predicate ?value .
+        OPTIONAL {{
+            GRAPH {graph}:data {{
+                ?resource a ?assertedType .
+            }}
+        }}
+        OPTIONAL {{
+            GRAPH {graph}:data {{
+                ?resource oldap:attachedToRole ?attachedRole .
+                << ?resource oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .
+            }}
+            BIND(BNODE() AS ?permBinding)
+        }}
+        OPTIONAL {{
+            GRAPH {graph}:data {{
+                ?resource ?predicate ?value .
                 ?value a oldap:Dating .
                 ?value oldap:before* ?datingNode .
                 ?datingNode ?datingPredicate ?datingValue .
@@ -3540,3 +3625,103 @@ class ResourceInstanceFactory:
             properties=resolved_properties,
             data=data,
         )
+
+    def read_summaries(
+            self,
+            iris: Iterable[Iri | str],
+            include_properties: Iterable[Xsd_QName | str] = (),
+    ) -> dict[Iri, ResourceReadResult]:
+        """Read compact summaries for multiple resources with one query.
+
+        Missing and unreadable resources are both omitted so the result cannot
+        be used to probe protected resource existence. Input order is retained
+        for readable resources and duplicate IRIs are collapsed.
+
+        Args:
+            iris: Resource IRIs to read. At most
+                ``MAX_RESOURCE_SUMMARY_BATCH`` distinct values are accepted.
+            include_properties: Predicates to return in addition to the always
+                included resource types and attached-role data required by API
+                authorization/delivery enrichment. At most
+                ``MAX_RESOURCE_SUMMARY_PROPERTIES`` distinct values are
+                accepted.
+
+        Returns:
+            An insertion-ordered mapping from readable resource IRI to its
+            structured summary result.
+
+        Raises:
+            OldapErrorValue: If the batch exceeds the bound or contains an
+                invalid IRI/property QName.
+            OldapErrorInconsistency: If a readable resource has ambiguous known
+                concrete classes.
+        """
+        if isinstance(iris, (str, Iri)):
+            raise OldapErrorValue('Resource summary IRIs must be an iterable, not a scalar value.')
+
+        distinct_iris: list[Iri] = []
+        seen_iris: set[Iri] = set()
+        for raw_iri in iris:
+            iri = raw_iri if isinstance(raw_iri, Iri) else Iri(raw_iri, validate=True)
+            if iri in seen_iris:
+                continue
+            seen_iris.add(iri)
+            distinct_iris.append(iri)
+            if len(distinct_iris) > MAX_RESOURCE_SUMMARY_BATCH:
+                raise OldapErrorValue(
+                    f'Resource summary batches are limited to {MAX_RESOURCE_SUMMARY_BATCH} distinct IRIs.'
+                )
+
+        properties = {
+            prop if isinstance(prop, Xsd_QName) else Xsd_QName(prop, validate=True)
+            for prop in include_properties
+        }
+        if len(properties) > MAX_RESOURCE_SUMMARY_PROPERTIES:
+            raise OldapErrorValue(
+                'Resource summary batches are limited to '
+                f'{MAX_RESOURCE_SUMMARY_PROPERTIES} distinct properties.'
+            )
+        if not distinct_iris:
+            return {}
+
+        graph = self._project.projectShortName
+        OldapList.ensure_list_node_context(self._con, self._project)
+        try:
+            construct_data = _read_resource_summaries_construct(
+                con=self._con,
+                graph=graph,
+                iris=distinct_iris,
+                include_properties=properties,
+            )
+        except OldapError:
+            logger.error(
+                'SPARQL: Failed to retrieve %d resource summaries from project "%s"',
+                len(distinct_iris),
+                graph,
+                exc_info=True,
+            )
+            raise
+
+        summaries: dict[Iri, ResourceReadResult] = {}
+        for iri in distinct_iris:
+            asserted_types = _asserted_resource_types(iri, construct_data)
+            if not asserted_types:
+                continue
+            visible_types = _resource_type_qnames(iri, construct_data)
+            resource_class = self.__select_resource_type(visible_types)
+            if resource_class is None:
+                continue
+            instance_class = self.createObjectInstance(resource_class)
+            resolved_properties = instance_class.resolved_properties()
+            data = _resource_data_from_construct(
+                iri=iri,
+                construct_data=construct_data,
+                allowed_properties=resolved_properties,
+            )
+            summaries[iri] = ResourceReadResult(
+                resource_class=resource_class,
+                asserted_types=tuple(asserted_types),
+                properties=resolved_properties,
+                data=data,
+            )
+        return summaries

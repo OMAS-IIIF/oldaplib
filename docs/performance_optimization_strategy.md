@@ -30,10 +30,22 @@ focused regression coverage.
    former follow-up roles query.
 3. **Search summaries and batching.** Provide a backend contract that returns
    the card metadata required by clients without one resource request per hit.
+   **Completed:** `ResourceInstanceFactory.read_summaries()` performs one
+   permission-filtered CONSTRUCT for up to 100 known resource IRIs and a
+   caller-selected property set. Missing and unreadable resources are omitted
+   identically, and readable results retain request order.
 4. **Application request reuse.** Deduplicate concurrent SALSAH requests and
    cache stable project-model information with explicit lifetime rules.
+   **In progress:** SALSAH search cards and linked-record previews consume the
+   bounded summary endpoint instead of issuing per-resource metadata and media
+   requests.
 5. **Write/import validation.** Reuse compiled XML Schema validators and
    benchmark bulk ingest independently from interactive reads.
 
 The steps are deliberately ordered by shared benefit: `oldaplib` first,
 `oldap-api` second, and application-specific SALSAH optimizations last.
+
+The summary primitive removes per-resource GraphDB reads. It deliberately does
+not replace complete resource reads for editing, nor does it remove initial
+datamodel construction or unrelated application requests; those boundaries
+remain separately measurable.

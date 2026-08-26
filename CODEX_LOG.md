@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-08-26 01:01
+- Decisions: Introduce a reusable bounded library batch instead of an API-owned SPARQL shortcut; preserve permission semantics and hide the distinction between absent and unreadable resources.
+- Implementation: Added `ResourceInstanceFactory.read_summaries()` for up to 100 distinct IRIs and 32 properties, selected-property/type/role/Dating construction in one GraphDB query, concrete-model filtering, ordered omission semantics, public docstrings, performance-strategy context, focused query/result/bound regressions, and prepared version 0.7.15.
+- Open: Publish the next oldaplib patch and install it in oldap-api before live endpoint verification.
+- Risks/Assumptions: Datamodel classes are still resolved through the factory cache. Batch size is intentionally bounded; clients must chunk larger sets.
+
 ### Update 2026-08-26 00:38
 - Decisions: Preserve the complete public `oldap:attachedToRole` map while folding its retrieval into the permission-checked resource CONSTRUCT; keep access-control variables separate from public role-map variables.
 - Implementation: Construct all attached role/permission annotations with dedicated variables, extract them through one shared helper for factory/class/raw reads, and remove the standalone roles SELECT from every generic resource read path; added two-role extraction and one-query SPARQL regressions.

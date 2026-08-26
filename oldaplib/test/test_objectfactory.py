@@ -17,8 +17,9 @@ from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
     LinkedResourceSearchFilter, CompOp, LogicOp, FTSearchFilter, HLSearchFilter, _lucene_query_fields, \
-    _resource_from_construct, _read_resource_construct, ASSERTED_TYPE_PRED, READ_PERM_BINDING_PRED, \
-    READ_PERM_ROLE_PRED, READ_PERM_VALUE_PRED
+    _resource_from_construct, _read_resource_construct, _read_resource_summaries_construct, \
+    ASSERTED_TYPE_PRED, READ_PERM_BINDING_PRED, READ_PERM_ROLE_PRED, READ_PERM_VALUE_PRED, \
+    MAX_RESOURCE_SUMMARY_BATCH, MAX_RESOURCE_SUMMARY_PROPERTIES
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -238,6 +239,94 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
         self.assertIn('fasnacht:Photo a ?assertedType', query)
         self.assertIn('oldap:_readRole ?attachedRole', query)
         self.assertIn('oldap:_readDataPermission ?attachedDataperm', query)
+
+    def test_summary_construct_batches_resources_and_requested_properties(self):
+        """Summary query generation must use one bounded VALUES request."""
+        context_name = f'RESOURCE_SUMMARIES_{self.id()}'
+        context = Context(name=context_name)
+        context['chama'] = NamespaceIRI('http://chama.salsah.org/ns/')
+        con = Mock()
+        con.context_name = context_name
+        con.userIri = Iri('oldap:User', validate=False)
+        con.query.return_value = Graph()
+
+        _read_resource_summaries_construct(
+            con=con,
+            graph=Xsd_NCName('chama'),
+            iris=[Iri('chama:One', validate=False), Iri('chama:Two', validate=False)],
+            include_properties={Xsd_QName('schema:name')},
+        )
+
+        con.query.assert_called_once()
+        query = con.query.call_args.args[0]
+        self.assertIn('VALUES ?resource { chama:One chama:Two }', query)
+        self.assertIn('VALUES ?predicate { rdf:type schema:name }', query)
+        self.assertIn('?resource oldap:createdBy oldap:User', query)
+        self.assertIn('?resource oldap:attachedToRole ?accessRole', query)
+
+    def test_factory_summary_batch_is_ordered_and_omits_unreadable_resources(self):
+        """One factory call must return only readable summaries in input order."""
+        first = Iri('chama:First', validate=False)
+        hidden = Iri('chama:Hidden', validate=False)
+        second = Iri('chama:Second', validate=False)
+        concrete_type = Xsd_QName('chama:Photograph', validate=False)
+        name_property = Xsd_QName('schema:name', validate=False)
+        construct_data = {
+            first: {
+                Xsd_QName('rdf:type', validate=False): concrete_type,
+                ASSERTED_TYPE_PRED: concrete_type,
+                name_property: Xsd_string('First'),
+            },
+            second: {
+                Xsd_QName('rdf:type', validate=False): concrete_type,
+                ASSERTED_TYPE_PRED: concrete_type,
+                name_property: Xsd_string('Second'),
+            },
+        }
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('oldap:User', validate=False),
+        )
+        factory = object.__new__(ResourceInstanceFactory)
+        factory._con = con
+        factory._project = SimpleNamespace(projectShortName=Xsd_NCName('chama'))
+        instance_class = Mock()
+        instance_class.resolved_properties.return_value = {name_property: None}
+
+        with patch('oldaplib.src.objectfactory.OldapList.ensure_list_node_context'), \
+                patch(
+                    'oldaplib.src.objectfactory._read_resource_summaries_construct',
+                    return_value=construct_data,
+                ) as read, \
+                patch.object(
+                    ResourceInstanceFactory,
+                    '_ResourceInstanceFactory__select_resource_type',
+                    return_value=concrete_type,
+                ), \
+                patch.object(factory, 'createObjectInstance', return_value=instance_class):
+            result = factory.read_summaries(
+                [first, hidden, second, first],
+                include_properties=[name_property],
+            )
+
+        read.assert_called_once()
+        self.assertEqual(list(result), [first, second])
+        self.assertEqual(result[first].data['schema:name'], [Xsd_string('First')])
+        self.assertEqual(result[second].data['schema:name'], [Xsd_string('Second')])
+
+    def test_factory_summary_batch_rejects_more_than_bound(self):
+        """The library boundary must cap resource batches independent of HTTP."""
+        factory = object.__new__(ResourceInstanceFactory)
+        with self.assertRaisesRegex(OldapErrorValue, str(MAX_RESOURCE_SUMMARY_BATCH)):
+            factory.read_summaries(
+                [f'urn:uuid:00000000-0000-4000-8000-{index:012d}' for index in range(101)]
+            )
+
+        with self.assertRaisesRegex(OldapErrorValue, str(MAX_RESOURCE_SUMMARY_PROPERTIES)):
+            factory.read_summaries(
+                ['urn:uuid:00000000-0000-4000-8000-000000000001'],
+                include_properties=[f'test:property{index}' for index in range(33)],
+            )
 
 
 class TestSearchQueryGeneration(unittest.TestCase):
