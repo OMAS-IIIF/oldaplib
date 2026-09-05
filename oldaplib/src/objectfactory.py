@@ -8,7 +8,7 @@ from pprint import pprint
 
 from enum import Flag, auto, Enum
 from functools import partial
-from typing import Type, Any, Self, cast, Dict, Literal, Iterable
+from typing import Type, Any, Self, cast, Dict, Literal, Iterable, Callable
 
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -47,6 +47,7 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 logger = logging.getLogger(__name__)
 
 ValueType = LangString | ObservableSet | Xsd | Dict[Xsd_QName, DataPermission] | ObservableDict
+BeforeCommitHook = Callable[[IConnection], None]
 MAX_RESOURCE_SUMMARY_BATCH = 100
 MAX_RESOURCE_SUMMARY_PROPERTIES = 32
 
@@ -1740,7 +1741,12 @@ class ResourceInstance:
             raise OldapErrorInconsistency(f'Expected class {expected_type}, got {type_list} instead.')
         return cls(iri=iri, **kwargs)
 
-    def update(self, indent: int = 0, indent_inc: int = 4) -> None:
+    def update(
+            self,
+            indent: int = 0,
+            indent_inc: int = 4,
+            *,
+            before_commit: BeforeCommitHook | None = None) -> None:
         """
         Updates the current resource by creating and executing SPARQL queries to modify, insert, or
         delete data based on the changeset. This method also verifies user permissions and ensures
@@ -1758,6 +1764,12 @@ class ResourceInstance:
         :param indent_inc: The incremental level of indentation for nested sections in SPARQL
                            queries.
         :type indent_inc: int
+        :param before_commit: Optional transaction callback invoked after the resource
+                              mutation has succeeded and immediately before commit. The
+                              callback receives the active connection and may append
+                              related transactional writes. Any callback failure aborts
+                              the complete transaction.
+        :type before_commit: BeforeCommitHook | None
         :return: None
         :rtype: None
         """
@@ -1964,7 +1976,9 @@ class ResourceInstance:
             modtime = res[0]['modified']
             if timestamp != modtime:
                 raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (modtime={modtime}, timestamp={timestamp}).")
-        except OldapError:
+            if before_commit is not None:
+                before_commit(self._con)
+        except Exception:
             logger.error(f'Failed to update resource "{self._iri}"', exc_info=True)
             self._con.transaction_abort()
             raise
@@ -2058,7 +2072,8 @@ class ResourceInstance:
             expected_source_class: Xsd_QName | str | None = None,
             attached_to_role: dict[str, str | DataPermission] | None = None,
             link_from_iri: Iri | str | None = None,
-            link_from_property: Xsd_QName | str | None = None) -> Self:
+            link_from_property: Xsd_QName | str | None = None,
+            before_commit: BeforeCommitHook | None = None) -> Self:
         """
         Atomically reclassify this resource while keeping the same IRI.
 
@@ -2082,6 +2097,10 @@ class ResourceInstance:
                 transformed resource in the same transaction.
             link_from_property: Object property on ``link_from_iri`` used for
                 the new link. Both link arguments must be supplied together.
+            before_commit: Optional transaction callback invoked after every
+                transformation write and immediately before commit. The callback
+                receives the active connection; any failure aborts the complete
+                transformation.
 
         Returns:
             A validated instance of the target resource class with the same IRI.
@@ -2333,8 +2352,10 @@ class ResourceInstance:
         try:
             for sparql_update in sparql_updates:
                 self._con.transaction_update(sparql_update)
+            if before_commit is not None:
+                before_commit(self._con)
             self._con.transaction_commit()
-        except OldapError:
+        except Exception:
             logger.error(f'Failed to transform resource "{self._iri}" to "{target_class_iri}"', exc_info=True)
             self._con.transaction_abort()
             raise
@@ -2344,7 +2365,7 @@ class ResourceInstance:
         target_instance.clear_changeset()
         return target_instance
 
-    def delete(self) -> None:
+    def delete(self, *, before_commit: BeforeCommitHook | None = None) -> None:
         """
         Deletes the specified resource represented by the object's IRI from the associated graph
         if the proper permissions are granted and the resource is not in use. This method initiates
@@ -2360,6 +2381,10 @@ class ResourceInstance:
         :raises OldapErrorInUse: If the resource is currently in use and cannot be deleted.
         :raises OldapError: If any error occurs during transaction start, query, update,
             or commit phases.
+        :param before_commit: Optional transaction callback invoked after deletion and
+                              immediately before commit. The callback receives the active
+                              connection; any failure aborts the complete deletion.
+        :type before_commit: BeforeCommitHook | None
         """
         admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
@@ -2399,7 +2424,9 @@ class ResourceInstance:
             raise
         try:
             self._con.transaction_update(sparql)
-        except OldapError:
+            if before_commit is not None:
+                before_commit(self._con)
+        except Exception:
             logger.error(f'SPARQL: Failed to delete resource "{self._iri}"', exc_info=True)
             self._con.transaction_abort()
             raise

@@ -18,6 +18,12 @@ OLDAPlib is the Python library layer for OLDAP, a linked-open-data middleware an
 - Interactive read-path optimization follows the measured, backend-first roadmap in `docs/performance_optimization_strategy.md`. Hierarchical-list QName prefixes are discovered at most once per connection/project; generic resource reads no longer load complete lists merely to prepare `QueryProcessor`. `ResourceInstanceFactory.read_data()` returns concrete class, explicit type provenance, the resolved property model, filtered data, and the complete attached-role map from one permission-checked resource CONSTRUCT, eliminating both the former type lookup and roles follow-up query.
 - `ResourceInstanceFactory.read_summaries()` is the bounded generic primitive for interactive multi-resource reads: it accepts at most 100 distinct IRIs plus selected properties, performs one permission-filtered CONSTRUCT, retains readable input order, and deliberately omits missing and unreadable resources without distinction.
 - `ResourceInstance.transform_class()` supports atomic resource lifecycle transitions that keep the same IRI, preserve a caller-specified base class such as `shared:MediaObject`, remove source-specific properties, add target properties, optionally replace role attachments, and update modification metadata in one transaction. Optional paired `link_from_iri`/`link_from_property` arguments add one shape- and range-valid source relation in that same transaction after a fresh `DATA_UPDATE` permission check on the source; any failure rolls back the transformation.
+- `ResourceInstance.update()`, `transform_class()`, and `delete()` accept an
+  optional keyword-only `before_commit` callback. It receives the active
+  connection after the resource writes and checks have succeeded, allowing a
+  trusted API layer to append a related GraphDB outbox fact atomically. Any
+  callback exception aborts the complete mutation. Callers that omit the hook
+  retain the existing transaction and public behavior.
 - Package source lives under `oldaplib/src`, with ontology fixtures in `oldaplib/ontologies`, test data in `oldaplib/testdata`, and unit/integration tests in `oldaplib/test`.
 - Documentation is built with MkDocs from `docs` and `mkdocs.yml`; API pages use mkdocstrings.
 - Poetry is the package/build manager. `pyproject.toml` carries package metadata, dependency declarations, dependency groups, build-system configuration, and bump-my-version settings.

@@ -1130,6 +1130,7 @@ class TestObjectFactory(unittest.TestCase):
                     pass
 
     def test_transform_mediaobject_keeps_iri_and_base_properties(self):
+        transaction_hooks = []
         factory = ResourceInstanceFactory(con=self._connection, project='test')
         ArchiveUnit = factory.createObjectInstance('shared:ArchiveUnit')
         archive_unit = ArchiveUnit(name=LangString("Transformation target@en"),
@@ -1156,9 +1157,11 @@ class TestObjectFactory(unittest.TestCase):
                                              properties={'test:caption': 'Ready for archive'},
                                              attached_to_role={'oldap:Unknown': 'DATA_DELETE'},
                                              link_from_iri=archive_unit.iri,
-                                             link_from_property='shared:hasMediaObject')
+                                             link_from_property='shared:hasMediaObject',
+                                             before_commit=lambda connection: transaction_hooks.append(connection))
 
         self.assertEqual(transformed.iri, media.iri)
+        self.assertEqual(transaction_hooks, [self._connection])
         data = ResourceInstance.read_data(con=self._connection, iri=media.iri, projectShortName='test')
         self.assertEqual(set(data['rdf:type']), {Xsd_QName('oldap:Thing'),
                                                  Xsd_QName('shared:MediaObject'),
@@ -1173,6 +1176,43 @@ class TestObjectFactory(unittest.TestCase):
 
         linked_unit.delete()
         transformed.delete()
+
+    def test_before_commit_failure_aborts_resource_transform(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        MediaObject = factory.createObjectInstance('shared:MediaObject')
+        media = MediaObject(originalName='TransformRollback.tif',
+                            type='dcmitype:StillImage',
+                            mediaAccessMode='local',
+                            originalMimeType='image/tiff',
+                            serverUrl='http://iiif.oldap.org/iiif/3/',
+                            assetId='transform-rollback',
+                            path='test',
+                            protocol='iiif',
+                            derivativeName='iiif.tif',
+                            attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
+        media.create()
+
+        def reject(_connection):
+            raise RuntimeError("transaction side effect failed")
+
+        with self.assertRaises(RuntimeError):
+            factory.read(media.iri).transform_class(
+                'test:MediaLibraryEntry',
+                preserve_class='shared:MediaObject',
+                expected_source_class='shared:MediaObject',
+                properties={'test:caption': 'Must roll back'},
+                before_commit=reject,
+            )
+
+        data = ResourceInstance.read_data(
+            con=self._connection,
+            iri=media.iri,
+            projectShortName='test',
+        )
+        self.assertIn(Xsd_QName('shared:MediaObject'), set(data['rdf:type']))
+        self.assertNotIn(Xsd_QName('test:MediaLibraryEntry'), set(data['rdf:type']))
+        self.assertNotIn(Xsd_QName('test:caption'), data)
+        factory.read(media.iri).delete()
 
     def test_read_A(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -1295,12 +1335,36 @@ class TestObjectFactory(unittest.TestCase):
         codex2 = Codex.read(con=self._connection, iri=codex.iri)
         old_dating_iri = codex2.writtenAt.iri
         codex2.writtenAt = Dating("1150")
-        codex2.update()
+        transaction_hooks = []
+        codex2.update(before_commit=lambda connection: transaction_hooks.append(connection))
 
         codex3 = Codex.read(con=self._connection, iri=codex.iri)
+        self.assertEqual(transaction_hooks, [self._connection])
         self.assertEqual(codex3.writtenAt.iri, old_dating_iri)
         self.assertEqual(codex3.writtenAt._datePrecision, DatePrecision.YEAR)
         self.assertEqual(str(codex3.writtenAt), "1150-01-01 - 1150-12-31 (GREGORIAN, YEAR)")
+
+    def test_before_commit_failure_aborts_resource_update_and_delete(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Book = factory.createObjectInstance('Book')
+        book = Book(title="Before commit", author="test:TuomasHolopainen",
+                    pubDate="2001-01-01", grantsPermission=Iri('oldap:GenericView'))
+        book.create()
+
+        loaded = factory.read(book.iri)
+        loaded.title = "Must roll back"
+
+        def reject(_connection):
+            raise RuntimeError("transaction side effect failed")
+
+        with self.assertRaises(RuntimeError):
+            loaded.update(before_commit=reject)
+        self.assertEqual(factory.read(book.iri).title, {Xsd_string("Before commit")})
+
+        with self.assertRaises(RuntimeError):
+            factory.read(book.iri).delete(before_commit=reject)
+        self.assertEqual(factory.read(book.iri).title, {Xsd_string("Before commit")})
+        factory.read(book.iri).delete()
 
     def test_delete_optional_dating_with_none(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')

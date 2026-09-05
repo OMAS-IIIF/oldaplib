@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-09-02 18:08
+- Decisions: Provide a narrow additive transaction extension point instead of moving OLDAP lifecycle persistence into API-side follow-up writes.
+- Implementation: Added an optional keyword-only before_commit callback to resource update, delete, and class transformation; callback failures abort the complete active transaction. Added update, delete, transform-success, and transform-rollback regressions without weakening the pre-existing exact transformed-type assertion, documented the contract, and prepared oldaplib 0.7.17.
+- Open: Publish 0.7.17 and update oldap-api's dependency lock before deploying API 0.2.22.
+- Risks/Assumptions: Calls that omit the callback retain their existing signatures and behavior. The hook is synchronous and intentionally owns no business semantics; callers must keep callback work transaction-local.
+
 ### Update 2026-08-27 00:07
 - Decisions: Apply generic archive-tree behavior to direct and transitive project subclasses of `shared:ArchiveUnit`; preserve each resource's concrete project class and the existing HTTP contract.
 - Implementation: Centralized dynamic resource-class ancestry checks, reused them in class transformation, archive import external-parent validation, and cycle-safe archive moves; added GraphDB-independent direct/transitive/rejection regressions and prepared oldaplib 0.7.16.
