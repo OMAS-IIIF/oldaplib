@@ -15,7 +15,7 @@
 @prefix : <http://oldap.org/shared#> .
 
 shared:shacl {
-    shared:shapes schema:version "0.6.0"^^xsd:string .
+    shared:shapes schema:version "0.7.0"^^xsd:string .
 
     ###########################################################################
     # External standard onologies used
@@ -497,7 +497,7 @@ shared:shacl {
         sh:targetClass shared:StagingFolder ;
         dcterms:created "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
-        dcterms:modified "2025-01-01T00:00:00+02:00"^^xsd:dateTime ;
+        dcterms:modified "2026-09-07T20:30:00+02:00"^^xsd:dateTime ;
         dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
         rdfs:label "Staging folder"@en, "Staging Ordner"@de, "Dossier de préparation"@fr, "Cartella di staging"@it ;
         sh:property [
@@ -522,6 +522,21 @@ shared:shacl {
             sh:name "Subfolder of"@en, "Unterordner von"@de, "Sous-dossiers de"@fr, "Sottocartelle di"@it ;
             sh:maxCount "1"^^xsd:integer ;
             sh:order "3.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:defaultArchiveUnit ;
+            sh:class shared:ArchiveUnit ;
+            sh:name "Default archive unit"@en, "Standard-Archiveinheit"@de, "Unité archivistique par défaut"@fr, "Unità archivistica predefinita"@it ;
+            sh:description "Explicit placement suggestion for future cataloguing from this folder. It does not inherit to child folders or change existing archival placements."@en ;
+            sh:maxCount "1"^^xsd:integer ;
+            sh:order "4.0"^^xsd:decimal ;
+        ] ;
+        sh:property [
+            sh:path shared:referencedMediaObject ;
+            sh:class shared:MediaObject ;
+            sh:name "Referenced media object"@en, "Referenziertes Medium"@de, "Objet média référencé"@fr, "Oggetto multimediale referenziato"@it ;
+            sh:description "Private folder membership of an existing catalogued medium. The reference does not grant access, transfer ownership, or change archival placement; removing it does not delete the medium."@en ;
+            sh:order "5.0"^^xsd:decimal ;
         ] .
 
     shared:StagingMediaObjectShape a sh:NodeShape ;
@@ -567,7 +582,7 @@ shared:shacl {
 
 shared:onto {
     shared:ontology rdf:type owl:Ontology ;
-        owl:versionInfo "0.6.0"^^xsd:string .
+        owl:versionInfo "0.7.0"^^xsd:string .
 
     ###########################################################################
     # Calendar vocabulary for historical dating
@@ -835,6 +850,20 @@ shared:onto {
 
     shared:StagingFolder rdf:type owl:Class ;
         rdfs:subClassOf oldap:Thing .
+
+    # Folder-owned links keep private organization independent of the archive.
+    # Lifecycle, authorization, and atomic relocation are backend invariants.
+    shared:defaultArchiveUnit rdf:type owl:ObjectProperty ;
+        rdfs:domain shared:StagingFolder ;
+        rdfs:range shared:ArchiveUnit ;
+        rdfs:label "Default archive unit"@en, "Standard-Archiveinheit"@de, "Unité archivistique par défaut"@fr, "Unità archivistica predefinita"@it ;
+        rdfs:comment "An explicit, curator-confirmed suggestion for future cataloguing from this folder. Several folders may share a target. Folder and archive-unit identity survive renaming and relocation; no descendant inheritance or retrospective media reassignment is implied."@en .
+
+    shared:referencedMediaObject rdf:type owl:ObjectProperty ;
+        rdfs:domain shared:StagingFolder ;
+        rdfs:range shared:MediaObject ;
+        rdfs:label "Referenced media object"@en, "Referenziertes Medium"@de, "Objet média référencé"@fr, "Oggetto multimediale referenziato"@it ;
+        rdfs:comment "Private folder membership of an existing catalogued medium, retaining its resource and binary identity. A medium may be referenced by multiple folders. The link confers no access rights, ownership, publication, or archival placement; deleting the link must not delete the medium. Catalogued lifecycle and safe mutations are enforced by the backend, not by this range constraint."@en .
 
     ###########################################################################
     # Staging Media Object

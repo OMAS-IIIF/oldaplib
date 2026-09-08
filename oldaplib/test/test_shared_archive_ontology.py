@@ -98,7 +98,7 @@ class TestSharedArchiveOntology(unittest.TestCase):
         shacl_version = self.shacl.value(SHARED.shapes, SCHEMA.version)
         ontology_version = self.onto.value(SHARED.ontology, OWL.versionInfo)
         self.assertEqual(shacl_version, ontology_version)
-        self.assertEqual(shacl_version, Literal("0.6.0", datatype=XSD.string))
+        self.assertEqual(shacl_version, Literal("0.7.0", datatype=XSD.string))
 
     def test_archive_levels_are_fixed_named_individuals(self) -> None:
         """SHACL and OWL use the same closed set of stable archive levels."""

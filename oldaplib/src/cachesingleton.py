@@ -9,6 +9,7 @@ import redis
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.helpers.singletonmeta import SingletonMeta
 from oldaplib.src.iconnection import IConnection
+from oldaplib.src.mutation_gate import require_separate_cache
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -79,6 +80,7 @@ class CacheSingletonRedis:
 
         redis_url = os.getenv("OLDAP_REDIS_URL", "redis://localhost:6379")
         self._r = redis.from_url(redis_url)
+        require_separate_cache(self._r)
 
     def get(self, key: Iri | Xsd_NCName | Xsd_QName, connection: IConnection | None = None) -> Any:
         value = self._r.get(str(key))
@@ -96,6 +98,7 @@ class CacheSingletonRedis:
         self._r.delete(str(key))
 
     def clear(self):
+        require_separate_cache(self._r)
         self._r.flushdb()
 
     def exists(self, key: Iri | Xsd_NCName | Xsd_QName) -> bool:

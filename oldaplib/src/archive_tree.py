@@ -9,6 +9,7 @@ from typing import Final
 
 from oldaplib.src.helpers.oldaperror import OldapErrorInconsistency, OldapErrorValue
 from oldaplib.src.iconnection import IConnection
+from oldaplib.src.resource_transaction import coordinated_domain_operation
 from oldaplib.src.objectfactory import (
     ResourceInstance,
     ResourceInstanceFactory,
@@ -109,6 +110,7 @@ class ArchiveTree:
                 return list(reversed(path))
             current_iri = parent_iri
 
+    @coordinated_domain_operation
     def move(
         self,
         archive_unit: Iri | str,

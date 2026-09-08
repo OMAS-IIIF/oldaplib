@@ -19,6 +19,7 @@ from oldaplib.src.version import __version__
 
 from oldaplib.src.authentication import AuthorizationContext, TokenCodec, TokenSettings
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
+from oldaplib.src.mutation_gate import transaction_opened, track_transaction_end
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -604,6 +605,7 @@ class Connection(IConnection):
         if res.headers.get('location') is None:
             raise OldapError('GraphDB start of transaction failed')
         self._transaction_url = res.headers['location']
+        transaction_opened(self._transaction_url)
 
     def transaction_query(self, query: str, result_format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
         """
@@ -673,6 +675,7 @@ class Connection(IConnection):
         if not res.ok:
             raise OldapError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
 
+    @track_transaction_end
     def transaction_commit(self) -> None:
         """
         Commits the current transaction for the GraphDB session. This method ensures that
@@ -697,6 +700,7 @@ class Connection(IConnection):
             raise OldapError(f'GraphDB transaction commit failed. Reason: "{res.text}"')
         self._transaction_url = None
 
+    @track_transaction_end
     def transaction_abort(self) -> None:
         """
         Aborts an ongoing GraphDB transaction if it exists. This method ensures that

@@ -1,5 +1,47 @@
 # CODEX_LOG
 
+### Update 2026-09-08 16:12
+- Decisions: Integrate coworker commit 689faf5 (resource hooks/version 0.7.17) with all local archive work. Preserve callback API, tests, archive guards/retention and one transaction owner; no duplicated commits or manual inner rollback.
+- Implementation: Resolved ObjectFactory/log conflicts; invoke resource callbacks after domain retention/audit inside resource_operation. Documented operation-level versus outer final callbacks. Added four composition/order/rollback/rejection tests. 76 focused library tests and all 63 ObjectFactory tests pass in isolated GraphDB/Redis.
+- Open: Follow-up: oldap-api conflicts also resolved with user authorization; 236 API tests plus 22 subtests, real lifecycle/adoption and Capture contract checks pass. Library integration rechecked after Tower reset and intact. No library publication or runtime activation.
+- Risks/Assumptions: Hooks remain trusted synchronous transaction-local code; nested failure poisons the outer scope. Original local tracked/untracked work retained in a named safety stash; no application data changes. Working changes remain uncommitted.
+
+### Update 2026-09-08 00:08
+- Decisions: Complete AS-04 source work with frozen wire contracts, source-scoped grants and unchanged guarded CRUD; AS-05 mixed ZIP export is next.
+- Implementation: Added reviewed adoption/API/schema/docs and correlated receipts/audit; eliminated repeated vocabulary/ACL/QName validation and redundant read aggregation. 174 focused tests plus 42 subtests, all 61 ObjectFactory tests and real adoption/lifecycle/HTTP/concurrency/rollback/deletion regressions pass; 500 actions commit in 55.733 seconds. Build, OpenAPI/schema checks and final wheel verification pass. Evidence: FasnachtsPage docs/as-04.
+- Open: AS-05–AS-09 export, admin UI, SALSAH, native Capture acceptance, production ACL/coordination migration and activation. Production depth/contention/latency acceptance remains necessary.
+- Risks/Assumptions: With explicit user approval, backed up GraphDB Desktop cfg and changed heap from automatic 9 GiB to explicit 12 GiB, then restarted/verified service. No API timeout change, live RDF/ontology/role/policy change, CaptureApp edit or deployment. All disposable test repositories/caches removed; previous unrelated working changes preserved.
+
+### Update 2026-09-07 23:42
+- Decisions: Implement AS-04 reviewed structure adoption with project-neutral backend and no ontology/CaptureApp changes; retain all pre-existing work.
+- Implementation: Added ArchiveAdoption, frozen request schema/runtime dependencies, source-derived ACL defaults, durable scoped receipts and operation-correlated atomic audit. Replaced redundant maximum-permission aggregation in resource reads with equivalent EXISTS threshold checking; 172 combined focused tests pass.
+- Open: Complete isolated maximum-envelope and full ObjectFactory/lifecycle regression verification before marking AS-04 complete; subsequent export/UI/SALSAH/activation remain later steps.
+- Risks/Assumptions: Local GraphDB at 9 GiB heap encountered free-heap guards/interrupted queries during large tests. User explicitly approved increasing to 12 GiB and clean restart; configuration backed up. No application RDF, role, policy or deployment change. The permission-query simplification still needs full real regression verification.
+
+### Update 2026-09-07 22:59
+- Decisions: Extend the existing opt-in transform transaction rather than introduce a new lifecycle API. Retain organisation read access, never automatically grant non-editorial archive writes, and permit narrow automatic retention in VIEW-only Mobile.
+- Implementation: Added archive_transfer/archive_inventory, transaction hooks, expected-source conflict guard, signed context/revision/keyset paging and bounded visible identity selection. Fixed uncorrelated BNODE role joins in resource/summary CONSTRUCTs. Added cursor tests and lifecycle documentation; parent evidence records 187 focused/regression tests, 61/61 ObjectFactory tests and actual transfer/move/delete/note races/mobile replay.
+- Open: AS-04 reviewed adoption; later mixed export, clients, production ACL/recovery acceptance and release. Omitted target grants do not invent editorial write access; clients still choose authorized editorial grants.
+- Risks/Assumptions: Same writer gate/policy on all resource workers; ordinary rights still apply. Cursor keys are server-owned and shared; key rotation invalidates old cursors. Source models unchanged, no live data/cache mutation or package release.
+
+### Update 2026-09-07 22:23
+- Decisions: Complete AS-02 with project-neutral opt-in archive policy plus ordinary permissions; use durable non-expiring shared ownership with operator recovery, as accepted by the user.
+- Implementation: Added archive_policy/archive_domain/archive_repository/mutation_gate, generic/subclass CRUD/transform and tree guards, structural audit and reference receipts, fresh state/grant checks, transaction outcome journaling, safe deletion without mandatory ACL annotations, and cache/store isolation. Added MkDocs policy/recovery guides and tests. Parent evidence: 129 focused/regression tests pass; real isolated role/replay/rollback/concurrency and 500-unit batch checks pass.
+- Open: AS-03 retained-reference transfer/inventory; package release, ACL migration and production recovery acceptance. Existing full TestObjectFactory suite has one failure (test_change_permissions_A) reproduced with original HEAD source; 60 other tests pass.
+- Risks/Assumptions: All resource writers share policy/gate; privileged raw SPARQL/model/admin writes require quiescence. Redis must provide acknowledged AOF persistence/noeviction without automatic failover. Crashed/uncertain writers require controlled recovery. No live application data/ontology or running cache changes.
+
+### Update 2026-09-07 21:07
+- Decisions: Introduce explicit resource transaction ownership; atomic composition does not imply serializable isolation. Nested failures mark the outer transaction for rollback even if caught; ambiguous commits are never retried.
+- Implementation: Added resource_transaction/resource_operation/resource_query, integrated CRUD/transform and resource reads/searches, removed duplicated inner commits/aborts, and made unknown property assignment a typed value error. Added transaction documentation and 19 offline tests; 24 existing archive/staging/YAML/import tests pass. Real temporary-graph probe verifies composed creates, read-own-writes, rollback and commit.
+- Open: AS-02 archive policy/domain guards and stronger writer coordination. Parallel conditional GraphDB claims both committed; recovery architecture decision is pending in FasnachtsPage docs/as-02. No package release or runtime activation.
+- Risks/Assumptions: Connections are task-local; discard mutable instances after rollback. Unmanaged active transactions are rejected. The complete destructive GraphDB fixture suite was not run; probe graph cleaned and existing data untouched.
+
+### Update 2026-09-07 20:36
+- Decisions: Complete AS-01 using only two optional folder-owned Shared links; keep lifecycle/authorization in later backend steps and leave existing archive/media constraints intact.
+- Implementation: Updated both Shared graph versions to 0.7.0; added defaultArchiveUnit and referencedMediaObject with four-language labels and documented semantics. Added eight SHACL/inference tests, updated the version assertion, and registered MkDocs documentation.
+- Open: AS-02 domain/authorization implementation; coordinated ontology loading, package release and live model/cache acceptance remain pending.
+- Risks/Assumptions: Fifteen offline ontology tests pass. Unchanged Fasnacht/Chama YAML models validate and resolve fixture links; removing additions/version metadata restores isomorphic old graphs. Setup copy is byte-identical. No database write or CaptureApp change.
+
 ### Update 2026-09-02 18:08
 - Decisions: Provide a narrow additive transaction extension point instead of moving OLDAP lifecycle persistence into API-side follow-up writes.
 - Implementation: Added an optional keyword-only before_commit callback to resource update, delete, and class transformation; callback failures abort the complete active transaction. Added update, delete, transform-success, and transform-rollback regressions without weakening the pre-existing exact transformed-type assertion, documented the contract, and prepared oldaplib 0.7.17.

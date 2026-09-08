@@ -15,9 +15,11 @@ from oldaplib.src.helpers.oldaperror import (
     OldapErrorValue,
 )
 from oldaplib.src.iconnection import IConnection
+from oldaplib.src.resource_transaction import coordinated_domain_operation
 from oldaplib.src.objectfactory import (
     CompOp,
     LogicOp,
+    resource_class_is_or_extends,
     ResourceInstance,
     ResourceInstanceFactory,
     SearchFilter,
@@ -101,7 +103,7 @@ class StagingFolderTree:
     def _read_folder(self, iri: Iri) -> ResourceInstance:
         """Read one resource and reject values outside the folder class."""
         instance = self._factory.read(iri)
-        if instance.__class__.name != self.FOLDER_CLASS:
+        if not resource_class_is_or_extends(type(instance), self.FOLDER_CLASS):
             raise OldapErrorValue(f'Resource "{iri}" is not a shared:StagingFolder.')
         return instance
 

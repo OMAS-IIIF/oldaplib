@@ -28,6 +28,7 @@ from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue,
     OldapErrorNoPermission, OldapError, OldapErrorUpdateFailed, OldapErrorInUse, OldapErrorAlreadyExists, OldapErrorType
 from oldaplib.src.helpers.query_processor import QueryProcessor
 from oldaplib.src.iconnection import IConnection
+from oldaplib.src.resource_transaction import resource_operation, resource_query
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project
@@ -272,56 +273,33 @@ def creator_or_max_perm_block(
     alias: str = "acc",   # avoid var collisions when used multiple times
     include_creator: bool = True
 ) -> str:
-    """
-    Helper class to determine the permissions and act accordingly
-    """
-    r = f"?{alias}_role"
-    dp = f"?{alias}_dataperm"
-    pv = f"?{alias}_permval"
-    pv_sub = f"?{alias}_pv"
-    maxp = f"?{alias}_maxPerm"
+    """Build a boolean creator/role threshold check for resource CONSTRUCT reads.
 
-    creator_branch = textwrap.dedent(f"""
-    {{
-        GRAPH {graph_data} {{
-            {resource_iri} oldap:createdBy {user_iri} .
-        }}
-    }}
-    """).strip()
-
-    perm_branch = textwrap.dedent(f"""
-    {{
-        {{
-            SELECT (MAX(xsd:integer({pv_sub})) AS {maxp})
-            WHERE {{
-                GRAPH oldap:admin {{
-                    {user_iri} oldap:hasRole {r} .
-                }}
-                GRAPH {graph_data} {{
-                    {resource_iri} oldap:attachedToRole {r} .
-                    <<{resource_iri} oldap:attachedToRole {r}>> oldap:hasDataPermission {dp} .
-                }}
-                GRAPH oldap:admin {{
-                    {dp} oldap:permissionValue {pv_sub} .
-                    FILTER({pv_sub} >= {min_perm})
-                }}
-            }}
-        }}
+    Existence of any grant at or above the threshold is equivalent to comparing
+    the maximum grant with that threshold. No caller consumes the maximum itself.
+    FILTER EXISTS avoids redundant aggregation and role joins in large reviewed
+    batches without changing the qualifying grants.
+    Creator access remains explicitly controlled by include_creator.
+    """
+    role = f"?{alias}_role"
+    permission = f"?{alias}_dataperm"
+    value = f"?{alias}_permval"
+    permitted = f"""
         GRAPH oldap:admin {{
-            {user_iri} oldap:hasRole {r} .
-            {dp} oldap:permissionValue {pv} .
+            {user_iri} oldap:hasRole {role} .
+            {permission} oldap:permissionValue {value} .
+            FILTER({value} >= {min_perm})
         }}
         GRAPH {graph_data} {{
-            {resource_iri} oldap:attachedToRole {r} .
-            <<{resource_iri} oldap:attachedToRole {r}>> oldap:hasDataPermission {dp} .
+            {resource_iri} oldap:attachedToRole {role} .
+            <<{resource_iri} oldap:attachedToRole {role}>> oldap:hasDataPermission {permission} .
         }}
-        FILTER({pv} >= {min_perm} && xsd:integer({pv}) = {maxp})
-    }}
-    """).strip()
-
+    """
     if include_creator:
-        return f"{{\n{creator_branch}\n}}\nUNION\n{{\n{perm_branch}\n}}"
-    return perm_branch
+        permitted = f"""{{ GRAPH {graph_data} {{
+            {resource_iri} oldap:createdBy {user_iri} .
+        }} }} UNION {{ {permitted} }}"""
+    return f"FILTER EXISTS {{ {permitted} }}"
 
 
 def _construct_subject_key(subject: Iri | Xsd_QName) -> Iri | Xsd_QName:
@@ -775,7 +753,10 @@ def _read_resource_construct(con: IConnection,
                 {iri.toRdf} oldap:attachedToRole ?attachedRole .
                 << {iri.toRdf} oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .
             }}
-            BIND(BNODE() AS ?permBinding)
+            # Bind each role/permission pair to its own stable blank node.
+            # GraphDB may evaluate an uncorrelated BNODE() before the role join,
+            # merging distinct grants and losing their association on read.
+            BIND(BNODE(CONCAT(STR(?attachedRole), "|", STR(?attachedDataperm))) AS ?permBinding)
         }}
         OPTIONAL {{
             GRAPH {graph}:data {{
@@ -787,7 +768,7 @@ def _read_resource_construct(con: IConnection,
         }}
     }}
     ''')
-    graph_res = con.query(sparql, format=SparqlResultFormat.JSONLD)
+    graph_res = resource_query(con, sparql, format=SparqlResultFormat.JSONLD)
     return ConstructProcessor.process(context, graph_res)
 
 
@@ -858,7 +839,10 @@ def _read_resource_summaries_construct(
                 ?resource oldap:attachedToRole ?attachedRole .
                 << ?resource oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .
             }}
-            BIND(BNODE() AS ?permBinding)
+            # Bind each role/permission pair to its own stable blank node.
+            # GraphDB may evaluate an uncorrelated BNODE() before the role join,
+            # merging distinct grants and losing their association on read.
+            BIND(BNODE(CONCAT(STR(?attachedRole), "|", STR(?attachedDataperm))) AS ?permBinding)
         }}
         OPTIONAL {{
             GRAPH {graph}:data {{
@@ -870,7 +854,7 @@ def _read_resource_summaries_construct(
         }}
     }}
     ''')
-    graph_res = con.query(sparql, format=SparqlResultFormat.JSONLD)
+    graph_res = resource_query(con, sparql, format=SparqlResultFormat.JSONLD)
     return ConstructProcessor.process(context, graph_res)
 
 
@@ -1455,7 +1439,7 @@ class ResourceInstance:
             return True, "OK – IS ROOT"
         else:
             perms = actor.inProject.get(self.project.projectIri)
-            if permission in perms:
+            if perms and permission in perms:
                 return True, "OK",
             else:
                 return False, f'Actor does not have {permission} in project "{self.project.projectShortName}".'
@@ -1504,6 +1488,8 @@ class ResourceInstance:
             self._attached_roles = ObservableDict(value, notifier=self.__attachedToRole_cb)
             return
         prop = self.properties.get(attr)
+        if prop is None:
+            raise OldapErrorValue(f'{self.name}: Unknown property "{attr}".')
         value = _coerce_property_value(prop, value)
 
         #
@@ -1626,6 +1612,7 @@ class ResourceInstance:
             result = self._con.query(permission_query)
         return result['boolean']
 
+    @resource_operation
     def create(self, indent: int = 0, indent_inc: int = 4) -> str:
         """
         Generates an RDF/SPARQL INSERT DATA query for creating a resource with associated
@@ -1694,18 +1681,10 @@ class ResourceInstance:
 
         sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
-        self._con.transaction_start()
-        try:
-            result = self._con.transaction_query(sparql0)
-            if result['boolean']:
-                self._con.transaction_abort()
-                raise OldapErrorAlreadyExists(f'Resource with IRI {self._iri} already exists.')
-            self._con.transaction_update(sparql)
-        except OldapError as e:
-            print(sparql)
-            self._con.transaction_abort()
-            raise
-        self._con.transaction_commit()
+        result = self._con.transaction_query(sparql0)
+        if result['boolean']:
+            raise OldapErrorAlreadyExists(f'Resource with IRI {self._iri} already exists.')
+        self._con.transaction_update(sparql)
 
 
     @classmethod
@@ -1741,6 +1720,7 @@ class ResourceInstance:
             raise OldapErrorInconsistency(f'Expected class {expected_type}, got {type_list} instead.')
         return cls(iri=iri, **kwargs)
 
+    @resource_operation
     def update(
             self,
             indent: int = 0,
@@ -1765,11 +1745,14 @@ class ResourceInstance:
                            queries.
         :type indent_inc: int
         :param before_commit: Optional transaction callback invoked after the resource
-                              mutation has succeeded and immediately before commit. The
+                              mutation has succeeded and before the owning transaction commits. The
                               callback receives the active connection and may append
                               related transactional writes. Any callback failure aborts
                               the complete transaction.
         :type before_commit: BeforeCommitHook | None
+        :note: The resource-operation boundary invokes this hook after archive
+               lifecycle/audit work. In a composed transaction it runs before
+               this call returns; only the outer owner commits.
         :return: None
         :rtype: None
         """
@@ -1954,40 +1937,21 @@ class ResourceInstance:
         }}
         """
 
-        self._con.transaction_start()
-        #
-        # Test permission for Action.REPLACE
-        #
-        if not admin_resources:
-            if not self.get_data_permission(required_permission):
-                self._con.transaction_abort()
-                raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
-        try:
-            for field, change in self._changeset.items():
-                if _is_dating_property(self.properties.get(field)):
-                    inuse = self.__dating_delete_is_referenced_sparql(field, change)
-                    if inuse and self._con.transaction_query(inuse)['boolean']:
-                        raise OldapErrorInUse(
-                            f'Dating value of property "{field}" cannot be deleted because another Dating value refers to it with oldap:before.')
-            self._con.transaction_update(sparql)
-            self._con.transaction_update(modtime_update)
-            jsonobj = self._con.transaction_query(modtime_get)
-            res = QueryProcessor(context, jsonobj)
-            modtime = res[0]['modified']
-            if timestamp != modtime:
-                raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (modtime={modtime}, timestamp={timestamp}).")
-            if before_commit is not None:
-                before_commit(self._con)
-        except Exception:
-            logger.error(f'Failed to update resource "{self._iri}"', exc_info=True)
-            self._con.transaction_abort()
-            raise
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            logger.error(f'Failed to commit transaction for resource "{self._iri}"', exc_info=True)
-            self._con.transaction_abort()
-            raise
+        if not admin_resources and not self.get_data_permission(required_permission):
+            raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
+        for field, change in self._changeset.items():
+            if _is_dating_property(self.properties.get(field)):
+                inuse = self.__dating_delete_is_referenced_sparql(field, change)
+                if inuse and self._con.transaction_query(inuse)['boolean']:
+                    raise OldapErrorInUse(
+                        f'Dating value of property "{field}" cannot be deleted because another Dating value refers to it with oldap:before.')
+        self._con.transaction_update(sparql)
+        self._con.transaction_update(modtime_update)
+        jsonobj = self._con.transaction_query(modtime_get)
+        res = QueryProcessor(context, jsonobj)
+        modtime = res[0]['modified']
+        if timestamp != modtime:
+            raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (modtime={modtime}, timestamp={timestamp}).")
         self.clear_changeset()
 
     @staticmethod
@@ -2063,6 +2027,7 @@ class ResourceInstance:
             return ', '.join(value.iri.toRdf for value in value_list)
         return values.toRdf
 
+    @resource_operation
     def transform_class(
             self,
             target_class: Xsd_QName | str,
@@ -2098,9 +2063,10 @@ class ResourceInstance:
             link_from_property: Object property on ``link_from_iri`` used for
                 the new link. Both link arguments must be supplied together.
             before_commit: Optional transaction callback invoked after every
-                transformation write and immediately before commit. The callback
+                transformation write and before the owning transaction commits. The callback
                 receives the active connection; any failure aborts the complete
-                transformation.
+                transformation. In a composed transaction the callback runs before
+                this call returns; only the outer transaction owner commits.
 
         Returns:
             A validated instance of the target resource class with the same IRI.
@@ -2340,31 +2306,21 @@ class ResourceInstance:
             sparql_updates.append(sparql)
 
         admin_resources, _ = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
-        self._con.transaction_start()
         if not admin_resources and not self.get_data_permission(DataPermission.DATA_DELETE):
-            self._con.transaction_abort()
             raise OldapErrorNoPermission(f'No permission to transform resource "{self._iri}"')
         if link_source is not None:
             link_admin_resources, _ = link_source.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
             if not link_admin_resources and not link_source.get_data_permission(DataPermission.DATA_UPDATE):
-                self._con.transaction_abort()
                 raise OldapErrorNoPermission(f'No permission to update linked resource "{link_source._iri}"')
-        try:
-            for sparql_update in sparql_updates:
-                self._con.transaction_update(sparql_update)
-            if before_commit is not None:
-                before_commit(self._con)
-            self._con.transaction_commit()
-        except Exception:
-            logger.error(f'Failed to transform resource "{self._iri}" to "{target_class_iri}"', exc_info=True)
-            self._con.transaction_abort()
-            raise
+        for sparql_update in sparql_updates:
+            self._con.transaction_update(sparql_update)
 
         target_instance._values[Xsd_QName('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
         target_instance._values[Xsd_QName('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
         target_instance.clear_changeset()
         return target_instance
 
+    @resource_operation
     def delete(self, *, before_commit: BeforeCommitHook | None = None) -> None:
         """
         Deletes the specified resource represented by the object's IRI from the associated graph
@@ -2382,9 +2338,12 @@ class ResourceInstance:
         :raises OldapError: If any error occurs during transaction start, query, update,
             or commit phases.
         :param before_commit: Optional transaction callback invoked after deletion and
-                              immediately before commit. The callback receives the active
+                              before the owning transaction commits. The callback receives the active
                               connection; any failure aborts the complete deletion.
         :type before_commit: BeforeCommitHook | None
+        :note: The resource-operation boundary invokes this hook after archive
+               lifecycle/audit work. In a composed transaction it runs before
+               this call returns; only the outer owner commits.
         """
         admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
@@ -2401,41 +2360,25 @@ class ResourceInstance:
         context = Context(name=self._con.context_name)
         sparql = context.sparql_context
         sparql += f"""
-        DELETE WHERE {{
+        DELETE {{
             GRAPH {self._graph}:data {{
                 {self._iri.toRdf} ?prop ?val .
                 << {self._iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
             }}
-        }} 
+        }} WHERE {{
+            GRAPH {self._graph}:data {{
+                {self._iri.toRdf} ?prop ?val .
+                OPTIONAL {{ << {self._iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm . }}
+            }}
+        }}
         """
 
-        self._con.transaction_start()
-        if not admin_resources:
-            if not self.get_data_permission(DataPermission.DATA_DELETE):
-                self._con.transaction_abort()
-                raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
-        try:
-            result = self._con.transaction_query(inuse)
-            if result['boolean']:
-                raise OldapErrorInUse(f'Resource "{self._iri}" is in use and cannot be deleted.')
-        except OldapError:
-            logger.error(f'SPARQL: Failed to check whether resource "{self._iri}" is in use', exc_info=True)
-            self._con.transaction_abort()
-            raise
-        try:
-            self._con.transaction_update(sparql)
-            if before_commit is not None:
-                before_commit(self._con)
-        except Exception:
-            logger.error(f'SPARQL: Failed to delete resource "{self._iri}"', exc_info=True)
-            self._con.transaction_abort()
-            raise
-        try:
-            self._con.transaction_commit()
-        except OldapError:
-            logger.error(f'SPARQL: Failed to commit transaction for resource "{self._iri}"', exc_info=True)
-            self._con.transaction_abort()
-            raise
+        if not admin_resources and not self.get_data_permission(DataPermission.DATA_DELETE):
+            raise OldapErrorNoPermission(f'No permission to delete resource "{self._iri}"')
+        result = self._con.transaction_query(inuse)
+        if result['boolean']:
+            raise OldapErrorInUse(f'Resource "{self._iri}" is in use and cannot be deleted.')
+        self._con.transaction_update(sparql)
 
     @staticmethod
     def read_data(
@@ -2935,7 +2878,7 @@ class ResourceInstance:
                 sparql += f'\n{blank:{indent * indent_inc}}ORDER BY {resource_order_by()}'
         sparql += '\n'
         try:
-            jsonres = con.query(sparql)
+            jsonres = resource_query(con, sparql)
         except OldapError:
             logger.error(f'SPARQL: Failed to search for resources in project "{project_obj.projectShortName}"', exc_info=True)
             raise
@@ -3051,7 +2994,7 @@ class ResourceInstance:
         sparql += '\n'
 
         try:
-            jsonres = con.query(sparql)
+            jsonres = resource_query(con, sparql)
         except OldapError:
             logger.error(f'SPARQL: Failed to search for resources in graph "{graph}"', exc_info=True)
             raise
@@ -3147,7 +3090,7 @@ class ResourceInstance:
         sparql += '\n'
 
         try:
-            jsonres = con.query(sparql)
+            jsonres = resource_query(con, sparql)
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve resources for project "{projectShortName}"', exc_info=True)
             raise
@@ -3284,7 +3227,7 @@ INSERT DATA {
         }}
         """)
         try:
-            jsonres = con.query(sparql)
+            jsonres = resource_query(con, sparql)
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve media object with ID "{mediaObjectId}"', exc_info=True)
             raise
@@ -3379,7 +3322,7 @@ INSERT DATA {
         }}
         """)
         try:
-            jsonres = con.query(sparql)
+            jsonres = resource_query(con, sparql)
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve media object with IRI "{mediaObjectIri}"', exc_info=True)
             raise
