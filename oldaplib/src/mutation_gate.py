@@ -25,7 +25,22 @@ from redis.exceptions import RedisError
 from oldaplib.src.helpers.oldaperror import OldapError
 
 GATE_KEY = "oldap-api:staging:mutation"
+RECOVERY_BARRIER_KEY = "oldap-api:staging:recovery:barrier"
 WAIT_SECONDS = 30
+
+_process_identity: tuple[int, str] | None = None
+
+
+def _process_instance() -> str:
+    """Distinguish interpreter generations, including after a process fork.
+
+    Diagnostic identity only: neither this UUID nor a missing PID proves that
+    a database request has ended. Recovery separately verifies runtime fencing.
+    """
+    global _process_identity
+    if _process_identity is None or _process_identity[0] != os.getpid():
+        _process_identity = (os.getpid(), str(uuid4()))
+    return _process_identity[1]
 
 
 class MutationGateUnavailable(OldapError):
@@ -109,16 +124,19 @@ def _persist(owner: _Owner) -> None:
         **owner.record,
         "transactions": sorted(owner.transactions),
         "uncertain": owner.uncertain,
+        "revision": owner.record.get("revision", 0) + 1,
     }
     encoded = json.dumps(record, sort_keys=True, separators=(",", ":"))
     changed = owner.client.eval(
+        "if redis.call('GET',KEYS[2]) then return 0 end; "
         "local v=redis.call('GET',KEYS[1]); "
         "if not v then return 0 end; "
         "local ok,r=pcall(cjson.decode,v); "
         "if not ok or r.token~=ARGV[1] then return 0 end; "
         "redis.call('SET',KEYS[1],ARGV[2]); return 1",
-        1,
+        2,
         GATE_KEY,
+        RECOVERY_BARRIER_KEY,
         owner.record["token"],
         encoded,
     )
@@ -128,6 +146,7 @@ def _persist(owner: _Owner) -> None:
             "Writer ownership was lost; recovery is required."
         )
     _durable(owner.client)
+    owner.record = record
 
 
 def mark_gate_uncertain() -> None:
@@ -224,6 +243,9 @@ def mutation_gate(
             "token": str(uuid4()),
             "host": socket.gethostname(),
             "pid": os.getpid(),
+            "processInstance": _process_instance(),
+            "recoveryProtocol": 2,
+            "revision": 0,
             "startedAt": datetime.now(timezone.utc).isoformat(),
             "transactions": [],
             "uncertain": False,
@@ -232,7 +254,14 @@ def mutation_gate(
     try:
         _validate_store(client)
         deadline = time.monotonic() + wait_seconds
-        while not client.set(GATE_KEY, json.dumps(owner.record), nx=True):
+        while not client.eval(
+            "if redis.call('GET',KEYS[2]) then return 0 end; "
+            "return redis.call('SET',KEYS[1],ARGV[1],'NX')",
+            2,
+            GATE_KEY,
+            RECOVERY_BARRIER_KEY,
+            json.dumps(owner.record),
+        ):
             if time.monotonic() >= deadline:
                 raise MutationGateUnavailable(
                     "Another writer is active or requires controlled recovery."
@@ -255,12 +284,14 @@ def mutation_gate(
         else:
             try:
                 released = client.eval(
+                    "if redis.call('GET',KEYS[2]) then return 0 end; "
                     "local v=redis.call('GET',KEYS[1]); if not v then return 0 end; "
                     "local ok,r=pcall(cjson.decode,v); "
                     "if not ok or r.token~=ARGV[1] then return 0 end; "
                     "return redis.call('DEL',KEYS[1])",
-                    1,
+                    2,
                     GATE_KEY,
+                    RECOVERY_BARRIER_KEY,
                     owner.record["token"],
                 )
                 if released != 1:
@@ -328,9 +359,11 @@ def recover_gate(
     if encoded is None or json.loads(encoded) != record:
         raise MutationGateUnavailable("The writer record changed during recovery.")
     released = client.eval(
+        "if redis.call('GET',KEYS[2]) then return 0 end; "
         "if redis.call('GET',KEYS[1])~=ARGV[1] then return 0 end; return redis.call('DEL',KEYS[1])",
-        1,
+        2,
         GATE_KEY,
+        RECOVERY_BARRIER_KEY,
         encoded,
     )
     if released != 1:

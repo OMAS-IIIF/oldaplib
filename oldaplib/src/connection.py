@@ -521,7 +521,7 @@ class Connection(IConnection):
 
         logger.info(f'File "{filename}" uploaded synchronously via /statements.')
 
-    def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
+    def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON, *, timeout: float | tuple[float, float] | None = None) -> Any:
         """
         Send a SPARQL-query and return the result. The result may be nested dict (in case of JSON) or a text.
 
@@ -529,6 +529,7 @@ class Connection(IConnection):
         :type query: str
         :param format: The format desired (see ~SparqlResultFormat)
         :type format: SparqlResultFormat
+        :param timeout: Optional requests connect/read timeout; omitted preserves existing behavior.
         :return: Query results or an error message (as text)
         :rtype: Any
         :raises OldapError: Raised if not logged in or if there is an issue with the query execution.
@@ -546,6 +547,7 @@ class Connection(IConnection):
         }
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         res = requests.post(url=self._query_url,
+                            **({'timeout': timeout} if timeout is not None else {}),
                             headers=headers,
                             data=data,
                             auth=auth)

@@ -1,5 +1,19 @@
 # OLDAPlib Project Context
 
+- Step-three folder defaults are implemented in FasnachtsPage and shared backend: separate read-only default proposal with current permissions and stable-ID provenance hints; per-folder reviewed set/clear with exact retries. No media moves or unit creation. New route `/archive/{project}/structure/defaults/proposal`; matching local API restarted. See FasnachtsPage `docs/archive-hierarchy/README.md` for current workflow and receipt-scan limits.
+
+
+- Structure-only archive import: optional plan `applyMappings:false` creates reviewed units without changing working-folder defaults; source/unit correspondence is retained in private GraphDB receipts. Legacy omitted-option behavior stays combined. FasnachtsPage now exposes only source, placement, names/levels and review in step one; normal archive management is step two. Separate default editor/provenance retrieval is still pending. Matching local API was safely restarted; no real archive import was applied during verification.
+
+
+- WR-04: Native launchd fencing and process-generation checks complement the existing Docker/SSH recovery controller. Local MacBook recovery is activated; production remains separately gated. HTTP/Capture/ontology contracts are unchanged. See `docs/writer_recovery.md` and FasnachtsPage `docs/wr-04/README.md`.
+
+- WR-03 supplies advisory readiness using the same evidence predicate as release, a typed unknown-durability outcome, and optional query timeouts for the recovery role check. The shared HTTP/browser contract is documented in `docs/writer_recovery.md` and FasnachtsPage `docs/wr-03`; see WR-04 for completed local activation and remaining target acceptance.
+
+- WR-02 adds barrier-aware writer coordination, an exact-owner recovery journal and a separate Docker/SSH maintenance controller. Operational evidence uses a distinct Redis ACL identity and reviewed inventory digest; no automatic expiry or caller-confirmed release. See `docs/writer_recovery.md`. Recovery stays disabled pending WR-03 adapters and WR-04 real/native runtime acceptance.
+
+- AS-09 creation grants: optional project policy `grantEditorRolesOnCreation` defaults to false. Opted-in new ArchiveUnits receive structure-role DELETE and new catalogue media receive editor-role UPDATE through generic creation, adoption and transfer. Adoption review binds the flag; invalid supplied media ACLs still fail; no private-folder grants or ontology/API changes. See `docs/archive_creation_grants.md`. ObjectFactory ACL assignment/reset now uses ObservableDict's correct `on_change` argument. Runtime rollout remains separate.
+
 OLDAPlib is the Python library layer for OLDAP, a linked-open-data middleware and REST API backend. It models OLDAP projects, users, permissions, lists, resource classes, property classes, XML Schema datatypes, RDF/SHACL structures, and GraphDB/Redis-backed persistence helpers.
 
 ## Repository State
@@ -56,3 +70,11 @@ OLDAPlib is the Python library layer for OLDAP, a linked-open-data middleware an
 - Keep documentation and API doc generation synchronized with public API changes.
 - When changing behavior around GraphDB, Redis, ontologies, or public model classes, update tests and relevant docs together.
 - Publish and measure the new summary batch through oldap-api and SALSAH, then continue the performance roadmap with write/import validator reuse.
+
+## MacBook archive rollout (2026-09-09)
+
+Local archive policy/model/ACL activation is applied. The API uses a dedicated
+AOF/fsync-always writer Redis on localhost:6380/1 and matching local source;
+FasnachtsPage and SALSAH-2 share the activated backend. Production deployment
+remains separate. Native Capture acceptance was waived only for this test rollout.
+See `../FasnachtsPage/docs/as-09/local-rollout.md` for runtime, backup, recovery, verification and production steps.

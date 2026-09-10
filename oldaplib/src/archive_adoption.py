@@ -120,7 +120,11 @@ def plan_order(plan):
             key = parent.get("key") if parent else None
     if used != set(units):
         raise OldapErrorValue("Every new unit must lead to a mapped target.")
-    mutations = len(units) + sum(m["action"] != "skip" for m in plan["mappings"])
+    mutations = len(units) + (
+        sum(m["action"] != "skip" for m in plan["mappings"])
+        if plan.get("applyMappings", True)
+        else 0
+    )
     if mutations > MAX_MUTATIONS:
         raise too_large(
             "The plan exceeds 500 mutating actions; select a smaller subtree."
@@ -405,6 +409,95 @@ class ArchiveAdoption(ArchiveRepository):
                 )
             return {**source, "suggestedPlan": normal_plan(plan), "warnings": warnings}
 
+    def default_proposal(self, body):
+        """Read folder defaults and unambiguous, currently visible import hints.
+
+        No units are proposed or created. Receipt provenance never grants access:
+        both source scope and target visibility are checked at request time. An
+        incomplete receipt scan suppresses all hints instead of guessing a winner.
+        """
+        validate(body, "ProposalRequest")
+        with resource_transaction(self._con):
+            policy = self._policy()
+            policy.require_structure()
+            source, _ = self._source(body["sourceFolderIri"], policy)
+            rows = self._query(
+                "SELECT ?record WHERE { GRAPH <urn:oldap:archive-operations> { "
+                "?operation <urn:oldap:archive:record> ?record } } LIMIT 1001",
+                policy,
+            )
+            warnings = []
+            candidates = {}
+            eligible = {
+                row["iri"]
+                for row in source["folders"]
+                if not row["protected"] and row["mappingState"] == "unmapped"
+            }
+            if len(rows) > 1000:
+                warnings.append(
+                    {
+                        "code": "HINT_LIMIT",
+                        "message": "Vorschläge konnten nicht vollständig geprüft werden. Bitte Standardziele manuell wählen.",
+                    }
+                )
+            else:
+                for row in rows:
+                    record = json.loads(row["record"]["value"])
+                    if (
+                        record.get("command") != COMMAND
+                        or record.get("applyMappings") is not False
+                        or record.get("project") != str(self.project.projectShortName)
+                    ):
+                        continue
+                    for link in record.get("sourceCorrespondence", []):
+                        if link["folderIri"] in eligible:
+                            candidates.setdefault(link["folderIri"], set()).add(
+                                link["targetIri"]
+                            )
+            # Multiple imports are ambiguous even if only one target remains readable.
+            unique = {
+                folder: next(iter(targets))
+                for folder, targets in candidates.items()
+                if len(targets) == 1
+            }
+            visible = set()
+            if unique:
+                terms = " ".join(
+                    self._term(iri) for iri in sorted(set(unique.values()))
+                )
+                visible = {
+                    row["target"]["value"]
+                    for row in self._query(
+                        f"SELECT DISTINCT ?target WHERE {{ VALUES ?target {{ {terms} }} "
+                        f"GRAPH {self.project.projectShortName}:data {{ ?target a ?class }} "
+                        f"?class rdfs:subClassOf* shared:ArchiveUnit . {self._visibility('?target')} }}",
+                        policy,
+                    )
+                }
+            mappings = [
+                {"folderIri": folder, "action": "set", "target": {"iri": target}}
+                for folder, target in sorted(unique.items())
+                if target in visible
+            ]
+            if len(mappings) > MAX_MUTATIONS:
+                mappings = mappings[:MAX_MUTATIONS]
+                warnings.append(
+                    {
+                        "code": "HINT_LIMIT",
+                        "message": "Es werden höchstens 500 Vorschläge angezeigt. Für weitere Vorschläge einen kleineren Teilbereich auswählen.",
+                    }
+                )
+            return {
+                **source,
+                "suggestedPlan": {
+                    "sourceFolderIri": source["sourceFolderIri"],
+                    "sourceSnapshot": source["sourceSnapshot"],
+                    "newUnits": [],
+                    "mappings": mappings,
+                },
+                "warnings": warnings,
+            }
+
     def _review(self, raw_plan, policy):
         """Resolve model, rights and revisions; return review plus transaction-local inputs.
 
@@ -436,7 +529,10 @@ class ArchiveAdoption(ArchiveRepository):
                     "An unavailable mapping cannot be overwritten or cleared."
                 )
             folder = self.factory.read(Iri(Xsd_anyURI(row["iri"])))
-            policy.require_data(folder, DP.DATA_UPDATE)
+            policy.require_data(
+                folder,
+                DP.DATA_UPDATE if plan.get("applyMappings", True) else DP.DATA_VIEW,
+            )
             instances[row["iri"]] = folder
             if row["defaultArchiveUnitIri"]:
                 existing.add(row["defaultArchiveUnitIri"])
@@ -522,6 +618,7 @@ class ArchiveAdoption(ArchiveRepository):
             "editorial": sorted(policy.editorial_roles),
             "media": sorted(policy.media_classes),
             "note": policy.note_property,
+            "grantEditorRolesOnCreation": policy.grant_editor_roles_on_creation,
         }
         review = digest(
             {
@@ -532,7 +629,11 @@ class ArchiveAdoption(ArchiveRepository):
             }
         )
         counts = {
-            key: sum(m["action"] == key for m in plan["mappings"])
+            key: (
+                sum(m["action"] == key for m in plan["mappings"])
+                if plan.get("applyMappings", True)
+                else 0
+            )
             for key in ("set", "clear", "skip")
         }
         counts["create"] = len(ordered)
@@ -568,7 +669,8 @@ class ArchiveAdoption(ArchiveRepository):
 
         Each folder's RDF roles are parsed once, then propagated to its new target
         and new ancestors. Structure grants retain at most DELETE, other roles
-        UPDATE, and Unknown VIEW. Policy-only roles are never implicitly added.
+        UPDATE, and Unknown VIEW. Explicit project creation policy may additionally
+        grant structure roles DELETE on every new unit, without changing folders.
         The returned grants belong to this review and are reused only inside its
         coordinated apply; they are not a cross-request permission cache.
         """
@@ -577,7 +679,6 @@ class ArchiveAdoption(ArchiveRepository):
             return grants
         permission_predicate = canonical_iri(policy.context, "oldap:hasDataPermission")
         unknown_role = canonical_iri(policy.context, "oldap:Unknown")
-        roles = {}
         permissions = {}
         for mapping in plan["mappings"]:
             if mapping["action"] != "set" or "key" not in mapping["target"]:
@@ -592,8 +693,6 @@ class ArchiveAdoption(ArchiveRepository):
                     permissions[permission_iri] = DP.from_qname(
                         policy.context.iri2qname(permission_iri)
                     )
-                if role not in roles:
-                    roles[role] = policy.context.iri2qname(role)
                 cap = (
                     DP.DATA_DELETE if role in policy.structure_roles else DP.DATA_UPDATE
                 )
@@ -612,8 +711,15 @@ class ArchiveAdoption(ArchiveRepository):
                         grants[current][role] = permission
                 parent = units[current]["parent"]
                 current = parent.get("key") if parent else None
+        from oldaplib.src.archive_policy import creation_grants
+
         return {
-            key: {roles[role]: permission for role, permission in granted.items()}
+            key: {
+                policy.context.iri2qname(role) or Iri(Xsd_anyURI(role)): permission
+                for role, permission in creation_grants(
+                    policy, granted, archive_unit=True
+                ).items()
+            }
             for key, granted in grants.items()
         }
 
@@ -678,7 +784,7 @@ class ArchiveAdoption(ArchiveRepository):
                 Unit(iri=iris[unit["key"]], **kwargs).create()
             changes = []
             for mapping in plan["mappings"]:
-                if mapping["action"] == "skip":
+                if not plan.get("applyMappings", True) or mapping["action"] == "skip":
                     continue
                 folder = folders[mapping["folderIri"]]
                 target = (
@@ -719,6 +825,19 @@ class ArchiveAdoption(ArchiveRepository):
                 "project": str(self.project.projectShortName),
                 "time": datetime.now(timezone.utc).isoformat(),
                 "requestDigest": request_digest,
+                # Stable IDs survive later renames/moves. This is provenance only,
+                # never a live default or authorization for a future mapping change.
+                "sourceCorrespondence": [
+                    {
+                        "folderIri": mapping["folderIri"],
+                        "targetIri": canonical_iri(
+                            policy.context, resolve(mapping["target"])
+                        ),
+                    }
+                    for mapping in plan["mappings"]
+                    if mapping["action"] == "set"
+                ],
+                "applyMappings": plan.get("applyMappings", True),
                 "visibleIris": sorted(visible),
                 "result": result,
             }

@@ -715,6 +715,23 @@ def _resolved_resource_properties(
     return resolved
 
 
+def _alias_requested_subjects(context: Context, data: ConstructResultDict,
+                              subjects: Iterable[Iri]) -> ConstructResultDict:
+    """Keep full-IRI requests addressable after CONSTRUCT QName normalization.
+
+    ConstructProcessor compacts known namespace subjects to QNames. Add aliases
+    only for requested subjects already present in the permission-filtered result;
+    missing or denied resources remain absent. Both keys share the same node.
+    """
+    for subject in subjects:
+        if subject.is_qname:
+            continue
+        compact = context.iri2qname(str(subject))
+        if compact is not None and compact in data:
+            data[subject] = data[compact]
+    return data
+
+
 def _read_resource_construct(con: IConnection,
                              graph: Xsd_NCName,
                              iri: Iri,
@@ -769,7 +786,7 @@ def _read_resource_construct(con: IConnection,
     }}
     ''')
     graph_res = resource_query(con, sparql, format=SparqlResultFormat.JSONLD)
-    return ConstructProcessor.process(context, graph_res)
+    return _alias_requested_subjects(context, ConstructProcessor.process(context, graph_res), [iri])
 
 
 def _read_resource_summaries_construct(
@@ -855,7 +872,7 @@ def _read_resource_summaries_construct(
     }}
     ''')
     graph_res = resource_query(con, sparql, format=SparqlResultFormat.JSONLD)
-    return ConstructProcessor.process(context, graph_res)
+    return _alias_requested_subjects(context, ConstructProcessor.process(context, graph_res), iris)
 
 
 #@strict
@@ -1471,10 +1488,13 @@ class ResourceInstance:
             attr = Xsd_QName(attr)
 
         if attr == Xsd_QName('oldap:attachedToRole'):
+            # SQL replacement needs the original role/permission map, not only
+            # the role set; retain the first snapshot across repeated edits.
+            old_roles = self._changeset[attr].old_value if attr in self._changeset else dict(self._attached_roles)
             if value is None:
-                self._changeset[attr] = AttributeChange(self._values.get(attr), Action.DELETE)
+                self._changeset[attr] = AttributeChange(old_roles, Action.DELETE)
                 del self._values[attr]
-                self._attached_roles = ObservableDict(notifier=self.__attachedToRole_cb)
+                self._attached_roles = ObservableDict(on_change=self.__attachedToRole_cb)
                 return
             if not isinstance(value, dict):
                 raise OldapErrorValue(f'{self.name}: Property {attr} requires a dict, got {type(value).__name__}.')
@@ -1483,9 +1503,9 @@ class ResourceInstance:
                     raise OldapErrorValue(f'{self.name}: Property {attr} requires keys to be Xsd_QName, got {type(role_qname).__name__}.')
                 if not isinstance(value[role_qname], DataPermission):
                     raise OldapErrorValue(f'{self.name}: Property {attr} requires values to be DataPermission, got {type(value[role_qname]).__name__}.')
-            self._changeset[attr] = AttributeChange(self._values.get(attr), Action.REPLACE)
+            self._changeset[attr] = AttributeChange(old_roles, Action.REPLACE)
             self._values[attr] = ObservableSet(set(value.keys()), notifier=self.notifier, notify_data=attr)
-            self._attached_roles = ObservableDict(value, notifier=self.__attachedToRole_cb)
+            self._attached_roles = ObservableDict(value, on_change=self.__attachedToRole_cb)
             return
         prop = self.properties.get(attr)
         if prop is None:
@@ -1551,9 +1571,12 @@ class ResourceInstance:
             attr = Xsd_QName(attr)
 
         if attr == Xsd_QName('oldap:attachedToRole'):
-            self._changeset[attr] = AttributeChange(self._values.get(attr), Action.DELETE)
+            # SQL replacement needs the original role/permission map, not only
+            # the role set; retain the first snapshot across repeated edits.
+            old_roles = self._changeset[attr].old_value if attr in self._changeset else dict(self._attached_roles)
+            self._changeset[attr] = AttributeChange(old_roles, Action.DELETE)
             del self._values[attr]
-            self._attached_roles = ObservableDict(notifier=self.__attachedToRole_cb)
+            self._attached_roles = ObservableDict(on_change=self.__attachedToRole_cb)
             return
         prop = self.properties.get(attr)
 
@@ -1821,7 +1844,9 @@ class ResourceInstance:
                     sparql += f'{blank:{(indent + 1) * indent_inc}}}}\n'
                     sparql += f'{blank:{indent * indent_inc}}}}\n'
                     add_sparql = True
-                elif (change.action == Action.CREATE or change.action == Action.REPLACE) and len(self._attached_roles) > 0:
+                if (change.action == Action.CREATE or change.action == Action.REPLACE) and len(self._attached_roles) > 0:
+                    if add_sparql:
+                        sparql += ";\n"
                     sparql += f'{blank:{indent * indent_inc}}INSERT DATA {{\n'
                     sparql += f'{blank:{(indent + 1) * indent_inc}}GRAPH {self._graph}:data {{\n'
                     for role, dperm in self._attached_roles.items():

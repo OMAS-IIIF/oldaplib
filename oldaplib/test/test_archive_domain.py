@@ -1,6 +1,7 @@
 """Offline capability, lifecycle and invariant tests across project subclasses."""
 
 import copy
+from dataclasses import replace
 import json
 from pathlib import Path
 import tempfile
@@ -80,6 +81,12 @@ class Resource:
         self.attachedToRoleAnnotation = {
             Xsd_QName("test:Editor"): DataPermission.DATA_UPDATE
         }
+
+    def __setitem__(self, key, value):
+        if str(key) != "oldap:attachedToRole":
+            raise AssertionError("Unexpected assignment in resource test double")
+        self.attachedToRoleAnnotation = value
+        self.data[key] = set(value)
 
     def get(self, key):
         return self.data.get(key)
@@ -172,6 +179,67 @@ class ArchiveDomainTest(unittest.TestCase):
             )
         )
         self.medium = self.factory.put(Media("urn:as02:test:media"))
+
+    def test_creation_grants_cover_units_media_and_keep_readers(self):
+        self.policy = replace(self.policy, grant_editor_roles_on_creation=True)
+        self.con.roles.add(EDITOR)
+        for resource, role, permission in (
+            (self.unit, "test:StructureEditor", DataPermission.DATA_DELETE),
+            (self.medium, "test:Editor", DataPermission.DATA_UPDATE),
+        ):
+            resource.attachedToRoleAnnotation = {
+                Xsd_QName("oldap:Unknown"): DataPermission.DATA_RESTRICTED
+            }
+            self.guard(resource, "create")
+            self.assertEqual(
+                resource.attachedToRoleAnnotation[Xsd_QName(role)], permission
+            )
+            self.assertEqual(
+                resource.attachedToRoleAnnotation[Xsd_QName("oldap:Unknown")],
+                DataPermission.DATA_RESTRICTED,
+            )
+            self.assertIn(
+                Xsd_QName(role), resource.data[Xsd_QName("oldap:attachedToRole")]
+            )
+
+    def test_creation_rule_does_not_repair_invalid_explicit_media_acl(self):
+        self.policy = replace(self.policy, grant_editor_roles_on_creation=True)
+        self.con.roles.add(EDITOR)
+        self.medium.attachedToRoleAnnotation = {
+            Xsd_QName("oldap:Unknown"): DataPermission.DATA_DELETE
+        }
+        with self.assertRaises(OldapErrorNoPermission):
+            self.guard(self.medium, "create")
+        self.assertNotIn(Xsd_QName("test:Editor"), self.medium.attachedToRoleAnnotation)
+
+    def test_creation_rule_does_not_regrant_on_metadata_update(self):
+        self.policy = replace(self.policy, grant_editor_roles_on_creation=True)
+        self.con.roles.add(EDITOR)
+        self.medium.attachedToRoleAnnotation = {
+            Xsd_QName("oldap:Unknown"): DataPermission.DATA_VIEW
+        }
+        self.guard(self.changed(self.medium, "schema:name", ["New title"]))
+        self.assertNotIn(Xsd_QName("test:Editor"), self.medium.attachedToRoleAnnotation)
+
+    def test_creation_rule_is_opt_in_and_disabled_projects_keep_grants(self):
+        from oldaplib.src.archive_policy import creation_grants
+
+        original = {Xsd_QName("oldap:Unknown"): DataPermission.DATA_RESTRICTED}
+        for policy in (
+            self.policy,
+            replace(self.policy, enabled=False, grant_editor_roles_on_creation=True),
+        ):
+            self.assertEqual(
+                creation_grants(policy, original, archive_unit=True),
+                {"http://oldap.org/base#Unknown": DataPermission.DATA_RESTRICTED},
+            )
+        policy = replace(self.policy, grant_editor_roles_on_creation=True)
+        self.assertEqual(
+            creation_grants(
+                policy, {EDITOR: DataPermission.DATA_DELETE}, archive_unit=False
+            )[EDITOR],
+            DataPermission.DATA_DELETE,
+        )
 
     def changed(self, resource, prop, value):
         result = copy.copy(resource)
@@ -390,6 +458,28 @@ class ArchivePolicyFileTest(unittest.TestCase):
         ):
             with self.subTest(entry=entry), self.assertRaises(OldapErrorConfiguration):
                 self.read({"projects": {"test": entry}})
+
+    def test_creation_rule_is_optional_and_strictly_boolean(self):
+        for enabled in (False, True):
+            entry = {**self.entry, "grantEditorRolesOnCreation": enabled}
+            self.assertEqual(
+                self.read({"projects": {"test": entry}})["test"][
+                    "grantEditorRolesOnCreation"
+                ],
+                enabled,
+            )
+        for invalid in (1, "true", None, {}):
+            with self.assertRaises(OldapErrorConfiguration):
+                self.read(
+                    {
+                        "projects": {
+                            "test": {
+                                **self.entry,
+                                "grantEditorRolesOnCreation": invalid,
+                            }
+                        }
+                    }
+                )
 
     def test_duplicate_json_keys_fail_closed(self):
         self.path.write_text('{"projects":{},"projects":{}}')

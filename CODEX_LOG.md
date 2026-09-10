@@ -1,5 +1,47 @@
 # CODEX_LOG
 
+### Update 2026-09-10 19:32
+- Decisions: Implement a separate folder-default tree; suggestions require a unique recorded structure-only origin and current target visibility. Save/remove one folder at a time, without changing media or archive structure.
+- Implementation: Added default_proposal/read-only API route and generated client, shared source-choice loader, and ArchiveFolderDefaults below persisted management. Preflight/apply remains authoritative and exact pending requests survive reload. 28 backend/API tests plus 21 subtests, targeted lint, build, defaults desktop/mobile retry smoke and step-one/public regression pass; check baseline remains 23 errors/37 warnings in 15 files. Guarded API restart succeeded; live read-only response returned 44 folders/seven hints.
+- Open: User acceptance; SALSAH-2 UI adaptation remains separate.
+- Risks/Assumptions: Hints suppressed above 1,000 scanned receipts, capped at 500 with warnings. No guessed names/recency, ontology/Capture changes, live default writes, commit or production deployment. Existing unrelated changes preserved.
+
+### Update 2026-09-10 19:12
+- Decisions: Separate creating empty archive units from hierarchy editing and folder defaults. Keep old request semantics and exact uncertain retries compatible.
+- Implementation: Added optional applyMappings=false in library/API/client contracts, suppressing folder writes while preserving creation grants and storing origin IDs in private receipts. Replaced the combined FasnachtsPage editor with a fixed-hierarchy source/placement/name/level/review flow. 26 backend/API tests plus 15 subtests, targeted lint, build and desktop/mobile/public fixture smoke pass; frontend baseline stays 23 errors/37 warnings. Local API restarted through its guarded Make target; live read-only preflight confirmed zero default changes.
+- Open: Step-three default editor and retrieval of recorded provenance; user acceptance of step one. New operation IDs are separate imports, not cross-operation deduplication.
+- Risks/Assumptions: No ontology/Capture changes or live archive writes; old SALSAH requests retain combined behavior. Match API/library release before deploying the new frontend. No commit/push or production deployment; unrelated work preserved.
+
+### Update 2026-09-10 12:10
+- Decisions: Complete WR-04 local operational acceptance; enable only the explicitly authorized rosenth operator. Production remains a separate target-specific rollout.
+- Implementation: Added reviewed native inventory, kernel exit observation, owner/service scope checks and post-query generation checks; tested isolated native GraphDB faults and actual MacBook lifecycle. Acceptance: 50 recovery/native, 19 deployment, 49 authentication/Capture transport and 8 frontend tests pass; 10 native and 15 pinned Redis checks pass. Both live/fixture UI flows and builds pass; FP typecheck baseline remains 23 errors/37 warnings, SALSAH is clean.
+- Open: Production multi-host/SSH partition, whole-host reboot and independent-storage restore acceptance; native Capture acceptance retains the user's local waiver.
+- Risks/Assumptions: Native services must remain foreground and within the reviewed inventory; unmanaged direct writers are maintenance-only. Persistent controller/gate state never expires. No commit, push or production deployment.
+
+### Update 2026-09-10 01:32
+- Decisions: Provide one advisory evidence-binding predicate for UI diagnosis and authoritative release; distinguish an unconfirmed durability acknowledgement from a safety refusal.
+- Implementation: Added WriterRecovery.readiness and RecoveryOutcomeUnknown. Added optional Connection.query(timeout=) with unchanged default behavior for existing callers. Verified recovery ACL readiness and query timeout compatibility; documented the WR-03 projection.
+- Open: WR-04 real GraphDB/multi-host failure rehearsal and native MacBook runtime control before activation.
+- Risks/Assumptions: 44 focused HTTP/library/service tests and eight auth-boundary tests pass. No ontology, ordinary write policy, Capture contract or application-data change. Existing uncommitted work retained.
+
+### Update 2026-09-10 01:05
+- Decisions: Implement an explicit maintenance barrier and evidence-backed recovery; never infer safe release from age/PID or caller booleans.
+- Implementation: Added process-instance/revision diagnostics, barrier-aware acquire/journal/release, persistent recovery journal with exact-owner/idempotency checks, ACL-preflight audited release, and a separate Docker/SSH operator with two-phase runtime proof and reviewed read reconciliation. Added real Redis/ACL/race/failure tests and operator documentation.
+- Open: WR-03 HTTP/UI adapters; WR-04 real GraphDB/multi-host fault rehearsal and native MacBook controller before activation. Legacy recovery remains trusted/offline only.
+- Risks/Assumptions: 51 focused backend tests pass; deployment suite and pinned Redis 7.4.6 probe pass. Recovery stays disabled. Controller errors retain ownership because remote commands may still run. Existing dirty archive/coworker changes preserved.
+
+### Update 2026-09-09 23:19
+- Decisions: Preserve permission filtering and audit behavior while fixing defects exposed by real local migration.
+- Implementation: Alias only requested full-IRI subjects already present in permission-filtered construct results; preserve original dictionary ACL snapshots across replacement edits and execute both DELETE and INSERT for replacements; parse xsd:int including zero correctly. Added regressions. Installed current source editable into actual API Python 3.13 runtime.
+- Open: Publish a reviewed versioned release for production; local editable state is not a release.
+- Risks/Assumptions: 93 combined focused tests and 64 isolated ObjectFactory tests pass. Actual migration verified all final grants and unchanged non-permission metadata. See FasnachtsPage/docs/as-09/local-rollout.md.
+
+### Update 2026-09-09 21:57
+- Decisions: Add opt-in project creation grants independently of capability membership; retain legacy behavior without the flag and reject invalid explicit media grants.
+- Implementation: Policy accepts optional strict boolean grantEditorRolesOnCreation. Shared creation rule supplies unit DELETE/media UPDATE across generic creation, reviewed adoption and catalogue transfer; review digest binds the flag. Fixed ObjectFactory ObservableDict callback keyword on ACL replace/reset/delete. Added six focused tests and disposable GraphDB/AOF Redis probe (FasnachtsPage/docs/as-09).
+- Open: Versioned deployment and existing-resource ACL migration; private mapping rights/native acceptance remain rollout concerns. The policy does not sanitize invalid caller/user-default ACLs or regrant on updates.
+- Risks/Assumptions: 90 combined library/API tests, 63 isolated ObjectFactory tests, real creation/adoption/transfer/rollback/non-admin checks and Capture transport contracts pass. No ontology, application RDF or runtime configuration changes. Matching source required before selecting the new policy field.
+
 ### Update 2026-09-08 16:12
 - Decisions: Integrate coworker commit 689faf5 (resource hooks/version 0.7.17) with all local archive work. Preserve callback API, tests, archive guards/retention and one transaction owner; no duplicated commits or manual inner rollback.
 - Implementation: Resolved ObjectFactory/log conflicts; invoke resource callbacks after domain retention/audit inside resource_operation. Documented operation-level versus outer final callbacks. Added four composition/order/rollback/rejection tests. 76 focused library tests and all 63 ObjectFactory tests pass in isolated GraphDB/Redis.

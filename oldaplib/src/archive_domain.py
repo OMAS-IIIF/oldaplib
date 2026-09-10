@@ -302,6 +302,23 @@ def guard_resource_operation(instance, operation, args, kwargs, policy):
             # Validate persisted grants too: metadata-only writes must not rely
             # on an incomplete or manually altered caller-side ACL snapshot.
             policy.validate_archive_grants(previous.attachedToRoleAnnotation)
+    if (
+        operation == "create"
+        and policy.grant_editor_roles_on_creation
+        and (policy.is_catalogued(instance) or is_a(instance, "shared:ArchiveUnit"))
+    ):
+        from oldaplib.src.archive_policy import creation_grants
+
+        # Media ACL validation above must precede additive server grants. Do not
+        # silently repair an explicitly supplied contributor write permission.
+        instance[Xsd_QName("oldap:attachedToRole")] = {
+            policy.context.iri2qname(role): permission
+            for role, permission in creation_grants(
+                policy,
+                instance.attachedToRoleAnnotation,
+                archive_unit=is_a(instance, "shared:ArchiveUnit"),
+            ).items()
+        }
     if is_a(instance, "shared:ArchiveUnit"):
         attachment_only = (
             operation == "update"

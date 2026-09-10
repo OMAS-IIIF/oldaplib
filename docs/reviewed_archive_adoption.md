@@ -87,3 +87,32 @@ The packaged `src/schemas/archive_structure_v1.json` is the frozen wire contract
 See the matching API guide and FasnachtsPage `docs/as-04/` for isolated integration,
 concurrency, rollback and maximum-envelope verification. UI integration is AS-06;
 this source implementation does not activate any project policy.
+
+## Structure-only import (September 2026)
+
+`ArchiveStructurePlan.applyMappings` is optional and defaults to true when omitted.
+With false, mapping entries are used only to validate source correspondence and
+calculate creation grants. Preflight reports no set/clear/skip actions; apply creates
+units and records the folder/unit IDs as `sourceCorrespondence` inside the private
+GraphDB operation receipt, without writing any folder defaults. Source folder VIEW
+is sufficient for provenance; existing parent UPDATE and unit creation checks remain.
+The explicit flag participates in normalization/digests, so changing mode requires
+fresh review and cannot replay an older operation. Existing clients, including
+SALSAH-2's combined flow, retain their original behavior. No ontology or CaptureApp
+contract changes. Retrieval of provenance for the future separate default editor is
+not part of this step. A new operation ID remains a new import, not an automatic
+cross-operation duplicate check.
+
+## Separate default editing
+
+`ArchiveAdoption.default_proposal` / POST `/archive/{project}/structure/defaults/proposal`
+returns current readable folder defaults and unambiguous visible structure-only
+receipt hints using the existing ProposalResponse schema (no new units). It never
+writes defaults. Multiple recorded targets are not resolved by recency or visibility.
+A receipt scan exceeding 1,000 suppresses hints; more than 500 eligible hints are
+truncated with a warning. Both source and target visibility are freshly checked.
+
+The frontend explicitly saves one set/clear mapping through existing preflight/apply
+with an empty newUnits array and normal exact retry semantics. Resource permissions,
+source revisions and archive policy remain authoritative. This route is no-store,
+authenticated and structure-role gated. No ontology/Capture contract changes.

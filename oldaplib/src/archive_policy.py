@@ -1,7 +1,8 @@
 """Closed, server-owned project policy for archive domain operations.
 
-The policy adds capabilities to normal OLDAP instance permissions. It never
-changes grants or treats a configured role as a replacement for data rights.
+The policy adds capabilities to normal OLDAP instance permissions. An explicit
+creation rule can add project editor grants to new archive resources; configured
+capability membership alone never replaces data rights.
 No project-specific classes or namespaces are embedded in this module.
 """
 
@@ -107,7 +108,9 @@ def _read_entries(path: str) -> dict:
             Xsd_NCName(project, validate=True)
             if (
                 not isinstance(entry, dict)
-                or set(entry) != expected
+                or not expected <= set(entry)
+                or set(entry) - expected - {"grantEditorRolesOnCreation"}
+                or type(entry.get("grantEditorRolesOnCreation", False)) is not bool
                 or type(entry["enabled"]) is not bool
             ):
                 raise OldapErrorConfiguration(
@@ -147,6 +150,7 @@ class ArchivePolicy:
     editorial_roles: tuple[str, ...] = ()
     media_classes: tuple[str, ...] = ()
     note_property: str | None = None
+    grant_editor_roles_on_creation: bool = False
 
     @classmethod
     def load(cls, connection, project):
@@ -170,6 +174,7 @@ class ArchivePolicy:
             tuple(entry["archiveEditorRoleIris"]),
             tuple(entry["cataloguedMediaClassIris"]),
             entry["preparationNotePropertyIri"],
+            entry.get("grantEditorRolesOnCreation", False),
         )
         policy._validate_resources()
         return policy
@@ -300,3 +305,25 @@ class ArchivePolicy:
                 raise OldapErrorNoPermission(
                     "Archive media write grants must use configured editorial roles."
                 )
+
+
+def creation_grants(policy: ArchivePolicy, grants: dict, *, archive_unit: bool) -> dict:
+    """Return canonical creation ACLs with explicitly enabled project editor grants.
+
+    This adds minimum DELETE for structure roles or UPDATE for media editor roles
+    only on new archive resources. It never grants private-folder access, removes
+    readers, or normalizes invalid contributor writes. Callers validate supplied
+    media ACLs separately before using this function. Existing projects opt out.
+    """
+    result = {
+        canonical_iri(policy.context, role): permission
+        for role, permission in grants.items()
+    }
+    if not policy.grant_editor_roles_on_creation or not policy.enabled:
+        return result
+    roles = policy.structure_roles if archive_unit else policy.editorial_roles
+    minimum = DataPermission.DATA_DELETE if archive_unit else DataPermission.DATA_UPDATE
+    for role in roles:
+        current = result.get(role)
+        result[role] = minimum if current is None else max(current, minimum)
+    return result

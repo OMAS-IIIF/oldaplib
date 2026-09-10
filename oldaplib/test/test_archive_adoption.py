@@ -36,6 +36,155 @@ class AdoptionPlanTest(unittest.TestCase):
             ],
         }
 
+    def test_structure_only_mode_is_explicit_and_changes_review_identity(self):
+        legacy = digest(normal_plan(self.plan))
+        self.plan["applyMappings"] = False
+        validate({"plan": self.plan}, "PreflightRequest")
+        self.assertNotEqual(legacy, digest(normal_plan(self.plan)))
+        self.assertEqual(len(plan_order(self.plan)), 2)
+
+    def test_structure_only_apply_does_not_mutate_folders_and_records_origins(self):
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock, patch
+        from uuid import uuid4
+        from oldaplib.src.archive_adoption import ArchiveAdoption
+
+        for apply_mappings in (False, True):
+            with self.subTest(applyMappings=apply_mappings):
+                plan = normal_plan({**self.plan, "applyMappings": apply_mappings})
+                repo = ArchiveAdoption.__new__(ArchiveAdoption)
+                repo._con = MagicMock()
+                repo._con.userIri = "urn:actor"
+                repo.factory = MagicMock()
+                repo.project = SimpleNamespace(projectShortName="example")
+                repo._policy = MagicMock(return_value=SimpleNamespace(context=None))
+                repo._receipt = MagicMock(return_value=None)
+                repo._receipt_iri = MagicMock(return_value="urn:receipt")
+                folder = MagicMock()
+                repo._review = MagicMock(
+                    return_value=(
+                        {"reviewDigest": "b" * 64},
+                        plan,
+                        plan_order(plan),
+                        {"urn:as04:folder": folder},
+                        {"group": {}, "leaf": {}},
+                    )
+                )
+                with (
+                    patch(
+                        "oldaplib.src.archive_adoption.resource_transaction",
+                        return_value=nullcontext(),
+                    ),
+                    patch(
+                        "oldaplib.src.archive_adoption.audit_command",
+                        return_value=nullcontext(),
+                    ),
+                    patch(
+                        "oldaplib.src.archive_adoption.canonical_iri",
+                        side_effect=lambda context, value: str(value),
+                    ),
+                ):
+                    result = repo.apply(
+                        {"plan": plan, "reviewDigest": "b" * 64, "confirm": True},
+                        operation_id=str(uuid4()),
+                    )
+                self.assertEqual(len(result["createdUnits"]), 2)
+                self.assertEqual(folder.update.call_count, int(apply_mappings))
+                self.assertEqual(folder.__setitem__.call_count, int(apply_mappings))
+                self.assertEqual(len(result["mappings"]), int(apply_mappings))
+                self.assertIn(
+                    "sourceCorrespondence",
+                    repo._con.transaction_update.call_args.args[0],
+                )
+                self.assertIn(
+                    "urn:as04:folder", repo._con.transaction_update.call_args.args[0]
+                )
+
+    def test_default_hints_require_unique_origin_and_current_target_visibility(self):
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock, patch
+        import json
+        from oldaplib.src.archive_adoption import ArchiveAdoption
+
+        link = {"folderIri": "urn:test:folder", "targetIri": "urn:test:target"}
+        record = {
+            "command": "structure-apply",
+            "project": "test",
+            "applyMappings": False,
+            "sourceCorrespondence": [link],
+        }
+        for scenario in (
+            "visible",
+            "deleted_or_hidden",
+            "ambiguous",
+            "other_project",
+            "already_mapped",
+            "incomplete",
+        ):
+            with self.subTest(scenario=scenario):
+                repo = ArchiveAdoption.__new__(ArchiveAdoption)
+                repo._con = MagicMock()
+                repo.project = SimpleNamespace(projectShortName="test")
+                repo._policy = MagicMock(return_value=MagicMock())
+                repo._visibility = MagicMock(return_value="")
+                source = {
+                    "sourceFolderIri": "urn:test:folder",
+                    "stagingAreaIri": "urn:test:area",
+                    "sourceSnapshot": "a" * 64,
+                    "folders": [
+                        {
+                            "iri": "urn:test:folder",
+                            "parentIri": None,
+                            "name": "Folder",
+                            "revision": "a" * 64,
+                            "defaultArchiveUnitIri": (
+                                "urn:test:old" if scenario == "already_mapped" else None
+                            ),
+                            "mappingState": (
+                                "mapped" if scenario == "already_mapped" else "unmapped"
+                            ),
+                            "protected": False,
+                        }
+                    ],
+                }
+                repo._source = MagicMock(return_value=(source, {}))
+                item = deepcopy(record)
+                if scenario == "other_project":
+                    item["project"] = "private"
+                if scenario == "ambiguous":
+                    item["sourceCorrespondence"].append(
+                        {**link, "targetIri": "urn:test:other"}
+                    )
+                receipts = [{"record": {"value": json.dumps(item)}}] * (
+                    1001 if scenario == "incomplete" else 1
+                )
+                repo._query = MagicMock(
+                    side_effect=[
+                        receipts,
+                        (
+                            []
+                            if scenario == "deleted_or_hidden"
+                            else [{"target": {"value": "urn:test:target"}}]
+                        ),
+                    ]
+                )
+                with patch(
+                    "oldaplib.src.archive_adoption.resource_transaction",
+                    return_value=nullcontext(),
+                ):
+                    result = repo.default_proposal(
+                        {"sourceFolderIri": "urn:test:folder"}
+                    )
+                self.assertEqual(
+                    len(result["suggestedPlan"]["mappings"]), int(scenario == "visible")
+                )
+                self.assertEqual(result["suggestedPlan"]["newUnits"], [])
+                repo._con.transaction_update.assert_not_called()
+                if scenario == "incomplete":
+                    self.assertEqual(result["warnings"][0]["code"], "HINT_LIMIT")
+
     def test_grouping_and_many_folders_per_target(self):
         self.plan["mappings"].append(
             {"folderIri": "urn:as04:other", "action": "set", "target": {"key": "leaf"}}
@@ -157,6 +306,7 @@ class AdoptionPlanTest(unittest.TestCase):
             "oldap:Unknown": DP.DATA_PERMISSIONS,
         }
         policy = SimpleNamespace(
+            grant_editor_roles_on_creation=False,
             context=context,
             structure_roles=(
                 canonical_iri(context, "fixture:Structure"),
@@ -183,6 +333,31 @@ class AdoptionPlanTest(unittest.TestCase):
         self.assertEqual(grants[Xsd_QName("fixture:Restricted")], DP.DATA_RESTRICTED)
         self.assertEqual(grants[Xsd_QName("oldap:Unknown")], DP.DATA_VIEW)
         self.assertNotIn(Xsd_QName("fixture:UnrelatedStructure"), grants)
+
+    def test_project_creation_rule_grants_all_new_units_without_folder_grants(self):
+        from types import SimpleNamespace
+        from oldaplib.src.archive_adoption import ArchiveAdoption
+        from oldaplib.src.helpers.context import Context
+        from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+        from oldaplib.src.enums.datapermissions import DataPermission as DP
+        from oldaplib.src.xsd.xsd_qname import Xsd_QName as Q
+
+        context = Context(name="AS09-adoption-grants")
+        context["fixture"] = NamespaceIRI("https://example.test/roles/")
+        policy = SimpleNamespace(
+            context=context,
+            enabled=True,
+            grant_editor_roles_on_creation=True,
+            structure_roles=("https://example.test/roles/Structure",),
+        )
+        states = {"urn:as04:folder": []}
+        grants = object.__new__(ArchiveAdoption)._unit_grants(
+            self.plan, {u["key"]: u for u in self.plan["newUnits"]}, states, policy
+        )
+        self.assertTrue(grants)
+        for values in grants.values():
+            self.assertEqual(values, {Q("fixture:Structure"): DP.DATA_DELETE})
+        self.assertEqual(states, {"urn:as04:folder": []})
 
     def test_grouping_unions_readers_without_sharing_sibling_grants(self):
         from types import SimpleNamespace
@@ -217,7 +392,11 @@ class AdoptionPlanTest(unittest.TestCase):
             self.plan,
             {u["key"]: u for u in self.plan["newUnits"]},
             {"urn:as04:folder": rows("First"), "urn:as04:second": rows("Second")},
-            SimpleNamespace(context=context, structure_roles=()),
+            SimpleNamespace(
+                context=context,
+                structure_roles=(),
+                grant_editor_roles_on_creation=False,
+            ),
         )
         first, second = Xsd_QName("fixture:First"), Xsd_QName("fixture:Second")
         self.assertEqual(grants["group"], {first: DP.DATA_VIEW, second: DP.DATA_VIEW})

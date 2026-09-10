@@ -1995,6 +1995,23 @@ class TestObjectFactory(unittest.TestCase):
         obj = SetterTester.read(con=self._connection, iri=obj1.iri)
         obj.delete()
 
+    def test_role_map_replacement_preserves_original_permission_snapshot(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Book = factory.createObjectInstance('Book')
+        role = Xsd_QName('oldap:Unknown')
+        book = Book(title='Role replacement regression', author=Iri('test:DouglasAdams'),
+                    pubDate='1995-09-27', attachedToRole={role: DataPermission.DATA_VIEW})
+        book.create()
+        current = factory.read(book.iri)
+        current[Xsd_QName('oldap:attachedToRole')] = {role: DataPermission.DATA_DELETE}
+        current[Xsd_QName('oldap:attachedToRole')] = {role: DataPermission.DATA_UPDATE}
+        self.assertEqual(current.changeset[Xsd_QName('oldap:attachedToRole')].old_value,
+                         {role: DataPermission.DATA_VIEW})
+        current.update()
+        loaded = factory.read(book.iri)
+        self.assertEqual(dict(loaded.attachedToRoleAnnotation), {role: DataPermission.DATA_UPDATE})
+        loaded.delete()
+
     def test_delete_resource(self):
         project = Project.read(con=self._connection, projectIri_SName='test')
         factory = ResourceInstanceFactory(con=self._connection, project=project)

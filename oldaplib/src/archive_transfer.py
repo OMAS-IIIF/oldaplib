@@ -18,7 +18,7 @@ from oldaplib.src.archive_domain import (
     values,
     audit_resource_operation,
 )
-from oldaplib.src.archive_policy import ArchiveConflict, canonical_iri
+from oldaplib.src.archive_policy import ArchiveConflict, canonical_iri, creation_grants
 from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.helpers.oldaperror import OldapErrorConfiguration
 from oldaplib.src.staging_folder_tree import StagingFolderTree
@@ -129,6 +129,7 @@ class ArchiveTransfer:
             or grants[default_role] < DataPermission.DATA_VIEW
         ):
             grants[default_role] = DataPermission.DATA_VIEW
+        grants = creation_grants(policy, grants, archive_unit=False)
         kwargs["attached_to_role"] = {
             policy.context.iri2qname(r) or Iri(Xsd_anyURI(r)): p
             for r, p in grants.items()
