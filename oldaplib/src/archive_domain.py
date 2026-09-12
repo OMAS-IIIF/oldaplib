@@ -218,6 +218,10 @@ def guard_resource_operation(instance, operation, args, kwargs, policy):
     fields = (
         {str(key) for key in instance.changeset} if operation == "update" else set()
     )
+    if policy.publication:
+        from oldaplib.src.archive_publication import guard_publication
+        guard_publication(instance, operation, args, kwargs, policy, previous)
+
     if operation == "transform_class":
         policy.check_note_payload(instance, kwargs.get("properties") or {})
         expected_source = kwargs.get("expected_source_class")

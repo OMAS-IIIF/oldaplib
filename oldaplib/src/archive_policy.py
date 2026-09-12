@@ -109,13 +109,16 @@ def _read_entries(path: str) -> dict:
             if (
                 not isinstance(entry, dict)
                 or not expected <= set(entry)
-                or set(entry) - expected - {"grantEditorRolesOnCreation"}
+                or set(entry) - expected - {"grantEditorRolesOnCreation", "publication"}
                 or type(entry.get("grantEditorRolesOnCreation", False)) is not bool
                 or type(entry["enabled"]) is not bool
             ):
                 raise OldapErrorConfiguration(
                     "Archive project policy has invalid fields."
                 )
+            if "publication" in entry:
+                from oldaplib.src.archive_publication import validate_definition
+                validate_definition(entry["publication"])
             _absolute(entry["preparationNotePropertyIri"])
             for key in (
                 "structureEditorRoleIris",
@@ -151,6 +154,7 @@ class ArchivePolicy:
     media_classes: tuple[str, ...] = ()
     note_property: str | None = None
     grant_editor_roles_on_creation: bool = False
+    publication: dict | None = None
 
     @classmethod
     def load(cls, connection, project):
@@ -175,6 +179,7 @@ class ArchivePolicy:
             tuple(entry["cataloguedMediaClassIris"]),
             entry["preparationNotePropertyIri"],
             entry.get("grantEditorRolesOnCreation", False),
+            entry.get("publication"),
         )
         policy._validate_resources()
         return policy
@@ -214,6 +219,9 @@ class ArchivePolicy:
                     raise OldapErrorConfiguration(
                         "Catalogued classes must be non-staging MediaObject classes."
                     )
+            if self.publication:
+                from oldaplib.src.archive_publication import validate_resources
+                validate_resources(self, factory)
             # The preparation field may intentionally be absent from the target
             # class. Its attempted write/clear must still receive the lifecycle
             # rejection before model conversion, without an ontology addition.

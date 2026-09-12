@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-09-13 00:58
+- Decisions: Publication authority is generic opt-in policy; fresh publisher membership plus resource UPDATE; creator/admin CRUD exceptions cannot bypass domain protection.
+- Implementation: Added ArchivePublication preview/apply/receipt command, closed configuration/model checks, bounded multi-parent review, restricted public ACL writes, stale/idempotent handling and CRUD/transform guard. Local GraphDB verifies root/media atomicity, exact retry and rollback on a second-write failure. Validation: 85 focused backend/gate tests and 4 frontend retry tests pass; local GraphDB success/replay and injected-failure rollback pass. Both frontend builds/lint pass; FP check baseline unchanged (23/37), SALSAH check clean.
+- Open: Release matching library to all writers before policy opt-in; authenticated end-to-end and release concurrency acceptance remain.
+- Risks/Assumptions: No ontology or globally active policy changes. Existing durable gate reused. Published relationship changes/unpublication deliberately require a separate workflow.
+
 ### Update 2026-09-10 19:32
 - Decisions: Implement a separate folder-default tree; suggestions require a unique recorded structure-only origin and current target visibility. Save/remove one folder at a time, without changing media or archive structure.
 - Implementation: Added default_proposal/read-only API route and generated client, shared source-choice loader, and ArchiveFolderDefaults below persisted management. Preflight/apply remains authoritative and exact pending requests survive reload. 28 backend/API tests plus 21 subtests, targeted lint, build, defaults desktop/mobile retry smoke and step-one/public regression pass; check baseline remains 23 errors/37 warnings in 15 files. Guarded API restart succeeded; live read-only response returned 44 folders/seven hints.

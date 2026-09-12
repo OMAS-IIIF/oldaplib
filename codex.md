@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Generic publication (source implementation, not globally activated): configured publisher roles plus resource UPDATE, atomic root/media publication and exact receipts. See docs/archive_publication.md. Matching library/API/all-writer releases and policy opt-in remain required; no ontology change.
+
 - Step-three folder defaults are implemented in FasnachtsPage and shared backend: separate read-only default proposal with current permissions and stable-ID provenance hints; per-folder reviewed set/clear with exact retries. No media moves or unit creation. New route `/archive/{project}/structure/defaults/proposal`; matching local API restarted. See FasnachtsPage `docs/archive-hierarchy/README.md` for current workflow and receipt-scan limits.
 
 
