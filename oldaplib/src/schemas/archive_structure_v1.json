@@ -322,6 +322,11 @@
         },
         "protected": {
           "type": "boolean"
+        },
+        "directMediaCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Readable distinct direct media, including archive references. Optional on older servers and structure-import proposals; does not count descendants."
         }
       },
       "required": [

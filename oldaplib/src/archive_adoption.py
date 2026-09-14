@@ -409,6 +409,39 @@ class ArchiveAdoption(ArchiveRepository):
                 )
             return {**source, "suggestedPlan": normal_plan(plan), "warnings": warnings}
 
+    def _direct_media_counts(self, folders, area, policy):
+        """Count visible direct media in one aggregate query for the selected subtree.
+
+        Staging media must belong to the same private area; archive references
+        must target a configured media class. DISTINCT collapses multiple types,
+        class paths and an identity present through both relations. Hidden media
+        never contribute. Counts are presentation data, not part of review hashes.
+        """
+        counts = {folder["iri"]: 0 for folder in folders}
+        if not counts:
+            return counts
+        terms = " ".join(self._term(iri) for iri in sorted(counts))
+        catalogues = " ".join(self._term(iri) for iri in policy.media_classes)
+        graph = f"{self.project.projectShortName}:data"
+        rows = self._query(
+            f"""SELECT ?folder (COUNT(DISTINCT ?media) AS ?count) WHERE {{
+              VALUES ?folder {{ {terms} }}
+              {{ GRAPH {graph} {{ ?media shared:inStagingFolder ?folder ;
+                   shared:inStagingArea {self._term(area)} ; a ?class . }}
+                 ?class rdfs:subClassOf* shared:StagingMediaObject . }}
+              UNION
+              {{ GRAPH {graph} {{ ?folder shared:referencedMediaObject ?media .
+                   ?media a ?class . }}
+                 VALUES ?catalogue {{ {catalogues} }}
+                 ?class rdfs:subClassOf* ?catalogue . }}
+              {self._visibility('?media')}
+            }} GROUP BY ?folder""",
+            policy,
+        )
+        for row in rows:
+            counts[row["folder"]["value"]] = int(row["count"]["value"])
+        return counts
+
     def default_proposal(self, body):
         """Read folder defaults and unambiguous, currently visible import hints.
 
@@ -421,6 +454,12 @@ class ArchiveAdoption(ArchiveRepository):
             policy = self._policy()
             policy.require_structure()
             source, _ = self._source(body["sourceFolderIri"], policy)
+            counts = self._direct_media_counts(
+                source["folders"], source["stagingAreaIri"], policy
+            )
+            for folder in source["folders"]:
+                folder["directMediaCount"] = counts[folder["iri"]]
+
             rows = self._query(
                 "SELECT ?record WHERE { GRAPH <urn:oldap:archive-operations> { "
                 "?operation <urn:oldap:archive:record> ?record } } LIMIT 1001",

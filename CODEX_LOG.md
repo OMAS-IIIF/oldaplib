@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-09-14 22:50
+- Decisions: Add generic permission-filtered direct media counts to folder-default proposals; use one aggregate query, never per-folder media reads. Counts are display-only and excluded from review hashes.
+- Implementation: oldaplib COUNT(DISTINCT media) covers same-area staging media and configured archive references. Optional directMediaCount documented in shared JSON schema/OpenAPI; regenerated FP types; shared UI consumes counts with older-server fallback. 28 backend tests and browser count/recovery smoke pass. Local GraphDB: 46 folders/125 visible placements, 7–30 ms aggregation; three inventory comparisons agree. API HTTP 200 verified after safe restart (cold proposal 21.6 s, warm 1.86 s for sampled folder).
+- Open: Normal version bumps/publication and consumer updates before production. Existing frontend/library check baselines remain; no ontology changes.
+- Risks/Assumptions: Local API uses a development wheel still labelled 0.7.19, ahead of published 0.7.19; do not deploy that version as if released. Backup: BACKUP/local-media-counts-20260914-224638/installed-oldaplib.tar.gz. No archive data, role or production writes. Zero means no visible direct media, not proof of global emptiness.
+
 ### Update 2026-09-13 23:18
 - Decisions: Activate publication on the local MacBook first; production remains unchanged. API-only media workers do not require an independent archive policy or Redis gate.
 - Implementation: Verified installed oldaplib 0.7.19; replaced three local media containers using old :local/0.7.11 with v0.2.12/0.7.19, persisted Compose tag and backed up configuration. Validated/atomically added local publication policy and safely restarted native API under writer gate. Installed-library GraphDB success/retry/receipt and failure rollback pass; API capabilities 200, unauthenticated 401, authorized IIIF 200/unauthorized 401. BMG-Archivist publisher membership verified read-only.

@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Folder-default proposals now optionally expose directMediaCount, aggregated once in oldaplib over readable direct media and archive references. Counts do not affect structure review snapshots or deletion decisions. Shared GUI consumes the field in both apps. Locally activated with an unpublished 0.7.19 development wheel; normal release required before production.
+
 - Publication local activation (2026-09-13): native API now enables the project-configured publication command with oldaplib 0.7.19. API-only media services run v0.2.12; no duplicate policy on those workers. Shared local API also serves SALSAH-2. Production remains unchanged; user UI acceptance is next. See FasnachtsPage/docs/permissions/archive-roles.md for evidence and backups.
 
 - Generic publication (source implementation, not globally activated): configured publisher roles plus resource UPDATE, atomic root/media publication and exact receipts. See docs/archive_publication.md. Matching library/API/all-writer releases and policy opt-in remain required; no ontology change.

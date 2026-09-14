@@ -150,6 +150,9 @@ class AdoptionPlanTest(unittest.TestCase):
                     ],
                 }
                 repo._source = MagicMock(return_value=(source, {}))
+                repo._direct_media_counts = MagicMock(
+                    return_value={"urn:test:folder": 3}
+                )
                 item = deepcopy(record)
                 if scenario == "other_project":
                     item["project"] = "private"
@@ -181,6 +184,8 @@ class AdoptionPlanTest(unittest.TestCase):
                     len(result["suggestedPlan"]["mappings"]), int(scenario == "visible")
                 )
                 self.assertEqual(result["suggestedPlan"]["newUnits"], [])
+                self.assertEqual(result["folders"][0]["directMediaCount"], 3)
+                self.assertEqual(result["sourceSnapshot"], "a" * 64)
                 repo._con.transaction_update.assert_not_called()
                 if scenario == "incomplete":
                     self.assertEqual(result["warnings"][0]["code"], "HINT_LIMIT")
