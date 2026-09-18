@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from oldaplib.src.archive_domain import guard_resource_operation
 from oldaplib.src.archive_policy import (
@@ -201,6 +202,47 @@ class ArchiveDomainTest(unittest.TestCase):
             self.assertIn(
                 Xsd_QName(role), resource.data[Xsd_QName("oldap:attachedToRole")]
             )
+
+    def test_configured_roots_receive_editor_grants_only_on_creation(self):
+        class Entry(Resource):
+            name = Xsd_QName("test:Entry")
+            superclass = {}
+
+        self.policy = replace(
+            self.policy, grant_editor_roles_on_creation=True,
+            publication={"rootClassIris": [BASE + "Entry"]},
+        )
+        entry = Entry("urn:as02:test:entry")
+        entry.attachedToRoleAnnotation = {
+            Xsd_QName("test:Reader"): DataPermission.DATA_VIEW
+        }
+        # Publication-state validation has its own suite; isolate creation ACLs.
+        with patch("oldaplib.src.archive_publication.guard_publication"):
+            self.guard(entry, "create")
+            self.assertEqual(entry.attachedToRoleAnnotation[Xsd_QName("test:Editor")],
+                             DataPermission.DATA_UPDATE)
+            self.assertEqual(entry.attachedToRoleAnnotation[Xsd_QName("test:Reader")],
+                             DataPermission.DATA_VIEW)
+            unrelated = Resource("urn:as02:test:other")
+            unrelated.attachedToRoleAnnotation = {}
+            self.guard(unrelated, "create")
+            self.assertNotIn(Xsd_QName("test:Editor"), unrelated.attachedToRoleAnnotation)
+            class Child(Entry):
+                name = Xsd_QName("test:Child")
+                superclass = {Entry.name: SimpleNamespace(superclass={})}
+            child = self.factory.put(Child("urn:as02:test:child"))
+            child.attachedToRoleAnnotation = {}
+            self.guard(child, "create")
+            self.assertEqual(child.attachedToRoleAnnotation[Xsd_QName("test:Editor")],
+                             DataPermission.DATA_UPDATE)
+            child.attachedToRoleAnnotation = {}
+            self.guard(self.changed(child, "schema:name", ["Updated"]), "update")
+            self.assertNotIn(Xsd_QName("test:Editor"), child.attachedToRoleAnnotation)
+            self.policy = replace(self.policy, grant_editor_roles_on_creation=False)
+            other = Entry("urn:as02:test:opt-out")
+            other.attachedToRoleAnnotation = {}
+            self.guard(other, "create")
+            self.assertNotIn(Xsd_QName("test:Editor"), other.attachedToRoleAnnotation)
 
     def test_creation_rule_does_not_repair_invalid_explicit_media_acl(self):
         self.policy = replace(self.policy, grant_editor_roles_on_creation=True)

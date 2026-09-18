@@ -1,6 +1,7 @@
 """Publication policy, authority and generic-write bypass regression tests."""
 
 import copy
+from dataclasses import replace
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -63,6 +64,18 @@ class PublicationTests(unittest.TestCase):
                 )
 
         self.Media = Media
+
+    def test_automatic_creation_grants_capability_is_policy_driven(self):
+        service = object.__new__(ArchivePublication)
+        service._con = self.con
+        service.project = self.project
+        for enabled in (False, True):
+            policy = replace(self.policy, grant_editor_roles_on_creation=enabled)
+            with patch("oldaplib.src.resource_transaction.archive_policy_for", return_value=policy), \
+                    patch.object(service, "_authorize", side_effect=OldapErrorNoPermission("Not a publisher")):
+                caps = service.capabilities()
+                self.assertEqual(caps["automaticEditorialGrants"], enabled)
+                self.assertFalse(caps["canPublish"])
 
     def test_generic_project_definition(self):
         validate_definition(DEFINITION)

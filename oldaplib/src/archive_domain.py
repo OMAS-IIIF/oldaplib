@@ -309,7 +309,16 @@ def guard_resource_operation(instance, operation, args, kwargs, policy):
     if (
         operation == "create"
         and policy.grant_editor_roles_on_creation
-        and (policy.is_catalogued(instance) or is_a(instance, "shared:ArchiveUnit"))
+        and (
+            policy.is_catalogued(instance)
+            or is_a(instance, "shared:ArchiveUnit")
+            # Semantic archive entries need the same editorial access as their
+            # media. Scope comes exclusively from the project publication policy.
+            or (policy.publication and any(
+                is_a(instance, str(policy.context.iri2qname(iri)))
+                for iri in policy.publication["rootClassIris"]
+            ))
+        )
     ):
         from oldaplib.src.archive_policy import creation_grants
 

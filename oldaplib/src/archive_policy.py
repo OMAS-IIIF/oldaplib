@@ -318,8 +318,8 @@ class ArchivePolicy:
 def creation_grants(policy: ArchivePolicy, grants: dict, *, archive_unit: bool) -> dict:
     """Return canonical creation ACLs with explicitly enabled project editor grants.
 
-    This adds minimum DELETE for structure roles or UPDATE for media editor roles
-    only on new archive resources. It never grants private-folder access, removes
+    This adds minimum DELETE for structure roles or UPDATE for archive editor roles
+    on new units, media and configured publication roots. It never grants private-folder access, removes
     readers, or normalizes invalid contributor writes. Callers validate supplied
     media ACLs separately before using this function. Existing projects opt out.
     """

@@ -1,5 +1,11 @@
 # CODEX_LOG
 
+### Update 2026-09-18 23:47
+- Decisions: Extend existing opt-in editorial creation grants to project-configured publication roots and subclasses.
+- Implementation: Archive domain creation guard now adds editorial UPDATE to semantic archive roots, preserving readers and stronger grants; no updates/backfill. Publication capabilities expose automaticEditorialGrants separately from publication authority. Add root/subclass/opt-out and capability regressions.
+- Open: Release and update normal consumers; no installed wheel or running service changed.
+- Risks/Assumptions: 48 domain/publication tests passed with the API Python environment against this source. The local library venv lacks convertdate. No ontology or policy schema changes.
+
 ### Update 2026-09-14 22:50
 - Decisions: Add generic permission-filtered direct media counts to folder-default proposals; use one aggregate query, never per-folder media reads. Counts are display-only and excluded from review hashes.
 - Implementation: oldaplib COUNT(DISTINCT media) covers same-area staging media and configured archive references. Optional directMediaCount documented in shared JSON schema/OpenAPI; regenerated FP types; shared UI consumes counts with older-server fallback. 28 backend tests and browser count/recovery smoke pass. Local GraphDB: 46 folders/125 visible placements, 7–30 ms aggregation; three inventory comparisons agree. API HTTP 200 verified after safe restart (cold proposal 21.6 s, warm 1.86 s for sampled folder).

@@ -280,6 +280,7 @@ class ArchivePublication(ArchiveRepository):
         return {
             "enabled": True,
             "canPublish": allowed and supported,
+            "automaticEditorialGrants": policy.grant_editor_roles_on_creation,
             "statusPropertyName": str(
                 policy.context.iri2qname(policy.publication["statusPropertyIri"])
             ),
