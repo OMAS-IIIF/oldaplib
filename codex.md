@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- TriG export correction (2026-09-22): DataModel embeds ExternalOntology.create_shacl_triples rather than complete INSERT DATA updates; ResourceClass.create_owl terminates propertyless class statements; ontology headers use rdf:type. Activated locally as an unpublished 0.7.21 development wheel in the launchd API's Python 3.13 environment, followed by the guarded oldap-api make restart. Real Fasnacht API model/ZIP backup verification passes; publish a new release before external rollout.
+
 - Opt-in archive creation grants now cover publication.rootClassIris (including subclasses) as well as media/units. New roots receive configured editorial UPDATE; existing resources are unchanged. Publication capabilities expose automaticEditorialGrants so clients can detect support.
 
 - Folder-default proposals now optionally expose directMediaCount, aggregated once in oldaplib over readable direct media and archive references. Counts do not affect structure review snapshots or deletion decisions. Shared GUI consumes the field in both apps. Locally activated with an unpublished 0.7.19 development wheel; normal release required before production.
@@ -86,3 +88,7 @@ AOF/fsync-always writer Redis on localhost:6380/1 and matching local source;
 FasnachtsPage and SALSAH-2 share the activated backend. Production deployment
 remains separate. Native Capture acceptance was waived only for this test rollout.
 See `../FasnachtsPage/docs/as-09/local-rollout.md` for runtime, backup, recovery, verification and production steps.
+
+- ProjectLuceneConnector manages native GraphDB creation options for one project, enforces ADMIN_MODEL/ADMIN_OLDAP, joins configured writer coordination, validates revisions, skips identical replacements and attempts failure restoration.
+
+- Local Lucene activation (2026-09-22): native API uses an unpublished development oldaplib wheel still versioned 0.7.21 and was safely restarted. Real read-only dump/load planning preserves the Fasnacht connector and yields zero operations; paired published releases remain pending.

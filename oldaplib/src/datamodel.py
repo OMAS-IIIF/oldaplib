@@ -789,7 +789,8 @@ class DataModel(Model):
         f.write(f'{blank:{(indent + 1) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n')
         f.write('\n')
         for qname, onto in self.__extontos.items():
-            f.write(onto.create_shacl(timestamp=timestamp, indent=1))
+            # A TriG graph accepts RDF triples, not a complete SPARQL update.
+            f.write(onto.create_shacl_triples(timestamp=timestamp, indent=indent + 1, indent_inc=indent_inc))
         f.write('\n\n')
         for iri, prop in self.__propclasses.items():
             if not prop.internal:
@@ -801,7 +802,7 @@ class DataModel(Model):
         f.write(f'\n{blank:{indent * indent_inc}}}}\n')
 
         f.write(f'{blank:{indent * indent_inc}}{self.__graph}:onto {{\n')
-        f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology owl:type owl:Ontology ;\n')
+        f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology rdf:type owl:Ontology ;\n')
         f.write(f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n')
         f.write('\n')
         for iri, prop in self.__propclasses.items():
@@ -818,4 +819,3 @@ class DataModel(Model):
         f = io.StringIO()
         self.__to_trig_format(f, indent=indent, indent_inc=indent_inc)
         return f.getvalue()
-

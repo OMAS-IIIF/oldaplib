@@ -1,5 +1,17 @@
 # CODEX_LOG
 
+### Update 2026-09-22 23:06
+- Decisions: Preserve complete Lucene creation options in native YAML; load remains opt-in and project-scoped. Existing shorthand and transport defaults remain supported.
+- Implementation: Add lucene_connector.py and offline tests for permission, escaping, conflicts, unchanged state and recovery; retain existing datamodel/search behavior. 126 tools tests + 8 legacy tests + 25 targeted library/API/export/auth tests passed. Live Fasnacht dump retained 16 classes, 10 taxonomies and all options of the 8-field connector; replace dry-run planned zero operations. No live connector/model writes.
+- Open: Publish paired releases before use outside this local development setup; no release/version bump performed.
+- Risks/Assumptions: Connector commands are not RDF transactions. Failed replacement attempts restoration but may require reindexing; administrators outside configured writer coordination must serialize changes. Installed a local, unpublished oldaplib wheel still labelled 0.7.21 in the native API Python 3.13 environment; activated with writer-gated make restart. Production unchanged.
+
+### Update 2026-09-22 22:29
+- Decisions: Repair the canonical RDF exporter after oldap-tools API backup validation exposed invalid TriG; retain standalone SPARQL update behavior and existing API endpoints.
+- Implementation: DataModel TriG uses ExternalOntology.create_shacl_triples and rdf:type for ontology declarations; ResourceClass.create_owl always terminates its class statement, including classes without properties. Three offline regressions verify SPARQL creation, named-graph string/file exports with multiple external ontologies, and adjacent empty-class fragments. Tests pass with the API source environment.
+- Open: Publish a new version for other consumers; no version bump/publication performed. The user's nine pending Fasnacht ontology changes have not been applied.
+- Risks/Assumptions: Source matched installed 0.7.21 before these fixes. Built/installed an unpublished same-version wheel without dependency changes into /Users/rosenth/Library/Caches/pypoetry/virtualenvs/oldap-api-69wuW7M7-py3.13 and restarted via the writer-gated oldap-api make restart. Read-only live verification: model export parses to 1,524 triples; API ZIP snapshot includes all ten taxonomies and passes ZIP integrity checking. No production or instance/model data mutation.
+
 ### Update 2026-09-18 23:47
 - Decisions: Extend existing opt-in editorial creation grants to project-configured publication roots and subclasses.
 - Implementation: Archive domain creation guard now adds editorial UPDATE to semantic archive roots, preserving readers and stronger grants; no updates/backfill. Publication capabilities expose automaticEditorialGrants separately from publication authority. Add root/subclass/opt-out and capability regressions.

@@ -713,6 +713,7 @@ class ResourceClass(Model, Notify):
         return sparql
 
     def create_owl(self, timestamp: Xsd_dateTime, indent: int = 0, indent_inc: int = 4) -> str:
+        """Render complete OWL class statements, including propertyless classes."""
         blank = ''
         sparql = ''
         sparql += f'{blank:{(indent + 2) * indent_inc}}{self._owlclass_iri} rdf:type owl:Class'
@@ -726,8 +727,7 @@ class ResourceClass(Model, Notify):
         if valstr:
             sparql += f' ;\n{blank:{(indent + 3)*indent_inc}}rdfs:subClassOf {valstr}'
 
-        if self._properties:
-            sparql += ' .\n\n'
+        sparql += ' .\n\n'
 
         for iri, prop in self._properties.items():
             sparql += prop.create_owl(indent=2, indent_inc=indent_inc)
@@ -1281,5 +1281,4 @@ class ResourceClass(Model, Notify):
             self._con.transaction_commit()
         cache = CacheSingletonRedis()
         cache.delete(self._owlclass_iri)
-
 
