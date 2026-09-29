@@ -1,7 +1,8 @@
 import json
 from copy import deepcopy
+from contextvars import ContextVar
 from dataclasses import dataclass
-from functools import partial
+from functools import partial, wraps
 from pprint import pprint
 
 from typing import List, Self, Any, Callable
@@ -31,6 +32,33 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
+
+
+_project_reads: ContextVar[tuple[IConnection, dict] | None] = ContextVar(
+    "oldap_project_reads", default=None
+)
+
+
+def reuse_project_reads(method):
+    """Scope project snapshots to one synchronous model-construction operation.
+
+    The decorated instance/class method must take ``con`` after self/cls.
+    Nested operations with the same connection share snapshots; other threads,
+    contexts and connections cannot reuse them. Cleanup also runs on failure.
+    Project.read still returns independent objects and bypasses snapshots for
+    ignore_cache=True. Never use this scope around mutations or transactions.
+    """
+    @wraps(method)
+    def wrapped(receiver, con, *args, **kwargs):
+        active = _project_reads.get()
+        if active is not None and active[0] is con:
+            return method(receiver, con, *args, **kwargs)
+        token = _project_reads.set((con, {}))
+        try:
+            return method(receiver, con, *args, **kwargs)
+        finally:
+            _project_reads.reset(token)
+    return wrapped
 
 @serializer
 @dataclass(frozen=True)
@@ -200,8 +228,18 @@ class Project(Model):
                        modified=deepcopy(self._modified, memo))
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
-        instance._changset = deepcopy(self._changeset, memo)
+        instance._changeset = deepcopy(self._changeset, memo)
+        instance.update_notifier()
         return instance
+
+    def _remember_read(self) -> Self:
+        """Retain an independent snapshot only during model construction."""
+        active = _project_reads.get()
+        if active is not None and active[0] is self._con:
+            snapshot = deepcopy(self, {id(self._con): self._con})
+            active[1][str(self.projectIri)] = snapshot
+            active[1][str(self.projectShortName)] = snapshot
+        return self
 
     def __eq__(self, other: Self) -> bool:
         if not isinstance(other, Project):
@@ -260,11 +298,15 @@ class Project(Model):
         :raises OldapError: If other errors or problems occur during the process.
         """
         context = Context(name=con.context_name)
-        query = context.sparql_context
 
         if not isinstance(projectIri_SName, IriOrNCName):
             projectIri_SName = IriOrNCName(projectIri_SName, validate=True)
         shortname, projectIri = projectIri_SName.value()
+        active = _project_reads.get()
+        if not ignore_cache and active is not None and active[0] is con:
+            snapshot = active[1].get(str(projectIri or shortname))
+            if snapshot is not None:
+                return deepcopy(snapshot, {id(con): con})
         # projectIri: Iri | None = None
         # shortname: Xsd_NCName | None = None
         # if isinstance(projectIri_SName, Iri):
@@ -277,12 +319,13 @@ class Project(Model):
         #     else:
         #         shortname = Xsd_NCName(projectIri_SName)
         cache = CacheSingletonRedis()
+        query = context.sparql_context
         if projectIri is not None:
             if not ignore_cache:
                 tmp = cache.get(projectIri, connection=con)
                 if tmp is not None:
                     tmp.update_notifier()
-                    return tmp
+                    return tmp._remember_read()
             query += f"""
                 SELECT ?prop ?val
                 FROM NAMED oldap:admin
@@ -297,7 +340,7 @@ class Project(Model):
                 tmp = cache.get(shortname, connection=con)
                 if tmp is not None:
                     tmp._con = con
-                    return tmp
+                    return tmp._remember_read()
             query += f"""
                 SELECT ?proj ?prop ?val ?prefix ?iri
                 WHERE {{
@@ -369,7 +412,7 @@ class Project(Model):
                        projectEnd=projectEnd)
         cache = CacheSingletonRedis()
         cache.set(instance.projectIri, instance, instance.projectShortName)
-        return instance
+        return instance._remember_read()
 
     @staticmethod
     def search(con: IConnection,
@@ -740,5 +783,3 @@ class Project(Model):
         if len(res) != 1:
             raise OldapErrorNotFound(f"No project shortname found for {iri}")
         return res[0]['shortname']
-
-

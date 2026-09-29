@@ -1,3 +1,11 @@
+### Update 2026-09-29 23:39
+- Decisions: Address measured Redis connection churn and repeated project materialization before framework/database scaling. Keep object ownership and writer isolation unchanged.
+- Implementation: Share bounded process-local Redis pools by exact URL with fork reset; avoid throwaway writer clients when parsed database numbers differ. Scope reusable project snapshots to DataModel.read/factory construction; return independent connection-bound copies, preserve fresh-read bypass, and repair Project deepcopy changeset/notifier ownership.
+- Results: Activated an unpublished same-version 0.7.22 development wheel through writer-gated API restart. Exact 1,188-request warm replay passes; public media median 515 to 97 ms, 25 summaries 758 to 112 ms. Redis reads 563 to 42 with zero warm client creations. All explicit named-graph fingerprints unchanged. See ../oldap-api/doc/performance/2026-09-29-optimization.md.
+- Open: Publish a normal versioned release when requested; mixed-user concurrency, Enterprise and FastAPI remain unmeasured. Backup and source hashes: /Users/rosenth/.codex/backups/oldap-performance-before-optimization/.
+- Risks/Assumptions: Pools retain eight configurations, each with at most 32 connections. Snapshots expire after synchronous model construction and cannot cross requests/connections; mutations must remain outside this scope.
+- Validation: 39 focused library/isolated writer-store tests and 10 API tests pass. All 34 baseline/optimized and 34 post-activation runtime response-content comparisons match; explicit named-graph fingerprint unchanged.
+
 # CODEX_LOG
 
 ### Update 2026-09-22 23:06

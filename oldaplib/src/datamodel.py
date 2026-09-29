@@ -16,7 +16,7 @@ from oldaplib.src.enums.action import Action
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.oldaplist import OldapList
-from oldaplib.src.project import Project
+from oldaplib.src.project import Project, reuse_project_reads
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
@@ -326,6 +326,7 @@ class DataModel(Model):
             raise OldapErrorInconsistency(f'No resclass or property "{what}" in datamodel.')
 
     @classmethod
+    @reuse_project_reads
     def read(cls,
              con: IConnection,
              project: Project | Xsd_QName | Xsd_NCName | str,

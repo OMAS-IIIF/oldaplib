@@ -92,3 +92,7 @@ See `../FasnachtsPage/docs/as-09/local-rollout.md` for runtime, backup, recovery
 - ProjectLuceneConnector manages native GraphDB creation options for one project, enforces ADMIN_MODEL/ADMIN_OLDAP, joins configured writer coordination, validates revisions, skips identical replacements and attempts failure restoration.
 
 - Local Lucene activation (2026-09-22): native API uses an unpublished development oldaplib wheel still versioned 0.7.21 and was safely restarted. Real read-only dump/load planning preserves the Fasnacht connector and yields zero operations; paired published releases remain pending.
+
+- Read-path optimization (2026-09-29): CacheSingletonRedis wrappers share process-local bounded Redis clients by exact URL, reset after fork. DataModel.read and ResourceInstanceFactory construction share short-lived Project snapshots and return independent copies tied to the caller connection; ignore_cache stays authoritative. No cross-request domain-object cache. See docs/performance_optimization_strategy.md and the API performance reports.
+
+- Local performance activation completed: the native API uses an unpublished same-version 0.7.22 development wheel with the read-path changes. Exact warm benchmark replay shows 73–85% lower representative public resource/summary latency, with unchanged RDF fingerprints and response content. See ../oldap-api/doc/performance/2026-09-29-optimization.md; no published release or production change.

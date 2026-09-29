@@ -21,6 +21,7 @@ from uuid import uuid4
 
 from redis import Redis
 from redis.exceptions import RedisError
+from redis.connection import parse_url
 
 from oldaplib.src.helpers.oldaperror import OldapError
 
@@ -71,16 +72,20 @@ def require_separate_cache(cache: Redis) -> None:
     """
     if not archive_coordination_enabled():
         return
+    gate_url = os.getenv("OLDAP_STAGING_LOCK_REDIS_URL", "redis://localhost:6379/1")
+    cache_db = int(cache.connection_pool.connection_kwargs.get("db", 0))
+    gate_db = int(parse_url(gate_url).get("db", 0))
+    # Redis database numbers are disjoint even when hostnames alias the same
+    # server. Use redis-py's URL parser so path/query/Unix-socket precedence
+    # matches the client exactly, without creating a throwaway client.
+    if cache_db != gate_db:
+        return
     gate = Redis.from_url(
-        os.getenv("OLDAP_STAGING_LOCK_REDIS_URL", "redis://localhost:6379/1"),
+        gate_url,
         socket_connect_timeout=5,
         socket_timeout=10,
     )
     try:
-        cache_db = int(cache.connection_pool.connection_kwargs.get("db", 0))
-        gate_db = int(gate.connection_pool.connection_kwargs.get("db", 0))
-        if cache_db != gate_db:
-            return
         cache_id = cache.info("server").get("run_id")
         gate_id = gate.info("server").get("run_id")
         if not cache_id or not gate_id or cache_id == gate_id:

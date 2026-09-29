@@ -49,3 +49,33 @@ The summary primitive removes per-resource GraphDB reads. It deliberately does
 not replace complete resource reads for editing, nor does it remove initial
 datamodel construction or unrelated application requests; those boundaries
 remain separately measurable.
+
+
+## Measured warm-read optimization (2026-09-29)
+
+The API baseline found 563 Redis reads and 524 Project.read invocations for one
+resource, although GraphDB needed only three queries. The implementation now:
+
+- Shares a thread-safe Redis connection pool per exact URL in each process,
+  retaining at most eight configurations and 32 connections per pool. Pool
+  exhaustion raises the redis-py connection error; this is not a throughput
+  promise. Configuration changes select a different client. Forked children
+  discard inherited clients and locks. Eviction never closes a borrowed client.
+- Rechecks cache/writer separation on wrapper construction and before flush.
+  Distinct database numbers are recognized with redis-py's own URL parser;
+  same-database configurations still require fresh server identity checks.
+- Reuses Project snapshots only during synchronous DataModel.read and resource
+  factory construction. Nested reads on the same connection share snapshots;
+  independent operations, threads and connections do not. Every result is a
+  separate deep copy retaining the caller's connection and its own notifiers
+  and changeset. ignore_cache=True bypasses and refreshes any successful snapshot.
+
+The short-lived scope is for model construction, never mutations or transaction
+lifetimes. Nothing persists on a long-lived Connection. Complete mutable models,
+permissions and factories are not cached globally. RDF queries and response
+contracts are unchanged. The retained Redis wire format is unchanged.
+
+For measurement methodology, exact request catalogs and before/after evidence,
+see the sibling API repository's doc/performance/ directory. Local development
+activation is separate from publishing a release; record its precise source
+hashes because a development wheel may retain the published version number.

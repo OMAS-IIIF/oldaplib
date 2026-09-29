@@ -31,7 +31,7 @@ from oldaplib.src.iconnection import IConnection
 from oldaplib.src.resource_transaction import resource_operation, resource_query
 from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplistnode import OldapListNode
-from oldaplib.src.project import Project
+from oldaplib.src.project import Project, reuse_project_reads
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
 from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
@@ -3439,6 +3439,7 @@ class ResourceInstanceFactory:
     _sharedModel: DataModel
     _user_default_roles: Dict[Xsd_QName, DataPermission] = {}
 
+    @reuse_project_reads
     def __init__(self,
                  con: IConnection,
                  project: Project | Iri | Xsd_NCName | str):

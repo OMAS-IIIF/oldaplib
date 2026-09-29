@@ -1,5 +1,6 @@
 import json
 import os
+from collections import OrderedDict
 from copy import deepcopy
 from threading import Lock
 from typing import Any
@@ -13,6 +14,40 @@ from oldaplib.src.mutation_gate import require_separate_cache
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+
+
+_redis_clients: OrderedDict[str, redis.Redis] = OrderedDict()
+_redis_clients_lock = Lock()
+
+
+def _reset_redis_clients_after_fork() -> None:
+    """Discard inherited clients and locks before the child serves requests."""
+    global _redis_clients, _redis_clients_lock
+    _redis_clients = OrderedDict()
+    _redis_clients_lock = Lock()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_redis_clients_after_fork)
+
+
+def _shared_redis_client(url: str) -> redis.Redis:
+    """Reuse a thread-safe pool per exact cache URL in this process.
+
+    Retain at most eight configurations; each pool permits 32 connections.
+    Evicted clients are not closed while wrappers may still be using them.
+    Redis owns pool cleanup when the last reference disappears. Neither data
+    objects nor authorization contexts are retained in this process cache.
+    """
+    with _redis_clients_lock:
+        client = _redis_clients.get(url)
+        if client is None:
+            client = redis.from_url(url, max_connections=32)
+            _redis_clients[url] = client
+            if len(_redis_clients) > 8:
+                _redis_clients.popitem(last=False)
+        _redis_clients.move_to_end(url)
+        return client
 
 
 class CacheSingleton(metaclass=SingletonMeta):
@@ -62,7 +97,7 @@ class CacheSingleton(metaclass=SingletonMeta):
 
 class CacheSingletonRedis:
     """
-    Singleton class for caching using a Redis database.
+    JSON cache wrapper using a process-local, thread-safe Redis connection pool.
 
     This class interacts with a Redis instance to store, retrieve, and manage
     cached data. Designed to facilitate data caching using key-value pairs,
@@ -74,12 +109,8 @@ class CacheSingletonRedis:
     :type _r: redis.client.Redis
     """
     def __init__(self):
-        # default connection to local redis server on port 6379
-
-        #self._r = redis.Redis(host=os.getenv("OLDAP_REDIS_HOST", 'localhost'), port=os.getenv("OLDAP_REDIS_PORT", 6379), db=0)
-
         redis_url = os.getenv("OLDAP_REDIS_URL", "redis://localhost:6379")
-        self._r = redis.from_url(redis_url)
+        self._r = _shared_redis_client(redis_url)
         require_separate_cache(self._r)
 
     def get(self, key: Iri | Xsd_NCName | Xsd_QName, connection: IConnection | None = None) -> Any:
