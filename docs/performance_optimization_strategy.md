@@ -79,3 +79,35 @@ For measurement methodology, exact request catalogs and before/after evidence,
 see the sibling API repository's doc/performance/ directory. Local development
 activation is separate from publishing a release; record its precise source
 hashes because a development wheel may retain the published version number.
+
+## Constructor metadata reuse (2026-09-30)
+
+A fresh profile of the 0.7.23 read path shows 5,599 `inspect.signature` calls
+for one medium retrieval. Redis JSON reconstruction repeatedly discovers
+whether the same class constructor accepts `connection` or `con`.
+
+`helpers/serializer.py` now keeps those immutable parameter-name tuples in a
+process-local LRU cache, bounded to 256 constructors. The constructor callable
+is the key: replacing a registered class or its `__init__` naturally selects
+fresh metadata. In-place changes to a callable's `__signature__` require clearing
+`_connection_parameters.cache_clear()` or restarting that process. Concurrent
+first calls may repeat the pure inspection; no coordination of user state is
+needed. No connections, permissions or reconstructed instances are cache values.
+
+Connection rebinding still happens for every decoded object, both keyword
+spellings remain supported, and each JSON decode creates independent mutable
+objects. The JSON wire format, queries, permission checks, fresh model reads,
+project snapshot ownership and cache invalidation rules are unchanged.
+
+In uninstrumented local Flask-client measurements (20 samples per case and
+subject), anonymous resource retrieval improves from 90.8 to 66.5 ms, 25
+summaries from 102.1 to 80.5 ms, and 100 summaries from 132.6 to 113.1 ms.
+Fresh datamodel retrieval changes only slightly. See sibling
+`oldap-api/doc/performance/2026-09-30-serializer.md` for the HTTP experiment,
+content comparisons, source hashes and measurement limits. These are source
+experiments against 0.7.23, not changes installed into the native API or VM.
+
+Regression coverage checks constructor/class replacement, bounded retention,
+thread/user isolation, independent mutable payloads and real Project JSON
+roundtrips. The next substantial cost is independent Project/model copying;
+any follow-up must preserve mutation isolation, not share mutable cached models.

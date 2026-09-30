@@ -1,10 +1,31 @@
+"""JSON reconstruction with bounded, process-local constructor metadata reuse.
+
+Only immutable connection-parameter names are cached. Decoded objects and their
+connections remain caller-owned; the JSON representation is unchanged.
+"""
+
 import inspect
+from functools import lru_cache
 from base64 import b85encode, b85decode
 from enum import Enum
 from typing import Dict, Any, Self
 from datetime import datetime
 from uuid import UUID
 import json
+
+
+@lru_cache(maxsize=256)
+def _connection_parameters(constructor) -> tuple[str, ...]:
+    """Return explicitly declared connection keyword names for a constructor.
+
+    Key by the constructor itself so replacing a registered class or its
+    ``__init__`` cannot reuse stale metadata. In-place edits to a callable's
+    signature require clearing this metadata cache. Concurrent cold misses may
+    repeat the pure inspection; cache contents never contain user connections
+    or reconstructed model instances.
+    """
+    parameters = inspect.signature(constructor).parameters
+    return tuple(name for name in ("connection", "con") if name in parameters)
 
 
 class _Serializer:
@@ -75,11 +96,8 @@ class _Serializer:
                 # we have a class with a connection parameter that we have to update.
                 # this requires that the "json.loads" uses the "make_decoder_hook(...)" hook!
                 #
-                sig = inspect.signature(self._classes[classname].__init__)
-                if 'connection' in sig.parameters:
-                    d['connection'] = connection
-                if 'con' in sig.parameters:
-                    d['con'] = connection
+                for name in _connection_parameters(self._classes[classname].__init__):
+                    d[name] = connection
             if classname == 'datetime':
                 #
                 # For datetime datatype

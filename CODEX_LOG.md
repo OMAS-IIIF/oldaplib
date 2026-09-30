@@ -1,3 +1,10 @@
+### Update 2026-09-30 23:50
+- Decisions: Remove measured repeated constructor introspection without caching mutable domain objects or authorization context. Compare explicitly selected 0.7.23 source trees because the native API environment on disk still contains 0.7.22.
+- Implementation: Added a 256-entry constructor-keyed LRU for immutable connection parameter names; preserve per-object connection/con rebinding and JSON format. Added eight offline regressions for caller/thread isolation, replacement/re-registration, bounded retention, mutable payloads and real Project roundtrips; documented cache lifetime/release boundary.
+- Validation: 70 library, 14 API and 17 read-tool checks pass. Source A/B: resource 90.8→66.5 ms, 25 summaries 102.1→80.5 ms; one-worker/four-thread HTTP at 16 readers: 13.98→16.91 requests/s, p95 796→568 ms. 2,408 timed HTTP-200 reads; 34 full-catalog content comparisons and eight load-reference hashes match. Fingerprints retain 52,490 bindings; native service PIDs unchanged.
+- Open: Publish a new library release, update consumers and repeat VM measurements with unchanged worker settings. Independent Project/model copying remains the next profile candidate.
+- Risks/Assumptions: Short warm local source experiments, not installed/VM improvements. Constructor identity changes invalidate naturally; in-place signature edits require metadata-cache clear/restart. No package installation, service restart, cache flush, GraphDB update, version bump or publication.
+
 ### Update 2026-09-29 23:39
 - Decisions: Address measured Redis connection churn and repeated project materialization before framework/database scaling. Keep object ownership and writer isolation unchanged.
 - Implementation: Share bounded process-local Redis pools by exact URL with fork reset; avoid throwaway writer clients when parsed database numbers differ. Scope reusable project snapshots to DataModel.read/factory construction; return independent connection-bound copies, preserve fresh-read bypass, and repair Project deepcopy changeset/notifier ownership.
