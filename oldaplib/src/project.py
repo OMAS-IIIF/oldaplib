@@ -232,6 +232,34 @@ class Project(Model):
         instance.update_notifier()
         return instance
 
+    @classmethod
+    def _read_identity(cls, con: IConnection,
+                       project: IriOrNCName) -> tuple[Xsd_NCName, Iri, NamespaceIRI]:
+        """Resolve independent identity values for property-model construction.
+
+        Args:
+            con: The caller's connection.
+            project: Parsed project IRI or short name.
+
+        Returns:
+            Deep-copied short name, project IRI and namespace. No mutable project,
+            labels, change tracking or connection escapes the scoped snapshot.
+
+        Uses the same operation-local snapshot as ``read`` when available.
+        Outside that scope (or on a miss), normal project reading supplies the
+        values and preserves its errors and cache behavior. A fresh ``read`` with
+        ``ignore_cache=True`` also refreshes the snapshot used here.
+        """
+        active = _project_reads.get()
+        snapshot = None
+        if active is not None and active[0] is con:
+            shortname, iri = project.value()
+            snapshot = active[1].get(str(iri or shortname))
+        if snapshot is None:
+            snapshot = cls.read(con, project)
+        return deepcopy((snapshot.projectShortName, snapshot.projectIri,
+                         snapshot.namespaceIri))
+
     def _remember_read(self) -> Self:
         """Retain an independent snapshot only during model construction."""
         active = _project_reads.get()

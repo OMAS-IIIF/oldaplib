@@ -11,6 +11,8 @@ from oldaplib.src.cachesingleton import CacheSingletonRedis
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.mutation_gate import require_separate_cache, MutationGateUnavailable
 from oldaplib.src.project import Project, reuse_project_reads, _project_reads
+from oldaplib.src.helpers.irincname import IriOrNCName
+from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.xsd.iri import Iri
 
@@ -177,6 +179,94 @@ class ProjectSnapshotTests(unittest.TestCase):
         self.assertIsNone(_project_reads.get())
         Project.read(self.connection, "example")
         self.assertEqual(self.cache.get.call_count, 2)
+
+    def test_identity_aliases_copy_only_independent_values(self):
+        @reuse_project_reads
+        def operation(_, con):
+            first = Project._read_identity(con, IriOrNCName("example"))
+            with patch.object(Project, "__deepcopy__", side_effect=AssertionError(
+                    "Identity hits must not copy complete projects")):
+                second = Project._read_identity(
+                    con, IriOrNCName("http://example.org/project"))
+            self.assertEqual(first, second)
+            for left, right in zip(first, second):
+                self.assertIsNot(left, right)
+            first[0].__init__("changed")
+            first[2].__init__("http://changed.example/")
+            self.assertEqual(str(second[0]), "example")
+            self.assertEqual(str(second[2]), "http://example.org/ns/")
+            full = Project.read(con, "example")
+            self.assertEqual(str(full.projectShortName), "example")
+            full.label["en"] = "Independent"
+            self.assertTrue(full._changeset)
+            self.assertFalse(self.project._changeset)
+            self.assertEqual(self.cache.get.call_count, 1)
+
+        operation(None, self.connection)
+        self.assertIsNone(_project_reads.get())
+
+    def test_identity_outside_scope_and_other_connection_read_normally(self):
+        for _ in range(2):
+            Project._read_identity(self.connection, IriOrNCName("example"))
+        self.assertEqual(self.cache.get.call_count, 2)
+        other = Mock(spec=IConnection, context_name="IDENTITY_OTHER",
+                     userIri=self.connection.userIri)
+
+        @reuse_project_reads
+        def operation(_, con):
+            Project._read_identity(con, IriOrNCName("example"))
+            with patch.object(Project, "read", side_effect=RuntimeError("other read")):
+                with self.assertRaisesRegex(RuntimeError, "other read"):
+                    Project._read_identity(other, IriOrNCName("example"))
+
+        operation(None, self.connection)
+
+    def test_identity_scopes_are_isolated_across_threads_and_failures(self):
+        @reuse_project_reads
+        def operation(_, con, index):
+            identity = Project._read_identity(con, IriOrNCName("example"))
+            identity[0].__init__(f"thread{index}")
+            again = Project._read_identity(con, IriOrNCName("example"))
+            self.assertEqual(str(again[0]), "example")
+            return again
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            identities = list(executor.map(
+                lambda index: operation(None, self.connection, index), range(16)))
+        self.assertEqual(len({id(values[0]) for values in identities}), 16)
+        self.assertIsNone(_project_reads.get())
+        self.cache.get.side_effect = RuntimeError("project unavailable")
+        with self.assertRaisesRegex(RuntimeError, "project unavailable"):
+            operation(None, self.connection, 0)
+        self.assertIsNone(_project_reads.get())
+
+    def test_identity_uses_refreshed_snapshot(self):
+        @reuse_project_reads
+        def operation(_, con):
+            Project._read_identity(con, IriOrNCName("example"))
+            refreshed = deepcopy(self.project, {id(con): con})
+            refreshed.namespaceIri.__init__("http://updated.example/")
+            # Successful cache-bypassing Project.read uses this same boundary.
+            refreshed._remember_read()
+            identity = Project._read_identity(con, IriOrNCName("example"))
+            self.assertEqual(str(identity[2]), "http://updated.example/")
+
+        operation(None, self.connection)
+
+    def test_property_constructor_retains_independent_identity(self):
+        @reuse_project_reads
+        def operation(_, con):
+            first = PropertyClass(con=con, project="example")
+            second = PropertyClass(con=con, project="example")
+            self.assertIs(first._con, con)
+            self.assertIs(second._con, con)
+            self.assertEqual(first._projectIri, self.project.projectIri)
+            self.assertIsNot(first._projectIri, second._projectIri)
+            first._projectShortName.__init__("changed")
+            self.assertEqual(str(second._projectShortName), "example")
+            self.assertFalse(second._changeset)
+
+        operation(None, self.connection)
 
     def test_ignore_cache_reaches_connection_even_with_snapshot(self):
         self.connection.query = Mock(side_effect=RuntimeError("fresh GraphDB request"))

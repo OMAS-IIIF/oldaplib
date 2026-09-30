@@ -117,14 +117,18 @@ class PropertyClass(Model, Notify):
                        validate=validate)
         Notify.__init__(self, notifier, notify_data)
 
-        if not isinstance(project, Project):
-            project = Project.read(self._con, IriOrNCName(project, validate=validate))
-        self._projectShortName = project.projectShortName
-        self._projectIri = project.projectIri
+        if isinstance(project, Project):
+            self._projectShortName = project.projectShortName
+            self._projectIri = project.projectIri
+            namespace_iri = project.namespaceIri
+        else:
+            # Property models retain only identity, never the complete Project.
+            self._projectShortName, self._projectIri, namespace_iri = Project._read_identity(
+                self._con, IriOrNCName(project, validate=validate))
         self._appliesToProperty = Xsd_QName(appliesToProperty, validate=validate) if appliesToProperty else None
         self._inResourceClass = Xsd_QName(_inResourceClass, validate=validate) if _inResourceClass else None
         context = Context(name=self._con.context_name)
-        context[self._projectShortName] = project.namespaceIri
+        context[self._projectShortName] = namespace_iri
         context.use(self._projectShortName)
         self._graph = self._projectShortName
 

@@ -1,3 +1,17 @@
+### Update 2026-10-01 00:43
+- Decisions: Retain a small project-identity projection; avoid broader model caching or generic copy changes. Gains are useful but below a consistent 15–20% across all endpoints.
+- Implementation: Added internal Project._read_identity and used it in identifier-based PropertyClass construction. Deep-copy only three retained identity values; preserve full Project reads and snapshot lifetime. Added five offline regressions and updated strategy/context.
+- Validation: 75 library, 14 API and 19 tool checks pass; 1,000 accepted timed reads return 200; 34 before/after contents match. Anonymous medium improves 13–16%; summaries improve 6–13% across users/rounds. Full Project copies 524→181; 3 GraphDB/42 Redis reads unchanged. All accepted RDF fingerprints unchanged (52,490 bindings).
+- Open: Normal library release/consumer dependency update, then read-only VM comparison with existing worker settings. No installation, restart, version bump or deployment performed.
+- Risks/Assumptions: Warm sequential laptop measurements, not concurrent production capacity. First direct-copy prototype discarded and excluded due closing source-inventory mismatch; final accepted source inventories stable. Existing user changes preserved.
+
+### Update 2026-10-01 00:27
+- Decisions: Record production read validation of released constructor-metadata optimization; keep worker settings unchanged.
+- Implementation: Updated project context with effective oldaplib 0.7.24 deployment/source identity and linked the API repository's VM evidence. No library code changed.
+- Validation: Complete VM rerun: 1,132 HTTP-200 reads, all 17 baseline contents and RDF fingerprint unchanged. Resource median 185→130 ms; 16-reader p95 649→591 ms, API CPU 2.13→1.78 cores. Public read checks pass; no service restart or data write by measurement.
+- Open: Profile Project/model reconstruction and independent copying locally; larger-data sizing remains separate.
+- Risks/Assumptions: Sequential short warm anonymous comparison, not maximum capacity. Initial sampler false-positive run excluded; corrected tooling and full rerun documented in oldap-api.
+
 ### Update 2026-09-30 23:50
 - Decisions: Remove measured repeated constructor introspection without caching mutable domain objects or authorization context. Compare explicitly selected 0.7.23 source trees because the native API environment on disk still contains 0.7.22.
 - Implementation: Added a 256-entry constructor-keyed LRU for immutable connection parameter names; preserve per-object connection/con rebinding and JSON format. Added eight offline regressions for caller/thread isolation, replacement/re-registration, bounded retention, mutable payloads and real Project roundtrips; documented cache lifetime/release boundary.

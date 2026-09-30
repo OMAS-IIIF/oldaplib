@@ -111,3 +111,27 @@ Regression coverage checks constructor/class replacement, bounded retention,
 thread/user isolation, independent mutable payloads and real Project JSON
 roundtrips. The next substantial cost is independent Project/model copying;
 any follow-up must preserve mutation isolation, not share mutable cached models.
+
+
+## Project identity projection (2026-10-01)
+
+PropertyClass reconstruction retains only project short name, IRI and namespace.
+Its identifier-based constructor now uses Project._read_identity to deep-copy
+these three values from the existing connection-bound construction snapshot.
+Misses and out-of-scope calls use normal Project.read; fresh successful reads
+refresh the same snapshot. Explicit Project arguments retain their existing
+behavior. Complete Project reads, deepcopy, labels/notifiers, permissions and
+ResourceClass ownership are unchanged. No additional cache is introduced.
+
+Two local source-pinned comparisons against 0.7.24 show anonymous medium reads
+13–16% faster, rosenth medium reads 10–19%, and summaries 6–13%. Full project
+copies fall from 524 to 181; 3 GraphDB queries and 42 Redis reads remain. This is
+worth retaining as a small localized change, but does not consistently meet a
+15–20% target across all operations. Do not extrapolate to VM throughput.
+
+Five added offline regressions cover identity isolation, aliases, connection and
+scope fallback, refreshed snapshots, threads/failures and property construction.
+All 34 full-catalog user/case contents and existing RDF fingerprints match.
+See ../oldap-api/doc/performance/2026-10-01-project-identity.md for both rounds,
+source identities, discarded prototype and limits. Release/consumer updates and
+read-only VM acceptance remain separate; no installed runtime was changed.
