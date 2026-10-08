@@ -2673,6 +2673,14 @@ class ResourceInstance:
                 value_var: str,
                 dating_var: str,
                 langfilters: list[str]) -> None:
+            # Keep OPTIONAL bindings for OR filters, but require a value inside
+            # each comparison branch. GraphDB can otherwise retain an unbound
+            # resource when optimizing OPTIONAL + equality (for example an
+            # archive root in a direct-parent search). NOT_EXISTS deliberately
+            # tests absence and must not receive this guard.
+            require_value = not isinstance(f.value, Dating) and f.op != CompOp.NOT_EXISTS
+            if require_value:
+                parts.append(f'(BOUND(?{value_var}) && (')
             if isinstance(f.value, Dating):
                 target_start = f'"{f.value._normalizedStart.isoformat()}"^^xsd:date'
                 target_end = f'"{f.value._normalizedEnd.isoformat()}"^^xsd:date'
@@ -2714,6 +2722,9 @@ class ResourceInstance:
                 parts.append(f'STRENDS(STR(?{value_var}), STR("{f.value.value}"))')
                 if isinstance(f.value, Xsd_string) and f.value.lang:
                     langfilters.append(f'FILTER(LANG(?{value_var}) = "{f.value.lang.shortlang}")')
+
+            if require_value:
+                parts.append('))')
 
         def append_filter_patterns(parts: list[str], level: int) -> None:
             if not filter:

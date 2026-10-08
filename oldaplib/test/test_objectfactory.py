@@ -331,6 +331,43 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
 
 class TestSearchQueryGeneration(unittest.TestCase):
 
+    def test_optional_comparisons_require_values_per_boolean_branch(self):
+        """Missing properties must not match equality or disable another OR branch."""
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(context_name='DEFAULT',
+                              userIri=Iri('urn:test:reader'), query=query)
+        project = SimpleNamespace(projectShortName=Xsd_NCName('test'))
+        parent = SearchFilter(Xsd_QName('shared:parentArchiveUnit'), CompOp.EQ,
+                              Iri('urn:test:parent'))
+        title = SearchFilter(Xsd_QName('dcterms:title'), CompOp.EQ, Xsd_string('Match'))
+        absent = SearchFilter(Xsd_QName('shared:parentArchiveUnit'), CompOp.NOT_EXISTS,
+                              Xsd_QName('shared:parentArchiveUnit'))
+        for count_only in (False, True):
+            with self.subTest(count_only=count_only):
+                query.return_value = {
+                    'head': {'vars': ['numResult']},
+                    'results': {'bindings': [{'numResult': {'type': 'literal', 'value': '0',
+                        'datatype': 'http://www.w3.org/2001/XMLSchema#integer'}}]},
+                } if count_only else {'head': {'vars': ['res']}, 'results': {'bindings': []}}
+                with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+                    ResourceInstance.search(con=con, project='test', resClass='shared:ArchiveUnit',
+                                            filter=[parent, LogicOp.OR, title], countOnly=count_only)
+                sparql = query.call_args[0][0]
+                self.assertIn('OPTIONAL { ?res shared:parentArchiveUnit ?parentArchiveUnit }', sparql)
+                self.assertIn('FILTER((BOUND(?parentArchiveUnit) && (?parentArchiveUnit = <urn:test:parent>))'
+                              ' || (BOUND(?title) && (?title = """Match"""^^xsd:string)))', sparql)
+        query.return_value = {'head': {'vars': ['res']}, 'results': {'bindings': []}}
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(con=con, project='test', resClass='shared:ArchiveUnit',
+                                    filter=[absent])
+        sparql = query.call_args[0][0]
+        self.assertIn('FILTER(NOT EXISTS { ?res shared:parentArchiveUnit ?parentArchiveUnit })', sparql)
+        self.assertNotIn('BOUND(?parentArchiveUnit)', sparql)
+
+
     def test_search_archive_media_object_paging_query_uses_resource_subquery(self):
         query = Mock(return_value={
             'head': {'vars': ['res', 'resclass', 'assetId']},
@@ -500,6 +537,7 @@ class TestSearchQueryGeneration(unittest.TestCase):
         self.assertIn('?linked_0 rdf:type test:Book .', sparql)
         self.assertIn('?linked_0 test:title ?linked_0_title .', sparql)
         self.assertIn('CONTAINS(LCASE(STR(?linked_0_title)), LCASE(STR("Spez")))', sparql)
+        self.assertIn('(BOUND(?linked_0_title) && (CONTAINS(', sparql)
         self.assertLess(sparql.index('?res test:pageInBook ?linked_0 .'),
                         sparql.index('LIMIT 10 OFFSET 0'))
         self.assertLess(sparql.index('LIMIT 10 OFFSET 0'),

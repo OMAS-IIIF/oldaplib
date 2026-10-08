@@ -1,3 +1,16 @@
+### Update 2026-10-07 23:45
+- Decisions: Require a bound value inside each ordinary structured-search comparison; preserve OPTIONAL for OR and NOT_EXISTS for absence.
+- Implementation: Fixed direct and linked comparison generation in objectfactory.py; added regression coverage for branch-local guards, count queries and NOT_EXISTS. Reproduced the original false root directly in local GraphDB; 18 focused tests and 20 read-only live queries pass. See docs/search_optional_values.md.
+- Open: Publish a new library release before external rollout.
+- Risks/Assumptions: Locally installed an unpublished 0.7.25 development wheel in the native API and performed guarded restart; published 0.7.25 lacks this fix. No data, permissions or remote services changed.
+
+### Update 2026-10-01 11:50
+- Decisions: Accept user-deployed project-identity optimization on the VM; retain four workers/two threads.
+- Implementation: Recorded deployed API 0.2.31 / oldaplib 0.7.25 source verification and read-only before/after evidence; updated context and relevant performance/worker documentation. No application code or deployment configuration changed.
+- Validation: 1,152 timed reads pass; all 17 baseline contents and public HTTPS checks match. Resource medians improve 10–13%, summaries 4–10%. At 16 readers: median/p95 167/591→143/559 ms, API CPU 1.78→1.57 cores. Existing 50,396-binding RDF fingerprint, containers and service PIDs unchanged; temporary VM files removed.
+- Open: Larger representative data and sustained mixed-user sizing remain separate; no worker maintenance indicated by this workload.
+- Risks/Assumptions: One sequential short warm anonymous comparison, not maximum capacity. Search/fresh-model gains not demonstrated; recovery p95 varies upward. Separate final verifier excludes the completed load-client process; within-run service-process guard passed. Existing local changes preserved.
+
 ### Update 2026-10-01 00:43
 - Decisions: Retain a small project-identity projection; avoid broader model caching or generic copy changes. Gains are useful but below a consistent 15–20% across all endpoints.
 - Implementation: Added internal Project._read_identity and used it in identifier-based PropertyClass construction. Deep-copy only three retained identity values; preserve full Project reads and snapshot lifetime. Added five offline regressions and updated strategy/context.
