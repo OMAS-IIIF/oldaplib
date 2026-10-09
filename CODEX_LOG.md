@@ -1,3 +1,9 @@
+### Update 2026-10-10 00:10
+- Decisions: User role membership without a default data permission must not become an implicit object grant. Explicit object grants require a valid DataPermission; no permissions are invented or membership records changed.
+- Implementation: Filter None defaults in ResourceInstanceFactory, allocate an independent default map per instance, and validate explicit constructor grants before conversion. Four offline regressions cover mixed/empty memberships, explicit grants and malformed/null inputs. Installed reviewed local 0.7.26 development wheel into the native API and used guarded make restart; writer gate released.
+- Open: User upload retry is the final live acceptance. Publish a new oldaplib release before remote rollout; current local wheel differs from the published version. Mediahelper normalization deployment remains separate.
+- Risks/Assumptions: 19 focused source tests and four installed-runtime regressions pass; installed objectfactory hash matches source. Poetry check and diff check pass. Previous installed package backed up under ~/.codex/backups/oldaplib-default-roles-20261010-001005. No stored data, memberships, grants, remote service or Docker container changed; no full live database test suite was run.
+
 ### Update 2026-10-07 23:45
 - Decisions: Require a bound value inside each ordinary structured-search comparison; preserve OPTIONAL for OR and NOT_EXISTS for absence.
 - Implementation: Fixed direct and linked comparison generation in objectfactory.py; added regression coverage for branch-local guards, count queries and NOT_EXISTS. Reproduced the original false root directly in local GraphDB; 18 focused tests and 20 read-only live queries pass. See docs/search_optional_values.md.

@@ -966,9 +966,16 @@ class ResourceInstance:
                         # we have an attachedToRole property given in the constructor...
                         #
                         value = kwargs[str(prop_iri)] if str(prop_iri) in kwargs else kwargs[prop_iri.fragment]
-                        value = {Xsd_QName(role): dperm if isinstance(dperm, DataPermission) else DataPermission.from_string(dperm) for role, dperm in value.items()}
                         if not isinstance(value, dict):
                             raise OldapErrorValue(f'{self.name}: Property {prop_iri} with attachedToRole must be a dict')
+                        # Membership-only roles are valid on users, but every
+                        # explicit object grant must specify a data permission.
+                        if any(not isinstance(permission, (str, DataPermission)) for permission in value.values()):
+                            raise OldapErrorValue(f'{self.name}: Every attachedToRole grant requires a data permission')
+                        try:
+                            value = {Xsd_QName(role): dperm if isinstance(dperm, DataPermission) else DataPermission.from_string(dperm) for role, dperm in value.items()}
+                        except ValueError as error:
+                            raise OldapErrorValue(f'{self.name}: Invalid attachedToRole permission: {error}') from error
                         self._attached_roles = ObservableDict(value, on_change=self.__attachedToRole_cb)
                         self._values[prop_iri] = ObservableSet({Xsd_QName(x, validate=True) for x in value.keys()},
                                                                notifier=self.notifier, notify_data=prop_iri)
@@ -3460,8 +3467,13 @@ class ResourceInstanceFactory:
         else:
             self._project = Project.read(self._con, project)
         self._sharedProject = Project.read(self._con, "oldap:SharedProject")
-        if self._con._userdata.hasRole:
-            self._user_default_roles = {r: DataPermission.from_qname(p) for r, p in self._con._userdata.hasRole.items()}
+        # A user may be a role member without specifying a default object grant.
+        # Always own a fresh map, including for users with no default permissions.
+        self._user_default_roles = {
+            role: DataPermission.from_qname(permission)
+            for role, permission in (self._con._userdata.hasRole or {}).items()
+            if permission is not None
+        }
 
         self._datamodel = DataModel.read(con=self._con, project=self._project)
         self._sharedModel = DataModel.read(con=self._con, project=self._sharedProject)
