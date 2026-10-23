@@ -515,6 +515,96 @@ class ArchivePublication(ArchiveRepository):
             )
             return result
 
+    def _link_review(self, request, policy, definition):
+        """Authorize one additive relation and bind all affected public parents."""
+        if not isinstance(request, dict) or set(request) != {'mediaIri', 'parentIri'}:
+            raise OldapErrorValue('Expected mediaIri and parentIri.')
+        media_iri, parent_iri = (_absolute(request[k]) for k in ('mediaIri', 'parentIri'))
+        media = self._read(media_iri, policy)
+        relation = str(policy.context.iri2qname(definition['mediaToRootPropertyIri']))
+        parents = {canonical_iri(policy.context, value) for value in values(media, relation)}
+        if len(parents | {parent_iri}) + 1 > definition['maxResources']:
+            raise PublicationConflict('Relation review exceeds resource limit.')
+        resources = {media_iri: media}
+        for iri in parents | {parent_iri}:
+            resources[iri] = self._read(iri, policy)
+        for iri, instance in resources.items():
+            expected = 'media' if iri == media_iri else 'root'
+            status = single(instance, str(policy.context.iri2qname(definition['statusPropertyIri'])))
+            if (_kind(instance, definition) != expected or status is None
+                    or canonical_iri(policy.context, status) != definition['publishedStatusIri']):
+                raise PublicationConflict('Media and all parents must already be published.')
+            policy.require_data(instance, DP.DATA_UPDATE)
+            if _public_permission(instance, policy, definition) != _public_permission(media, policy, definition):
+                raise PublicationConflict('Public grants must match; linking never changes permissions.')
+        if _public_permission(media, policy, definition) not in (DP.DATA_VIEW, DP.DATA_RESTRICTED):
+            raise PublicationConflict('Unsupported public grant.')
+        # Validate the configured relation's model constraints without a CRUD write.
+        media[Q(relation)] = {_iri(iri) for iri in parents | {parent_iri}}
+        ids = ' '.join(_iri(iri).toRdf for iri in sorted(resources))
+        rows = resource_query(self._con, policy.context.sparql_context + f'''SELECT ?s ?p ?o ?role ?grant WHERE {{
+          GRAPH {self.project.projectShortName}:data {{ VALUES ?s {{ {ids} }} ?s ?p ?o .
+          OPTIONAL {{ ?s oldap:attachedToRole ?role . <<?s oldap:attachedToRole ?role>> oldap:hasDataPermission ?grant }} }}
+        }}''')['results']['bindings']
+        rows.sort(key=lambda row: json.dumps(row, sort_keys=True))
+        return _digest([definition, request, rows]), parent_iri in parents
+
+    def preview_link(self, request):
+        """Review adding one parent to a published medium, without changing ACLs."""
+        with resource_transaction(self._con):
+            policy, definition = self._configured()
+            self._authorize(policy, definition)
+            revision, exists = self._link_review(request, policy, definition)
+            return {**request, 'revision': revision, 'alreadyLinked': exists}
+
+    def apply_link(self, request, operation_id):
+        """Apply an exact reviewed additive link with an atomic idempotency receipt.
+
+        Requires publisher membership and UPDATE on media and every linked parent.
+        No removal, metadata edits, publication changes or ACL changes are accepted.
+        """
+        import re
+        from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
+        operation_id = self._operation_id(operation_id)
+        if (not isinstance(request, dict) or set(request) != {'mediaIri', 'parentIri', 'revision'}
+                or not isinstance(request['revision'], str)
+                or not re.fullmatch(r'[a-f0-9]{64}', request['revision'])):
+            raise OldapErrorValue('Expected mediaIri, parentIri and revision.')
+        base = {key: request[key] for key in ('mediaIri', 'parentIri')}
+        for iri in base.values():
+            _absolute(iri)
+        fingerprint = _digest(request)
+        with resource_transaction(self._con):
+            policy, definition = self._configured()
+            self._authorize(policy, definition)
+            # Recheck authorization even for a receipt replay.
+            revision, exists = self._link_review(base, policy, definition)
+            replay = self._receipt(policy, operation_id, command='publication-link')
+            if replay is not None:
+                if replay['requestDigest'] != fingerprint:
+                    raise PublicationConflict('Link operation ID reused with another request.')
+                return replay['result']
+            if revision != request['revision']:
+                raise PublicationConflict('Link review is stale. Review again.')
+            if not exists:
+                subject = _iri(request['mediaIri']).toRdf
+                predicate = _iri(definition['mediaToRootPropertyIri']).toRdf
+                parent = _iri(request['parentIri']).toRdf
+                timestamp = Xsd_dateTimeStamp().toRdf
+                self._con.transaction_update(policy.context.sparql_context + f'''WITH {self.project.projectShortName}:data
+                DELETE {{ {subject} oldap:lastModificationDate ?date ; oldap:lastModifiedBy ?actor . }}
+                INSERT {{ {subject} {predicate} {parent} ; oldap:lastModificationDate {timestamp} ; oldap:lastModifiedBy {self._con.userIri.toRdf} . }}
+                WHERE {{ OPTIONAL {{ {subject} oldap:lastModificationDate ?date }} OPTIONAL {{ {subject} oldap:lastModifiedBy ?actor }} }}''')
+            result = {'operationId': operation_id, 'state': 'committed', **base, 'alreadyLinked': exists}
+            record = {'requestDigest': fingerprint, 'result': result,
+                      'actor': canonical_iri(policy.context, self._con.userIri),
+                      'time': datetime.now(timezone.utc).isoformat(),
+                      'command': 'publication-link', 'reviewRevision': revision}
+            encoded = json.dumps(json.dumps(record, sort_keys=True))
+            receipt = self._receipt_iri(policy, operation_id, command='publication-link')
+            self._con.transaction_update(f'INSERT DATA {{ GRAPH <{RECEIPT_GRAPH}> {{ <{receipt}> <urn:oldap:archive:record> {encoded} }} }}')
+            return result
+
     def operation(self, operation_id):
         """Return an actor-scoped committed result with fresh authorization."""
         operation_id = self._operation_id(operation_id)

@@ -1,3 +1,9 @@
+### Update 2026-10-23 23:48
+- Decisions: Add one narrowly scoped published-media relation command; retain generic CRUD guard and avoid general merge machinery.
+- Implementation: Added preview_link/apply_link with fresh publisher membership, UPDATE checks for all parents/media, equal public grants, model validation, bounded revision review and atomic idempotency receipts. Targeted publication/shared-sink suite: 32 tests pass. Local real transaction and exact receipt replay pass.
+- Open: Release oldaplib before production use; HTTP exposure is not required by the direct-library harvester.
+- Risks/Assumptions: No ontology/ACL changes. Local development build installed only in harvester venv. One-off duplicate deletion uses normal library inbound-reference guard, not this additive command.
+
 ### Update 2026-10-10 00:10
 - Decisions: User role membership without a default data permission must not become an implicit object grant. Explicit object grants require a valid DataPermission; no permissions are invented or membership records changed.
 - Implementation: Filter None defaults in ResourceInstanceFactory, allocate an independent default map per instance, and validate explicit constructor grants before conversion. Four offline regressions cover mixed/empty memberships, explicit grants and malformed/null inputs. Installed reviewed local 0.7.26 development wheel into the native API and used guarded make restart; writer gate released.
