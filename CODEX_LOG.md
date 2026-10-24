@@ -1,3 +1,9 @@
+### Update 2026-10-24 12:42
+- Decisions: Send transactional SPARQL updates as raw UTF-8 bodies, avoiding GraphDB servlet form-size limits for large text metadata.
+- Implementation: transaction_update now uses PUT with action=UPDATE and application/sparql-update. Added Unicode/large-body/error/transaction-guard tests. 55 focused transport/transaction/publication tests pass. Real local harvester updates and API readback/replay pass for two historical PDFs.
+- Open: Release the library and update consumers; validation used PYTHONPATH source override only.
+- Risks/Assumptions: No server limits/auth/transaction ownership semantics changed. Nontransactional update/query transport is unchanged.
+
 ### Update 2026-10-23 23:48
 - Decisions: Add one narrowly scoped published-media relation command; retain generic CRUD guard and avoid general merge machinery.
 - Implementation: Added preview_link/apply_link with fresh publisher membership, UPDATE checks for all parents/media, equal public grants, model validation, bounded revision review and atomic idempotency receipts. Targeted publication/shared-sink suite: 32 tests pass. Local real transaction and exact receipt replay pass.

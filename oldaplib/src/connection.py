@@ -649,10 +649,13 @@ class Connection(IConnection):
         """
         Updates the current GraphDB transaction with a specified SPARQL update query.
 
-        This method sends a POST request to the specified transaction URL with the
+        This method sends a raw UTF-8 SPARQL UPDATE request to the specified transaction URL with the
         provided SPARQL `query`. It throws an error if the user is not logged in or
         if no GraphDB transaction URL is available. If the request fails, an exception
         is raised containing the reason for the failure.
+
+        The raw request body avoids servlet form-parameter size limits for large
+        RDF literals. Transaction and authorization semantics remain unchanged.
 
         :param query: The SPARQL update query to execute as part of the current GraphDB
                       transaction.
@@ -664,14 +667,15 @@ class Connection(IConnection):
         if not self._userdata:
             raise OldapError("No login")
         headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Content-Type": "application/sparql-update; charset=UTF-8",
             "Accept": "*/*"
         }
         if self._transaction_url is None:
             raise OldapError("No GraphDB transaction started")
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
-        res = requests.post(self._transaction_url,
-                            data={'action': 'UPDATE', 'update': query},
+        res = requests.put(self._transaction_url,
+                            params={'action': 'UPDATE'},
+                            data=query.encode('utf-8'),
                             headers=headers,
                             auth=auth)
         if not res.ok:

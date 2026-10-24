@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Transaction update transport (2026-10-24, unreleased): raw UTF-8 SPARQL UPDATE via PUT/action=UPDATE avoids GraphDB form POST limits on large RDF literals. Validated with 55 focused tests and local historical-PDF layout writes/readback/replay. Source override used only; release/update consumers before normal rollout.
+
 - Additive publication links: ArchivePublication.preview_link/apply_link safely add one published parent with publisher + UPDATE authorization, equal public grants, complete review digest and atomic receipt. No HTTP/ontology changes. Local Nollhart acceptance/replay passed; harvester uses a local development build, production release pending. See docs/archive_publication.md.
 
 - Membership-only role correction (2026-10-10): object creation copies only user roles with a non-null default DataPermission; explicit null/malformed object grants fail with OldapErrorValue. No membership/ACL data changes. Active in the native API via an unpublished 0.7.26 development wheel and guarded restart; publish a new release for external rollout. Regression tests: oldaplib/test/test_resource_default_roles.py.
