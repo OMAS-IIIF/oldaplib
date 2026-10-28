@@ -281,6 +281,9 @@ class UserData:
         and metadata from the query result and constructs a corresponding instance
         of the class.
 
+        Membership and annotation rows may arrive in any order. Plain membership
+        rows retain permissions/defaults already parsed from annotation rows.
+
         :param queryresult: Query result data obtained from a QueryProcessor.
         :type queryresult: QueryProcessor
         :return: An instance of the class with attributes populated based on query
@@ -343,12 +346,15 @@ class UserData:
                     if not inProjectDict:
                         inProjectDict = {r['val']: set()}
                     else:
-                        inProjectDict[r['val']] = set()
+                        # SPARQL results are unordered: a membership row must
+                        # not erase permissions read from earlier annotations.
+                        inProjectDict.setdefault(r['val'], set())
                 case 'oldap:hasRole':
                     if not hasRoleDict:
                         hasRoleDict = ObservableDict({r['val']: None})
                     else:
-                        hasRoleDict[r['val']] = None
+                        if r['val'] not in hasRoleDict:
+                            hasRoleDict[r['val']] = None
                 case _:
                     if r.get('proj') and r.get('rval'):
                         if not inProjectDict:

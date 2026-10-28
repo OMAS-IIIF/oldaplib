@@ -271,7 +271,8 @@ def creator_or_max_perm_block(
     user_iri: str,        # e.g. con.userIri.toRdf
     min_perm: str,        # e.g. DataPermission.DATA_VIEW.numeric.toRdf
     alias: str = "acc",   # avoid var collisions when used multiple times
-    include_creator: bool = True
+    include_creator: bool = True,
+    rdf12: bool = False
 ) -> str:
     """Build a boolean creator/role threshold check for resource CONSTRUCT reads.
 
@@ -280,10 +281,14 @@ def creator_or_max_perm_block(
     FILTER EXISTS avoids redundant aggregation and role joins in large reviewed
     batches without changing the qualifying grants.
     Creator access remains explicitly controlled by include_creator.
+    The opt-in rdf12 flag reads permission annotations through explicit reifiers;
+    the default preserves the existing GraphDB RDF* syntax.
     """
     role = f"?{alias}_role"
     permission = f"?{alias}_dataperm"
     value = f"?{alias}_permval"
+    annotation = (f"?{alias}_grant rdf:reifies <<( {resource_iri} oldap:attachedToRole {role} )>> ; oldap:hasDataPermission {permission} ."
+                  if rdf12 else f"<<{resource_iri} oldap:attachedToRole {role}>> oldap:hasDataPermission {permission} .")
     permitted = f"""
         GRAPH oldap:admin {{
             {user_iri} oldap:hasRole {role} .
@@ -292,7 +297,7 @@ def creator_or_max_perm_block(
         }}
         GRAPH {graph_data} {{
             {resource_iri} oldap:attachedToRole {role} .
-            <<{resource_iri} oldap:attachedToRole {role}>> oldap:hasDataPermission {permission} .
+            {annotation}
         }}
     """
     if include_creator:
@@ -732,12 +737,19 @@ def _alias_requested_subjects(context: Context, data: ConstructResultDict,
     return data
 
 
-def _read_resource_construct(con: IConnection,
+def _build_resource_read_query(con: IConnection,
                              graph: Xsd_NCName,
                              iri: Iri,
                              user_iri: Iri,
                              *,
-                             include_creator: bool) -> ConstructResultDict:
+                             include_creator: bool, rdf12: bool = False) -> str:
+    """Build a shared single-resource read with explicit backend syntax.
+
+    RDF 1.2 reads use asserted project data and derive superclass types only
+    from the project/shared/system ontology graphs. This bounded entailment is
+    not a replacement for a complete OWL reasoner. GraphDB retains its default
+    graph and existing inferred-type behavior.
+    """
     context = Context(name=con.context_name)
     access_block = creator_or_max_perm_block(
         graph_data=f"{graph}:data",
@@ -745,21 +757,39 @@ def _read_resource_construct(con: IConnection,
         user_iri=user_iri.toRdf,
         min_perm=DataPermission.DATA_VIEW.numeric.toRdf,
         alias="readc",
-        include_creator=include_creator
+        include_creator=include_creator,
+        rdf12=rdf12
     )
+    # Keep Jena data scoped to this project. Merge only the schema graphs for
+    # subclass paths; do not merge arbitrary projects or internal receipt data.
+    triples = (f"GRAPH {graph}:data {{ {iri.toRdf} ?predicate ?value . }}" if rdf12
+               else f"{iri.toRdf} ?predicate ?value .")
+    annotation = (f"?read_grant rdf:reifies <<( {iri.toRdf} oldap:attachedToRole ?attachedRole )>> ; oldap:hasDataPermission ?attachedDataperm ."
+                  if rdf12 else f"<< {iri.toRdf} oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .")
+    dataset = (f"FROM {graph}:onto FROM shared:onto FROM oldap:onto "
+               f"FROM NAMED {graph}:data FROM NAMED oldap:admin" if rdf12 else "")
+    inferred_triple = f"{iri.toRdf} rdf:type ?inferredType ." if rdf12 else ""
+    hierarchy = (f"""OPTIONAL {{
+        GRAPH {graph}:data {{ {iri.toRdf} a ?directType . }}
+        ?directType rdfs:subClassOf+ ?inferredType .
+        FILTER(isIRI(?inferredType))
+    }}""" if rdf12 else "")
     sparql = context.sparql_context
     sparql += textwrap.dedent(f'''
     CONSTRUCT {{
         {iri.toRdf} ?predicate ?value .
+        {inferred_triple}
         {iri.toRdf} {ASSERTED_TYPE_PRED.toRdf} ?assertedType .
         {iri.toRdf} {READ_PERM_BINDING_PRED.toRdf} ?permBinding .
         ?permBinding {READ_PERM_ROLE_PRED.toRdf} ?attachedRole .
         ?permBinding {READ_PERM_VALUE_PRED.toRdf} ?attachedDataperm .
         ?datingNode ?datingPredicate ?datingValue .
     }}
+    {dataset}
     WHERE {{
         {access_block}
-        {iri.toRdf} ?predicate ?value .
+        {triples}
+        {hierarchy}
         OPTIONAL {{
             GRAPH {graph}:data {{
                 {iri.toRdf} a ?assertedType .
@@ -768,7 +798,7 @@ def _read_resource_construct(con: IConnection,
         OPTIONAL {{
             GRAPH {graph}:data {{
                 {iri.toRdf} oldap:attachedToRole ?attachedRole .
-                << {iri.toRdf} oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .
+                {annotation}
             }}
             # Bind each role/permission pair to its own stable blank node.
             # GraphDB may evaluate an uncorrelated BNODE() before the role join,
@@ -785,46 +815,64 @@ def _read_resource_construct(con: IConnection,
         }}
     }}
     ''')
+    return sparql
+
+
+def _read_resource_construct(con: IConnection, graph: Xsd_NCName, iri: Iri,
+                             user_iri: Iri, *, include_creator: bool) -> ConstructResultDict:
+    """Read and hydrate one permission-filtered resource using the backend dialect."""
+    context = Context(name=con.context_name)
+    sparql = con._resource_read_query(graph, iri, user_iri, include_creator=include_creator)
     graph_res = resource_query(con, sparql, format=SparqlResultFormat.JSONLD)
     return _alias_requested_subjects(context, ConstructProcessor.process(context, graph_res), [iri])
 
 
-def _read_resource_summaries_construct(
+def _build_resource_summaries_query(
         con: IConnection,
         graph: Xsd_NCName,
         iris: list[Iri],
         include_properties: set[Xsd_QName],
-) -> ConstructResultDict:
-    """Read bounded, permission-filtered resource summaries in one query.
+        *, rdf12: bool = False,
+) -> str:
+    """Build a bounded summary query, retaining GraphDB syntax by default.
 
-    Args:
-        con: Authenticated OLDAP connection.
-        graph: Project graph short name.
-        iris: Distinct validated resource IRIs, bounded by
-            ``MAX_RESOURCE_SUMMARY_BATCH``.
-        include_properties: Predicates to include in addition to ``rdf:type``.
-
-    Returns:
-        Processed CONSTRUCT data for every readable requested resource. Missing
-        and unreadable resources are deliberately indistinguishable and absent.
+    RDF 1.2 grants require both the asserted role link and its reifier. Only
+    project data is returned; ancestor types come from the same selected schema
+    graphs as single-resource reads. Creator access is preserved for summaries.
+    Input validation and batch limits belong to ``read_summaries``.
     """
-    if not iris:
-        return {}
-
     context = Context(name=con.context_name)
     resource_values = ' '.join(iri.toRdf for iri in iris)
     predicates = {RDF_TYPE_PRED, *include_properties}
     predicate_values = ' '.join(predicate.toRdf for predicate in sorted(predicates, key=str))
+    access_annotation = (
+        "?summary_access_grant rdf:reifies <<( ?resource oldap:attachedToRole ?accessRole )>> ; oldap:hasDataPermission ?accessDataperm ."
+        if rdf12 else "<< ?resource oldap:attachedToRole ?accessRole >> oldap:hasDataPermission ?accessDataperm .")
+    role_annotation = (
+        "?summary_role_grant rdf:reifies <<( ?resource oldap:attachedToRole ?attachedRole )>> ; oldap:hasDataPermission ?attachedDataperm ."
+        if rdf12 else "<< ?resource oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .")
+    triples = (f"GRAPH {graph}:data {{ ?resource ?predicate ?value . }}" if rdf12
+               else "?resource ?predicate ?value .")
+    dataset = (f"FROM {graph}:onto FROM shared:onto FROM oldap:onto "
+               f"FROM NAMED {graph}:data FROM NAMED oldap:admin" if rdf12 else "")
+    inferred_triple = "?resource rdf:type ?inferredType ." if rdf12 else ""
+    hierarchy = (f"""OPTIONAL {{
+        GRAPH {graph}:data {{ ?resource a ?directType . }}
+        ?directType rdfs:subClassOf+ ?inferredType .
+        FILTER(isIRI(?inferredType))
+    }}""" if rdf12 else "")
     sparql = context.sparql_context
     sparql += textwrap.dedent(f'''
     CONSTRUCT {{
         ?resource ?predicate ?value .
+        {inferred_triple}
         ?resource {ASSERTED_TYPE_PRED.toRdf} ?assertedType .
         ?resource {READ_PERM_BINDING_PRED.toRdf} ?permBinding .
         ?permBinding {READ_PERM_ROLE_PRED.toRdf} ?attachedRole .
         ?permBinding {READ_PERM_VALUE_PRED.toRdf} ?attachedDataperm .
         ?datingNode ?datingPredicate ?datingValue .
     }}
+    {dataset}
     WHERE {{
         VALUES ?resource {{ {resource_values} }}
         {{
@@ -841,11 +889,12 @@ def _read_resource_summaries_construct(
             }}
             GRAPH {graph}:data {{
                 ?resource oldap:attachedToRole ?accessRole .
-                << ?resource oldap:attachedToRole ?accessRole >> oldap:hasDataPermission ?accessDataperm .
+                {access_annotation}
             }}
         }}
         VALUES ?predicate {{ {predicate_values} }}
-        ?resource ?predicate ?value .
+        {triples}
+        {hierarchy}
         OPTIONAL {{
             GRAPH {graph}:data {{
                 ?resource a ?assertedType .
@@ -854,7 +903,7 @@ def _read_resource_summaries_construct(
         OPTIONAL {{
             GRAPH {graph}:data {{
                 ?resource oldap:attachedToRole ?attachedRole .
-                << ?resource oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .
+                {role_annotation}
             }}
             # Bind each role/permission pair to its own stable blank node.
             # GraphDB may evaluate an uncorrelated BNODE() before the role join,
@@ -871,6 +920,24 @@ def _read_resource_summaries_construct(
         }}
     }}
     ''')
+    return sparql
+
+
+def _read_resource_summaries_construct(
+        con: IConnection,
+        graph: Xsd_NCName,
+        iris: list[Iri],
+        include_properties: set[Xsd_QName],
+) -> ConstructResultDict:
+    """Hydrate readable summaries from one backend-specific CONSTRUCT query.
+
+    Missing and denied resources remain absent. The caller supplies validated,
+    bounded IRIs/properties; an empty batch performs no backend request.
+    """
+    if not iris:
+        return {}
+    context = Context(name=con.context_name)
+    sparql = con._resource_summaries_query(graph, iris, include_properties)
     graph_res = resource_query(con, sparql, format=SparqlResultFormat.JSONLD)
     return _alias_requested_subjects(context, ConstructProcessor.process(context, graph_res), iris)
 
@@ -2565,6 +2632,12 @@ class ResourceInstance:
             otherwise a list of result dictionaries for the selected root
             resources.
         """
+        # Internal opt-in for the migration connection; ordinary connections
+        # retain GraphDB's query dialect and inferred default graph.
+        rdf12 = getattr(con, '_resource_search_rdf12', False) is True
+        if rdf12 and ftfilter:
+            raise OldapErrorValue('Jena full-text search is not implemented yet.')
+
         if not resClass and not filter and not ftfilter and not hlfilter:
             raise OldapErrorValue('Search without filters requires resClass.')
 
@@ -2644,6 +2717,21 @@ class ResourceInstance:
                 if not includeProperties or s.property not in includeProperties:
                     sparql_vars.add((f'{s.property.fragment}', str(s.property)))
 
+        def data_pattern(pattern: str) -> str:
+            """Scope Jena property matches without mixing data and schema graphs."""
+            return f'GRAPH {graph}:data {{ {pattern} }}' if rdf12 else pattern
+
+        def class_pattern(subject: str, target: str, type_var: str) -> str:
+            """Match asserted classes or their ancestors in the selected schemas."""
+            if not rdf12:
+                return f'{subject} rdf:type {target} .'
+            return (data_pattern(f'{subject} rdf:type {type_var} .')
+                    + f' {type_var} rdfs:subClassOf* {target} .')
+
+        dataset = (f'\nFROM {graph}:onto FROM shared:onto FROM oldap:onto '
+                   f'FROM NAMED {graph}:data FROM NAMED oldap:admin FROM NAMED {graph}:lists'
+                   if rdf12 else '')
+
         def append_access_patterns(parts: list[str], level: int, resclass_var: str) -> None:
             parts.append(f'\n{blank:{level * indent_inc}}GRAPH oldap:admin {{')
             parts.append(f'\n{blank:{(level + 1) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .')
@@ -2653,10 +2741,12 @@ class ResourceInstance:
             parts.append(f'\n{blank:{level * indent_inc}}GRAPH {graph}:data {{')
             parts.append(f'\n{blank:{(level + 1) * indent_inc}}?res rdf:type {resclass_var} .')
             parts.append(f'\n{blank:{(level + 1) * indent_inc}}?res oldap:attachedToRole ?role .')
-            parts.append(f'\n{blank:{(level + 1) * indent_inc}}<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .')
+            annotation = ('?searchGrant rdf:reifies <<( ?res oldap:attachedToRole ?role )>> ; oldap:hasDataPermission ?DataPermission .'
+                          if rdf12 else '<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}{annotation}')
             parts.append(f'\n{blank:{level * indent_inc}}}}')
             if _resClass:
-                parts.append(f'\n{blank:{level * indent_inc}}?res rdf:type {_resClass.toRdf} .')
+                parts.append(f'\n{blank:{level * indent_inc}}{class_pattern("?res", _resClass.toRdf, "?filterType")}')
 
         def append_linked_access_patterns(parts: list[str], level: int, linked_var: str, filter_index: int) -> None:
             role_var = f'linked_{filter_index}_role'
@@ -2669,7 +2759,9 @@ class ResourceInstance:
             parts.append(f'\n{blank:{level * indent_inc}}}}')
             parts.append(f'\n{blank:{level * indent_inc}}GRAPH {graph}:data {{')
             parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{linked_var} oldap:attachedToRole ?{role_var} .')
-            parts.append(f'\n{blank:{(level + 1) * indent_inc}}<< ?{linked_var} oldap:attachedToRole ?{role_var} >> oldap:hasDataPermission ?{data_permission_var} .')
+            annotation = (f'?linked_{filter_index}_grant rdf:reifies <<( ?{linked_var} oldap:attachedToRole ?{role_var} )>> ; oldap:hasDataPermission ?{data_permission_var} .'
+                          if rdf12 else f'<< ?{linked_var} oldap:attachedToRole ?{role_var} >> oldap:hasDataPermission ?{data_permission_var} .')
+            parts.append(f'\n{blank:{(level + 1) * indent_inc}}{annotation}')
             parts.append(f'\n{blank:{level * indent_inc}}}}')
 
         def append_filter_expression(
@@ -2705,7 +2797,11 @@ class ResourceInstance:
                     raise OldapErrorValue(f'Unsupported Dating search operator {f.op} for property {f.prop}.')
             elif f.op == CompOp.NOT_EXISTS:
                 predicate = f.value if isinstance(f, SearchFilter) and isinstance(f.value, Xsd_QName) else f.prop
-                parts.append(f'NOT EXISTS {{ ?{subject_var} {predicate.toRdf} ?{value_var} }}')
+                if rdf12 and isinstance(f, LinkedResourceSearchFilter):
+                    # An absent/denied link is not a readable linked resource
+                    # with a missing property. Keep that distinction in ORs.
+                    parts.append(f'BOUND(?{subject_var}) && ')
+                parts.append(f'NOT EXISTS {{ {data_pattern(f"?{subject_var} {predicate.toRdf} ?{value_var}")} }}')
             elif f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
                 op = sparql_comp_op(f.op)
                 if isinstance(f.value, Xsd_string) and f.value.lang:
@@ -2743,26 +2839,26 @@ class ResourceInstance:
                     linked_var = f'linked_{filter_index}'
                     value_var = f'linked_{filter_index}_{f.prop.fragment}'
                     parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{')
-                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}?res {f.linkProp.toRdf} ?{linked_var} .')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?res {f.linkProp.toRdf} ?{linked_var} .")}')
                     if f.linkedClass:
-                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{linked_var} rdf:type {f.linkedClass.toRdf} .')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{class_pattern(f"?{linked_var}", f.linkedClass.toRdf, f"?linked_{filter_index}_type")}')
                     if f.checkLinkedPermissions:
                         append_linked_access_patterns(parts, level + 1, linked_var, filter_index)
                     if isinstance(f.value, Dating):
                         dating_var = f'{value_var}_dating'
-                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{linked_var} {f.prop.toRdf} ?{dating_var} .')
-                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{dating_var} oldap:normalizedStart ?{dating_var}_start .')
-                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{dating_var} oldap:normalizedEnd ?{dating_var}_end .')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{linked_var} {f.prop.toRdf} ?{dating_var} .")}')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_var} oldap:normalizedStart ?{dating_var}_start .")}')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_var} oldap:normalizedEnd ?{dating_var}_end .")}')
                     elif f.op != CompOp.NOT_EXISTS:
-                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{linked_var} {f.prop.toRdf} ?{value_var} .')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{linked_var} {f.prop.toRdf} ?{value_var} .")}')
                     parts.append(f'\n{blank:{level * indent_inc}}}}')
                 elif isinstance(f.value, Dating):
                     dating_var = f'{f.prop.fragment}_dating_{filter_index}'
-                    parts.append(f'\n{blank:{level * indent_inc}}?res {f.prop.toRdf} ?{dating_var} .')
-                    parts.append(f'\n{blank:{level * indent_inc}}?{dating_var} oldap:normalizedStart ?{dating_var}_start .')
-                    parts.append(f'\n{blank:{level * indent_inc}}?{dating_var} oldap:normalizedEnd ?{dating_var}_end .')
+                    parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?res {f.prop.toRdf} ?{dating_var} .")}')
+                    parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?{dating_var} oldap:normalizedStart ?{dating_var}_start .")}')
+                    parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?{dating_var} oldap:normalizedEnd ?{dating_var}_end .")}')
                 else:
-                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ ?res {f.prop.toRdf} ?{f.prop.fragment} }}.')
+                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ {data_pattern(f"?res {f.prop.toRdf} ?{f.prop.fragment}")} }}.')
             parts.append(f'\n{blank:{level * indent_inc}}FILTER(')
             langfilters: list[str] = []
             for filter_index, f in enumerate(filter):
@@ -2792,10 +2888,34 @@ class ResourceInstance:
         def append_hlist_patterns(parts: list[str], level: int) -> None:
             if not hlfilter:
                 return
+            if rdf12:
+                # Each condition asks independently whether a matching assigned
+                # node exists. Mandatory joins would turn OR into an implicit
+                # AND; shared variables would force AND to use the same node.
+                parts.append(f'\n{blank:{level * indent_inc}}FILTER(')
+                for index, hlf in enumerate(hlfilter):
+                    if isinstance(hlf, LogicOp):
+                        parts.append(f' {hlf.value} ')
+                        continue
+                    list_iri = hlists[hlf.node.listId].iri
+                    selected = nodes[hlf.node]
+                    parts.append(f"""EXISTS {{
+                        GRAPH {graph}:data {{ ?res {hlf.prop.toRdf} ?hlist_{index}_node . }}
+                        GRAPH {graph}:lists {{
+                            ?hlist_{index}_node skos:inScheme {list_iri.toRdf} ;
+                                oldap:leftIndex ?hlist_{index}_left ;
+                                oldap:rightIndex ?hlist_{index}_right .
+                            FILTER(?hlist_{index}_left >= {selected.leftIndex.toRdf}
+                                && ?hlist_{index}_right <= {selected.rightIndex.toRdf})
+                        }}
+                    }}""")
+                parts.append(')')
+                return
+            # Preserve the existing GraphDB query until separately verified.
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     continue
-                parts.append(f'\n{blank:{level * indent_inc}}?res {hlf.prop.toRdf} ?{hlf.prop.fragment} .')
+                parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?res {hlf.prop.toRdf} ?{hlf.prop.fragment} .")}')
             parts.append(f'\n{blank:{level * indent_inc}}GRAPH {graph}:lists {{')
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
@@ -2831,12 +2951,12 @@ class ResourceInstance:
                 if is_dating_sort(s):
                     dating_sort_var = f'sort_{sort_index}_dating'
                     parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{')
-                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}?res {s.property.toRdf} ?{dating_sort_var} .')
-                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{dating_sort_var} oldap:normalizedStart ?sort_{sort_index}_start_raw .')
-                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}?{dating_sort_var} oldap:normalizedEnd ?sort_{sort_index}_end_raw .')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?res {s.property.toRdf} ?{dating_sort_var} .")}')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_sort_var} oldap:normalizedStart ?sort_{sort_index}_start_raw .")}')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_sort_var} oldap:normalizedEnd ?sort_{sort_index}_end_raw .")}')
                     parts.append(f'\n{blank:{level * indent_inc}}}}')
                 else:
-                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ ?res {s.property.toRdf} ?sort_{sort_index}_raw }} .')
+                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ {data_pattern(f"?res {s.property.toRdf} ?sort_{sort_index}_raw")} }} .')
 
         def resource_order_by() -> str:
             order_parts: list[str] = []
@@ -2865,6 +2985,7 @@ class ResourceInstance:
 
         if countOnly:
             sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?res) as ?numResult)'
+            sparql += dataset
             sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
             count_parts: list[str] = []
             append_resource_match(count_parts, indent + 1)
@@ -2876,6 +2997,7 @@ class ResourceInstance:
                 sparql += ' ?score'
             for p in projection_props:
                 sparql += f' ?{p.fragment}'
+            sparql += dataset
             sparql += f'\n{blank:{indent * indent_inc}}WHERE {{'
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}{{'
 
@@ -2917,7 +3039,9 @@ class ResourceInstance:
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {p.toRdf} ?{p.fragment} }} .'
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
             sparql += f'\n{blank:{indent * indent_inc}}}}'
-            if ftfilter or sortBy:
+            # Subquery ordering chooses the page; the outer query must also
+            # order its expanded property rows to preserve that page order.
+            if rdf12 or ftfilter or sortBy:
                 sparql += f'\n{blank:{indent * indent_inc}}ORDER BY {resource_order_by()}'
         sparql += '\n'
         try:

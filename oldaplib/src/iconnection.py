@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
+
+from oldaplib.src.helpers.authentication_revocation import AuthenticationRevocation
 from typing import Optional, Any, Dict, Mapping
 
 
@@ -57,6 +60,30 @@ class IConnection(ABC):
         # without introducing stale process-global cache state.
         self._list_node_context_projects = set()
 
+    # Experimental search dialect selection. This does not activate a backend
+    # or alter public search arguments; production connections remain GraphDB.
+    _resource_search_rdf12: bool = False
+
+    def _resource_read_query(self, graph: Xsd_NCName, iri: Iri, user_iri: Iri,
+                             *, include_creator: bool) -> str:
+        """Build a single-resource read; existing connections retain GraphDB RDF*.
+
+        Alternate backends override this internal query boundary. Domain object
+        construction, permission thresholds and public read signatures stay shared.
+        """
+        from oldaplib.src.objectfactory import _build_resource_read_query
+        return _build_resource_read_query(self, graph, iri, user_iri, include_creator=include_creator)
+
+    def _resource_summaries_query(self, graph: Xsd_NCName, iris: list[Iri],
+                                  include_properties: set[Xsd_QName]) -> str:
+        """Build batch reads with the same backend boundary as single reads.
+
+        The default retains GraphDB; alternate connections select the query
+        dialect without changing public factory methods or result hydration.
+        """
+        from oldaplib.src.objectfactory import _build_resource_summaries_query
+        return _build_resource_summaries_query(self, graph, iris, include_properties)
+
     @property
     def userdata(self) -> AuthorizationContext | None:
         return self._userdata
@@ -106,6 +133,32 @@ class IConnection(ABC):
     @abstractmethod
     def update_query(self, query: str) -> Dict[str, str]:
         pass
+
+    def _persist_authentication_revocation(
+            self, command: AuthenticationRevocation,
+            verify_legacy_write: Callable[[], None]) -> None:
+        """Persist one prepared revocation; return only after known commit.
+
+        Internal backend boundary; not a general transaction/callback executor.
+        The default preserves existing transactional connections. The supplied
+        verifier is User's fixed version/timestamp verification, not a caller
+        hook. A backend override must prove the same result atomically (e.g.
+        using a command receipt) before returning. Authorization and post-commit
+        object/cache changes stay in User. Existing subclasses need no override.
+
+        Raises:
+            Exception: Verification or transport failure, with no local User
+                success published. An abort attempt does not prove rollback
+                after an ambiguous commit response.
+        """
+        self.transaction_start()
+        try:
+            self.transaction_update(command.sparql_update())
+            verify_legacy_write()
+            self.transaction_commit()
+        except Exception:
+            self.transaction_abort()
+            raise
 
     @abstractmethod
     def transaction_start(self) -> None:

@@ -1,0 +1,250 @@
+{
+  "kind": "legacy-rdfstar-string-candidates",
+  "sites": [
+    {
+      "file": "oldaplib/src/archive_adoption.py",
+      "scope": "ArchiveAdoption._visibility",
+      "line": 150
+    },
+    {
+      "file": "oldaplib/src/archive_adoption.py",
+      "scope": "ArchiveAdoption._states",
+      "line": 161
+    },
+    {
+      "file": "oldaplib/src/archive_inventory.py",
+      "scope": "ArchiveInventory._rows",
+      "line": 246
+    },
+    {
+      "file": "oldaplib/src/archive_publication.py",
+      "scope": "ArchivePublication._review",
+      "line": 389
+    },
+    {
+      "file": "oldaplib/src/archive_publication.py",
+      "scope": "ArchivePublication.apply",
+      "line": 491
+    },
+    {
+      "file": "oldaplib/src/archive_publication.py",
+      "scope": "ArchivePublication.apply",
+      "line": 493
+    },
+    {
+      "file": "oldaplib/src/archive_publication.py",
+      "scope": "ArchivePublication.apply",
+      "line": 495
+    },
+    {
+      "file": "oldaplib/src/archive_publication.py",
+      "scope": "ArchivePublication._link_review",
+      "line": 546
+    },
+    {
+      "file": "oldaplib/src/archive_repository.py",
+      "scope": "ArchiveRepository.folder_revision",
+      "line": 84
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "creator_or_max_perm_block",
+      "line": 291
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "_build_resource_read_query",
+      "line": 768
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "_build_resource_summaries_query",
+      "line": 850
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "_build_resource_summaries_query",
+      "line": 853
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.get_data_permission",
+      "line": 1701
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.create",
+      "line": 1777
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.update",
+      "line": 1917
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.update",
+      "line": 1928
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.update",
+      "line": 1957
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.update",
+      "line": 1960
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.update",
+      "line": 1971
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.update",
+      "line": 1974
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.transform_class",
+      "line": 2345
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.transform_class",
+      "line": 2356
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.delete",
+      "line": 2464
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.delete",
+      "line": 2469
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance",
+      "line": 2540
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.search.append_access_patterns",
+      "line": 2745
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.search.append_linked_access_patterns",
+      "line": 2763
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.search_fulltext",
+      "line": 3135
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.all_resources",
+      "line": 3238
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.get_media_object_by_id",
+      "line": 3373
+    },
+    {
+      "file": "oldaplib/src/objectfactory.py",
+      "scope": "ResourceInstance.get_media_object_by_iri",
+      "line": 3463
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.trig_to_str",
+      "line": 745
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.trig_to_str",
+      "line": 751
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.delete",
+      "line": 1097
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.delete",
+      "line": 1104
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1251
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1260
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1266
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1274
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1285
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1292
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1362
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1375
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1428
+    },
+    {
+      "file": "oldaplib/src/user.py",
+      "scope": "User.update",
+      "line": 1438
+    },
+    {
+      "file": "oldaplib/src/userdataclass.py",
+      "scope": "UserData.sparql_query",
+      "line": 246
+    },
+    {
+      "file": "oldaplib/src/userdataclass.py",
+      "scope": "UserData.sparql_query",
+      "line": 250
+    },
+    {
+      "file": "oldaplib/src/userdataclass.py",
+      "scope": "UserData.sparql_query",
+      "line": 260
+    }
+  ]
+}

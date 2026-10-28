@@ -224,6 +224,10 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
         con.context_name = context_name
         con.query.return_value = Graph()
 
+        # Exercise the real default query boundary on this lightweight connection.
+        from oldaplib.src.iconnection import IConnection
+        con._resource_read_query.side_effect = lambda *args, **kwargs: IConnection._resource_read_query(con, *args, **kwargs)
+
         _read_resource_construct(
             con=con,
             graph=Xsd_NCName('fasnacht'),
@@ -249,6 +253,9 @@ class TestResourceConstructModelFiltering(unittest.TestCase):
         con.context_name = context_name
         con.userIri = Iri('oldap:User', validate=False)
         con.query.return_value = Graph()
+
+        from oldaplib.src.iconnection import IConnection
+        con._resource_summaries_query.side_effect = lambda *args, **kwargs: IConnection._resource_summaries_query(con, *args, **kwargs)
 
         _read_resource_summaries_construct(
             con=con,

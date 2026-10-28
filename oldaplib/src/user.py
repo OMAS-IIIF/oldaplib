@@ -154,6 +154,7 @@ from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.enums.userattr import UserAttr
+from oldaplib.src.helpers.authentication_revocation import AuthenticationRevocation
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.convert2datatype import convert2datatype
 from oldaplib.src.helpers.irincname import IriOrNCName
@@ -473,42 +474,21 @@ class User(Model):
         expected = self.authVersion or Xsd_nonNegativeInteger(0)
         updated = Xsd_nonNegativeInteger(int(expected) + 1)
         timestamp = Xsd_dateTime.now()
-        update = context.sparql_context
-        update += f"""
-        WITH oldap:admin
-        DELETE {{
-            ?user oldap:authVersion ?storedVersion .
-            ?user dcterms:contributor ?oldContributor .
-            ?user dcterms:modified {self.modified.toRdf} .
-        }}
-        INSERT {{
-            ?user oldap:authVersion {updated.toRdf} .
-            ?user dcterms:contributor {self._con.userIri.toRdf} .
-            ?user dcterms:modified {timestamp.toRdf} .
-        }}
-        WHERE {{
-            BIND({self.userIri.toRdf} AS ?user)
-            ?user a oldap:User .
-            ?user dcterms:modified {self.modified.toRdf} .
-            OPTIONAL {{ ?user dcterms:contributor ?oldContributor . }}
-            OPTIONAL {{ ?user oldap:authVersion ?storedVersion . }}
-            FILTER(COALESCE(?storedVersion, "0"^^xsd:nonNegativeInteger) = {expected.toRdf})
-        }}
-        """
+        command = AuthenticationRevocation.prepare(
+            context=context, user=self.userIri, actor=self._con.userIri,
+            expected=expected, previous_modified=self.modified, modified=timestamp,
+        )
 
-        self._con.transaction_start()
-        try:
-            self._con.transaction_update(update)
+        def verify_legacy_write() -> None:
+            """Check the fixed revocation postconditions in the active transaction."""
             persisted = self.__read_auth_version_in_transaction(context)
             modified = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri)
             if persisted != updated or modified != timestamp:
                 raise OldapErrorUpdateFailed(
                     f'Authentication revocation for user "{self.userId}" conflicted with another update.'
                 )
-            self._con.transaction_commit()
-        except Exception:
-            self._con.transaction_abort()
-            raise
+
+        self._con._persist_authentication_revocation(command, verify_legacy_write)
 
         self._attributes[UserAttr.AUTH_VERSION] = updated
         self._modified = timestamp

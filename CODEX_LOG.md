@@ -1,3 +1,135 @@
+### Update 2026-10-28 01:27
+- Decisions: Retain real list/node readers; use independent correlated EXISTS for each Jena hierarchical filter condition. Keep GraphDB queries and public interfaces unchanged.
+- Implementation: Added owned two-list/tree acceptance fixture and Jena boolean filter branch with explanatory comments. Independent bindings support OR with absent properties and AND across multiple assigned nodes; refreshed docs/inventory.
+- Validation: Pre-fix run reproduced OR failure. Final 86 integration checks (17 new list checks) and 60 offline tests + 7 subtests pass. Verified bounds/list/project isolation, mixed permissions, count/pagination, input forms, grouping and role removal. Fourteen GraphDB query comparisons match HEAD modulo whitespace.
+- Open: Full-text, remaining media/read/write and inference paths; list mutation/index maintenance/concurrency/cache parity. No deployment, commit or push.
+- Risks/Assumptions: Valid stable nested-set fixtures; list reads are real, Redis cache I/O mocked, fixture writes use private SPARQL. Boolean correction is Jena-specific; legacy GraphDB behavior needs separate review. Metadata loading and final search are separate reads.
+
+### Update 2026-10-28 01:12
+- Decisions: Share the search algorithm; explicitly scope Jena properties and derive class matches through selected schema paths. Keep GraphDB defaults and public signatures. Unsupported Jena connector full-text raises instead of silently returning no matches.
+- Implementation: Added protected search capability, local data/class pattern helpers, RDF 1.2 root/linked grants and stable outer pagination order. Linked NOT_EXISTS in Jena requires a bound target. Extended owned model probe with separate search acceptance checks; refreshed inventory/docs.
+- Validation: 69 integration checks (34 new search checks) pass; 60 offline tests + 7 subtests pass. Twelve GraphDB query variants match HEAD modulo whitespace. Checked duplicate grants/values, count parity, role revocation, projections, numeric/text/boolean/linked/Dating behavior and cross-schema superclass paths.
+- Open: Real hierarchical-list acceptance, full-text/media paths, broader OWL corpus, remaining writes, production transport/cache/recovery/query limits. No deployment, commit or push.
+- Risks/Assumptions: Limited subclass inference, not owl-max parity. Existing opt-in linked-permission policy preserved; bound-target absence guard is Jena-specific. Language boolean combinations, all Dating variants and multiple asserted classes need further corpus coverage. Only owned data/services used; Redis cache I/O mocked.
+
+### Update 2026-10-28 00:57
+- Decisions: Port bounded summaries before structured search; preserve the existing public contract and use the same concrete backend query boundary as single reads.
+- Implementation: Added shared summary query builder and default IConnection hook; explicit RDF 1.2 reifiers, project-scoped data and limited subclass entailment. Extended real-model Fuseki probe with 16 batch checks and refreshed RDF* inventory.
+- Validation: 35 owned-Fuseki checks pass, including maximum 100-resource batch in one READ after initialization, omission/creator/current-role rules, grant associations and input bounds. 60 offline tests + 7 subtests pass. Default GraphDB queries match HEAD modulo whitespace for zero/multiple projected properties.
+- Open: Structured search/filter/count, media/full-text, broader inference, writes and production wiring/cache parity. No deployment, commit or push.
+- Risks/Assumptions: Model/cache initialization is outside the one-query claim. Cache I/O remains mocked; Dating expansion not newly exercised. Subclass paths are not full OWL parity. Internal hooks only; no consumer signature changes.
+
+### Update 2026-10-28 00:45
+- Decisions: Keep real SHACL/OWL model parsing and resource hydration; select RDF 1.2 through a concrete internal query hook. Scope data per project and explicitly derive superclass types from selected ontology graphs; do not claim owl-max parity.
+- Implementation: Added CONSTRUCT/JSON-LD transport, shared resource query builder/default hook, real-model/factory read probe and legacy RDF* AST inventory. Existing creator/threshold policies preserved. Fixture seeding is restricted to new owned datasets.
+- Validation: 19 model/resource checks and 60 offline checks + 7 subtests pass; native identity/session/callback regression 20+20+11 passes. GraphDB read queries match HEAD modulo whitespace for both creator policies. Corrected test fixture timestamp type/collection expectations and adapted one mock to the default hook.
+- Open: Batch/search/media reads, remaining user/archive/write RDF* paths, broader entailment corpus/runtime GraphDB baseline, production wiring and cache/recovery/query-limit parity. No deployment, commit or push.
+- Risks/Assumptions: Cache I/O mocked only; real model/domain logic runs. 301 uncached reads are not a performance result. Scoped subclass path is not full OWL reasoning. Inventory has 49 lexical sites in 26 scopes, including legacy/default branches; not a count of independent remaining APIs.
+
+### Update 2026-10-28 00:24
+- Decisions: Reuse actual Connection initialization/password/token logic through protected transport/query hooks, keeping GraphDB defaults and public signatures. Require asserted membership for RDF 1.2 annotation grants.
+- Implementation: Added opt-in Jena user query, separately credentialed read-only bootstrap probe route and real-constructor integration proof. Fixed UserData resetting permissions/defaults when membership rows follow annotation rows.
+- Validation: Parser permutation regression failed before fix and passes afterward (24 orderings). 20 owned-Fuseki login checks and 45 offline tests + 15 subtests pass; native identity/session/callback suite 20+20+11 passes. Constructor signature matches HEAD. No existing GraphDB/Redis dataset touched.
+- Open: Full model/resource reads, inference and remaining RDF* producers, production backend/API wiring, privileged bootstrap deployment controls, query limits and recovery/cache parity. No deployment, commit or push.
+- Risks/Assumptions: Fixture users/password hashes; explicit base user typing, not inference proof. Existing token snapshot/anonymous/not-found semantics preserved. Bootstrap read can access admin hashes and requires separate backend credentials; no public route deployed. Conflicting default annotations remain invalid model data.
+
+### Update 2026-10-28 00:17
+- Decisions: Mount sessions directly in Fuseki; share one transaction engine with the earlier HTTP harness. Reuse TokenCodec through a protected Python verification peer, with distinct caller/peer service credentials and verified user IRI binding.
+- Implementation: Added Fuseki servlet/identity integration probe; extracted JenaSessionEngine; generalized test connection factory and commit reconciliation for 5xx/malformed confirmations. No production API/library signature changes or deployment.
+- Validation: 20 identity/boundary, 20 Fuseki session and 11 real callback checks pass. Legacy transport also passes 20+11 checks. Existing token/API boundary suite: 19 tests + 3 subtests pass; three unrelated API docstring escape warnings. Main capability runner not rerun.
+- Open: Real credential login/user/model initialization on Jena, production private verification endpoint and packaging, TLS/secret rotation, query limits, durable client recovery and full CRUD/Redis parity.
+- Risks/Assumptions: Fresh fixture users/keys and loopback HTTP only. Verification is an extra per-request dependency; no performance claim. Existing access-token snapshot semantics retained, not live authVersion enforcement. Resource authorization remains with trusted Python callers; no raw dataset route mounted. Fault hooks remain test-only.
+
+### Update 2026-10-28 00:11
+- Decisions: Protect transaction receipts at the dataset boundary, not with SPARQL text filtering or a second database. Preserve existing Python authentication/authorization ownership; no Java password/permission model introduced.
+- Implementation: Added application DatasetGraph view, routed experimental HTTP queries/updates through it, and tested the same view behind actual embedded Fuseki query/update/Graph Store endpoints. Extended session probes for forgery rollback and bulk clear. Production signatures unchanged.
+- Validation: 37 Fuseki boundary checks, 20 HTTP session checks and 11 unchanged callback checks pass. Initial missing Quad overloads, recursive union delegation and test Accept header corrected. Main capability/unit suites unchanged and not rerun.
+- Open: Mount session protocol in Fuseki; authenticated service-to-service actor binding, protected administrative maintenance, durable client recovery, query limits and full CRUD/Redis parity. No deployment, commit or push.
+- Risks/Assumptions: All application routes must use the view; direct backing-store access bypasses it. Not a general RDF ACL or SPARQL network sandbox. Generic-view performance is unmeasured. Synthetic probe identities remain; actual login not migrated.
+
+### Update 2026-10-28 00:01
+- Decisions: Keep Python business callbacks unchanged; pin interactive Jena writes to one owner thread. Commit application data and an owner-bound receipt together; absent receipt remains unknown and never triggers replay.
+- Implementation: Added isolated HTTP session server and IConnection test transport, actor binding, one-writer admission, absolute idle cleanup, bounded request handling and commit-reply fault injection. Parameterized existing callback harness to reuse both transports.
+- Validation: 17 HTTP/session checks plus 11 unchanged callback checks pass; original pipe proof also passes 11 checks. Includes SIGKILL before/after commit, lost responses before/after commit, expiry, wrong-actor requests, contention and SPARQL failure. Production code untouched; main runner not rerun.
+- Open: Maintained server packaging, real identity/ACLs, protected receipts, query execution limits, durable client/aborted-session recovery, full CRUD/Redis coordination and uncertain-commit cache semantics. No deployment, commit or push.
+- Risks/Assumptions: Trusted raw SPARQL can modify receipt graph; random probe credentials are not production authentication. Deadline cannot interrupt running statements; uncommitted ID tombstones are memory-only. Process crash tests are not storage/power-loss guarantees.
+
+### Update 2026-10-27 23:41
+- Decisions: Preserve existing Python callbacks and intermediate reads through an interactive boundary; do not compile arbitrary callbacks into monolithic SPARQL.
+- Implementation: Added documented private-pipe Java/TDB2 bridge and probe importing real library ownership/audit and API lifecycle hook/worker methods. Production implementations and signatures unchanged.
+- Validation: 11 callback/Jena checks, 53 library tests (7 subtests), and 9 API lifecycle tests pass. Probe method name corrected to claim_next after initial run. Tests use API virtualenv; library pytest unavailable. Full HTTP runner unchanged/not rerun.
+- Open: Production session transport, authentication, thread ownership, bounded lifetime/concurrency and ambiguous commit reconciliation before general CRUD integration. No deployment, commit or push.
+- Risks/Assumptions: Synthetic resource/model/identity; Redis coordination disabled. EOF rollback proof is local, not HTTP/network/crash recovery. Real audit/outbox queries and callback bodies are imported unchanged.
+
+### Update 2026-10-27 23:33
+- Decisions: Make readability explicit: visible owner and named steps, no monolithic SPARQL or generic workflow interpreter. Source inspection distinguishes structural audit from mobile lifecycle work; test a composed folder/media command rather than assume one resource always produces both.
+- Implementation: Added commented, isolated Java HTTP/TDB2 proof with preconditions, resource changes, conditional audit/outbox, final assertion, replay receipt and one commit boundary. Production Python/API code and signatures untouched.
+- Validation: 13 real-HTTP composition checks pass, including five full-rollback stages, concurrency, replay and conditional effects. Full migration runner has 69 top-level checks (composition nested); 53 existing Python ownership/domain tests pass. Initial Dataset AutoCloseable compile assumption corrected; final run passes. Owned processes stopped.
+- Open: Map a real composed caller/dependencies; retain arbitrary Python callback and transaction-local read semantics through a compatible transport. No resource-port activation, server extension deployment, commit or push.
+- Risks/Assumptions: Synthetic RDF/permission fixture and fixed command, not OLDAP schema/ACL parity. No production command journal or callback interpreter added. One-request optimization must yield to public compatibility and maintainability.
+
+### Update 2026-10-27 23:14
+- Decisions: Reuse designated writer-store AOF/WAITAOF validation for prepared revocations; keep operator recovery fencing separate. Persist immutable exact command before HTTP; no automatic retries, expiry or cleanup.
+- Implementation: Added dataset-scoped Redis journal with collision checks, snapshot/query compatibility validation and retained-ID discovery. Pinned write/fsync sequence checks connection ID and Redis incarnation. Restricted public-call probe optionally journals before sending.
+- Validation: 68 owned Fuseki/Redis integration checks and 34 targeted tests pass. Writer os._exit plus Redis SIGKILL/restart preserves unsent/committed/denied attempts; exact replay increments once. Missing fsync, unavailable store and reconnect block all transport. Initial redis-py test attribute mismatch corrected; final suites pass. Owned processes stopped.
+- Open: Production recovery authorization/store/dataset binding, receipt/journal retention and cache reconciliation; next architectural proof is resource+audit+outbox composition. No deployment, commit or push.
+- Risks/Assumptions: Local primary AOF only; no replica failover, volume loss or power-loss guarantee. Retained records are not a pending queue and have no TTL. Recovery fails closed across incompatible serializer/query changes. Normal GraphDB/API contracts unchanged.
+
+### Update 2026-10-27 22:59
+- Decisions: Check self/root/all-target-project administration inside the Jena mutation using current RDF 1.2 grants. Record denied outcomes atomically so existing permission errors and exact-replay decisions remain deterministic.
+- Implementation: Added guarded write bindings and committed/denied receipt status; bumped experimental digest domain to v2; strict outcome decoding; public-call and concurrent permission-removal probes. GraphDB/public signatures unchanged.
+- Validation: 63 isolated Fuseki checks and 26 offline tests pass; exact metadata cardinality verified on denial/success; receipt-free GraphDB query matches HEAD for versions 0/1/99. Initial frozen authorization-context fixture corrected. Test server stopped.
+- Open: Durable recovery identity and receipt lifecycle/access, general Jena login/connection, then resource+audit+outbox atomicity. No deployment, commit or push.
+- Risks/Assumptions: Trusted actor identity and valid singular user metadata; experimental v1 receipts are incompatible with v2 (fresh test datasets only). Denial records internal receipt data but no user/cache changes. Concurrent acceptance proves consistent serial decisions, not a guaranteed ordering.
+
+### Update 2026-10-27 22:51
+- Decisions: Add a concrete internal connection boundary with the legacy default; no new abstract requirement or public signature change. Keep Jena self-revocation opt-in; reject administrator commands until atomic grant checks exist.
+- Implementation: User delegates persistence while retaining authorization and post-commit state/cache logic. Added strict receipt execution/reconciliation with retained command identity, fail-closed restricted probe connection and offline failure tests.
+- Validation: 45 isolated Fuseki runner checks and 24 offline tests pass, including actual public User calls, stale conflicts, simulated lost/uncertain delivery, receipt validation and exact internal recovery. Syntax/diff checks pass; owned Fuseki stopped.
+- Open: Atomic administrator authorization, durable recovery/receipt lifecycle, general Jena login/connection and composed resource+audit+outbox proof. No deployment, commit or push.
+- Risks/Assumptions: Test connection trusts synthetic identity and mocks Redis. Attempt storage is in-memory; unknown outcomes are not resolved across process loss. No automatic retry or interactive transaction emulation. Production GraphDB path remains unchanged in behavior.
+
+### Update 2026-10-27 22:46
+- Decisions: Pilot authentication revocation with one stock Fuseki mutation plus a separate receipt read; retain public User/API contracts and existing GraphDB transaction behavior. Receipt absence after transport failure remains unknown.
+- Implementation: Extracted shared immutable revocation query preparation; added optional experimental digest-bound receipts, isolated concurrency/replay probes and public-method regression tests. Documented outcome semantics and remaining integration gates.
+- Validation: 40 owned Fuseki runner checks and 15 offline authentication tests pass; receipt-free query matches HEAD for versions 0/1/99 ignoring whitespace. No live GraphDB test or real-data mutation. Initial unit fixture omitted required User attributes; corrected before final passing run.
+- Open: Internal Jena connection integration, authorization dependency checks, receipt retention/recovery and resource+audit+outbox composition; no activation, commit or push.
+- Risks/Assumptions: Pilot assumes authorized callers and valid singular user metadata. Lost-response simulation discards a completed response; no network/crash fault injection. Experimental receipts do not yet define a production schema/lifecycle.
+
+### Update 2026-10-27 22:40
+- Decisions: Preserve HTTP API contracts and public oldaplib signatures and semantics throughout migration; internal transport/helper changes are preferred.
+- Implementation: Recorded compatibility acceptance criteria and mandatory documentation/discussion for unavoidable public exceptions, including harvester and oldap-tools caller mapping.
+- Open: Apply criteria to the revocation pilot and composed transaction/callback design.
+- Risks/Assumptions: One-request optimization must not silently weaken transaction-local reads or callbacks. Documentation only; no application or external-consumer changes.
+
+### Update 2026-10-27 22:36
+- Decisions: Prefer one atomic mutation request per business operation; distinguish stock SPARQL Update from a server command with assertions/results. Keep dynamic Python/callback migration explicit; no generic session or workflow framework introduced.
+- Implementation: Added AST inventory utility, source-hashed call-site snapshot and per-boundary migration table; analyzed real revocation, resource-hook, list, job and external-consumer flows. Extended isolated Fuseki probes for conditional batching.
+- Validation: Parsed 620 Python files in eight repositories; 86 unique boundary-function rows (including infrastructure and operational probes), all snapshot-linked. All 27 capability/batch checks passed; stale-guard no-op hazard and guarded concurrent one-winner behaviour reproduced. Syntax/diff checks passed; test servers stopped.
+- Open: Implement bounded revocation pilot with conflict/replay outcomes, then resource+audit+outbox and list/harvester composition. Existing double-start in list move and model-edit boundary need explicit treatment. Commit/push pending.
+- Risks/Assumptions: Static syntax inventory cannot prove arbitrary downstream/dynamic callers. Synthetic receipts lack production request-digest semantics. No OLDAP application code, real data, Redis or service configuration changed.
+
+### Update 2026-10-27 22:18
+- Decisions: Keep the first Jena step isolated and synthetic. Explicit RDF 1.2 reifier identity is the working direction; defer transaction architecture selection until a real operation is mapped.
+- Implementation: Installed checksum-verified Fuseki 6.2.0 outside Git using existing Java 25.0.2. Added reproducible Java TDB2 and Python-owned Fuseki HTTP probes plus report/results at docs/migration/j0-capability-probe.md.
+- Validation: Final run passed 21 runner checks (including four Java transaction check groups). Covered read-own-writes, concurrent isolation/claims, rollback, request atomicity, restart persistence, all three grant patterns, revocation, graph scope, repeated insertion and Turtle round trip. No listener remains on test port 3031; syntax/diff checks pass.
+- Open: Choose server-command versus multi-request transaction extension; test actual OLDAP workflows, failure recovery, inference and full text. Commit/push pending.
+- Risks/Assumptions: Initial harness expected 404 but observed unsupported-route 405; corrected and rerun. Persistence tests use graceful restart, not crash injection. Anonymous annotation shorthand changes identity semantics. No OLDAP services or data changed.
+
+### Update 2026-10-27 22:11
+- Decisions: Treat SHACL only as model description/read metadata, per user clarification. Prioritize multi-request transaction feasibility and RDF 1.2 grant identity before backend implementation.
+- Implementation: Added source-backed migration assessment at docs/migration/jena-assessment.md, covering transactions/recovery, RDF-star conversion, inference/graph scope, full text and model round trips; recorded phased acceptance gates and primary sources.
+- Validation: Inspected both repositories and setup templates; local RDFLib 7.6.0 default Turtle parser rejected legacy RDF-star and RDF 1.2 triple-term probes. No Fuseki runtime or live database test performed.
+- Open: Pin/install Jena and prove transaction and annotation contracts; choose transaction architecture, reifier identity and inference/search configuration.
+- Risks/Assumptions: Standard remote SPARQL calls do not preserve existing interactive transaction semantics; runtime GraphDB ruleset not verified. No application code, data or services changed by this assessment.
+
+### Update 2026-10-27 12:07
+- Decisions: Isolate Jena development in sibling worktrees with Python 3.13 environments; use current ontology development as the library baseline.
+- Implementation: Fast-forwarded the library migration branch from 0.4.27 to existing 0.7.29 history. Configured the API's editable sibling-library dependency and documented environment setup; retained PyCharm's in-project virtualenv setting.
+- Validation: Poetry installation and lock checks passed in both Python 3.13 environments; API import resolves to the sibling migration library (0.7.29). API metadata deprecation warnings remain.
+- Open: Separate Fuseki/Redis configuration, API ports and migration compatibility assessment; commit/push environment changes.
+- Risks/Assumptions: Local path dependency is for migration development, not distributable releases. No services started or existing database configuration changed.
+
 ### Update 2026-10-24 12:42
 - Decisions: Send transactional SPARQL updates as raw UTF-8 bodies, avoiding GraphDB servlet form-size limits for large text metadata.
 - Implementation: transaction_update now uses PUT with action=UPDATE and application/sparql-update. Added Unicode/large-body/error/transaction-guard tests. 55 focused transport/transaction/publication tests pass. Real local harvester updates and API readback/replay pass for two historical PDFs.

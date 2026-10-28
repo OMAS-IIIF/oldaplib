@@ -1,0 +1,4204 @@
+{
+  "method": "AST call/reference/decorator inventory; dynamic dispatch requires manual review",
+  "summary": [
+    {
+      "repository": "oldaplib",
+      "python_files_parsed": 192,
+      "boundary_functions": 53
+    },
+    {
+      "repository": "oldap-api",
+      "python_files_parsed": 177,
+      "boundary_functions": 20
+    },
+    {
+      "repository": "oldap-harvesters",
+      "python_files_parsed": 66,
+      "boundary_functions": 4
+    },
+    {
+      "repository": "oldap-tools",
+      "python_files_parsed": 46,
+      "boundary_functions": 1
+    },
+    {
+      "repository": "oldap-mediaserver",
+      "python_files_parsed": 69,
+      "boundary_functions": 0
+    },
+    {
+      "repository": "import-tool",
+      "python_files_parsed": 11,
+      "boundary_functions": 0
+    },
+    {
+      "repository": "oldap-setup",
+      "python_files_parsed": 26,
+      "boundary_functions": 0
+    },
+    {
+      "repository": "FasnachtsPage",
+      "python_files_parsed": 33,
+      "boundary_functions": 8
+    }
+  ],
+  "files": [
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/archive_adoption.py",
+      "category": "runtime-or-script",
+      "sha256": "097e507752fb24da63ea29feb61707bf1d036cb7c6a615039afdf16d4f5ccaf2",
+      "owners": [
+        "ArchiveAdoption.apply",
+        "ArchiveAdoption.default_proposal",
+        "ArchiveAdoption.preflight",
+        "ArchiveAdoption.proposal"
+      ],
+      "sites": [
+        {
+          "scope": "ArchiveAdoption._query",
+          "line": 142,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchiveAdoption.proposal",
+          "line": 331,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchiveAdoption.default_proposal",
+          "line": 453,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchiveAdoption._review",
+          "line": 631,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchiveAdoption.preflight",
+          "line": 703,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchiveAdoption.apply",
+          "line": 786,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchiveAdoption.apply",
+          "line": 886,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/archive_domain.py",
+      "category": "runtime-or-script",
+      "sha256": "5f1562af454f8802c71ae1664ef402a17fc71fe05a39963281c3d02104720486",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "_empty",
+          "line": 138,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "_folder_integrity",
+          "line": 199,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "guard_resource_operation",
+          "line": 358,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "audit_resource_operation",
+          "line": 448,
+          "kind": "call",
+          "expression": "policy.connection.transaction_update"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/archive_inventory.py",
+      "category": "runtime-or-script",
+      "sha256": "5ceed048b4f6019bac48481aba54e3d0f3b9c31d2563d23309ee3a3913a1923c",
+      "owners": [
+        "ArchiveInventory.page"
+      ],
+      "sites": [
+        {
+          "scope": "ArchiveInventory.page",
+          "line": 103,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchiveInventory._rows",
+          "line": 225,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchiveInventory._rows",
+          "line": 251,
+          "kind": "call",
+          "expression": "resource_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/archive_policy.py",
+      "category": "runtime-or-script",
+      "sha256": "d619e084e92d28e8722bce5c045799309fe436bdead17dd9b7a55bc876cc97e0",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "ArchivePolicy._validate_resources",
+          "line": 205,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchivePolicy._validate_resources",
+          "line": 232,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchivePolicy.has_role",
+          "line": 263,
+          "kind": "call",
+          "expression": "resource_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/archive_publication.py",
+      "category": "runtime-or-script",
+      "sha256": "e9d35530acf7544be66b9291708b1a1f75b75064a0f53691af6158a79a7a4e3c",
+      "owners": [
+        "ArchivePublication.apply",
+        "ArchivePublication.apply_link",
+        "ArchivePublication.operation",
+        "ArchivePublication.preview",
+        "ArchivePublication.preview_link"
+      ],
+      "sites": [
+        {
+          "scope": "validate_resources",
+          "line": 86,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "validate_resources",
+          "line": 94,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchivePublication._authorize",
+          "line": 260,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchivePublication._review",
+          "line": 312,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchivePublication._review",
+          "line": 393,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchivePublication.preview",
+          "line": 424,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchivePublication.apply",
+          "line": 456,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchivePublication.apply",
+          "line": 497,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ArchivePublication.apply",
+          "line": 513,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ArchivePublication._link_review",
+          "line": 545,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchivePublication.preview_link",
+          "line": 554,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchivePublication.apply_link",
+          "line": 577,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchivePublication.apply_link",
+          "line": 594,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ArchivePublication.apply_link",
+          "line": 605,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ArchivePublication.operation",
+          "line": 611,
+          "kind": "call",
+          "expression": "resource_transaction"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/archive_repository.py",
+      "category": "runtime-or-script",
+      "sha256": "686b74edec0a4ff366bd13e7f6a24db8ef59236f30736d1c256676ce0317a00b",
+      "owners": [
+        "ArchiveRepository.move_reference"
+      ],
+      "sites": [
+        {
+          "scope": "ArchiveRepository.folder_revision",
+          "line": 88,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchiveRepository._receipt",
+          "line": 112,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ArchiveRepository.move_reference",
+          "line": 205,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "ArchiveRepository.move_reference",
+          "line": 279,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/archive_transfer.py",
+      "category": "runtime-or-script",
+      "sha256": "4f17b6ff712eb1895935ca689085952b9022b1f6e8664053c854eadde64c7a8f",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "ArchiveTransfer.prepare",
+          "line": 95,
+          "kind": "call",
+          "expression": "policy.connection.transaction_query"
+        },
+        {
+          "scope": "ArchiveTransfer.finish",
+          "line": 153,
+          "kind": "call",
+          "expression": "policy.connection.transaction_update"
+        },
+        {
+          "scope": "ArchiveTransfer.finish",
+          "line": 177,
+          "kind": "call",
+          "expression": "policy.connection.transaction_update"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/archive_tree.py",
+      "category": "runtime-or-script",
+      "sha256": "704a9af09fe2f221bcc04540e535ae800d8bd826ce396e7fc18171ce78745bd7",
+      "owners": [
+        "ArchiveTree.move"
+      ],
+      "sites": []
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/connection.py",
+      "category": "runtime-or-script",
+      "sha256": "1f967a19b0830e3830d408fee295a84396937239f232afb37644a12358e40810",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "<module>",
+          "line": 762,
+          "kind": "call",
+          "expression": "con.clear_repo"
+        },
+        {
+          "scope": "<module>",
+          "line": 763,
+          "kind": "call",
+          "expression": "con.upload_turtle"
+        },
+        {
+          "scope": "<module>",
+          "line": 764,
+          "kind": "call",
+          "expression": "con.upload_turtle"
+        },
+        {
+          "scope": "<module>",
+          "line": 765,
+          "kind": "call",
+          "expression": "con.upload_turtle"
+        },
+        {
+          "scope": "<module>",
+          "line": 771,
+          "kind": "call",
+          "expression": "con.upload_turtle"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/datamodel.py",
+      "category": "runtime-or-script",
+      "sha256": "e2780b77a4b109c1838cea77e3d445b99f19b9e023bd54cedcec2763e445fd7c",
+      "owners": [
+        "DataModel.create",
+        "DataModel.delete"
+      ],
+      "sites": [
+        {
+          "scope": "DataModel.create",
+          "line": 660,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "DataModel.create",
+          "line": 661,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "DataModel.create",
+          "line": 666,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "DataModel.create",
+          "line": 668,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "DataModel.delete",
+          "line": 760,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "DataModel.delete",
+          "line": 761,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "DataModel.delete",
+          "line": 762,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "DataModel.delete",
+          "line": 763,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "DataModel.delete",
+          "line": 765,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/externalontology.py",
+      "category": "runtime-or-script",
+      "sha256": "32ad01cf19e299bcf2d925461aa5b3154bca64e3f994ef13b716380c4269bc14",
+      "owners": [
+        "ExternalOntology.create",
+        "ExternalOntology.delete",
+        "ExternalOntology.update"
+      ],
+      "sites": [
+        {
+          "scope": "ExternalOntology.create",
+          "line": 233,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "ExternalOntology.create",
+          "line": 234,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "ExternalOntology.create",
+          "line": 236,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ExternalOntology.create",
+          "line": 238,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "ExternalOntology.create",
+          "line": 239,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "ExternalOntology.update",
+          "line": 493,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "ExternalOntology.update",
+          "line": 495,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ExternalOntology.update",
+          "line": 496,
+          "kind": "call",
+          "expression": "self.set_modified_by_iri"
+        },
+        {
+          "scope": "ExternalOntology.update",
+          "line": 497,
+          "kind": "call",
+          "expression": "self.get_modified_by_iri"
+        },
+        {
+          "scope": "ExternalOntology.update",
+          "line": 499,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ExternalOntology.update",
+          "line": 502,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ExternalOntology.update",
+          "line": 505,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "ExternalOntology.update",
+          "line": 507,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ExternalOntology.delete",
+          "line": 600,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "ExternalOntology.delete",
+          "line": 601,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "ExternalOntology.delete",
+          "line": 603,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ExternalOntology.delete",
+          "line": 605,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "ExternalOntology.delete",
+          "line": 607,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ExternalOntology.delete",
+          "line": 609,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "ExternalOntology.delete",
+          "line": 610,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "ExternalOntology.delete_all",
+          "line": 646,
+          "kind": "call",
+          "expression": "con.update_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/lucene_connector.py",
+      "category": "runtime-or-script",
+      "sha256": "bfa8dc668f3b58c55bec3843a6f6ba276919879fc10f520aafce99652ac80206",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "ProjectLuceneConnector._create",
+          "line": 120,
+          "kind": "call",
+          "expression": "self.con.update_query"
+        },
+        {
+          "scope": "ProjectLuceneConnector._drop",
+          "line": 123,
+          "kind": "call",
+          "expression": "self.con.update_query"
+        },
+        {
+          "scope": "ProjectLuceneConnector.apply",
+          "line": 133,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/model.py",
+      "category": "runtime-or-script",
+      "sha256": "db92b9967746c3987faacbdf66bc1185b1f3ef55b878b00953577ac5c30208c2",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "Model.get_modified_by_iri",
+          "line": 356,
+          "kind": "call",
+          "expression": "self._con.in_transaction"
+        },
+        {
+          "scope": "Model.get_modified_by_iri",
+          "line": 357,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "Model.set_modified_by_iri",
+          "line": 423,
+          "kind": "call",
+          "expression": "self._con.in_transaction"
+        },
+        {
+          "scope": "Model.set_modified_by_iri",
+          "line": 424,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "Model.set_modified_by_iri",
+          "line": 426,
+          "kind": "call",
+          "expression": "self._con.update_query"
+        },
+        {
+          "scope": "Model.safe_query",
+          "line": 446,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "Model.safe_query",
+          "line": 448,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Model.safe_update",
+          "line": 464,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "Model.safe_update",
+          "line": 466,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Model.safe_commit",
+          "line": 479,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "Model.safe_commit",
+          "line": 481,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/objectfactory.py",
+      "category": "runtime-or-script",
+      "sha256": "39ad1b4d4d35a4285cc8d687d3f62c91845a61e7dbd0aa99e9bee448763187be",
+      "owners": [
+        "ResourceInstance.create",
+        "ResourceInstance.delete",
+        "ResourceInstance.transform_class",
+        "ResourceInstance.update"
+      ],
+      "sites": [
+        {
+          "scope": "_read_resource_construct",
+          "line": 788,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "_read_resource_summaries_construct",
+          "line": 874,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ResourceInstance.get_data_permission",
+          "line": 1639,
+          "kind": "call",
+          "expression": "self._con.in_transaction"
+        },
+        {
+          "scope": "ResourceInstance.get_data_permission",
+          "line": 1640,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "ResourceInstance.create",
+          "line": 1714,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "ResourceInstance.create",
+          "line": 1717,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ResourceInstance.update",
+          "line": 1977,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "ResourceInstance.update",
+          "line": 1980,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ResourceInstance.update",
+          "line": 1981,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ResourceInstance.update",
+          "line": 1982,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "ResourceInstance.transform_class",
+          "line": 2348,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ResourceInstance.delete",
+          "line": 2410,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "ResourceInstance.delete",
+          "line": 2413,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ResourceInstance.search",
+          "line": 2924,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ResourceInstance.search_fulltext",
+          "line": 3040,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ResourceInstance.all_resources",
+          "line": 3136,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ResourceInstance.get_media_object_by_id",
+          "line": 3273,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "ResourceInstance.get_media_object_by_iri",
+          "line": 3368,
+          "kind": "call",
+          "expression": "resource_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/oldaplist.py",
+      "category": "runtime-or-script",
+      "sha256": "4bc9009d0e9cad30f0034cda285b2f66b57aa1bad2bf0c567d047ba6bd895d44",
+      "owners": [
+        "OldapList.create",
+        "OldapList.delete",
+        "OldapList.in_use",
+        "OldapList.update"
+      ],
+      "sites": [
+        {
+          "scope": "OldapList.create",
+          "line": 767,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapList.create",
+          "line": 768,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapList.create",
+          "line": 771,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapList.create",
+          "line": 775,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "OldapList.create",
+          "line": 776,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "OldapList.create",
+          "line": 777,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "OldapList.create",
+          "line": 779,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapList.create",
+          "line": 781,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapList.update",
+          "line": 843,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapList.update",
+          "line": 845,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "OldapList.update",
+          "line": 846,
+          "kind": "call",
+          "expression": "self.set_modified_by_iri"
+        },
+        {
+          "scope": "OldapList.update",
+          "line": 847,
+          "kind": "call",
+          "expression": "self.get_modified_by_iri"
+        },
+        {
+          "scope": "OldapList.update",
+          "line": 849,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapList.update",
+          "line": 852,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapList.update",
+          "line": 854,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapList.in_use",
+          "line": 931,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapList.in_use",
+          "line": 932,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapList.in_use",
+          "line": 934,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapList.in_use",
+          "line": 936,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapList.in_use",
+          "line": 938,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapList.in_use",
+          "line": 940,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "OldapList.delete",
+          "line": 1015,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapList.delete",
+          "line": 1023,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "OldapList.delete",
+          "line": 1024,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "OldapList.delete",
+          "line": 1025,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "OldapList.delete",
+          "line": 1026,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "OldapList.delete",
+          "line": 1028,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapList.delete",
+          "line": 1030,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/oldaplistnode.py",
+      "category": "runtime-or-script",
+      "sha256": "149d982c1015e0e2457cb52993e2117bd4a9f0b047f6ab01ad5431e11fb5e198",
+      "owners": [
+        "OldapListNode.create_root_node",
+        "OldapListNode.delete_node",
+        "OldapListNode.delete_node_recursively",
+        "OldapListNode.insert_node_below_of",
+        "OldapListNode.insert_node_left_of",
+        "OldapListNode.insert_node_right_of",
+        "OldapListNode.move_node_below",
+        "OldapListNode.move_node_left_of",
+        "OldapListNode.move_node_right_of",
+        "OldapListNode.update"
+      ],
+      "sites": [
+        {
+          "scope": "OldapListNode.create_root_node",
+          "line": 443,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.create_root_node",
+          "line": 444,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.create_root_node",
+          "line": 447,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.create_root_node",
+          "line": 450,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.create_root_node",
+          "line": 451,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapListNode.update",
+          "line": 498,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.update",
+          "line": 500,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "OldapListNode.update",
+          "line": 501,
+          "kind": "call",
+          "expression": "self.set_modified_by_iri"
+        },
+        {
+          "scope": "OldapListNode.update",
+          "line": 502,
+          "kind": "call",
+          "expression": "self.get_modified_by_iri"
+        },
+        {
+          "scope": "OldapListNode.update",
+          "line": 504,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.update",
+          "line": 507,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.update",
+          "line": 509,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapListNode.insert_node_right_of",
+          "line": 579,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.insert_node_right_of",
+          "line": 580,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.insert_node_right_of",
+          "line": 592,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.insert_node_right_of",
+          "line": 597,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.insert_node_right_of",
+          "line": 625,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.insert_node_right_of",
+          "line": 649,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.insert_node_right_of",
+          "line": 651,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.insert_node_right_of",
+          "line": 654,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.insert_node_right_of",
+          "line": 660,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapListNode.insert_node_left_of",
+          "line": 733,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.insert_node_left_of",
+          "line": 734,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.insert_node_left_of",
+          "line": 746,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.insert_node_left_of",
+          "line": 751,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.insert_node_left_of",
+          "line": 778,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.insert_node_left_of",
+          "line": 801,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.insert_node_left_of",
+          "line": 803,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.insert_node_left_of",
+          "line": 806,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.insert_node_left_of",
+          "line": 812,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 862,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 864,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 867,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 899,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 912,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 917,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 945,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 969,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 971,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 974,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.insert_node_below_of",
+          "line": 980,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1061,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1064,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1066,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1079,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1082,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1096,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1101,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1116,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1141,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1166,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.delete_node",
+          "line": 1168,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapListNode.delete_node_recursively",
+          "line": 1203,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.delete_node_recursively",
+          "line": 1206,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.delete_node_recursively",
+          "line": 1208,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.delete_node_recursively",
+          "line": 1225,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.delete_node_recursively",
+          "line": 1230,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.delete_node_recursively",
+          "line": 1254,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.delete_node_recursively",
+          "line": 1279,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.delete_node_recursively",
+          "line": 1303,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.delete_node_recursively",
+          "line": 1305,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1362,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1363,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1369,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1390,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1395,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1433,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1466,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1497,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1528,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1555,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_below",
+          "line": 1560,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1615,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1616,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1622,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1646,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1647,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1653,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1692,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1725,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1756,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1787,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1813,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_right_of",
+          "line": 1818,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 1871,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 1872,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 1878,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 1902,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 1908,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 1947,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 1981,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 2012,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 2043,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 2069,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "OldapListNode.move_node_left_of",
+          "line": 2073,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/project.py",
+      "category": "runtime-or-script",
+      "sha256": "4892eb5f67e0cc2967dd75ef84ce2331fa83277fe664850d2830c3635673d12c",
+      "owners": [
+        "Project.create",
+        "Project.update"
+      ],
+      "sites": [
+        {
+          "scope": "Project.create",
+          "line": 613,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "Project.create",
+          "line": 614,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "Project.create",
+          "line": 616,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Project.create",
+          "line": 619,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "Project.create",
+          "line": 621,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Project.create",
+          "line": 624,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "Project.create",
+          "line": 626,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Project.create",
+          "line": 629,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "Project.create",
+          "line": 630,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "Project.update",
+          "line": 724,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "Project.update",
+          "line": 726,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "Project.update",
+          "line": 727,
+          "kind": "call",
+          "expression": "self.set_modified_by_iri"
+        },
+        {
+          "scope": "Project.update",
+          "line": 728,
+          "kind": "call",
+          "expression": "self.get_modified_by_iri"
+        },
+        {
+          "scope": "Project.update",
+          "line": 731,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Project.update",
+          "line": 734,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Project.update",
+          "line": 736,
+          "kind": "call",
+          "expression": "self.safe_commit"
+        },
+        {
+          "scope": "Project.delete",
+          "line": 771,
+          "kind": "call",
+          "expression": "self._con.update_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/propertyclass.py",
+      "category": "runtime-or-script",
+      "sha256": "483ca8a1f43d23d34a7a94507a936fd9e9c25b2689d2763a6d14939527da1331",
+      "owners": [
+        "PropertyClass.create",
+        "PropertyClass.delete",
+        "PropertyClass.update"
+      ],
+      "sites": [
+        {
+          "scope": "PropertyClass.read_modified_shacl",
+          "line": 635,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 741,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 743,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 746,
+          "kind": "call",
+          "expression": "self.read_modified_shacl"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 748,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 751,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 754,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 756,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 759,
+          "kind": "call",
+          "expression": "self.read_modified_shacl"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 761,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 764,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "PropertyClass.create",
+          "line": 766,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.update",
+          "line": 1048,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "PropertyClass.update",
+          "line": 1056,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "PropertyClass.update",
+          "line": 1058,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.update",
+          "line": 1062,
+          "kind": "call",
+          "expression": "self.read_modified_shacl"
+        },
+        {
+          "scope": "PropertyClass.update",
+          "line": 1064,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.update",
+          "line": 1068,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "PropertyClass.update",
+          "line": 1070,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.delete",
+          "line": 1311,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "PropertyClass.delete",
+          "line": 1314,
+          "kind": "call",
+          "expression": "self.read_modified_shacl"
+        },
+        {
+          "scope": "PropertyClass.delete",
+          "line": 1316,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.delete",
+          "line": 1322,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "PropertyClass.delete",
+          "line": 1328,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "PropertyClass.delete",
+          "line": 1330,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "PropertyClass.delete",
+          "line": 1333,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "PropertyClass.delete",
+          "line": 1336,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/resource_transaction.py",
+      "category": "runtime-or-script",
+      "sha256": "1a5d41916cdbb8af5b064e0ddb239b213c30df1fd116572335a09e2a830ec757",
+      "owners": [
+        "_resource_transaction",
+        "coordinated_domain_operation.coordinated",
+        "resource_operation.atomic"
+      ],
+      "sites": [
+        {
+          "scope": "_resource_transaction",
+          "line": 66,
+          "kind": "call",
+          "expression": "connection.in_transaction"
+        },
+        {
+          "scope": "_resource_transaction",
+          "line": 76,
+          "kind": "call",
+          "expression": "connection.in_transaction"
+        },
+        {
+          "scope": "_resource_transaction",
+          "line": 78,
+          "kind": "call",
+          "expression": "connection.transaction_start"
+        },
+        {
+          "scope": "_resource_transaction",
+          "line": 88,
+          "kind": "call",
+          "expression": "before_commit"
+        },
+        {
+          "scope": "_resource_transaction",
+          "line": 89,
+          "kind": "call",
+          "expression": "connection.in_transaction"
+        },
+        {
+          "scope": "_resource_transaction",
+          "line": 93,
+          "kind": "call",
+          "expression": "connection.transaction_commit"
+        },
+        {
+          "scope": "_resource_transaction",
+          "line": 95,
+          "kind": "call",
+          "expression": "connection.in_transaction"
+        },
+        {
+          "scope": "_resource_transaction",
+          "line": 97,
+          "kind": "call",
+          "expression": "connection.transaction_abort"
+        },
+        {
+          "scope": "resource_transaction",
+          "line": 117,
+          "kind": "call",
+          "expression": "mutation_gate"
+        },
+        {
+          "scope": "resource_transaction",
+          "line": 118,
+          "kind": "call",
+          "expression": "_resource_transaction"
+        },
+        {
+          "scope": "resource_transaction",
+          "line": 118,
+          "kind": "callback",
+          "expression": "before_commit"
+        },
+        {
+          "scope": "resource_transaction",
+          "line": 121,
+          "kind": "call",
+          "expression": "_resource_transaction"
+        },
+        {
+          "scope": "resource_transaction",
+          "line": 121,
+          "kind": "callback",
+          "expression": "before_commit"
+        },
+        {
+          "scope": "coordinated_domain_operation.coordinated",
+          "line": 146,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "resource_operation.atomic",
+          "line": 166,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "resource_operation.atomic",
+          "line": 209,
+          "kind": "call",
+          "expression": "before_commit"
+        },
+        {
+          "scope": "resource_query",
+          "line": 223,
+          "kind": "call",
+          "expression": "connection.transaction_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/resourceclass.py",
+      "category": "runtime-or-script",
+      "sha256": "d322d8ab60cf2102421600c3ecb4f6085c02b239d56a517c43b17d4aa7582ba5",
+      "owners": [
+        "ResourceClass.create",
+        "ResourceClass.delete",
+        "ResourceClass.update"
+      ],
+      "sites": [
+        {
+          "scope": "ResourceClass.read_modtime_shacl",
+          "line": 677,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "ResourceClass.create",
+          "line": 769,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "ResourceClass.create",
+          "line": 770,
+          "kind": "call",
+          "expression": "self.read_modtime_shacl"
+        },
+        {
+          "scope": "ResourceClass.create",
+          "line": 771,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ResourceClass.create",
+          "line": 774,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "ResourceClass.create",
+          "line": 776,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ResourceClass.create",
+          "line": 780,
+          "kind": "call",
+          "expression": "self.read_modtime_shacl"
+        },
+        {
+          "scope": "ResourceClass.create",
+          "line": 782,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ResourceClass.create",
+          "line": 785,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "ResourceClass.create",
+          "line": 788,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ResourceClass.update",
+          "line": 1152,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "ResourceClass.update",
+          "line": 1156,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "ResourceClass.update",
+          "line": 1158,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ResourceClass.update",
+          "line": 1160,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "ResourceClass.update",
+          "line": 1161,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "ResourceClass.update",
+          "line": 1164,
+          "kind": "call",
+          "expression": "self.read_modtime_shacl"
+        },
+        {
+          "scope": "ResourceClass.update",
+          "line": 1166,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ResourceClass.update",
+          "line": 1169,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "ResourceClass.update",
+          "line": 1171,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ResourceClass.delete",
+          "line": 1261,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "ResourceClass.delete",
+          "line": 1262,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "ResourceClass.delete",
+          "line": 1264,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ResourceClass.delete",
+          "line": 1266,
+          "kind": "call",
+          "expression": "self.safe_update"
+        },
+        {
+          "scope": "ResourceClass.delete",
+          "line": 1270,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "ResourceClass.delete",
+          "line": 1275,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "ResourceClass.delete",
+          "line": 1278,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "ResourceClass.delete",
+          "line": 1281,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/role.py",
+      "category": "runtime-or-script",
+      "sha256": "45326919b7efea32ee4ebf6795fd8d95d104d8c389578234956b6c41e4547b9d",
+      "owners": [
+        "Role.create",
+        "Role.delete",
+        "Role.in_use",
+        "Role.update"
+      ],
+      "sites": [
+        {
+          "scope": "Role.create",
+          "line": 259,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "Role.create",
+          "line": 261,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "Role.create",
+          "line": 263,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Role.create",
+          "line": 267,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Role.create",
+          "line": 271,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "Role.create",
+          "line": 273,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Role.create",
+          "line": 276,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "Role.create",
+          "line": 278,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Role.update",
+          "line": 540,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "Role.update",
+          "line": 542,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "Role.update",
+          "line": 543,
+          "kind": "call",
+          "expression": "self.set_modified_by_iri"
+        },
+        {
+          "scope": "Role.update",
+          "line": 544,
+          "kind": "call",
+          "expression": "self.get_modified_by_iri"
+        },
+        {
+          "scope": "Role.update",
+          "line": 546,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Role.update",
+          "line": 549,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Role.update",
+          "line": 552,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "Role.update",
+          "line": 554,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Role.in_use",
+          "line": 617,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "Role.in_use",
+          "line": 618,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "Role.in_use",
+          "line": 620,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Role.in_use",
+          "line": 622,
+          "kind": "call",
+          "expression": "self.safe_query"
+        },
+        {
+          "scope": "Role.in_use",
+          "line": 624,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "Role.in_use",
+          "line": 626,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "Role.delete",
+          "line": 670,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "Role.delete",
+          "line": 678,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "Role.delete",
+          "line": 679,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "Role.delete",
+          "line": 681,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/user.py",
+      "category": "runtime-or-script",
+      "sha256": "d167cf8c6a1e7da979e994d15bb4597a47dec01ac5990029d604a51325812d22",
+      "owners": [
+        "User.create",
+        "User.revoke_authentication",
+        "User.update"
+      ],
+      "sites": [
+        {
+          "scope": "User.__read_auth_version_in_transaction",
+          "line": 439,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "User.revoke_authentication",
+          "line": 499,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "User.revoke_authentication",
+          "line": 501,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "User.revoke_authentication",
+          "line": 503,
+          "kind": "call",
+          "expression": "self.get_modified_by_iri"
+        },
+        {
+          "scope": "User.revoke_authentication",
+          "line": 508,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "User.revoke_authentication",
+          "line": 510,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 893,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "User.create",
+          "line": 895,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "User.create",
+          "line": 897,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 900,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 904,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "User.create",
+          "line": 906,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 909,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 914,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "User.create",
+          "line": 916,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 920,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 925,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "User.create",
+          "line": 927,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 931,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 935,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "User.create",
+          "line": 937,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.create",
+          "line": 940,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "User.create",
+          "line": 942,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.delete",
+          "line": 1141,
+          "kind": "call",
+          "expression": "self._con.update_query"
+        },
+        {
+          "scope": "User.update",
+          "line": 1476,
+          "kind": "call",
+          "expression": "self._con.transaction_start"
+        },
+        {
+          "scope": "User.update",
+          "line": 1478,
+          "kind": "call",
+          "expression": "self.get_modified_by_iri"
+        },
+        {
+          "scope": "User.update",
+          "line": 1480,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.update",
+          "line": 1483,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.update",
+          "line": 1489,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "User.update",
+          "line": 1492,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.update",
+          "line": 1498,
+          "kind": "call",
+          "expression": "self._con.transaction_query"
+        },
+        {
+          "scope": "User.update",
+          "line": 1501,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.update",
+          "line": 1505,
+          "kind": "call",
+          "expression": "self._con.transaction_update"
+        },
+        {
+          "scope": "User.update",
+          "line": 1506,
+          "kind": "call",
+          "expression": "self.set_modified_by_iri"
+        },
+        {
+          "scope": "User.update",
+          "line": 1507,
+          "kind": "call",
+          "expression": "self.get_modified_by_iri"
+        },
+        {
+          "scope": "User.update",
+          "line": 1516,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.update",
+          "line": 1519,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        },
+        {
+          "scope": "User.update",
+          "line": 1522,
+          "kind": "call",
+          "expression": "self._con.transaction_commit"
+        },
+        {
+          "scope": "User.update",
+          "line": 1524,
+          "kind": "call",
+          "expression": "self._con.transaction_abort"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "oldaplib/src/xsd/dating.py",
+      "category": "runtime-or-script",
+      "sha256": "c2cf2e91ab206a62c265594afef27b3f05ee31975987d67e9fa46f3f14f17114",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "Dating.create",
+          "line": 359,
+          "kind": "call",
+          "expression": "con.update_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldaplib",
+      "commit": "9f7610de81cb37b9fb87b93c4c637b16c5e22a4b",
+      "path": "tools/build_testdata.py",
+      "category": "tool",
+      "sha256": "10a0725437e9520ef2820671b08d226a62aa6580201a90512df3579e7444799e",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "<module>",
+          "line": 138,
+          "kind": "call",
+          "expression": "con.clear_repo"
+        },
+        {
+          "scope": "<module>",
+          "line": 139,
+          "kind": "call",
+          "expression": "con.upload_turtle"
+        },
+        {
+          "scope": "<module>",
+          "line": 140,
+          "kind": "call",
+          "expression": "con.upload_turtle"
+        },
+        {
+          "scope": "<module>",
+          "line": 141,
+          "kind": "call",
+          "expression": "con.upload_turtle"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "development_services.py",
+      "category": "runtime-or-script",
+      "sha256": "780e2bd4d5669ea594733fd43ad01d1a61abf1bd7bc20c3526e1b1c13027c5ae",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "stop_services",
+          "line": 199,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "oldap_api/__init__.py",
+      "category": "runtime-or-script",
+      "sha256": "cedb5508418087a4a9d69b33e9df35c8616406df8a1e434ce196142f908cf00c",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "create_app.clear_object_cache",
+          "line": 84,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "oldap_api/archive_placement.py",
+      "category": "runtime-or-script",
+      "sha256": "0cdb00ae862f679f5f0bf188be5f8931490a4f273cefc9a7b818ea76f632adf9",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "placement_status",
+          "line": 38,
+          "kind": "call",
+          "expression": "resource_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "oldap_api/exports/repository.py",
+      "category": "runtime-or-script",
+      "sha256": "dc7b21f446ad62b45aae56dbb1a3a4f6b3b1ba104bc813d1f767fda42471be40",
+      "owners": [
+        "GraphDbExportJobRepository.claim_next",
+        "GraphDbExportJobRepository.complete_cleanup",
+        "GraphDbExportJobRepository.create",
+        "GraphDbExportJobRepository.create_with_manifest",
+        "GraphDbExportJobRepository.expire_next_ready",
+        "GraphDbExportJobRepository.purge_expired_audits",
+        "GraphDbExportJobRepository.renew_claim",
+        "GraphDbExportJobRepository.save",
+        "GraphDbExportJobRepository.update_notification"
+      ],
+      "sites": [
+        {
+          "scope": "GraphDbExportJobRepository.create",
+          "line": 325,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.create",
+          "line": 329,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.create",
+          "line": 330,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.create",
+          "line": 332,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.create_with_manifest",
+          "line": 345,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.create_with_manifest",
+          "line": 357,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.create_with_manifest",
+          "line": 358,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.create_with_manifest",
+          "line": 360,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.save",
+          "line": 394,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.save",
+          "line": 406,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.save",
+          "line": 407,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.save",
+          "line": 409,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.claim_next",
+          "line": 449,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.claim_next",
+          "line": 454,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.claim_next",
+          "line": 464,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.claim_next",
+          "line": 465,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.claim_next",
+          "line": 468,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.renew_claim",
+          "line": 491,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.renew_claim",
+          "line": 496,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.renew_claim",
+          "line": 497,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.renew_claim",
+          "line": 499,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.expire_next_ready",
+          "line": 505,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.expire_next_ready",
+          "line": 509,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.expire_next_ready",
+          "line": 517,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.expire_next_ready",
+          "line": 518,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.expire_next_ready",
+          "line": 521,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.update_notification",
+          "line": 538,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.update_notification",
+          "line": 545,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.update_notification",
+          "line": 546,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.update_notification",
+          "line": 548,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.purge_expired_audits",
+          "line": 554,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.purge_expired_audits",
+          "line": 564,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.purge_expired_audits",
+          "line": 567,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.purge_expired_audits",
+          "line": 570,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.purge_expired_audits",
+          "line": 573,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.complete_cleanup",
+          "line": 581,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.complete_cleanup",
+          "line": 586,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.complete_cleanup",
+          "line": 588,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.complete_cleanup",
+          "line": 591,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbExportJobRepository.complete_cleanup",
+          "line": 593,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbExportJobRepository._get_transactional",
+          "line": 598,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbExportJobRepository._all",
+          "line": 614,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbExportJobRepository._exists",
+          "line": 630,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbExportJobRepository._manifest_exists",
+          "line": 643,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "oldap_api/imports/repository.py",
+      "category": "runtime-or-script",
+      "sha256": "cb52f4a32617b87edae833a10e4f48e97aea6317ec780e8dd1f923c94397c5a5",
+      "owners": [
+        "GraphDbImportJobRepository.claim_next",
+        "GraphDbImportJobRepository.commit_import",
+        "GraphDbImportJobRepository.create",
+        "GraphDbImportJobRepository.replace"
+      ],
+      "sites": [
+        {
+          "scope": "GraphDbImportJobRepository.create",
+          "line": 257,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.create",
+          "line": 262,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.create",
+          "line": 263,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.create",
+          "line": 265,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.replace",
+          "line": 299,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.replace",
+          "line": 311,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.replace",
+          "line": 312,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.replace",
+          "line": 314,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.claim_next",
+          "line": 326,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.claim_next",
+          "line": 331,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.claim_next",
+          "line": 341,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.claim_next",
+          "line": 342,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.claim_next",
+          "line": 345,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.commit_import",
+          "line": 378,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.commit_import",
+          "line": 390,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.commit_import",
+          "line": 400,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.commit_import",
+          "line": 401,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbImportJobRepository.commit_import",
+          "line": 403,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbImportJobRepository._commit_target_context",
+          "line": 410,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbImportJobRepository._commit_target_context",
+          "line": 428,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbImportJobRepository._check_commit_collisions",
+          "line": 445,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbImportJobRepository._check_commit_collisions",
+          "line": 470,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbImportJobRepository._get_transactional",
+          "line": 480,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbImportJobRepository._all",
+          "line": 496,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbImportJobRepository._exists",
+          "line": 510,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbImportJobRepository._check_quota",
+          "line": 536,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "oldap_api/mobile_media/lifecycle.py",
+      "category": "runtime-or-script",
+      "sha256": "58cebec90679422d042a49886133f373b0b174b1f107280fd31f2a9c3ac1a685",
+      "owners": [
+        "GraphDbMobileMediaLifecycleOutbox.claim_next",
+        "GraphDbMobileMediaLifecycleOutbox.complete",
+        "GraphDbMobileMediaLifecycleOutbox.normalize_legacy_resource_reference"
+      ],
+      "sites": [
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.append_to_active_transaction",
+          "line": 127,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.normalize_legacy_resource_reference",
+          "line": 173,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.normalize_legacy_resource_reference",
+          "line": 176,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.normalize_legacy_resource_reference",
+          "line": 181,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.normalize_legacy_resource_reference",
+          "line": 214,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.normalize_legacy_resource_reference",
+          "line": 232,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.normalize_legacy_resource_reference",
+          "line": 235,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.claim_next",
+          "line": 248,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.claim_next",
+          "line": 251,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.claim_next",
+          "line": 254,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.claim_next",
+          "line": 264,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.claim_next",
+          "line": 267,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.claim_next",
+          "line": 270,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.complete",
+          "line": 288,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.complete",
+          "line": 291,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.complete",
+          "line": 305,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.complete",
+          "line": 313,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.complete",
+          "line": 316,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbMobileMediaLifecycleOutbox.complete",
+          "line": 318,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "oldap_api/mobile_media/repository.py",
+      "category": "runtime-or-script",
+      "sha256": "b2ce2330fd0f95085274e2f30f41a0989f84b837ab3550e4532ff6722e6af167",
+      "owners": [
+        "GraphDbMobileMediaRepository.commit"
+      ],
+      "sites": [
+        {
+          "scope": "GraphDbMobileMediaRepository.commit",
+          "line": 125,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbMobileMediaRepository.commit",
+          "line": 129,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbMobileMediaRepository.commit",
+          "line": 138,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbMobileMediaRepository.commit",
+          "line": 147,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbMobileMediaRepository.commit",
+          "line": 163,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbMobileMediaRepository.commit",
+          "line": 171,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbMobileMediaRepository.commit",
+          "line": 174,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbMobileMediaRepository._existing_receipt",
+          "line": 180,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbMobileMediaRepository._resolve_target",
+          "line": 223,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbMobileMediaRepository._resolve_inbox",
+          "line": 249,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "oldap_api/staging_area.py",
+      "category": "runtime-or-script",
+      "sha256": "d9dae8d0101fd1f192b4fff9bd2706dd20f644060ee864c4c6b14fb2d88571cc",
+      "owners": [
+        "GraphDbStagingAreaRepository.delete_empty",
+        "provision_staging_system_folders.provision"
+      ],
+      "sites": [
+        {
+          "scope": "provision_staging_system_folders.provision",
+          "line": 389,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "provision_staging_system_folders.provision",
+          "line": 391,
+          "kind": "call",
+          "expression": "connection.transaction_query"
+        },
+        {
+          "scope": "provision_staging_system_folders.provision",
+          "line": 395,
+          "kind": "call",
+          "expression": "connection.transaction_query"
+        },
+        {
+          "scope": "provision_staging_system_folders.provision",
+          "line": 398,
+          "kind": "reference",
+          "expression": "connection.transaction_query"
+        },
+        {
+          "scope": "provision_staging_system_folders.provision",
+          "line": 405,
+          "kind": "call",
+          "expression": "connection.transaction_update"
+        },
+        {
+          "scope": "provision_staging_system_folders.provision",
+          "line": 409,
+          "kind": "reference",
+          "expression": "connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository.delete_empty",
+          "line": 491,
+          "kind": "call",
+          "expression": "self._connection.transaction_start"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository.delete_empty",
+          "line": 499,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository.delete_empty",
+          "line": 511,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository.delete_empty",
+          "line": 518,
+          "kind": "call",
+          "expression": "self._connection.transaction_update"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository.delete_empty",
+          "line": 520,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository.delete_empty",
+          "line": 527,
+          "kind": "call",
+          "expression": "self._connection.transaction_commit"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository.delete_empty",
+          "line": 530,
+          "kind": "call",
+          "expression": "self._connection.transaction_abort"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository._has_active_import_reference",
+          "line": 535,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository._resolve_target",
+          "line": 551,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository._resolve_target",
+          "line": 557,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository._can_delete",
+          "line": 610,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        },
+        {
+          "scope": "GraphDbStagingAreaRepository._can_delete",
+          "line": 614,
+          "kind": "call",
+          "expression": "self._connection.transaction_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "oldap_api/staging_lock.py",
+      "category": "runtime-or-script",
+      "sha256": "10b49dc6db4ec09f6fe3e2a5bbf035d4e25d2aeccec012fd18e95c458208c312",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "RedisStagingMutationLock.run",
+          "line": 56,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "oldap_api/views/instance_views.py",
+      "category": "runtime-or-script",
+      "sha256": "17f49997455189fb686fefc44c3f0b9fe0778bd6f0571c0bcb453b90926377a7",
+      "owners": [
+        "update_instance.update"
+      ],
+      "sites": [
+        {
+          "scope": "update_instance.update",
+          "line": 1571,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "update_instance.update",
+          "line": 1593,
+          "kind": "callback",
+          "expression": "lifecycle_hook"
+        },
+        {
+          "scope": "delete_instance.delete",
+          "line": 1657,
+          "kind": "callback",
+          "expression": "lifecycle_hook"
+        },
+        {
+          "scope": "delete_instance.delete",
+          "line": 1668,
+          "kind": "callback",
+          "expression": "lifecycle_hook"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-api",
+      "commit": "9d58a12fd443a2e2b8b62aa3f0d078c45ee7ba26",
+      "path": "restart_api.py",
+      "category": "runtime-or-script",
+      "sha256": "14b794ad50e162016c641d9a4261e75324ca55676a0799a2bc7532c3e8934724",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "restart",
+          "line": 33,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-harvesters",
+      "commit": "4cc2d1607893abe819bf4e7668e1c6e91a32d429",
+      "path": "src/oldap_harvesters/sinks/fasnacht_oldap.py",
+      "category": "runtime-or-script",
+      "sha256": "f1fa0665b9955b0abaa931b870528a09a4869cb84215dda2c37d55e6ac3e8fbb",
+      "owners": [
+        "BibliographicOldapSink.fill_missing_dating",
+        "FasnachtResourceSink.write_linked_pdf",
+        "FasnachtResourceSink.write_payload"
+      ],
+      "sites": [
+        {
+          "scope": "FasnachtResourceSink.write_payload",
+          "line": 81,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "FasnachtResourceSink.write_linked_pdf",
+          "line": 115,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "BibliographicOldapSink.fill_missing_dating",
+          "line": 210,
+          "kind": "call",
+          "expression": "resource_transaction"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-harvesters",
+      "commit": "4cc2d1607893abe819bf4e7668e1c6e91a32d429",
+      "path": "src/oldap_harvesters/sinks/pdf_text.py",
+      "category": "runtime-or-script",
+      "sha256": "f04f3056a1257c69da4f11010f5777bd9c51818224d28c1ca74de1ecc8076900",
+      "owners": [
+        "PdfTextEnricher.enrich_iri"
+      ],
+      "sites": [
+        {
+          "scope": "PdfTextEnricher.enrich_iri",
+          "line": 82,
+          "kind": "call",
+          "expression": "resource_transaction"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-tools",
+      "commit": "1949fc5015b22a3a99b2d02908f1c7daecc2f48c",
+      "path": "src/oldap_tools/delete_projectdata.py",
+      "category": "runtime-or-script",
+      "sha256": "4c6a1552054e2922eced7400d9e5626d5ac96661bfa2af9153dab781e971a132",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "delete_projectdata",
+          "line": 42,
+          "kind": "call",
+          "expression": "con.clear_graph"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-tools",
+      "commit": "1949fc5015b22a3a99b2d02908f1c7daecc2f48c",
+      "path": "src/oldap_tools/fasnacht_taxonomy_migration.py",
+      "category": "runtime-or-script",
+      "sha256": "314817c3856c2cc9907c53aec06495141933d95fd7ed5911ffca86769ccead38",
+      "owners": [
+        "apply_fasnacht_taxonomy_migration"
+      ],
+      "sites": [
+        {
+          "scope": "apply_fasnacht_taxonomy_migration",
+          "line": 840,
+          "kind": "call",
+          "expression": "connection.transaction_start"
+        },
+        {
+          "scope": "apply_fasnacht_taxonomy_migration",
+          "line": 843,
+          "kind": "call",
+          "expression": "connection.transaction_update"
+        },
+        {
+          "scope": "apply_fasnacht_taxonomy_migration",
+          "line": 844,
+          "kind": "call",
+          "expression": "connection.transaction_query"
+        },
+        {
+          "scope": "apply_fasnacht_taxonomy_migration",
+          "line": 847,
+          "kind": "call",
+          "expression": "connection.transaction_commit"
+        },
+        {
+          "scope": "apply_fasnacht_taxonomy_migration",
+          "line": 849,
+          "kind": "call",
+          "expression": "connection.transaction_abort"
+        },
+        {
+          "scope": "apply_fasnacht_taxonomy_migration",
+          "line": 852,
+          "kind": "call",
+          "expression": "connection.update_query"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-tools",
+      "commit": "1949fc5015b22a3a99b2d02908f1c7daecc2f48c",
+      "path": "src/oldap_tools/load_sysgraph.py",
+      "category": "runtime-or-script",
+      "sha256": "d79ebdcdabf0f7a14b522facbdf7b7b3dd64e53dd4eea66b05157a2e4342406f",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "load_sysgraph",
+          "line": 47,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "load_sysgraph",
+          "line": 49,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "load_sysgraph",
+          "line": 52,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "load_sysgraph",
+          "line": 54,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "load_sysgraph",
+          "line": 57,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "restore_sysgraph",
+          "line": 116,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "restore_sysgraph",
+          "line": 117,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "restore_sysgraph",
+          "line": 119,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "restore_sysgraph",
+          "line": 120,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "restore_sysgraph",
+          "line": 122,
+          "kind": "call",
+          "expression": "con.move_graph"
+        },
+        {
+          "scope": "purge_sysgraph",
+          "line": 150,
+          "kind": "call",
+          "expression": "con.clear_graph"
+        },
+        {
+          "scope": "purge_sysgraph",
+          "line": 151,
+          "kind": "call",
+          "expression": "con.clear_graph"
+        },
+        {
+          "scope": "purge_sysgraph",
+          "line": 153,
+          "kind": "call",
+          "expression": "con.clear_graph"
+        },
+        {
+          "scope": "purge_sysgraph",
+          "line": 154,
+          "kind": "call",
+          "expression": "con.clear_graph"
+        },
+        {
+          "scope": "purge_sysgraph",
+          "line": 156,
+          "kind": "call",
+          "expression": "con.clear_graph"
+        }
+      ]
+    },
+    {
+      "repository": "oldap-tools",
+      "commit": "1949fc5015b22a3a99b2d02908f1c7daecc2f48c",
+      "path": "src/oldap_tools/ontology.py",
+      "category": "runtime-or-script",
+      "sha256": "948385501cfb87ce106640973fbb1c75730e0b5c30f2ff2db9247c19d3ce4741",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "_drop_lucene_connector",
+          "line": 480,
+          "kind": "call",
+          "expression": "con.update_query"
+        },
+        {
+          "scope": "_create_lucene_connector",
+          "line": 494,
+          "kind": "call",
+          "expression": "con.update_query"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/as-02/probe_archive_integration.py",
+      "category": "tool",
+      "sha256": "80290ef8c96446ae86cedc402103354869ac4f2d5a78b6d775c40f81d8e9a3f0",
+      "owners": [
+        "run_probe",
+        "run_probe.concurrent_moves"
+      ],
+      "sites": [
+        {
+          "scope": "run_probe",
+          "line": 416,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "run_probe.concurrent_moves",
+          "line": 466,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "run_probe",
+          "line": 513,
+          "kind": "call",
+          "expression": "resource_transaction"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/as-02/probe_graphdb_transactions.py",
+      "category": "tool",
+      "sha256": "5cc99d6ea4e8a24fd9ca85ce44b365e187709bad61a6105b840ffae0795ed221",
+      "owners": [
+        "<module>"
+      ],
+      "sites": [
+        {
+          "scope": "<module>",
+          "line": 113,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "<module>",
+          "line": 117,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "<module>",
+          "line": 134,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "<module>",
+          "line": 143,
+          "kind": "call",
+          "expression": "con.transaction_start"
+        },
+        {
+          "scope": "<module>",
+          "line": 144,
+          "kind": "call",
+          "expression": "other.transaction_start"
+        },
+        {
+          "scope": "<module>",
+          "line": 146,
+          "kind": "call",
+          "expression": "writer.transaction_update"
+        },
+        {
+          "scope": "<module>",
+          "line": 150,
+          "kind": "call",
+          "expression": "con.transaction_commit"
+        },
+        {
+          "scope": "<module>",
+          "line": 151,
+          "kind": "call",
+          "expression": "other.transaction_commit"
+        },
+        {
+          "scope": "<module>",
+          "line": 163,
+          "kind": "call",
+          "expression": "writer.in_transaction"
+        },
+        {
+          "scope": "<module>",
+          "line": 164,
+          "kind": "call",
+          "expression": "writer.transaction_abort"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/as-03/probe_repository_lifecycle.py",
+      "category": "tool",
+      "sha256": "18c8b35c50d34495bb8e68870763818b2fdf8e721a321866df7ded8983766811",
+      "owners": [
+        "run"
+      ],
+      "sites": [
+        {
+          "scope": "run",
+          "line": 386,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "run",
+          "line": 387,
+          "kind": "call",
+          "expression": "root.transaction_update"
+        },
+        {
+          "scope": "run",
+          "line": 430,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/as-04/probe_reviewed_adoption.py",
+      "category": "tool",
+      "sha256": "cff1ed340b2a12f910542e608f199fadfeffdbdcf342a2f958aab16d7a6dd68c",
+      "owners": [
+        "run"
+      ],
+      "sites": [
+        {
+          "scope": "run",
+          "line": 502,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "run",
+          "line": 503,
+          "kind": "call",
+          "expression": "con.transaction_update"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/as-05/probe_mixed_export.py",
+      "category": "tool",
+      "sha256": "e53c3484ae89ead5004e0c064af160e08188d6d565499bfa5f83ff91bb7cbfa4",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "run",
+          "line": 184,
+          "kind": "call",
+          "expression": "root.update_query"
+        },
+        {
+          "scope": "run",
+          "line": 295,
+          "kind": "call",
+          "expression": "root.update_query"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/as-09/local_migration.py",
+      "category": "tool",
+      "sha256": "be16f6322f33b747ccf0217f0ede31b1d0965244338e5cfc5b1789d1fdcb958f",
+      "owners": [
+        "run"
+      ],
+      "sites": [
+        {
+          "scope": "run",
+          "line": 59,
+          "kind": "call",
+          "expression": "mutation_gate"
+        },
+        {
+          "scope": "run",
+          "line": 109,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "run",
+          "line": 118,
+          "kind": "call",
+          "expression": "con.transaction_query"
+        },
+        {
+          "scope": "run",
+          "line": 128,
+          "kind": "call",
+          "expression": "con.transaction_query"
+        },
+        {
+          "scope": "run",
+          "line": 155,
+          "kind": "call",
+          "expression": "con.transaction_query"
+        },
+        {
+          "scope": "run",
+          "line": 170,
+          "kind": "call",
+          "expression": "con.transaction_query"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/as-09/rehearse_local_writer.py",
+      "category": "tool",
+      "sha256": "643c7898809dd43d8e1cb67003d7718c60bae17ec0f93e6547985c9aa4513c5a",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "<module>",
+          "line": 64,
+          "kind": "call",
+          "expression": "mutation_gate"
+        },
+        {
+          "scope": "<module>",
+          "line": 84,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/permissions/activation/enable_local.py",
+      "category": "tool",
+      "sha256": "0ba718f89dd7effacf87279c5dbcb0ee67950c0f6b8d4bf5a04a9f62eb0c679d",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "main",
+          "line": 64,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/permissions/verify-publication-local.py",
+      "category": "tool",
+      "sha256": "5e48cf7c66e11c1b9c8d09e1758a599bf219a0b389333f8d9ab7096e2360fa4d",
+      "owners": [
+        "main"
+      ],
+      "sites": [
+        {
+          "scope": "main",
+          "line": 60,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "main",
+          "line": 64,
+          "kind": "call",
+          "expression": "con.transaction_update"
+        },
+        {
+          "scope": "main",
+          "line": 69,
+          "kind": "call",
+          "expression": "con.transaction_update"
+        },
+        {
+          "scope": "main",
+          "line": 75,
+          "kind": "call",
+          "expression": "con.transaction_update"
+        },
+        {
+          "scope": "main",
+          "line": 84,
+          "kind": "reference",
+          "expression": "con.transaction_update"
+        },
+        {
+          "scope": "main",
+          "line": 106,
+          "kind": "call",
+          "expression": "resource_query"
+        },
+        {
+          "scope": "main",
+          "line": 114,
+          "kind": "call",
+          "expression": "resource_query"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/production-media-classifications/migrate.py",
+      "category": "tool",
+      "sha256": "cb151c90df47c51e4d4971e1a7b982440f96433210acb6c78eac6431a585f5d2",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "main",
+          "line": 56,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/production-rollout/apply_migration.py",
+      "category": "tool",
+      "sha256": "d976189eaef0324785eb08d5a185c8a463c0ee74eef2e69e63347a2ecac44b51",
+      "owners": [
+        "run"
+      ],
+      "sites": [
+        {
+          "scope": "run",
+          "line": 84,
+          "kind": "call",
+          "expression": "mutation_gate"
+        },
+        {
+          "scope": "run",
+          "line": 153,
+          "kind": "call",
+          "expression": "resource_transaction"
+        },
+        {
+          "scope": "run",
+          "line": 159,
+          "kind": "call",
+          "expression": "con.transaction_query"
+        },
+        {
+          "scope": "run",
+          "line": 169,
+          "kind": "call",
+          "expression": "con.transaction_query"
+        },
+        {
+          "scope": "run",
+          "line": 201,
+          "kind": "call",
+          "expression": "con.transaction_query"
+        },
+        {
+          "scope": "run",
+          "line": 213,
+          "kind": "call",
+          "expression": "con.transaction_query"
+        }
+      ]
+    },
+    {
+      "repository": "FasnachtsPage",
+      "commit": "c2297fe552f22cfd912c84aa747237c1e36f221c",
+      "path": "docs/wr-04/local_transition.py",
+      "category": "tool",
+      "sha256": "edd28adbe526d9f7627fda6ac821591c360b0cb0aa3fc5daf04fdb20f32b1e4e",
+      "owners": [],
+      "sites": [
+        {
+          "scope": "run",
+          "line": 358,
+          "kind": "call",
+          "expression": "mutation_gate"
+        }
+      ]
+    }
+  ]
+}

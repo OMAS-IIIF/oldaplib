@@ -1,0 +1,94 @@
+{
+  "java": "openjdk version \"25.0.2\" 2026-01-20\nOpenJDK Runtime Environment Homebrew (build 25.0.2)\nOpenJDK 64-Bit Server VM Homebrew (build 25.0.2, mixed mode, sharing)",
+  "jar_sha512": "59c5d0fd4e3f2c51819816dd178ee7d619552aae12400286338cc55c6955653e6c503d58b6cb12f3124407c903a81a2ecf4a9b0d5ba8028e7fcdc7c5c98710d4",
+  "port": 3032,
+  "checks": [
+    "Java transaction probe",
+    "Pinned server version",
+    "Explicit reifier permission join",
+    "Admin permission annotation",
+    "Membership does not invent a default permission",
+    "Explicit default permission annotation",
+    "Annotations stay in their named graph",
+    "Repeated anonymous shorthand creates distinct reifiers",
+    "Stable reifier repeated INSERT is idempotent",
+    "Triple term JSON result",
+    "Reification does not assert the base triple",
+    "Turtle export/reimport preserves reifier",
+    "Role revocation removes effective access",
+    "Grant deletion leaves no annotation residue",
+    "HTTP update visible in a separate request",
+    "Runtime failure returns an error",
+    "One HTTP update request rolls back all operations",
+    "Earlier HTTP request is not rolled back",
+    "No RDF4J transaction endpoint on stock dataset",
+    "False WHERE does not abort a following unguarded receipt",
+    "Guarded stale mutation creates no receipt",
+    "One guarded update changes data and records receipt",
+    "Exact synthetic retry leaves one receipt",
+    "Concurrent guarded HTTP mutations have exactly one receipt",
+    "Concurrent guarded mutations advance the revision only once",
+    "Revocation: legacy missing version becomes one with metadata and receipt",
+    "Revocation: exact replay does not increment twice",
+    "Revocation: stale model produces no receipt or mutation",
+    "Revocation: reused operation ID rejects changed payload without effects",
+    "Revocation: receipt identity binds actor",
+    "Revocation: old replay returns its own result after later revocation",
+    "Revocation: matching version with stale timestamp changes nothing",
+    "Revocation: concurrent distinct commands have one winner",
+    "Revocation: concurrent identical retries increment once",
+    "Revocation: receipt reconciles simulated lost acknowledgement",
+    "Revocation: exact retry after lost acknowledgement is safe",
+    "Revocation: missing receipt alone does not prove rollback",
+    "Revocation: receipt and user state survive restart",
+    "HTTP dataset persists across server restart",
+    "Aborted HTTP writes remain absent after restart"
+  ],
+  "java_transaction_checks": [
+    "PASS read-own-writes, concurrent-reader isolation, full rollback",
+    "PASS resource-and-receipt commit visibility",
+    "PASS concurrent read-check-write claims: exactly one winner",
+    "PASS dataset close/reopen retains committed data (not a crash test)"
+  ],
+  "triple_term_json": {
+    "head": {
+      "vars": [
+        "term"
+      ]
+    },
+    "results": {
+      "bindings": [
+        {
+          "term": {
+            "type": "triple",
+            "value": {
+              "subject": {
+                "type": "uri",
+                "value": "urn:jena-probe:item"
+              },
+              "predicate": {
+                "type": "uri",
+                "value": "http://oldap.org/base#attachedToRole"
+              },
+              "object": {
+                "type": "uri",
+                "value": "urn:jena-probe:readerRole"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "failed_update_status": 400,
+  "rdf4j_transaction_endpoint_status": 405,
+  "status": "passed",
+  "source_sha256": {
+    "oldaplib/src/helpers/authentication_revocation.py": "f90721d26367c74d183522188dc267199dd8e054124c3bda1a4a71a5901ae7d4",
+    "oldaplib/src/user.py": "3c8e78be8d5b7941f75a0431df2fc46d57b5e4a6710d8046c61337412a4ee17e",
+    "oldaplib/test/test_authentication_revocation_unit.py": "54ede19aa5c7c255ce619566a98bcb320da1fa48ed6a01c8b3a3d420a8fa3c1e",
+    "tools/migration/probe_authentication_revocation.py": "5b16b441144eb0343ea51f2af5051cfd733fbf96a3535b45c6c7fd9eccaa680c",
+    "tools/migration/probe_jena.py": "cce0984fc056c9c561324e1c8b5822425b89339acff67c4a87736a04689e73ac"
+  },
+  "scope": "Isolated synthetic Fuseki pilot; public connection remains GraphDB. Lost acknowledgement is simulated after completed response; restart is graceful."
+}

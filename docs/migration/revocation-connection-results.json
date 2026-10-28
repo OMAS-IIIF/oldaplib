@@ -1,0 +1,102 @@
+{
+  "java": "openjdk version \"25.0.2\" 2026-01-20\nOpenJDK Runtime Environment Homebrew (build 25.0.2)\nOpenJDK 64-Bit Server VM Homebrew (build 25.0.2, mixed mode, sharing)",
+  "jar_sha512": "59c5d0fd4e3f2c51819816dd178ee7d619552aae12400286338cc55c6955653e6c503d58b6cb12f3124407c903a81a2ecf4a9b0d5ba8028e7fcdc7c5c98710d4",
+  "port": 3032,
+  "checks": [
+    "Java transaction probe",
+    "Pinned server version",
+    "Explicit reifier permission join",
+    "Admin permission annotation",
+    "Membership does not invent a default permission",
+    "Explicit default permission annotation",
+    "Annotations stay in their named graph",
+    "Repeated anonymous shorthand creates distinct reifiers",
+    "Stable reifier repeated INSERT is idempotent",
+    "Triple term JSON result",
+    "Reification does not assert the base triple",
+    "Turtle export/reimport preserves reifier",
+    "Role revocation removes effective access",
+    "Grant deletion leaves no annotation residue",
+    "HTTP update visible in a separate request",
+    "Runtime failure returns an error",
+    "One HTTP update request rolls back all operations",
+    "Earlier HTTP request is not rolled back",
+    "No RDF4J transaction endpoint on stock dataset",
+    "False WHERE does not abort a following unguarded receipt",
+    "Guarded stale mutation creates no receipt",
+    "One guarded update changes data and records receipt",
+    "Exact synthetic retry leaves one receipt",
+    "Concurrent guarded HTTP mutations have exactly one receipt",
+    "Concurrent guarded mutations advance the revision only once",
+    "Revocation: legacy missing version becomes one with metadata and receipt",
+    "Revocation: exact replay does not increment twice",
+    "Revocation: stale model produces no receipt or mutation",
+    "Revocation: reused operation ID rejects changed payload without effects",
+    "Revocation: receipt identity binds actor",
+    "Revocation: old replay returns its own result after later revocation",
+    "Revocation: matching version with stale timestamp changes nothing",
+    "Revocation: concurrent distinct commands have one winner",
+    "Revocation: concurrent identical retries increment once",
+    "Revocation: receipt reconciles simulated lost acknowledgement",
+    "Revocation: exact retry after lost acknowledgement is safe",
+    "Revocation: missing receipt alone does not prove rollback",
+    "Public User: unchanged return type, object metadata and cache invalidation",
+    "Public User: stale call raises existing conflict without local/cache mutation",
+    "Public User: confirmed receipt resolves lost acknowledgement before success",
+    "Public User: unknown result preserves object/cache and recovery identity",
+    "Public User: exact retained attempt recovers once without stale object publication",
+    "Revocation: receipt and user state survive restart",
+    "HTTP dataset persists across server restart",
+    "Aborted HTTP writes remain absent after restart"
+  ],
+  "java_transaction_checks": [
+    "PASS read-own-writes, concurrent-reader isolation, full rollback",
+    "PASS resource-and-receipt commit visibility",
+    "PASS concurrent read-check-write claims: exactly one winner",
+    "PASS dataset close/reopen retains committed data (not a crash test)"
+  ],
+  "triple_term_json": {
+    "head": {
+      "vars": [
+        "term"
+      ]
+    },
+    "results": {
+      "bindings": [
+        {
+          "term": {
+            "type": "triple",
+            "value": {
+              "subject": {
+                "type": "uri",
+                "value": "urn:jena-probe:item"
+              },
+              "predicate": {
+                "type": "uri",
+                "value": "http://oldap.org/base#attachedToRole"
+              },
+              "object": {
+                "type": "uri",
+                "value": "urn:jena-probe:readerRole"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "failed_update_status": 400,
+  "rdf4j_transaction_endpoint_status": 405,
+  "status": "passed",
+  "source_sha256": {
+    "oldaplib/src/iconnection.py": "d57e1642d0a9802bdb29b7eca9fb2e8a4e01ea25997a6d57ab7e6fad253112ce",
+    "oldaplib/src/user.py": "37df565c4e9de83f0bf3ddfb4483ff18e96e62f4999f1f521ed1f4fb9c509bfd",
+    "oldaplib/src/helpers/authentication_revocation.py": "f90721d26367c74d183522188dc267199dd8e054124c3bda1a4a71a5901ae7d4",
+    "oldaplib/src/helpers/jena_authentication_revocation.py": "e9fc9bc32a3b757ef3ac92978968c1f2b848a50d95be6a87939c62a7538c80de",
+    "oldaplib/test/test_jena_authentication_revocation.py": "3ed073e05c436c22ad2a90ee301d7ed2399f5f64192c1653d36502457ba1f03b",
+    "oldaplib/test/test_authentication_revocation_unit.py": "c3364913aac68bd29df0b06121e97251a2932684075ab5404b8150965f4799e8",
+    "tools/migration/probe_jena.py": "9955302aee4b4be1b6cb350fbd0d23ab7ba81f73b7c5001cb3b188a2330f0f20",
+    "tools/migration/probe_revocation_connection.py": "ba9accb52c1f7675cb5477ba8d7e4b599ffd5e367488e9e584c0b89f9b1ecf82"
+  },
+  "scope": "Synthetic restricted IConnection runs actual User.revoke_authentication against owned Fuseki; Redis mocked; no login/general Jena backend; simulated transport failure."
+}

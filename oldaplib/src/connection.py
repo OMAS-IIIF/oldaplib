@@ -194,7 +194,6 @@ class Connection(IConnection):
             logger.error("Connection with wrong credentials")
             raise OldapError("Wrong credentials")
 
-        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         #
         # Get projects and add to Context
         #
@@ -212,45 +211,15 @@ class Connection(IConnection):
             }
         }
         """
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
-        }
-        data = {
-            'query': sparql,
-        }
-        res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
-        if res.status_code == 200:
-            jsonobj = res.json()
-        else:
-            logger.error(f"Could not connect to triplestore: {res.text}")
-            raise OldapError(res.status_code, res.text)
-        res = QueryProcessor(context=context, query_result=jsonobj)
+        res = QueryProcessor(context=context, query_result=self._bootstrap_query(sparql))
         for r in res:
             context[r['sname']] = r['ns']
 
         #
         # Query the user data
         #
-        sparql = UserData.sparql_query(context=context, userId=userId)
-
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
-        }
-        data = {
-            'query': sparql,
-        }
-        #
-        # if we have protected the triplestore by a user/password, add it to the request
-        #
-        res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
-        if res.status_code == 200:
-            jsonobj = res.json()
-        else:
-            logger.error(f"Could not connect to triplestore: {res.text}")
-            raise OldapError(res.status_code, res.text)
-        res = QueryProcessor(context=context, query_result=jsonobj)
+        sparql = self._bootstrap_user_query(context, userId)
+        res = QueryProcessor(context=context, query_result=self._bootstrap_query(sparql))
 
         userdata = UserData.from_query(res)
         if not userdata.isActive:
@@ -267,6 +236,41 @@ class Connection(IConnection):
         if issue_access_token:
             self._token = self.__token_codec.issue_access_token(self._userdata)
         logger.info(f'Connection established. User "{str(self._userdata.userId)}".')
+
+    def _bootstrap_query(self, sparql: str) -> dict[str, Any]:
+        """Read initialization data using the backend service credentials.
+
+        Args:
+            sparql: Project namespace or user-data SELECT query.
+
+        Returns:
+            SPARQL JSON results consumed by the existing QueryProcessor.
+
+        Raises:
+            OldapError: If the triplestore rejects the request.
+
+        The GraphDB default preserves the existing request format. An alternate
+        backend may override this internal boundary without copying password or
+        token validation, or changing the public constructor.
+        """
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        response = requests.post(
+            url=self._query_url,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
+            },
+            data={'query': sparql},
+            auth=auth,
+        )
+        if response.status_code != 200:
+            logging.getLogger(__name__).error("Could not connect to triplestore: %s", response.text)
+            raise OldapError(response.status_code, response.text)
+        return response.json()
+
+    def _bootstrap_user_query(self, context: Context, user_id: Xsd_NCName) -> str:
+        """Select the backend's user query; the default remains GraphDB RDF*."""
+        return UserData.sparql_query(context=context, userId=user_id)
 
     @staticmethod
     def version(self) -> str:
