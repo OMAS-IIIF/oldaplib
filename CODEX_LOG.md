@@ -1,3 +1,9 @@
+### Update 2026-11-03 23:25
+- Decisions: Fix proven TCP port exhaustion with a per-JenaConnection HTTP pool; preserve API signatures, explicit conflict retry and uncertain-write semantics. No deployment, push or merge.
+- Implementation: Library replaces per-call requests.post with an owned Session, closed on initialization failure or collection. Added real HTTP reuse/actor-isolation/no-write-retry and lifecycle regressions; adjusted transport test mocks. Recorded errno 49 diagnosis, source hashes and full acceptance in API readiness evidence.
+- Open: Coordinated 1.0 dependencies/packages and final home/consumer acceptance; installed services still use previous code.
+- Risks/Assumptions: 162 complete untraced integration checks pass, including unchanged stale-adoption 409. Library: 65 offline tests + 6 subtests and 3 owned HTTP/lifecycle tests; API: 61 offline + 13 subtests. Baseline used 20 TCP connections for 20 calls; fixed uses one. No shared DB/Redis; Java diagnostics were temporary and removed. Historical callback failure's own socket cause remains unproven.
+
 ### Update 2026-11-03 22:27
 - Decisions: Checkpoint the outstanding library migration on migration/jena before coordinated 1.0 packaging. Preserve public signatures and existing version; no merge, tag, push or deployment.
 - Implementation: Reviewed candidate file inventory, backend/query/permission boundaries and explicit Java build sources; AST comparison found no changed existing public argument lists. Corrected PropertyClass module-docstring placement and marked historical semantics status. Retained source/tests/service/conversion tools and evidence, with a merge-readiness record.

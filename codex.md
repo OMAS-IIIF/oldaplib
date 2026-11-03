@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- HTTP pooling (2026-11-03): JenaConnection owns one task-local requests.Session, preventing reproduced macOS EADDRNOTAVAIL under the full API probe. Pools close on failed construction/collection; per-request credentials, public signatures and transaction/retry rules are unchanged. Owned HTTP/lifecycle regressions and full API acceptance pass. See docs/migration/jena-merge-readiness.md. Not deployed.
+
 - Merge preparation (2026-11-03): the outstanding Jena implementation is checkpointed locally on migration/jena, including source, service, tools and evidence. Existing public argument lists remain unchanged in the modified Python modules. Focused tests, isolated wheel imports, real service restart/crash/fulltext acceptance and converter checks pass. Version remains 0.7.29, not for republication; 1.0 dependency/consumer/final acceptance work remains. See docs/migration/jena-merge-readiness.md.
 
 - Jena admission retry (2026-11-03): transaction_start retries only explicit BEGIN 409 refusal, up to five attempts with 750 ms total backoff and fresh journaled IDs. No retry for uncertain admission or UPDATE/COMMIT; public signatures and GraphDB are unchanged. See the cutover guide and transport tests.

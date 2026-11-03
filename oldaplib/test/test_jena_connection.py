@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
+import requests
 
 from oldaplib.src.jena_connection import JenaConnection, JenaSettings
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorConfiguration
@@ -11,6 +12,7 @@ from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorConfiguration
 def connection():
     """Bypass credential bootstrap to test only session state transitions."""
     con = object.__new__(JenaConnection)
+    con._http = requests.Session()
     con._jena = JenaSettings('http://localhost:9999/tx', 'service', 'bootstrap', 'admin', 60)
     con._session_id = uuid4()
     con._transaction_url = f'{con._jena.url}/STATUS/{con._session_id}'
@@ -63,7 +65,7 @@ def test_invalid_timeout_fails_before_transport(monkeypatch, timeout):
 
 def test_bootstrap_does_not_follow_redirect_or_leak_body():
     con = connection()
-    with patch('oldaplib.src.jena_connection.requests.post', return_value=Mock(status_code=302, text='secret')) as post:
+    with patch('oldaplib.src.jena_connection.requests.Session.post', return_value=Mock(status_code=302, text='secret')) as post:
         with pytest.raises(OldapErrorConfiguration, match='uncertain') as error:
             con._send('BOOTSTRAP', 'ASK {}', bootstrap=True)
     assert 'secret' not in str(error.value)
@@ -114,7 +116,7 @@ def idle_connection():
 
 def test_refused_begin_retries_fresh_ids_and_balances_ownership():
     con = idle_connection()
-    with patch('oldaplib.src.jena_connection.requests.post', side_effect=[
+    with patch('oldaplib.src.jena_connection.requests.Session.post', side_effect=[
         Mock(status_code=409), Mock(status_code=409), Mock(status_code=200, text='active')
     ]) as post, patch('oldaplib.src.jena_connection.time.sleep') as sleep, \
             patch('oldaplib.src.jena_connection.transaction_opened') as opened, \
@@ -132,7 +134,7 @@ def test_refused_begin_retries_fresh_ids_and_balances_ownership():
 def test_persistent_begin_refusal_is_bounded_and_leaves_no_owner():
     from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists
     con = idle_connection()
-    with patch('oldaplib.src.jena_connection.requests.post', return_value=Mock(status_code=409)) as post, \
+    with patch('oldaplib.src.jena_connection.requests.Session.post', return_value=Mock(status_code=409)) as post, \
             patch('oldaplib.src.jena_connection.time.sleep') as sleep, \
             patch('oldaplib.src.jena_connection.transaction_opened') as opened, \
             patch('oldaplib.src.jena_connection.transaction_closed') as closed:
@@ -154,7 +156,7 @@ def test_other_begin_failures_never_retry_and_retain_uncertain_owner(failure, pr
              requests.ConnectionError('private URL') if failure == 'connection' else
              Mock(status_code=failure))
     replies = ([Mock(status_code=409)] if prior_refusal else []) + [error]
-    with patch('oldaplib.src.jena_connection.requests.post', side_effect=replies) as post, \
+    with patch('oldaplib.src.jena_connection.requests.Session.post', side_effect=replies) as post, \
             patch('oldaplib.src.jena_connection.time.sleep') as sleep, \
             patch('oldaplib.src.jena_connection.transaction_opened') as opened, \
             patch('oldaplib.src.jena_connection.transaction_closed') as closed:
@@ -173,7 +175,7 @@ def test_update_conflict_is_not_retried():
     from oldaplib.src.helpers.oldaperror import OldapErrorAlreadyExists
     con = connection()
     con._token = 'synthetic-access-token'
-    with patch('oldaplib.src.jena_connection.requests.post', return_value=Mock(status_code=409)) as post, \
+    with patch('oldaplib.src.jena_connection.requests.Session.post', return_value=Mock(status_code=409)) as post, \
             patch('oldaplib.src.jena_connection.time.sleep') as sleep:
         with pytest.raises(OldapErrorAlreadyExists):
             con.transaction_update('INSERT DATA {}')

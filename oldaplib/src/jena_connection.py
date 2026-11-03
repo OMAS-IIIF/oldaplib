@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import json
 import os
 import time
+import weakref
 from urllib.parse import urlsplit
 from uuid import uuid4
 
@@ -80,10 +81,25 @@ class JenaConnection(Connection):
         self._uncertain = False
         self._text_revision = None
         kwargs.update(server=self._jena.url, repo='jena')
-        super().__init__(**kwargs)
+        # One task-local pool serves bootstrap, reads and transaction operations.
+        # Opening a TCP connection for every model query can exhaust ephemeral
+        # ports during bulk work. Credentials remain explicit per-request headers;
+        # Requests' default adapters do not retry failed requests.
+        self._http = requests.Session()
+        # Release idle sockets when the owning connection is collected, including cycles.
+        cleanup = weakref.finalize(self, self._http.close)
+        try:
+            super().__init__(**kwargs)
+        except BaseException:
+            cleanup()
+            raise
 
     def _send(self, operation, body='', *, bootstrap=False, admin=False, timeout=None):
-        """Send once; do not expose response bodies or credentials in errors."""
+        """Reuse the transport, send once, and keep errors free of credentials.
+
+        Closing the HTTP pool only releases sockets; transaction ownership and
+        uncertain outcomes still follow the explicit commit/abort protocol.
+        """
         headers = {'X-Oldap-Service-Key': self._jena.service_key, 'Content-Type': 'text/plain; charset=utf-8'}
         if bootstrap:
             headers['X-Oldap-Bootstrap-Key'] = self._jena.bootstrap_key
@@ -96,7 +112,7 @@ class JenaConnection(Connection):
         if admin:
             headers['X-Oldap-Fulltext-Admin-Key'] = self._jena.fulltext_key
         try:
-            response = requests.post(self._jena.url + path, data=body.encode('utf-8'), headers=headers,
+            response = self._http.post(self._jena.url + path, data=body.encode('utf-8'), headers=headers,
                                      timeout=timeout or self._jena.timeout, allow_redirects=False)
         except requests.RequestException as error:
             raise OldapErrorConfiguration(f'Jena {operation} response unavailable; no automatic retry.') from error

@@ -4,6 +4,22 @@ This records a local checkpoint on `migration/jena`, not final 1.0 approval.
 The coordinated sequence is in sibling setup's
 [release plan](../../../oldap-setup/docs/jena-1.0-merge-plan.md).
 
+## HTTP transport correction after the checkpoint
+
+The normal-speed API probe exposed local TCP port exhaustion: the Python
+transport raised `OSError` errno 49 (`EADDRNOTAVAIL`) during model loading.
+Every `requests.post` previously created and closed its own HTTP pool. A loopback
+regression reproduced 20 TCP connections for 20 calls; the corrected adapter
+uses one task-local `requests.Session` per `JenaConnection`, including bootstrap.
+It closes the pool on failed initialization or when its owner is collected.
+Credentials remain explicit request headers. No shared user session, new public
+method/signature, automatic HTTP retry or transaction cleanup/replay was added.
+
+The regression exercises real HTTP/1.1 reuse, independent actors, a single failed
+UPDATE attempt and pool cleanup. Existing admission/uncertain-commit semantics
+remain covered. See the sibling API readiness report for full-sequence evidence.
+No Java, GraphDB or deployed-service change is part of this correction.
+
 ## Scope and review
 
 The checkpoint captures the previously uncommitted Jena adapter, RDF 1.2 grants,
